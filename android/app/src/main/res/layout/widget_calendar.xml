@@ -1,0 +1,1288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cal_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="#EDF2ED">
+
+    <!-- Month nav header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="2dp">
+
+        <TextView
+            android:id="@+id/cal_prev"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="[&lt;]"
+            android:textColor="#7A8F5A"
+            android:fontFamily="monospace"
+            android:textSize="14sp"
+            android:padding="6dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/cal_month_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="2026.01"
+            android:textColor="#556B2F"
+            android:fontFamily="monospace"
+            android:textSize="15sp"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/cal_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="[&gt;]"
+            android:textColor="#7A8F5A"
+            android:fontFamily="monospace"
+            android:textSize="14sp"
+            android:padding="6dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+    <!-- divider: ImageView (RemoteViews-safe; plain View is not a remotable class) -->
+    <ImageView
+        android:id="@+id/cal_divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp"
+        android:scaleType="fitXY"
+        android:contentDescription="@null"
+        android:background="#B0C4B0" />
+
+    <!-- Day-of-week labels row -->
+    <LinearLayout
+        android:id="@+id/cal_dow_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="2dp">
+        <TextView android:id="@+id/cal_dow_0" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="MON" android:textColor="#7A8F5A" android:fontFamily="monospace"
+            android:textSize="14sp" android:gravity="center" />
+        <TextView android:id="@+id/cal_dow_1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="TUE" android:textColor="#7A8F5A" android:fontFamily="monospace"
+            android:textSize="14sp" android:gravity="center" />
+        <TextView android:id="@+id/cal_dow_2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="WED" android:textColor="#7A8F5A" android:fontFamily="monospace"
+            android:textSize="14sp" android:gravity="center" />
+        <TextView android:id="@+id/cal_dow_3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="THU" android:textColor="#7A8F5A" android:fontFamily="monospace"
+            android:textSize="14sp" android:gravity="center" />
+        <TextView android:id="@+id/cal_dow_4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="FRI" android:textColor="#7A8F5A" android:fontFamily="monospace"
+            android:textSize="14sp" android:gravity="center" />
+        <TextView android:id="@+id/cal_dow_5" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="SAT" android:textColor="#7A8F5A" android:fontFamily="monospace"
+            android:textSize="14sp" android:gravity="center" />
+        <TextView android:id="@+id/cal_dow_6" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="SUN" android:textColor="#7A8F5A" android:fontFamily="monospace"
+            android:textSize="14sp" android:gravity="center" />
+    </LinearLayout>
+
+    <!-- Calendar grid: static weighted 6x7 cells (fills the widget at any size) -->
+    <LinearLayout
+        android:id="@+id/cal_grid_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/cal_week_0"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/cal_cell_0"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_0"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_0"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_1"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_1"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_2"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_2"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_3"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_3"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_3"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_4"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_4"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_4"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_5"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_5"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_5"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_6"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_6"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_6"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/cal_week_1"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/cal_cell_7"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_7"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_7"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_8"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_8"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_8"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_9"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_9"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_9"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_10"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_10"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_10"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_11"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_11"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_11"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_12"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_12"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_12"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_13"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_13"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_13"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/cal_week_2"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/cal_cell_14"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_14"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_14"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_15"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_15"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_15"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_16"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_16"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_16"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_17"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_17"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_17"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_18"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_18"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_18"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_19"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_19"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_19"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_20"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_20"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_20"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/cal_week_3"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/cal_cell_21"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_21"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_21"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_22"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_22"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_22"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_23"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_23"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_23"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_24"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_24"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_24"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_25"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_25"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_25"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_26"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_26"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_26"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_27"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_27"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_27"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/cal_week_4"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/cal_cell_28"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_28"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_28"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_29"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_29"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_29"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_30"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_30"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_30"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_31"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_31"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_31"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_32"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_32"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_32"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_33"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_33"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_33"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_34"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_34"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_34"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/cal_week_5"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/cal_cell_35"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_35"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_35"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_36"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_36"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_36"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_37"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_37"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_37"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_38"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_38"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_38"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_39"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_39"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_39"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_40"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_40"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_40"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/cal_cell_41"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="1dp">
+            <TextView
+                android:id="@+id/cal_day_41"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#7A8F5A"
+                android:fontFamily="monospace"
+                android:textSize="14sp" />
+            <ImageView
+                android:id="@+id/cal_dot_41"
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginTop="1dp"
+                android:contentDescription="@null"
+                android:background="#556B2F"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

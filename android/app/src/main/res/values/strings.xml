@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">mumuun</string>
+    <string name="widget_memo">mumuun</string>
+    <string name="widget_quick">mumuun quick</string>
+    <string name="widget_list">mumuun list</string>
+    <string name="widget_calendar">mumuun cal</string>
+</resources>

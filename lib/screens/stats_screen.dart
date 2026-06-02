@@ -1,0 +1,564 @@
+import 'package:flutter/material.dart';
+import '../app_theme.dart';
+import '../models/memo.dart';
+import '../widgets/memo_tile.dart';
+
+class StatsView extends StatefulWidget {
+  final List<Memo> memos;
+  final String? contextLabel;
+  final void Function(Memo)? onDelete;
+  final void Function(Memo, String)? onUpdate;
+  final void Function(Memo, String?)? onMove;
+  const StatsView({
+    super.key,
+    required this.memos,
+    this.contextLabel,
+    this.onDelete,
+    this.onUpdate,
+    this.onMove,
+  });
+
+  @override
+  State<StatsView> createState() => _StatsViewState();
+}
+
+class _StatsViewState extends State<StatsView> {
+  late DateTime _month;
+  int? _selectedDay; // day tapped in heatmap
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _month = DateTime(now.year, now.month);
+  }
+
+  // ── computed ──────────────────────────────
+
+  int get _memoCount => widget.memos.length;
+  int get _todoCount => widget.memos.where((m) => m.isChecklist).length;
+  int get _eventCount => widget.memos.where((m) => m.reminderAt != null).length;
+
+  int get _wordCount {
+    int total = 0;
+    for (final m in widget.memos) {
+      total += m.content.trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+    }
+    return total;
+  }
+
+  int get _streak {
+    if (widget.memos.isEmpty) return 0;
+    final days = widget.memos.map((m) {
+      final d = m.createdAt;
+      return DateTime(d.year, d.month, d.day);
+    }).toSet().toList()..sort((a, b) => b.compareTo(a));
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    DateTime check;
+    if (days.contains(today)) {
+      check = today;
+    } else if (days.contains(yesterday)) {
+      check = yesterday;
+    } else {
+      return 0;
+    }
+    int streak = 0;
+    for (final day in days) {
+      if (day == check) {
+        streak++;
+        check = check.subtract(const Duration(days: 1));
+      } else if (day.isBefore(check)) {
+        break;
+      }
+    }
+    return streak;
+  }
+
+  Map<String, int> get _tagCounts {
+    final counts = <String, int>{};
+    for (final m in widget.memos) {
+      for (final t in m.tags) {
+        counts[t] = (counts[t] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  Map<int, int> _memoCountsInMonth(DateTime month) {
+    final counts = <int, int>{};
+    for (final m in widget.memos) {
+      if (m.createdAt.year == month.year && m.createdAt.month == month.month) {
+        counts[m.createdAt.day] = (counts[m.createdAt.day] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  List<Memo> _memosOnDay(DateTime month, int day) => widget.memos
+      .where((m) =>
+          m.createdAt.year == month.year &&
+          m.createdAt.month == month.month &&
+          m.createdAt.day == day)
+      .toList()
+    ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  List<MapEntry<String, int>> get _wordsPerMonth {
+    final counts = <String, int>{};
+    for (final m in widget.memos) {
+      final key =
+          '${m.createdAt.year}.${m.createdAt.month.toString().padLeft(2, '0')}';
+      final words = m.content.trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+      counts[key] = (counts[key] ?? 0) + words;
+    }
+    final sorted = counts.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+    return sorted.length > 12 ? sorted.sublist(sorted.length - 12) : sorted;
+  }
+
+  // ── build ─────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: themeNotifier,
+      builder: (_, __, ___) => _buildContent(),
+    );
+  }
+
+  Widget _buildContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildStatsSection(),
+          _divider(),
+          _buildActivitySection(),
+          _divider(),
+          _buildTopTagsSection(),
+          _divider(),
+          _buildWordsPerMonthSection(),
+          _divider(),
+          _buildMeta(),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 10),
+    child: Text(
+      '─' * 200,
+      style: mono(color: kBorder, fontSize: 10, height: 1),
+      overflow: TextOverflow.clip,
+      maxLines: 1,
+      softWrap: false,
+    ),
+  );
+
+  // ── [ STATS ] ─────────────────────────────
+
+  Widget _buildStatsSection() {
+    final items = [
+      ('memos    ', _memoCount.toString()),
+      ('todos    ', _todoCount.toString()),
+      ('events   ', _eventCount.toString()),
+      ('words    ', _wordCount.toString()),
+      ('streak   ', '$_streak days'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('[ STATS ]', style: mono(color: kMint, fontSize: 12, letterSpacing: 1)),
+            if (widget.contextLabel != null) ...[
+              const SizedBox(width: 8),
+              Text(
+                '— ${widget.contextLabel}',
+                style: mono(color: kDim.withValues(alpha: 0.7), fontSize: 10),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 10),
+        ...items.map((item) => Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              Text('  ${item.$1}', style: mono(color: kDim, fontSize: 11)),
+              Text(item.$2, style: mono(color: kText, fontSize: 11)),
+            ],
+          ),
+        )),
+      ],
+    );
+  }
+
+  // ── [ ACTIVITY ] ──────────────────────────
+
+  // 5-step color: 0=empty, 1-5=progressively darker
+  Color _heatColor(int count, int maxCount) {
+    if (count == 0) return Colors.transparent;
+    if (maxCount == 0) return kMint.withValues(alpha: 0.9);
+    final ratio = count / maxCount;
+    if (ratio <= 0.2) return kMint.withValues(alpha: 0.22);
+    if (ratio <= 0.4) return kMint.withValues(alpha: 0.40);
+    if (ratio <= 0.6) return kMint.withValues(alpha: 0.58);
+    if (ratio <= 0.8) return kMint.withValues(alpha: 0.75);
+    return kMint.withValues(alpha: 0.92);
+  }
+
+  Widget _buildActivitySection() {
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final firstDay = DateTime(_month.year, _month.month, 1);
+    final lastDay = DateTime(_month.year, _month.month + 1, 0);
+    final daysInMonth = lastDay.day;
+    final startOffset = firstDay.weekday - 1; // 0=Mon
+    final counts = _memoCountsInMonth(_month);
+    final maxCount = counts.values.isEmpty ? 0 : counts.values.reduce((a, b) => a > b ? a : b);
+    final monthStr = '${_month.year}.${_month.month.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    final isCurrentMonth = _month.year == now.year && _month.month == now.month;
+    final todayDay = isCurrentMonth ? now.day : -1;
+
+    // Memos for selected day
+    final selectedDayMemos = _selectedDay != null ? _memosOnDay(_month, _selectedDay!) : <Memo>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('[ ACTIVITY ]', style: mono(color: kMint, fontSize: 12, letterSpacing: 1)),
+            const Spacer(),
+            _NavBtn(
+              label: '[<]',
+              onTap: () => setState(() {
+                _month = DateTime(_month.year, _month.month - 1);
+                _selectedDay = null;
+              }),
+            ),
+            const SizedBox(width: 8),
+            Text(monthStr, style: mono(color: kDim, fontSize: 10)),
+            const SizedBox(width: 8),
+            _NavBtn(
+              label: '[>]',
+              onTap: () => setState(() {
+                _month = DateTime(_month.year, _month.month + 1);
+                _selectedDay = null;
+              }),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(builder: (context, constraints) {
+          const cellSize = 20.0;
+          // 가로 여백: 남은 공간을 6칸으로 나눠 기종마다 자동 조절
+          final hGap = (constraints.maxWidth - 7 * cellSize) / 6;
+          // 세로 여백: 가로 여백의 60%
+          final vGap = (hGap * 0.6).clamp(2.0, 20.0);
+          final rowCount = ((startOffset + daysInMonth) / 7).ceil();
+          Widget buildRow(List<Widget> cells) => Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: cells,
+          );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Weekday header
+              buildRow(weekdays
+                  .map((d) => SizedBox(
+                        width: cellSize,
+                        child: Center(
+                          child: Text(d, style: mono(color: kDim, fontSize: 8)),
+                        ),
+                      ))
+                  .toList()),
+              SizedBox(height: vGap),
+              // Calendar rows
+              for (int r = 0; r < rowCount; r++) ...[
+                buildRow(List.generate(7, (c) {
+                    final day = r * 7 + c - startOffset + 1;
+                    if (day < 1 || day > daysInMonth) {
+                      return SizedBox(width: cellSize, height: cellSize);
+                    }
+                    final count = counts[day] ?? 0;
+                    final isToday = day == todayDay;
+                    final isSelected = day == _selectedDay;
+                    final fillColor = _heatColor(count, maxCount);
+                    return GestureDetector(
+                      onTap: count > 0
+                          ? () => setState(() {
+                                _selectedDay = (_selectedDay == day) ? null : day;
+                              })
+                          : null,
+                      child: SizedBox(
+                        width: cellSize,
+                        height: cellSize,
+                        child: Center(
+                          child: Container(
+                            width: cellSize - 3,
+                            height: cellSize - 3,
+                            decoration: BoxDecoration(
+                              color: count > 0 ? fillColor : Colors.transparent,
+                              border: isSelected
+                                  ? Border.all(color: kMint, width: 1.5)
+                                  : isToday
+                                      ? Border.all(color: kMint.withValues(alpha: 0.7), width: 1)
+                                      : Border.all(
+                                          color: kBorder.withValues(alpha: 0.5),
+                                          width: 0.8,
+                                          style: count > 0 ? BorderStyle.solid : BorderStyle.solid,
+                                        ),
+                            ),
+                            child: count > 0
+                                ? null
+                                : null,
+                          ),
+                        ),
+                      ),
+                    );
+                  })),
+                if (r < rowCount - 1) SizedBox(height: vGap),
+              ],
+              // Selected day memo list
+              if (_selectedDay != null && selectedDayMemos.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  color: kText,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                  child: Text(
+                    '  $monthStr.${_selectedDay.toString().padLeft(2, '0')}  (${selectedDayMemos.length})',
+                    style: mono(color: kBg, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.8),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ...selectedDayMemos.map((m) => Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: MemoTile(
+                        memo: m,
+                        onDelete: widget.onDelete != null ? () => widget.onDelete!(m) : null,
+                        onUpdate: widget.onUpdate != null ? (content) => widget.onUpdate!(m, content) : null,
+                        onMove: widget.onMove != null ? (folderId) => widget.onMove!(m, folderId) : null,
+                        folders: const [],
+                      ),
+                    )),
+              ],
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  // ── [ TOP TAGS ] ──────────────────────────
+
+  Widget _buildTopTagsSection() {
+    final counts = _tagCounts;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('[ TOP TAGS ]', style: mono(color: kMint, fontSize: 12, letterSpacing: 1)),
+        const SizedBox(height: 10),
+        if (counts.isEmpty)
+          Text('  // no tags yet',
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11))
+        else
+          LayoutBuilder(builder: (context, constraints) {
+            final sorted = counts.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+            final top = sorted.take(10).toList();
+            final maxCount = top.first.value;
+            const rankW = 22.0;
+            const tagW = 100.0;
+            const countW = 28.0;
+            const gap = 6.0;
+            final barMaxW = (constraints.maxWidth - rankW - tagW - countW - gap * 3)
+                .clamp(10.0, double.infinity);
+
+            return Column(
+              children: top.asMap().entries.map((e) {
+                final rank = e.key + 1;
+                final tag = e.value.key;
+                final count = e.value.value;
+                final barW = maxCount > 0
+                    ? (count / maxCount * barMaxW).clamp(2.0, barMaxW)
+                    : 2.0;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: rankW,
+                        child: Text('$rank.',
+                            style: mono(color: kDim, fontSize: 9),
+                            textAlign: TextAlign.right),
+                      ),
+                      const SizedBox(width: gap),
+                      SizedBox(
+                        width: tagW,
+                        child: Text(
+                          '#$tag',
+                          style: mono(color: kText, fontSize: 11),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: gap),
+                      Container(
+                        width: barW,
+                        height: 7,
+                        color: kMint.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(width: gap),
+                      SizedBox(
+                        width: countW,
+                        child: Text('$count',
+                            style: mono(color: kDim, fontSize: 9)),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          }),
+      ],
+    );
+  }
+
+  // ── [ WORDS / MONTH ] ─────────────────────
+
+  Widget _buildWordsPerMonthSection() {
+    final data = _wordsPerMonth;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('[ WORDS / MONTH ]',
+            style: mono(color: kMint, fontSize: 12, letterSpacing: 1)),
+        const SizedBox(height: 10),
+        if (data.isEmpty)
+          Text('  // no data yet',
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11))
+        else
+          LayoutBuilder(builder: (context, constraints) {
+            final maxCount =
+                data.map((e) => e.value).reduce((a, b) => a > b ? a : b);
+            const labelW = 58.0;
+            const countW = 38.0;
+            const gap = 6.0;
+            final barArea =
+                (constraints.maxWidth - labelW - countW - gap * 2).clamp(10.0, double.infinity);
+            // ~7px per '█' char at fontSize 10 monospace
+            final maxBlocks = (barArea / 7.0).floor().clamp(1, 500);
+
+            return Column(
+              children: data.map((entry) {
+                final count = entry.value;
+                final blockCount = maxCount > 0
+                    ? (count / maxCount * maxBlocks).round().clamp(1, maxBlocks)
+                    : 0;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: labelW,
+                        child: Text(entry.key, style: mono(color: kDim, fontSize: 9)),
+                      ),
+                      const SizedBox(width: gap),
+                      SizedBox(
+                        width: barArea,
+                        child: Text(
+                          '█' * blockCount,
+                          style: mono(color: kMint, fontSize: 10, height: 1.2),
+                          overflow: TextOverflow.clip,
+                          maxLines: 1,
+                          softWrap: false,
+                        ),
+                      ),
+                      const SizedBox(width: gap),
+                      SizedBox(
+                        width: countW,
+                        child: Text(
+                          '$count',
+                          style: mono(color: kDim, fontSize: 9),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          }),
+      ],
+    );
+  }
+
+  // ── meta ──────────────────────────────────
+
+  Widget _buildMeta() {
+    if (widget.memos.isEmpty) return const SizedBox.shrink();
+    final sorted = [...widget.memos]
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    String fmt(DateTime d) =>
+        '${d.year}.${d.month.toString().padLeft(2, '0')}.${d.day.toString().padLeft(2, '0')}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('  created    : ${fmt(sorted.first.createdAt)}',
+            style: mono(color: kDim, fontSize: 10)),
+        const SizedBox(height: 4),
+        Text('  last entry : ${fmt(sorted.last.createdAt)}',
+            style: mono(color: kDim, fontSize: 10)),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Internal nav button
+// ─────────────────────────────────────────────────────────────────
+
+class _NavBtn extends StatefulWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _NavBtn({required this.label, required this.onTap});
+
+  @override
+  State<_NavBtn> createState() => _NavBtnState();
+}
+
+class _NavBtnState extends State<_NavBtn> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          color: _hovered ? kMint.withValues(alpha: 0.1) : Colors.transparent,
+          child: Text(
+            widget.label,
+            style: mono(color: _hovered ? kMint : kDim, fontSize: 10),
+          ),
+        ),
+      ),
+    );
+  }
+}

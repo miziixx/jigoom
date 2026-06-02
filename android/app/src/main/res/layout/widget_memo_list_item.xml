@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ml_item_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    android:paddingStart="2dp"
+    android:paddingEnd="2dp">
+
+    <TextView
+        android:id="@+id/ml_item_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00:00"
+        android:textColor="#7A8F5A"
+        android:fontFamily="monospace"
+        android:textSize="9sp"
+        android:layout_marginEnd="6dp" />
+
+    <TextView
+        android:id="@+id/ml_item_content"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="..."
+        android:textColor="#556B2F"
+        android:fontFamily="monospace"
+        android:textSize="10sp"
+        android:singleLine="true"
+        android:ellipsize="end" />
+
+</LinearLayout>
