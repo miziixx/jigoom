@@ -7,6 +7,8 @@ class Memo {
   final String? folderId;
   final List<DateTime> editHistory; // timestamps of edits (creation not included)
   final DateTime? reminderAt;       // scheduled notification time, null = no reminder
+  final String reminderRepeat;      // 'none' | 'daily' | 'weekly' | 'monthly'
+  final DateTime? scheduledAt;      // appointment/schedule time (! shortcut), null = not scheduled
   final bool isChecklist;           // dedicated checklist mode (inline add/delete items)
   final List<AppendNote> appendNotes; // notes appended after creation
   final String? sourceUrl;            // origin link when memo was created via share
@@ -19,6 +21,8 @@ class Memo {
     this.folderId,
     this.editHistory = const [],
     this.reminderAt,
+    this.reminderRepeat = 'none',
+    this.scheduledAt,
     this.isChecklist = false,
     this.appendNotes = const [],
     this.sourceUrl,
@@ -55,6 +59,9 @@ class Memo {
     List<DateTime>? editHistory,
     DateTime? reminderAt,
     bool clearReminder = false,
+    String? reminderRepeat,
+    DateTime? scheduledAt,
+    bool clearSchedule = false,
     bool? isChecklist,
     List<AppendNote>? appendNotes,
     String? sourceUrl,
@@ -68,6 +75,8 @@ class Memo {
         folderId: clearFolder ? null : (folderId ?? this.folderId),
         editHistory: editHistory ?? this.editHistory,
         reminderAt: clearReminder ? null : (reminderAt ?? this.reminderAt),
+        reminderRepeat: clearReminder ? 'none' : (reminderRepeat ?? this.reminderRepeat),
+        scheduledAt: clearSchedule ? null : (scheduledAt ?? this.scheduledAt),
         isChecklist: isChecklist ?? this.isChecklist,
         appendNotes: appendNotes ?? this.appendNotes,
         sourceUrl: clearSourceUrl ? null : (sourceUrl ?? this.sourceUrl),
@@ -82,6 +91,8 @@ class Memo {
         'editHistory':
             editHistory.map((d) => d.toIso8601String()).toList(),
         'reminderAt': reminderAt?.toIso8601String(),
+        'reminderRepeat': reminderRepeat,
+        'scheduledAt': scheduledAt?.toIso8601String(),
         'isChecklist': isChecklist,
         'appendNotes': appendNotes.map((n) => n.toJson()).toList(),
         'sourceUrl': sourceUrl,
@@ -99,6 +110,10 @@ class Memo {
             [],
         reminderAt: json['reminderAt'] != null
             ? DateTime.tryParse(json['reminderAt'] as String)
+            : null,
+        reminderRepeat: (json['reminderRepeat'] as String?) ?? 'none',
+        scheduledAt: json['scheduledAt'] != null
+            ? DateTime.tryParse(json['scheduledAt'] as String)
             : null,
         isChecklist: (json['isChecklist'] as bool?) ?? false,
         appendNotes: (json['appendNotes'] as List<dynamic>?)

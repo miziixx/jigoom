@@ -304,9 +304,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   const Spacer(),
                   _StepBtn(
                     label: '-',
-                    enabled: _fontSize > 6,
+                    enabled: _fontSize > 10,
                     onTap: () {
-                      setState(() => _fontSize = (_fontSize - 1).clamp(6, 20));
+                      setState(() => _fontSize = (_fontSize - 1).clamp(10, 20));
                       applyFont(_fontFamily, _fontSize);
                     },
                   ),
@@ -324,7 +324,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     label: '+',
                     enabled: _fontSize < 20,
                     onTap: () {
-                      setState(() => _fontSize = (_fontSize + 1).clamp(6, 20));
+                      setState(() => _fontSize = (_fontSize + 1).clamp(10, 20));
                       applyFont(_fontFamily, _fontSize);
                     },
                   ),

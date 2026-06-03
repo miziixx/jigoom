@@ -3,40 +3,27 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/memo.dart';
 import '../models/folder.dart';
 import '../models/append_note.dart';
+import '../models/memo_actions.dart';
 import '../app_theme.dart';
-import 'reminder_dialog.dart';
+import '../services/image_service.dart';
+import 'schedule_sheet.dart';
 
 class MemoTile extends StatefulWidget {
   final Memo memo;
-  final VoidCallback? onDelete;
-  final ValueChanged<String>? onUpdate;
-  final void Function(String? folderId)? onMove;
-  final void Function(DateTime?)? onSetReminder;
-  final void Function(String content)? onAddNote;
-  final void Function(int index, String content)? onUpdateNote;
-  final void Function(int index)? onDeleteNote;
-  final List<Folder> folders;
-  final bool highlighted; // brief highlight on notification-tap navigation
-  final void Function(String tag)? onTagTap;
+  final MemoActions actions;
+  final bool highlighted;
 
   const MemoTile({
     super.key,
     required this.memo,
-    this.onDelete,
-    this.onUpdate,
-    this.onMove,
-    this.onSetReminder,
-    this.onAddNote,
-    this.onUpdateNote,
-    this.onDeleteNote,
-    this.folders = const [],
+    required this.actions,
     this.highlighted = false,
-    this.onTagTap,
   });
 
   @override
@@ -44,8 +31,15 @@ class MemoTile extends StatefulWidget {
 }
 
 class _MemoTileState extends State<MemoTile> {
+  // habit/goal memos cannot be moved or merged
+  bool get _isSystemMemo =>
+      widget.memo.tags.any((t) => t == 'habit' || t == 'goal');
+
+  MemoActions get _a => widget.actions;
+
   bool _hovered = false;
   bool _isEditing = false;
+  String? _editFolderId;
   final _editController = TextEditingController();
   final _editFocusNode = FocusNode();
 
@@ -76,8 +70,8 @@ class _MemoTileState extends State<MemoTile> {
   double _swipeOffset = 0;
   bool _deleteRevealed = false;
 
-  static const _kDeleteSnap = -72.0;
-  static const _kDeleteThreshold = -52.0;
+  static const _kDeleteSnap = -75.0;
+  static const _kDeleteThreshold = -55.0;
   static const _kMoveThreshold = 52.0;
 
   // Only match # preceded by whitespace or at start — avoids URL fragments like #section
@@ -136,7 +130,7 @@ class _MemoTileState extends State<MemoTile> {
 
   void _saveNote() {
     final text = _noteController.text.trim();
-    if (text.isNotEmpty) widget.onAddNote?.call(text);
+    if (text.isNotEmpty) _a.onAddNote(widget.memo, text);
     setState(() {
       _isAddingNote = false;
       _noteController.clear();
@@ -157,7 +151,7 @@ class _MemoTileState extends State<MemoTile> {
 
   void _saveNoteEdit() {
     final text = _editNoteController.text.trim();
-    if (text.isNotEmpty) widget.onUpdateNote?.call(_editingNoteIndex, text);
+    if (text.isNotEmpty) _a.onUpdateNote(widget.memo, _editingNoteIndex, text);
     setState(() {
       _editingNoteIndex = -1;
       _editNoteController.clear();
@@ -181,7 +175,7 @@ class _MemoTileState extends State<MemoTile> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('[ DELETE NOTE ]',
+              Text('[DELETE NOTE]',
                   style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
               const SizedBox(height: 10),
               Container(height: 1, color: kBorder),
@@ -193,16 +187,16 @@ class _MemoTileState extends State<MemoTile> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   _ActionBtn(
-                      label: '[ CANCEL ]',
+                      label: '취소',
                       color: kDim,
                       onTap: () => Navigator.pop(ctx)),
                   const SizedBox(width: 10),
                   _ActionBtn(
-                    label: '[ DELETE ]',
+                    label: '삭제',
                     color: Colors.red.shade400,
                     onTap: () {
                       Navigator.pop(ctx);
-                      widget.onDeleteNote?.call(index);
+                      _a.onDeleteNote(widget.memo, index);
                     },
                   ),
                 ],
@@ -237,17 +231,52 @@ class _MemoTileState extends State<MemoTile> {
     final newLine = '- [ ] $trimmed';
     final current = widget.memo.content;
     final newContent = current.isEmpty ? newLine : '$current\n$newLine';
-    widget.onUpdate?.call(newContent);
+    _a.onUpdate(widget.memo, newContent);
     _addItemController.clear();
     setState(() => _checkItemInputVisible = false);
     FocusScope.of(context).unfocus();
   }
 
   void _deleteChecklistItem(int lineIndex) {
-    final lines = widget.memo.content.split('\n');
-    if (lineIndex < 0 || lineIndex >= lines.length) return;
-    lines.removeAt(lineIndex);
-    widget.onUpdate?.call(lines.join('\n'));
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: kSurface,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 280),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('항목을 삭제하시겠습니까?',
+                  style: mono(color: kText, fontSize: 12)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _ActionBtn(label: '[취소]', color: kDim,
+                      onTap: () => Navigator.pop(ctx)),
+                  const SizedBox(width: 8),
+                  _ActionBtn(
+                    label: '[확인]',
+                    color: Colors.red.shade400,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      final lines = widget.memo.content.split('\n');
+                      if (lineIndex < 0 || lineIndex >= lines.length) return;
+                      lines.removeAt(lineIndex);
+                      _a.onUpdate(widget.memo, lines.join('\n'));
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _startEditingCheckItem(int lineIndex, String currentText) {
@@ -274,7 +303,7 @@ class _MemoTileState extends State<MemoTile> {
         if (old.startsWith('- [x] ')) prefix = '- [x] ';
         else if (old.startsWith('• ')) prefix = '• ';
         lines[idx] = '$prefix$trimmed';
-        widget.onUpdate?.call(lines.join('\n'));
+        _a.onUpdate(widget.memo, lines.join('\n'));
       }
     }
     setState(() => _editingCheckIndex = -1);
@@ -295,6 +324,7 @@ class _MemoTileState extends State<MemoTile> {
     }
     setState(() {
       _isEditing = true;
+      _editFolderId = widget.memo.folderId;
       _editController.text = widget.memo.content;
       _editController.selection =
           TextSelection.collapsed(offset: _editController.text.length);
@@ -315,8 +345,110 @@ class _MemoTileState extends State<MemoTile> {
   void _saveEdit() {
     final raw = _editController.text.trim();
     final newContent = _reorderChecklistFirst(raw);
-    if (newContent.isNotEmpty) widget.onUpdate?.call(newContent);
+    if (newContent.isNotEmpty) _a.onUpdate(widget.memo, newContent);
+    if (_editFolderId != widget.memo.folderId && !_isSystemMemo) {
+      _a.onMove(widget.memo, _editFolderId);
+    }
     setState(() => _isEditing = false);
+  }
+
+  // ── Edit mode text formatting ────────────────────────
+
+  void _wrapEdit(String prefix, String suffix) {
+    final sel = _editController.selection;
+    final old = _editController.text;
+    if (sel.isValid && !sel.isCollapsed) {
+      final selected = old.substring(sel.start, sel.end);
+      final newText = old.replaceRange(sel.start, sel.end, '$prefix$selected$suffix');
+      _editController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection(
+          baseOffset: sel.start + prefix.length,
+          extentOffset: sel.start + prefix.length + selected.length,
+        ),
+      );
+    } else {
+      final pos = sel.isValid ? sel.start : old.length;
+      final newText = old.substring(0, pos) + '$prefix$suffix' + old.substring(pos);
+      _editController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: pos + prefix.length),
+      );
+    }
+    _editFocusNode.requestFocus();
+  }
+
+  void _insertEditText(String text) {
+    final sel = _editController.selection;
+    final old = _editController.text;
+    final int pos = sel.isValid && sel.start >= 0 ? sel.start : old.length;
+    final newText = old.replaceRange(
+      sel.isValid ? sel.start : old.length,
+      sel.isValid ? sel.end : old.length,
+      text,
+    );
+    _editController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: pos + text.length),
+    );
+    _editFocusNode.requestFocus();
+  }
+
+  void _insertEditListPrefix(String prefix) {
+    final sel = _editController.selection;
+    final old = _editController.text;
+    if (old.isEmpty || !sel.isValid || sel.start <= 0) {
+      final newText = prefix + old;
+      _editController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: prefix.length),
+      );
+    } else {
+      final insert = '\n$prefix';
+      final newText = old.substring(0, sel.start) + insert + old.substring(sel.end);
+      _editController.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: sel.start + insert.length),
+      );
+    }
+    _editFocusNode.requestFocus();
+  }
+
+  void _showEditFolderPicker() async {
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final pos = renderBox.localToGlobal(Offset.zero);
+
+    final result = await showMenu<String?>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(pos.dx + 14, pos.dy, 1, 1),
+        Offset.zero & overlay.size,
+      ),
+      color: kSurface,
+      elevation: 3,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      items: [
+        PopupMenuItem<String?>(
+          value: '__inbox__',
+          height: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text('/inbox',
+              style: mono(color: _editFolderId == null ? kMint : kText, fontSize: 12)),
+        ),
+        ..._a.folders.map((f) => PopupMenuItem<String?>(
+          value: f.id,
+          height: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text('/${f.name}',
+              style: mono(color: _editFolderId == f.id ? kMint : kText, fontSize: 12)),
+        )),
+      ],
+    );
+    if (result != null) {
+      setState(() => _editFolderId = result == '__inbox__' ? null : result);
+    }
   }
 
   void _cancelEdit() => setState(() => _isEditing = false);
@@ -332,7 +464,7 @@ class _MemoTileState extends State<MemoTile> {
     } else {
       return;
     }
-    widget.onUpdate?.call(lines.join('\n'));
+    _a.onUpdate(widget.memo, lines.join('\n'));
   }
 
   // ── Swipe ────────────────────────────────────────────
@@ -360,7 +492,7 @@ class _MemoTileState extends State<MemoTile> {
       setState(() { _swipeOffset = _kDeleteSnap; _deleteRevealed = true; });
     } else if (_swipeOffset >= _kMoveThreshold) {
       setState(() => _swipeOffset = 0);
-      _showFolderPicker();
+      if (!_isSystemMemo) _showFolderPicker();
     } else {
       setState(() { _swipeOffset = 0; _deleteRevealed = false; });
     }
@@ -368,7 +500,7 @@ class _MemoTileState extends State<MemoTile> {
 
   void _onDeleteBtnTap() {
     setState(() { _swipeOffset = 0; _deleteRevealed = false; });
-    widget.onDelete?.call();
+    _a.onDelete(widget.memo);
   }
 
   // ── Share ─────────────────────────────────────────────
@@ -499,29 +631,86 @@ class _MemoTileState extends State<MemoTile> {
           value: 'share',
           height: 36,
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('[ 공유 ]', style: mono(color: kText, fontSize: 12)),
+          child: Text('[공유]', style: mono(color: kText, fontSize: 12)),
         ),
       ],
     );
     if (result == 'share') _shareMemo();
   }
 
+  // ── Image pick (edit mode) ───────────────────────────
+
+  Future<void> _pickImageInEdit() async {
+    if (kIsWeb) return;
+    final source = await _showImageSourceSheet();
+    if (source == null) return;
+    final path = await ImageService.pick(source);
+    if (!mounted) return;
+    if (path == '__TOO_LARGE__') {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: kSurface,
+        duration: const Duration(seconds: 2),
+        content: Text('// 이미지 용량이 5MB를 초과합니다',
+            style: mono(color: Colors.red.shade400, fontSize: 12)),
+      ));
+      return;
+    }
+    if (path != null) _a.onAddImage(widget.memo, path);
+  }
+
+  Future<ImageSource?> _showImageSourceSheet() {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: kSurface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('[이미지 추가]',
+                  style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
+              const SizedBox(height: 12),
+              Container(height: 1, color: kBorder),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _SheetBtn(
+                    label: '[갤러리]',
+                    onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                  ),
+                  const SizedBox(width: 12),
+                  _SheetBtn(
+                    label: '[카메라]',
+                    onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Reminder ─────────────────────────────────────────
 
   void _showReminderDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => ReminderDialog(
-        current: widget.memo.reminderAt,
-        onResult: (dt) => widget.onSetReminder?.call(dt),
-      ),
+    showScheduleSheet(
+      context,
+      current: widget.memo.reminderAt,
+      currentRepeat: widget.memo.reminderRepeat,
+      onResult: (dt, repeat) => _a.onSetReminder(widget.memo, dt, repeat),
     );
   }
 
   // ── Dialogs ─────────────────────────────────────────
 
   void _showFolderPicker() {
-    final others = widget.folders.where((f) => f.id != widget.memo.folderId).toList();
+    final others = _a.folders.where((f) => f.id != widget.memo.folderId).toList();
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -537,7 +726,7 @@ class _MemoTileState extends State<MemoTile> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('[ MOVE TO ]',
+              Text('[MOVE TO]',
                   style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
               const SizedBox(height: 8),
               Container(height: 1, color: kBorder),
@@ -549,11 +738,11 @@ class _MemoTileState extends State<MemoTile> {
                     if (widget.memo.folderId != null)
                       _PickerRow(
                         label: 'inbox',
-                        onTap: () { Navigator.pop(ctx); widget.onMove?.call(null); },
+                        onTap: () { Navigator.pop(ctx); _a.onMove(widget.memo, null); },
                       ),
                     ...others.map((f) => _PickerRow(
                           label: f.name,
-                          onTap: () { Navigator.pop(ctx); widget.onMove?.call(f.id); },
+                          onTap: () { Navigator.pop(ctx); _a.onMove(widget.memo, f.id); },
                         )),
                     if (widget.memo.folderId == null && others.isEmpty)
                       Padding(
@@ -568,7 +757,7 @@ class _MemoTileState extends State<MemoTile> {
               Align(
                 alignment: Alignment.centerRight,
                 child: _ActionBtn(
-                    label: '[ CANCEL ]',
+                    label: '취소',
                     color: kDim,
                     onTap: () => Navigator.pop(ctx)),
               ),
@@ -593,7 +782,7 @@ class _MemoTileState extends State<MemoTile> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('[ HISTORY ]',
+              Text('[HISTORY]',
                   style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
               const SizedBox(height: 10),
               Container(height: 1, color: kBorder),
@@ -616,7 +805,7 @@ class _MemoTileState extends State<MemoTile> {
               Align(
                 alignment: Alignment.centerRight,
                 child: _ActionBtn(
-                    label: '[ CLOSE ]',
+                    label: '닫기',
                     color: kDim,
                     onTap: () => Navigator.pop(ctx)),
               ),
@@ -651,6 +840,15 @@ class _MemoTileState extends State<MemoTile> {
     final hh = dt.hour.toString().padLeft(2, '0');
     final mm = dt.minute.toString().padLeft(2, '0');
     return '$mo/$d $hh:$mm';
+  }
+
+  static String repeatLabel(String repeat) {
+    switch (repeat) {
+      case 'daily':   return ' ↻매일';
+      case 'weekly':  return ' ↻매주';
+      case 'monthly': return ' ↻매월';
+      default:        return '';
+    }
   }
 
   String _stripExtraPrefixes(String text) {
@@ -720,7 +918,7 @@ class _MemoTileState extends State<MemoTile> {
   Widget build(BuildContext context) {
     if (_isEditing) return _buildEditMode();
 
-    return ClipRect(
+    final inner = ClipRect(
       child: GestureDetector(
         onHorizontalDragUpdate: _onSwipeUpdate,
         onHorizontalDragEnd: _onSwipeEnd,
@@ -731,9 +929,11 @@ class _MemoTileState extends State<MemoTile> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
+                  width: 75,
                   color: kMint.withValues(alpha: 0.12),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  child: Text('[ 이동 ]', style: mono(color: kMint, fontSize: 12)),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Text('[이동]', style: mono(color: kMint, fontSize: 12)),
                 ),
               ),
             ),
@@ -743,42 +943,72 @@ class _MemoTileState extends State<MemoTile> {
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
                   onTap: _onDeleteBtnTap,
-                  child: Container(
-                    color: Colors.red.shade700,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                    child: Text('[ 삭제 ]',
-                        style: mono(color: Colors.white, fontSize: 12)),
+                  child: MediaQuery(
+                    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+                    child: Container(
+                      width: 75,
+                      color: Colors.red.shade700,
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      child: Text('[삭제]',
+                          style: mono(color: Colors.white, fontSize: 12)),
+                    ),
                   ),
                 ),
               ),
             ),
-            // Main content (translated + opaque background to cover actions)
+            // Main content
             Transform.translate(
               offset: Offset(_swipeOffset, 0),
               child: Container(
                 color: kBg,
-                child: kIsWeb
-                    ? LongPressDraggable<Memo>(
-                        data: widget.memo,
-                        delay: const Duration(milliseconds: 400),
-                        feedback: _buildDragFeedback(),
-                        childWhenDragging:
-                            Opacity(opacity: 0.4, child: _buildViewMode()),
-                        child: _buildViewMode(),
-                      )
-                    : _buildViewMode(),
+                child: LongPressDraggable<Memo>(
+                  data: widget.memo,
+                  delay: const Duration(milliseconds: 400),
+                  feedback: _buildDragFeedback(),
+                  childWhenDragging:
+                      Opacity(opacity: 0.4, child: _buildViewMode()),
+                  child: _buildViewMode(),
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+
+    final withTapRegion = TapRegion(
+      onTapOutside: (_) {
+        if (_deleteRevealed) {
+          setState(() { _swipeOffset = 0; _deleteRevealed = false; });
+        }
+      },
+      child: inner,
+    );
+
+    if (_isSystemMemo) return withTapRegion;
+
+    return DragTarget<Memo>(
+      onWillAcceptWithDetails: (details) =>
+          details.data.id != widget.memo.id &&
+          !details.data.tags.any((t) => t == 'habit' || t == 'goal'),
+      onAcceptWithDetails: (details) => _a.onMerge(details.data, widget.memo),
+      builder: (context, candidateData, _) {
+        if (candidateData.isEmpty) return withTapRegion;
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: kMint.withValues(alpha: 0.7), width: 1.5),
+            color: kMint.withValues(alpha: 0.05),
+          ),
+          child: withTapRegion,
+        );
+      },
+    );
   }
 
   // ── View mode ────────────────────────────────────────
 
   Widget _buildViewMode() {
-    final lines = widget.memo.content.split('\n');
     final tags = widget.memo.tags;
 
     return Column(
@@ -788,7 +1018,6 @@ class _MemoTileState extends State<MemoTile> {
           onEnter: (_) => setState(() => _hovered = true),
           onExit: (_) => setState(() => _hovered = false),
           child: GestureDetector(
-            onDoubleTap: widget.memo.isChecklist ? null : _startEditing,
             onLongPress: _showTextSelectionSheet,
             onTapDown: (d) => _tapPosition = d.globalPosition,
             child: AnimatedContainer(
@@ -804,80 +1033,64 @@ class _MemoTileState extends State<MemoTile> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text('[${widget.memo.timeStr}]',
-                          style: mono(color: kDim, fontSize: 11)),
-                      if (tags.isNotEmpty) ...[
-                        const SizedBox(width: 6),
-                        ...tags.map((t) => GestureDetector(
-                          onTap: () => widget.onTagTap?.call(t),
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: Text('#$t', style: mono(color: kTeal, fontSize: 11)),
-                          ),
-                        )),
-                      ],
-                      if (widget.memo.reminderAt != null) ...[
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: _showReminderDialog,
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Text(
-                              '🔔 ${_fmtReminder(widget.memo.reminderAt!)}',
-                              style: mono(color: kMint, fontSize: 10),
-                            ),
-                          ),
-                        ),
-                      ],
-                      const Spacer(),
-                      if (widget.memo.isChecklist) ...[
-                        Text('[CHECK]',
-                            style: mono(color: kTeal, fontSize: 10,
-                                fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 6),
-                      ],
-                      GestureDetector(
-                        onTap: _showReminderDialog,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: Text(
-                            '[알림]',
-                            style: mono(
-                              color: widget.memo.reminderAt != null
-                                  ? kMint
-                                  : kDim.withValues(alpha: 0.45),
-                              fontSize: 11,
-                            ),
-                          ),
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('[${widget.memo.timeStr}]',
+                                style: mono(color: kDim, fontSize: 11)),
+                            if (tags.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              ...tags.map((t) => GestureDetector(
+                                onTap: () => _a.onTagTap?.call(t),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 4),
+                                  child: Text('#$t',
+                                      style: mono(color: kTeal, fontSize: 11),
+                                      overflow: TextOverflow.ellipsis),
+                                ),
+                              )),
+                            ],
+                            if (widget.memo.reminderAt != null) ...[
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: _showReminderDialog,
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: Text(
+                                    '🔔 ${_fmtReminder(widget.memo.reminderAt!)}${repeatLabel(widget.memo.reminderRepeat)}',
+                                    style: mono(color: kMint, fontSize: 10),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      GestureDetector(
-                        onTap: _showHistory,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: Text(
-                            '[…]',
-                            style: mono(
-                              color: _hovered
-                                  ? kDim
-                                  : kDim.withValues(alpha: 0.45),
-                              fontSize: 11,
+                      const SizedBox(width: 4),
+                      MediaQuery(
+                        data: MediaQuery.of(context).copyWith(
+                            textScaler: TextScaler.noScaling),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: _startEditing,
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: Text(
+                                  '[수정]',
+                                  style: mono(
+                                    color: _hovered
+                                        ? kDim
+                                        : kDim.withValues(alpha: 0.45),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      GestureDetector(
-                        onTap: widget.onDelete,
-                        child: Text(
-                          '[×]',
-                          style: mono(
-                            color: _hovered
-                                ? kDim
-                                : kDim.withValues(alpha: 0.45),
-                            fontSize: 11,
-                          ),
+                          ],
                         ),
                       ),
                     ],
@@ -971,10 +1184,10 @@ class _MemoTileState extends State<MemoTile> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _ActionBtn(label: '[ SAVE ]', color: kMint, onTap: _saveNoteEdit),
+                _ActionBtn(label: '저장', color: kMint, onTap: _saveNoteEdit),
                 const SizedBox(width: 6),
                 _ActionBtn(
-                  label: '[ CANCEL ]',
+                  label: '취소',
                   color: kDim,
                   onTap: () => setState(() {
                     _editingNoteIndex = -1;
@@ -1092,10 +1305,10 @@ class _MemoTileState extends State<MemoTile> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 _ActionBtn(
-                    label: '[ SAVE ]', color: kMint, onTap: _saveNote),
+                    label: '저장', color: kMint, onTap: _saveNote),
                 const SizedBox(width: 8),
                 _ActionBtn(
-                  label: '[ CANCEL ]',
+                  label: '취소',
                   color: kDim,
                   onTap: () => setState(() {
                     _isAddingNote = false;
@@ -1153,38 +1366,33 @@ class _MemoTileState extends State<MemoTile> {
     if (_editingCheckIndex == lineIndex) {
       return _buildCheckItemEditRow(lineIndex);
     }
-    return GestureDetector(
-      onDoubleTap: () => _startEditingCheckItem(lineIndex, text),
-      onLongPress: () => _startEditingCheckItem(lineIndex, text),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('• ',
-                style: mono(color: kText, fontSize: 13)),
-            Expanded(
-                child: Text.rich(_parseInline(
-                    text, mono(color: kText, fontSize: 13, height: 1.5)))),
-            GestureDetector(
-              onTap: () => _deleteChecklistItem(lineIndex),
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text(
-                    '[×]',
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('• ', style: mono(color: kText, fontSize: 13)),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _startEditingCheckItem(lineIndex, text),
+              child: Text.rich(_parseInline(
+                  text, mono(color: kText, fontSize: 13, height: 1.5))),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _deleteChecklistItem(lineIndex),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text('[×]',
                     style: mono(
-                        color: _hovered
-                            ? kDim
-                            : kDim.withValues(alpha: 0.5),
-                        fontSize: 10),
-                  ),
-                ),
+                        color: _hovered ? kDim : kDim.withValues(alpha: 0.5),
+                        fontSize: 10)),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1199,46 +1407,43 @@ class _MemoTileState extends State<MemoTile> {
       decoration: checked ? TextDecoration.lineThrough : null,
       decorationColor: kDim,
     );
-    return GestureDetector(
-      onDoubleTap: () => _startEditingCheckItem(lineIndex, text),
-      onLongPress: () => _startEditingCheckItem(lineIndex, text),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _toggleCheck(lineIndex),
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 2),
-                  child: Text(checked ? '✓ ' : '□ ',
-                      style: mono(color: checked ? kDim : kMint, fontSize: 13)),
-                ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _toggleCheck(lineIndex),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 2),
+                child: Text(checked ? '✓ ' : '□ ',
+                    style: mono(color: checked ? kDim : kMint, fontSize: 13)),
               ),
             ),
-            Expanded(child: Text.rich(_parseInline(text, textStyle))),
-            GestureDetector(
-              onTap: () => _deleteChecklistItem(lineIndex),
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text(
-                    '[×]',
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _startEditingCheckItem(lineIndex, text),
+              child: Text.rich(_parseInline(text, textStyle)),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _deleteChecklistItem(lineIndex),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text('[×]',
                     style: mono(
-                        color: _hovered
-                            ? kDim
-                            : kDim.withValues(alpha: 0.5),
-                        fontSize: 10),
-                  ),
-                ),
+                        color: _hovered ? kDim : kDim.withValues(alpha: 0.5),
+                        fontSize: 10)),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1497,71 +1702,93 @@ class _MemoTileState extends State<MemoTile> {
   // ── Edit mode ────────────────────────────────────────
 
   Widget _buildEditMode() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top row: time label + save/cancel
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Toolbar row
+        MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(8, 3, 6, 3),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: kBorder.withValues(alpha: 0.5))),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _EditFmtBtn(label: 'B', bold: true,  onTap: () => _wrapEdit('**', '**')),
+                _EditFmtBtn(label: 'I', italic: true, onTap: () => _wrapEdit('*', '*')),
+                _EditFmtBtn(label: 'S', strike: true, onTap: () => _wrapEdit('~~', '~~')),
+                Container(
+                  width: 1, height: 14,
+                  color: kBorder.withValues(alpha: 0.6),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                ),
+                _EditIconBtn(icon: Icons.check_box_outline_blank, tooltip: '체크박스',
+                    onTap: () => _insertEditListPrefix('- [ ] ')),
+                _EditIconBtn(icon: Icons.format_list_bulleted, tooltip: '불릿',
+                    onTap: () => _insertEditListPrefix('• ')),
+                _EditIconBtn(icon: Icons.tag, tooltip: '태그',
+                    onTap: () => _insertEditText('#')),
+                _EditIconBtn(
+                  icon: Icons.calendar_today,
+                  tooltip: '알림',
+                  active: widget.memo.reminderAt != null,
+                  onTap: _showReminderDialog,
+                ),
+                if (!kIsWeb)
+                  _EditIconBtn(
+                    icon: Icons.image_outlined,
+                    tooltip: '이미지',
+                    onTap: _pickImageInEdit,
+                  ),
+                const Spacer(),
+                _ActionBtn(label: '취소', color: kDim, onTap: _cancelEdit, fontSize: 8),
+                const SizedBox(width: 2),
+                _ActionBtn(label: '확인', color: kMint, onTap: _saveEdit, fontSize: 8),
+              ],
+            ),
+          ),
+        ),
+        // Time + text field
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('[${widget.memo.timeStr}]', style: mono(color: kDim, fontSize: 11)),
-              const Spacer(),
-              _ActionBtn(label: '[ CANCEL ]', color: kDim, onTap: _cancelEdit),
-              const SizedBox(width: 6),
-              _ActionBtn(label: '[ SAVE ]', color: kMint, onTap: _saveEdit),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Reminder
-          GestureDetector(
-            onTap: _showReminderDialog,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Text(
-                widget.memo.reminderAt != null
-                    ? '🔔 ${_fmtReminder(widget.memo.reminderAt!)}'
-                    : '[알림 추가]',
-                style: mono(
-                  color: widget.memo.reminderAt != null
-                      ? kMint
-                      : kDim.withValues(alpha: 0.55),
-                  fontSize: 10,
+              const SizedBox(height: 6),
+              TextField(
+                controller: _editController,
+                focusNode: _editFocusNode,
+                style: mono(fontSize: 13, height: 1.6),
+                maxLines: null,
+                cursorColor: kMint,
+                cursorWidth: 2,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: kSurface,
+                  isDense: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(color: kMint),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: kMint),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: kMint, width: 1.5),
+                    borderRadius: BorderRadius.zero,
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 6),
-          // Text field
-          TextField(
-            controller: _editController,
-            focusNode: _editFocusNode,
-            style: mono(fontSize: 13, height: 1.6),
-            maxLines: null,
-            cursorColor: kMint,
-            cursorWidth: 2,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: kSurface,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 8),
-              border: OutlineInputBorder(
-                borderSide: BorderSide(color: kMint),
-                borderRadius: BorderRadius.zero,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: kMint),
-                borderRadius: BorderRadius.zero,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: kMint, width: 1.5),
-                borderRadius: BorderRadius.zero,
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1634,8 +1861,9 @@ class _ActionBtn extends StatefulWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
+  final double fontSize;
 
-  const _ActionBtn({required this.label, required this.color, required this.onTap});
+  const _ActionBtn({required this.label, required this.color, required this.onTap, this.fontSize = 10});
 
   @override
   State<_ActionBtn> createState() => _ActionBtnState();
@@ -1654,17 +1882,128 @@ class _ActionBtnState extends State<_ActionBtn> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
           decoration: BoxDecoration(
             color: _hovered
                 ? widget.color.withValues(alpha: 0.1)
                 : Colors.transparent,
           ),
           child: Text(widget.label,
-              style: mono(color: widget.color, fontSize: 10)),
+              style: mono(color: widget.color, fontSize: widget.fontSize)),
         ),
       ),
     );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Edit mode toolbar buttons
+// ─────────────────────────────────────────────────────────────────
+
+class _EditFmtBtn extends StatefulWidget {
+  final String label;
+  final VoidCallback onTap;
+  final bool bold;
+  final bool italic;
+  final bool strike;
+
+  const _EditFmtBtn({
+    required this.label,
+    required this.onTap,
+    this.bold = false,
+    this.italic = false,
+    this.strike = false,
+  });
+
+  @override
+  State<_EditFmtBtn> createState() => _EditFmtBtnState();
+}
+
+class _EditFmtBtnState extends State<_EditFmtBtn> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hovered ? kText : kDim.withValues(alpha: 0.55);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => widget.onTap(),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+          color: _hovered ? kSurface : Colors.transparent,
+          child: Text(
+            widget.label,
+            style: TextStyle(
+              fontFamily: kFontFamily,
+              fontSize: 12,
+              color: color,
+              fontWeight: widget.bold ? FontWeight.bold : FontWeight.normal,
+              fontStyle: widget.italic ? FontStyle.italic : FontStyle.normal,
+              decoration: widget.strike ? TextDecoration.lineThrough : null,
+              decorationColor: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditIconBtn extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool active;
+  final String? tooltip;
+
+  const _EditIconBtn({
+    required this.icon,
+    required this.onTap,
+    this.active = false,
+    this.tooltip,
+  });
+
+  @override
+  State<_EditIconBtn> createState() => _EditIconBtnState();
+}
+
+class _EditIconBtnState extends State<_EditIconBtn> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.active
+        ? kMint
+        : (_hovered ? kText : kDim.withValues(alpha: 0.55));
+    final btn = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => widget.onTap(),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+          color: widget.active
+              ? kMint.withValues(alpha: 0.1)
+              : (_hovered ? kSurface : Colors.transparent),
+          child: Icon(widget.icon, size: 15, color: color),
+        ),
+      ),
+    );
+    if (widget.tooltip != null) {
+      return Tooltip(
+        message: widget.tooltip!,
+        preferBelow: false,
+        textStyle: mono(color: kText, fontSize: 10),
+        decoration: BoxDecoration(color: kSurface, border: Border.all(color: kBorder)),
+        child: btn,
+      );
+    }
+    return btn;
   }
 }
 
@@ -1839,7 +2178,7 @@ class _ImageViewerDialogState extends State<_ImageViewerDialog> {
                           border: Border.all(
                               color: Colors.white24),
                         ),
-                        child: Text('[ 저장/공유 ]',
+                        child: Text('[저장/공유]',
                             style: mono(
                                 color: Colors.white70,
                                 fontSize: 11)),
@@ -1864,6 +2203,45 @@ class _ImageViewerDialogState extends State<_ImageViewerDialog> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Image source sheet button
+// ─────────────────────────────────────────────────────────────────
+
+class _SheetBtn extends StatefulWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _SheetBtn({required this.label, required this.onTap});
+
+  @override
+  State<_SheetBtn> createState() => _SheetBtnState();
+}
+
+class _SheetBtnState extends State<_SheetBtn> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: _hovered ? kMint.withValues(alpha: 0.1) : Colors.transparent,
+            border: Border.all(color: kBorder),
+          ),
+          child: Text(widget.label,
+              style: mono(color: _hovered ? kMint : kDim, fontSize: 12)),
+        ),
       ),
     );
   }

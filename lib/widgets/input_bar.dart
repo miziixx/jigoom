@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../app_theme.dart';
 import '../models/folder.dart';
 import '../services/image_service.dart';
-import 'reminder_dialog.dart';
+import 'schedule_sheet.dart';
 
 class InputBar extends StatefulWidget {
   final void Function(
@@ -15,10 +15,13 @@ class InputBar extends StatefulWidget {
     DateTime? reminderAt,
     String? folderId,
     List<String> imagePaths,
+    String reminderRepeat,
+    DateTime? scheduledAt,
   ) onSubmit;
   final DateTime? initialDate;
   final List<Folder> folders;
   final String? currentFolderId;
+  final bool scheduleMode;
 
   const InputBar({
     super.key,
@@ -26,6 +29,7 @@ class InputBar extends StatefulWidget {
     this.initialDate,
     this.folders = const [],
     this.currentFolderId,
+    this.scheduleMode = false,
   });
 
   @override
@@ -36,9 +40,14 @@ class _InputBarState extends State<InputBar> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   DateTime? _reminderAt;
+  String _reminderRepeat = 'none';
+  DateTime? _scheduledAt;
   String? _selectedFolderId;
   final _pendingImages = <String>[];
   bool _forceChecklist = false;
+  String _prevText = '';
+  bool _processingExcl = false;
+  bool _schedulePickerOpened = false;
 
   static final _tagRe = RegExp(r'#([a-zA-Zㄱ-ㅎㅏ-ㅣ가-힣][a-zA-Z0-9_ㄱ-ㅎㅏ-ㅣ가-힣]*)');
 
@@ -53,8 +62,19 @@ class _InputBarState extends State<InputBar> {
   void initState() {
     super.initState();
     _selectedFolderId = widget.currentFolderId;
-    _controller.addListener(() => setState(() {}));
-    _focusNode.addListener(() => setState(() {}));
+    _controller.addListener(_onTextChanged);
+    _focusNode.addListener(() {
+      setState(() {});
+      if (widget.scheduleMode &&
+          _focusNode.hasFocus &&
+          _scheduledAt == null &&
+          !_schedulePickerOpened) {
+        _schedulePickerOpened = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showSchedulePicker();
+        });
+      }
+    });
     _focusNode.onKeyEvent = (node, event) {
       if (event is KeyDownEvent) {
         if (event.logicalKey == LogicalKeyboardKey.enter &&
@@ -65,6 +85,41 @@ class _InputBarState extends State<InputBar> {
       }
       return KeyEventResult.ignored;
     };
+  }
+
+  void _onTextChanged() {
+    if (_processingExcl) {
+      setState(() {});
+      return;
+    }
+    final newText = _controller.text;
+    if (_scheduledAt == null && newText.contains('!') && !_prevText.contains('!')) {
+      _processingExcl = true;
+      final excIdx = newText.indexOf('!');
+      final cleaned = newText.replaceFirst('!', '');
+      _controller.value = TextEditingValue(
+        text: cleaned,
+        selection: TextSelection.collapsed(offset: excIdx.clamp(0, cleaned.length)),
+      );
+      _processingExcl = false;
+      _prevText = cleaned;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showSchedulePicker();
+      });
+    } else {
+      _prevText = newText;
+    }
+    setState(() {});
+  }
+
+  void _showSchedulePicker() {
+    showScheduleSheet(
+      context,
+      current: _scheduledAt,
+      initialDate: widget.initialDate ?? DateTime.now(),
+      currentRepeat: 'none',
+      onResult: (dt, _) => setState(() => _scheduledAt = dt),
+    );
   }
 
   bool get _isChecklist {
@@ -150,14 +205,25 @@ class _InputBarState extends State<InputBar> {
     return '$mo/$d $hh:$mm';
   }
 
+  String _repeatLabel(String repeat) {
+    switch (repeat) {
+      case 'daily':   return ' ↻매일';
+      case 'weekly':  return ' ↻매주';
+      case 'monthly': return ' ↻매월';
+      default:        return '';
+    }
+  }
+
   void _showReminderPicker() {
-    showDialog(
-      context: context,
-      builder: (_) => ReminderDialog(
-        current: _reminderAt,
-        initialDate: widget.initialDate ?? DateTime.now(),
-        onResult: (dt) => setState(() => _reminderAt = dt),
-      ),
+    showScheduleSheet(
+      context,
+      current: _reminderAt,
+      initialDate: widget.initialDate ?? DateTime.now(),
+      currentRepeat: _reminderRepeat,
+      onResult: (dt, repeat) => setState(() {
+        _reminderAt = dt;
+        _reminderRepeat = repeat;
+      }),
     );
   }
 
@@ -236,7 +302,7 @@ class _InputBarState extends State<InputBar> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('[ 이미지 추가 ]',
+              Text('[이미지 추가]',
                   style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
               const SizedBox(height: 12),
               Container(height: 1, color: kBorder),
@@ -244,12 +310,12 @@ class _InputBarState extends State<InputBar> {
               Row(
                 children: [
                   _SheetBtn(
-                    label: '[ 갤러리 ]',
+                    label: '[갤러리]',
                     onTap: () => Navigator.pop(ctx, ImageSource.gallery),
                   ),
                   const SizedBox(width: 12),
                   _SheetBtn(
-                    label: '[ 카메라 ]',
+                    label: '[카메라]',
                     onTap: () => Navigator.pop(ctx, ImageSource.camera),
                   ),
                 ],
@@ -290,12 +356,17 @@ class _InputBarState extends State<InputBar> {
       _reminderAt,
       _selectedFolderId,
       List<String>.from(_pendingImages),
+      _reminderRepeat,
+      _scheduledAt,
     );
     _controller.clear();
     setState(() {
       _reminderAt = null;
+      _reminderRepeat = 'none';
+      _scheduledAt = null;
       _pendingImages.clear();
       _forceChecklist = false;
+      _schedulePickerOpened = false;
     });
     _focusNode.requestFocus();
   }
@@ -318,72 +389,62 @@ class _InputBarState extends State<InputBar> {
         children: [
           // ── Toolbar row (포커스 시에만 표시) ───────────────
           if (_focusNode.hasFocus || _pendingImages.isNotEmpty || _reminderAt != null)
-          Container(
-            padding: const EdgeInsets.fromLTRB(10, 6, 8, 6),
-            decoration: BoxDecoration(
-              border: Border(
-                  bottom: BorderSide(color: kBorder.withValues(alpha: 0.5))),
-            ),
-            child: Row(
-              children: [
-                _FolderBtn(
-                  label: _selectedFolderId == null
-                      ? null
-                      : widget.folders
-                          .firstWhere(
-                            (f) => f.id == _selectedFolderId,
-                            orElse: () => const Folder(id: '', name: ''),
-                          )
-                          .name,
-                  onTap: widget.folders.isNotEmpty
-                      ? _showFolderDropdown
-                      : null,
-                ),
-                const Spacer(),
-                _TextFmtBtn(label: 'B', bold: true,
-                    onTap: () => _wrapSelection('**', '**')),
-                _TextFmtBtn(label: 'I', italic: true,
-                    onTap: () => _wrapSelection('*', '*')),
-                _TextFmtBtn(label: 'S', strike: true,
-                    onTap: () => _wrapSelection('~~', '~~')),
-                Container(width: 1, height: 14, color: kBorder.withValues(alpha: 0.6),
-                    margin: const EdgeInsets.symmetric(horizontal: 3)),
-                _ToolBtn(
-                  icon: Icons.check_box_outline_blank,
-                  tooltip: '체크박스',
-                  onTap: () => _insertListPrefix('- [ ] '),
-                ),
-                _ToolBtn(
-                  icon: Icons.format_list_bulleted,
-                  tooltip: '불릿',
-                  onTap: () => _insertListPrefix('• '),
-                ),
-                _ToolBtn(
-                  icon: Icons.tag,
-                  tooltip: '태그',
-                  onTap: () => _insertText('#'),
-                ),
-                _ToolBtn(
-                  icon: Icons.calendar_today,
-                  tooltip: '알림',
-                  active: _reminderAt != null,
-                  onTap: _showReminderPicker,
-                ),
-                if (!kIsWeb)
+          MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(8, 1, 6, 1),
+              decoration: BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(color: kBorder.withValues(alpha: 0.5))),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _TextFmtBtn(label: 'B', bold: true,
+                      onTap: () => _wrapSelection('**', '**')),
+                  _TextFmtBtn(label: 'I', italic: true,
+                      onTap: () => _wrapSelection('*', '*')),
+                  _TextFmtBtn(label: 'S', strike: true,
+                      onTap: () => _wrapSelection('~~', '~~')),
+                  Container(width: 1, height: 14, color: kBorder.withValues(alpha: 0.6),
+                      margin: const EdgeInsets.symmetric(horizontal: 2)),
                   _ToolBtn(
-                    icon: Icons.image_outlined,
-                    tooltip: '이미지',
-                    active: _pendingImages.isNotEmpty,
-                    onTap: _pickImage,
+                    icon: Icons.check_box_outline_blank,
+                    tooltip: '체크박스',
+                    onTap: () => _insertListPrefix('- [ ] '),
                   ),
-                const SizedBox(width: 4),
-                _AddBtn(onTap: _submit),
-              ],
+                  _ToolBtn(
+                    icon: Icons.format_list_bulleted,
+                    tooltip: '불릿',
+                    onTap: () => _insertListPrefix('• '),
+                  ),
+                  _ToolBtn(
+                    icon: Icons.tag,
+                    tooltip: '태그',
+                    onTap: () => _insertText('#'),
+                  ),
+                  _ToolBtn(
+                    icon: Icons.calendar_today,
+                    tooltip: '알림',
+                    active: _reminderAt != null,
+                    onTap: _showReminderPicker,
+                  ),
+                  if (!kIsWeb)
+                    _ToolBtn(
+                      icon: Icons.image_outlined,
+                      tooltip: '이미지',
+                      active: _pendingImages.isNotEmpty,
+                      onTap: _pickImage,
+                    ),
+                  const Spacer(),
+                  _AddBtn(onTap: _submit),
+                ],
+              ),
             ),
           ),
 
           // ── Badges: tags + reminder ────────────────────────
-          if (tags.isNotEmpty || _reminderAt != null)
+          if (tags.isNotEmpty || _reminderAt != null || _scheduledAt != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
               child: Wrap(
@@ -392,15 +453,37 @@ class _InputBarState extends State<InputBar> {
                 children: [
                   ...tags.map((t) =>
                       Text('#$t', style: mono(color: kTeal, fontSize: 11))),
+                  if (_scheduledAt != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('! ${_fmtReminder(_scheduledAt!)}',
+                            style: mono(color: kMint, fontSize: 10)),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => setState(() => _scheduledAt = null),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Text('[×]',
+                                style: mono(
+                                    color: kDim.withValues(alpha: 0.6),
+                                    fontSize: 10)),
+                          ),
+                        ),
+                      ],
+                    ),
                   if (_reminderAt != null)
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('🔔 ${_fmtReminder(_reminderAt!)}',
+                        Text('🔔 ${_fmtReminder(_reminderAt!)}${_repeatLabel(_reminderRepeat)}',
                             style: mono(color: kMint, fontSize: 10)),
                         const SizedBox(width: 4),
                         GestureDetector(
-                          onTap: () => setState(() => _reminderAt = null),
+                          onTap: () => setState(() {
+                            _reminderAt = null;
+                            _reminderRepeat = 'none';
+                          }),
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: Text('[×]',
@@ -462,11 +545,11 @@ class _InputBarState extends State<InputBar> {
 
           // ── Text input ─────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+            padding: const EdgeInsets.fromLTRB(14, 5, 14, 7),
             child: TextField(
               controller: _controller,
               focusNode: _focusNode,
-              style: mono(fontSize: 13, height: 1.55),
+              style: mono(fontSize: 13, height: 1.35),
               maxLines: 6,
               minLines: 1,
               keyboardType: TextInputType.multiline,
@@ -474,7 +557,7 @@ class _InputBarState extends State<InputBar> {
               cursorColor: kMint,
               cursorWidth: 2,
               decoration: InputDecoration(
-                hintText: 'new memo',
+                hintText: widget.scheduleMode ? '! new schedule' : 'new memo',
                 filled: false,
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -530,7 +613,7 @@ class _ToolBtnState extends State<_ToolBtn> {
         onTapDown: (_) => widget.onTap(),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
           decoration: BoxDecoration(
             color: widget.active
                 ? kMint.withValues(alpha: 0.1)
@@ -589,7 +672,7 @@ class _AddBtnState extends State<_AddBtn> {
                 : Colors.transparent,
           ),
           child: Text(
-            '[ ADD ]',
+            '[추가]',
             style: mono(color: _hovered ? kMint : kDim, fontSize: 11),
           ),
         ),
@@ -618,8 +701,8 @@ class _FolderBtnState extends State<_FolderBtn> {
   Widget build(BuildContext context) {
     final active = widget.onTap != null;
     final displayLabel = widget.label != null && widget.label!.isNotEmpty
-        ? '[[ ${widget.label} ▾ ]]'
-        : '[[ ▾ ]]';
+        ? '[${widget.label} ▾]'
+        : '[폴더 선택]';
     return MouseRegion(
       cursor: active ? SystemMouseCursors.click : MouseCursor.defer,
       onEnter: (_) => setState(() => _hovered = true),
@@ -628,7 +711,7 @@ class _FolderBtnState extends State<_FolderBtn> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
           decoration: BoxDecoration(
             color: _hovered && active
                 ? kMint.withValues(alpha: 0.08)
@@ -687,7 +770,7 @@ class _TextFmtBtnState extends State<_TextFmtBtn> {
         onTapDown: (_) => widget.onTap(),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
           decoration: BoxDecoration(
             color: _hovered ? kSurface : Colors.transparent,
           ),

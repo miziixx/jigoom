@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../models/memo.dart';
-import '../models/folder.dart';
+import '../models/memo_actions.dart';
 import 'memo_tile.dart';
 import 'input_bar.dart';
+import 'scroll_picker_dialog.dart';
 
 
 // Wide layout threshold: side-by-side calendar + day panel
@@ -11,29 +12,15 @@ const _kWide = 620.0;
 
 class CalendarView extends StatefulWidget {
   final List<Memo> memos;
-  final void Function(Memo) onDelete;
-  final void Function(String, String) onUpdate;
-  final void Function(Memo, String?) onMove;
-  final void Function(Memo, DateTime?) onSetReminder;
-  final void Function(String content, DateTime date, bool isChecklist, DateTime? reminderAt, List<String> imagePaths) onAddMemo;
-  final void Function(Memo memo, String content) onAddNote;
-  final void Function(Memo memo, int index, String content) onUpdateNote;
-  final void Function(Memo memo, int index) onDeleteNote;
-  final List<Folder> folders;
+  final MemoActions actions;
+  final void Function(String content, DateTime date, bool isChecklist, DateTime? reminderAt, List<String> imagePaths, String reminderRepeat) onAddMemo;
   final String? highlightedMemoId;
 
   const CalendarView({
     super.key,
     required this.memos,
-    required this.onDelete,
-    required this.onUpdate,
-    required this.onMove,
-    required this.onSetReminder,
+    required this.actions,
     required this.onAddMemo,
-    required this.onAddNote,
-    required this.onUpdateNote,
-    required this.onDeleteNote,
-    required this.folders,
     this.highlightedMemoId,
   });
 
@@ -46,7 +33,7 @@ class _CalendarViewState extends State<CalendarView> {
   late int _month;
   late DateTime _selectedDay;
 
-  static const _cellH = 38.0;
+  static const _cellH = 42.0;
 
   @override
   void initState() {
@@ -119,7 +106,7 @@ class _CalendarViewState extends State<CalendarView> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
+    return LayoutBuilder(builder: (_, constraints) {
       final isWide = constraints.maxWidth >= _kWide;
       if (isWide) {
         return Row(
@@ -130,35 +117,132 @@ class _CalendarViewState extends State<CalendarView> {
           ],
         );
       }
-      return Column(
-        children: [
-          _buildCalendarPanel(),
-          Expanded(child: _buildDayPanel()),
-        ],
-      );
+      // Narrow (phone): calendar + day header + memo list share one scroll
+      // area, and the input bar is pinned at the bottom. This keeps the
+      // input usable (and on-screen) even when the keyboard pushes up.
+      return _buildNarrowLayout();
     });
+  }
+
+  Widget _buildNarrowLayout() {
+    final memos = _memosForDay(_selectedDay);
+    return Column(
+      children: [
+        Expanded(
+          child: NotificationListener<ScrollStartNotification>(
+            onNotification: (_) {
+              FocusScope.of(context).unfocus();
+              return false;
+            },
+            child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.only(bottom: 8),
+            children: [
+              _buildCalendarPanel(),
+              _buildDayHeader(memos),
+              if (memos.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Center(
+                    child: Text(
+                      'no memos on this day',
+                      style: mono(
+                          color: kDim.withValues(alpha: 0.35), fontSize: 12),
+                    ),
+                  ),
+                )
+              else
+                ...memos.map((memo) => MemoTile(
+                      memo:        memo,
+                      actions:     widget.actions,
+                      highlighted: widget.highlightedMemoId == memo.id,
+                    )),
+            ],
+            ),
+          ),
+        ),
+        // Input bar — pinned at bottom, always usable above the keyboard.
+        InputBar(
+          initialDate: _selectedDay,
+          onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched) =>
+              widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt, imgs, rep),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDayHeader(List<Memo> memos) {
+    final d = _selectedDay;
+    const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    final wdLabel = weekdays[d.weekday - 1];
+    final dateLabel =
+        '${d.year}.${d.month.toString().padLeft(2, '0')}.${d.day.toString().padLeft(2, '0')}  $wdLabel';
+    return Container(
+      color: kMint,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      child: Row(
+        children: [
+          Text(dateLabel,
+              style: mono(color: kBg, fontSize: 11, letterSpacing: 1, fontWeight: FontWeight.bold)),
+          const SizedBox(width: 10),
+          Text(
+            memos.isEmpty
+                ? 'no memos'
+                : '${memos.length} memo${memos.length == 1 ? '' : 's'}',
+            style: mono(color: kBg.withValues(alpha: 0.7), fontSize: 10),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Calendar grid panel ───────────────────────────────────────
 
   Widget _buildCalendarPanel() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildMonthHeader(),
-        _buildWeekdayRow(),
-        _buildGrid(),
-      ],
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        final v = details.primaryVelocity ?? 0;
+        if (v < -200) _nextMonth();
+        else if (v > 200) _prevMonth();
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildMonthHeader(),
+          _buildWeekdayRow(),
+          _buildGrid(),
+        ],
+      ),
     );
   }
 
+  Future<void> _showYearPicker() async {
+    final years = List.generate(111, (i) => 1990 + i);
+    final result = await showScrollPicker(
+      context: context,
+      values: years,
+      labels: years.map((y) => '$y').toList(),
+      initialValue: _year,
+    );
+    if (result != null && mounted) setState(() => _year = result);
+  }
+
+  Future<void> _showMonthPicker() async {
+    final months = List.generate(12, (i) => i + 1);
+    final result = await showScrollPicker(
+      context: context,
+      values: months,
+      labels: months.map((m) => m.toString().padLeft(2, '0')).toList(),
+      initialValue: _month,
+    );
+    if (result != null && mounted) setState(() => _month = result);
+  }
+
   Widget _buildMonthHeader() {
-    const months = [
-      'Jan','Feb','Mar','Apr','May','Jun',
-      'Jul','Aug','Sep','Oct','Nov','Dec'
-    ];
     final now = DateTime.now();
     final isCurrentMonth = _year == now.year && _month == now.month;
+    final labelColor = isCurrentMonth ? kMint : kText;
+    final weight = isCurrentMonth ? FontWeight.bold : FontWeight.normal;
 
     return Container(
       color: kBg,
@@ -168,15 +252,18 @@ class _CalendarViewState extends State<CalendarView> {
           _NavBtn(label: '[<]', onTap: _prevMonth),
           const Spacer(),
           GestureDetector(
-            onTap: _goToday,
+            onTap: _showYearPicker,
             child: Text(
-              '$_year . ${months[_month - 1]}',
-              style: mono(
-                color: isCurrentMonth ? kMint : kText,
-                fontSize: 13,
-                letterSpacing: 2,
-                fontWeight: isCurrentMonth ? FontWeight.bold : FontWeight.normal,
-              ),
+              '$_year',
+              style: mono(color: labelColor, fontSize: 13, letterSpacing: 1, fontWeight: weight),
+            ),
+          ),
+          Text(' · ', style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 13)),
+          GestureDetector(
+            onTap: _showMonthPicker,
+            child: Text(
+              _month.toString().padLeft(2, '0'),
+              style: mono(color: labelColor, fontSize: 13, letterSpacing: 1, fontWeight: weight),
             ),
           ),
           const Spacer(),
@@ -214,8 +301,7 @@ class _CalendarViewState extends State<CalendarView> {
     final firstDay    = DateTime(_year, _month, 1);
     final daysInMonth = DateTime(_year, _month + 1, 0).day;
     final offset      = firstDay.weekday - 1; // Mon=0 … Sun=6
-    final totalCells  = offset + daysInMonth;
-    final rows        = (totalCells / 7).ceil();
+    const rows        = 6; // always 6 rows → consistent height across months
 
     final byDate      = _memosByDate;
     final reminderSet = _reminderDates;
@@ -299,39 +385,39 @@ class _CalendarViewState extends State<CalendarView> {
 
         // Memo list
         Expanded(
-          child: memos.isEmpty
-              ? Center(
-                  child: Text(
-                    'no memos on this day',
-                    style: mono(
-                        color: kDim.withValues(alpha: 0.35), fontSize: 12),
+          child: NotificationListener<ScrollStartNotification>(
+            onNotification: (_) {
+              FocusScope.of(context).unfocus();
+              return false;
+            },
+            child: memos.isEmpty
+                ? Center(
+                    child: Text(
+                      'no memos on this day',
+                      style: mono(
+                          color: kDim.withValues(alpha: 0.35), fontSize: 12),
+                    ),
+                  )
+                : ListView.builder(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.only(bottom: 12),
+                    itemCount: memos.length,
+                    itemBuilder: (_, i) {
+                      final memo = memos[i];
+                      return MemoTile(
+                        memo:        memo,
+                        actions:     widget.actions,
+                        highlighted: widget.highlightedMemoId == memo.id,
+                      );
+                    },
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  itemCount: memos.length,
-                  itemBuilder: (_, i) {
-                    final memo = memos[i];
-                    return MemoTile(
-                      memo:           memo,
-                      onDelete:       () => widget.onDelete(memo),
-                      onUpdate:       (c) => widget.onUpdate(memo.id, c),
-                      onMove:         (fid) => widget.onMove(memo, fid),
-                      onSetReminder:  (dt) => widget.onSetReminder(memo, dt),
-                      onAddNote:      (c) => widget.onAddNote(memo, c),
-                      onUpdateNote:   (idx, c) => widget.onUpdateNote(memo, idx, c),
-                      onDeleteNote:   (idx) => widget.onDeleteNote(memo, idx),
-                      folders:        widget.folders,
-                      highlighted:    widget.highlightedMemoId == memo.id,
-                    );
-                  },
-                ),
+          ),
         ),
         // Input bar — saves memo to selected day's date
         InputBar(
           initialDate: _selectedDay,
-          onSubmit: (content, isChecklist, reminderAt, _, imgs) =>
-              widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt, imgs),
+          onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched) =>
+              widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt, imgs, rep),
         ),
       ],
     );
@@ -396,56 +482,69 @@ class _DayCellState extends State<_DayCell> {
                     ? kSurface
                     : Colors.transparent,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                widget.day.toString(),
-                style: mono(
-                  color: dayColor,
-                  fontSize: widget.isSelected || widget.isToday ? 13 : 12,
-                  fontWeight: widget.isToday
-                      ? FontWeight.bold
-                      : FontWeight.normal,
+          alignment: Alignment.center,
+          // FittedBox guarantees the cell content never overflows the fixed
+          // grid cell height, regardless of the user's font-size setting.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  widget.day.toString(),
+                  style: mono(
+                    color: dayColor,
+                    fontSize: widget.isSelected || widget.isToday ? 13 : 12,
+                    fontWeight: widget.isToday
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    height: 1.1,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 3),
-              // Indicators
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.hasMemo)
-                    Container(
-                      width: 4,
-                      height: 4,
-                      margin: const EdgeInsets.symmetric(horizontal: 1),
-                      decoration: BoxDecoration(
-                        color: kMint.withValues(alpha: 0.85),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  if (widget.hasReminder)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 2),
-                      child: Text(
-                        '!',
-                        style: mono(
-                          color: Colors.amber.shade600
-                              .withValues(alpha: 0.9),
-                          fontSize: 9,
+                const SizedBox(height: 3),
+                // Indicators
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.hasMemo)
+                      Container(
+                        width: 4,
+                        height: 4,
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        decoration: BoxDecoration(
+                          color: kMint.withValues(alpha: 0.85),
+                          shape: BoxShape.circle,
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ],
+                    if (widget.hasReminder)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 2),
+                        child: Text(
+                          '!',
+                          style: mono(
+                            color: Colors.amber.shade600
+                                .withValues(alpha: 0.9),
+                            fontSize: 9,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Scroll picker dialog (year / month)
+// ─────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────
 // Navigation button  [◀] / [▶]

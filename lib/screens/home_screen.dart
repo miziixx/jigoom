@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../app_theme.dart';
 import '../models/memo.dart';
+import '../models/memo_actions.dart';
 import '../models/folder.dart';
 import '../widgets/date_group_header.dart';
 import '../widgets/memo_tile.dart';
@@ -22,6 +23,7 @@ import '../services/widget_service.dart';
 import '../services/image_service.dart';
 import '../widgets/calendar_view.dart';
 import 'stats_screen.dart';
+import 'schedule_screen.dart';
 
 // Below this width → mobile overlay sidebar; above → desktop inline sidebar
 const _kNarrowBreak = 700.0;
@@ -45,6 +47,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _tabLocked = false;
   bool _calendarOpen = false;
   bool _statsOpen = false;
+  bool _scheduleOpen = false;
+  bool _tasksOnly = false;
+  bool _tagsOpen = false;
   String? _selectedFolderId;
   String? _selectedTag;
   String? _selectedTabId;
@@ -94,6 +99,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           memoId: memo.id,
           content: memo.content,
           scheduledAt: memo.reminderAt!,
+          repeat: memo.reminderRepeat,
         );
       }
     }
@@ -224,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('[ SHARED CONTENT ]',
+                Text('[SHARED CONTENT]',
                     style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
                 const SizedBox(height: 10),
                 Container(height: 1, color: kBorder),
@@ -292,13 +298,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     _DialogBtn(action: _DialogAction(
-                      label: '[ CANCEL ]',
+                      label: '취소',
                       color: kDim,
                       onTap: () => Navigator.pop(ctx),
                     )),
                     const SizedBox(width: 8),
                     _DialogBtn(action: _DialogAction(
-                      label: '[ SAVE ]',
+                      label: '저장',
                       color: kMint,
                       onTap: () {
                         Navigator.pop(ctx);
@@ -437,6 +443,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _highlightedMemoId = memoId;
       _calendarOpen      = false;
       _statsOpen         = false;
+      _scheduleOpen      = false;
     });
     // Remove highlight after 3 seconds.
     Future.delayed(const Duration(seconds: 3), () {
@@ -489,11 +496,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (kIsWeb) return;
     final now = DateTime.now();
     for (final memo in memos) {
-      if (memo.reminderAt != null && memo.reminderAt!.isAfter(now)) {
+      // Reschedule one-shot future reminders, and all repeating reminders
+      // (the service rolls a repeating reminder forward to its next occurrence).
+      if (memo.reminderAt != null &&
+          (memo.reminderRepeat != 'none' || memo.reminderAt!.isAfter(now))) {
         NotificationService.schedule(
           memoId: memo.id,
           content: memo.content,
           scheduledAt: memo.reminderAt!,
+          repeat: memo.reminderRepeat,
         );
       }
     }
@@ -515,7 +526,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // ── Memo CRUD ──────────────────────────────────────
 
-  void _addMemo(String content, bool isChecklist, DateTime? reminderAt, [String? folderOverride, List<String>? imagePaths]) {
+  void _addMemo(String content, bool isChecklist, DateTime? reminderAt, [String? folderOverride, List<String>? imagePaths, String reminderRepeat = 'none', DateTime? scheduledAt]) {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final targetFolder = folderOverride ?? _selectedFolderId;
     setState(() {
@@ -526,6 +537,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         folderId: targetFolder,
         isChecklist: isChecklist,
         reminderAt: reminderAt,
+        reminderRepeat: reminderRepeat,
+        scheduledAt: scheduledAt,
         imagePaths: imagePaths ?? const [],
       ));
       if (folderOverride != null) _selectedFolderId = folderOverride;
@@ -533,7 +546,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     StorageService.saveMemos(_memos);
     if (reminderAt != null) {
       NotificationService.schedule(
-          memoId: id, content: content, scheduledAt: reminderAt);
+          memoId: id, content: content, scheduledAt: reminderAt, repeat: reminderRepeat);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -549,7 +562,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Add memo with a specific date (used from calendar view).
   // Uses the selected day's date but current time so timeStr is accurate.
   void _addMemoOnDate(
-      String content, DateTime date, bool isChecklist, DateTime? reminderAt, [List<String>? imagePaths]) {
+      String content, DateTime date, bool isChecklist, DateTime? reminderAt, [List<String>? imagePaths, String reminderRepeat = 'none']) {
     final now = DateTime.now();
     final id = now.millisecondsSinceEpoch.toString();
     final createdAt = DateTime(
@@ -561,13 +574,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         createdAt: createdAt,
         isChecklist: isChecklist,
         reminderAt: reminderAt,
+        reminderRepeat: reminderRepeat,
         imagePaths: imagePaths ?? const [],
       ));
     });
     StorageService.saveMemos(_memos);
     if (reminderAt != null) {
       NotificationService.schedule(
-          memoId: id, content: content, scheduledAt: reminderAt);
+          memoId: id, content: content, scheduledAt: reminderAt, repeat: reminderRepeat);
     }
   }
 
@@ -617,29 +631,113 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() {
       final i = _memos.indexWhere((m) => m.id == id);
       if (i != -1) {
-        _memos[i] = _memos[i].copyWith(
-          content: newContent,
-          editHistory: [..._memos[i].editHistory, DateTime.now()],
+        final original = _memos[i];
+        String content = newContent;
+        for (final sysTag in ['habit', 'goal']) {
+          if (original.tags.contains(sysTag)) {
+            final tempTags = Memo(
+                    id: '', content: content, createdAt: DateTime.now())
+                .tags;
+            if (!tempTags.contains(sysTag)) content += ' #$sysTag';
+          }
+        }
+        _memos[i] = original.copyWith(
+          content: content,
+          editHistory: [...original.editHistory, DateTime.now()],
         );
       }
     });
     StorageService.saveMemos(_memos);
   }
 
+  void _addImageToMemo(Memo memo, String imagePath) {
+    setState(() {
+      final i = _memos.indexWhere((m) => m.id == memo.id);
+      if (i != -1) {
+        _memos[i] = _memos[i].copyWith(
+          imagePaths: [..._memos[i].imagePaths, imagePath],
+        );
+      }
+    });
+    StorageService.saveMemos(_memos);
+  }
+
+  void _mergeMemos(Memo dragged, Memo target) {
+    if (dragged.id == target.id) return;
+
+    // Snapshot for undo
+    final draggedSnapshot = dragged;
+    final draggedIndex = _memos.indexWhere((m) => m.id == dragged.id);
+
+    // Append dragged content as a note on target
+    _addNote(target, dragged.content);
+
+    // Delete the dragged memo
+    if (dragged.reminderAt != null) NotificationService.cancel(dragged.id);
+    setState(() => _memos.removeWhere((m) => m.id == dragged.id));
+    StorageService.saveMemos(_memos);
+    _checkAndDeleteEmptyFolder(dragged.folderId);
+
+    // Undo snackbar
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    void doUndo() {
+      final targetIdx = _memos.indexWhere((m) => m.id == target.id);
+      setState(() {
+        final insertAt = draggedIndex.clamp(0, _memos.length);
+        _memos.insert(insertAt, draggedSnapshot);
+        if (targetIdx != -1) {
+          final notes = [..._memos[targetIdx].appendNotes];
+          if (notes.isNotEmpty) notes.removeLast();
+          _memos[targetIdx] = _memos[targetIdx].copyWith(appendNotes: notes);
+        }
+      });
+      StorageService.saveMemos(_memos);
+      ScaffoldMessenger.of(context).clearSnackBars();
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: kSurface,
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        content: Row(
+          children: [
+            Text('메모를 합쳤습니다', style: mono(color: kText, fontSize: 12)),
+            const Spacer(),
+            GestureDetector(
+              onTap: doUndo,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.undo, color: kMint, size: kFontSize + 4),
+                  const SizedBox(width: 4),
+                  Text('되돌리기', style: mono(color: kMint, fontSize: kFontSize * 0.8)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _deleteMemo(Memo memo) {
     showDialog(
       context: context,
       builder: (ctx) => _TerminalDialog(
-        title: '[ DELETE MEMO ]',
+        title: '[DELETE MEMO]',
         body:
             '"${memo.content.length > 50 ? '${memo.content.substring(0, 50)}...' : memo.content}"',
         actions: [
           _DialogAction(
-              label: '[ CANCEL ]',
+              label: '취소',
               color: kDim,
               onTap: () => Navigator.pop(ctx)),
           _DialogAction(
-            label: '[ DELETE ]',
+            label: '삭제',
             color: Colors.red.shade400,
             onTap: () {
               Navigator.pop(ctx);
@@ -686,6 +784,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _moveMemoToFolder(Memo memo, String? newFolderId) {
+    if (memo.tags.any((t) => t == 'habit' || t == 'goal')) return;
     if (memo.folderId == newFolderId) return;
     final oldFolderId = memo.folderId;
     setState(() {
@@ -701,11 +800,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // ── Reminders ──────────────────────────────────────
 
-  void _setReminder(Memo memo, DateTime? newTime) {
+  void _setReminder(Memo memo, DateTime? newTime, [String repeat = 'none']) {
     // Update UI and storage immediately — don't await OS notification calls.
     final updated = memo.copyWith(
       reminderAt: newTime,
       clearReminder: newTime == null,
+      reminderRepeat: newTime == null ? 'none' : repeat,
     );
     setState(() {
       final i = _memos.indexWhere((m) => m.id == memo.id);
@@ -723,6 +823,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             memoId: memo.id,
             content: memo.content,
             scheduledAt: newTime,
+            repeat: repeat,
           );
         } catch (_) {}
       }
@@ -854,6 +955,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  void _confirmDeleteTab(QuickTab tab) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _TerminalDialog(
+        title: '[DELETE TAB]',
+        body: '"${tab.label}" 탭을 삭제하시겠습니까?',
+        actions: [
+          _DialogAction(
+              label: '[취소]',
+              color: kDim,
+              onTap: () => Navigator.pop(ctx)),
+          _DialogAction(
+            label: '[삭제]',
+            color: Colors.red.shade400,
+            onTap: () {
+              Navigator.pop(ctx);
+              _deleteTab(tab.id);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Computed tag data ──────────────────────────────
 
   List<String> get _allTags {
@@ -892,6 +1017,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int get _totalWords =>
       _memos.fold(0, (sum, m) => sum + m.content.length);
 
+  int get _taskCount => _memos.where((m) => m.isChecklist).length;
+  int get _habitCount => _memos.where((m) => m.tags.contains('habit')).length;
+
+  MemoActions get _memoActions => MemoActions(
+        folders: _folders,
+        onDelete: _deleteMemo,
+        onUpdate: (m, c) => _updateMemo(m.id, c),
+        onMove: _moveMemoToFolder,
+        onSetReminder: _setReminder,
+        onAddNote: _addNote,
+        onUpdateNote: _updateNote,
+        onDeleteNote: _deleteNote,
+        onMerge: _mergeMemos,
+        onAddImage: _addImageToMemo,
+        onTagTap: (tag) => setState(() => _selectedTag = tag),
+      );
+
+  String get _activeSidebarSection {
+    if (_calendarOpen) return 'calendar';
+    if (_statsOpen) return 'stats';
+    if (_scheduleOpen) return 'schedule';
+    if (_tasksOnly) return 'tasks';
+    if (_tagsOpen) return 'tags';
+    if (_selectedTag == 'habit') return 'habits';
+    if (_selectedTag == 'goal') return 'goals';
+    return 'memo';
+  }
+
   int get _streak {
     if (_memos.isEmpty) return 0;
     final days = _memos
@@ -929,7 +1082,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   List<Object> _buildFlatList() {
     final List<Memo> visible;
-    if (_selectedTag != null) {
+    if (_tasksOnly) {
+      visible = _memos.where((m) => m.isChecklist).toList();
+    } else if (_selectedTag != null) {
       // Tag filter: all memos containing this tag (across folders)
       visible = _memos.where((m) => m.tags.contains(_selectedTag)).toList();
     } else {
@@ -1102,7 +1257,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final items = (_calendarOpen || _statsOpen) ? const [] : _buildFlatList();
+    final items = (_calendarOpen || _statsOpen || _scheduleOpen || _tagsOpen) ? const [] : _buildFlatList();
     // Header path
     final folderName = _selectedFolderId == null
         ? '/inbox'
@@ -1111,17 +1266,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ? '[CAL]'
         : (_statsOpen
             ? 'stats'
-            : (_selectedTag != null && _selectedFolderId != null
-                ? '$folderName  #$_selectedTag'
-                : (_selectedTag != null
-                    ? '#$_selectedTag'
-                    : folderName)));
+            : (_scheduleOpen
+                ? 'schedule'
+                : (_tagsOpen
+                    ? 'tags'
+                    : (_tasksOnly
+                        ? 'tasks'
+                        : (_selectedTag != null && _selectedFolderId != null
+                            ? '$folderName  #$_selectedTag'
+                            : (_selectedTag != null
+                                ? '#$_selectedTag'
+                                : folderName))))));
 
     final allTags = _allTags;
     final tagCounts = _tagCounts;
-    final memoCounts = _memoCounts;
-    final recentMemos = _recentMemos;
-    final totalWords = _totalWords;
     final streak = _streak;
 
     return Scaffold(
@@ -1132,60 +1290,116 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             final isNarrow = constraints.maxWidth < _kNarrowBreak;
 
             final sidebar = Sidebar(
-              folders: _folders,
-              selectedId: _selectedFolderId,
-              onSelect: (id) {
-                setState(() {
-                  _selectedFolderId = id;
-                  _selectedTag = null;
-                  _selectedTabId = null;
-                  if (isNarrow) _sidebarOpen = false;
-                });
+              onSelectMemo: () => setState(() {
+                _selectedFolderId = null;
+                _selectedTag = null;
+                _selectedTabId = null;
+                _calendarOpen = false;
+                _statsOpen = false;
+                _scheduleOpen = false;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                if (isNarrow) _sidebarOpen = false;
+              }),
+              onSelectCalendar: () => setState(() {
+                _calendarOpen = true;
+                _statsOpen = false;
+                _scheduleOpen = false;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                _selectedTabId = null;
+                if (isNarrow) _sidebarOpen = false;
+              }),
+              onSelectTasks: () => setState(() {
+                _tasksOnly = true;
+                _calendarOpen = false;
+                _statsOpen = false;
+                _scheduleOpen = false;
+                _tagsOpen = false;
+                _selectedTag = null;
+                _selectedFolderId = null;
+                _selectedTabId = null;
+                if (isNarrow) _sidebarOpen = false;
+              }),
+              onSelectTags: () => setState(() {
+                _tagsOpen = true;
+                _tasksOnly = false;
+                _calendarOpen = false;
+                _statsOpen = false;
+                _scheduleOpen = false;
+                _selectedTag = null;
+                _selectedFolderId = null;
+                _selectedTabId = null;
+                if (isNarrow) _sidebarOpen = false;
+              }),
+              onSelectStats: () => setState(() {
+                _statsOpen = true;
+                _calendarOpen = false;
+                _scheduleOpen = false;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                _selectedTabId = null;
+                if (isNarrow) _sidebarOpen = false;
+              }),
+              onSelectSchedule: () => setState(() {
+                _scheduleOpen = true;
+                _statsOpen = false;
+                _calendarOpen = false;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                _selectedTabId = null;
+                if (isNarrow) _sidebarOpen = false;
+              }),
+              onSettingsTap: () {
+                if (isNarrow) setState(() => _sidebarOpen = false);
+                _showSettings();
               },
               onCreate: _createFolder,
-              onSettingsTap: _showSettings,
-              allTags: allTags,
-              tagCounts: tagCounts,
-              selectedTag: _selectedTag,
-              onSelectTag: (tag) {
-                setState(() {
-                  _selectedTag = tag;
-                  _selectedFolderId = null;
-                  _selectedTabId = null;
-                  if (isNarrow) _sidebarOpen = false;
-                });
-              },
-              memoCounts: memoCounts,
-              recentMemos: recentMemos,
-              onSelectRecent: (memo) {
-                setState(() {
-                  _selectedFolderId = memo.folderId;
-                  _selectedTag = null;
-                  if (isNarrow) _sidebarOpen = false;
-                });
-              },
-              totalWords: totalWords,
-              streak: streak,
-              onMoveMemo: _moveMemoToFolder,
-              onMoveFolder: _moveFolder,
-              onRenameFolder: _renameFolder,
+              activeSection: _activeSidebarSection,
+              folders: _folders,
+              selectedFolderId: _selectedFolderId,
+              onSelectFolder: (id) => setState(() {
+                _selectedFolderId = id;
+                _selectedTag = null;
+                _selectedTabId = null;
+                _calendarOpen = false;
+                _statsOpen = false;
+                _scheduleOpen = false;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                if (isNarrow) _sidebarOpen = false;
+              }),
               dayCount: _dayCount,
               habitActivated: _habitActivated,
               goalActivated: _goalActivated,
+              streak: streak,
               onActivateHabit: _activateHabit,
               onActivateGoal: _activateGoal,
               onSelectHabit: () => setState(() {
                 _selectedTag = 'habit';
                 _selectedFolderId = null;
                 _selectedTabId = null;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                _calendarOpen = false;
+                _statsOpen = false;
+                _scheduleOpen = false;
                 if (isNarrow) _sidebarOpen = false;
               }),
               onSelectGoal: () => setState(() {
                 _selectedTag = 'goal';
                 _selectedFolderId = null;
                 _selectedTabId = null;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                _calendarOpen = false;
+                _statsOpen = false;
+                _scheduleOpen = false;
                 if (isNarrow) _sidebarOpen = false;
               }),
+              noteCount: _memos.length,
+              taskCount: _taskCount,
+              habitCount: _habitCount,
             );
 
             final mainContent = Column(
@@ -1206,19 +1420,62 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   searchOpen:       _searchOpen,
                   onSearchTap:      () { if (_searchOpen) { _closeSearch(); } else { _openSearch(); } },
                   folders:          _folders,
-                  allTags:          allTags,
                   selectedFolderId: _selectedFolderId,
-                  selectedTag:      _selectedTag,
                   onSelectFolder:   (id) => setState(() {
                     _selectedFolderId = id;
                     _selectedTag = null;
                     _selectedTabId = null;
+                    _scheduleOpen = false;
+                    _calendarOpen = false;
+                    _statsOpen = false;
+                    _tasksOnly = false;
+                    _tagsOpen = false;
                   }),
-                  onSelectTag:      (tag) => setState(() {
-                    _selectedTag = tag;
+                  onSelectSchedule: () => setState(() {
+                    _scheduleOpen = true;
+                    _statsOpen = false;
+                    _calendarOpen = false;
+                    _tasksOnly = false;
+                    _tagsOpen = false;
+                    _selectedTabId = null;
+                    if (isNarrow) _sidebarOpen = false;
+                  }),
+                  onSelectTasks:    () => setState(() {
+                    _tasksOnly = true;
+                    _calendarOpen = false;
+                    _statsOpen = false;
+                    _scheduleOpen = false;
+                    _tagsOpen = false;
+                    _selectedTag = null;
                     _selectedFolderId = null;
                     _selectedTabId = null;
+                    if (isNarrow) _sidebarOpen = false;
                   }),
+                  onSelectHabit:    () => setState(() {
+                    _selectedTag = 'habit';
+                    _selectedFolderId = null;
+                    _selectedTabId = null;
+                    _tasksOnly = false;
+                    _tagsOpen = false;
+                    _calendarOpen = false;
+                    _statsOpen = false;
+                    _scheduleOpen = false;
+                    if (isNarrow) _sidebarOpen = false;
+                  }),
+                  onSelectGoal:     () => setState(() {
+                    _selectedTag = 'goal';
+                    _selectedFolderId = null;
+                    _selectedTabId = null;
+                    _tasksOnly = false;
+                    _tagsOpen = false;
+                    _calendarOpen = false;
+                    _statsOpen = false;
+                    _scheduleOpen = false;
+                    if (isNarrow) _sidebarOpen = false;
+                  }),
+                  onSettings:       _showSettings,
+                  habitActivated:   _habitActivated,
+                  goalActivated:    _goalActivated,
                 ),
                 Container(height: 1, color: kBorder),
 
@@ -1284,12 +1541,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       );
                     }),
                   ),
+                ] else if (_tagsOpen) ...[
+                  Expanded(
+                    child: _TagsBrowseView(
+                      allTags: allTags,
+                      tagCounts: tagCounts,
+                      onSelectTag: (tag) => setState(() {
+                        _tagsOpen = false;
+                        _selectedTag = tag;
+                        _selectedFolderId = null;
+                        _selectedTabId = null;
+                      }),
+                    ),
+                  ),
                 ] else if (_statsOpen) ...[
                   Expanded(
                     child: StatsView(
                       memos: _selectedTag != null
                           ? _memos.where((m) => m.tags.contains(_selectedTag)).toList()
                           : _memos.where((m) => m.folderId == _selectedFolderId).toList(),
+                      actions: _memoActions,
                       contextLabel: _selectedTag != null
                           ? '#$_selectedTag'
                           : (_selectedFolderId == null
@@ -1298,33 +1569,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   (f) => f.id == _selectedFolderId,
                                   orElse: () => const Folder(id: '', name: 'inbox'),
                                 ).name),
-                      onDelete: _deleteMemo,
-                      onUpdate: (m, c) => _updateMemo(m.id, c),
-                      onMove: _moveMemoToFolder,
+                    ),
+                  ),
+                ] else if (_scheduleOpen) ...[
+                  Expanded(
+                    child: ScheduleView(
+                      memos:    _memos,
+                      actions:  _memoActions,
+                      onAddMemo: (c, isCl, rem, fid, imgs, rep, sched) =>
+                          _addMemo(c, isCl, rem, fid, imgs, rep, sched),
                     ),
                   ),
                 ] else if (_calendarOpen) ...[
                   Expanded(
                     child: CalendarView(
                       memos:             _memos,
-                      onDelete:          _deleteMemo,
-                      onUpdate:          _updateMemo,
-                      onMove:            _moveMemoToFolder,
-                      onSetReminder:     _setReminder,
-                      onAddMemo:         (c, d, isCl, rem, imgs) => _addMemoOnDate(c, d, isCl, rem, imgs),
-                      onAddNote:         _addNote,
-                      onUpdateNote:      _updateNote,
-                      onDeleteNote:      _deleteNote,
-                      folders:           _folders,
+                      actions:           _memoActions,
+                      onAddMemo:         (c, d, isCl, rem, imgs, rep) => _addMemoOnDate(c, d, isCl, rem, imgs, rep),
                       highlightedMemoId: _highlightedMemoId,
                     ),
                   ),
                 ] else ...[
                   Expanded(
-                    child: items.isEmpty
+                    child: NotificationListener<ScrollStartNotification>(
+                      onNotification: (_) {
+                        FocusScope.of(context).unfocus();
+                        return false;
+                      },
+                      child: items.isEmpty
                         ? const _EmptyState()
                         : ListView.builder(
                             controller: _scrollController,
+                            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                             padding: const EdgeInsets.only(bottom: 12),
                             itemCount: items.length,
                             itemBuilder: (context, index) {
@@ -1350,17 +1626,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
                                     MemoTile(
-                                      memo: item,
-                                      onDelete: () => _deleteMemo(item),
-                                      onUpdate: (c) => _updateMemo(item.id, c),
-                                      onMove: (fid) => _moveMemoToFolder(item, fid),
-                                      onSetReminder: (dt) => _setReminder(item, dt),
-                                      onAddNote: (c) => _addNote(item, c),
-                                      onUpdateNote: (idx, c) => _updateNote(item, idx, c),
-                                      onDeleteNote: (idx) => _deleteNote(item, idx),
-                                      folders: _folders,
+                                      memo:        item,
+                                      actions:     _memoActions,
                                       highlighted: _highlightedMemoId == item.id,
-                                      onTagTap: (tag) => setState(() => _selectedTag = tag),
                                     ),
                                   ],
                                 );
@@ -1368,13 +1636,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               return const SizedBox.shrink();
                             },
                           ),
+                    ),
                   ),
                   Container(height: 1, color: kBorder),
                   Flexible(
                     flex: 0,
                     fit: FlexFit.loose,
                     child: InputBar(
-                      onSubmit: (c, isCl, rem, fid, imgs) => _addMemo(c, isCl, rem, fid, imgs),
+                      onSubmit: (c, isCl, rem, fid, imgs, rep, sched) => _addMemo(c, isCl, rem, fid, imgs, rep, sched),
                       folders: _folders,
                       currentFolderId: _selectedFolderId,
                     ),
@@ -1388,7 +1657,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onSelect:         _selectTab,
                   canAdd:           _tabs.length < 5,
                   onAddTap:         () => _showTabDialog(null),
-                  onLongPress:      _showTabDialog,
+                  onLongPress:      (tab) => _confirmDeleteTab(tab),
                   locked:           _tabLocked,
                   calendarSelected: _calendarOpen,
                   onCalendarTap: () => setState(() {
@@ -1396,6 +1665,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       _calendarOpen  = true;
                       _selectedTabId = null;
                       _statsOpen     = false;
+                      _scheduleOpen  = false;
                     }
                   }),
                   statsSelected: _statsOpen,
@@ -1403,6 +1673,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     if (!_statsOpen) {
                       _statsOpen     = true;
                       _calendarOpen  = false;
+                      _scheduleOpen  = false;
                       _selectedTabId = null;
                     }
                   }),
@@ -1711,13 +1982,13 @@ class _SearchToggleBtnState extends State<_SearchToggleBtn> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
           decoration: BoxDecoration(
             color: widget.active
                 ? kMint.withValues(alpha: 0.1)
                 : (_hovered ? kSurface : Colors.transparent),
           ),
-          child: Text('SEARCH', style: mono(color: color, fontSize: 10, letterSpacing: 1)),
+          child: Icon(Icons.search, size: 16, color: color),
         ),
       ),
     );
@@ -1740,11 +2011,15 @@ class _AppHeader extends StatelessWidget {
   final bool searchOpen;
   final VoidCallback onSearchTap;
   final List<Folder> folders;
-  final List<String> allTags;
   final String? selectedFolderId;
-  final String? selectedTag;
   final void Function(String? id) onSelectFolder;
-  final void Function(String tag) onSelectTag;
+  final VoidCallback onSelectSchedule;
+  final VoidCallback onSelectTasks;
+  final VoidCallback onSelectHabit;
+  final VoidCallback onSelectGoal;
+  final VoidCallback onSettings;
+  final bool habitActivated;
+  final bool goalActivated;
 
   const _AppHeader({
     required this.sidebarOpen,
@@ -1758,23 +2033,27 @@ class _AppHeader extends StatelessWidget {
     required this.searchOpen,
     required this.onSearchTap,
     required this.folders,
-    required this.allTags,
     required this.selectedFolderId,
-    required this.selectedTag,
     required this.onSelectFolder,
-    required this.onSelectTag,
+    required this.onSelectSchedule,
+    required this.onSelectTasks,
+    required this.onSelectHabit,
+    required this.onSelectGoal,
+    required this.onSettings,
+    required this.habitActivated,
+    required this.goalActivated,
   });
 
   Future<void> _showPathMenu(BuildContext context, Offset tapPos) async {
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
 
-    final folderItems = <PopupMenuEntry<String>>[
+    final items = <PopupMenuEntry<String>>[
       PopupMenuItem<String>(
         value: '__inbox__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Text('/inbox',
-            style: mono(color: selectedFolderId == null && selectedTag == null ? kMint : kText, fontSize: 12)),
+            style: mono(color: selectedFolderId == null ? kMint : kText, fontSize: 12)),
       ),
       ...folders.map((f) => PopupMenuItem<String>(
         value: 'folder:${f.id}',
@@ -1783,35 +2062,62 @@ class _AppHeader extends StatelessWidget {
         child: Text('/${f.name}',
             style: mono(color: selectedFolderId == f.id ? kMint : kText, fontSize: 12)),
       )),
-    ];
-
-    final tagItems = <PopupMenuEntry<String>>[
-      ...allTags.map((t) => PopupMenuItem<String>(
-        value: 'tag:$t',
-        height: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('#$t',
-            style: mono(color: selectedTag == t ? kMint : kText, fontSize: 12)),
-      )),
-    ];
-
-    final items = <PopupMenuEntry<String>>[
-      ...folderItems,
-      if (allTags.isNotEmpty) ...[
-        PopupMenuItem<String>(
-          enabled: false,
+      PopupMenuItem<String>(
+        enabled: false,
+        height: 1,
+        padding: EdgeInsets.zero,
+        child: Container(
           height: 1,
-          padding: EdgeInsets.zero,
-          child: Container(
-            height: 1,
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            child: CustomPaint(
-              painter: _DashedLinePainter(color: kText.withValues(alpha: 0.25)),
-            ),
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: CustomPaint(
+            painter: _DashedLinePainter(color: kText.withValues(alpha: 0.25)),
           ),
         ),
-        ...tagItems,
-      ],
+      ),
+      PopupMenuItem<String>(
+        value: '__schedule__',
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Text('> schedule', style: mono(color: kDim, fontSize: 12)),
+      ),
+      PopupMenuItem<String>(
+        value: '__tasks__',
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Text('> tasks', style: mono(color: kDim, fontSize: 12)),
+      ),
+      if (habitActivated)
+        PopupMenuItem<String>(
+          value: '__habits__',
+          height: 30,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text('> habits', style: mono(color: kDim, fontSize: 12)),
+        ),
+      if (goalActivated)
+        PopupMenuItem<String>(
+          value: '__goals__',
+          height: 30,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text('> goals', style: mono(color: kDim, fontSize: 12)),
+        ),
+      PopupMenuItem<String>(
+        enabled: false,
+        height: 1,
+        padding: EdgeInsets.zero,
+        child: Container(
+          height: 1,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: CustomPaint(
+            painter: _DashedLinePainter(color: kText.withValues(alpha: 0.25)),
+          ),
+        ),
+      ),
+      PopupMenuItem<String>(
+        value: '__settings__',
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Text('> settings', style: mono(color: kDim, fontSize: 12)),
+      ),
     ];
 
     final result = await showMenu<String>(
@@ -1831,8 +2137,16 @@ class _AppHeader extends StatelessWidget {
       onSelectFolder(null);
     } else if (result.startsWith('folder:')) {
       onSelectFolder(result.substring(7));
-    } else if (result.startsWith('tag:')) {
-      onSelectTag(result.substring(4));
+    } else if (result == '__schedule__') {
+      onSelectSchedule();
+    } else if (result == '__tasks__') {
+      onSelectTasks();
+    } else if (result == '__habits__') {
+      onSelectHabit();
+    } else if (result == '__goals__') {
+      onSelectGoal();
+    } else if (result == '__settings__') {
+      onSettings();
     }
   }
 
@@ -1844,8 +2158,8 @@ class _AppHeader extends StatelessWidget {
     final dateStr =
         '${now.year}.${now.month.toString().padLeft(2, '0')}.${now.day.toString().padLeft(2, '0')}  $dayStr';
 
-    final pathLabel = calendarOpen ? 'calendar' : selectedPath;
-    final pathTappable = !calendarOpen;
+    final pathLabel = selectedPath;
+    final pathTappable = true;
 
     return Container(
       height: 44,
@@ -1855,17 +2169,17 @@ class _AppHeader extends StatelessWidget {
       child: Row(
         children: [
           _ToggleBtn(isOpen: sidebarOpen, onTap: onToggle),
-          const SizedBox(width: 10),
+          const SizedBox(width: 4),
           Expanded(
             child: Row(
               children: [
                 Text(
-                  '[ MEMO ]',
+                  '[MEMO]',
                   style: mono(
                     color: kTeal,
-                    fontSize: 15,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
+                    letterSpacing: 1,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1891,15 +2205,22 @@ class _AppHeader extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          _ViewToggle(
-            calendarOpen: calendarOpen,
-            statsOpen: statsOpen,
-            onShowList: onShowList,
-            onShowCal: onShowCal,
+          const SizedBox(width: 4),
+          MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: (calendarOpen || statsOpen) ? onShowList : null,
+                  child: _ViewBtn(label: 'LIST', active: !calendarOpen && !statsOpen),
+                ),
+                const SizedBox(width: 2),
+                _SearchToggleBtn(active: searchOpen, onTap: onSearchTap),
+              ],
+            ),
           ),
-          const SizedBox(width: 6),
-          _SearchToggleBtn(active: searchOpen, onTap: onSearchTap),
           if (!isNarrow) ...[
             const SizedBox(width: 10),
             Text(dateStr, style: mono(color: kDim, fontSize: 10)),
@@ -1955,7 +2276,7 @@ class _ViewBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 120),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
       color: active ? kMint.withValues(alpha: 0.12) : Colors.transparent,
       child: Text(
         label,
@@ -2117,6 +2438,218 @@ class _DialogBtnState extends State<_DialogBtn> {
             color: _hovered ? a.color.withValues(alpha: 0.1) : Colors.transparent,
           ),
           child: Text(a.label, style: mono(color: a.color, fontSize: 12)),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Tags browse view
+// ─────────────────────────────────────────────────────────────────
+
+// ── 태그 그룹 분류 ─────────────────────────────────────────────
+
+enum _TagGroup { korean, english, number, special }
+
+_TagGroup _classifyTag(String tag) {
+  if (tag.isEmpty) return _TagGroup.special;
+  final first = tag.codeUnitAt(0);
+  if (first >= 0xAC00 && first <= 0xD7A3) return _TagGroup.korean; // 가~힣
+  if (first >= 0x3131 && first <= 0x3163) return _TagGroup.korean; // ㄱ~ㅣ
+  if ((first >= 0x41 && first <= 0x5A) || (first >= 0x61 && first <= 0x7A)) return _TagGroup.english;
+  if (first >= 0x30 && first <= 0x39) return _TagGroup.number;
+  return _TagGroup.special;
+}
+
+const _tagGroupLabel = {
+  _TagGroup.korean:  'ㄱㄴㄷ',
+  _TagGroup.english: 'ABC',
+  _TagGroup.number:  '123',
+  _TagGroup.special: '#?!',
+};
+
+const _tagGroupOrder = [
+  _TagGroup.korean,
+  _TagGroup.english,
+  _TagGroup.number,
+  _TagGroup.special,
+];
+
+// ──────────────────────────────────────────────────────────────
+// Tags browse view — grouped + collapsible
+// ──────────────────────────────────────────────────────────────
+
+class _TagsBrowseView extends StatefulWidget {
+  final List<String> allTags;
+  final Map<String, int> tagCounts;
+  final void Function(String tag) onSelectTag;
+
+  const _TagsBrowseView({
+    required this.allTags,
+    required this.tagCounts,
+    required this.onSelectTag,
+  });
+
+  @override
+  State<_TagsBrowseView> createState() => _TagsBrowseViewState();
+}
+
+class _TagsBrowseViewState extends State<_TagsBrowseView> {
+  final _collapsed = <_TagGroup>{};
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.allTags.isEmpty) {
+      return Center(
+        child: Text('no tags yet.',
+            style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 12)),
+      );
+    }
+
+    // 그룹별로 분류
+    final groups = <_TagGroup, List<String>>{};
+    for (final tag in widget.allTags) {
+      final g = _classifyTag(tag);
+      groups.putIfAbsent(g, () => []).add(tag);
+    }
+
+    final items = <Widget>[];
+    for (final group in _tagGroupOrder) {
+      final tags = groups[group];
+      if (tags == null || tags.isEmpty) continue;
+      final isCollapsed = _collapsed.contains(group);
+      final label = _tagGroupLabel[group]!;
+
+      // 섹션 헤더
+      items.add(_TagGroupHeader(
+        label: label,
+        count: tags.length,
+        isCollapsed: isCollapsed,
+        onTap: () => setState(() {
+          if (isCollapsed) _collapsed.remove(group); else _collapsed.add(group);
+        }),
+      ));
+
+      // 태그 행들
+      if (!isCollapsed) {
+        for (final tag in tags) {
+          items.add(_TagBrowseRow(
+            tag: tag,
+            count: widget.tagCounts[tag] ?? 0,
+            onTap: () => widget.onSelectTag(tag),
+          ));
+        }
+      }
+    }
+
+    return ListView(
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
+      children: items,
+    );
+  }
+}
+
+class _TagGroupHeader extends StatefulWidget {
+  final String label;
+  final int count;
+  final bool isCollapsed;
+  final VoidCallback onTap;
+
+  const _TagGroupHeader({
+    required this.label,
+    required this.count,
+    required this.isCollapsed,
+    required this.onTap,
+  });
+
+  @override
+  State<_TagGroupHeader> createState() => _TagGroupHeaderState();
+}
+
+class _TagGroupHeaderState extends State<_TagGroupHeader> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          color: _hovered ? kBorder.withValues(alpha: 0.15) : Colors.transparent,
+          padding: const EdgeInsets.fromLTRB(16, 7, 16, 5),
+          child: Row(
+            children: [
+              Text(
+                widget.isCollapsed ? '▸ ' : '▾ ',
+                style: mono(color: kMint.withValues(alpha: 0.7), fontSize: 10),
+              ),
+              Text(
+                widget.label,
+                style: mono(
+                    color: kMint.withValues(alpha: 0.7),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '(${widget.count})',
+                style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 9),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TagBrowseRow extends StatefulWidget {
+  final String tag;
+  final int count;
+  final VoidCallback onTap;
+
+  const _TagBrowseRow({
+    required this.tag,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  State<_TagBrowseRow> createState() => _TagBrowseRowState();
+}
+
+class _TagBrowseRowState extends State<_TagBrowseRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          color: _hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent,
+          padding: const EdgeInsets.fromLTRB(24, 4, 16, 4),
+          child: Row(
+            children: [
+              Text('# ', style: mono(color: kTeal, fontSize: 11)),
+              Expanded(
+                child: Text(widget.tag,
+                    style: mono(color: _hovered ? kText : kDim, fontSize: 11)),
+              ),
+              Text('${widget.count}',
+                  style: mono(color: kDim.withValues(alpha: 0.45), fontSize: 10)),
+            ],
+          ),
         ),
       ),
     );

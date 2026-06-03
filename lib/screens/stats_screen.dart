@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../models/memo.dart';
+import '../models/memo_actions.dart';
 import '../widgets/memo_tile.dart';
+import '../widgets/scroll_picker_dialog.dart';
 
 class StatsView extends StatefulWidget {
   final List<Memo> memos;
+  final MemoActions actions;
   final String? contextLabel;
-  final void Function(Memo)? onDelete;
-  final void Function(Memo, String)? onUpdate;
-  final void Function(Memo, String?)? onMove;
+
   const StatsView({
     super.key,
     required this.memos,
+    required this.actions,
     this.contextLabel,
-    this.onDelete,
-    this.onUpdate,
-    this.onMove,
   });
 
   @override
@@ -116,6 +115,38 @@ class _StatsViewState extends State<StatsView> {
     return sorted.length > 12 ? sorted.sublist(sorted.length - 12) : sorted;
   }
 
+  Future<void> _showYearPicker() async {
+    final years = List.generate(111, (i) => 1990 + i);
+    final result = await showScrollPicker(
+      context: context,
+      values: years,
+      labels: years.map((y) => '$y').toList(),
+      initialValue: _month.year,
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _month = DateTime(result, _month.month);
+        _selectedDay = null;
+      });
+    }
+  }
+
+  Future<void> _showMonthPicker() async {
+    final months = List.generate(12, (i) => i + 1);
+    final result = await showScrollPicker(
+      context: context,
+      values: months,
+      labels: months.map((m) => m.toString().padLeft(2, '0')).toList(),
+      initialValue: _month.month,
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _month = DateTime(_month.year, result);
+        _selectedDay = null;
+      });
+    }
+  }
+
   // ── build ─────────────────────────────────
 
   @override
@@ -127,20 +158,21 @@ class _StatsViewState extends State<StatsView> {
   }
 
   Widget _buildContent() {
+    const hPad = EdgeInsets.symmetric(horizontal: 14);
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+      padding: const EdgeInsets.only(top: 12, bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildStatsSection(),
+          Padding(padding: hPad, child: _buildStatsSection()),
           _divider(),
           _buildActivitySection(),
           _divider(),
-          _buildTopTagsSection(),
+          Padding(padding: hPad, child: _buildTopTagsSection()),
           _divider(),
-          _buildWordsPerMonthSection(),
+          Padding(padding: hPad, child: _buildWordsPerMonthSection()),
           _divider(),
-          _buildMeta(),
+          Padding(padding: hPad, child: _buildMeta()),
           const SizedBox(height: 12),
         ],
       ),
@@ -148,7 +180,7 @@ class _StatsViewState extends State<StatsView> {
   }
 
   Widget _divider() => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 10),
+    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
     child: Text(
       '─' * 200,
       style: mono(color: kBorder, fontSize: 10, height: 1),
@@ -219,138 +251,147 @@ class _StatsViewState extends State<StatsView> {
     final startOffset = firstDay.weekday - 1; // 0=Mon
     final counts = _memoCountsInMonth(_month);
     final maxCount = counts.values.isEmpty ? 0 : counts.values.reduce((a, b) => a > b ? a : b);
-    final monthStr = '${_month.year}.${_month.month.toString().padLeft(2, '0')}';
     final now = DateTime.now();
     final isCurrentMonth = _month.year == now.year && _month.month == now.month;
     final todayDay = isCurrentMonth ? now.day : -1;
+    final headerColor = isCurrentMonth ? kMint : kDim;
 
     // Memos for selected day
     final selectedDayMemos = _selectedDay != null ? _memosOnDay(_month, _selectedDay!) : <Memo>[];
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Text('[ ACTIVITY ]', style: mono(color: kMint, fontSize: 12, letterSpacing: 1)),
-            const Spacer(),
-            _NavBtn(
-              label: '[<]',
-              onTap: () => setState(() {
-                _month = DateTime(_month.year, _month.month - 1);
-                _selectedDay = null;
-              }),
-            ),
-            const SizedBox(width: 8),
-            Text(monthStr, style: mono(color: kDim, fontSize: 10)),
-            const SizedBox(width: 8),
-            _NavBtn(
-              label: '[>]',
-              onTap: () => setState(() {
-                _month = DateTime(_month.year, _month.month + 1);
-                _selectedDay = null;
-              }),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        LayoutBuilder(builder: (context, constraints) {
-          const cellSize = 20.0;
-          // 가로 여백: 남은 공간을 6칸으로 나눠 기종마다 자동 조절
-          final hGap = (constraints.maxWidth - 7 * cellSize) / 6;
-          // 세로 여백: 가로 여백의 60%
-          final vGap = (hGap * 0.6).clamp(2.0, 20.0);
-          final rowCount = ((startOffset + daysInMonth) / 7).ceil();
-          Widget buildRow(List<Widget> cells) => Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: cells,
-          );
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+        // ── header + grid (padded) ────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Weekday header
-              buildRow(weekdays
-                  .map((d) => SizedBox(
-                        width: cellSize,
-                        child: Center(
-                          child: Text(d, style: mono(color: kDim, fontSize: 8)),
-                        ),
-                      ))
-                  .toList()),
-              SizedBox(height: vGap),
-              // Calendar rows
-              for (int r = 0; r < rowCount; r++) ...[
-                buildRow(List.generate(7, (c) {
-                    final day = r * 7 + c - startOffset + 1;
-                    if (day < 1 || day > daysInMonth) {
-                      return SizedBox(width: cellSize, height: cellSize);
-                    }
-                    final count = counts[day] ?? 0;
-                    final isToday = day == todayDay;
-                    final isSelected = day == _selectedDay;
-                    final fillColor = _heatColor(count, maxCount);
-                    return GestureDetector(
-                      onTap: count > 0
-                          ? () => setState(() {
-                                _selectedDay = (_selectedDay == day) ? null : day;
-                              })
-                          : null,
-                      child: SizedBox(
-                        width: cellSize,
-                        height: cellSize,
-                        child: Center(
-                          child: Container(
-                            width: cellSize - 3,
-                            height: cellSize - 3,
-                            decoration: BoxDecoration(
-                              color: count > 0 ? fillColor : Colors.transparent,
-                              border: isSelected
-                                  ? Border.all(color: kMint, width: 1.5)
-                                  : isToday
-                                      ? Border.all(color: kMint.withValues(alpha: 0.7), width: 1)
-                                      : Border.all(
-                                          color: kBorder.withValues(alpha: 0.5),
-                                          width: 0.8,
-                                          style: count > 0 ? BorderStyle.solid : BorderStyle.solid,
-                                        ),
-                            ),
-                            child: count > 0
-                                ? null
-                                : null,
-                          ),
-                        ),
-                      ),
-                    );
-                  })),
-                if (r < rowCount - 1) SizedBox(height: vGap),
-              ],
-              // Selected day memo list
-              if (_selectedDay != null && selectedDayMemos.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  color: kText,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                  child: Text(
-                    '  $monthStr.${_selectedDay.toString().padLeft(2, '0')}  (${selectedDayMemos.length})',
-                    style: mono(color: kBg, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.8),
+              Row(
+                children: [
+                  Text('[ ACTIVITY ]', style: mono(color: kMint, fontSize: 12, letterSpacing: 1)),
+                  const Spacer(),
+                  _NavBtn(
+                    label: '[<]',
+                    onTap: () => setState(() {
+                      _month = DateTime(_month.year, _month.month - 1);
+                      _selectedDay = null;
+                    }),
                   ),
-                ),
-                const SizedBox(height: 6),
-                ...selectedDayMemos.map((m) => Padding(
-                      padding: const EdgeInsets.only(bottom: 2),
-                      child: MemoTile(
-                        memo: m,
-                        onDelete: widget.onDelete != null ? () => widget.onDelete!(m) : null,
-                        onUpdate: widget.onUpdate != null ? (content) => widget.onUpdate!(m, content) : null,
-                        onMove: widget.onMove != null ? (folderId) => widget.onMove!(m, folderId) : null,
-                        folders: const [],
-                      ),
-                    )),
-              ],
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _showYearPicker,
+                    child: Text('${_month.year}', style: mono(color: headerColor, fontSize: 10)),
+                  ),
+                  Text('.', style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 10)),
+                  GestureDetector(
+                    onTap: _showMonthPicker,
+                    child: Text(_month.month.toString().padLeft(2, '0'), style: mono(color: headerColor, fontSize: 10)),
+                  ),
+                  const SizedBox(width: 8),
+                  _NavBtn(
+                    label: '[>]',
+                    onTap: () => setState(() {
+                      _month = DateTime(_month.year, _month.month + 1);
+                      _selectedDay = null;
+                    }),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  final v = details.primaryVelocity ?? 0;
+                  if (v < -200) {
+                    setState(() { _month = DateTime(_month.year, _month.month + 1); _selectedDay = null; });
+                  } else if (v > 200) {
+                    setState(() { _month = DateTime(_month.year, _month.month - 1); _selectedDay = null; });
+                  }
+                },
+                child: LayoutBuilder(builder: (context, constraints) {
+                  const cellSize = 20.0;
+                  final hGap = (constraints.maxWidth - 7 * cellSize) / 6;
+                  final vGap = (hGap * 0.6).clamp(2.0, 20.0);
+                  final rowCount = ((startOffset + daysInMonth) / 7).ceil();
+                  Widget buildRow(List<Widget> cells) => Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: cells,
+                  );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      buildRow(weekdays.map((d) => SizedBox(
+                        width: cellSize,
+                        child: Center(
+                          child: Text(d, style: mono(color: kDim, fontSize: 7.5),
+                              softWrap: false, maxLines: 1, overflow: TextOverflow.visible),
+                        ),
+                      )).toList()),
+                      SizedBox(height: vGap),
+                      for (int r = 0; r < rowCount; r++) ...[
+                        buildRow(List.generate(7, (c) {
+                          final day = r * 7 + c - startOffset + 1;
+                          if (day < 1 || day > daysInMonth) return SizedBox(width: cellSize, height: cellSize);
+                          final count = counts[day] ?? 0;
+                          final isToday = day == todayDay;
+                          final isSelected = day == _selectedDay;
+                          final fillColor = _heatColor(count, maxCount);
+                          return GestureDetector(
+                            onTap: count > 0 ? () => setState(() { _selectedDay = (_selectedDay == day) ? null : day; }) : null,
+                            child: SizedBox(
+                              width: cellSize,
+                              height: cellSize,
+                              child: Center(
+                                child: Container(
+                                  width: cellSize - 3,
+                                  height: cellSize - 3,
+                                  decoration: BoxDecoration(
+                                    color: count > 0 ? fillColor : Colors.transparent,
+                                    border: isSelected
+                                        ? Border.all(color: kMint, width: 1.5)
+                                        : isToday
+                                            ? Border.all(color: kMint.withValues(alpha: 0.7), width: 1)
+                                            : Border.all(color: kBorder.withValues(alpha: 0.5), width: 0.8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        })),
+                        if (r < rowCount - 1) SizedBox(height: vGap),
+                      ],
+                    ],
+                  );
+                }),
+              ),
             ],
-          );
-        }),
+          ),
+        ),
+        // ── selected day bar — full width, no padding ─────────────
+        if (_selectedDay != null && selectedDayMemos.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            color: kMint,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            child: Row(
+              children: [
+                Text(
+                  '${_month.year}.${_month.month.toString().padLeft(2, '0')}.${_selectedDay.toString().padLeft(2, '0')}  '
+                  '${['MON','TUE','WED','THU','FRI','SAT','SUN'][DateTime(_month.year, _month.month, _selectedDay!).weekday - 1]}',
+                  style: mono(color: kBg, fontSize: 11, letterSpacing: 1, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${selectedDayMemos.length} memo${selectedDayMemos.length == 1 ? '' : 's'}',
+                  style: mono(color: kBg.withValues(alpha: 0.7), fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+          ...selectedDayMemos.map((m) => MemoTile(memo: m, actions: widget.actions)),
+        ],
       ],
     );
   }

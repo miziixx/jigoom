@@ -37,7 +37,9 @@ class BottomTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: SizedBox(
       height: 28,
       child: Row(
         children: [
@@ -60,6 +62,8 @@ class BottomTabBar extends StatelessWidget {
                                 onTap: () => onSelect(tab),
                                 onLongPress:
                                     locked ? null : () => onLongPress(tab),
+                                onDelete:
+                                    locked ? null : () => onLongPress(tab),
                               ),
                             ))
                         .toList(),
@@ -76,7 +80,7 @@ class BottomTabBar extends StatelessWidget {
           ],
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -89,12 +93,14 @@ class _TabChip extends StatefulWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final VoidCallback? onDelete;
 
   const _TabChip({
     required this.tab,
     required this.isSelected,
     required this.onTap,
     this.onLongPress,
+    this.onDelete,
   });
 
   @override
@@ -120,12 +126,30 @@ class _TabChipState extends State<_TabChip> {
         onTap: widget.onTap,
         onLongPress: widget.onLongPress,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 5),
           alignment: Alignment.center,
-          child: Text(
-            label,
-            style: mono(color: fg, fontSize: 10),
-            overflow: TextOverflow.ellipsis,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.onDelete != null) ...[
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onDelete,
+                  child: Text(
+                    '[삭제]',
+                    style: mono(color: Colors.red.shade300, fontSize: 9),
+                  ),
+                ),
+                const SizedBox(width: 2),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  style: mono(color: fg, fontSize: 10),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -200,8 +224,7 @@ class _CalBtnState extends State<_CalBtn> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          width: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
           child: Text(
             '[CAL]',
@@ -243,8 +266,7 @@ class _StatsBtnState extends State<_StatsBtn> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          width: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
           child: Text(
             '[STATS]',
@@ -343,7 +365,7 @@ class _TabEditDialogState extends State<TabEditDialog> {
           children: [
             // ── Header ──────────────────────────────
             Text(
-              isAdd ? '[ ADD TAB ]' : '[ EDIT TAB ]',
+              isAdd ? '[ADD TAB]' : '[EDIT TAB]',
               style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
             ),
             const SizedBox(height: 10),
@@ -438,7 +460,7 @@ class _TabEditDialogState extends State<TabEditDialog> {
               children: [
                 if (widget.onDelete != null)
                   _ActionBtn(
-                    label: '[ DEL ]',
+                    label: '삭제',
                     color: Colors.red.shade400,
                     onTap: () {
                       Navigator.pop(context);
@@ -447,13 +469,13 @@ class _TabEditDialogState extends State<TabEditDialog> {
                   ),
                 const Spacer(),
                 _ActionBtn(
-                  label: '[ CANCEL ]',
+                  label: '취소',
                   color: kDim,
                   onTap: () => Navigator.pop(context),
                 ),
                 const SizedBox(width: 8),
                 _ActionBtn(
-                  label: '[ SAVE ]',
+                  label: '저장',
                   color: _canSave ? kMint : kDim.withValues(alpha: 0.35),
                   onTap: _canSave
                       ? () {

@@ -1,64 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../models/folder.dart';
-import '../models/memo.dart';
 import '../app_theme.dart';
+import '../models/folder.dart';
 
-const _kMaxDepth = 4;
+const _kDiv = '──────────────';
+
+List<Folder> _sortedTopFolders(List<Folder> folders) {
+  final top = folders.where((f) => f.parentId == null).toList();
+  top.sort((a, b) =>
+      a.order != b.order ? a.order.compareTo(b.order) : a.name.compareTo(b.name));
+  return top;
+}
 
 class Sidebar extends StatefulWidget {
-  final List<Folder> folders;
-  final String? selectedId;
-  final ValueChanged<String?> onSelect;
-  final void Function(String name, String? parentId) onCreate;
+  final VoidCallback onSelectMemo;
+  final VoidCallback onSelectCalendar;
+  final VoidCallback onSelectTasks;
+  final VoidCallback onSelectTags;
+  final VoidCallback onSelectStats;
+  final VoidCallback onSelectSchedule;
   final VoidCallback onSettingsTap;
-  final List<String> allTags;
-  final Map<String, int> tagCounts;
-  final String? selectedTag;
-  final ValueChanged<String?> onSelectTag;
-  final Map<String?, int> memoCounts;
-  final List<Memo> recentMemos;
-  final ValueChanged<Memo>? onSelectRecent;
-  final int totalWords;
-  final int streak;
-  final void Function(Memo memo, String? folderId)? onMoveMemo;
-  final void Function(String folderId, String? newParentId, int insertIndex)?
-      onMoveFolder;
-  final void Function(String folderId, String newName)? onRenameFolder;
+  final void Function(String name, String? parentId) onCreate;
+  final String activeSection; // 'memo','calendar','tasks','habits','goals','tags','stats'
+  final List<Folder> folders;
+  final String? selectedFolderId;
+  final ValueChanged<String?> onSelectFolder;
   final int dayCount;
   final bool habitActivated;
   final bool goalActivated;
+  final int streak;
   final void Function(String name) onActivateHabit;
   final void Function(String name) onActivateGoal;
   final VoidCallback? onSelectHabit;
   final VoidCallback? onSelectGoal;
+  final int noteCount;
+  final int taskCount;
+  final int habitCount;
 
   const Sidebar({
     super.key,
-    required this.folders,
-    required this.selectedId,
-    required this.onSelect,
-    required this.onCreate,
+    required this.onSelectMemo,
+    required this.onSelectCalendar,
+    required this.onSelectTasks,
+    required this.onSelectTags,
+    required this.onSelectStats,
+    required this.onSelectSchedule,
     required this.onSettingsTap,
-    required this.allTags,
-    required this.tagCounts,
-    required this.selectedTag,
-    required this.onSelectTag,
-    required this.memoCounts,
-    required this.recentMemos,
-    this.onSelectRecent,
-    required this.totalWords,
-    required this.streak,
-    this.onMoveMemo,
-    this.onMoveFolder,
-    this.onRenameFolder,
+    required this.onCreate,
+    required this.activeSection,
+    required this.folders,
+    required this.selectedFolderId,
+    required this.onSelectFolder,
     required this.dayCount,
     required this.habitActivated,
     required this.goalActivated,
+    required this.streak,
     required this.onActivateHabit,
     required this.onActivateGoal,
     this.onSelectHabit,
     this.onSelectGoal,
+    required this.noteCount,
+    required this.taskCount,
+    required this.habitCount,
   });
 
   @override
@@ -67,21 +70,9 @@ class Sidebar extends StatefulWidget {
 
 class _SidebarState extends State<Sidebar> {
   bool _isCreating = false;
-  String? _creatingParentId;
+  bool _memoExpanded = true; // 기본값: 펼쳐진 상태
   final _ctrl = TextEditingController();
   final _focusNode = FocusNode();
-
-  // Collapsed folder IDs — absent = expanded (default)
-  final _collapsed = <String>{};
-
-  bool _isExpanded(String id) => !_collapsed.contains(id);
-  void _toggleExpand(String id) => setState(() {
-        if (_collapsed.contains(id)) {
-          _collapsed.remove(id);
-        } else {
-          _collapsed.add(id);
-        }
-      });
 
   @override
   void initState() {
@@ -101,173 +92,91 @@ class _SidebarState extends State<Sidebar> {
     };
   }
 
-  void _startCreate(String? parentId) {
-    setState(() {
-      _isCreating = true;
-      _creatingParentId = parentId;
-    });
+  void _startCreate() {
+    setState(() => _isCreating = true);
     WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
   }
 
   void _confirm() {
     final name = _ctrl.text.trim();
-    if (name.isNotEmpty) widget.onCreate(name, _creatingParentId);
+    if (name.isNotEmpty) widget.onCreate(name, null);
     _ctrl.clear();
-    setState(() {
-      _isCreating = false;
-      _creatingParentId = null;
-    });
+    setState(() => _isCreating = false);
   }
 
   void _cancel() {
     _ctrl.clear();
-    setState(() {
-      _isCreating = false;
-      _creatingParentId = null;
-    });
+    setState(() => _isCreating = false);
   }
 
-  // ── Drag feedback ───────────────────────────────────
-
-  Widget _buildFolderFeedback(Folder folder) => Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: kSurface,
-            border: Border.all(color: kMint),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 6)
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('‣ ', style: mono(color: kMint, fontSize: 12)),
-              Text(folder.name, style: mono(color: kText, fontSize: 12)),
-            ],
-          ),
-        ),
-      );
-
-  // ── Drop divider ────────────────────────────────────
-
-  Widget _buildDivider(String? parentId, int insertIndex, int depth) {
-    final leftPad = 14.0 + depth * 12.0;
-    return DragTarget<Folder>(
-      onAcceptWithDetails: (details) {
-        widget.onMoveFolder?.call(details.data.id, parentId, insertIndex);
-      },
-      builder: (context, candidates, _) {
-        final isActive = candidates.isNotEmpty;
-        return Container(
-          height: 8,
-          alignment: Alignment.center,
-          padding: EdgeInsets.only(left: leftPad, right: 10),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 100),
-            height: isActive ? 2.0 : 0.0,
-            decoration: BoxDecoration(
-              color: kMint,
-              borderRadius: BorderRadius.circular(1),
-            ),
-          ),
+  void _showNameDialog(BuildContext context, {required bool isHabit}) {
+    final ctrl = TextEditingController();
+    final focusNode = FocusNode();
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => focusNode.requestFocus());
+        return _SystemNameDialog(
+          isHabit: isHabit,
+          ctrl: ctrl,
+          focusNode: focusNode,
+          onConfirm: (name) {
+            Navigator.pop(dialogCtx);
+            if (isHabit) {
+              widget.onActivateHabit(name);
+            } else {
+              widget.onActivateGoal(name);
+            }
+          },
+          onCancel: () => Navigator.pop(dialogCtx),
         );
       },
     );
   }
 
-  // ── Folder tree ─────────────────────────────────────
-
-  List<Widget> _buildTree(String? parentId, int depth) {
-    final children = widget.folders
-        .where((f) => f.parentId == parentId)
-        .toList()
-      ..sort((a, b) => a.order != b.order
-          ? a.order.compareTo(b.order)
-          : a.name.compareTo(b.name));
-
-    final widgets = <Widget>[];
-
-    if (!_isCreating && children.isNotEmpty) {
-      widgets.add(_buildDivider(parentId, 0, depth));
-    }
-
-    for (int i = 0; i < children.length; i++) {
-      final folder = children[i];
-      final hasChildren = widget.folders.any((f) => f.parentId == folder.id);
-      final isExpanded = _isExpanded(folder.id);
-      final canSub = depth < _kMaxDepth && !_isCreating;
-
-      widgets.add(
-        LongPressDraggable<Folder>(
-          data: folder,
-          delay: const Duration(milliseconds: 350),
-          feedback: _buildFolderFeedback(folder),
-          child: DragTarget<Object>(
-            onWillAcceptWithDetails: (details) {
-              if (details.data is Folder) {
-                return (details.data as Folder).id != folder.id;
-              }
-              return details.data is Memo;
-            },
-            onAcceptWithDetails: (details) {
-              if (details.data is Memo) {
-                widget.onMoveMemo?.call(details.data as Memo, folder.id);
-              } else if (details.data is Folder) {
-                final childCount =
-                    widget.folders.where((f) => f.parentId == folder.id).length;
-                widget.onMoveFolder?.call(
-                    (details.data as Folder).id, folder.id, childCount);
-              }
-            },
-            builder: (context, candidates, _) {
-              final isMemoTarget = candidates.any((c) => c is Memo);
-              final isFolderNestTarget = candidates.any((c) => c is Folder);
-              return _FolderRow(
-                key: ValueKey(folder.id),
-                folder: folder,
-                depth: depth,
-                isSelected: widget.selectedId == folder.id,
-                atMaxDepth: depth >= _kMaxDepth,
-                hasChildren: hasChildren,
-                isExpanded: isExpanded,
-                count: widget.memoCounts[folder.id] ?? 0,
-                isMemoTarget: isMemoTarget,
-                isFolderNestTarget: isFolderNestTarget,
-                onTap: () => widget.onSelect(folder.id),
-                onAddSub: canSub ? () => _startCreate(folder.id) : null,
-                onToggleExpand: () => _toggleExpand(folder.id),
-                onRename: widget.onRenameFolder != null
-                    ? (newName) => widget.onRenameFolder!(folder.id, newName)
-                    : null,
-              );
-            },
-          ),
+  void _showHabitSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kBg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      builder: (sheetCtx) => Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: kTeal, width: 2)),
         ),
-      );
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: _HabitSheetContent(
+          dayCount: widget.dayCount,
+          streak: widget.streak,
+          onActivate: () {
+            Navigator.pop(sheetCtx);
+            _showNameDialog(context, isHabit: true);
+          },
+          onLater: () => Navigator.pop(sheetCtx),
+        ),
+      ),
+    );
+  }
 
-      if (_isCreating && _creatingParentId == folder.id) {
-        widgets.add(_InlineInput(
-          ctrl: _ctrl,
-          focusNode: _focusNode,
-          depth: depth + 1,
-          onCancel: _cancel,
-          onConfirm: _confirm,
-        ));
-      }
-
-      // Only recurse when expanded
-      if (isExpanded) {
-        widgets.addAll(_buildTree(folder.id, depth + 1));
-      }
-
-      if (!_isCreating) {
-        widgets.add(_buildDivider(parentId, i + 1, depth));
-      }
-    }
-
-    return widgets;
+  void _showGoalSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kBg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      builder: (sheetCtx) => Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: kTeal, width: 2)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: _GoalSheetContent(
+          dayCount: widget.dayCount,
+          onActivate: () {
+            Navigator.pop(sheetCtx);
+            _showNameDialog(context, isHabit: false);
+          },
+          onLater: () => Navigator.pop(sheetCtx),
+        ),
+      ),
+    );
   }
 
   @override
@@ -279,20 +188,28 @@ class _SidebarState extends State<Sidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final totalMemos = widget.memoCounts.values.fold(0, (s, c) => s + c);
+    final now = DateTime.now();
+    final dateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
     return Container(
       color: kBg,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Header ──────────────────────────────────
+          // ── /MENU header ────────────────────────────
           Container(
             height: 44,
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Text('~/memo',
-                style: mono(color: kMint, fontSize: 13, fontWeight: FontWeight.bold)),
+            child: Text(
+              '/MENU',
+              style: mono(
+                  color: kMint,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5),
+            ),
           ),
           Container(height: 1, color: kBorder),
 
@@ -301,78 +218,106 @@ class _SidebarState extends State<Sidebar> {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 4),
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 2),
-                  child: _SectionLabel('folders'),
+                _DivRow(),
+                _MemoExpandRow(
+                  isActive: widget.activeSection == 'memo',
+                  isExpanded: _memoExpanded,
+                  onTap: widget.onSelectMemo,
+                  onToggle: () => setState(() => _memoExpanded = !_memoExpanded),
                 ),
-                DragTarget<Memo>(
-                  onAcceptWithDetails: (details) {
-                    widget.onMoveMemo?.call(details.data, null);
-                  },
-                  builder: (context, candidates, _) => _InboxRow(
-                    isSelected:
-                        widget.selectedId == null && widget.selectedTag == null,
-                    onTap: () => widget.onSelect(null),
-                    count: widget.memoCounts[null] ?? 0,
-                    isMemoTarget: candidates.isNotEmpty,
+                if (_memoExpanded) ...[
+                  _SubFolderRow(
+                    label: 'inbox',
+                    isActive: widget.activeSection == 'memo' &&
+                        widget.selectedFolderId == null,
+                    onTap: () => widget.onSelectFolder(null),
                   ),
+                  ..._sortedTopFolders(widget.folders).map((f) => _SubFolderRow(
+                        label: f.name,
+                        isActive: widget.activeSection == 'memo' &&
+                            widget.selectedFolderId == f.id,
+                        onTap: () => widget.onSelectFolder(f.id),
+                      )),
+                ],
+                _MenuRow(
+                  label: 'calendar',
+                  isActive: widget.activeSection == 'calendar',
+                  onTap: widget.onSelectCalendar,
                 ),
-                ..._buildTree(null, 0),
-                if (_isCreating && _creatingParentId == null)
-                  _InlineInput(
-                    ctrl: _ctrl,
-                    focusNode: _focusNode,
-                    depth: 0,
-                    onCancel: _cancel,
-                    onConfirm: _confirm,
-                  ),
-
-                _SystemFolderSection(
+                _MenuRow(
+                  label: 'tasks',
+                  isActive: widget.activeSection == 'tasks',
+                  onTap: widget.onSelectTasks,
+                ),
+                _HabitMenuRow(
                   dayCount: widget.dayCount,
                   habitActivated: widget.habitActivated,
+                  streak: widget.streak,
+                  isActive: widget.activeSection == 'habits',
+                  onTap: () {
+                    if (widget.habitActivated) {
+                      widget.onSelectHabit?.call();
+                    } else {
+                      _showHabitSheet(context);
+                    }
+                  },
+                ),
+                _GoalMenuRow(
+                  dayCount: widget.dayCount,
                   goalActivated: widget.goalActivated,
-                  streak: widget.streak,
-                  onActivateHabit: widget.onActivateHabit,
-                  onActivateGoal: widget.onActivateGoal,
-                  onSelectHabit: widget.onSelectHabit,
-                  onSelectGoal: widget.onSelectGoal,
+                  isActive: widget.activeSection == 'goals',
+                  onTap: () {
+                    if (widget.goalActivated) {
+                      widget.onSelectGoal?.call();
+                    } else {
+                      _showGoalSheet(context);
+                    }
+                  },
                 ),
+                _MenuRow(
+                  label: 'tags',
+                  isActive: widget.activeSection == 'tags',
+                  onTap: widget.onSelectTags,
+                ),
+                _MenuRow(
+                  label: 'stats',
+                  isActive: widget.activeSection == 'stats',
+                  onTap: widget.onSelectStats,
+                ),
+                _MenuRow(
+                  label: 'schedule',
+                  isActive: widget.activeSection == 'schedule',
+                  onTap: widget.onSelectSchedule,
+                ),
+                _DivRow(),
+                _MenuRow(
+                  label: 'settings',
+                  isActive: false,
+                  onTap: widget.onSettingsTap,
+                ),
+                _DivRow(),
 
-                if (widget.allTags.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 2),
-                    child: _SectionLabel('tags'),
-                  ),
-                  ...widget.allTags.map((tag) => _TagRow(
-                        tag: tag,
-                        count: widget.tagCounts[tag] ?? 0,
-                        isSelected: widget.selectedTag == tag,
-                        onTap: () => widget.onSelectTag(
-                            tag == widget.selectedTag ? null : tag),
-                      )),
-                ],
-
-                if (widget.recentMemos.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 2),
-                    child: _SectionLabel('recent'),
-                  ),
-                  ...widget.recentMemos.map((memo) => _RecentMemoRow(
-                        memo: memo,
-                        onTap: () => widget.onSelectRecent?.call(memo),
-                      )),
-                ],
-
+                // ── /SYSTEM header ──────────────────────
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 2),
-                  child: _SectionLabel('stats'),
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+                  child: Text(
+                    '/SYSTEM',
+                    style: mono(
+                        color: kMint.withValues(alpha: 0.65),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2),
+                  ),
                 ),
-                _StatsBlock(
-                  totalMemos: totalMemos,
-                  totalFolders: widget.folders.length,
-                  totalWords: widget.totalWords,
+                _DivRow(),
+                _SystemBlock(
+                  noteCount: widget.noteCount,
+                  taskCount: widget.taskCount,
+                  habitCount: widget.habitCount,
                   streak: widget.streak,
+                  dateStr: dateStr,
                 ),
+                _DivRow(),
                 const SizedBox(height: 4),
               ],
             ),
@@ -382,10 +327,16 @@ class _SidebarState extends State<Sidebar> {
           _TextBtn(
             label: '[+ new folder]',
             color: kTeal,
-            onTap: _isCreating ? null : () => _startCreate(null),
+            onTap: _isCreating ? null : _startCreate,
           ),
-          Container(height: 1, color: kBorder),
-          _SettingsRow(onTap: widget.onSettingsTap),
+          if (_isCreating)
+            _InlineInput(
+              ctrl: _ctrl,
+              focusNode: _focusNode,
+              depth: 0,
+              onCancel: _cancel,
+              onConfirm: _confirm,
+            ),
         ],
       ),
     );
@@ -393,392 +344,57 @@ class _SidebarState extends State<Sidebar> {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Section label
+// Divider row
 // ──────────────────────────────────────────────────────────────
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
+class _DivRow extends StatelessWidget {
+  const _DivRow();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(text,
-            style: mono(
-                color: kDim.withValues(alpha: 0.55),
-                fontSize: 10,
-                letterSpacing: 0.5)),
-        const SizedBox(width: 6),
-        Expanded(child: Container(height: 1, color: kBorder.withValues(alpha: 0.5))),
-      ],
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────
-// Inbox row
-// ──────────────────────────────────────────────────────────────
-
-class _InboxRow extends StatefulWidget {
-  final bool isSelected;
-  final VoidCallback onTap;
-  final int count;
-  final bool isMemoTarget;
-
-  const _InboxRow({
-    required this.isSelected,
-    required this.onTap,
-    required this.count,
-    this.isMemoTarget = false,
-  });
-
-  @override
-  State<_InboxRow> createState() => _InboxRowState();
-}
-
-class _InboxRowState extends State<_InboxRow> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color bg;
-    final Color fg;
-    if (widget.isMemoTarget) {
-      bg = kMint.withValues(alpha: 0.12);
-      fg = kMint;
-    } else if (widget.isSelected) {
-      bg = kMint.withValues(alpha: 0.08);
-      fg = kMint;
-    } else if (_hovered) {
-      bg = kBorder.withValues(alpha: 0.22);
-      fg = kText;
-    } else {
-      bg = Colors.transparent;
-      fg = kDim;
-    }
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          color: bg,
-          padding: const EdgeInsets.fromLTRB(14, 4, 10, 4),
-          child: Row(
-            children: [
-              Text('‣ ', style: mono(color: fg, fontSize: 12)),
-              Text('inbox', style: mono(color: fg, fontSize: 12)),
-              if (widget.count > 0) ...[
-                const SizedBox(width: 5),
-                Text('(${widget.count})',
-                    style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 10)),
-              ],
-            ],
-          ),
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 3, 14, 3),
+      child: Text(
+        _kDiv,
+        style: mono(color: kBorder, fontSize: 11),
+        overflow: TextOverflow.clip,
+        maxLines: 1,
+        softWrap: false,
       ),
     );
   }
 }
 
 // ──────────────────────────────────────────────────────────────
-// Folder row — supports collapse/expand + double-tap rename
+// Generic menu row
 // ──────────────────────────────────────────────────────────────
 
-class _FolderRow extends StatefulWidget {
-  final Folder folder;
-  final int depth;
-  final bool isSelected;
-  final bool atMaxDepth;
-  final bool hasChildren;
-  final bool isExpanded;
-  final int count;
-  final bool isMemoTarget;
-  final bool isFolderNestTarget;
+class _MenuRow extends StatefulWidget {
+  final String label;
+  final bool isActive;
   final VoidCallback onTap;
-  final VoidCallback? onAddSub;
-  final VoidCallback? onToggleExpand;
-  final void Function(String newName)? onRename;
+  final bool isSub;
 
-  const _FolderRow({
-    super.key,
-    required this.folder,
-    required this.depth,
-    required this.isSelected,
-    required this.atMaxDepth,
-    required this.hasChildren,
-    required this.isExpanded,
-    required this.count,
-    this.isMemoTarget = false,
-    this.isFolderNestTarget = false,
+  const _MenuRow({
+    required this.label,
+    required this.isActive,
     required this.onTap,
-    this.onAddSub,
-    this.onToggleExpand,
-    this.onRename,
+    this.isSub = false,
   });
 
   @override
-  State<_FolderRow> createState() => _FolderRowState();
+  State<_MenuRow> createState() => _MenuRowState();
 }
 
-class _FolderRowState extends State<_FolderRow> {
-  bool _hovered = false;
-  bool _addHovered = false;
-  bool _isRenaming = false;
-  DateTime? _lastTapTime;
-  late final TextEditingController _renameCtrl;
-  late final FocusNode _renameFocus;
-
-  @override
-  void initState() {
-    super.initState();
-    _renameCtrl = TextEditingController();
-    _renameFocus = FocusNode();
-    _renameFocus.onKeyEvent = (node, event) {
-      if (event is KeyDownEvent) {
-        if (event.logicalKey == LogicalKeyboardKey.escape) {
-          setState(() => _isRenaming = false);
-          return KeyEventResult.handled;
-        }
-        if (event.logicalKey == LogicalKeyboardKey.enter) {
-          _submitRename();
-          return KeyEventResult.handled;
-        }
-      }
-      return KeyEventResult.ignored;
-    };
-  }
-
-  @override
-  void dispose() {
-    _renameCtrl.dispose();
-    _renameFocus.dispose();
-    super.dispose();
-  }
-
-  void _handleTap() {
-    if (widget.onRename != null) {
-      final now = DateTime.now();
-      if (_lastTapTime != null &&
-          now.difference(_lastTapTime!).inMilliseconds < 400) {
-        _lastTapTime = null;
-        _startRename();
-        return;
-      }
-      _lastTapTime = now;
-    }
-    widget.onTap();
-  }
-
-  void _startRename() {
-    _renameCtrl.text = widget.folder.name;
-    setState(() => _isRenaming = true);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _renameFocus.requestFocus();
-      _renameCtrl.selection =
-          TextSelection(baseOffset: 0, extentOffset: _renameCtrl.text.length);
-    });
-  }
-
-  void _submitRename() {
-    final name = _renameCtrl.text.trim();
-    if (name.isNotEmpty) widget.onRename?.call(name);
-    setState(() => _isRenaming = false);
-  }
-
-  Widget _expandIcon(Color fg) {
-    final icon = widget.hasChildren
-        ? (widget.isExpanded ? '▾ ' : '▸ ')
-        : '‣ ';
-    if (widget.hasChildren) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onToggleExpand,
-        child: Text(icon, style: mono(color: fg, fontSize: 12)),
-      );
-    }
-    return Text(icon, style: mono(color: fg, fontSize: 12));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isRenaming) return _buildRenameMode();
-    return _buildViewMode();
-  }
-
-  Widget _buildRenameMode() {
-    final leftPad = 14.0 + widget.depth * 12.0;
-    return Container(
-      color: kSurface,
-      padding: EdgeInsets.fromLTRB(leftPad, 3, 10, 3),
-      child: Row(
-        children: [
-          _expandIcon(kMint),
-          Expanded(
-            child: TextField(
-              controller: _renameCtrl,
-              focusNode: _renameFocus,
-              style: mono(color: kText, fontSize: 12),
-              cursorColor: kTeal,
-              cursorWidth: 2,
-              onSubmitted: (_) => _submitRename(),
-              decoration: InputDecoration(
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                filled: true,
-                fillColor: kBg,
-                hintText: widget.folder.name,
-                hintStyle: mono(color: kDim, fontSize: 11),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: kTeal),
-                  borderRadius: BorderRadius.zero,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: kTeal),
-                  borderRadius: BorderRadius.zero,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: kTeal, width: 1.5),
-                  borderRadius: BorderRadius.zero,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: _submitRename,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Text('[↵]', style: mono(color: kTeal, fontSize: 11)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildViewMode() {
-    final leftPad = 14.0 + widget.depth * 12.0;
-
-    final Color fg;
-    if (widget.isMemoTarget || widget.isFolderNestTarget) {
-      fg = kMint;
-    } else if (widget.isSelected) {
-      fg = kMint;
-    } else if (_hovered) {
-      fg = kText;
-    } else {
-      fg = kDim;
-    }
-
-    final BoxDecoration decoration;
-    if (widget.isFolderNestTarget) {
-      decoration = BoxDecoration(
-        color: kTeal.withValues(alpha: 0.1),
-        border: Border.all(color: kTeal.withValues(alpha: 0.55), width: 1),
-      );
-    } else if (widget.isMemoTarget) {
-      decoration = BoxDecoration(color: kMint.withValues(alpha: 0.12));
-    } else if (widget.isSelected) {
-      decoration = BoxDecoration(color: kMint.withValues(alpha: 0.08));
-    } else if (_hovered) {
-      decoration = BoxDecoration(color: kBorder.withValues(alpha: 0.22));
-    } else {
-      decoration = const BoxDecoration(color: Colors.transparent);
-    }
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: _handleTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          decoration: decoration,
-          padding: EdgeInsets.fromLTRB(leftPad, 4, 10, 4),
-          child: Row(
-            children: [
-              _expandIcon(fg),
-              Expanded(
-                child: Text(
-                  widget.folder.name,
-                  style: mono(color: fg, fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (widget.count > 0 &&
-                  !_hovered &&
-                  !widget.isMemoTarget &&
-                  !widget.isFolderNestTarget)
-                Text('(${widget.count})',
-                    style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 10)),
-              if (_hovered) ...[
-                const SizedBox(width: 4),
-                if (widget.atMaxDepth)
-                  Tooltip(
-                    message: '최대 5단계까지 가능합니다',
-                    preferBelow: false,
-                    child: Text('[5/5]',
-                        style: mono(
-                            color: kDim.withValues(alpha: 0.4), fontSize: 9)),
-                  )
-                else if (widget.onAddSub != null)
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: widget.onAddSub,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      onEnter: (_) => setState(() => _addHovered = true),
-                      onExit: (_) => setState(() => _addHovered = false),
-                      child: Text('[+]',
-                          style: mono(
-                              color: _addHovered ? kMint : kTeal,
-                              fontSize: 10)),
-                    ),
-                  ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────
-// Tag row
-// ──────────────────────────────────────────────────────────────
-
-class _TagRow extends StatefulWidget {
-  final String tag;
-  final int count;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _TagRow({
-    required this.tag,
-    required this.count,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  State<_TagRow> createState() => _TagRowState();
-}
-
-class _TagRowState extends State<_TagRow> {
+class _MenuRowState extends State<_MenuRow> {
   bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isSelected ? kMint : (_hovered ? kText : kDim);
-    final bg = widget.isSelected
+    final Color fg = widget.isActive
+        ? kMint
+        : (_hovered ? kText : kDim);
+    final Color bg = widget.isActive
         ? kMint.withValues(alpha: 0.08)
         : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
 
@@ -791,18 +407,16 @@ class _TagRowState extends State<_TagRow> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           color: bg,
-          padding: const EdgeInsets.fromLTRB(14, 6, 10, 6),
+          padding: const EdgeInsets.fromLTRB(14, 5, 10, 5),
           child: Row(
             children: [
-              Text(widget.isSelected ? '> ' : '  ',
-                  style: mono(color: kMint, fontSize: 12)),
-              Expanded(
-                child: Text('#${widget.tag}',
-                    style: mono(color: fg, fontSize: 12),
-                    overflow: TextOverflow.ellipsis),
-              ),
-              Text('(${widget.count})',
-                  style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 10)),
+              if (widget.isSub) ...[
+                Text('  └ ',
+                    style: mono(color: fg, fontSize: 12)),
+              ] else ...[
+                Text('> ', style: mono(color: fg, fontSize: 12)),
+              ],
+              Text(widget.label, style: mono(color: fg, fontSize: 12)),
             ],
           ),
         ),
@@ -812,34 +426,108 @@ class _TagRowState extends State<_TagRow> {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Recent memo row
+// Memo expand/collapse row  (> memo ▾/▸)
 // ──────────────────────────────────────────────────────────────
 
-class _RecentMemoRow extends StatefulWidget {
-  final Memo memo;
-  final VoidCallback onTap;
+class _MemoExpandRow extends StatefulWidget {
+  final bool isActive;
+  final bool isExpanded;
+  final VoidCallback onTap;    // navigates to inbox
+  final VoidCallback onToggle; // toggles expand/collapse
 
-  const _RecentMemoRow({required this.memo, required this.onTap});
+  const _MemoExpandRow({
+    required this.isActive,
+    required this.isExpanded,
+    required this.onTap,
+    required this.onToggle,
+  });
 
   @override
-  State<_RecentMemoRow> createState() => _RecentMemoRowState();
+  State<_MemoExpandRow> createState() => _MemoExpandRowState();
 }
 
-class _RecentMemoRowState extends State<_RecentMemoRow> {
+class _MemoExpandRowState extends State<_MemoExpandRow> {
   bool _hovered = false;
-  static final _tagRe = RegExp(r'#[a-zA-Z가-힣][a-zA-Z0-9_가-힣]*');
-
-  String get _preview {
-    final firstLine = widget.memo.content.split('\n').first;
-    final cleaned = firstLine
-        .replaceAll(_tagRe, '')
-        .replaceAll(RegExp(r'^- \[[ x]\] '), '')
-        .trim();
-    return cleaned.isEmpty ? '...' : cleaned;
-  }
 
   @override
   Widget build(BuildContext context) {
+    final Color fg = widget.isActive
+        ? kMint
+        : (_hovered ? kText : kDim);
+    final Color bg = widget.isActive
+        ? kMint.withValues(alpha: 0.08)
+        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        color: bg,
+        padding: const EdgeInsets.fromLTRB(14, 5, 10, 5),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: widget.onTap,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('> ', style: mono(color: fg, fontSize: 12)),
+                  Text('memo', style: mono(color: fg, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onToggle,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+                child: Text(
+                  widget.isExpanded ? '▾' : '▸',
+                  style: mono(color: fg.withValues(alpha: 0.6), fontSize: 10),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Sub-folder row  (└ inbox / └ 폴더명)
+// ──────────────────────────────────────────────────────────────
+
+class _SubFolderRow extends StatefulWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _SubFolderRow({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  State<_SubFolderRow> createState() => _SubFolderRowState();
+}
+
+class _SubFolderRowState extends State<_SubFolderRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fg = widget.isActive
+        ? kMint
+        : (_hovered ? kText : kDim);
+    final Color bg = widget.isActive
+        ? kMint.withValues(alpha: 0.08)
+        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
@@ -848,18 +536,17 @@ class _RecentMemoRowState extends State<_RecentMemoRow> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          color: _hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent,
+          color: bg,
           padding: const EdgeInsets.fromLTRB(14, 5, 10, 5),
           child: Row(
             children: [
-              Text('[${widget.memo.timeStr}]',
-                  style: mono(color: kDim.withValues(alpha: 0.6), fontSize: 10)),
-              const SizedBox(width: 6),
+              Text('  └ ', style: mono(color: fg, fontSize: 12)),
               Expanded(
-                child: Text(_preview,
-                    style: mono(color: kDim, fontSize: 11),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1),
+                child: Text(
+                  widget.label,
+                  style: mono(color: fg, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -870,32 +557,190 @@ class _RecentMemoRowState extends State<_RecentMemoRow> {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Stats block
+// Habits menu row (with streak dots when active)
 // ──────────────────────────────────────────────────────────────
 
-class _StatsBlock extends StatelessWidget {
-  final int totalMemos;
-  final int totalFolders;
-  final int totalWords;
+class _HabitMenuRow extends StatefulWidget {
+  final int dayCount;
+  final bool habitActivated;
   final int streak;
+  final bool isActive;
+  final VoidCallback onTap;
 
-  const _StatsBlock({
-    required this.totalMemos,
-    required this.totalFolders,
-    required this.totalWords,
+  const _HabitMenuRow({
+    required this.dayCount,
+    required this.habitActivated,
     required this.streak,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  State<_HabitMenuRow> createState() => _HabitMenuRowState();
+}
+
+class _HabitMenuRowState extends State<_HabitMenuRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fg = widget.isActive
+        ? kMint
+        : (_hovered ? kText : kDim);
+    final Color bg = widget.isActive
+        ? kMint.withValues(alpha: 0.08)
+        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+
+    Widget? badge;
+    if (widget.habitActivated && widget.dayCount >= 5) {
+      badge = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(width: 5),
+          _buildStreakDots(widget.streak.clamp(0, 7)),
+          const SizedBox(width: 4),
+          Text('${widget.streak}d',
+              style: mono(color: kTeal, fontSize: 9)),
+        ],
+      );
+    } else if (widget.habitActivated) {
+      badge = Padding(
+        padding: const EdgeInsets.only(left: 5),
+        child: Text('${widget.dayCount}일',
+            style: mono(color: kTeal, fontSize: 9)),
+      );
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          color: bg,
+          padding: const EdgeInsets.fromLTRB(14, 5, 10, 5),
+          child: Row(
+            children: [
+              Text('> ', style: mono(color: fg, fontSize: 12)),
+              Text('habits', style: mono(color: fg, fontSize: 12)),
+              if (badge != null) badge,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Goals menu row (dim + progress when locked)
+// ──────────────────────────────────────────────────────────────
+
+class _GoalMenuRow extends StatefulWidget {
+  final int dayCount;
+  final bool goalActivated;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _GoalMenuRow({
+    required this.dayCount,
+    required this.goalActivated,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  State<_GoalMenuRow> createState() => _GoalMenuRowState();
+}
+
+class _GoalMenuRowState extends State<_GoalMenuRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final locked = !widget.goalActivated && widget.dayCount < 14;
+    final opacity = locked ? 0.45 : 1.0;
+
+    final Color fg = widget.isActive
+        ? kMint
+        : (_hovered ? kText : kDim);
+    final Color bg = widget.isActive
+        ? kMint.withValues(alpha: 0.08)
+        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+
+    Widget? badge;
+    if (!widget.goalActivated && widget.dayCount >= 14) {
+      badge = Padding(
+        padding: const EdgeInsets.only(left: 5),
+        child: Text('[NEW]', style: mono(color: kTeal, fontSize: 9)),
+      );
+    } else if (locked) {
+      badge = Padding(
+        padding: const EdgeInsets.only(left: 5),
+        child: Text('${14 - widget.dayCount}d',
+            style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 9)),
+      );
+    }
+
+    return Opacity(
+      opacity: opacity,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            color: bg,
+            padding: const EdgeInsets.fromLTRB(14, 5, 10, 5),
+            child: Row(
+              children: [
+                Text('> ', style: mono(color: fg, fontSize: 12)),
+                Text('goals', style: mono(color: fg, fontSize: 12)),
+                if (badge != null) badge,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// /SYSTEM data block
+// ──────────────────────────────────────────────────────────────
+
+class _SystemBlock extends StatelessWidget {
+  final int noteCount;
+  final int taskCount;
+  final int habitCount;
+  final int streak;
+  final String dateStr;
+
+  const _SystemBlock({
+    required this.noteCount,
+    required this.taskCount,
+    required this.habitCount,
+    required this.streak,
+    required this.dateStr,
   });
 
   @override
   Widget build(BuildContext context) {
     final rows = [
-      ('memos', '$totalMemos'),
-      ('folders', '$totalFolders'),
-      ('words', '$totalWords'),
+      ('notes', '$noteCount'),
+      ('tasks', '$taskCount'),
+      ('events', '0'),
+      ('habits', '$habitCount'),
       ('streak', '${streak}d'),
+      ('date', dateStr),
     ];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+      padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: rows.map((r) {
@@ -904,11 +749,16 @@ class _StatsBlock extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 52,
-                  child: Text(r.$1,
-                      style:
-                          mono(color: kDim.withValues(alpha: 0.5), fontSize: 10)),
+                  width: 62,
+                  child: Text(
+                    r.$1,
+                    style: mono(
+                        color: kDim.withValues(alpha: 0.5), fontSize: 10),
+                  ),
                 ),
+                Text(': ',
+                    style: mono(
+                        color: kDim.withValues(alpha: 0.4), fontSize: 10)),
                 Text(r.$2, style: mono(color: kDim, fontSize: 10)),
               ],
             ),
@@ -1077,268 +927,6 @@ class _TextBtnState extends State<_TextBtn> {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Settings row
-// ──────────────────────────────────────────────────────────────
-
-class _SettingsRow extends StatefulWidget {
-  final VoidCallback onTap;
-  const _SettingsRow({required this.onTap});
-
-  @override
-  State<_SettingsRow> createState() => _SettingsRowState();
-}
-
-class _SettingsRowState extends State<_SettingsRow> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          color: _hovered ? kDim.withValues(alpha: 0.07) : Colors.transparent,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Icon(Icons.settings_outlined,
-                  size: 13, color: _hovered ? kText : kDim),
-              const SizedBox(width: 8),
-              Text('settings',
-                  style: mono(color: _hovered ? kText : kDim, fontSize: 11)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────
-// System folder section — habit + goal
-// ──────────────────────────────────────────────────────────────
-
-class _SystemFolderSection extends StatelessWidget {
-  final int dayCount;
-  final bool habitActivated;
-  final bool goalActivated;
-  final int streak;
-  final void Function(String name) onActivateHabit;
-  final void Function(String name) onActivateGoal;
-  final VoidCallback? onSelectHabit;
-  final VoidCallback? onSelectGoal;
-
-  const _SystemFolderSection({
-    required this.dayCount,
-    required this.habitActivated,
-    required this.goalActivated,
-    required this.streak,
-    required this.onActivateHabit,
-    required this.onActivateGoal,
-    this.onSelectHabit,
-    this.onSelectGoal,
-  });
-
-  void _showNameDialog(BuildContext context, {required bool isHabit}) {
-    final ctrl = TextEditingController();
-    final focusNode = FocusNode();
-    showDialog(
-      context: context,
-      builder: (dialogCtx) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => focusNode.requestFocus());
-        return _SystemNameDialog(
-          isHabit: isHabit,
-          ctrl: ctrl,
-          focusNode: focusNode,
-          onConfirm: (name) {
-            Navigator.pop(dialogCtx);
-            if (isHabit) {
-              onActivateHabit(name);
-            } else {
-              onActivateGoal(name);
-            }
-          },
-          onCancel: () => Navigator.pop(dialogCtx),
-        );
-      },
-    );
-  }
-
-  void _showHabitSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: kBg,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      builder: (sheetCtx) => Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: kTeal, width: 2)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: _HabitSheetContent(
-          dayCount: dayCount,
-          streak: streak,
-          onActivate: () {
-            Navigator.pop(sheetCtx);
-            _showNameDialog(context, isHabit: true);
-          },
-          onLater: () => Navigator.pop(sheetCtx),
-        ),
-      ),
-    );
-  }
-
-  void _showGoalSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: kBg,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      builder: (sheetCtx) => Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: kTeal, width: 2)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: _GoalSheetContent(
-          dayCount: dayCount,
-          onActivate: () {
-            Navigator.pop(sheetCtx);
-            _showNameDialog(context, isHabit: false);
-          },
-          onLater: () => Navigator.pop(sheetCtx),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final goalDim = !goalActivated && dayCount < 14;
-    final goalNew = !goalActivated && dayCount >= 14;
-
-    String? habitBadge;
-    if (habitActivated && dayCount >= 5) {
-      habitBadge = '[ACTIVE]  streak ${streak}d';
-    } else if (habitActivated) {
-      habitBadge = '[ACTIVE]  $dayCount일';
-    }
-
-    final String? goalBadge = goalNew ? '[NEW]' : null;
-    final String? goalSubtext = goalDim
-        ? '// ${14 - dayCount}일 더 기록하면 열려요'
-        : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _SystemFolderRow(
-          label: '습관',
-          badge: habitBadge,
-          opacity: 1.0,
-          subtext: null,
-          onTap: () {
-            if (habitActivated) {
-              onSelectHabit?.call();
-            } else {
-              _showHabitSheet(context);
-            }
-          },
-        ),
-        _SystemFolderRow(
-          label: '목표',
-          badge: goalBadge,
-          opacity: goalDim ? 0.4 : 1.0,
-          subtext: goalSubtext,
-          onTap: () {
-            if (goalActivated) {
-              onSelectGoal?.call();
-            } else {
-              _showGoalSheet(context);
-            }
-          },
-        ),
-      ],
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────
-// System folder row
-// ──────────────────────────────────────────────────────────────
-
-class _SystemFolderRow extends StatefulWidget {
-  final String label;
-  final String? badge;
-  final double opacity;
-  final String? subtext;
-  final VoidCallback onTap;
-
-  const _SystemFolderRow({
-    required this.label,
-    this.badge,
-    required this.opacity,
-    this.subtext,
-    required this.onTap,
-  });
-
-  @override
-  State<_SystemFolderRow> createState() => _SystemFolderRowState();
-}
-
-class _SystemFolderRowState extends State<_SystemFolderRow> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color fg = _hovered ? kText : kDim;
-    final Color bg =
-        _hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent;
-
-    return Opacity(
-      opacity: widget.opacity,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 100),
-            color: bg,
-            padding: const EdgeInsets.fromLTRB(14, 4, 10, 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('‣ ', style: mono(color: fg, fontSize: 12)),
-                    Text(widget.label, style: mono(color: fg, fontSize: 12)),
-                    if (widget.badge != null) ...[
-                      const SizedBox(width: 6),
-                      Text(widget.badge!,
-                          style: mono(color: kTeal, fontSize: 10)),
-                    ],
-                  ],
-                ),
-                if (widget.subtext != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16, top: 1),
-                    child: Text(widget.subtext!,
-                        style: mono(
-                            color: kDim.withValues(alpha: 0.55), fontSize: 9)),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────
 // Streak dots helper
 // ──────────────────────────────────────────────────────────────
 
@@ -1417,14 +1005,14 @@ class _HabitSheetContent extends StatelessWidget {
         if (dayCount >= 5)
           Row(
             children: [
-              Text('[ 습관 ]  ',
+              Text('[ habits ]  ',
                   style: mono(color: kMint, fontSize: 13, letterSpacing: 0.5)),
               _buildStreakDots(dayCount),
               Text('  $dayCount일', style: mono(color: kDim, fontSize: 11)),
             ],
           )
         else
-          Text('[ 습관 ]',
+          Text('[ habits ]',
               style: mono(color: kMint, fontSize: 13, letterSpacing: 0.5)),
         const SizedBox(height: 8),
         Container(height: 1, color: kBorder.withValues(alpha: 0.5)),
@@ -1602,8 +1190,7 @@ class _SystemNameDialogState extends State<_SystemNameDialog> {
   @override
   Widget build(BuildContext context) {
     final title = widget.isHabit ? '[ 습관 이름 ]' : '[ 목표 이름 ]';
-    final hint =
-        widget.isHabit ? '예) 물 마시기, 30분 독서' : '예) 올해 책 12권 읽기';
+    final hint = widget.isHabit ? '예) 물 마시기, 30분 독서' : '예) 올해 책 12권 읽기';
 
     return Dialog(
       backgroundColor: kSurface,
