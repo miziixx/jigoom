@@ -22,9 +22,11 @@ import '../services/backup_service.dart';
 import '../services/notification_service.dart';
 import '../services/widget_service.dart';
 import '../services/image_service.dart';
+import '../utils/memo_view_calculations.dart';
 import '../widgets/calendar_view.dart';
 import 'stats_screen.dart';
 import 'schedule_screen.dart';
+import 'today_screen.dart';
 
 // Below this width → mobile overlay sidebar; above → desktop inline sidebar
 const _kNarrowBreak = 700.0;
@@ -51,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _scheduleOpen = false;
   bool _tasksOnly = false;
   bool _tagsOpen = false;
+  bool _todayOpen = false;
   String? _selectedFolderId;
   String? _selectedTag;
   String? _selectedTabId;
@@ -527,7 +530,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // ── Memo CRUD ──────────────────────────────────────
 
-  void _addMemo(String content, bool isChecklist, DateTime? reminderAt, [String? folderOverride, List<String>? imagePaths, String reminderRepeat = 'none', DateTime? scheduledAt]) {
+  void _addMemo(
+    String content,
+    bool isChecklist,
+    DateTime? reminderAt, [
+    String? folderOverride,
+    List<String>? imagePaths,
+    String reminderRepeat = 'none',
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat = 'none',
+    String repeatEndType = 'infinite',
+    int repeatEndCount = 5,
+    DateTime? repeatEndDate,
+  ]) {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final targetFolder = folderOverride ?? _selectedFolderId;
     setState(() {
@@ -541,13 +557,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         reminderRepeat: reminderRepeat,
         scheduledAt: scheduledAt,
         imagePaths: imagePaths ?? const [],
+        rangeEndDate: rangeEndDate,
+        scheduleRepeat: scheduleRepeat,
+        repeatEndType: repeatEndType,
+        repeatEndCount: repeatEndCount,
+        repeatEndDate: repeatEndDate,
       ));
       if (folderOverride != null) _selectedFolderId = folderOverride;
     });
     StorageService.saveMemos(_memos);
     if (reminderAt != null) {
       NotificationService.schedule(
-          memoId: id, content: content, scheduledAt: reminderAt, repeat: reminderRepeat);
+        memoId: id,
+        content: content,
+        scheduledAt: reminderAt,
+        repeat: reminderRepeat,
+        repeatEndDate: repeatEndDate,
+      );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -801,10 +827,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // ── Reminders ──────────────────────────────────────
 
-  void _setSchedule(Memo memo, DateTime? newTime) {
+  void _setSchedule(
+    Memo memo,
+    DateTime? newTime, [
+    String scheduleRepeat = 'none',
+    DateTime? rangeEndDate,
+    String repeatEndType = 'infinite',
+    int repeatEndCount = 5,
+    DateTime? repeatEndDate,
+  ]) {
     final updated = memo.copyWith(
       scheduledAt: newTime,
       clearSchedule: newTime == null,
+      scheduleRepeat: newTime == null ? 'none' : scheduleRepeat,
+      rangeEndDate: rangeEndDate,
+      clearRangeEnd: rangeEndDate == null,
+      repeatEndType: repeatEndType,
+      repeatEndCount: repeatEndCount,
+      repeatEndDate: repeatEndDate,
+      clearRepeatEndDate: repeatEndDate == null,
     );
     setState(() {
       final i = _memos.indexWhere((m) => m.id == memo.id);
@@ -813,12 +854,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     StorageService.saveMemos(_memos);
   }
 
-  void _setReminder(Memo memo, DateTime? newTime, [String repeat = 'none']) {
-    // Update UI and storage immediately — don't await OS notification calls.
+  void _setReminder(
+    Memo memo,
+    DateTime? newTime, [
+    String repeat = 'none',
+    String repeatEndType = 'infinite',
+    int repeatEndCount = 5,
+    DateTime? repeatEndDate,
+  ]) {
     final updated = memo.copyWith(
       reminderAt: newTime,
       clearReminder: newTime == null,
       reminderRepeat: newTime == null ? 'none' : repeat,
+      repeatEndType: repeatEndType,
+      repeatEndCount: repeatEndCount,
+      repeatEndDate: repeatEndDate,
+      clearRepeatEndDate: repeatEndDate == null,
     );
     setState(() {
       final i = _memos.indexWhere((m) => m.id == memo.id);
@@ -826,8 +877,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
     StorageService.saveMemos(_memos);
 
-    // Fire-and-forget: cancel old notification then schedule new one.
-    // Errors are swallowed so OS issues never affect the UI.
     () async {
       try { await NotificationService.cancel(memo.id); } catch (_) {}
       if (newTime != null) {
@@ -837,6 +886,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             content: memo.content,
             scheduledAt: newTime,
             repeat: repeat,
+            repeatEndDate: repeatEndDate,
           );
         } catch (_) {}
       }
@@ -994,38 +1044,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // ── Computed tag data ──────────────────────────────
 
-  List<String> get _allTags {
-    final tags = <String>{};
-    for (final memo in _memos) {
-      tags.addAll(memo.tags);
-    }
-    tags.removeAll({'habit', 'goal'});
-    return tags.toList()..sort();
-  }
+  List<String> get _allTags => collectVisibleTags(_memos);
 
-  Map<String, int> get _tagCounts {
-    final counts = <String, int>{};
-    for (final memo in _memos) {
-      for (final tag in memo.tags) {
-        counts[tag] = (counts[tag] ?? 0) + 1;
-      }
-    }
-    return counts;
-  }
+  Map<String, int> get _tagCounts => countTags(_memos);
 
-  Map<String?, int> get _memoCounts {
-    final counts = <String?, int>{};
-    for (final memo in _memos) {
-      counts[memo.folderId] = (counts[memo.folderId] ?? 0) + 1;
-    }
-    return counts;
-  }
+  Map<String?, int> get _memoCounts => countMemosByFolder(_memos);
 
-  List<Memo> get _recentMemos {
-    final sorted = [..._memos]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return sorted.take(3).toList();
-  }
+  List<Memo> get _recentMemos => recentMemos(_memos);
 
   int get _totalWords =>
       _memos.fold(0, (sum, m) => sum + m.content.length);
@@ -1052,6 +1077,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_calendarOpen) return 'calendar';
     if (_statsOpen) return 'stats';
     if (_scheduleOpen) return 'event';
+    if (_todayOpen) return 'today';
     if (_tasksOnly) return 'tasks';
     if (_tagsOpen) return 'tags';
     if (_selectedTag == 'habit') return 'habits';
@@ -1271,7 +1297,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final items = (_calendarOpen || _statsOpen || _scheduleOpen || _tagsOpen) ? const [] : _buildFlatList();
+    final items = (_calendarOpen || _statsOpen || _scheduleOpen || _tagsOpen || _todayOpen) ? const [] : _buildFlatList();
     // Header path
     final folderName = _selectedFolderId == null
         ? '/inbox'
@@ -1282,15 +1308,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ? 'stats'
             : (_scheduleOpen
                 ? 'event'
-                : (_tagsOpen
-                    ? 'tags'
-                    : (_tasksOnly
-                        ? 'tasks'
-                        : (_selectedTag != null && _selectedFolderId != null
-                            ? '$folderName  #$_selectedTag'
-                            : (_selectedTag != null
-                                ? '#$_selectedTag'
-                                : folderName))))));
+                : (_todayOpen
+                    ? '[TODAY]'
+                    : (_tagsOpen
+                        ? 'tags'
+                        : (_tasksOnly
+                            ? 'tasks'
+                            : (_selectedTag != null && _selectedFolderId != null
+                                ? '$folderName  #$_selectedTag'
+                                : (_selectedTag != null
+                                    ? '#$_selectedTag'
+                                    : folderName)))))));
 
     final allTags = _allTags;
     final tagCounts = _tagCounts;
@@ -1313,6 +1341,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+                _todayOpen = false;
                 if (isNarrow) _sidebarOpen = false;
               }),
               onSelectCalendar: () => setState(() {
@@ -1321,6 +1350,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+                _todayOpen = false;
                 _selectedTabId = null;
                 if (isNarrow) _sidebarOpen = false;
               }),
@@ -1352,6 +1382,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+                _todayOpen = false;
                 _selectedTabId = null;
                 if (isNarrow) _sidebarOpen = false;
               }),
@@ -1361,6 +1392,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _calendarOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+                _todayOpen = false;
                 _selectedTabId = null;
                 if (isNarrow) _sidebarOpen = false;
               }),
@@ -1442,7 +1474,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   scheduleOpen:     _scheduleOpen,
                   tagsOpen:         _tagsOpen,
                   tasksOnly:        _tasksOnly,
-                  onShowList:       () => setState(() { _calendarOpen = false; _statsOpen = false; _scheduleOpen = false; _tagsOpen = false; _tasksOnly = false; }),
+                  onShowList:       () => setState(() { _calendarOpen = false; _statsOpen = false; _scheduleOpen = false; _tagsOpen = false; _tasksOnly = false; _todayOpen = false; }),
                   onShowCal:        () => setState(() {
                     _calendarOpen = true;
                     _selectedTabId = null;
@@ -1618,8 +1650,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: ScheduleView(
                       memos:    _memos,
                       actions:  _memoActions,
-                      onAddMemo: (c, isCl, rem, fid, imgs, rep, sched) =>
-                          _addMemo(c, isCl, rem, fid, imgs, rep, sched),
+                      onAddMemo: (c, isCl, rem, fid, imgs, rep, sched,
+                              rangeEnd, schedRep, endType, endCount, endDate) =>
+                          _addMemo(c, isCl, rem, fid, imgs, rep, sched,
+                              rangeEnd, schedRep, endType, endCount, endDate),
                     ),
                   ),
                 ] else if (_calendarOpen) ...[
@@ -1629,6 +1663,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       actions:           _memoActions,
                       onAddMemo:         (c, d, isCl, rem, imgs, rep) => _addMemoOnDate(c, d, isCl, rem, imgs, rep),
                       highlightedMemoId: _highlightedMemoId,
+                    ),
+                  ),
+                ] else if (_todayOpen) ...[
+                  Expanded(
+                    child: TodayScreen(
+                      memos:        _memos,
+                      streak:       streak,
+                      onUpdateMemo: (m, c) => _updateMemo(m.id, c),
                     ),
                   ),
                 ] else ...[
@@ -1679,7 +1721,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     flex: 0,
                     fit: FlexFit.loose,
                     child: InputBar(
-                      onSubmit: (c, isCl, rem, fid, imgs, rep, sched) => _addMemo(c, isCl, rem, fid, imgs, rep, sched),
+                      onSubmit: (c, isCl, rem, fid, imgs, rep, sched,
+                              rangeEnd, schedRep, endType, endCount, endDate) =>
+                          _addMemo(c, isCl, rem, fid, imgs, rep, sched,
+                              rangeEnd, schedRep, endType, endCount, endDate),
                       folders: _folders,
                       currentFolderId: _selectedFolderId,
                     ),
@@ -1710,8 +1755,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       _statsOpen     = true;
                       _calendarOpen  = false;
                       _scheduleOpen  = false;
+                      _todayOpen     = false;
                       _selectedTabId = null;
                     }
+                  }),
+                  todaySelected: _todayOpen,
+                  onTodayTap: () => setState(() {
+                    _todayOpen     = !_todayOpen;
+                    _calendarOpen  = false;
+                    _statsOpen     = false;
+                    _scheduleOpen  = false;
+                    _tagsOpen      = false;
+                    _tasksOnly     = false;
+                    _selectedTabId = null;
                   }),
                 ),
               ],

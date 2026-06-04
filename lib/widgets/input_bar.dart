@@ -17,6 +17,12 @@ class InputBar extends StatefulWidget {
     List<String> imagePaths,
     String reminderRepeat,
     DateTime? scheduledAt,
+    // new fields
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
   ) onSubmit;
   final DateTime? initialDate;
   final List<Folder> folders;
@@ -39,9 +45,20 @@ class InputBar extends StatefulWidget {
 class _InputBarState extends State<InputBar> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  // Reminder (alarm icon)
   DateTime? _reminderAt;
   String _reminderRepeat = 'none';
+  String _reminderRepeatEndType = 'infinite';
+  int _reminderRepeatEndCount = 5;
+  DateTime? _reminderRepeatEndDate;
+  // Schedule / event (calendar icon)
   DateTime? _scheduledAt;
+  DateTime? _rangeEndDate;
+  String _scheduleRepeat = 'none';
+  String _scheduleRepeatEndType = 'infinite';
+  int _scheduleRepeatEndCount = 5;
+  DateTime? _scheduleRepeatEndDate;
+
   String? _selectedFolderId;
   final _pendingImages = <String>[];
   bool _forceChecklist = false;
@@ -111,10 +128,14 @@ class _InputBarState extends State<InputBar> {
     }
     final hadFocus = _focusNode.hasFocus;
     setState(() {});
-    // 태그 배지가 나타나면서 레이아웃이 변해 키보드가 내려가는 경우 방지
+    // 태그 배지가 나타나면서 레이아웃이 변해 Android가 IME를 내리는 경우 방지.
+    // hasFocus가 true인 상태에서도 키보드가 내려갈 수 있으므로
+    // requestFocus + TextInput.show 를 조건 없이 호출해 키보드를 명시적으로 복구.
     if (hadFocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && !_focusNode.hasFocus) _focusNode.requestFocus();
+        if (!mounted) return;
+        if (!_focusNode.hasFocus) _focusNode.requestFocus();
+        SystemChannels.textInput.invokeMethod<void>('TextInput.show');
       });
     }
   }
@@ -122,10 +143,23 @@ class _InputBarState extends State<InputBar> {
   void _showSchedulePicker() {
     showScheduleSheet(
       context,
+      mode: ScheduleSheetMode.event,
       current: _scheduledAt,
-      initialDate: widget.initialDate ?? DateTime.now(),
-      currentRepeat: 'none',
-      onResult: (dt, _) => setState(() => _scheduledAt = dt),
+      rangeEndDate: _rangeEndDate,
+      currentRepeat: _scheduleRepeat,
+      repeatEndType: _scheduleRepeatEndType,
+      repeatEndCount: _scheduleRepeatEndCount,
+      repeatEndDate: _scheduleRepeatEndDate,
+      onResult: (dt, repeat, rangeEnd, endType, endCount, endDate) {
+        setState(() {
+          _scheduledAt            = dt;
+          _rangeEndDate           = rangeEnd;
+          _scheduleRepeat         = repeat;
+          _scheduleRepeatEndType  = endType;
+          _scheduleRepeatEndCount = endCount;
+          _scheduleRepeatEndDate  = endDate;
+        });
+      },
     );
   }
 
@@ -224,13 +258,21 @@ class _InputBarState extends State<InputBar> {
   void _showReminderPicker() {
     showScheduleSheet(
       context,
+      mode: ScheduleSheetMode.reminder,
       current: _reminderAt,
-      initialDate: widget.initialDate ?? DateTime.now(),
       currentRepeat: _reminderRepeat,
-      onResult: (dt, repeat) => setState(() {
-        _reminderAt = dt;
-        _reminderRepeat = repeat;
-      }),
+      repeatEndType: _reminderRepeatEndType,
+      repeatEndCount: _reminderRepeatEndCount,
+      repeatEndDate: _reminderRepeatEndDate,
+      onResult: (dt, repeat, _, endType, endCount, endDate) {
+        setState(() {
+          _reminderAt               = dt;
+          _reminderRepeat           = repeat;
+          _reminderRepeatEndType    = endType;
+          _reminderRepeatEndCount   = endCount;
+          _reminderRepeatEndDate    = endDate;
+        });
+      },
     );
   }
 
@@ -365,15 +407,28 @@ class _InputBarState extends State<InputBar> {
       List<String>.from(_pendingImages),
       _reminderRepeat,
       _scheduledAt,
+      _rangeEndDate,
+      _scheduleRepeat,
+      _scheduleRepeatEndType,
+      _scheduleRepeatEndCount,
+      _scheduleRepeatEndDate,
     );
     _controller.clear();
     setState(() {
-      _reminderAt = null;
-      _reminderRepeat = 'none';
-      _scheduledAt = null;
+      _reminderAt               = null;
+      _reminderRepeat           = 'none';
+      _reminderRepeatEndType    = 'infinite';
+      _reminderRepeatEndCount   = 5;
+      _reminderRepeatEndDate    = null;
+      _scheduledAt              = null;
+      _rangeEndDate             = null;
+      _scheduleRepeat           = 'none';
+      _scheduleRepeatEndType    = 'infinite';
+      _scheduleRepeatEndCount   = 5;
+      _scheduleRepeatEndDate    = null;
       _pendingImages.clear();
-      _forceChecklist = false;
-      _schedulePickerOpened = false;
+      _forceChecklist           = false;
+      _schedulePickerOpened     = false;
     });
     _focusNode.requestFocus();
   }

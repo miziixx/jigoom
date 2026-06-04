@@ -9,8 +9,23 @@ class MemoActions {
   final void Function(Memo) onDelete;
   final void Function(Memo, String) onUpdate;
   final void Function(Memo, String?) onMove;
-  final void Function(Memo, DateTime?, String repeat) onSetReminder;
-  final void Function(Memo, DateTime?) onSetSchedule;
+  final void Function(
+    Memo,
+    DateTime?,
+    String repeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  ) onSetReminder;
+  final void Function(
+    Memo,
+    DateTime?,
+    String scheduleRepeat,
+    DateTime? rangeEndDate,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  ) onSetSchedule;
   final void Function(Memo, String) onAddNote;
   final void Function(Memo, int, String) onUpdateNote;
   final void Function(Memo, int) onDeleteNote;

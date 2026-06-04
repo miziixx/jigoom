@@ -7,12 +7,22 @@ class Memo {
   final String? folderId;
   final List<DateTime> editHistory; // timestamps of edits (creation not included)
   final DateTime? reminderAt;       // scheduled notification time, null = no reminder
-  final String reminderRepeat;      // 'none' | 'daily' | 'weekly' | 'monthly'
+  final String reminderRepeat;      // 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
   final DateTime? scheduledAt;      // appointment/schedule time (! shortcut), null = not scheduled
   final bool isChecklist;           // dedicated checklist mode (inline add/delete items)
   final List<AppendNote> appendNotes; // notes appended after creation
   final String? sourceUrl;            // origin link when memo was created via share
   final List<String> imagePaths;      // attached image file paths
+
+  // Date range — scheduledAt end date (event mode); null = single date
+  final DateTime? rangeEndDate;
+  // Schedule-specific repeat (separate from reminderRepeat)
+  // 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+  final String scheduleRepeat;
+  // Repeat end condition
+  final String repeatEndType;   // 'infinite' | 'count' | 'date'
+  final int repeatEndCount;     // used when repeatEndType == 'count', default 5
+  final DateTime? repeatEndDate; // used when repeatEndType == 'date'
 
   const Memo({
     required this.id,
@@ -27,6 +37,11 @@ class Memo {
     this.appendNotes = const [],
     this.sourceUrl,
     this.imagePaths = const [],
+    this.rangeEndDate,
+    this.scheduleRepeat = 'none',
+    this.repeatEndType = 'infinite',
+    this.repeatEndCount = 5,
+    this.repeatEndDate,
   });
 
   String get dateKey {
@@ -67,6 +82,13 @@ class Memo {
     String? sourceUrl,
     bool clearSourceUrl = false,
     List<String>? imagePaths,
+    DateTime? rangeEndDate,
+    bool clearRangeEnd = false,
+    String? scheduleRepeat,
+    String? repeatEndType,
+    int? repeatEndCount,
+    DateTime? repeatEndDate,
+    bool clearRepeatEndDate = false,
   }) =>
       Memo(
         id: id,
@@ -81,6 +103,11 @@ class Memo {
         appendNotes: appendNotes ?? this.appendNotes,
         sourceUrl: clearSourceUrl ? null : (sourceUrl ?? this.sourceUrl),
         imagePaths: imagePaths ?? this.imagePaths,
+        rangeEndDate: clearRangeEnd ? null : (rangeEndDate ?? this.rangeEndDate),
+        scheduleRepeat: clearSchedule ? 'none' : (scheduleRepeat ?? this.scheduleRepeat),
+        repeatEndType: repeatEndType ?? this.repeatEndType,
+        repeatEndCount: repeatEndCount ?? this.repeatEndCount,
+        repeatEndDate: clearRepeatEndDate ? null : (repeatEndDate ?? this.repeatEndDate),
       );
 
   Map<String, dynamic> toJson() => {
@@ -97,6 +124,11 @@ class Memo {
         'appendNotes': appendNotes.map((n) => n.toJson()).toList(),
         'sourceUrl': sourceUrl,
         'imagePaths': imagePaths,
+        'rangeEndDate': rangeEndDate?.toIso8601String(),
+        'scheduleRepeat': scheduleRepeat,
+        'repeatEndType': repeatEndType,
+        'repeatEndCount': repeatEndCount,
+        'repeatEndDate': repeatEndDate?.toIso8601String(),
       };
 
   factory Memo.fromJson(Map<String, dynamic> json) => Memo(
@@ -125,5 +157,14 @@ class Memo {
                 ?.map((e) => e as String)
                 .toList() ??
             [],
+        rangeEndDate: json['rangeEndDate'] != null
+            ? DateTime.tryParse(json['rangeEndDate'] as String)
+            : null,
+        scheduleRepeat: (json['scheduleRepeat'] as String?) ?? 'none',
+        repeatEndType: (json['repeatEndType'] as String?) ?? 'infinite',
+        repeatEndCount: (json['repeatEndCount'] as int?) ?? 5,
+        repeatEndDate: json['repeatEndDate'] != null
+            ? DateTime.tryParse(json['repeatEndDate'] as String)
+            : null,
       );
 }

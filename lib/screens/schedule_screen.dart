@@ -17,6 +17,11 @@ class ScheduleView extends StatefulWidget {
     List<String> imagePaths,
     String reminderRepeat,
     DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
   )? onAddMemo;
 
   const ScheduleView({

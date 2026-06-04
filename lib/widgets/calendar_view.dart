@@ -158,7 +158,8 @@ class _CalendarViewState extends State<CalendarView> {
         // Input bar — pinned at bottom, always usable above the keyboard.
         InputBar(
           initialDate: _selectedDay,
-          onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched) =>
+          onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched,
+                  rangeEnd, schedRep, endType, endCount, endDate) =>
               widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt, imgs, rep),
         ),
       ],
@@ -404,7 +405,8 @@ class _CalendarViewState extends State<CalendarView> {
         // Input bar — saves memo to selected day's date
         InputBar(
           initialDate: _selectedDay,
-          onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched) =>
+          onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched,
+                  rangeEnd, schedRep, endType, endCount, endDate) =>
               widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt, imgs, rep),
         ),
       ],

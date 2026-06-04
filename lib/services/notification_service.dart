@@ -140,11 +140,15 @@ class NotificationService {
 
   /// Maps a repeat string to the plugin's recurrence matcher.
   /// Returns null for a one-shot (non-repeating) reminder.
+  /// NOTE: 'yearly' is not natively supported by DateTimeComponents —
+  /// it is scheduled as a one-shot; re-scheduling for the next year
+  /// requires app-level logic (not implemented in this version).
   static DateTimeComponents? _repeatComponents(String repeat) {
     switch (repeat) {
       case 'daily':   return DateTimeComponents.time;
       case 'weekly':  return DateTimeComponents.dayOfWeekAndTime;
       case 'monthly': return DateTimeComponents.dayOfMonthAndTime;
+      // 'yearly' and unknown values fall through to one-shot (null)
       default:        return null;
     }
   }
@@ -154,8 +158,18 @@ class NotificationService {
     required String content,
     required DateTime scheduledAt,
     String repeat = 'none',
+    // repeatEndDate: if set and already past, skip scheduling entirely.
+    // Full N-count enforcement requires app-level tracking (not implemented).
+    DateTime? repeatEndDate,
   }) async {
     if (kIsWeb) return;
+
+    // Skip if the repeat end date has already passed.
+    if (repeatEndDate != null && repeatEndDate.isBefore(DateTime.now())) {
+      print('[ALARM_DEBUG] schedule() skipped — repeatEndDate is in the past: $repeatEndDate');
+      return;
+    }
+
     final id      = _notifId(memoId);
     final preview = content.length > 120
         ? '${content.substring(0, 120)}...'
