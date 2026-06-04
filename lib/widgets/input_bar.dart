@@ -110,6 +110,7 @@ class _InputBarState extends State<InputBar> {
       return;
     }
     final newText = _controller.text;
+    final hadTags = _tagRe.hasMatch(_prevText);
     if (_scheduledAt == null && newText.contains('!') && !_prevText.contains('!')) {
       _processingExcl = true;
       final excIdx = newText.indexOf('!');
@@ -126,21 +127,17 @@ class _InputBarState extends State<InputBar> {
     } else {
       _prevText = newText;
     }
+    final hasTags = _tagRe.hasMatch(_controller.text);
     final hadFocus = _focusNode.hasFocus;
     setState(() {});
     // 태그 배지가 나타나면서 레이아웃이 변해 Android가 IME를 내리는 경우 방지.
     // hasFocus가 true인 상태에서도 키보드가 내려갈 수 있으므로
     // requestFocus + TextInput.show 를 조건 없이 호출해 키보드를 명시적으로 복구.
-    if (hadFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        if (!_focusNode.hasFocus) _focusNode.requestFocus();
-        SystemChannels.textInput.invokeMethod<void>('TextInput.show');
-      });
-    }
+    if (hadFocus) _restoreInputFocus(extraDelayed: hasTags && !hadTags);
   }
 
   void _showSchedulePicker() {
+    final previousScheduledAt = _scheduledAt;
     showScheduleSheet(
       context,
       mode: ScheduleSheetMode.event,
@@ -150,7 +147,8 @@ class _InputBarState extends State<InputBar> {
       repeatEndType: _scheduleRepeatEndType,
       repeatEndCount: _scheduleRepeatEndCount,
       repeatEndDate: _scheduleRepeatEndDate,
-      onResult: (dt, repeat, rangeEnd, endType, endCount, endDate) {
+      initialNotifyForEvent: _isSameMinute(_reminderAt, _scheduledAt),
+      onResult: (dt, repeat, rangeEnd, endType, endCount, endDate, notifyForEvent) {
         setState(() {
           _scheduledAt            = dt;
           _rangeEndDate           = rangeEnd;
@@ -158,9 +156,39 @@ class _InputBarState extends State<InputBar> {
           _scheduleRepeatEndType  = endType;
           _scheduleRepeatEndCount = endCount;
           _scheduleRepeatEndDate  = endDate;
+          if (dt == null) {
+            if (_isSameMinute(_reminderAt, previousScheduledAt)) {
+              _reminderAt = null;
+              _reminderRepeat = 'none';
+              _reminderRepeatEndType = 'infinite';
+              _reminderRepeatEndCount = 5;
+              _reminderRepeatEndDate = null;
+            }
+          } else if (notifyForEvent) {
+            _reminderAt = dt;
+            _reminderRepeat = 'none';
+            _reminderRepeatEndType = 'infinite';
+            _reminderRepeatEndCount = 5;
+            _reminderRepeatEndDate = null;
+          } else if (_isSameMinute(_reminderAt, previousScheduledAt)) {
+            _reminderAt = null;
+            _reminderRepeat = 'none';
+            _reminderRepeatEndType = 'infinite';
+            _reminderRepeatEndCount = 5;
+            _reminderRepeatEndDate = null;
+          }
         });
       },
     );
+  }
+
+  bool _isSameMinute(DateTime? a, DateTime? b) {
+    if (a == null || b == null) return false;
+    return a.year == b.year &&
+        a.month == b.month &&
+        a.day == b.day &&
+        a.hour == b.hour &&
+        a.minute == b.minute;
   }
 
   bool get _isChecklist {
@@ -173,6 +201,23 @@ class _InputBarState extends State<InputBar> {
         l.startsWith('- [ ] ') ||
         l.startsWith('- [x] ') ||
         l.startsWith('• '));
+  }
+
+  void _showKeyboardNow() {
+    if (!mounted) return;
+    if (!_focusNode.hasFocus) _focusNode.requestFocus();
+    SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+  }
+
+  void _restoreInputFocus({bool extraDelayed = false}) {
+    _focusNode.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showKeyboardNow();
+      Future<void>.delayed(const Duration(milliseconds: 80), _showKeyboardNow);
+      if (extraDelayed) {
+        Future<void>.delayed(const Duration(milliseconds: 180), _showKeyboardNow);
+      }
+    });
   }
 
   void _wrapSelection(String prefix, String suffix) {
@@ -196,7 +241,7 @@ class _InputBarState extends State<InputBar> {
         selection: TextSelection.collapsed(offset: pos + prefix.length),
       );
     }
-    _focusNode.requestFocus();
+    _restoreInputFocus();
   }
 
   void _insertText(String text) {
@@ -215,7 +260,7 @@ class _InputBarState extends State<InputBar> {
       text: newText,
       selection: TextSelection.collapsed(offset: offset),
     );
-    _focusNode.requestFocus();
+    _restoreInputFocus();
   }
 
   void _insertListPrefix(String prefix) {
@@ -235,7 +280,7 @@ class _InputBarState extends State<InputBar> {
         selection: TextSelection.collapsed(offset: sel.start + insert.length),
       );
     }
-    _focusNode.requestFocus();
+    _restoreInputFocus();
   }
 
   String _fmtReminder(DateTime dt) {
@@ -264,7 +309,7 @@ class _InputBarState extends State<InputBar> {
       repeatEndType: _reminderRepeatEndType,
       repeatEndCount: _reminderRepeatEndCount,
       repeatEndDate: _reminderRepeatEndDate,
-      onResult: (dt, repeat, _, endType, endCount, endDate) {
+      onResult: (dt, repeat, _, endType, endCount, endDate, __) {
         setState(() {
           _reminderAt               = dt;
           _reminderRepeat           = repeat;
@@ -443,6 +488,52 @@ class _InputBarState extends State<InputBar> {
   @override
   Widget build(BuildContext context) {
     final tags = _tags;
+    final visibleTags = _focusNode.hasFocus ? const <String>[] : tags;
+    final badgeChildren = <Widget>[
+      ...visibleTags.map((t) =>
+          Text('#$t', style: mono(color: kTeal, fontSize: 11))),
+      if (_scheduledAt != null)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('! ${_fmtReminder(_scheduledAt!)}',
+                style: mono(color: kMint, fontSize: 10)),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => setState(() => _scheduledAt = null),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Text('[×]',
+                    style: mono(
+                        color: kDim.withValues(alpha: 0.6),
+                        fontSize: 10)),
+              ),
+            ),
+          ],
+        ),
+      if (_reminderAt != null)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('🔔 ${_fmtReminder(_reminderAt!)}${_repeatLabel(_reminderRepeat)}',
+                style: mono(color: kMint, fontSize: 10)),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: () => setState(() {
+                _reminderAt = null;
+                _reminderRepeat = 'none';
+              }),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Text('[×]',
+                    style: mono(
+                        color: kDim.withValues(alpha: 0.6),
+                        fontSize: 10)),
+              ),
+            ),
+          ],
+        ),
+    ];
     return Container(
       color: kBg,
       child: Column(
@@ -512,57 +603,19 @@ class _InputBarState extends State<InputBar> {
           ),
 
           // ── Badges: tags + reminder ────────────────────────
-          if (tags.isNotEmpty || _reminderAt != null || _scheduledAt != null)
+          if (badgeChildren.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  ...tags.map((t) =>
-                      Text('#$t', style: mono(color: kTeal, fontSize: 11))),
-                  if (_scheduledAt != null)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('! ${_fmtReminder(_scheduledAt!)}',
-                            style: mono(color: kMint, fontSize: 10)),
-                        const SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: () => setState(() => _scheduledAt = null),
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Text('[×]',
-                                style: mono(
-                                    color: kDim.withValues(alpha: 0.6),
-                                    fontSize: 10)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  if (_reminderAt != null)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('🔔 ${_fmtReminder(_reminderAt!)}${_repeatLabel(_reminderRepeat)}',
-                            style: mono(color: kMint, fontSize: 10)),
-                        const SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: () => setState(() {
-                            _reminderAt = null;
-                            _reminderRepeat = 'none';
-                          }),
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Text('[×]',
-                                style: mono(
-                                    color: kDim.withValues(alpha: 0.6),
-                                    fontSize: 10)),
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: badgeChildren
+                      .map((w) => Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: w,
+                          ))
+                      .toList(),
+                ),
               ),
             ),
 

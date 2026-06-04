@@ -797,7 +797,7 @@ class _MemoTileState extends State<MemoTile> {
       repeatEndType: widget.memo.repeatEndType,
       repeatEndCount: widget.memo.repeatEndCount,
       repeatEndDate: widget.memo.repeatEndDate,
-      onResult: (dt, repeat, _, endType, endCount, endDate) =>
+      onResult: (dt, repeat, _, endType, endCount, endDate, __) =>
           _a.onSetReminder(widget.memo, dt, repeat, endType, endCount, endDate),
     );
   }
@@ -812,9 +812,30 @@ class _MemoTileState extends State<MemoTile> {
       repeatEndType: widget.memo.repeatEndType,
       repeatEndCount: widget.memo.repeatEndCount,
       repeatEndDate: widget.memo.repeatEndDate,
-      onResult: (dt, repeat, rangeEnd, endType, endCount, endDate) =>
-          _a.onSetSchedule(widget.memo, dt, repeat, rangeEnd, endType, endCount, endDate),
+      initialNotifyForEvent:
+          _isSameMinute(widget.memo.reminderAt, widget.memo.scheduledAt),
+      onResult: (dt, repeat, rangeEnd, endType, endCount, endDate, notifyForEvent) {
+        _a.onSetSchedule(widget.memo, dt, repeat, rangeEnd, endType, endCount, endDate);
+        if (dt == null) {
+          if (_isSameMinute(widget.memo.reminderAt, widget.memo.scheduledAt)) {
+            _a.onSetReminder(widget.memo, null, 'none', 'infinite', 5, null);
+          }
+        } else if (notifyForEvent) {
+          _a.onSetReminder(widget.memo, dt, 'none', 'infinite', 5, null);
+        } else if (_isSameMinute(widget.memo.reminderAt, widget.memo.scheduledAt)) {
+          _a.onSetReminder(widget.memo, null, 'none', 'infinite', 5, null);
+        }
+      },
     );
+  }
+
+  bool _isSameMinute(DateTime? a, DateTime? b) {
+    if (a == null || b == null) return false;
+    return a.year == b.year &&
+        a.month == b.month &&
+        a.day == b.day &&
+        a.hour == b.hour &&
+        a.minute == b.minute;
   }
 
   // ── Dialogs ─────────────────────────────────────────

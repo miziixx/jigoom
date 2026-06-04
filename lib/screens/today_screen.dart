@@ -573,8 +573,14 @@ class _EventRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 38,
-            child: Text(timeStr, style: mono(color: kDim, fontSize: 10)),
+            width: 64,
+            child: Text(
+              timeStr,
+              style: mono(color: kDim, fontSize: 10),
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.visible,
+            ),
           ),
           Container(width: 2, height: 20, color: kMint),
           const SizedBox(width: 8),
@@ -989,12 +995,18 @@ class _TimeRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                width: 38,
+                width: 72,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 7),
-                  child: Text(
-                    '${hour.toString().padLeft(2, '0')}:00',
-                    style: mono(color: kDim, fontSize: 10),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      '${hour.toString().padLeft(2, '0')}:00',
+                      style: mono(color: kDim, fontSize: 10),
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.visible,
+                    ),
                   ),
                 ),
               ),

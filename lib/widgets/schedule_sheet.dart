@@ -25,6 +25,7 @@ Future<void> showScheduleSheet(
   String repeatEndType = 'infinite',
   int repeatEndCount = 5,
   DateTime? repeatEndDate,
+  bool initialNotifyForEvent = false,
   required void Function(
     DateTime? dt,
     String repeat,
@@ -32,6 +33,7 @@ Future<void> showScheduleSheet(
     String repeatEndType,
     int repeatEndCount,
     DateTime? repeatEndDate,
+    bool notifyForEvent,
   ) onResult,
 }) {
   return showModalBottomSheet(
@@ -52,6 +54,7 @@ Future<void> showScheduleSheet(
         repeatEndType: repeatEndType,
         repeatEndCount: repeatEndCount,
         repeatEndDate: repeatEndDate,
+        initialNotifyForEvent: initialNotifyForEvent,
         onResult: onResult,
         scrollController: scrollCtrl,
       ),
@@ -84,6 +87,7 @@ class _ScheduleSheet extends StatefulWidget {
   final String repeatEndType;
   final int repeatEndCount;
   final DateTime? repeatEndDate;
+  final bool initialNotifyForEvent;
   final void Function(
     DateTime?,
     String,
@@ -91,6 +95,7 @@ class _ScheduleSheet extends StatefulWidget {
     String,
     int,
     DateTime?,
+    bool,
   ) onResult;
   final ScrollController? scrollController;
 
@@ -102,6 +107,7 @@ class _ScheduleSheet extends StatefulWidget {
     this.repeatEndType = 'infinite',
     this.repeatEndCount = 5,
     this.repeatEndDate,
+    this.initialNotifyForEvent = false,
     required this.onResult,
     this.scrollController,
   });
@@ -136,6 +142,9 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
   late _RepeatEndMode _repeatEndMode;
   late int _repeatEndCount;
   DateTime? _repeatEndDateVal;
+  bool? _notifyForEvent;
+
+  bool get _notifyForEventOn => _notifyForEvent ?? false;
 
   // Which state a calendar day-tap modifies
   _CalTarget _calTarget = _CalTarget.eventDate;
@@ -186,6 +195,8 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
     }
     _repeatEndCount  = widget.repeatEndCount;
     _repeatEndDateVal = widget.repeatEndDate;
+    _notifyForEvent = widget.mode == ScheduleSheetMode.event &&
+        widget.initialNotifyForEvent;
   }
 
   // ── Helpers ─────────────────────────────────────────────────
@@ -342,12 +353,13 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
       _repeatEndTypeString(),
       _repeatEndCount,
       _repeatEndMode == _RepeatEndMode.date ? _repeatEndDateVal : null,
+      widget.mode == ScheduleSheetMode.event && _notifyForEventOn,
     );
   }
 
   void _clear() {
     Navigator.pop(context);
-    widget.onResult(null, 'none', null, 'infinite', 5, null);
+    widget.onResult(null, 'none', null, 'infinite', 5, null, false);
   }
 
   // ── Build ───────────────────────────────────────────────────
@@ -473,6 +485,34 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                   : '시작일  →  종료일',
               style: mono(color: kDim, fontSize: 11),
               overflow: TextOverflow.ellipsis,
+            ),
+          ),
+
+        if (widget.mode == ScheduleSheetMode.event)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _notifyForEvent = !_notifyForEventOn),
+              child: Row(
+                children: [
+                  Text(
+                    _notifyForEventOn ? '[✓]' : '[ ]',
+                    style: mono(
+                      color: _notifyForEventOn ? kMint : kDim,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '일정 시간에 알림 받기',
+                      style: mono(color: kDim, fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 

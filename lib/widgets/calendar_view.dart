@@ -13,7 +13,20 @@ const _kWide = 620.0;
 class CalendarView extends StatefulWidget {
   final List<Memo> memos;
   final MemoActions actions;
-  final void Function(String content, DateTime date, bool isChecklist, DateTime? reminderAt, List<String> imagePaths, String reminderRepeat) onAddMemo;
+  final void Function(
+    String content,
+    DateTime date,
+    bool isChecklist,
+    DateTime? reminderAt,
+    List<String> imagePaths,
+    String reminderRepeat,
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  ) onAddMemo;
   final String? highlightedMemoId;
 
   const CalendarView({
@@ -160,7 +173,8 @@ class _CalendarViewState extends State<CalendarView> {
           initialDate: _selectedDay,
           onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched,
                   rangeEnd, schedRep, endType, endCount, endDate) =>
-              widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt, imgs, rep),
+              widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt,
+                  imgs, rep, sched, rangeEnd, schedRep, endType, endCount, endDate),
         ),
       ],
     );
@@ -407,7 +421,8 @@ class _CalendarViewState extends State<CalendarView> {
           initialDate: _selectedDay,
           onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched,
                   rangeEnd, schedRep, endType, endCount, endDate) =>
-              widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt, imgs, rep),
+              widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt,
+                  imgs, rep, sched, rangeEnd, schedRep, endType, endCount, endDate),
         ),
       ],
     );

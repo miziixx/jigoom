@@ -25,7 +25,6 @@ class SettingsScreen extends StatefulWidget {
     double spacing,
     bool tabLocked,
   ) onSave;
-  final VoidCallback onBackupShare;
   final VoidCallback onBackupSave;
   final void Function(Map<String, dynamic> data, {bool merge}) onRestoreConfirmed;
   final VoidCallback onClearCache;
@@ -39,7 +38,6 @@ class SettingsScreen extends StatefulWidget {
     required this.initialFontSize,
     required this.initialSpacing,
     required this.onSave,
-    required this.onBackupShare,
     required this.onBackupSave,
     required this.onRestoreConfirmed,
     required this.onClearCache,
@@ -249,13 +247,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _doBackup() async {
-    final choice = await _showBackupMethodDialog();
-    if (!mounted || choice == null) return;
-    if (choice == 'save') {
-      widget.onBackupSave();
-    } else {
-      widget.onBackupShare();
-    }
+    widget.onBackupSave();
   }
 
   Future<void> _doRestore() async {
@@ -280,22 +272,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _saved = true;
     widget.onRestoreConfirmed(data, merge: mode == 'merge');
     if (mounted) Navigator.pop(context);
-  }
-
-  Future<String?> _showBackupMethodDialog() {
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => _ConfirmDialog(
-        title: '[ BACKUP ]',
-        body: '백업 방법을 선택하세요.',
-        cancelLabel: '[ 폰에 저장 ]',
-        confirmLabel: '[ 공유 · 이메일 ]',
-        cancelColor: kText,
-        confirmColor: kMint,
-        onCancel: () => Navigator.pop(ctx, 'save'),
-        onConfirm: () => Navigator.pop(ctx, 'share'),
-      ),
-    );
   }
 
   Future<String?> _showRestoreOptions() {
@@ -1456,8 +1432,6 @@ class _ConfirmDialog extends StatelessWidget {
   final VoidCallback onConfirm;
   final Color? confirmColor;
   final String? confirmLabel;
-  final Color? cancelColor;
-  final String? cancelLabel;
 
   const _ConfirmDialog({
     required this.title,
@@ -1466,8 +1440,6 @@ class _ConfirmDialog extends StatelessWidget {
     required this.onConfirm,
     this.confirmColor,
     this.confirmLabel,
-    this.cancelColor,
-    this.cancelLabel,
   });
 
   @override
@@ -1493,7 +1465,7 @@ class _ConfirmDialog extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _Btn(label: cancelLabel ?? '[ CANCEL ]', color: cancelColor ?? kDim, onTap: onCancel),
+                _Btn(label: '[ CANCEL ]', color: kDim, onTap: onCancel),
                 const SizedBox(width: 10),
                 _Btn(
                   label: confirmLabel ?? '[ OK ]',

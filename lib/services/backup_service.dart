@@ -21,7 +21,8 @@ class BackupService {
   static String _filename() {
     final now = DateTime.now();
     final d = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    return 'memo_backup_$d.json';
+    final t = '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    return 'nemo_backup_${d}_$t.json';
   }
 
   // Share via system sheet (email, Drive, etc.)
