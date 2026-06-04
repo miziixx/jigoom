@@ -39,7 +39,7 @@ class MemoWidgetProvider : AppWidgetProvider() {
         val textColor   = readColor(prefs, "widget_text",   Color.parseColor("#556B2F"))
         val dimColor    = readColor(prefs, "widget_dim",    Color.parseColor("#7A8F5A"))
         val borderColor = readColor(prefs, "widget_border", Color.parseColor("#B0C4B0"))
-        val isStore     = BuildConfig.FLAVOR == "store"
+        val isStore     = isStoreFlavor()
 
         val views = RemoteViews(context.packageName, R.layout.memo_widget)
 
@@ -72,6 +72,9 @@ class MemoWidgetProvider : AppWidgetProvider() {
 
         manager.updateAppWidget(widgetId, views)
     }
+
+    private fun isStoreFlavor(): Boolean =
+        BuildConfig.FLAVOR == "store" || BuildConfig.FLAVOR == "nemo2store"
 
     private fun readColor(
         prefs: android.content.SharedPreferences,

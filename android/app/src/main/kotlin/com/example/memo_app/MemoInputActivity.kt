@@ -144,7 +144,7 @@ class MemoInputActivity : Activity() {
         findViewById<TextView>(R.id.input_btn_add).setTextColor(textColor)
         findViewById<TextView>(R.id.mode_reminder_indicator).setTextColor(textColor)
 
-        val isStore = BuildConfig.FLAVOR == "store"
+        val isStore = isStoreFlavor()
         val vis = if (isStore) View.VISIBLE else View.GONE
         findViewById<TextView>(R.id.input_btn_simple).visibility   = vis
         findViewById<TextView>(R.id.input_btn_discount).visibility = vis
@@ -153,6 +153,9 @@ class MemoInputActivity : Activity() {
             findViewById<TextView>(R.id.input_btn_discount).setTextColor(dimColor)
         }
     }
+
+    private fun isStoreFlavor(): Boolean =
+        BuildConfig.FLAVOR == "store" || BuildConfig.FLAVOR == "nemo2store"
 
     private fun showFolderPicker() {
         val folders = loadFolders()
