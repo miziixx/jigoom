@@ -17,7 +17,8 @@ class SettingsDialog extends StatefulWidget {
     String fontFamily,
     double fontSize,
     bool tabLocked,
-  ) onSave;
+  )
+  onSave;
   final VoidCallback onBackupTap;
   final void Function(Map<String, dynamic> data) onRestoreConfirmed;
 
@@ -51,12 +52,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
   @override
   void initState() {
     super.initState();
-    _bg         = widget.initialBg;
-    _text       = widget.initialText;
-    _tabLocked  = widget.initialTabLocked;
+    _bg = widget.initialBg;
+    _text = widget.initialText;
+    _tabLocked = widget.initialTabLocked;
     _fontFamily = widget.initialFontFamily;
-    _fontSize   = widget.initialFontSize;
-    _bgCtrl   = TextEditingController(text: _toHex(_bg));
+    _fontSize = widget.initialFontSize;
+    _bgCtrl = TextEditingController(text: _toHex(_bg));
     _textCtrl = TextEditingController(text: _toHex(_text));
   }
 
@@ -75,10 +76,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   static String _toHex(Color c) {
     int ch(double v) => (v * 255.0).round().clamp(0, 255);
-    return [ch(c.r), ch(c.g), ch(c.b)]
-        .map((v) => v.toRadixString(16).padLeft(2, '0'))
-        .join()
-        .toUpperCase();
+    return [
+      ch(c.r),
+      ch(c.g),
+      ch(c.b),
+    ].map((v) => v.toRadixString(16).padLeft(2, '0')).join().toUpperCase();
   }
 
   static Color? _parseHex(String raw) {
@@ -93,12 +95,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   void _resetDefaults() {
     setState(() {
-      _bg         = const Color(0xFFEDF2ED);
-      _text       = const Color(0xFF556B2F);
-      _tabLocked  = false;
+      _bg = const Color(0xFFEDF2ED);
+      _text = const Color(0xFF556B2F);
+      _tabLocked = false;
       _fontFamily = 'JetBrains Mono';
-      _fontSize   = 13.0;
-      _bgCtrl.text   = _toHex(_bg);
+      _fontSize = 13.0;
+      _bgCtrl.text = _toHex(_bg);
       _textCtrl.text = _toHex(_text);
     });
     applyFont(_fontFamily, _fontSize);
@@ -135,39 +137,55 @@ class _SettingsDialogState extends State<SettingsDialog> {
         backgroundColor: kSurface,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 320),
+          constraints: BoxConstraints(
+            maxWidth: 320,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+          ),
           padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('[ RESTORE ]',
-                  style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
-              const SizedBox(height: 10),
-              Text('. ' * 100, style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8), overflow: TextOverflow.clip, maxLines: 1, softWrap: false),
-              const SizedBox(height: 14),
-              Text(
-                '기존 데이터가 덮어씌워집니다.\n계속할까요?',
-                style: mono(color: kDim, fontSize: 12, height: 1.7),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _Btn(
-                    label: '[ CANCEL ]',
-                    color: kDim,
-                    onTap: () => Navigator.pop(ctx, false),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '[ RESTORE ]',
+                  style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '. ' * 100,
+                  style: mono(
+                    color: kBorder.withValues(alpha: 0.8),
+                    fontSize: 8,
                   ),
-                  const SizedBox(width: 10),
-                  _Btn(
-                    label: '[ OK ]',
-                    color: kMint,
-                    onTap: () => Navigator.pop(ctx, true),
-                  ),
-                ],
-              ),
-            ],
+                  overflow: TextOverflow.clip,
+                  maxLines: 1,
+                  softWrap: false,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  '기존 데이터가 덮어씌워집니다.\n계속할까요?',
+                  style: mono(color: kDim, fontSize: 12, height: 1.7),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _Btn(
+                      label: '[ CANCEL ]',
+                      color: kDim,
+                      onTap: () => Navigator.pop(ctx, false),
+                    ),
+                    const SizedBox(width: 10),
+                    _Btn(
+                      label: '[ OK ]',
+                      color: kMint,
+                      onTap: () => Navigator.pop(ctx, true),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -180,7 +198,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
       backgroundColor: kSurface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 360),
+        constraints: BoxConstraints(
+          maxWidth: 360,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -193,7 +214,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
               ),
               const SizedBox(height: 10),
-              Text('. ' * 100, style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8), overflow: TextOverflow.clip, maxLines: 1, softWrap: false),
+              Text(
+                '. ' * 100,
+                style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
+                overflow: TextOverflow.clip,
+                maxLines: 1,
+                softWrap: false,
+              ),
               const SizedBox(height: 18),
 
               // ── Background color ─────────────────────
@@ -241,7 +268,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
 
               const SizedBox(height: 22),
-              Text('. ' * 100, style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8), overflow: TextOverflow.clip, maxLines: 1, softWrap: false),
+              Text(
+                '. ' * 100,
+                style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
+                overflow: TextOverflow.clip,
+                maxLines: 1,
+                softWrap: false,
+              ),
               const SizedBox(height: 16),
 
               // ── Tab lock ─────────────────────────────
@@ -260,7 +293,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
 
               const SizedBox(height: 16),
-              Text('. ' * 100, style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8), overflow: TextOverflow.clip, maxLines: 1, softWrap: false),
+              Text(
+                '. ' * 100,
+                style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
+                overflow: TextOverflow.clip,
+                maxLines: 1,
+                softWrap: false,
+              ),
               const SizedBox(height: 16),
 
               // ── Font family ──────────────────────────
@@ -274,19 +313,21 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   border: Border.all(color: kBorder.withValues(alpha: 0.7)),
                 ),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 168),
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.25),
                   child: ListView(
                     shrinkWrap: true,
                     padding: EdgeInsets.zero,
                     children: kFontOptions
-                        .map((f) => _FontOption(
-                              fontName: f,
-                              isSelected: _fontFamily == f,
-                              onTap: () {
-                                setState(() => _fontFamily = f);
-                                applyFont(_fontFamily, _fontSize);
-                              },
-                            ))
+                        .map(
+                          (f) => _FontOption(
+                            fontName: f,
+                            isSelected: _fontFamily == f,
+                            onTap: () {
+                              setState(() => _fontFamily = f);
+                              applyFont(_fontFamily, _fontSize);
+                            },
+                          ),
+                        )
                         .toList(),
                   ),
                 ),
@@ -332,7 +373,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
 
               const SizedBox(height: 22),
-              Text('. ' * 100, style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8), overflow: TextOverflow.clip, maxLines: 1, softWrap: false),
+              Text(
+                '. ' * 100,
+                style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
+                overflow: TextOverflow.clip,
+                maxLines: 1,
+                softWrap: false,
+              ),
               const SizedBox(height: 16),
 
               // ── Backup / Restore ─────────────────────
@@ -351,34 +398,40 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   const SizedBox(width: 10),
                   _Btn(
                     label: _restoring ? '...' : '[ RESTORE ]',
-                    color: _restoring
-                        ? kDim.withValues(alpha: 0.4)
-                        : kDim,
+                    color: _restoring ? kDim.withValues(alpha: 0.4) : kDim,
                     onTap: _doRestore,
                   ),
                 ],
               ),
 
               const SizedBox(height: 16),
-              Text('. ' * 100, style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8), overflow: TextOverflow.clip, maxLines: 1, softWrap: false),
+              Text(
+                '. ' * 100,
+                style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
+                overflow: TextOverflow.clip,
+                maxLines: 1,
+                softWrap: false,
+              ),
               const SizedBox(height: 14),
 
               // ── Actions ──────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _Btn(
-                    label: '[ RESET ]',
-                    color: kDim,
-                    onTap: _resetDefaults,
-                  ),
+                  _Btn(label: '[ RESET ]', color: kDim, onTap: _resetDefaults),
                   const SizedBox(width: 10),
                   _Btn(
                     label: '[ SAVE ]',
                     color: kMint,
                     onTap: () {
                       _saved = true;
-                      widget.onSave(_bg, _text, _fontFamily, _fontSize, _tabLocked);
+                      widget.onSave(
+                        _bg,
+                        _text,
+                        _fontFamily,
+                        _fontSize,
+                        _tabLocked,
+                      );
                       Navigator.pop(context);
                     },
                   ),
@@ -502,7 +555,9 @@ class _ToggleSwitchState extends State<_ToggleSwitch> {
           decoration: BoxDecoration(
             color: on
                 ? kMint.withValues(alpha: 0.10)
-                : (_hovered ? kBorder.withValues(alpha: 0.15) : Colors.transparent),
+                : (_hovered
+                      ? kBorder.withValues(alpha: 0.15)
+                      : Colors.transparent),
           ),
           child: Text(
             on ? '[ ON  ]' : '[ OFF ]',
@@ -602,8 +657,7 @@ class _ColorSection extends StatelessWidget {
               ),
               child: Theme(
                 data: ThemeData.dark().copyWith(
-                  textTheme:
-                      ThemeData.dark().textTheme.apply(bodyColor: kDim),
+                  textTheme: ThemeData.dark().textTheme.apply(bodyColor: kDim),
                 ),
                 child: ColorPicker(
                   pickerColor: color,
@@ -644,8 +698,10 @@ class _ColorSection extends StatelessWidget {
                 decoration: InputDecoration(
                   counterText: '',
                   isDense: true,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                   filled: true,
                   fillColor: kBorder.withValues(alpha: 0.25),
                   hintText: 'RRGGBB',
@@ -707,8 +763,10 @@ class _BtnState extends State<_Btn> {
                 ? widget.color.withValues(alpha: 0.1)
                 : Colors.transparent,
           ),
-          child:
-              Text(widget.label, style: mono(color: widget.color, fontSize: 12)),
+          child: Text(
+            widget.label,
+            style: mono(color: widget.color, fontSize: 12),
+          ),
         ),
       ),
     );

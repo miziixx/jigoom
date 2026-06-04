@@ -19,6 +19,8 @@ class BottomTabBar extends StatelessWidget {
   final VoidCallback onCalendarTap;
   final bool statsSelected;
   final VoidCallback onStatsTap;
+  final bool todaySelected;
+  final VoidCallback onTodayTap;
 
   const BottomTabBar({
     super.key,
@@ -30,9 +32,11 @@ class BottomTabBar extends StatelessWidget {
     required this.onLongPress,
     required this.onCalendarTap,
     required this.onStatsTap,
+    required this.onTodayTap,
     this.locked = false,
     this.calendarSelected = false,
     this.statsSelected = false,
+    this.todaySelected = false,
   });
 
   @override
@@ -74,7 +78,9 @@ class BottomTabBar extends StatelessWidget {
                         .toList(),
                   ),
           ),
-          // Right fixed area: CAL, STATS, [+]
+          // Right fixed area: TODAY, CAL, STATS
+          Container(width: 0.5, color: kBorder),
+          _TodayBtn(isSelected: todaySelected, onTap: onTodayTap),
           Container(width: 0.5, color: kBorder),
           _CalBtn(isSelected: calendarSelected, onTap: onCalendarTap),
           Container(width: 0.5, color: kBorder),
@@ -227,6 +233,42 @@ class _AddBtnState extends State<_AddBtn> {
             '[+]',
             style: mono(color: _hovered ? kMint : kDim, fontSize: 10),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// [TODAY] today button
+// ──────────────────────────────────────────────────────────────
+
+class _TodayBtn extends StatefulWidget {
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _TodayBtn({required this.isSelected, required this.onTap});
+
+  @override
+  State<_TodayBtn> createState() => _TodayBtnState();
+}
+
+class _TodayBtnState extends State<_TodayBtn> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = widget.isSelected ? kMint : (_hovered ? kText : kDim);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+          alignment: Alignment.center,
+          child: Text('[TODAY]', style: mono(color: fg, fontSize: 10)),
         ),
       ),
     );
