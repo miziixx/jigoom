@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_theme.dart';
+import '../flavor.dart';
 import '../models/folder.dart';
-
-const _kDiv = '──────────────';
-
-List<Folder> _sortedTopFolders(List<Folder> folders) {
-  final top = folders.where((f) => f.parentId == null).toList();
-  top.sort((a, b) =>
-      a.order != b.order ? a.order.compareTo(b.order) : a.name.compareTo(b.name));
-  return top;
-}
 
 class Sidebar extends StatefulWidget {
   final VoidCallback onSelectMemo;
@@ -37,6 +29,12 @@ class Sidebar extends StatefulWidget {
   final int taskCount;
   final int habitCount;
 
+  // nemo (non-nemo2) tag navigation
+  final List<String> allTags;
+  final Map<String, int> tagCounts;
+  final String? selectedTag;
+  final void Function(String tag)? onSelectTag;
+
   const Sidebar({
     super.key,
     required this.onSelectMemo,
@@ -62,6 +60,10 @@ class Sidebar extends StatefulWidget {
     required this.noteCount,
     required this.taskCount,
     required this.habitCount,
+    this.allTags = const [],
+    this.tagCounts = const {},
+    this.selectedTag,
+    this.onSelectTag,
   });
 
   @override
@@ -211,8 +213,6 @@ class _SidebarState extends State<Sidebar> {
                   letterSpacing: 1.5),
             ),
           ),
-          Container(height: 1, color: kBorder),
-
           // ── Scrollable content ───────────────────────
           Expanded(
             child: ListView(
@@ -233,68 +233,107 @@ class _SidebarState extends State<Sidebar> {
                     onTap: () => widget.onSelectFolder(null),
                   ),
                   ..._sortedTopFolders(widget.folders).map((f) => _SubFolderRow(
-                        label: f.name,
-                        isActive: widget.activeSection == 'memo' &&
-                            widget.selectedFolderId == f.id,
-                        onTap: () => widget.onSelectFolder(f.id),
-                      )),
+                    label: f.name,
+                    isActive: widget.activeSection == 'memo' &&
+                        widget.selectedFolderId == f.id,
+                    onTap: () => widget.onSelectFolder(f.id),
+                  )),
                 ],
                 _MenuRow(
                   label: 'calendar',
                   isActive: widget.activeSection == 'calendar',
                   onTap: widget.onSelectCalendar,
                 ),
-                _MenuRow(
-                  label: 'tasks',
-                  isActive: widget.activeSection == 'tasks',
-                  onTap: widget.onSelectTasks,
-                ),
-                _HabitMenuRow(
-                  dayCount: widget.dayCount,
-                  habitActivated: widget.habitActivated,
-                  streak: widget.streak,
-                  isActive: widget.activeSection == 'habits',
-                  onTap: () {
-                    if (widget.habitActivated) {
-                      widget.onSelectHabit?.call();
-                    } else {
-                      _showHabitSheet(context);
-                    }
-                  },
-                ),
-                _GoalMenuRow(
-                  dayCount: widget.dayCount,
-                  goalActivated: widget.goalActivated,
-                  isActive: widget.activeSection == 'goals',
-                  onTap: () {
-                    if (widget.goalActivated) {
-                      widget.onSelectGoal?.call();
-                    } else {
-                      _showGoalSheet(context);
-                    }
-                  },
-                ),
-                _MenuRow(
-                  label: 'tags',
-                  isActive: widget.activeSection == 'tags',
-                  onTap: widget.onSelectTags,
-                ),
-                _MenuRow(
-                  label: 'stats',
-                  isActive: widget.activeSection == 'stats',
-                  onTap: widget.onSelectStats,
-                ),
-                _MenuRow(
-                  label: 'schedule',
-                  isActive: widget.activeSection == 'schedule',
-                  onTap: widget.onSelectSchedule,
-                ),
-                _DivRow(),
-                _MenuRow(
-                  label: 'settings',
-                  isActive: false,
-                  onTap: widget.onSettingsTap,
-                ),
+                if (isNemo2) ...[
+                  _MenuRow(
+                    label: 'tags',
+                    isActive: widget.activeSection == 'tags',
+                    onTap: widget.onSelectTags,
+                  ),
+                  _MenuRow(
+                    label: 'tasks',
+                    isActive: widget.activeSection == 'tasks',
+                    onTap: widget.onSelectTasks,
+                  ),
+                  _HabitMenuRow(
+                    dayCount: widget.dayCount,
+                    habitActivated: widget.habitActivated,
+                    streak: widget.streak,
+                    isActive: widget.activeSection == 'habits',
+                    onTap: () {
+                      if (widget.habitActivated) {
+                        widget.onSelectHabit?.call();
+                      } else {
+                        _showHabitSheet(context);
+                      }
+                    },
+                  ),
+                  _GoalMenuRow(
+                    dayCount: widget.dayCount,
+                    goalActivated: widget.goalActivated,
+                    isActive: widget.activeSection == 'goals',
+                    onTap: () {
+                      if (widget.goalActivated) {
+                        widget.onSelectGoal?.call();
+                      } else {
+                        _showGoalSheet(context);
+                      }
+                    },
+                  ),
+                  _MenuRow(
+                    label: 'event',
+                    isActive: widget.activeSection == 'event',
+                    onTap: widget.onSelectSchedule,
+                  ),
+                  _MenuRow(
+                    label: 'stats',
+                    isActive: widget.activeSection == 'stats',
+                    onTap: widget.onSelectStats,
+                  ),
+                  _DivRow(),
+                  _MenuRow(
+                    label: 'settings',
+                    isActive: false,
+                    onTap: widget.onSettingsTap,
+                  ),
+                ] else ...[
+                  // nemo: tag navigation
+                  if (widget.allTags.isNotEmpty) ...[
+                    _DivRow(),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 2),
+                      child: Text(
+                        '/TAGS',
+                        style: mono(
+                            color: kMint.withValues(alpha: 0.65),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2),
+                      ),
+                    ),
+                    ...widget.allTags.map((tag) {
+                      final count = widget.tagCounts[tag] ?? 0;
+                      final isActive = widget.selectedTag == tag;
+                      return _TagRow(
+                        tag: tag,
+                        count: count,
+                        isActive: isActive,
+                        onTap: () => widget.onSelectTag?.call(tag),
+                      );
+                    }),
+                  ],
+                  _DivRow(),
+                  _MenuRow(
+                    label: 'stats',
+                    isActive: widget.activeSection == 'stats',
+                    onTap: widget.onSelectStats,
+                  ),
+                  _MenuRow(
+                    label: 'settings',
+                    isActive: false,
+                    onTap: widget.onSettingsTap,
+                  ),
+                ],
                 _DivRow(),
 
                 // ── /SYSTEM header ──────────────────────
@@ -347,6 +386,8 @@ class _SidebarState extends State<Sidebar> {
 // Divider row
 // ──────────────────────────────────────────────────────────────
 
+const _kDiv = '──────────────';
+
 class _DivRow extends StatelessWidget {
   const _DivRow();
 
@@ -354,13 +395,7 @@ class _DivRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 3, 14, 3),
-      child: Text(
-        _kDiv,
-        style: mono(color: kBorder, fontSize: 11),
-        overflow: TextOverflow.clip,
-        maxLines: 1,
-        softWrap: false,
-      ),
+      child: Text(_kDiv, style: mono(color: kBorder, fontSize: 11)),
     );
   }
 }
@@ -498,8 +533,79 @@ class _MemoExpandRowState extends State<_MemoExpandRow> {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Sub-folder row  (└ inbox / └ 폴더명)
+// Tag row (nemo only)
 // ──────────────────────────────────────────────────────────────
+
+class _TagRow extends StatefulWidget {
+  final String tag;
+  final int count;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _TagRow({
+    required this.tag,
+    required this.count,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  State<_TagRow> createState() => _TagRowState();
+}
+
+class _TagRowState extends State<_TagRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fg = widget.isActive ? kMint : (_hovered ? kText : kDim);
+    final Color bg = widget.isActive
+        ? kMint.withValues(alpha: 0.08)
+        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          color: bg,
+          padding: const EdgeInsets.fromLTRB(26, 4, 10, 4),
+          child: Row(
+            children: [
+              Text('#', style: mono(color: fg.withValues(alpha: 0.6), fontSize: 11)),
+              const SizedBox(width: 2),
+              Expanded(
+                child: Text(
+                  widget.tag,
+                  style: mono(color: fg, fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '${widget.count}',
+                style: mono(color: fg.withValues(alpha: 0.45), fontSize: 10),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Sub-folder row (└ folderName)
+// ──────────────────────────────────────────────────────────────
+
+List<Folder> _sortedTopFolders(List<Folder> folders) {
+  return folders.where((f) => f.parentId == null).toList()
+    ..sort((a, b) => a.order != b.order
+        ? a.order.compareTo(b.order)
+        : a.name.compareTo(b.name));
+}
 
 class _SubFolderRow extends StatefulWidget {
   final String label;
@@ -521,9 +627,7 @@ class _SubFolderRowState extends State<_SubFolderRow> {
 
   @override
   Widget build(BuildContext context) {
-    final Color fg = widget.isActive
-        ? kMint
-        : (_hovered ? kText : kDim);
+    final Color fg = widget.isActive ? kMint : (_hovered ? kText : kDim);
     final Color bg = widget.isActive
         ? kMint.withValues(alpha: 0.08)
         : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
@@ -1059,7 +1163,7 @@ class _GoalSheetContent extends StatelessWidget {
           const SizedBox(height: 8),
           Container(height: 1, color: kBorder.withValues(alpha: 0.5)),
           const SizedBox(height: 12),
-          Text('// 아직 열리지 않았어요.',
+          Text('아직 열리지 않았어요.',
               style: mono(color: kDim, fontSize: 12)),
           const SizedBox(height: 6),
           Text('  Day $dayCount  —  ${14 - dayCount}일 후에 만나요.',

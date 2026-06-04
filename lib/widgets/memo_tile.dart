@@ -650,7 +650,7 @@ class _MemoTileState extends State<MemoTile> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: kSurface,
         duration: const Duration(seconds: 2),
-        content: Text('// 이미지 용량이 5MB를 초과합니다',
+        content: Text('이미지 용량이 5MB를 초과합니다',
             style: mono(color: Colors.red.shade400, fontSize: 12)),
       ));
       return;
@@ -704,6 +704,15 @@ class _MemoTileState extends State<MemoTile> {
       current: widget.memo.reminderAt,
       currentRepeat: widget.memo.reminderRepeat,
       onResult: (dt, repeat) => _a.onSetReminder(widget.memo, dt, repeat),
+    );
+  }
+
+  void _showScheduleDialog() {
+    showScheduleSheet(
+      context,
+      current: widget.memo.scheduledAt,
+      currentRepeat: 'none',
+      onResult: (dt, _) => _a.onSetSchedule(widget.memo, dt),
     );
   }
 
@@ -1029,42 +1038,51 @@ class _MemoTileState extends State<MemoTile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header row: timestamp (+ inline reminder) + controls
+                  // Header row: timestamp + event/task labels + controls
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Flexible(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      Expanded(
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 2,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text('[${widget.memo.timeStr}]',
                                 style: mono(color: kDim, fontSize: 11)),
-                            if (tags.isNotEmpty) ...[
-                              const SizedBox(width: 6),
-                              ...tags.map((t) => GestureDetector(
-                                onTap: () => _a.onTagTap?.call(t),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 4),
-                                  child: Text('#$t',
-                                      style: mono(color: kTeal, fontSize: 11),
-                                      overflow: TextOverflow.ellipsis),
-                                ),
-                              )),
-                            ],
-                            if (widget.memo.reminderAt != null) ...[
-                              const SizedBox(width: 6),
+                            ...tags.map((t) => GestureDetector(
+                              onTap: () => _a.onTagTap?.call(t),
+                              child: Text('#$t',
+                                  style: mono(color: kTeal, fontSize: 11)),
+                            )),
+                            if (widget.memo.scheduledAt != null)
                               GestureDetector(
-                                onTap: _showReminderDialog,
-                                child: MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: Text(
-                                    '🔔 ${_fmtReminder(widget.memo.reminderAt!)}${repeatLabel(widget.memo.reminderRepeat)}',
-                                    style: mono(color: kMint, fontSize: 10),
-                                    overflow: TextOverflow.ellipsis,
+                                behavior: HitTestBehavior.opaque,
+                                onDoubleTap: _showScheduleDialog,
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: mono(fontSize: 10),
+                                    children: [
+                                      TextSpan(text: 'event ', style: mono(color: kTeal, fontSize: 10)),
+                                      TextSpan(text: _fmtReminder(widget.memo.scheduledAt!), style: mono(color: kDim, fontSize: 10)),
+                                    ],
                                   ),
                                 ),
                               ),
-                            ],
+                            if (widget.memo.reminderAt != null)
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onDoubleTap: _showReminderDialog,
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: mono(fontSize: 10),
+                                    children: [
+                                      TextSpan(text: 'task ', style: mono(color: kMint, fontSize: 10)),
+                                      TextSpan(text: '${_fmtReminder(widget.memo.reminderAt!)}${repeatLabel(widget.memo.reminderRepeat)}', style: mono(color: kDim, fontSize: 10)),
+                                    ],
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -1072,32 +1090,37 @@ class _MemoTileState extends State<MemoTile> {
                       MediaQuery(
                         data: MediaQuery.of(context).copyWith(
                             textScaler: TextScaler.noScaling),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: _startEditing,
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: Text(
-                                  '[수정]',
-                                  style: mono(
-                                    color: _hovered
-                                        ? kDim
-                                        : kDim.withValues(alpha: 0.45),
-                                    fontSize: 11,
-                                  ),
-                                ),
+                        child: GestureDetector(
+                          onTap: _startEditing,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Text(
+                              '[수정]',
+                              style: mono(
+                                color: _hovered ? kDim : kDim.withValues(alpha: 0.45),
+                                fontSize: 11,
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  // Content area
-                  if (_hasChecklistLines)
+                  // Content area — event items get a left ┃ border
+                  if (widget.memo.scheduledAt != null)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('┃ ', style: mono(color: kTeal.withValues(alpha: 0.6), fontSize: 13)),
+                        Expanded(
+                          child: _hasChecklistLines
+                              ? _buildChecklistContent()
+                              : _buildRichContent(widget.memo.content),
+                        ),
+                      ],
+                    )
+                  else if (_hasChecklistLines)
                     _buildChecklistContent()
                   else
                     _buildRichContent(widget.memo.content),

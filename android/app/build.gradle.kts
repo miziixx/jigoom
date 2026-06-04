@@ -35,6 +35,14 @@ android {
         create("store") {
             dimension = "version"
         }
+        create("nemo2") {
+            dimension = "version"
+            applicationId = "com.example.memo_app_v2"
+        }
+        create("nemo2store") {
+            dimension = "version"
+            applicationId = "com.example.memo_app_v2"
+        }
     }
 
     buildTypes {

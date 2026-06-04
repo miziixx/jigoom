@@ -109,7 +109,14 @@ class _InputBarState extends State<InputBar> {
     } else {
       _prevText = newText;
     }
+    final hadFocus = _focusNode.hasFocus;
     setState(() {});
+    // 태그 배지가 나타나면서 레이아웃이 변해 키보드가 내려가는 경우 방지
+    if (hadFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_focusNode.hasFocus) _focusNode.requestFocus();
+      });
+    }
   }
 
   void _showSchedulePicker() {
@@ -281,7 +288,7 @@ class _InputBarState extends State<InputBar> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: kSurface,
         duration: const Duration(seconds: 2),
-        content: Text('// 이미지 용량이 5MB를 초과합니다',
+        content: Text('이미지 용량이 5MB를 초과합니다',
             style: mono(color: Colors.red.shade400, fontSize: 12)),
       ));
       return;
@@ -425,7 +432,13 @@ class _InputBarState extends State<InputBar> {
                   ),
                   _ToolBtn(
                     icon: Icons.calendar_today,
-                    tooltip: '알림',
+                    tooltip: 'event',
+                    active: _scheduledAt != null,
+                    onTap: _showSchedulePicker,
+                  ),
+                  _ToolBtn(
+                    icon: Icons.alarm_outlined,
+                    tooltip: 'task 알림',
                     active: _reminderAt != null,
                     onTap: _showReminderPicker,
                   ),
@@ -557,7 +570,7 @@ class _InputBarState extends State<InputBar> {
               cursorColor: kMint,
               cursorWidth: 2,
               decoration: InputDecoration(
-                hintText: widget.scheduleMode ? '! new schedule' : 'new memo',
+                hintText: widget.scheduleMode ? '! new event' : 'new memo',
                 filled: false,
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -580,17 +593,19 @@ class _InputBarState extends State<InputBar> {
 // ─────────────────────────────────────────────────────────────────
 
 class _ToolBtn extends StatefulWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? iconText; // text-based icon (e.g. '◷')
   final VoidCallback onTap;
   final bool active;
   final String? tooltip;
 
   const _ToolBtn({
-    required this.icon,
+    this.icon,
+    this.iconText,
     required this.onTap,
     this.active = false,
     this.tooltip,
-  });
+  }) : assert(icon != null || iconText != null);
 
   @override
   State<_ToolBtn> createState() => _ToolBtnState();
@@ -619,7 +634,9 @@ class _ToolBtnState extends State<_ToolBtn> {
                 ? kMint.withValues(alpha: 0.1)
                 : (_hovered ? kSurface : Colors.transparent),
           ),
-          child: Icon(widget.icon, size: 15, color: color),
+          child: widget.iconText != null
+              ? Text(widget.iconText!, style: mono(color: color, fontSize: 17))
+              : Icon(widget.icon!, size: 15, color: color),
         ),
       ),
     );

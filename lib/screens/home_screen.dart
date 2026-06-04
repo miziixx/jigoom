@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../app_theme.dart';
+import '../flavor.dart';
 import '../models/memo.dart';
 import '../models/memo_actions.dart';
 import '../models/folder.dart';
@@ -800,6 +801,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // ── Reminders ──────────────────────────────────────
 
+  void _setSchedule(Memo memo, DateTime? newTime) {
+    final updated = memo.copyWith(
+      scheduledAt: newTime,
+      clearSchedule: newTime == null,
+    );
+    setState(() {
+      final i = _memos.indexWhere((m) => m.id == memo.id);
+      if (i != -1) _memos[i] = updated;
+    });
+    StorageService.saveMemos(_memos);
+  }
+
   void _setReminder(Memo memo, DateTime? newTime, [String repeat = 'none']) {
     // Update UI and storage immediately — don't await OS notification calls.
     final updated = memo.copyWith(
@@ -1026,6 +1039,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         onUpdate: (m, c) => _updateMemo(m.id, c),
         onMove: _moveMemoToFolder,
         onSetReminder: _setReminder,
+        onSetSchedule: _setSchedule,
         onAddNote: _addNote,
         onUpdateNote: _updateNote,
         onDeleteNote: _deleteNote,
@@ -1037,7 +1051,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String get _activeSidebarSection {
     if (_calendarOpen) return 'calendar';
     if (_statsOpen) return 'stats';
-    if (_scheduleOpen) return 'schedule';
+    if (_scheduleOpen) return 'event';
     if (_tasksOnly) return 'tasks';
     if (_tagsOpen) return 'tags';
     if (_selectedTag == 'habit') return 'habits';
@@ -1267,7 +1281,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         : (_statsOpen
             ? 'stats'
             : (_scheduleOpen
-                ? 'schedule'
+                ? 'event'
                 : (_tagsOpen
                     ? 'tags'
                     : (_tasksOnly
@@ -1400,6 +1414,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               noteCount: _memos.length,
               taskCount: _taskCount,
               habitCount: _habitCount,
+              allTags: allTags,
+              tagCounts: tagCounts,
+              selectedTag: _selectedTag,
+              onSelectTag: (tag) => setState(() {
+                _selectedTag = tag;
+                _selectedFolderId = null;
+                _selectedTabId = null;
+                _calendarOpen = false;
+                _statsOpen = false;
+                _scheduleOpen = false;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                if (isNarrow) _sidebarOpen = false;
+              }),
             );
 
             final mainContent = Column(
@@ -1411,7 +1439,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   selectedPath:     selectedPath,
                   calendarOpen:     _calendarOpen,
                   statsOpen:        _statsOpen,
-                  onShowList:       () => setState(() { _calendarOpen = false; _statsOpen = false; }),
+                  scheduleOpen:     _scheduleOpen,
+                  tagsOpen:         _tagsOpen,
+                  tasksOnly:        _tasksOnly,
+                  onShowList:       () => setState(() { _calendarOpen = false; _statsOpen = false; _scheduleOpen = false; _tagsOpen = false; _tasksOnly = false; }),
                   onShowCal:        () => setState(() {
                     _calendarOpen = true;
                     _selectedTabId = null;
@@ -1446,6 +1477,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _statsOpen = false;
                     _scheduleOpen = false;
                     _tagsOpen = false;
+                    _selectedTag = null;
+                    _selectedFolderId = null;
+                    _selectedTabId = null;
+                    if (isNarrow) _sidebarOpen = false;
+                  }),
+                  onSelectTags:     () => setState(() {
+                    _tagsOpen = true;
+                    _tasksOnly = false;
+                    _calendarOpen = false;
+                    _statsOpen = false;
+                    _scheduleOpen = false;
                     _selectedTag = null;
                     _selectedFolderId = null;
                     _selectedTabId = null;
@@ -1591,12 +1633,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ] else ...[
                   Expanded(
-                    child: NotificationListener<ScrollStartNotification>(
-                      onNotification: (_) {
-                        FocusScope.of(context).unfocus();
-                        return false;
-                      },
-                      child: items.isEmpty
+                    child: items.isEmpty
                         ? const _EmptyState()
                         : ListView.builder(
                             controller: _scrollController,
@@ -1636,7 +1673,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               return const SizedBox.shrink();
                             },
                           ),
-                    ),
                   ),
                   Container(height: 1, color: kBorder),
                   Flexible(
@@ -2006,6 +2042,9 @@ class _AppHeader extends StatelessWidget {
   final bool isNarrow;
   final bool calendarOpen;
   final bool statsOpen;
+  final bool scheduleOpen;
+  final bool tagsOpen;
+  final bool tasksOnly;
   final VoidCallback onShowList;
   final VoidCallback onShowCal;
   final bool searchOpen;
@@ -2015,6 +2054,7 @@ class _AppHeader extends StatelessWidget {
   final void Function(String? id) onSelectFolder;
   final VoidCallback onSelectSchedule;
   final VoidCallback onSelectTasks;
+  final VoidCallback onSelectTags;
   final VoidCallback onSelectHabit;
   final VoidCallback onSelectGoal;
   final VoidCallback onSettings;
@@ -2028,6 +2068,9 @@ class _AppHeader extends StatelessWidget {
     required this.isNarrow,
     required this.calendarOpen,
     required this.statsOpen,
+    required this.scheduleOpen,
+    required this.tagsOpen,
+    required this.tasksOnly,
     required this.onShowList,
     required this.onShowCal,
     required this.searchOpen,
@@ -2037,6 +2080,7 @@ class _AppHeader extends StatelessWidget {
     required this.onSelectFolder,
     required this.onSelectSchedule,
     required this.onSelectTasks,
+    required this.onSelectTags,
     required this.onSelectHabit,
     required this.onSelectGoal,
     required this.onSettings,
@@ -2073,6 +2117,12 @@ class _AppHeader extends StatelessWidget {
             painter: _DashedLinePainter(color: kText.withValues(alpha: 0.25)),
           ),
         ),
+      ),
+      PopupMenuItem<String>(
+        value: '__tags__',
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Text('> tags', style: mono(color: tagsOpen ? kMint : kDim, fontSize: 12)),
       ),
       PopupMenuItem<String>(
         value: '__schedule__',
@@ -2137,6 +2187,8 @@ class _AppHeader extends StatelessWidget {
       onSelectFolder(null);
     } else if (result.startsWith('folder:')) {
       onSelectFolder(result.substring(7));
+    } else if (result == '__tags__') {
+      onSelectTags();
     } else if (result == '__schedule__') {
       onSelectSchedule();
     } else if (result == '__tasks__') {
@@ -2213,8 +2265,8 @@ class _AppHeader extends StatelessWidget {
               children: [
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: (calendarOpen || statsOpen) ? onShowList : null,
-                  child: _ViewBtn(label: 'LIST', active: !calendarOpen && !statsOpen),
+                  onTap: (calendarOpen || statsOpen || scheduleOpen || tagsOpen || tasksOnly) ? onShowList : null,
+                  child: _ViewBtn(label: 'LIST', active: !calendarOpen && !statsOpen && !scheduleOpen && !tagsOpen && !tasksOnly),
                 ),
                 const SizedBox(width: 2),
                 _SearchToggleBtn(active: searchOpen, onTap: onSearchTap),
@@ -2236,12 +2288,14 @@ class _AppHeader extends StatelessWidget {
 class _ViewToggle extends StatelessWidget {
   final bool calendarOpen;
   final bool statsOpen;
+  final bool scheduleOpen;
   final VoidCallback onShowList;
   final VoidCallback onShowCal;
 
   const _ViewToggle({
     required this.calendarOpen,
     required this.statsOpen,
+    required this.scheduleOpen,
     required this.onShowList,
     required this.onShowCal,
   });
@@ -2253,8 +2307,8 @@ class _ViewToggle extends StatelessWidget {
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: (calendarOpen || statsOpen) ? onShowList : null,
-          child: _ViewBtn(label: 'LIST', active: !calendarOpen && !statsOpen),
+          onTap: (calendarOpen || statsOpen || scheduleOpen) ? onShowList : null,
+          child: _ViewBtn(label: 'LIST', active: !calendarOpen && !statsOpen && !scheduleOpen),
         ),
         GestureDetector(
           behavior: HitTestBehavior.opaque,

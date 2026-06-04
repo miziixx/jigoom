@@ -11,4 +11,5 @@ Future<void> initFlavor() async {
   }
 }
 
-bool get isStoreFlavor => _flavorName == 'store';
+bool get isStoreFlavor => _flavorName == 'store' || _flavorName == 'nemo2store';
+bool get isNemo2 => _flavorName == 'nemo2' || _flavorName == 'nemo2store';

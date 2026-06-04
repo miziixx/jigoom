@@ -4,6 +4,7 @@ import '../models/memo.dart';
 import '../models/memo_actions.dart';
 import '../widgets/memo_tile.dart';
 import '../widgets/input_bar.dart';
+import '../widgets/schedule_sheet.dart';
 
 class ScheduleView extends StatefulWidget {
   final List<Memo> memos;
@@ -54,7 +55,7 @@ class _ScheduleViewState extends State<ScheduleView> {
           Expanded(
             child: Center(
               child: Text(
-                '// 예정된 일정이 없어요',
+                '예정된 이벤트가 없어요',
                 style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 12),
               ),
             ),
@@ -315,19 +316,6 @@ class _ScheduleTile extends StatelessWidget {
         '${r.hour.toString().padLeft(2, '0')}:${r.minute.toString().padLeft(2, '0')}';
     final color = isPast ? kDim.withValues(alpha: 0.4) : kMint;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 14, 2),
-          child: Row(
-            children: [
-              Text(timeStr, style: mono(color: color, fontSize: 10)),
-            ],
-          ),
-        ),
-        MemoTile(memo: memo, actions: actions),
-      ],
-    );
+    return MemoTile(memo: memo, actions: actions);
   }
 }

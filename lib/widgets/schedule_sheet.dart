@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_theme.dart';
@@ -16,14 +17,21 @@ Future<void> showScheduleSheet(
 }) {
   return showModalBottomSheet(
     context: context,
-    backgroundColor: kSurface,
+    backgroundColor: Colors.transparent,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-    builder: (_) => _ScheduleSheet(
-      current: current,
-      initialDate: initialDate,
-      currentRepeat: currentRepeat,
-      onResult: onResult,
+    builder: (ctx) => DraggableScrollableSheet(
+      initialChildSize: 0.88,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollCtrl) => _ScheduleSheet(
+        current: current,
+        initialDate: initialDate,
+        currentRepeat: currentRepeat,
+        onResult: onResult,
+        scrollController: scrollCtrl,
+      ),
     ),
   );
 }
@@ -37,12 +45,14 @@ class _ScheduleSheet extends StatefulWidget {
   final DateTime? initialDate;
   final String currentRepeat;
   final void Function(DateTime?, String repeat) onResult;
+  final ScrollController? scrollController;
 
   const _ScheduleSheet({
     this.current,
     this.initialDate,
     this.currentRepeat = 'none',
     required this.onResult,
+    this.scrollController,
   });
 
   @override
@@ -57,7 +67,6 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
   late int _hour, _minute;
   int _repeatCount = 0;
   int _repeatUnitIdx = 1; // default: 일
-  late final TextEditingController _repeatCtrl;
 
   @override
   void initState() {
@@ -86,14 +95,10 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
       default:
         _repeatCount = 0; _repeatUnitIdx = 1;
     }
-    _repeatCtrl = TextEditingController(
-      text: _repeatCount > 0 ? '$_repeatCount' : '',
-    );
   }
 
   @override
   void dispose() {
-    _repeatCtrl.dispose();
     super.dispose();
   }
 
@@ -153,147 +158,235 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
     if (r != null && mounted) setState(() => _calMonth = r);
   }
 
+  void _selectQuick(int daysFromNow) {
+    final d = DateTime.now().add(Duration(days: daysFromNow));
+    setState(() {
+      _calYear  = d.year;
+      _calMonth = d.month;
+      _selDay   = d.day;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final canSet = _selDay != null;
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(height: 2, color: kMint),
+    final canSet  = _selDay != null;
+    final repeatOn = _repeatCount > 0;
 
-          // ── Mini calendar ─────────────────────────
-          GestureDetector(
-            onHorizontalDragEnd: (d) {
-              final v = d.primaryVelocity ?? 0;
-              if (v < -200) _nextMonth();
-              else if (v > 200) _prevMonth();
-            },
-            child: _MiniCalendar(
-              year: _calYear,
-              month: _calMonth,
-              selectedDay: _selDay,
-              onDayTap: (d) => setState(() => _selDay = d),
-              onPrev: _prevMonth,
-              onNext: _nextMonth,
-              onYearTap: _pickYear,
-              onMonthTap: _pickMonth,
-            ),
-          ),
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: Container(
+        color: kSurface,
+        child: SafeArea(
+          child: Column(
+            children: [
+              Container(height: 2, color: kMint),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: widget.scrollController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
 
-          Container(height: 1, color: kBorder.withValues(alpha: 0.4)),
-
-          // ── Time + Repeat ──────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Time row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 36,
-                      child: Text('time',
-                          style: mono(color: kDim.withValues(alpha: 0.55), fontSize: 11)),
-                    ),
-                    _SmallTimeField(
-                      value: _hour, min: 0, max: 23,
-                      onChanged: (v) => setState(() => _hour = v),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      child: Text(':',
-                          style: mono(color: kDim.withValues(alpha: 0.55), fontSize: 12)),
-                    ),
-                    _SmallTimeField(
-                      value: _minute, min: 0, max: 59,
-                      onChanged: (v) => setState(() => _minute = v),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                // Repeat row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 36,
-                      child: Text('반복',
-                          style: mono(color: kDim.withValues(alpha: 0.55), fontSize: 11)),
-                    ),
-                    _RepeatCountField(
-                      controller: _repeatCtrl,
-                      onChanged: (v) {
-                        final n = int.tryParse(v) ?? 0;
-                        setState(() => _repeatCount = n < 0 ? 0 : n);
-                      },
-                    ),
-                    const SizedBox(width: 4),
-                    ...List.generate(_kUnits.length, (i) => GestureDetector(
-                      onTap: () => setState(() => _repeatUnitIdx = i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 80),
-                        width: 34,
-                        margin: const EdgeInsets.only(left: 2),
-                        padding: const EdgeInsets.symmetric(vertical: 7),
-                        decoration: BoxDecoration(
-                          color: _repeatUnitIdx == i
-                              ? kMint.withValues(alpha: 0.10)
-                              : kBg,
-                          border: Border.all(
-                            color: _repeatUnitIdx == i
-                                ? kMint
-                                : kBorder,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _kUnits[i],
-                          style: mono(
-                            color: _repeatUnitIdx == i ? kMint : kDim,
-                            fontSize: 12,
-                          ),
+                      // ── DATE ─────────────────────────────
+                      _SectionHeader(title: 'DATE'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                        child: Row(
+                          children: [
+                            _PillBtn(label: '오늘',   onTap: () => _selectQuick(0)),
+                            const SizedBox(width: 8),
+                            _PillBtn(label: '내일',   onTap: () => _selectQuick(1)),
+                            const SizedBox(width: 8),
+                            _PillBtn(label: '다음주', onTap: () => _selectQuick(7)),
+                            if (widget.current != null) ...[
+                              const Spacer(),
+                              _PillBtn(label: '일정취소', danger: true, onTap: _clear),
+                            ],
+                          ],
                         ),
                       ),
-                    )),
-                  ],
-                ),
-              ],
-            ),
-          ),
+                      GestureDetector(
+                        onHorizontalDragEnd: (d) {
+                          final v = d.primaryVelocity ?? 0;
+                          if (v < -200) _nextMonth();
+                          else if (v > 200) _prevMonth();
+                        },
+                        child: _MiniCalendar(
+                          year: _calYear, month: _calMonth,
+                          selectedDay: _selDay,
+                          onDayTap: (d) => setState(() => _selDay = d),
+                          onPrev: _prevMonth, onNext: _nextMonth,
+                          onYearTap: _pickYear, onMonthTap: _pickMonth,
+                        ),
+                      ),
 
-          Container(height: 1, color: kBorder),
+                      // ── TIME ─────────────────────────────
+                      _SectionHeader(title: 'TIME'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+                        child: Column(
+                          children: [
+                            Text(
+                              'time_input  ·  키보드 없이 조작',
+                              style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 11),
+                            ),
+                            const SizedBox(height: 12),
+                            // + 버튼 행
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _TimeBtn(
+                                  label: '+',
+                                  tapStep: 1, holdStep: 1,
+                                  onStep: (s) => setState(() => _hour = (_hour + s + 24) % 24),
+                                ),
+                                const SizedBox(width: 60),
+                                _TimeBtn(
+                                  label: '+',
+                                  tapStep: 5, holdStep: 1,
+                                  onStep: (s) => setState(() => _minute = (_minute + s + 60) % 60),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            // 시간 표시
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _hour.toString().padLeft(2, '0'),
+                                  style: mono(color: kMint, fontSize: 42, fontWeight: FontWeight.bold),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  child: Text(':', style: mono(color: kDim, fontSize: 36)),
+                                ),
+                                Text(
+                                  _minute.toString().padLeft(2, '0'),
+                                  style: mono(color: kMint, fontSize: 42, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            // - 버튼 행
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _TimeBtn(
+                                  label: '−',
+                                  tapStep: -1, holdStep: -1,
+                                  onStep: (s) => setState(() => _hour = (_hour + s + 24) % 24),
+                                ),
+                                const SizedBox(width: 60),
+                                _TimeBtn(
+                                  label: '−',
+                                  tapStep: -5, holdStep: -1,
+                                  onStep: (s) => setState(() => _minute = (_minute + s + 60) % 60),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '분 단위 : 5분씩  ·  길게 누르면 1분씩',
+                              style: mono(color: kDim.withValues(alpha: 0.35), fontSize: 10),
+                            ),
+                          ],
+                        ),
+                      ),
 
-          // ── Actions ────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Row(
-              children: [
-                if (widget.current != null)
-                  _ActionBtn(
-                    label: '[ 알림 취소 ]',
-                    color: Colors.red.shade400,
-                    onTap: _clear,
+                      // ── REPEAT ───────────────────────────
+                      _SectionHeader(title: 'REPEAT'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text('반복', style: mono(color: kDim, fontSize: 12)),
+                                const Spacer(),
+                                _SegBtn(label: 'OFF', selected: !repeatOn,
+                                    onTap: () => setState(() => _repeatCount = 0)),
+                                const SizedBox(width: 8),
+                                _SegBtn(label: 'ON', selected: repeatOn,
+                                    onTap: () => setState(() { if (!repeatOn) _repeatCount = 1; })),
+                              ],
+                            ),
+                            if (repeatOn) ...[
+                              const SizedBox(height: 12),
+                              // 반복 횟수
+                              Row(
+                                children: [
+                                  _TimeBtn(
+                                    label: '−', tapStep: -1, holdStep: -1,
+                                    onStep: (s) => setState(() {
+                                      _repeatCount = (_repeatCount + s).clamp(1, 99);
+                                    }),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    child: Text('$_repeatCount',
+                                        style: mono(color: kMint, fontSize: 18, fontWeight: FontWeight.bold)),
+                                  ),
+                                  _TimeBtn(
+                                    label: '+', tapStep: 1, holdStep: 1,
+                                    onStep: (s) => setState(() {
+                                      _repeatCount = (_repeatCount + s).clamp(1, 99);
+                                    }),
+                                  ),
+                                  const SizedBox(width: 20),
+                                  ...List.generate(_kUnits.length, (i) => GestureDetector(
+                                    onTap: () => setState(() => _repeatUnitIdx = i),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 80),
+                                      width: 40,
+                                      margin: const EdgeInsets.only(right: 6),
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: _repeatUnitIdx == i
+                                            ? kMint.withValues(alpha: 0.1) : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: _repeatUnitIdx == i ? kMint : kBorder,
+                                        ),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(_kUnits[i], style: mono(
+                                        color: _repeatUnitIdx == i ? kMint : kDim.withValues(alpha: 0.5),
+                                        fontSize: 12,
+                                      )),
+                                    ),
+                                  )),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      // ── 액션 ─────────────────────────────
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            _PillBtn(label: '[취소]', onTap: () => Navigator.pop(context)),
+                            const SizedBox(width: 8),
+                            _PillBtn(
+                              label: '[확인]',
+                              active: canSet,
+                              onTap: canSet ? _confirm : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                const Spacer(),
-                _ActionBtn(
-                  label: '[ CANCEL ]',
-                  color: kDim,
-                  onTap: () => Navigator.pop(context),
                 ),
-                const SizedBox(width: 10),
-                _ActionBtn(
-                  label: '[ SET ]',
-                  color: canSet ? kMint : kDim.withValues(alpha: 0.35),
-                  onTap: canSet ? _confirm : null,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -309,6 +402,7 @@ class _MiniCalendar extends StatelessWidget {
   final void Function(int) onDayTap;
   final VoidCallback onPrev, onNext;
   final VoidCallback? onYearTap, onMonthTap;
+  final double fontSize;
 
   const _MiniCalendar({
     required this.year,
@@ -319,6 +413,7 @@ class _MiniCalendar extends StatelessWidget {
     required this.onNext,
     this.onYearTap,
     this.onMonthTap,
+    this.fontSize = 12,
   });
 
   static const _wd = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -344,16 +439,16 @@ class _MiniCalendar extends StatelessWidget {
                 onTap: onYearTap,
                 child: Text(
                   '$year',
-                  style: mono(color: kMint, fontSize: 12, letterSpacing: 0.5),
+                  style: mono(color: kMint, fontSize: fontSize, letterSpacing: 0.5),
                 ),
               ),
               Text(' . ',
-                  style: mono(color: kBorder, fontSize: 12)),
+                  style: mono(color: kBorder, fontSize: fontSize)),
               GestureDetector(
                 onTap: onMonthTap,
                 child: Text(
                   month.toString().padLeft(2, '0'),
-                  style: mono(color: kMint, fontSize: 12, letterSpacing: 0.5),
+                  style: mono(color: kMint, fontSize: fontSize, letterSpacing: 0.5),
                 ),
               ),
               const Spacer(),
@@ -370,7 +465,7 @@ class _MiniCalendar extends StatelessWidget {
                       ? kTeal.withValues(alpha: 0.7)
                       : kDim.withValues(alpha: 0.4);
               return Expanded(
-                child: Center(child: Text(_wd[i], style: mono(color: c, fontSize: 9))),
+                child: Center(child: Text(_wd[i], style: mono(color: c, fontSize: fontSize - 3))),
               );
             }),
           ),
@@ -413,7 +508,7 @@ class _MiniCalendar extends StatelessWidget {
                       '$dayNum',
                       style: mono(
                         color: fg,
-                        fontSize: isSelected || isToday ? 11 : 10,
+                        fontSize: isSelected || isToday ? fontSize : fontSize - 1,
                         fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
@@ -429,149 +524,183 @@ class _MiniCalendar extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────────
-// Small time field (compact)
+// Small widgets
 // ──────────────────────────────────────────────────────────────
 
-class _SmallTimeField extends StatefulWidget {
-  final int value, min, max;
-  final ValueChanged<int> onChanged;
-  const _SmallTimeField({
-    required this.value, required this.min,
-    required this.max, required this.onChanged,
+/// 섹션 헤더 (- - - TITLE - - -)
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DashedLine(),
+          const SizedBox(height: 4),
+          Text(title, style: mono(color: kText, fontSize: 11, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          _DashedLine(),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashedLine extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (_, c) {
+      final n = (c.maxWidth / 7).floor();
+      return Text(
+        List.filled(n, '-').join(' '),
+        style: mono(color: kBorder.withValues(alpha: 0.7), fontSize: 10),
+        overflow: TextOverflow.clip,
+        maxLines: 1,
+      );
+    });
+  }
+}
+
+/// 라운드 테두리 버튼 (오늘/내일/다음주/[취소]/[확인])
+class _PillBtn extends StatefulWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final bool danger;
+  final bool active; // 확인 버튼 활성화 여부
+  const _PillBtn({required this.label, this.onTap, this.danger = false, this.active = true});
+
+  @override
+  State<_PillBtn> createState() => _PillBtnState();
+}
+
+class _PillBtnState extends State<_PillBtn> {
+  bool _pressing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.onTap != null && widget.active;
+    final color = widget.danger
+        ? Colors.red.shade400
+        : enabled ? kDim : kDim.withValues(alpha: 0.3);
+    return GestureDetector(
+      onTap: enabled ? widget.onTap : null,
+      onTapDown: (_) { if (enabled) setState(() => _pressing = true); },
+      onTapUp: (_) => setState(() => _pressing = false),
+      onTapCancel: () => setState(() => _pressing = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: _pressing ? color.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: _pressing ? color : color.withValues(alpha: 0.5)),
+        ),
+        child: Text(widget.label, style: mono(color: color, fontSize: 12)),
+      ),
+    );
+  }
+}
+
+/// +/- 버튼 (탭 = tapStep, 홀드 = holdStep 가속)
+class _TimeBtn extends StatefulWidget {
+  final String label;
+  final int tapStep;
+  final int holdStep;
+  final void Function(int step) onStep;
+  const _TimeBtn({
+    required this.label,
+    required this.tapStep,
+    required this.holdStep,
+    required this.onStep,
   });
 
   @override
-  State<_SmallTimeField> createState() => _SmallTimeFieldState();
+  State<_TimeBtn> createState() => _TimeBtnState();
 }
 
-class _SmallTimeFieldState extends State<_SmallTimeField> {
-  late TextEditingController _ctrl;
-  late FocusNode _focus;
+class _TimeBtnState extends State<_TimeBtn> {
+  Timer? _timer;
+  int _ticks = 0;
+  bool _holding = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _ctrl  = TextEditingController(text: _fmt(widget.value));
-    _focus = FocusNode();
-    _focus.addListener(() { if (!_focus.hasFocus) _commit(); });
+  void _start() {
+    widget.onStep(widget.tapStep);
+    _ticks = 0;
+    _holding = false;
+    _timer = Timer(const Duration(milliseconds: 400), _repeat);
   }
 
-  @override
-  void didUpdateWidget(_SmallTimeField old) {
-    super.didUpdateWidget(old);
-    if (old.value != widget.value && !_focus.hasFocus) {
-      _ctrl.text = _fmt(widget.value);
-    }
+  void _repeat() {
+    if (!mounted) return;
+    _holding = true;
+    widget.onStep(widget.holdStep);
+    _ticks++;
+    final ms = _ticks < 8 ? 120 : _ticks < 20 ? 70 : 35;
+    _timer = Timer(Duration(milliseconds: ms), _repeat);
   }
 
-  String _fmt(int v) => v.toString().padLeft(2, '0');
-
-  void _commit() {
-    final v = int.tryParse(_ctrl.text);
-    if (v == null) { _ctrl.text = _fmt(widget.value); return; }
-    final c = v.clamp(widget.min, widget.max);
-    _ctrl.text = _fmt(c);
-    widget.onChanged(c);
-  }
+  void _stop() { _timer?.cancel(); _timer = null; }
 
   @override
-  void dispose() { _ctrl.dispose(); _focus.dispose(); super.dispose(); }
+  void dispose() { _timer?.cancel(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _focus,
-      builder: (_, __) => Container(
-        width: 36,
+    return GestureDetector(
+      onTapDown: (_) => _start(),
+      onTapUp: (_) => _stop(),
+      onTapCancel: () => _stop(),
+      child: Container(
+        width: 56, height: 44,
         decoration: BoxDecoration(
-          color: kBg,
-          border: Border.all(
-            color: _focus.hasFocus ? kMint : kBorder,
-            width: _focus.hasFocus ? 1.5 : 1.0,
-          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: kBorder),
         ),
-        child: TextField(
-          controller: _ctrl,
-          focusNode: _focus,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          maxLength: 2,
-          textAlign: TextAlign.center,
-          style: mono(color: kDim, fontSize: 12),
-          decoration: const InputDecoration(
-            counterText: '',
-            border: InputBorder.none,
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(vertical: 7),
-          ),
-          onSubmitted: (_) => _commit(),
-          onTapOutside: (_) => _focus.unfocus(),
+        alignment: Alignment.center,
+        child: Text(
+          widget.label,
+          style: mono(color: kDim.withValues(alpha: 0.6), fontSize: 18),
         ),
       ),
     );
   }
 }
 
-// ──────────────────────────────────────────────────────────────
-// Repeat count field
-// ──────────────────────────────────────────────────────────────
-
-class _RepeatCountField extends StatefulWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  const _RepeatCountField({required this.controller, required this.onChanged});
-
-  @override
-  State<_RepeatCountField> createState() => _RepeatCountFieldState();
-}
-
-class _RepeatCountFieldState extends State<_RepeatCountField> {
-  final _focus = FocusNode();
-
-  @override
-  void dispose() { _focus.dispose(); super.dispose(); }
+/// OFF/ON 세그먼트 버튼
+class _SegBtn extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _SegBtn({required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _focus,
-      builder: (_, __) => Container(
-        width: 36,
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: kBg,
-          border: Border.all(
-            color: _focus.hasFocus ? kMint : kBorder,
-            width: _focus.hasFocus ? 1.5 : 1.0,
-          ),
+          color: selected ? kMint.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: selected ? kMint : kBorder),
         ),
-        child: TextField(
-          controller: widget.controller,
-          focusNode: _focus,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          maxLength: 3,
-          textAlign: TextAlign.center,
-          style: mono(color: kDim, fontSize: 12),
-          decoration: InputDecoration(
-            counterText: '',
-            border: InputBorder.none,
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 7),
-            hintText: '0',
-            hintStyle: mono(color: kDim.withValues(alpha: 0.35), fontSize: 12),
+        child: Text(
+          label,
+          style: mono(
+            color: selected ? kMint : kDim.withValues(alpha: 0.5),
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
           ),
-          onChanged: widget.onChanged,
-          onTapOutside: (_) => _focus.unfocus(),
         ),
       ),
     );
   }
 }
-
-
-// ──────────────────────────────────────────────────────────────
-// Small widgets
-// ──────────────────────────────────────────────────────────────
 
 class _CalNavBtn extends StatefulWidget {
   final String label;
@@ -583,59 +712,19 @@ class _CalNavBtn extends StatefulWidget {
 }
 
 class _CalNavBtnState extends State<_CalNavBtn> {
-  bool _hovered = false;
+  bool _pressing = false;
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit:  (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text(widget.label,
-              style: mono(color: _hovered ? kMint : kDim, fontSize: 11)),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionBtn extends StatefulWidget {
-  final String label;
-  final Color color;
-  final VoidCallback? onTap;
-  const _ActionBtn({required this.label, required this.color, this.onTap});
-
-  @override
-  State<_ActionBtn> createState() => _ActionBtnState();
-}
-
-class _ActionBtnState extends State<_ActionBtn> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = widget.onTap != null;
-    return MouseRegion(
-      cursor: active ? SystemMouseCursors.click : MouseCursor.defer,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit:  (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: active && _hovered
-                ? widget.color.withValues(alpha: 0.1)
-                : Colors.transparent,
-          ),
-          child: Text(widget.label,
-              style: mono(color: widget.color, fontSize: 11)),
-        ),
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressing = true),
+      onTapUp: (_) => setState(() => _pressing = false),
+      onTapCancel: () => setState(() => _pressing = false),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Text(widget.label,
+            style: mono(color: _pressing ? kMint : kDim, fontSize: 12)),
       ),
     );
   }

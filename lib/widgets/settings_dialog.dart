@@ -350,7 +350,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   ),
                   const SizedBox(width: 10),
                   _Btn(
-                    label: _restoring ? '// ...' : '[ RESTORE ]',
+                    label: _restoring ? '...' : '[ RESTORE ]',
                     color: _restoring
                         ? kDim.withValues(alpha: 0.4)
                         : kDim,

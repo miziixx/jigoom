@@ -46,12 +46,17 @@ class BottomTabBar extends StatelessWidget {
           // Left fluid area: tabs flex-fill equally
           Expanded(
             child: tabs.isEmpty
-                ? Center(
-                    child: Text(
-                      locked ? '// no tabs' : '// press [+] to add a tab',
-                      style: mono(
-                          color: kDim.withValues(alpha: 0.35), fontSize: 10),
-                    ),
+                ? Row(
+                    children: List.generate(3, (i) => Expanded(
+                      child: locked
+                          ? Center(
+                              child: Text(
+                                '탭추가',
+                                style: mono(color: kDim.withValues(alpha: 0.25), fontSize: 10),
+                              ),
+                            )
+                          : _AddPlaceholder(onTap: onAddTap),
+                    )),
                   )
                 : Row(
                     children: tabs
@@ -74,10 +79,6 @@ class BottomTabBar extends StatelessWidget {
           _CalBtn(isSelected: calendarSelected, onTap: onCalendarTap),
           Container(width: 0.5, color: kBorder),
           _StatsBtn(isSelected: statsSelected, onTap: onStatsTap),
-          if (canAdd && !locked) ...[
-            Container(width: 0.5, color: kBorder),
-            _AddBtn(onTap: onAddTap),
-          ],
         ],
       ),
     ));
@@ -150,6 +151,44 @@ class _TabChipState extends State<_TabChip> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Empty tab placeholder (shows "탭추가")
+// ──────────────────────────────────────────────────────────────
+
+class _AddPlaceholder extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AddPlaceholder({required this.onTap});
+
+  @override
+  State<_AddPlaceholder> createState() => _AddPlaceholderState();
+}
+
+class _AddPlaceholderState extends State<_AddPlaceholder> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          alignment: Alignment.center,
+          child: Text(
+            '탭추가',
+            style: mono(
+              color: _hovered ? kDim : kDim.withValues(alpha: 0.3),
+              fontSize: 10,
+            ),
           ),
         ),
       ),
@@ -333,7 +372,6 @@ class _TabEditDialogState extends State<TabEditDialog> {
 
   bool get _canSave {
     if (_labelCtrl.text.trim().isEmpty) return false;
-    if (_isTag) return _tag != null;
     return _inboxSelected || _folderId != null;
   }
 
@@ -341,9 +379,9 @@ class _TabEditDialogState extends State<TabEditDialog> {
         id: widget.tab?.id ??
             DateTime.now().millisecondsSinceEpoch.toString(),
         label: _labelCtrl.text.trim(),
-        isTag: _isTag,
-        folderId: _isTag ? null : (_inboxSelected ? null : _folderId),
-        tag: _isTag ? _tag : null,
+        isTag: false,
+        folderId: _inboxSelected ? null : _folderId,
+        tag: null,
       );
 
   @override
@@ -373,7 +411,7 @@ class _TabEditDialogState extends State<TabEditDialog> {
             const SizedBox(height: 14),
 
             // ── Label ────────────────────────────────
-            Text('// label',
+            Text('label',
                 style: mono(
                     color: kDim, fontSize: 10, letterSpacing: 0.5)),
             const SizedBox(height: 6),
@@ -408,32 +446,8 @@ class _TabEditDialogState extends State<TabEditDialog> {
             ),
             const SizedBox(height: 16),
 
-            // ── Type ─────────────────────────────────
-            Text('// type',
-                style: mono(
-                    color: kDim, fontSize: 10, letterSpacing: 0.5)),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                _TypeBtn(
-                  label: 'folder',
-                  isSelected: !_isTag,
-                  onTap: () => setState(() => _isTag = false),
-                ),
-                const SizedBox(width: 8),
-                _TypeBtn(
-                  label: 'tag',
-                  isSelected: _isTag,
-                  onTap: widget.allTags.isNotEmpty
-                      ? () => setState(() => _isTag = true)
-                      : null,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // ── Target ───────────────────────────────
-            Text('// target',
+            // ── Folder target ─────────────────────────
+            Text('folder',
                 style: mono(
                     color: kDim, fontSize: 10, letterSpacing: 0.5)),
             const SizedBox(height: 6),
@@ -445,8 +459,7 @@ class _TabEditDialogState extends State<TabEditDialog> {
                     border: Border.all(
                         color: kBorder.withValues(alpha: 0.7)),
                   ),
-                  child:
-                      _isTag ? _buildTagList() : _buildFolderList(),
+                  child: _buildFolderList(),
                 ),
               ),
             ),
@@ -519,7 +532,7 @@ class _TabEditDialogState extends State<TabEditDialog> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Text('// no tags yet',
+          child: Text('no tags yet',
               style: mono(
                   color: kDim.withValues(alpha: 0.5), fontSize: 11)),
         ),

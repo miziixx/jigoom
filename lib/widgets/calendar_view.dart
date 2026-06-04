@@ -129,12 +129,7 @@ class _CalendarViewState extends State<CalendarView> {
     return Column(
       children: [
         Expanded(
-          child: NotificationListener<ScrollStartNotification>(
-            onNotification: (_) {
-              FocusScope.of(context).unfocus();
-              return false;
-            },
-            child: ListView(
+          child: ListView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.only(bottom: 8),
             children: [
@@ -158,7 +153,6 @@ class _CalendarViewState extends State<CalendarView> {
                       highlighted: widget.highlightedMemoId == memo.id,
                     )),
             ],
-            ),
           ),
         ),
         // Input bar — pinned at bottom, always usable above the keyboard.
@@ -385,33 +379,27 @@ class _CalendarViewState extends State<CalendarView> {
 
         // Memo list
         Expanded(
-          child: NotificationListener<ScrollStartNotification>(
-            onNotification: (_) {
-              FocusScope.of(context).unfocus();
-              return false;
-            },
-            child: memos.isEmpty
-                ? Center(
-                    child: Text(
-                      'no memos on this day',
-                      style: mono(
-                          color: kDim.withValues(alpha: 0.35), fontSize: 12),
-                    ),
-                  )
-                : ListView.builder(
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.only(bottom: 12),
-                    itemCount: memos.length,
-                    itemBuilder: (_, i) {
-                      final memo = memos[i];
-                      return MemoTile(
-                        memo:        memo,
-                        actions:     widget.actions,
-                        highlighted: widget.highlightedMemoId == memo.id,
-                      );
-                    },
+          child: memos.isEmpty
+              ? Center(
+                  child: Text(
+                    'no memos on this day',
+                    style: mono(
+                        color: kDim.withValues(alpha: 0.35), fontSize: 12),
                   ),
-          ),
+                )
+              : ListView.builder(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.only(bottom: 12),
+                  itemCount: memos.length,
+                  itemBuilder: (_, i) {
+                    final memo = memos[i];
+                    return MemoTile(
+                      memo:        memo,
+                      actions:     widget.actions,
+                      highlighted: widget.highlightedMemoId == memo.id,
+                    );
+                  },
+                ),
         ),
         // Input bar — saves memo to selected day's date
         InputBar(

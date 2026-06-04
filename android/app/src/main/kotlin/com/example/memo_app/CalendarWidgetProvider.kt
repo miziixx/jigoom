@@ -14,8 +14,8 @@ import java.util.Calendar
 class CalendarWidgetProvider : AppWidgetProvider() {
 
     companion object {
-        const val ACTION_PREV = "com.example.memo_app.CAL_PREV"
-        const val ACTION_NEXT = "com.example.memo_app.CAL_NEXT"
+        val ACTION_PREV = "${BuildConfig.APPLICATION_ID}.CAL_PREV"
+        val ACTION_NEXT = "${BuildConfig.APPLICATION_ID}.CAL_NEXT"
         const val EXTRA_WIDGET_ID = "cal_widget_id"
 
         // Static 6x7 grid view ids (replaces the old GridView/RemoteViewsService;

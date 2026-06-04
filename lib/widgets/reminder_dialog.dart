@@ -83,7 +83,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
         day   < 1 || day   > 31 ||
         hour  < 0 || hour  > 23 ||
         min   < 0 || min   > 59) {
-      setState(() => _error = '// 올바른 날짜/시간을 입력하세요');
+      setState(() => _error = '올바른 날짜/시간을 입력하세요');
       return;
     }
 
@@ -91,11 +91,11 @@ class _ReminderDialogState extends State<ReminderDialog> {
     try {
       dt = DateTime(year, month, day, hour, min);
     } catch (_) {
-      setState(() => _error = '// 유효하지 않은 날짜입니다');
+      setState(() => _error = '유효하지 않은 날짜입니다');
       return;
     }
     if (dt.isBefore(DateTime.now())) {
-      setState(() => _error = '// 현재 시각 이후로 설정하세요');
+      setState(() => _error = '현재 시각 이후로 설정하세요');
       return;
     }
 
@@ -396,14 +396,14 @@ class _BaseDateDialogState extends State<_BaseDateDialog> {
     final day   = int.tryParse(_dayCtrl.text.trim());
     if (year == null || month == null || day == null ||
         month < 1 || month > 12 || day < 1 || day > 31) {
-      setState(() => _error = '// 올바른 날짜를 입력하세요');
+      setState(() => _error = '올바른 날짜를 입력하세요');
       return;
     }
     late DateTime dt;
     try {
       dt = DateTime(year, month, day);
     } catch (_) {
-      setState(() => _error = '// 유효하지 않은 날짜입니다');
+      setState(() => _error = '유효하지 않은 날짜입니다');
       return;
     }
     Navigator.pop(context);

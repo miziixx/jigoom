@@ -407,7 +407,7 @@ class _StatsViewState extends State<StatsView> {
         Text('[ TOP TAGS ]', style: mono(color: kMint, fontSize: 12, letterSpacing: 1)),
         const SizedBox(height: 10),
         if (counts.isEmpty)
-          Text('  // no tags yet',
+          Text('  no tags yet',
               style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11))
         else
           LayoutBuilder(builder: (context, constraints) {
@@ -485,7 +485,7 @@ class _StatsViewState extends State<StatsView> {
             style: mono(color: kMint, fontSize: 12, letterSpacing: 1)),
         const SizedBox(height: 10),
         if (data.isEmpty)
-          Text('  // no data yet',
+          Text('  no data yet',
               style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11))
         else
           LayoutBuilder(builder: (context, constraints) {

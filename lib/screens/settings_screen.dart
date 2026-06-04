@@ -573,7 +573,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onTap: _doBackup,
                           ),
                           _Btn(
-                            label: _restoring ? '// ...' : '[ RESTORE ]',
+                            label: _restoring ? '...' : '[ RESTORE ]',
                             color: _restoring ? kDim.withValues(alpha: 0.4) : kDim,
                             onTap: _doRestore,
                           ),
