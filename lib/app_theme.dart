@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 // All mutable — updated together by applyColors()
-Color kBg      = const Color(0xFFEDF2ED);
-Color kText    = const Color(0xFF556B2F);
+Color kBg = const Color(0xFFEDF2ED);
+Color kText = const Color(0xFF556B2F);
 Color kSurface = const Color(0xFFE0E8E0);
-Color kBorder  = const Color(0xFFB0C4B0);
-Color kDim     = const Color(0xFF7A8F5A);
+Color kBorder = const Color(0xFFB0C4B0);
+Color kDim = const Color(0xFF7A8F5A);
 
 // Accent colors — mutable, derived from kText via applyColors()
 Color kMint = const Color(0xFF6E9530);
@@ -23,18 +23,21 @@ const kFontOptions = [
 ];
 
 String kFontFamily = 'JetBrains Mono';
-double kFontSize   = 13.0;
+double kFontSize = 13.0;
+double kSpacing = 12.0;
+
+const kSpacingOptions = [0.0, 4.0, 8.0, 12.0, 16.0, 20.0, 24.0];
 
 final themeNotifier = ValueNotifier<int>(0);
 
 void applyColors(Color bg, Color text) {
-  kBg      = bg;
-  kText    = text;
+  kBg = bg;
+  kText = text;
   kSurface = Color.lerp(bg, Colors.black, 0.05)!;
-  kBorder  = Color.lerp(bg, text, 0.35)!;
-  kDim     = Color.lerp(text, bg, 0.25)!;
-  kMint    = text;
-  kTeal    = Color.lerp(text, Colors.black, 0.15)!;
+  kBorder = Color.lerp(bg, text, 0.35)!;
+  kDim = Color.lerp(text, bg, 0.25)!;
+  kMint = text;
+  kTeal = Color.lerp(text, Colors.black, 0.15)!;
   themeNotifier.value++;
   syncSystemUiOverlay();
 }
@@ -45,20 +48,49 @@ void syncSystemUiOverlay() {
   final iconBrightness = brightness == Brightness.dark
       ? Brightness.light
       : Brightness.dark;
-  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: iconBrightness,
-    statusBarBrightness: brightness,
-    systemNavigationBarColor: kBg,
-    systemNavigationBarIconBrightness: iconBrightness,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: iconBrightness,
+      statusBarBrightness: brightness,
+      systemNavigationBarColor: kBg,
+      systemNavigationBarIconBrightness: iconBrightness,
+    ),
+  );
 }
 
 void applyFont(String family, double size) {
   kFontFamily = family;
-  kFontSize   = size;
+  kFontSize = size;
   themeNotifier.value++;
 }
+
+void applySpacing(double value) {
+  kSpacing = value;
+  themeNotifier.value++;
+}
+
+double appSpace(double value) => value * (kSpacing / 12.0);
+
+EdgeInsets appInsetsAll(double value) => EdgeInsets.all(appSpace(value));
+
+EdgeInsets appInsetsSymmetric({double horizontal = 0, double vertical = 0}) =>
+    EdgeInsets.symmetric(
+      horizontal: appSpace(horizontal),
+      vertical: appSpace(vertical),
+    );
+
+EdgeInsets appInsetsOnly({
+  double left = 0,
+  double top = 0,
+  double right = 0,
+  double bottom = 0,
+}) => EdgeInsets.only(
+  left: appSpace(left),
+  top: appSpace(top),
+  right: appSpace(right),
+  bottom: appSpace(bottom),
+);
 
 TextStyle mono({
   Color? color,
@@ -67,7 +99,7 @@ TextStyle mono({
   double? letterSpacing,
   double? height,
 }) {
-  final c  = color ?? kText;
+  final c = color ?? kText;
   final sz = fontSize * (kFontSize / 13.0);
   // Fonts are bundled as assets (see pubspec.yaml). Reference the family
   // directly so it works offline in release APKs — no runtime download.

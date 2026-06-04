@@ -17,6 +17,8 @@ void main() async {
   if (colors != null) applyColors(colors.$1, colors.$2);
   final font = await StorageService.loadFont();
   if (font != null) applyFont(font.$1, font.$2);
+  final spacing = await StorageService.loadSpacing();
+  if (spacing != null) applySpacing(spacing);
   await NotificationService.init();
   await WidgetService.init();
   // Sync system UI overlay with current theme (also synced on every applyColors call)

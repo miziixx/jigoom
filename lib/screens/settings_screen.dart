@@ -16,11 +16,13 @@ class SettingsScreen extends StatefulWidget {
   final bool initialTabLocked;
   final String initialFontFamily;
   final double initialFontSize;
+  final double initialSpacing;
   final void Function(
     Color bg,
     Color text,
     String fontFamily,
     double fontSize,
+    double spacing,
     bool tabLocked,
   ) onSave;
   final VoidCallback onBackupShare;
@@ -35,6 +37,7 @@ class SettingsScreen extends StatefulWidget {
     required this.initialTabLocked,
     required this.initialFontFamily,
     required this.initialFontSize,
+    required this.initialSpacing,
     required this.onSave,
     required this.onBackupShare,
     required this.onBackupSave,
@@ -54,6 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late bool _tabLocked;
   late String _fontFamily;
   late double _fontSize;
+  late double _spacing;
   bool _saved = false;
   bool _restoring = false;
 
@@ -74,6 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _tabLocked  = widget.initialTabLocked;
     _fontFamily = widget.initialFontFamily;
     _fontSize   = widget.initialFontSize;
+    _spacing    = widget.initialSpacing;
     _bgCtrl     = TextEditingController(text: _toHex(_bg));
     _textCtrl   = TextEditingController(text: _toHex(_text));
     _palettes   = List.filled(StorageService.paletteSlotCount, null);
@@ -112,6 +117,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         applyColors(widget.initialBg, widget.initialText);
         applyFont(widget.initialFontFamily, widget.initialFontSize);
+        applySpacing(widget.initialSpacing);
       });
     }
     super.dispose();
@@ -227,16 +233,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _tabLocked  = false;
       _fontFamily = 'JetBrains Mono';
       _fontSize   = 13.0;
+      _spacing    = 12.0;
       _bgCtrl.text   = _toHex(_bg);
       _textCtrl.text = _toHex(_text);
     });
     applyColors(bg, text);
     applyFont(_fontFamily, _fontSize);
+    applySpacing(_spacing);
   }
 
   void _save() {
     _saved = true;
-    widget.onSave(_bg, _text, _fontFamily, _fontSize, _tabLocked);
+    widget.onSave(_bg, _text, _fontFamily, _fontSize, _spacing, _tabLocked);
     Navigator.pop(context);
   }
 
@@ -377,7 +385,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(height: 1, color: kBorder),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  padding: appInsetsSymmetric(horizontal: 20, vertical: 18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -503,6 +511,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             },
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 22),
+
+                      Text(
+                        'spacing',
+                        style: mono(color: kDim, fontSize: 11, letterSpacing: 0.5),
+                      ),
+                      const SizedBox(height: 8),
+                      _SpacingSelector(
+                        value: _spacing,
+                        onChanged: (v) {
+                          setState(() => _spacing = v);
+                          applySpacing(v);
+                        },
                       ),
 
                       const SizedBox(height: 22),
@@ -949,6 +972,81 @@ class _ToggleSwitch extends StatefulWidget {
 
   @override
   State<_ToggleSwitch> createState() => _ToggleSwitchState();
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Spacing selector
+// ──────────────────────────────────────────────────────────────────
+
+class _SpacingSelector extends StatelessWidget {
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  const _SpacingSelector({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: appSpace(6),
+      runSpacing: appSpace(6),
+      children: kSpacingOptions
+          .map(
+            (option) => _SpacingOption(
+              label: option.toInt().toString(),
+              active: value == option,
+              onTap: () => onChanged(option),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _SpacingOption extends StatefulWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _SpacingOption({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  State<_SpacingOption> createState() => _SpacingOptionState();
+}
+
+class _SpacingOptionState extends State<_SpacingOption> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          padding: appInsetsSymmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: widget.active
+                ? kMint.withValues(alpha: 0.12)
+                : (_hovered ? kBorder.withValues(alpha: 0.15) : Colors.transparent),
+            border: widget.active
+                ? Border.all(color: kMint.withValues(alpha: 0.4))
+                : Border.all(color: kBorder.withValues(alpha: 0.5)),
+          ),
+          child: Text(
+            '[ ${widget.label} ]',
+            style: mono(color: widget.active ? kMint : kDim, fontSize: 11),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ToggleSwitchState extends State<_ToggleSwitch> {

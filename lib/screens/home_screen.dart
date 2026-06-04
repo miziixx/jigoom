@@ -1159,6 +1159,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         'text_color':  _colorToInt(kText),
         'font_family': kFontFamily,
         'font_size':   kFontSize,
+        'spacing':     kSpacing,
         'tab_locked':  _tabLocked,
       };
 
@@ -1223,6 +1224,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         applyFont(fontFamily, fontSize);
         StorageService.saveFont(fontFamily, fontSize);
       }
+      final spacing = (settings['spacing'] as num?)?.toDouble();
+      if (spacing != null) {
+        applySpacing(spacing);
+        StorageService.saveSpacing(spacing);
+      }
     }
   }
 
@@ -1236,10 +1242,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           initialTabLocked: _tabLocked,
           initialFontFamily: kFontFamily,
           initialFontSize: kFontSize,
-          onSave: (bg, text, fontFamily, fontSize, tabLocked) {
+          initialSpacing: kSpacing,
+          onSave: (bg, text, fontFamily, fontSize, spacing, tabLocked) {
             applyColors(bg, text);
+            applySpacing(spacing);
             StorageService.saveColors(bg, text);
             StorageService.saveFont(fontFamily, fontSize);
+            StorageService.saveSpacing(spacing);
             StorageService.saveTabLocked(tabLocked);
             setState(() => _tabLocked = tabLocked);
           },
@@ -1271,6 +1280,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     StorageService.clearAll();
     applyColors(const Color(0xFFEDF2ED), const Color(0xFF556B2F));
     applyFont('JetBrains Mono', 13.0);
+    applySpacing(12.0);
     setState(() {
       _memos.clear();
       _folders.clear();

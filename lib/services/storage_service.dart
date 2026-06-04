@@ -11,15 +11,16 @@ import 'widget_service.dart';
 class StorageService {
   static const _memosKey = 'memos_v1';
   static const _foldersKey = 'folders_v1';
-  static const _tabsKey      = 'tabs_v1';
-  static const _bgKey        = 'color_bg';
-  static const _textKey      = 'color_text';
+  static const _tabsKey = 'tabs_v1';
+  static const _bgKey = 'color_bg';
+  static const _textKey = 'color_text';
   static const _fontFamilyKey = 'font_family';
-  static const _fontSizeKey   = 'font_size';
-  static const _tabLockedKey  = 'tab_locked';
-  static const _firstOpenKey     = 'first_open_date';
+  static const _fontSizeKey = 'font_size';
+  static const _spacingKey = 'spacing';
+  static const _tabLockedKey = 'tab_locked';
+  static const _firstOpenKey = 'first_open_date';
   static const _habitActivatedKey = 'habit_activated';
-  static const _goalActivatedKey  = 'goal_activated';
+  static const _goalActivatedKey = 'goal_activated';
 
   // ── Memos ──────────────────────────────────────────
 
@@ -103,9 +104,21 @@ class StorageService {
   static Future<(String, double)?> loadFont() async {
     final prefs = await SharedPreferences.getInstance();
     final family = prefs.getString(_fontFamilyKey);
-    final size   = prefs.getDouble(_fontSizeKey);
+    final size = prefs.getDouble(_fontSizeKey);
     if (family == null || size == null) return null;
     return (family, size);
+  }
+
+  // ── Spacing ───────────────────────────────────────
+
+  static Future<void> saveSpacing(double spacing) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_spacingKey, spacing);
+  }
+
+  static Future<double?> loadSpacing() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_spacingKey);
   }
 
   // ── Tab lock ───────────────────────────────────────
@@ -129,18 +142,20 @@ class StorageService {
 
     // Sync to home-screen widget
     if (!kIsWeb) {
-      final dim    = Color.lerp(text, bg, 0.25)!;
+      final dim = Color.lerp(text, bg, 0.25)!;
       final border = Color.lerp(bg, text, 0.35)!;
-      final teal   = Color.lerp(text, Colors.black, 0.15)!;
-      final mint   = text;
-      unawaited(WidgetService.syncColors(
-        bg: _toInt(bg),
-        text: _toInt(text),
-        dim: _toInt(dim),
-        border: _toInt(border),
-        teal: _toInt(teal),
-        mint: _toInt(mint),
-      ));
+      final teal = Color.lerp(text, Colors.black, 0.15)!;
+      final mint = text;
+      unawaited(
+        WidgetService.syncColors(
+          bg: _toInt(bg),
+          text: _toInt(text),
+          dim: _toInt(dim),
+          border: _toInt(border),
+          teal: _toInt(teal),
+          mint: _toInt(mint),
+        ),
+      );
     }
   }
 
@@ -169,7 +184,7 @@ class StorageService {
       if (raw == null) return null;
       final parts = raw.split(',');
       if (parts.length != 2) return null;
-      final bg   = int.tryParse(parts[0]);
+      final bg = int.tryParse(parts[0]);
       final text = int.tryParse(parts[1]);
       if (bg == null || text == null) return null;
       return (Color(bg), Color(text));
