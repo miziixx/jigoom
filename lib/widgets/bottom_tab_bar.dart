@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/folder.dart';
 import '../models/quick_tab.dart';
 import '../app_theme.dart';
@@ -41,6 +42,7 @@ class BottomTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final slotCount = tabs.length < 3 ? 3 : tabs.length + (canAdd ? 1 : 0);
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
       child: SizedBox(
@@ -49,34 +51,32 @@ class BottomTabBar extends StatelessWidget {
         children: [
           // Left fluid area: tabs flex-fill equally
           Expanded(
-            child: tabs.isEmpty
-                ? Row(
-                    children: List.generate(3, (i) => Expanded(
-                      child: locked
-                          ? Center(
-                              child: Text(
-                                '탭추가',
-                                style: mono(color: kDim.withValues(alpha: 0.25), fontSize: 10),
-                              ),
-                            )
-                          : _AddPlaceholder(onTap: onAddTap),
-                    )),
-                  )
-                : Row(
-                    children: tabs
-                        .map((tab) => Expanded(
-                              child: _TabChip(
-                                tab: tab,
-                                isSelected: tab.id == selectedTabId,
-                                onTap: () => onSelect(tab),
-                                onLongPress:
-                                    locked ? null : () => onLongPress(tab),
-                                onDelete:
-                                    locked ? null : () => onLongPress(tab),
-                              ),
-                            ))
-                        .toList(),
-                  ),
+            child: Row(
+              children: List.generate(slotCount, (i) {
+                if (i < tabs.length) {
+                  final tab = tabs[i];
+                  return Expanded(
+                    child: _TabChip(
+                      tab: tab,
+                      isSelected: tab.id == selectedTabId,
+                      onTap: () => onSelect(tab),
+                      onLongPress: locked ? null : () => onLongPress(tab),
+                      onDelete: locked ? null : () => onLongPress(tab),
+                    ),
+                  );
+                }
+                return Expanded(
+                  child: locked || !canAdd
+                      ? Center(
+                          child: Text(
+                            '탭추가',
+                            style: mono(color: kDim.withValues(alpha: 0.25), fontSize: 10),
+                          ),
+                        )
+                      : _AddPlaceholder(onTap: onAddTap),
+                );
+              }),
+            ),
           ),
           // Right fixed area: TODAY, CAL, STATS
           Container(width: 0.5, color: kBorder),
@@ -461,7 +461,8 @@ class _TabEditDialogState extends State<TabEditDialog> {
               controller: _labelCtrl,
               style: mono(color: kText, fontSize: 12),
               cursorColor: kMint,
-              maxLength: 12,
+              maxLength: 10,
+              inputFormatters: [LengthLimitingTextInputFormatter(10)],
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 counterText: '',
@@ -686,9 +687,11 @@ class _TargetItemState extends State<_TargetItem> {
                 widget.isSelected ? '> ' : '  ',
                 style: mono(color: kMint, fontSize: 11),
               ),
-              Text(widget.label,
-                  style: mono(color: fg, fontSize: 11),
-                  overflow: TextOverflow.ellipsis),
+              Expanded(
+                child: Text(widget.label,
+                    style: mono(color: fg, fontSize: 11),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
         ),

@@ -7,13 +7,17 @@ import '../models/folder.dart';
 class Sidebar extends StatefulWidget {
   final VoidCallback onSelectMemo;
   final VoidCallback onSelectCalendar;
+  final VoidCallback onSelectToday;
   final VoidCallback onSelectTasks;
   final VoidCallback onSelectTags;
   final VoidCallback onSelectStats;
   final VoidCallback onSelectSchedule;
   final VoidCallback onSettingsTap;
   final void Function(String name, String? parentId) onCreate;
-  final String activeSection; // 'memo','calendar','tasks','habits','goals','tags','stats'
+  final void Function(String id, String name) onRenameFolder;
+  final void Function(String id) onDeleteFolder;
+  final void Function(String id, String? parentId, int insertIndex) onMoveFolder;
+  final String activeSection; // 'memo','calendar','today','tasks','habits','goals','tags','stats'
   final List<Folder> folders;
   final String? selectedFolderId;
   final ValueChanged<String?> onSelectFolder;
@@ -39,12 +43,16 @@ class Sidebar extends StatefulWidget {
     super.key,
     required this.onSelectMemo,
     required this.onSelectCalendar,
+    required this.onSelectToday,
     required this.onSelectTasks,
     required this.onSelectTags,
     required this.onSelectStats,
     required this.onSelectSchedule,
     required this.onSettingsTap,
     required this.onCreate,
+    required this.onRenameFolder,
+    required this.onDeleteFolder,
+    required this.onMoveFolder,
     required this.activeSection,
     required this.folders,
     required this.selectedFolderId,
@@ -109,6 +117,35 @@ class _SidebarState extends State<Sidebar> {
   void _cancel() {
     _ctrl.clear();
     setState(() => _isCreating = false);
+  }
+
+  List<Widget> _buildFolderRows(String? parentId, int depth) {
+    if (depth >= 5) return const [];
+    final folders = _sortedChildFolders(widget.folders, parentId);
+    final rows = <Widget>[];
+    for (final entry in folders.asMap().entries) {
+      final index = entry.key;
+      final folder = entry.value;
+      final childCount = _sortedChildFolders(widget.folders, folder.id).length;
+      rows.add(_SubFolderRow(
+        id: folder.id,
+        parentId: parentId,
+        depth: depth,
+        orderIndex: index,
+        label: folder.name,
+        isActive: widget.activeSection == 'memo' &&
+            widget.selectedFolderId == folder.id,
+        canMoveInto: depth < 4,
+        childCount: childCount,
+        onTap: () => widget.onSelectFolder(folder.id),
+        onRename: (name) => widget.onRenameFolder(folder.id, name),
+        onDelete: () => widget.onDeleteFolder(folder.id),
+        onMove: (id, targetParentId, insertIndex) =>
+            widget.onMoveFolder(id, targetParentId, insertIndex),
+      ));
+      rows.addAll(_buildFolderRows(folder.id, depth + 1));
+    }
+    return rows;
   }
 
   void _showNameDialog(BuildContext context, {required bool isHabit}) {
@@ -232,12 +269,7 @@ class _SidebarState extends State<Sidebar> {
                         widget.selectedFolderId == null,
                     onTap: () => widget.onSelectFolder(null),
                   ),
-                  ..._sortedTopFolders(widget.folders).map((f) => _SubFolderRow(
-                    label: f.name,
-                    isActive: widget.activeSection == 'memo' &&
-                        widget.selectedFolderId == f.id,
-                    onTap: () => widget.onSelectFolder(f.id),
-                  )),
+                  ..._buildFolderRows(null, 0),
                 ],
                 _MenuRow(
                   label: 'calendar',
@@ -245,6 +277,11 @@ class _SidebarState extends State<Sidebar> {
                   onTap: widget.onSelectCalendar,
                 ),
                 if (isNemo2) ...[
+                  _MenuRow(
+                    label: 'today',
+                    isActive: widget.activeSection == 'today',
+                    onTap: widget.onSelectToday,
+                  ),
                   _MenuRow(
                     label: 'tags',
                     isActive: widget.activeSection == 'tags',
@@ -600,22 +637,40 @@ class _TagRowState extends State<_TagRow> {
 // Sub-folder row (└ folderName)
 // ──────────────────────────────────────────────────────────────
 
-List<Folder> _sortedTopFolders(List<Folder> folders) {
-  return folders.where((f) => f.parentId == null).toList()
+List<Folder> _sortedChildFolders(List<Folder> folders, String? parentId) {
+  return folders.where((f) => f.parentId == parentId).toList()
     ..sort((a, b) => a.order != b.order
         ? a.order.compareTo(b.order)
         : a.name.compareTo(b.name));
 }
 
 class _SubFolderRow extends StatefulWidget {
+  final String? id;
+  final String? parentId;
+  final int depth;
+  final int orderIndex;
   final String label;
   final bool isActive;
+  final bool canMoveInto;
+  final int childCount;
   final VoidCallback onTap;
+  final ValueChanged<String>? onRename;
+  final VoidCallback? onDelete;
+  final void Function(String id, String? parentId, int insertIndex)? onMove;
 
   const _SubFolderRow({
+    this.id,
+    this.parentId,
+    this.depth = 0,
+    this.orderIndex = 0,
     required this.label,
     required this.isActive,
+    this.canMoveInto = false,
+    this.childCount = 0,
     required this.onTap,
+    this.onRename,
+    this.onDelete,
+    this.onMove,
   });
 
   @override
@@ -624,38 +679,246 @@ class _SubFolderRow extends StatefulWidget {
 
 class _SubFolderRowState extends State<_SubFolderRow> {
   bool _hovered = false;
+  bool _dragHover = false;
+  bool _editing = false;
+  TextEditingController? _ctrl;
+  FocusNode? _focusNode;
+
+  TextEditingController get _controller =>
+      _ctrl ??= TextEditingController(text: widget.label);
+
+  FocusNode get _editFocusNode => _focusNode ??= FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.label);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SubFolderRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_editing && oldWidget.label != widget.label) {
+      _controller.text = widget.label;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl?.dispose();
+    _focusNode?.dispose();
+    super.dispose();
+  }
+
+  void _startEdit() {
+    if (widget.onRename == null) return;
+    setState(() {
+      _editing = true;
+      _controller.text = widget.label;
+      _controller.selection =
+          TextSelection(baseOffset: 0, extentOffset: _controller.text.length);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _editFocusNode.requestFocus();
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editing = false;
+      _controller.text = widget.label;
+    });
+  }
+
+  void _confirmEdit() {
+    final next = _controller.text.trim();
+    if (next.isNotEmpty && next != widget.label) {
+      widget.onRename?.call(next);
+    }
+    if (mounted) setState(() => _editing = false);
+  }
+
+  Future<bool> _confirmDelete() async {
+    if (widget.onDelete == null) return false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: kSurface,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: Text('폴더 삭제', style: mono(color: kMint, fontSize: 13)),
+        content: Text(
+          '/${widget.label} 폴더를 삭제하시겠습니까?\n폴더 안의 메모는 inbox로 이동합니다.',
+          style: mono(color: kDim, fontSize: 12, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('취소', style: mono(color: kDim, fontSize: 12)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('삭제', style: mono(color: kTeal, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  void _handleDrop(DragTargetDetails<String> details) {
+    if (widget.id == null || widget.onMove == null) return;
+    final box = context.findRenderObject() as RenderBox?;
+    final localY = box?.globalToLocal(details.offset).dy ?? 0;
+    final height = box?.size.height ?? 1;
+    setState(() => _dragHover = false);
+
+    if (widget.canMoveInto &&
+        localY >= height * 0.35 &&
+        localY <= height * 0.65) {
+      widget.onMove?.call(details.data, widget.id, widget.childCount);
+      return;
+    }
+
+    final insertIndex = localY < height * 0.5
+        ? widget.orderIndex
+        : widget.orderIndex + 1;
+    widget.onMove?.call(details.data, widget.parentId, insertIndex);
+  }
 
   @override
   Widget build(BuildContext context) {
     final Color fg = widget.isActive ? kMint : (_hovered ? kText : kDim);
     final Color bg = widget.isActive
         ? kMint.withValues(alpha: 0.08)
-        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+        : (_dragHover
+            ? kTeal.withValues(alpha: 0.12)
+            : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent));
 
-    return MouseRegion(
+    final leftPad = 14.0 + widget.depth * 14.0;
+    final branch = widget.depth == 0 ? '  └ ' : '  ${'  ' * widget.depth}└ ';
+
+    final content = MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
+        onDoubleTap: _startEdit,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           color: bg,
-          padding: const EdgeInsets.fromLTRB(14, 5, 10, 5),
+          padding: EdgeInsets.fromLTRB(leftPad, 5, 10, 5),
           child: Row(
             children: [
-              Text('  └ ', style: mono(color: fg, fontSize: 12)),
+              Text(branch, style: mono(color: fg, fontSize: 12)),
               Expanded(
-                child: Text(
-                  widget.label,
-                  style: mono(color: fg, fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: _editing
+                    ? TextField(
+                        controller: _controller,
+                        focusNode: _editFocusNode,
+                        style: mono(color: kText, fontSize: 12),
+                        cursorColor: kTeal,
+                        cursorWidth: 2,
+                        textInputAction: TextInputAction.done,
+                        maxLength: 10,
+                        inputFormatters: [LengthLimitingTextInputFormatter(10)],
+                        onSubmitted: (_) => _confirmEdit(),
+                        onEditingComplete: _confirmEdit,
+                        decoration: InputDecoration(
+                          counterText: '',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 3),
+                          filled: true,
+                          fillColor: kBg,
+                          border: OutlineInputBorder(
+                            borderSide: BorderSide(color: kTeal),
+                            borderRadius: BorderRadius.zero,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: kTeal),
+                            borderRadius: BorderRadius.zero,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: kTeal, width: 1.5),
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        widget.label,
+                        style: mono(color: fg, fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
               ),
+              if (_editing) ...[
+                const SizedBox(width: 5),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _cancelEdit,
+                  child: Text('x', style: mono(color: kDim, fontSize: 11)),
+                ),
+              ],
             ],
           ),
         ),
       ),
+    );
+
+    final row = widget.id == null || widget.onMove == null || _editing
+        ? content
+        : DragTarget<String>(
+            onWillAcceptWithDetails: (details) {
+              final accept = details.data != widget.id;
+              if (accept) setState(() => _dragHover = true);
+              return accept;
+            },
+            onLeave: (_) => setState(() => _dragHover = false),
+            onAcceptWithDetails: _handleDrop,
+            builder: (context, candidateData, rejectedData) {
+              return LongPressDraggable<String>(
+                data: widget.id!,
+                feedback: Material(
+                  color: Colors.transparent,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 180),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: kSurface,
+                        border: Border.all(color: kTeal),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 5, 10, 5),
+                        child: Text('/${widget.label}',
+                            style: mono(color: kText, fontSize: 12),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    ),
+                  ),
+                ),
+                childWhenDragging: Opacity(opacity: 0.35, child: content),
+                child: content,
+              );
+            },
+          );
+
+    if (widget.onDelete == null || widget.id == null) return row;
+
+    return Dismissible(
+      key: ValueKey('folder-${widget.id}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => _confirmDelete(),
+      onDismissed: (_) => widget.onDelete?.call(),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 14),
+        color: Colors.redAccent.withValues(alpha: 0.16),
+        child: Text('삭제',
+            style: mono(color: Colors.redAccent, fontSize: 11)),
+      ),
+      child: row,
     );
   }
 }
@@ -911,8 +1174,11 @@ class _InlineInput extends StatelessWidget {
                   cursorColor: kTeal,
                   cursorWidth: 2,
                   textInputAction: TextInputAction.done,
+                  maxLength: 10,
+                  inputFormatters: [LengthLimitingTextInputFormatter(10)],
                   onSubmitted: (_) => onConfirm(),
                   decoration: InputDecoration(
+                    counterText: '',
                     isDense: true,
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 5),

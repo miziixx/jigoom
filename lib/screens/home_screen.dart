@@ -39,6 +39,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  static const int _nameLimit = 10;
   final _memos = <Memo>[];
   final _folders = <Folder>[];
   final _tabs = <QuickTab>[];
@@ -589,11 +590,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Add memo with a specific date (used from calendar view).
   // Uses the selected day's date but current time so timeStr is accurate.
   void _addMemoOnDate(
-      String content, DateTime date, bool isChecklist, DateTime? reminderAt, [List<String>? imagePaths, String reminderRepeat = 'none']) {
+    String content,
+    DateTime date,
+    bool isChecklist,
+    DateTime? reminderAt, [
+    List<String>? imagePaths,
+    String reminderRepeat = 'none',
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat = 'none',
+    String repeatEndType = 'infinite',
+    int repeatEndCount = 5,
+    DateTime? repeatEndDate,
+  ]) {
     final now = DateTime.now();
     final id = now.millisecondsSinceEpoch.toString();
     final createdAt = DateTime(
         date.year, date.month, date.day, now.hour, now.minute, now.second);
+    final scheduleDate = scheduledAt == null
+        ? null
+        : DateTime(
+            date.year,
+            date.month,
+            date.day,
+            scheduledAt.hour,
+            scheduledAt.minute,
+            scheduledAt.second,
+          );
     setState(() {
       _memos.add(Memo(
         id: id,
@@ -603,6 +626,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         reminderAt: reminderAt,
         reminderRepeat: reminderRepeat,
         imagePaths: imagePaths ?? const [],
+        scheduledAt: scheduleDate,
+        rangeEndDate: rangeEndDate,
+        scheduleRepeat: scheduleRepeat,
+        repeatEndType: repeatEndType,
+        repeatEndCount: repeatEndCount,
+        repeatEndDate: repeatEndDate,
       ));
     });
     StorageService.saveMemos(_memos);
@@ -788,11 +817,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // ── Folder CRUD ────────────────────────────────────
 
   void _createFolder(String name, String? parentId) {
+    final safeName = name.trim();
+    final limitedName = safeName.length > _nameLimit
+        ? safeName.substring(0, _nameLimit)
+        : safeName;
+    if (limitedName.isEmpty) return;
     final siblingCount =
         _folders.where((f) => f.parentId == parentId).length;
     final folder = Folder(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
+      name: limitedName,
       parentId: parentId,
       order: siblingCount,
     );
@@ -806,8 +840,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _renameFolder(String id, String newName) {
     final i = _folders.indexWhere((f) => f.id == id);
     if (i == -1) return;
-    setState(() => _folders[i] = _folders[i].copyWith(name: newName));
+    final safeName = newName.trim();
+    final limitedName = safeName.length > _nameLimit
+        ? safeName.substring(0, _nameLimit)
+        : safeName;
+    if (limitedName.isEmpty) return;
+    setState(() => _folders[i] = _folders[i].copyWith(name: limitedName));
     StorageService.saveFolders(_folders);
+  }
+
+  void _deleteFolder(String id) {
+    final idsToDelete = <String>{id};
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (final folder in _folders) {
+        if (folder.parentId != null &&
+            idsToDelete.contains(folder.parentId) &&
+            idsToDelete.add(folder.id)) {
+          changed = true;
+        }
+      }
+    }
+
+    setState(() {
+      _folders.removeWhere((f) => idsToDelete.contains(f.id));
+      for (var i = 0; i < _memos.length; i++) {
+        if (idsToDelete.contains(_memos[i].folderId)) {
+          _memos[i] = _memos[i].copyWith(clearFolder: true);
+        }
+      }
+      if (idsToDelete.contains(_selectedFolderId)) {
+        _selectedFolderId = null;
+      }
+      _tabs.removeWhere((t) =>
+          !t.isTag && t.folderId != null && idsToDelete.contains(t.folderId));
+      if (_selectedTabId != null &&
+          !_tabs.any((t) => t.id == _selectedTabId)) {
+        _selectedTabId = null;
+      }
+    });
+    StorageService.saveFolders(_folders);
+    StorageService.saveMemos(_memos);
+    StorageService.saveTabs(_tabs);
   }
 
   void _moveMemoToFolder(Memo memo, String? newFolderId) {
@@ -836,7 +911,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     int repeatEndCount = 5,
     DateTime? repeatEndDate,
   ]) {
-    final updated = memo.copyWith(
+    final current = _memos.where((m) => m.id == memo.id).firstOrNull ?? memo;
+    final updated = current.copyWith(
       scheduledAt: newTime,
       clearSchedule: newTime == null,
       scheduleRepeat: newTime == null ? 'none' : scheduleRepeat,
@@ -862,7 +938,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     int repeatEndCount = 5,
     DateTime? repeatEndDate,
   ]) {
-    final updated = memo.copyWith(
+    final current = _memos.where((m) => m.id == memo.id).firstOrNull ?? memo;
+    final updated = current.copyWith(
       reminderAt: newTime,
       clearReminder: newTime == null,
       reminderRepeat: newTime == null ? 'none' : repeat,
@@ -918,15 +995,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  int _folderDepth(String? folderId) {
+    var depth = 0;
+    var currentId = folderId;
+    while (currentId != null) {
+      final folder = _folders.where((f) => f.id == currentId).firstOrNull;
+      if (folder == null) return depth;
+      depth++;
+      currentId = folder.parentId;
+    }
+    return depth;
+  }
+
+  int _folderSubtreeDepth(String folderId) {
+    final children = _folders.where((f) => f.parentId == folderId).toList();
+    if (children.isEmpty) return 1;
+    return 1 +
+        children
+            .map((f) => _folderSubtreeDepth(f.id))
+            .reduce((a, b) => a > b ? a : b);
+  }
+
   void _moveFolder(String folderId, String? newParentId, int insertIndex) {
     if (folderId == newParentId) return;
     if (newParentId != null && _isDescendant(folderId, newParentId)) return;
 
     final idx = _folders.indexWhere((f) => f.id == folderId);
     if (idx == -1) return;
+    if (_folderDepth(newParentId) + _folderSubtreeDepth(folderId) > 5) return;
 
     setState(() {
       final moved = _folders[idx];
+      var targetIndex = insertIndex;
+      if (moved.parentId == newParentId && moved.order < targetIndex) {
+        targetIndex--;
+      }
       final siblings = _folders
           .where((f) => f.parentId == newParentId && f.id != folderId)
           .toList()
@@ -934,7 +1037,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ? a.order.compareTo(b.order)
             : a.name.compareTo(b.name));
 
-      final pos = insertIndex.clamp(0, siblings.length);
+      final pos = targetIndex.clamp(0, siblings.length);
 
       for (int i = 0; i < siblings.length; i++) {
         final newOrder = i < pos ? i : i + 1;
@@ -1252,12 +1355,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             StorageService.saveTabLocked(tabLocked);
             setState(() => _tabLocked = tabLocked);
           },
-          onBackupShare: () {
-            BackupService.export(
-              memos: _memos, folders: _folders,
-              tabs: _tabs, settings: _buildSettingsMap(),
-            );
-          },
           onBackupSave: () => BackupService.exportToPhone(
             memos: _memos, folders: _folders,
             tabs: _tabs, settings: _buildSettingsMap(),
@@ -1315,7 +1412,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final selectedPath = _calendarOpen
         ? '[CAL]'
         : (_statsOpen
-            ? 'stats'
+            ? '[STATS]'
             : (_scheduleOpen
                 ? 'event'
                 : (_todayOpen
@@ -1364,12 +1461,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _selectedTabId = null;
                 if (isNarrow) _sidebarOpen = false;
               }),
+              onSelectToday: () => setState(() {
+                _todayOpen = true;
+                _calendarOpen = false;
+                _statsOpen = false;
+                _scheduleOpen = false;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                _selectedTabId = null;
+                if (isNarrow) _sidebarOpen = false;
+              }),
               onSelectTasks: () => setState(() {
                 _tasksOnly = true;
                 _calendarOpen = false;
                 _statsOpen = false;
                 _scheduleOpen = false;
                 _tagsOpen = false;
+                _todayOpen = false;
                 _selectedTag = null;
                 _selectedFolderId = null;
                 _selectedTabId = null;
@@ -1381,6 +1489,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _calendarOpen = false;
                 _statsOpen = false;
                 _scheduleOpen = false;
+                _todayOpen = false;
                 _selectedTag = null;
                 _selectedFolderId = null;
                 _selectedTabId = null;
@@ -1411,6 +1520,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _showSettings();
               },
               onCreate: _createFolder,
+              onRenameFolder: _renameFolder,
+              onDeleteFolder: _deleteFolder,
+              onMoveFolder: _moveFolder,
               activeSection: _activeSidebarSection,
               folders: _folders,
               selectedFolderId: _selectedFolderId,
@@ -1423,6 +1535,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+                _todayOpen = false;
                 if (isNarrow) _sidebarOpen = false;
               }),
               dayCount: _dayCount,
@@ -1440,6 +1553,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _calendarOpen = false;
                 _statsOpen = false;
                 _scheduleOpen = false;
+                _todayOpen = false;
                 if (isNarrow) _sidebarOpen = false;
               }),
               onSelectGoal: () => setState(() {
@@ -1451,6 +1565,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _calendarOpen = false;
                 _statsOpen = false;
                 _scheduleOpen = false;
+                _todayOpen = false;
                 if (isNarrow) _sidebarOpen = false;
               }),
               noteCount: _memos.length,
@@ -1482,13 +1597,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   calendarOpen:     _calendarOpen,
                   statsOpen:        _statsOpen,
                   scheduleOpen:     _scheduleOpen,
+                  todayOpen:        _todayOpen,
                   tagsOpen:         _tagsOpen,
                   tasksOnly:        _tasksOnly,
                   onShowList:       () => setState(() { _calendarOpen = false; _statsOpen = false; _scheduleOpen = false; _tagsOpen = false; _tasksOnly = false; _todayOpen = false; }),
                   onShowCal:        () => setState(() {
-                    _calendarOpen = true;
+                    _calendarOpen  = true;
                     _selectedTabId = null;
-                    _statsOpen = false;
+                    _statsOpen     = false;
+                    _scheduleOpen  = false;
+                    _todayOpen     = false;
+                    _tagsOpen      = false;
+                    _tasksOnly     = false;
+                    _selectedTag   = null;
+                    if (isNarrow) _sidebarOpen = false;
+                  }),
+                  onSelectStats:    () => setState(() {
+                    _statsOpen     = true;
+                    _calendarOpen  = false;
+                    _scheduleOpen  = false;
+                    _todayOpen     = false;
+                    _tagsOpen      = false;
+                    _tasksOnly     = false;
+                    _selectedTabId = null;
+                    if (isNarrow) _sidebarOpen = false;
+                  }),
+                  onSelectToday:    () => setState(() {
+                    _todayOpen     = true;
+                    _calendarOpen  = false;
+                    _statsOpen     = false;
+                    _scheduleOpen  = false;
+                    _tagsOpen      = false;
+                    _tasksOnly     = false;
+                    _selectedTabId = null;
+                    if (isNarrow) _sidebarOpen = false;
                   }),
                   searchOpen:       _searchOpen,
                   onSearchTap:      () { if (_searchOpen) { _closeSearch(); } else { _openSearch(); } },
@@ -1503,6 +1645,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _statsOpen = false;
                     _tasksOnly = false;
                     _tagsOpen = false;
+                    _todayOpen = false;
                   }),
                   onSelectSchedule: () => setState(() {
                     _scheduleOpen = true;
@@ -1510,6 +1653,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _calendarOpen = false;
                     _tasksOnly = false;
                     _tagsOpen = false;
+                    _todayOpen = false;
                     _selectedTabId = null;
                     if (isNarrow) _sidebarOpen = false;
                   }),
@@ -1519,6 +1663,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _statsOpen = false;
                     _scheduleOpen = false;
                     _tagsOpen = false;
+                    _todayOpen = false;
                     _selectedTag = null;
                     _selectedFolderId = null;
                     _selectedTabId = null;
@@ -1530,6 +1675,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _calendarOpen = false;
                     _statsOpen = false;
                     _scheduleOpen = false;
+                    _todayOpen = false;
                     _selectedTag = null;
                     _selectedFolderId = null;
                     _selectedTabId = null;
@@ -1544,6 +1690,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _calendarOpen = false;
                     _statsOpen = false;
                     _scheduleOpen = false;
+                    _todayOpen = false;
                     if (isNarrow) _sidebarOpen = false;
                   }),
                   onSelectGoal:     () => setState(() {
@@ -1555,6 +1702,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _calendarOpen = false;
                     _statsOpen = false;
                     _scheduleOpen = false;
+                    _todayOpen = false;
                     if (isNarrow) _sidebarOpen = false;
                   }),
                   onSettings:       _showSettings,
@@ -1671,7 +1819,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: CalendarView(
                       memos:             _memos,
                       actions:           _memoActions,
-                      onAddMemo:         (c, d, isCl, rem, imgs, rep) => _addMemoOnDate(c, d, isCl, rem, imgs, rep),
+                      onAddMemo:         (c, d, isCl, rem, imgs, rep, sched,
+                              rangeEnd, schedRep, endType, endCount, endDate) =>
+                          _addMemoOnDate(c, d, isCl, rem, imgs, rep, sched,
+                              rangeEnd, schedRep, endType, endCount, endDate),
                       highlightedMemoId: _highlightedMemoId,
                     ),
                   ),
@@ -2109,10 +2260,13 @@ class _AppHeader extends StatelessWidget {
   final bool calendarOpen;
   final bool statsOpen;
   final bool scheduleOpen;
+  final bool todayOpen;
   final bool tagsOpen;
   final bool tasksOnly;
   final VoidCallback onShowList;
   final VoidCallback onShowCal;
+  final VoidCallback onSelectStats;
+  final VoidCallback onSelectToday;
   final bool searchOpen;
   final VoidCallback onSearchTap;
   final List<Folder> folders;
@@ -2135,10 +2289,13 @@ class _AppHeader extends StatelessWidget {
     required this.calendarOpen,
     required this.statsOpen,
     required this.scheduleOpen,
+    required this.todayOpen,
     required this.tagsOpen,
     required this.tasksOnly,
     required this.onShowList,
     required this.onShowCal,
+    required this.onSelectStats,
+    required this.onSelectToday,
     required this.searchOpen,
     required this.onSearchTap,
     required this.folders,
@@ -2191,31 +2348,49 @@ class _AppHeader extends StatelessWidget {
         child: Text('> tags', style: mono(color: tagsOpen ? kMint : kDim, fontSize: 12)),
       ),
       PopupMenuItem<String>(
+        value: '__calendar__',
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Text('> calendar', style: mono(color: calendarOpen ? kMint : kDim, fontSize: 12)),
+      ),
+      PopupMenuItem<String>(
+        value: '__today__',
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Text('> today', style: mono(color: todayOpen ? kMint : kDim, fontSize: 12)),
+      ),
+      PopupMenuItem<String>(
         value: '__schedule__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('> schedule', style: mono(color: kDim, fontSize: 12)),
+        child: Text('> event', style: mono(color: scheduleOpen ? kMint : kDim, fontSize: 12)),
       ),
       PopupMenuItem<String>(
         value: '__tasks__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('> tasks', style: mono(color: kDim, fontSize: 12)),
+        child: Text('> tasks', style: mono(color: tasksOnly ? kMint : kDim, fontSize: 12)),
       ),
       if (habitActivated)
         PopupMenuItem<String>(
           value: '__habits__',
           height: 30,
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('> habits', style: mono(color: kDim, fontSize: 12)),
+          child: Text('> habits', style: mono(color: selectedPath == '#habit' ? kMint : kDim, fontSize: 12)),
         ),
       if (goalActivated)
         PopupMenuItem<String>(
           value: '__goals__',
           height: 30,
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('> goals', style: mono(color: kDim, fontSize: 12)),
+          child: Text('> goals', style: mono(color: selectedPath == '#goal' ? kMint : kDim, fontSize: 12)),
         ),
+      PopupMenuItem<String>(
+        value: '__stats__',
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Text('> stats', style: mono(color: statsOpen ? kMint : kDim, fontSize: 12)),
+      ),
       PopupMenuItem<String>(
         enabled: false,
         height: 1,
@@ -2255,6 +2430,10 @@ class _AppHeader extends StatelessWidget {
       onSelectFolder(result.substring(7));
     } else if (result == '__tags__') {
       onSelectTags();
+    } else if (result == '__calendar__') {
+      onShowCal();
+    } else if (result == '__today__') {
+      onSelectToday();
     } else if (result == '__schedule__') {
       onSelectSchedule();
     } else if (result == '__tasks__') {
@@ -2263,6 +2442,8 @@ class _AppHeader extends StatelessWidget {
       onSelectHabit();
     } else if (result == '__goals__') {
       onSelectGoal();
+    } else if (result == '__stats__') {
+      onSelectStats();
     } else if (result == '__settings__') {
       onSettings();
     }
@@ -2331,8 +2512,8 @@ class _AppHeader extends StatelessWidget {
               children: [
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: (calendarOpen || statsOpen || scheduleOpen || tagsOpen || tasksOnly) ? onShowList : null,
-                  child: _ViewBtn(label: 'LIST', active: !calendarOpen && !statsOpen && !scheduleOpen && !tagsOpen && !tasksOnly),
+                  onTap: (calendarOpen || statsOpen || scheduleOpen || todayOpen || tagsOpen || tasksOnly) ? onShowList : null,
+                  child: _ViewBtn(label: 'LIST', active: !calendarOpen && !statsOpen && !scheduleOpen && !todayOpen && !tagsOpen && !tasksOnly),
                 ),
                 const SizedBox(width: 2),
                 _SearchToggleBtn(active: searchOpen, onTap: onSearchTap),
@@ -2764,7 +2945,8 @@ class _TagBrowseRowState extends State<_TagBrowseRow> {
               Text('# ', style: mono(color: kTeal, fontSize: 11)),
               Expanded(
                 child: Text(widget.tag,
-                    style: mono(color: _hovered ? kText : kDim, fontSize: 11)),
+                    style: mono(color: _hovered ? kText : kDim, fontSize: 11),
+                    overflow: TextOverflow.ellipsis),
               ),
               Text('${widget.count}',
                   style: mono(color: kDim.withValues(alpha: 0.45), fontSize: 10)),
