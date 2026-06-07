@@ -3,6 +3,7 @@ import '../models/memo.dart';
 import '../models/folder.dart';
 import '../models/quick_tab.dart';
 import 'backup_io.dart' if (dart.library.html) 'backup_web.dart';
+import 'txt_import_service.dart';
 
 class BackupService {
   static Map<String, dynamic> _buildData({
@@ -71,5 +72,13 @@ class BackupService {
     } catch (_) {
       return null;
     }
+  }
+
+  // TXT 파일을 선택하고 블록 단위로 파싱합니다.
+  static Future<List<String>?> importTxt() async {
+    final content = await platformPickTxtFile();
+    if (content == null) return null;
+    final blocks = parseTxtBlocks(content);
+    return blocks.isEmpty ? null : blocks;
   }
 }

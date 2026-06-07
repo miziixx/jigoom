@@ -32,3 +32,15 @@ Future<String?> platformPickFile() async {
   if (bytes == null) return null;
   return utf8.decode(bytes);
 }
+
+Future<String?> platformPickTxtFile() async {
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['txt'],
+    withData: true,
+  );
+  if (result == null || result.files.isEmpty) return null;
+  final bytes = result.files.first.bytes;
+  if (bytes == null) return null;
+  return utf8.decode(bytes);
+}

@@ -1950,6 +1950,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           onRestoreConfirmed: _applyBackupData,
           onClearCache: _clearAllCache,
+          onImportTxt: _importTxtMemos,
         ),
         transitionsBuilder: (_, anim, __, child) => SlideTransition(
           position: Tween<Offset>(
@@ -1960,6 +1961,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+
+  void _importTxtMemos(List<String> blocks) {
+    final now = DateTime.now();
+    final imported = List.generate(
+      blocks.length,
+      (i) => Memo(
+        id: (now.millisecondsSinceEpoch + i).toString(),
+        content: blocks[i],
+        createdAt: now.add(Duration(milliseconds: i)),
+        folderId: _selectedFolderId,
+      ),
+    );
+    setState(() => _memos.addAll(imported));
+    StorageService.saveMemos(_memos);
   }
 
   void _clearAllCache() {

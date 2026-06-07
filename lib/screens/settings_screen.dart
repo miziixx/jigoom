@@ -31,6 +31,7 @@ class SettingsScreen extends StatefulWidget {
   final void Function(Map<String, dynamic> data, {bool merge})
   onRestoreConfirmed;
   final VoidCallback onClearCache;
+  final void Function(List<String> blocks) onImportTxt;
 
   const SettingsScreen({
     super.key,
@@ -44,6 +45,7 @@ class SettingsScreen extends StatefulWidget {
     required this.onBackupSave,
     required this.onRestoreConfirmed,
     required this.onClearCache,
+    required this.onImportTxt,
   });
 
   @override
@@ -354,6 +356,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+  Future<void> _doImportTxt() async {
+    final blocks = await BackupService.importTxt();
+    if (!mounted) return;
+    if (blocks == null) {
+      _snack('파일을 읽을 수 없습니다.');
+      return;
+    }
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _TxtImportPreviewSheet(blocks: blocks),
+    );
+    if (confirmed != true || !mounted) return;
+    widget.onImportTxt(blocks);
+    _snack('${blocks.length}개 메모를 가져왔습니다.');
+  }
+
   Future<bool?> _showClearCacheConfirm() {
     return showDialog<bool>(
       context: context,
@@ -598,6 +618,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
 
+                      const SizedBox(height: 18),
+
+                      // ── TXT IMPORT ───────────────────────────
+                      _SectionHeader(label: 'TXT 가져오기'),
+                      const SizedBox(height: 14),
+
+                      _Btn(label: 'TXT 가져오기', color: kDim, onTap: _doImportTxt),
+                      const SizedBox(height: 8),
+                      Text(
+                        '일반 텍스트 / 카카오톡 나에게 보내기 백업용\n빈 줄 기준으로 메모를 분리합니다.',
+                        style: mono(
+                          color: kDim.withValues(alpha: 0.72),
+                          fontSize: 10,
+                          height: 1.55,
+                        ),
+                      ),
+
                       const SizedBox(height: 28),
                       _dotLine(),
                       const SizedBox(height: 14),
@@ -657,6 +694,107 @@ class _SettingsScreenState extends State<SettingsScreen> {
     maxLines: 1,
     softWrap: false,
   );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// TXT import preview sheet
+// ──────────────────────────────────────────────────────────────────
+
+class _TxtImportPreviewSheet extends StatelessWidget {
+  final List<String> blocks;
+
+  const _TxtImportPreviewSheet({required this.blocks});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kSurface,
+        border: Border(top: BorderSide(color: kBorder)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.75,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: kBorder)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TXT 가져오기 미리보기',
+                  style: mono(color: kMint, fontSize: 13, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '총 ${blocks.length}개 메모',
+                  style: mono(color: kDim, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              itemCount: blocks.length,
+              separatorBuilder: (_, __) =>
+                  Container(height: 1, color: kBorder),
+              itemBuilder: (_, i) {
+                final preview = blocks[i].split('\n').take(3).join('\n');
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '[${i + 1}]',
+                        style: mono(color: kDim, fontSize: 10),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        preview,
+                        style: mono(color: kText, fontSize: 12, height: 1.4),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: kBorder)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _Btn(
+                  label: '취소',
+                  color: kDim,
+                  onTap: () => Navigator.pop(context, false),
+                ),
+                const SizedBox(width: 10),
+                _Btn(
+                  label: '가져오기',
+                  color: kMint,
+                  onTap: () => Navigator.pop(context, true),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────
