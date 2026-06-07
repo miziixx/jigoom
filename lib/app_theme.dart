@@ -28,6 +28,16 @@ double kSpacing = 12.0;
 
 const kSpacingOptions = [0.0, 4.0, 8.0, 12.0, 16.0, 20.0, 24.0];
 
+// Typography scale — spec values passed to mono(fontSize: ts*)
+// mono() applies kFontSize/13 ratio, so all levels scale together with the slider.
+const double tsDisplay = 15.0; // 큰 제목  (base+2)
+const double tsHeading = 14.0; // 제목급   (base+1)
+const double tsBody    = 13.0; // 본문     (base)
+const double tsAlt     = 12.0; // 댓글, 날짜헤더, Today (base-1)
+const double tsSmall   = 11.0; // 태그, 링크 (base-2)
+const double tsMeta    = 10.0; // 메타정보 (base-3)
+const double tsTiny    =  9.0; // 작은 보조 (base-4)
+
 final themeNotifier = ValueNotifier<int>(0);
 
 enum AppThemeMode { normal, dos, minimal }

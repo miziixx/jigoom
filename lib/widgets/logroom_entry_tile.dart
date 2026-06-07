@@ -293,7 +293,14 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
       builder: (ctx) => Dialog(
         backgroundColor: kSurface,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        child: Padding(
+        insetPadding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -363,6 +370,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
               ),
             ],
           ),
+          ),
         ),
       ),
     );
@@ -375,7 +383,14 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
       builder: (ctx) => Dialog(
         backgroundColor: kSurface,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        child: Padding(
+        insetPadding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -431,6 +446,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                 ],
               ),
             ],
+          ),
           ),
         ),
       ),
@@ -649,13 +665,13 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                     GestureDetector(
                       onTap: isTaskMemo ? _toggleTask : null,
                       behavior: HitTestBehavior.opaque,
-                      child: logroomPrefixText(memo, fontSize: 10),
+                      child: logroomPrefixText(memo, fontSize: tsMeta),
                     ),
-                    Text(displayTime, style: mono(color: kDim, fontSize: 10)),
+                    Text(displayTime, style: mono(color: kDim, fontSize: tsMeta)),
                     if (scheduleMeta != null)
                       Text(
                         '· $scheduleMeta',
-                        style: mono(color: kTeal, fontSize: 10),
+                        style: mono(color: kTeal, fontSize: tsMeta),
                       ),
                   ],
                 ),
@@ -721,7 +737,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                     visibleTags,
                     style: mono(
                       color: kTeal.withValues(alpha: 0.75),
-                      fontSize: 10,
+                      fontSize: tsSmall,
                       height: 1.35,
                     ),
                     softWrap: true,
@@ -740,7 +756,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                       onTap: _addNote,
                       child: Text(
                         memo.appendNotes.isEmpty ? '+ 댓글 추가' : '+ 댓글',
-                        style: mono(color: kTeal, fontSize: 9),
+                        style: mono(color: kTeal, fontSize: tsTiny),
                       ),
                     ),
                     if (memo.imagePaths.isNotEmpty)
@@ -858,7 +874,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
             width: 72,
             child: Text(
               logroomTime(memo.createdAt),
-              style: mono(color: kDim, fontSize: 8, height: 1.35),
+              style: mono(color: kDim, fontSize: tsMeta, height: 1.35),
               maxLines: 1,
             ),
           ),
@@ -883,7 +899,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                     padding: const EdgeInsets.only(bottom: 2),
                     child: Text(
                       '일정 $scheduleMeta',
-                      style: mono(color: kTeal, fontSize: 9, height: 1.3),
+                      style: mono(color: kTeal, fontSize: tsMeta, height: 1.3),
                     ),
                   ),
                 if (shouldRenderChecklistLines)
@@ -900,7 +916,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                     '내용 없음',
                     style: mono(
                       color: kDim.withValues(alpha: 0.6),
-                      fontSize: kFontSize,
+                      fontSize: tsBody,
                     ),
                   ),
                 if (links.isNotEmpty) ...[
@@ -916,10 +932,10 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                       if (memo.reminderAt != null)
                         Text(
                           '알림 ${logroomShortDateTime(memo.reminderAt!)}',
-                          style: mono(color: kDim, fontSize: 8),
+                          style: mono(color: kDim, fontSize: tsTiny),
                         ),
                       if (repeat)
-                        Text('반복', style: mono(color: kDim, fontSize: 8)),
+                        Text('반복', style: mono(color: kDim, fontSize: tsTiny)),
                     ],
                   ),
                 ],
@@ -931,7 +947,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                     children: visibleTags.map((tag) {
                       final text = Text(
                         '#$tag',
-                        style: mono(color: kTeal, fontSize: 8, height: 1.25),
+                        style: mono(color: kTeal, fontSize: tsSmall, height: 1.25),
                       );
                       final onTagTap = widget.actions.onTagTap;
                       if (onTagTap == null) return text;
@@ -956,7 +972,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                         memo.appendNotes.isEmpty
                             ? '댓글 추가'
                             : '댓글 ${memo.appendNotes.length}개',
-                        style: mono(color: kDim, fontSize: 8),
+                        style: mono(color: kDim, fontSize: tsTiny),
                       ),
                     ),
                     if (memo.appendNotes.isNotEmpty)
@@ -965,13 +981,13 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                         onTap: _addNote,
                         child: Text(
                           '+',
-                          style: mono(color: kTeal, fontSize: 8),
+                          style: mono(color: kTeal, fontSize: tsTiny),
                         ),
                       ),
                     if (memo.imagePaths.isNotEmpty)
                       Text(
                         '이미지 ${memo.imagePaths.length}',
-                        style: mono(color: kDim, fontSize: 8),
+                        style: mono(color: kDim, fontSize: tsTiny),
                       ),
                   ],
                 ),
@@ -1116,14 +1132,14 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                         onTap: isTaskMemo ? _toggleTask : null,
                         child: Text(
                           '$type ${logroomTime(memo.createdAt)}',
-                          style: mono(color: kMint, fontSize: 11),
+                          style: mono(color: kMint, fontSize: tsSmall),
                         ),
                       ),
                       if (memo.scheduledAt != null)
                         Expanded(
                           child: Text(
                             '  SCHED ${logroomShortDateTime(memo.scheduledAt!)}',
-                            style: mono(color: kTeal, fontSize: 10),
+                            style: mono(color: kTeal, fontSize: tsMeta),
                             overflow: TextOverflow.ellipsis,
                           ),
                         )
@@ -1134,7 +1150,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                         onTap: _showMoreMenu,
                         child: Text(
                           '[ EDIT ]',
-                          style: mono(color: kTeal, fontSize: 10),
+                          style: mono(color: kTeal, fontSize: tsMeta),
                         ),
                       ),
                     ],
@@ -1150,7 +1166,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                   else if (displayText.isNotEmpty)
                     _FullContentText(text: displayText, onTap: widget.onTap)
                   else if (links.isEmpty)
-                    Text('NO CONTENT.', style: mono(color: kDim, fontSize: 11)),
+                    Text('NO CONTENT.', style: mono(color: kDim, fontSize: tsSmall)),
                   if (links.isNotEmpty) ...[
                     const SizedBox(height: 5),
                     ...links.map((url) => _DosLinkRow(url: url)),
@@ -1159,19 +1175,19 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                     const SizedBox(height: 4),
                     Text(
                       '[ALARM] ${logroomShortDateTime(memo.reminderAt!)}',
-                      style: mono(color: kTeal, fontSize: 10),
+                      style: mono(color: kTeal, fontSize: tsMeta),
                     ),
                   ],
                   if (visibleTags.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(visibleTags, style: mono(color: kTeal, fontSize: 10)),
+                    Text(visibleTags, style: mono(color: kTeal, fontSize: tsSmall)),
                   ],
                   if (memo.appendNotes.isNotEmpty ||
                       memo.imagePaths.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       '${memo.appendNotes.isNotEmpty ? '[COMMENTS:${memo.appendNotes.length}] ' : ''}${memo.imagePaths.isNotEmpty ? '[IMG:${memo.imagePaths.length}]' : ''}',
-                      style: mono(color: kDim, fontSize: 10),
+                      style: mono(color: kDim, fontSize: tsMeta),
                     ),
                   ],
                   const SizedBox(height: 4),
@@ -1180,7 +1196,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                     onTap: _addNote,
                     child: Text(
                       memo.appendNotes.isEmpty ? '[ COMMENT + ]' : '[ + ]',
-                      style: mono(color: kTeal, fontSize: 10),
+                      style: mono(color: kTeal, fontSize: tsTiny),
                     ),
                   ),
                   if (memo.appendNotes.isNotEmpty)
@@ -1259,7 +1275,7 @@ class _FullContentText extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = Text(
       text,
-      style: mono(color: kText, fontSize: kFontSize, height: 1.45),
+      style: mono(color: kText, fontSize: tsBody, height: 1.45),
       softWrap: true,
     );
 
@@ -1284,7 +1300,7 @@ class _MinimalContentText extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = Text(
       text,
-      style: mono(color: kText, fontSize: kFontSize, height: 1.38),
+      style: mono(color: kText, fontSize: tsBody, height: 1.38),
       softWrap: true,
     );
 
@@ -1329,7 +1345,7 @@ class _MinimalTypeLabel extends StatelessWidget {
         label,
         style: mono(
           color: checked ? _doneAccentColor() : kMint,
-          fontSize: 7,
+          fontSize: tsTiny,
           fontWeight: FontWeight.w600,
           height: 1.15,
         ),
@@ -1367,7 +1383,7 @@ class _ChecklistContent extends StatelessWidget {
         if (!checked && !unchecked) {
           return Text(
             text,
-            style: mono(color: kText, fontSize: kFontSize, height: 1.45),
+            style: mono(color: kText, fontSize: tsBody, height: 1.45),
           );
         }
         return Padding(
@@ -1399,7 +1415,7 @@ class _ChecklistContent extends StatelessWidget {
                     style:
                         mono(
                           color: checked ? _doneTextColor() : kText,
-                          fontSize: kFontSize,
+                          fontSize: tsBody,
                           height: 1.45,
                         ).copyWith(
                           decoration: checked
@@ -1470,7 +1486,7 @@ class _MinimalChecklistContent extends StatelessWidget {
                     style:
                         mono(
                           color: checked ? _doneTextColor() : kText,
-                          fontSize: kFontSize,
+                          fontSize: tsBody,
                           height: 1.38,
                         ).copyWith(
                           decoration: checked
@@ -1584,7 +1600,7 @@ class _DosChecklistContent extends StatelessWidget {
                     style:
                         mono(
                           color: checked ? _doneTextColor() : kText,
-                          fontSize: kFontSize,
+                          fontSize: tsBody,
                           height: 1.35,
                         ).copyWith(
                           decoration: checked
@@ -1630,7 +1646,7 @@ class _LinkRow extends StatelessWidget {
         padding: const EdgeInsets.only(top: 2),
         child: Text(
           '🔗 $_label',
-          style: mono(color: kTeal, fontSize: 10, height: 1.35),
+          style: mono(color: kTeal, fontSize: tsSmall, height: 1.35),
           softWrap: true,
           overflow: TextOverflow.ellipsis,
           maxLines: 2,
@@ -1663,7 +1679,7 @@ class _DosLinkRow extends StatelessWidget {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
         }
       },
-      child: Text('[LINK] $_label', style: mono(color: kTeal, fontSize: 10)),
+      child: Text('[LINK] $_label', style: mono(color: kTeal, fontSize: tsSmall)),
     );
   }
 }
@@ -1693,7 +1709,7 @@ class _MinimalLinkRow extends StatelessWidget {
       },
       child: Text(
         '링크 $_label',
-        style: mono(color: kTeal, fontSize: 8, height: 1.3),
+        style: mono(color: kTeal, fontSize: tsSmall, height: 1.3),
         softWrap: true,
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
@@ -1722,7 +1738,7 @@ class _InlineNoteRow extends StatelessWidget {
       onTap: onEdit,
       onLongPress: onDelete,
       child: Padding(
-        padding: const EdgeInsets.only(top: 1, bottom: 1),
+        padding: const EdgeInsets.only(top: 2, bottom: 3),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1732,8 +1748,8 @@ class _InlineNoteRow extends StatelessWidget {
                 'ㄴ',
                 style: mono(
                   color: kDim.withValues(alpha: 0.74),
-                  fontSize: 10,
-                  height: 1.24,
+                  fontSize: tsSmall,
+                  height: 1.45,
                 ),
               ),
             ),
@@ -1742,10 +1758,11 @@ class _InlineNoteRow extends StatelessWidget {
                 content,
                 style: mono(
                   color: kDim.withValues(alpha: 0.78),
-                  fontSize: 10,
-                  height: 1.24,
+                  fontSize: tsSmall,
+                  height: 1.45,
                 ),
                 softWrap: true,
+                overflow: TextOverflow.visible,
               ),
             ),
           ],

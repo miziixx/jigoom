@@ -314,14 +314,14 @@ class _TodayScreenState extends State<TodayScreen> {
                     text: 'TODAY',
                     style: mono(
                       color: kMint,
-                      fontSize: 12,
+                      fontSize: tsAlt,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
                     ),
                   ),
                   TextSpan(
                     text: '  ${_dateStr()}',
-                    style: mono(color: kDim, fontSize: 11),
+                    style: mono(color: kDim, fontSize: tsSmall),
                   ),
                 ],
               ),
@@ -373,7 +373,7 @@ class _TodayScreenState extends State<TodayScreen> {
       return Center(
         child: Text(
           '섹션 없음 — 편집에서 추가하세요',
-          style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+          style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
         ),
       );
     }
@@ -587,7 +587,7 @@ class _LogroomTodaySection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
             child: Text(
               '비어 있음',
-              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
             ),
           )
         else
@@ -624,7 +624,7 @@ class _LogroomTodayRow extends StatelessWidget {
                 width: mode == EntryDisplayMode.text ? 58 : 64,
                 child: Text(
                   logroomPrefix(memo, mode),
-                  style: mono(color: kText, fontSize: 11),
+                  style: mono(color: kText, fontSize: tsSmall),
                 ),
               ),
               const SizedBox(width: 8),
@@ -634,7 +634,7 @@ class _LogroomTodayRow extends StatelessWidget {
                   children: [
                     Text(
                       logroomTitle(memo),
-                      style: mono(color: kText, fontSize: 12, height: 1.35),
+                      style: mono(color: kText, fontSize: tsAlt, height: 1.35),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -645,24 +645,24 @@ class _LogroomTodayRow extends StatelessWidget {
                       children: [
                         Text(
                           logroomTime(memo.createdAt),
-                          style: mono(color: kDim, fontSize: 10),
+                          style: mono(color: kDim, fontSize: tsMeta),
                         ),
                         if (tags.isNotEmpty)
                           Text(
                             tags.map((t) => '#$t').join(' '),
-                            style: mono(color: kDim, fontSize: 10),
+                            style: mono(color: kDim, fontSize: tsMeta),
                           ),
                         if (memo.scheduledAt != null)
-                          Text('일정 있음', style: mono(color: kDim, fontSize: 10)),
+                          Text('일정 있음', style: mono(color: kDim, fontSize: tsMeta)),
                         if (memo.appendNotes.isNotEmpty)
                           Text(
                             '댓글 ${memo.appendNotes.length}',
-                            style: mono(color: kDim, fontSize: 10),
+                            style: mono(color: kDim, fontSize: tsMeta),
                           ),
                         if (memo.imagePaths.isNotEmpty)
                           Text(
                             '첨부 ${memo.imagePaths.length}',
-                            style: mono(color: kDim, fontSize: 10),
+                            style: mono(color: kDim, fontSize: tsMeta),
                           ),
                       ],
                     ),
@@ -699,7 +699,7 @@ class _LogroomTodoSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
             child: Text(
               '비어 있음',
-              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
             ),
           )
         else
@@ -744,7 +744,7 @@ class _LogroomTodoRow extends StatelessWidget {
                         logroomPrefix(memo, mode),
                         style: mono(
                           color: item.done ? _todayDoneTextColor() : kText,
-                          fontSize: 11,
+                          fontSize: tsSmall,
                         ),
                       ),
                     ),
@@ -754,7 +754,7 @@ class _LogroomTodoRow extends StatelessWidget {
                         item.text,
                         style: mono(
                           color: item.done ? _todayDoneTextColor() : kText,
-                          fontSize: 12,
+                          fontSize: tsAlt,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -901,7 +901,7 @@ class _HabitsSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
             child: Text(
               '오늘 #habit 메모 없음',
-              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
             ),
           )
         else
@@ -924,11 +924,11 @@ class _HabitRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
       child: Row(
         children: [
-          Text('· ', style: mono(color: kDim, fontSize: 12)),
+          Text('· ', style: mono(color: kDim, fontSize: tsAlt)),
           Expanded(
             child: Text(
               display,
-              style: mono(color: kDim, fontSize: 12),
+              style: mono(color: kDim, fontSize: tsAlt),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -957,7 +957,7 @@ class _UpcomingSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
             child: Text(
               '오늘 일정 없음',
-              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
             ),
           )
         else
@@ -987,7 +987,7 @@ class _EventRow extends StatelessWidget {
             width: 64,
             child: Text(
               timeStr,
-              style: mono(color: kDim, fontSize: 10),
+              style: mono(color: kDim, fontSize: tsMeta),
               maxLines: 1,
               softWrap: false,
               overflow: TextOverflow.visible,
@@ -998,7 +998,7 @@ class _EventRow extends StatelessWidget {
           Expanded(
             child: Text(
               memo.content,
-              style: mono(color: kText, fontSize: 12),
+              style: mono(color: kText, fontSize: tsAlt),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -1028,7 +1028,7 @@ class _MemosSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
             child: Text(
               '오늘 메모 없음',
-              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
             ),
           )
         else
@@ -1063,7 +1063,7 @@ class _MemoRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(timeStr, style: mono(color: kDim, fontSize: 10)),
+          Text(timeStr, style: mono(color: kDim, fontSize: tsMeta)),
           const SizedBox(height: 2),
           Container(
             padding: const EdgeInsets.only(left: 8),
@@ -1072,7 +1072,7 @@ class _MemoRow extends StatelessWidget {
             ),
             child: Text(
               memo.content,
-              style: mono(color: kText, fontSize: 12, height: 1.4),
+              style: mono(color: kText, fontSize: tsAlt, height: 1.4),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -1107,7 +1107,7 @@ class _TodoSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
             child: Text(
               '오늘 할일 없음',
-              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
             ),
           )
         else
@@ -1211,7 +1211,7 @@ class _TodoRow extends StatelessWidget {
                     item.text,
                     style: mono(
                       color: item.done ? _todayDoneTextColor() : kText,
-                      fontSize: 12,
+                      fontSize: tsAlt,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

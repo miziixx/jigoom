@@ -1091,11 +1091,11 @@ class _MemoTileState extends State<MemoTile> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.memo.timeStr, style: mono(color: kDim, fontSize: 10)),
+            Text(widget.memo.timeStr, style: mono(color: kDim, fontSize: tsMeta)),
             const SizedBox(height: 3),
             Text(
               preview.isEmpty ? '...' : preview,
-              style: mono(color: kText, fontSize: 11),
+              style: mono(color: kText, fontSize: tsSmall),
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
             ),
@@ -1249,14 +1249,14 @@ class _MemoTileState extends State<MemoTile> {
                           children: [
                             Text(
                               widget.memo.timeStr,
-                              style: mono(color: kDim, fontSize: 11),
+                              style: mono(color: kDim, fontSize: tsMeta),
                             ),
                             ...tags.map(
                               (t) => GestureDetector(
                                 onTap: () => _a.onTagTap?.call(t),
                                 child: Text(
                                   '#$t',
-                                  style: mono(color: kTeal, fontSize: 11),
+                                  style: mono(color: kTeal, fontSize: tsSmall),
                                 ),
                               ),
                             ),
@@ -1266,17 +1266,17 @@ class _MemoTileState extends State<MemoTile> {
                                 onDoubleTap: _showScheduleDialog,
                                 child: RichText(
                                   text: TextSpan(
-                                    style: mono(fontSize: 10),
+                                    style: mono(fontSize: tsMeta),
                                     children: [
                                       TextSpan(
                                         text: 'event ',
-                                        style: mono(color: kTeal, fontSize: 10),
+                                        style: mono(color: kTeal, fontSize: tsMeta),
                                       ),
                                       TextSpan(
                                         text: _fmtReminder(
                                           widget.memo.scheduledAt!,
                                         ),
-                                        style: mono(color: kDim, fontSize: 10),
+                                        style: mono(color: kDim, fontSize: tsMeta),
                                       ),
                                     ],
                                   ),
@@ -1288,16 +1288,16 @@ class _MemoTileState extends State<MemoTile> {
                                 onDoubleTap: _showReminderDialog,
                                 child: RichText(
                                   text: TextSpan(
-                                    style: mono(fontSize: 10),
+                                    style: mono(fontSize: tsMeta),
                                     children: [
                                       TextSpan(
                                         text: 'task ',
-                                        style: mono(color: kMint, fontSize: 10),
+                                        style: mono(color: kMint, fontSize: tsMeta),
                                       ),
                                       TextSpan(
                                         text:
                                             '${_fmtReminder(widget.memo.reminderAt!)}${repeatLabel(widget.memo.reminderRepeat)}',
-                                        style: mono(color: kDim, fontSize: 10),
+                                        style: mono(color: kDim, fontSize: tsMeta),
                                       ),
                                     ],
                                   ),
@@ -1412,7 +1412,7 @@ class _MemoTileState extends State<MemoTile> {
           children: [
             Text(
               '∟ $timeStr',
-              style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5),
+              style: mono(color: kDim, fontSize: tsMeta, letterSpacing: 0.5),
             ),
             const SizedBox(height: 6),
             TextField(
@@ -1467,7 +1467,7 @@ class _MemoTileState extends State<MemoTile> {
               children: [
                 Text(
                   '∟ $timeStr',
-                  style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5),
+                  style: mono(color: kDim, fontSize: tsMeta, letterSpacing: 0.5),
                 ),
                 const Spacer(),
                 GestureDetector(
@@ -1489,11 +1489,11 @@ class _MemoTileState extends State<MemoTile> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('• ', style: mono(color: kText, fontSize: 12)),
+                Text('• ', style: mono(color: kText, fontSize: tsSmall)),
                 Expanded(
                   child: Text(
                     note.content,
-                    style: mono(color: kText, fontSize: 12, height: 1.5),
+                    style: mono(color: kText, fontSize: tsSmall, height: 1.5),
                   ),
                 ),
               ],
@@ -1624,7 +1624,7 @@ class _MemoTileState extends State<MemoTile> {
             child: Text.rich(
               _parseInline(
                 clean,
-                mono(color: kText, fontSize: 13, height: 1.55),
+                mono(color: kText, fontSize: tsBody, height: 1.55),
               ),
             ),
           );
@@ -1643,14 +1643,14 @@ class _MemoTileState extends State<MemoTile> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('• ', style: mono(color: kText, fontSize: 13)),
+          Text('• ', style: mono(color: kText, fontSize: tsBody)),
           Expanded(
             child: GestureDetector(
               onTap: () => _startEditingCheckItem(lineIndex, text),
               child: Text.rich(
                 _parseInline(
                   text,
-                  mono(color: kText, fontSize: 13, height: 1.5),
+                  mono(color: kText, fontSize: tsBody, height: 1.5),
                 ),
               ),
             ),
@@ -1683,7 +1683,7 @@ class _MemoTileState extends State<MemoTile> {
     final textStyle =
         mono(
           color: checked ? _memoDoneTextColor() : kText,
-          fontSize: 13,
+          fontSize: tsBody,
           height: 1.5,
         ).copyWith(
           decoration: checked ? TextDecoration.lineThrough : null,
@@ -1705,7 +1705,7 @@ class _MemoTileState extends State<MemoTile> {
                   checked ? '✓ ' : '□ ',
                   style: mono(
                     color: checked ? _memoDoneAccentColor() : kMint,
-                    fontSize: 13,
+                    fontSize: tsBody,
                   ),
                 ),
               ),
@@ -1994,7 +1994,7 @@ class _MemoTileState extends State<MemoTile> {
   }
 
   Widget _buildRichContent(String content) {
-    final base = mono(color: kText, fontSize: 13, height: 1.55);
+    final base = mono(color: kText, fontSize: tsBody, height: 1.55);
     final lines = content.replaceAll(_tagRe, '').split('\n');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2102,12 +2102,12 @@ class _MemoTileState extends State<MemoTile> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(widget.memo.timeStr, style: mono(color: kDim, fontSize: 11)),
+              Text(widget.memo.timeStr, style: mono(color: kDim, fontSize: tsMeta)),
               const SizedBox(height: 6),
               TextField(
                 controller: _editController,
                 focusNode: _editFocusNode,
-                style: mono(fontSize: 13, height: 1.6),
+                style: mono(fontSize: tsBody, height: 1.6),
                 maxLines: null,
                 cursorColor: kMint,
                 cursorWidth: 2,

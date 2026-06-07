@@ -87,7 +87,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
                   label,
                   style: mono(
                     color: isToday ? kMint : kDim,
-                    fontSize: 8,
+                    fontSize: tsSmall,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.8,
                   ),
@@ -97,7 +97,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
               ),
               Text(
                 _collapsed ? '▶' : '▼',
-                style: mono(color: kDim.withValues(alpha: 0.75), fontSize: 8),
+                style: mono(color: kDim.withValues(alpha: 0.75), fontSize: tsTiny),
               ),
             ],
           ),
@@ -129,7 +129,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
                 label,
                 style: mono(
                   color: isToday ? kMint : kDim,
-                  fontSize: 9,
+                  fontSize: tsAlt,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.5,
                 ),
@@ -144,7 +144,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
               const SizedBox(width: 6),
               Text(
                 _collapsed ? '▶' : '▼',
-                style: mono(color: kDim, fontSize: 8),
+                style: mono(color: kDim, fontSize: tsTiny),
               ),
             ],
           ),
@@ -174,7 +174,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
                 icon,
                 style: mono(
                   color: kBg,
-                  fontSize: 11,
+                  fontSize: tsAlt,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -183,7 +183,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
                   label,
                   style: mono(
                     color: kBg,
-                    fontSize: 11,
+                    fontSize: tsAlt,
                     fontWeight: FontWeight.w600,
                     letterSpacing: isToday ? 0.8 : 0.4,
                   ),
