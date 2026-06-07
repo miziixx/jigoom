@@ -146,6 +146,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
 
   // ── Time ────────────────────────────────────────────────────
   late int _hour, _minute;
+  late int _endHour, _endMinute; // event mode 종료 시간
 
   // ── Repeat ──────────────────────────────────────────────────
   _RepeatUnit? _repeatUnit; // null = OFF
@@ -211,6 +212,20 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
     _repeatEndDateVal = widget.repeatEndDate;
     _notifyForEvent =
         widget.mode == ScheduleSheetMode.event && widget.initialNotifyForEvent;
+
+    // End time: rangeEndDate 시간 또는 시작+1h 기본값
+    if (widget.mode == ScheduleSheetMode.event) {
+      if (widget.rangeEndDate != null) {
+        _endHour = widget.rangeEndDate!.hour;
+        _endMinute = widget.rangeEndDate!.minute;
+      } else {
+        _endHour = (_hour + 1) % 24;
+        _endMinute = _minute;
+      }
+    } else {
+      _endHour = 0;
+      _endMinute = 0;
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────────────
@@ -337,6 +352,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
     if (r != null && mounted) setState(() => _calMonth = r);
   }
 
+
   void _selectQuick(int daysFromNow) {
     final d = DateTime.now().add(Duration(days: daysFromNow));
     setState(() {
@@ -363,6 +379,9 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
       if (_selDay == null) return;
       try {
         dt = DateTime(_calYear, _calMonth, _selDay!, _hour, _minute);
+        if (widget.mode == ScheduleSheetMode.event) {
+          rangeEnd = DateTime(_calYear, _calMonth, _selDay!, _endHour, _endMinute);
+        }
       } catch (_) {
         return;
       }
@@ -376,13 +395,14 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
           _hour,
           _minute,
         );
-        if (_rangeEnd != null) {
+        if (widget.mode == ScheduleSheetMode.event) {
+          final endDate = _rangeEnd ?? _rangeStart!;
           rangeEnd = DateTime(
-            _rangeEnd!.year,
-            _rangeEnd!.month,
-            _rangeEnd!.day,
-            _hour,
-            _minute,
+            endDate.year,
+            endDate.month,
+            endDate.day,
+            _endHour,
+            _endMinute,
           );
         }
       } catch (_) {
@@ -439,8 +459,11 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                     children: [
                       _buildDateSection(),
                       _buildTimeSection(),
+                      if (widget.mode == ScheduleSheetMode.event)
+                        _buildAlarmSection(),
                       _buildRepeatSection(),
                       if (_repeatOn) _buildRepeatEndSection(),
+                      _buildSummarySection(),
                       _buildActions(),
                     ],
                   ),
@@ -541,34 +564,6 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
             ),
           ),
 
-        if (widget.mode == ScheduleSheetMode.event)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => _notifyForEvent = !_notifyForEventOn),
-              child: Row(
-                children: [
-                  Text(
-                    _notifyForEventOn ? '✓' : '□',
-                    style: mono(
-                      color: _notifyForEventOn ? kMint : kDim,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '일정 시간에 알림 받기',
-                      style: mono(color: kDim, fontSize: 12),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
         // Calendar — highlight mode indicator when picking repeat-end
         if (_calTarget == _CalTarget.repeatEndDate)
           Padding(
@@ -610,84 +605,59 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
   // ── TIME section ─────────────────────────────────────────────
 
   Widget _buildTimeSection() {
+    final isEvent = widget.mode == ScheduleSheetMode.event;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SectionHeader(title: 'TIME'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _TimeBtn(
-                    label: '+',
-                    tapStep: 1,
-                    holdStep: 1,
-                    onStep: (s) =>
-                        setState(() => _hour = (_hour + s + 24) % 24),
-                  ),
-                  const SizedBox(width: 60),
-                  _TimeBtn(
-                    label: '+',
-                    tapStep: 1,
-                    holdStep: 1,
-                    onStep: (s) =>
-                        setState(() => _minute = (_minute + s + 60) % 60),
-                  ),
-                ],
+              _buildTimeRow(
+                label: isEvent ? '시작' : '시간',
+                hour: _hour,
+                minute: _minute,
+                onHourChanged: (v) => setState(() => _hour = v),
+                onMinuteChanged: (v) => setState(() => _minute = v),
               ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _hour.toString().padLeft(2, '0'),
-                    style: mono(
-                      color: kMint,
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text(':', style: mono(color: kDim, fontSize: 36)),
-                  ),
-                  Text(
-                    _minute.toString().padLeft(2, '0'),
-                    style: mono(
-                      color: kMint,
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _TimeBtn(
-                    label: '−',
-                    tapStep: -1,
-                    holdStep: -1,
-                    onStep: (s) =>
-                        setState(() => _hour = (_hour + s + 24) % 24),
-                  ),
-                  const SizedBox(width: 60),
-                  _TimeBtn(
-                    label: '−',
-                    tapStep: -1,
-                    holdStep: -1,
-                    onStep: (s) =>
-                        setState(() => _minute = (_minute + s + 60) % 60),
-                  ),
-                ],
-              ),
+              if (isEvent) ...[
+                const SizedBox(height: 6),
+                _buildTimeRow(
+                  label: '종료',
+                  hour: _endHour,
+                  minute: _endMinute,
+                  onHourChanged: (v) => setState(() => _endHour = v),
+                  onMinuteChanged: (v) => setState(() => _endMinute = v),
+                ),
+              ],
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildTimeRow({
+    required String label,
+    required int hour,
+    required int minute,
+    required void Function(int) onHourChanged,
+    required void Function(int) onMinuteChanged,
+  }) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 34,
+          child: Text(label, style: mono(color: kDim, fontSize: 12)),
+        ),
+        _CompactTimeInput(value: hour, min: 0, max: 23, onChanged: onHourChanged),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Text(':', style: mono(color: kDim, fontSize: 14)),
+        ),
+        _CompactTimeInput(value: minute, min: 0, max: 59, onChanged: onMinuteChanged),
       ],
     );
   }
@@ -700,84 +670,65 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
       children: [
         _SectionHeader(title: 'REPEAT'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ON / OFF toggle
-              Row(
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
                 children: [
-                  Text('반복', style: mono(color: kDim, fontSize: 12)),
-                  const Spacer(),
-                  _SegBtn(
-                    label: 'OFF',
-                    selected: !_repeatOn,
-                    onTap: () => setState(() => _repeatUnit = null),
+                  _RepeatUnitBtn(
+                    label: '없음',
+                    selected: _repeatUnit == null,
+                    onTap: () => setState(() {
+                      _repeatUnit = null;
+                      _weekdays.clear();
+                    }),
                   ),
-                  const SizedBox(width: 8),
-                  _SegBtn(
-                    label: 'ON',
-                    selected: _repeatOn,
+                  _RepeatUnitBtn(
+                    label: '매일',
+                    selected: _repeatUnit == _RepeatUnit.daily,
+                    onTap: () => setState(() {
+                      _repeatUnit = _RepeatUnit.daily;
+                      _weekdays.clear();
+                    }),
+                  ),
+                  _RepeatUnitBtn(
+                    label: '매주',
+                    selected: _repeatUnit == _RepeatUnit.weekly,
                     onTap: () =>
-                        setState(() => _repeatUnit ??= _RepeatUnit.daily),
+                        setState(() => _repeatUnit = _RepeatUnit.weekly),
                   ),
-                ],
-              ),
-
-              if (_repeatOn) ...[
-                const SizedBox(height: 12),
-
-                // Repeat unit buttons — Wrap to prevent overflow
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    _RepeatUnitBtn(
-                      label: '매일',
-                      selected: _repeatUnit == _RepeatUnit.daily,
-                      onTap: () => setState(() {
-                        _repeatUnit = _RepeatUnit.daily;
-                        _weekdays.clear();
-                      }),
-                    ),
-                    _RepeatUnitBtn(
-                      label: '매주',
-                      selected: _repeatUnit == _RepeatUnit.weekly,
-                      onTap: () =>
-                          setState(() => _repeatUnit = _RepeatUnit.weekly),
-                    ),
-                    _RepeatUnitBtn(
-                      label: '매월',
-                      selected: _repeatUnit == _RepeatUnit.monthly,
-                      onTap: () => setState(() {
-                        _repeatUnit = _RepeatUnit.monthly;
-                        _weekdays.clear();
-                      }),
-                    ),
-                    _RepeatUnitBtn(
-                      label: '매년',
-                      selected: _repeatUnit == _RepeatUnit.yearly,
-                      onTap: () => setState(() {
-                        _repeatUnit = _RepeatUnit.yearly;
-                        _weekdays.clear();
-                      }),
-                    ),
-                  ],
-                ),
-
-                // Weekday selector — visible only for weekly
-                if (_repeatUnit == _RepeatUnit.weekly) ...[
-                  const SizedBox(height: 12),
-                  _WeekdayRow(
-                    selected: _weekdays,
-                    onToggle: (d) => setState(() {
-                      if (_weekdays.contains(d))
-                        _weekdays.remove(d);
-                      else
-                        _weekdays.add(d);
+                  _RepeatUnitBtn(
+                    label: '매월',
+                    selected: _repeatUnit == _RepeatUnit.monthly,
+                    onTap: () => setState(() {
+                      _repeatUnit = _RepeatUnit.monthly;
+                      _weekdays.clear();
+                    }),
+                  ),
+                  _RepeatUnitBtn(
+                    label: '매년',
+                    selected: _repeatUnit == _RepeatUnit.yearly,
+                    onTap: () => setState(() {
+                      _repeatUnit = _RepeatUnit.yearly;
+                      _weekdays.clear();
                     }),
                   ),
                 ],
+              ),
+              if (_repeatUnit == _RepeatUnit.weekly) ...[
+                const SizedBox(height: 10),
+                _WeekdayRow(
+                  selected: _weekdays,
+                  onToggle: (d) => setState(() {
+                    if (_weekdays.contains(d))
+                      _weekdays.remove(d);
+                    else
+                      _weekdays.add(d);
+                  }),
+                ),
               ],
             ],
           ),
@@ -792,7 +743,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionHeader(title: 'REPEAT END'),
+        _SectionHeader(title: 'END'),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
           child: Column(
@@ -803,7 +754,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                 children: [
                   Expanded(
                     child: _SegBtn(
-                      label: '무한',
+                      label: '종료 없음',
                       selected: _repeatEndMode == _RepeatEndMode.infinite,
                       onTap: () => setState(() {
                         _repeatEndMode = _RepeatEndMode.infinite;
@@ -917,6 +868,120 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
         ),
       ],
     );
+  }
+
+  // ── ALARM section (event mode only) ─────────────────────────
+
+  Widget _buildAlarmSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeader(title: 'ALARM'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Row(
+            children: [
+              _SegBtn(
+                label: 'OFF',
+                selected: !_notifyForEventOn,
+                onTap: () => setState(() => _notifyForEvent = false),
+              ),
+              const SizedBox(width: 8),
+              _SegBtn(
+                label: 'ON',
+                selected: _notifyForEventOn,
+                onTap: () => setState(() => _notifyForEvent = true),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '일정 시간에 알림 받기',
+                  style: mono(color: kDim, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── SUMMARY section ──────────────────────────────────────────
+
+  Widget _buildSummarySection() {
+    final selDateStr = _selectedDateStr();
+    final startStr =
+        '${_hour.toString().padLeft(2, '0')}:${_minute.toString().padLeft(2, '0')}';
+    final endStr = widget.mode == ScheduleSheetMode.event
+        ? '${_endHour.toString().padLeft(2, '0')}:${_endMinute.toString().padLeft(2, '0')}'
+        : null;
+    final repeatStr =
+        _repeatUnit == null ? '반복 없음' : '${_repeatUnitLabel(_repeatUnit!)} 반복';
+
+    final timeDisplay = endStr != null ? '$startStr → $endStr' : startStr;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeader(title: 'SUMMARY'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                selDateStr != null
+                    ? '$selDateStr  $timeDisplay'
+                    : '날짜 미선택',
+                style: mono(
+                  color: selDateStr != null
+                      ? kText
+                      : kDim.withValues(alpha: 0.5),
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(repeatStr, style: mono(color: kDim, fontSize: 12)),
+              if (widget.mode == ScheduleSheetMode.event) ...[
+                const SizedBox(height: 2),
+                Text(
+                  _notifyForEventOn ? '알림 있음' : '알림 없음',
+                  style: mono(
+                    color: _notifyForEventOn ? kMint : kDim,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String? _selectedDateStr() {
+    if (_dateMode == _DateMode.single) {
+      if (_selDay == null) return null;
+      return '$_calYear.${_calMonth.toString().padLeft(2, '0')}.${_selDay!.toString().padLeft(2, '0')}';
+    }
+    if (_rangeStart == null) return null;
+    return _rangeEnd != null
+        ? '${_fmtDate(_rangeStart!)} → ${_fmtDate(_rangeEnd!)}'
+        : _fmtDate(_rangeStart!);
+  }
+
+  String _repeatUnitLabel(_RepeatUnit unit) {
+    switch (unit) {
+      case _RepeatUnit.daily:
+        return '매일';
+      case _RepeatUnit.weekly:
+        return '매주';
+      case _RepeatUnit.monthly:
+        return '매월';
+      case _RepeatUnit.yearly:
+        return '매년';
+    }
   }
 
   // ── Actions row ──────────────────────────────────────────────
@@ -1509,6 +1574,157 @@ class _CalNavBtnState extends State<_CalNavBtn> {
           style: mono(color: _pressing ? kMint : kDim, fontSize: 12),
         ),
       ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Compact time input: tap = scroll picker, long press = keyboard
+// ──────────────────────────────────────────────────────────────
+
+class _CompactTimeInput extends StatefulWidget {
+  final int value;
+  final int min;
+  final int max;
+  final void Function(int) onChanged;
+
+  const _CompactTimeInput({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  @override
+  State<_CompactTimeInput> createState() => _CompactTimeInputState();
+}
+
+class _CompactTimeInputState extends State<_CompactTimeInput> {
+  String _fmt(int v) => v.toString().padLeft(2, '0');
+
+  Future<void> _openPicker() async {
+    FocusScope.of(context).unfocus();
+    final values = List.generate(widget.max - widget.min + 1, (i) => widget.min + i);
+    final r = await showScrollPicker(
+      context: context,
+      values: values,
+      labels: values.map(_fmt).toList(),
+      initialValue: widget.value,
+    );
+    if (r != null && mounted) widget.onChanged(r);
+  }
+
+  Future<void> _openKeyboard() async {
+    final result = await showDialog<int>(
+      context: context,
+      builder: (_) => _TimeDirectInputDialog(
+        initial: widget.value,
+        min: widget.min,
+        max: widget.max,
+      ),
+    );
+    if (result != null && mounted) widget.onChanged(result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _openPicker,
+      onLongPress: _openKeyboard,
+      child: Container(
+        width: 40,
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: kBorder),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          _fmt(widget.value),
+          style: mono(color: kMint, fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Direct keyboard input dialog for time components
+// ──────────────────────────────────────────────────────────────
+
+class _TimeDirectInputDialog extends StatefulWidget {
+  final int initial;
+  final int min;
+  final int max;
+
+  const _TimeDirectInputDialog({
+    required this.initial,
+    required this.min,
+    required this.max,
+  });
+
+  @override
+  State<_TimeDirectInputDialog> createState() => _TimeDirectInputDialogState();
+}
+
+class _TimeDirectInputDialogState extends State<_TimeDirectInputDialog> {
+  late TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final text = widget.initial.toString().padLeft(2, '0');
+    _ctrl = TextEditingController(text: text)
+      ..selection = TextSelection(baseOffset: 0, extentOffset: text.length);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final v = int.tryParse(_ctrl.text) ?? widget.initial;
+    Navigator.pop(context, v.clamp(widget.min, widget.max));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: kSurface,
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        maxLength: 2,
+        textAlign: TextAlign.center,
+        style: mono(color: kMint, fontSize: 22, fontWeight: FontWeight.bold),
+        onSubmitted: (_) => _submit(),
+        decoration: InputDecoration(
+          hintText: '${widget.min}–${widget.max}',
+          hintStyle: mono(color: kDim.withValues(alpha: 0.4), fontSize: 13),
+          counterText: '',
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: kBorder),
+          ),
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: kMint),
+          ),
+        ),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('취소', style: mono(color: kDim, fontSize: 12)),
+        ),
+        TextButton(
+          onPressed: _submit,
+          child: Text('확인', style: mono(color: kMint, fontSize: 12)),
+        ),
+      ],
     );
   }
 }
