@@ -77,6 +77,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   final _collapsedDates = <String>{};
   final _expandedLogroomGroups = <String>{};
+  final _logroomHourSlots = <String, List<HourSlot>>{};
+  List<Object> _flatItems = const [];
 
   StreamSubscription? _shareSubscription;
 
@@ -1652,6 +1654,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           .putIfAbsent(_logroomGroupKey(_listSortDate(memo)), () => [])
           .add(memo);
     }
+    _logroomHourSlots.clear();
     final items = <Object>[];
     for (final entry in grouped.entries) {
       final key = entry.key;
@@ -1660,9 +1663,110 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final collapsed = autoCollapsed
           ? !_expandedLogroomGroups.contains(key)
           : _collapsedDates.contains(key);
+      if (!autoCollapsed) {
+        _logroomHourSlots[key] = _computeHourSlots(entry.value);
+        // Pre-populate memoKeys so _scrollToMemo can look them up before rendering
+        for (final m in entry.value) {
+          _memoKeys.putIfAbsent(m.id, () => GlobalKey());
+        }
+      }
       if (!collapsed) items.addAll(entry.value);
     }
     return items;
+  }
+
+  List<HourSlot> _computeHourSlots(List<Memo> memos) {
+    final buckets = <int, List<String>>{};
+    for (final m in memos) {
+      buckets.putIfAbsent(m.createdAt.hour, () => []).add(m.id);
+    }
+    final hours = buckets.keys.toList()..sort((a, b) => b.compareTo(a));
+    return hours
+        .map((h) => HourSlot(hour: h, count: buckets[h]!.length, firstMemoId: buckets[h]!.first))
+        .toList();
+  }
+
+  void _scrollToMemo(String memoId) {
+    void onFound() {
+      final k = _memoKeys[memoId];
+      if (k?.currentContext == null) return;
+      debugPrint('[HourToc] ensureVisible: $memoId');
+      Scrollable.ensureVisible(
+        k!.currentContext!,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+        alignment: 0.05,
+      );
+      if (mounted) setState(() => _highlightedMemoId = memoId);
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) setState(() => _highlightedMemoId = null);
+      });
+    }
+
+    final key = _memoKeys[memoId];
+    if (key?.currentContext != null) {
+      onFound();
+      return;
+    }
+
+    if (!_scrollController.hasClients) return;
+    final idx = _flatItems.indexWhere((it) => it is Memo && it.id == memoId);
+    debugPrint('[HourToc] idx=$idx / ${_flatItems.length}');
+    if (idx < 0) return;
+
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final vp = _scrollController.position.viewportDimension;
+    final estimated = ((idx / _flatItems.length) * maxExtent).clamp(0.0, maxExtent);
+    debugPrint('[HourToc] estimated=$estimated maxExtent=$maxExtent vp=$vp');
+
+    _scrollController
+        .animateTo(estimated, duration: const Duration(milliseconds: 250), curve: Curves.easeOut)
+        .then((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_memoKeys[memoId]?.currentContext != null) {
+          onFound();
+        } else {
+          debugPrint('[HourToc] scan start');
+          _scrollToMemoScan(memoId, estimated, maxExtent, vp, onFound, 0);
+        }
+      });
+    });
+  }
+
+  void _scrollToMemoScan(
+    String memoId,
+    double base,
+    double maxExtent,
+    double vp,
+    VoidCallback onFound,
+    int attempt,
+  ) {
+    if (attempt >= 8) {
+      debugPrint('[HourToc] scan failed after 8 attempts');
+      return;
+    }
+    // Forward-biased scan (recent entries tend to be taller → actual pos > estimate)
+    final offsets = [vp, vp * 2, vp * 3, vp * 4, vp * 5, -vp, -vp * 2, -vp * 3];
+    final target = (base + offsets[attempt]).clamp(0.0, maxExtent);
+    debugPrint('[HourToc] scan attempt $attempt → $target');
+    _scrollController.jumpTo(target);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_memoKeys[memoId]?.currentContext != null) {
+        debugPrint('[HourToc] scan hit at attempt $attempt');
+        onFound();
+      } else {
+        _scrollToMemoScan(memoId, base, maxExtent, vp, onFound, attempt + 1);
+      }
+    });
+  }
+
+  void _scrollToTop() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   DateTime _listSortDate(Memo memo) => memo.createdAt;
@@ -1898,8 +2002,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             _scheduleOpen ||
             _tagsOpen ||
             _todayOpen)
-        ? const []
+        ? const <Object>[]
         : (isLogroomUi ? _buildLogroomFlatList() : _buildFlatList());
+    _flatItems = items;
     // Header path
     final folderName = _selectedFolderId == null
         ? (isNemo2Test ? '/INBOX' : '/inbox')
@@ -2229,6 +2334,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onSettings: _showSettings,
                   habitActivated: _habitActivated,
                   goalActivated: _goalActivated,
+                  onScrollTop: _scrollToTop,
                 ),
                 Container(height: 1, color: kBorder),
 
@@ -2510,6 +2616,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       }
                                     });
                                   },
+                                  hourSlots: isLogroomUi
+                                      ? (_logroomHourSlots[item] ?? const [])
+                                      : const [],
+                                  onHourTap: isLogroomUi ? _scrollToMemo : null,
                                 );
                               } else if (item is Memo) {
                                 final memoKey = _memoKeys.putIfAbsent(
@@ -3092,6 +3202,7 @@ class _AppHeader extends StatelessWidget {
   final VoidCallback onSettings;
   final bool habitActivated;
   final bool goalActivated;
+  final VoidCallback? onScrollTop;
 
   const _AppHeader({
     required this.sidebarOpen,
@@ -3121,6 +3232,7 @@ class _AppHeader extends StatelessWidget {
     required this.onSettings,
     required this.habitActivated,
     required this.goalActivated,
+    this.onScrollTop,
   });
 
   Future<void> _showPathMenu(BuildContext context, Offset tapPos) async {
@@ -3376,7 +3488,7 @@ class _AppHeader extends StatelessWidget {
                           tagsOpen ||
                           tasksOnly)
                       ? onShowList
-                      : null,
+                      : onScrollTop,
                   child: _ViewBtn(
                     label: 'LIST',
                     active:
