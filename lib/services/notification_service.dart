@@ -16,7 +16,7 @@ class NotificationService {
   static NotificationTapCallback? onNotificationTap;
   static final pendingMemoId = ValueNotifier<String?>(null);
 
-  static const _channelId   = 'memo_reminders';
+  static const _channelId = 'memo_reminders';
   static const _channelName = 'Memo Reminders';
   static const _channelDesc = 'Scheduled memo reminders';
 
@@ -25,8 +25,10 @@ class NotificationService {
   static Future<void> init() async {
     tz_data.initializeTimeZones();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings    = InitializationSettings(android: androidSettings);
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    const initSettings = InitializationSettings(android: androidSettings);
 
     await _plugin.initialize(
       initSettings,
@@ -35,8 +37,10 @@ class NotificationService {
     );
 
     if (!kIsWeb) {
-      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await androidPlugin?.createNotificationChannel(
         const AndroidNotificationChannel(
           _channelId,
@@ -52,7 +56,9 @@ class NotificationService {
   }
 
   static void _onResponse(NotificationResponse details) {
-    print('[ALARM_DEBUG] _onResponse() — notification tapped, payload=${details.payload}');
+    print(
+      '[ALARM_DEBUG] _onResponse() — notification tapped, payload=${details.payload}',
+    );
     final payload = details.payload;
     if (payload == null || payload.isEmpty) return;
     if (onNotificationTap != null) {
@@ -67,8 +73,10 @@ class NotificationService {
   /// Check current POST_NOTIFICATIONS grant status without requesting.
   static Future<bool> areNotificationsEnabled() async {
     if (kIsWeb) return false;
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android == null) return false;
     return await android.areNotificationsEnabled() ?? false;
   }
@@ -76,8 +84,10 @@ class NotificationService {
   /// Check if exact alarm scheduling is allowed.
   static Future<bool> canScheduleExact() async {
     if (kIsWeb) return false;
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android == null) return false;
     return await android.canScheduleExactNotifications() ?? false;
   }
@@ -86,16 +96,19 @@ class NotificationService {
   static Future<void> openNotificationSettings() async {
     if (kIsWeb) return;
     try {
-      await const MethodChannel('app/battery')
-          .invokeMethod('openNotificationSettings');
+      await const MethodChannel(
+        'app/battery',
+      ).invokeMethod('openNotificationSettings');
     } catch (_) {}
   }
 
   /// POST_NOTIFICATIONS (Android 13+)
   static Future<bool> requestPermissions() async {
     if (kIsWeb) return false;
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android == null) return false;
     final granted = await android.requestNotificationsPermission();
     return granted ?? false;
@@ -105,8 +118,10 @@ class NotificationService {
   /// Returns true if already permitted.
   static Future<bool> ensureExactAlarmPermission() async {
     if (kIsWeb) return false;
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android == null) return false;
     final permitted = await android.canScheduleExactNotifications() ?? false;
     if (!permitted) {
@@ -120,8 +135,9 @@ class NotificationService {
   static Future<bool> isIgnoringBatteryOptimizations() async {
     if (kIsWeb) return true;
     try {
-      return await _batteryChannel
-              .invokeMethod<bool>('isIgnoringBatteryOptimizations') ??
+      return await _batteryChannel.invokeMethod<bool>(
+            'isIgnoringBatteryOptimizations',
+          ) ??
           false;
     } catch (_) {
       return true;
@@ -145,11 +161,15 @@ class NotificationService {
   /// requires app-level logic (not implemented in this version).
   static DateTimeComponents? _repeatComponents(String repeat) {
     switch (repeat) {
-      case 'daily':   return DateTimeComponents.time;
-      case 'weekly':  return DateTimeComponents.dayOfWeekAndTime;
-      case 'monthly': return DateTimeComponents.dayOfMonthAndTime;
+      case 'daily':
+        return DateTimeComponents.time;
+      case 'weekly':
+        return DateTimeComponents.dayOfWeekAndTime;
+      case 'monthly':
+        return DateTimeComponents.dayOfMonthAndTime;
       // 'yearly' and unknown values fall through to one-shot (null)
-      default:        return null;
+      default:
+        return null;
     }
   }
 
@@ -166,11 +186,13 @@ class NotificationService {
 
     // Skip if the repeat end date has already passed.
     if (repeatEndDate != null && repeatEndDate.isBefore(DateTime.now())) {
-      print('[ALARM_DEBUG] schedule() skipped — repeatEndDate is in the past: $repeatEndDate');
+      print(
+        '[ALARM_DEBUG] schedule() skipped — repeatEndDate is in the past: $repeatEndDate',
+      );
       return;
     }
 
-    final id      = _notifId(memoId);
+    final id = _notifId(memoId);
     final preview = content.length > 120
         ? '${content.substring(0, 120)}...'
         : content;
@@ -184,21 +206,38 @@ class NotificationService {
       final now = DateTime.now();
       while (fireAt.isBefore(now)) {
         switch (repeat) {
-          case 'daily':   fireAt = fireAt.add(const Duration(days: 1)); break;
-          case 'weekly':  fireAt = fireAt.add(const Duration(days: 7)); break;
-          case 'monthly': fireAt = DateTime(fireAt.year, fireAt.month + 1,
-              fireAt.day, fireAt.hour, fireAt.minute); break;
-          default: fireAt = now; break;
+          case 'daily':
+            fireAt = fireAt.add(const Duration(days: 1));
+            break;
+          case 'weekly':
+            fireAt = fireAt.add(const Duration(days: 7));
+            break;
+          case 'monthly':
+            fireAt = DateTime(
+              fireAt.year,
+              fireAt.month + 1,
+              fireAt.day,
+              fireAt.hour,
+              fireAt.minute,
+            );
+            break;
+          default:
+            fireAt = now;
+            break;
         }
       }
     }
 
     // epoch ms from local Dart DateTime → correct absolute firing time
     final tzWhen = tz.TZDateTime.fromMillisecondsSinceEpoch(
-        tz.UTC, fireAt.millisecondsSinceEpoch);
+      tz.UTC,
+      fireAt.millisecondsSinceEpoch,
+    );
 
-    print('[ALARM_DEBUG] schedule() called — id=$id memoId=$memoId '
-        'scheduledAt=$fireAt repeat=$repeat epochMs=${fireAt.millisecondsSinceEpoch}');
+    print(
+      '[ALARM_DEBUG] schedule() called — id=$id memoId=$memoId '
+      'scheduledAt=$fireAt repeat=$repeat epochMs=${fireAt.millisecondsSinceEpoch}',
+    );
 
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -232,7 +271,9 @@ class NotificationService {
         matchDateTimeComponents: matchComponents,
         payload: memoId,
       );
-      print('[ALARM_DEBUG] zonedSchedule() succeeded — id=$id fires at $tzWhen');
+      print(
+        '[ALARM_DEBUG] zonedSchedule() succeeded — id=$id fires at $tzWhen',
+      );
     } catch (e, st) {
       print('[ALARM_DEBUG] zonedSchedule() FAILED — id=$id error=$e\n$st');
     }

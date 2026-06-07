@@ -10,10 +10,9 @@ Future<void> platformDownload(String content, String filename) async {
   final dir = await getTemporaryDirectory();
   final file = File('${dir.path}/$filename');
   await file.writeAsString(content, flush: true);
-  await Share.shareXFiles(
-    [XFile(file.path, mimeType: 'application/json')],
-    subject: filename,
-  );
+  await Share.shareXFiles([
+    XFile(file.path, mimeType: 'application/json'),
+  ], subject: filename);
 }
 
 // Save directly to phone using system file picker

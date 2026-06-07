@@ -28,7 +28,6 @@ Map<String?, int> countMemosByFolder(List<Memo> memos) {
 }
 
 List<Memo> recentMemos(List<Memo> memos) {
-  final sorted = [...memos]
-    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  final sorted = [...memos]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   return sorted.take(3).toList();
 }

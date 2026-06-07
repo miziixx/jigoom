@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../flavor.dart';
 
 class DateGroupHeader extends StatefulWidget {
-  final String dateKey; // 'YYYY-MM-DD'
+  final String dateKey;
   final ValueChanged<bool>? onCollapsedChanged;
   final bool initiallyCollapsed;
 
@@ -57,48 +58,143 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: themeNotifier,
-      builder: (_, __, ___) {
-        final isToday = _isToday(widget.dateKey);
-        final label = isToday
-            ? 'TODAY  ${_formatDate(widget.dateKey)}'
-            : _formatDate(widget.dateKey);
-        final icon = _collapsed ? '▸ ' : '▾ ';
-
-        return GestureDetector(
-          onTap: _toggle,
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: Container(
-              width: double.infinity,
-              color: kText,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-              child: Row(
-                children: [
-                  Text(
-                    icon,
-                    style: mono(
-                      color: kBg,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: mono(
-                        color: kBg,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: isToday ? 0.8 : 0.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+      builder: (context, value, child) {
+        if (isMinimalTheme) return _buildMinimal();
+        if (isLogroomUi) return _buildLogroom();
+        return _buildClassic();
       },
+    );
+  }
+
+  Widget _buildMinimal() {
+    final isToday = _isToday(widget.dateKey);
+    final label = widget.dateKey.contains('-') && widget.dateKey.length == 10
+        ? _formatDate(widget.dateKey).toUpperCase()
+        : widget.dateKey.toUpperCase();
+
+    return GestureDetector(
+      onTap: _toggle,
+      behavior: HitTestBehavior.opaque,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          color: kBg,
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 3),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: mono(
+                    color: isToday ? kMint : kDim,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.8,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                _collapsed ? '▶' : '▼',
+                style: mono(color: kDim.withValues(alpha: 0.75), fontSize: 8),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogroom() {
+    final isToday = _isToday(widget.dateKey);
+    // For logroom: use the dateKey as-is (already formatted by _logroomGroupKey)
+    // or format if it looks like YYYY-MM-DD
+    final label = widget.dateKey.contains('-') && widget.dateKey.length == 10
+        ? _formatDate(widget.dateKey).toUpperCase()
+        : widget.dateKey.toUpperCase();
+
+    return GestureDetector(
+      onTap: _toggle,
+      behavior: HitTestBehavior.opaque,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          // sticky header background
+          color: kBg,
+          padding: const EdgeInsets.fromLTRB(15, 8, 15, 4),
+          child: Row(
+            children: [
+              Text(
+                label,
+                style: mono(
+                  color: isToday ? kMint : kDim,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: kBorder.withValues(alpha: 0.4),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _collapsed ? '▶' : '▼',
+                style: mono(color: kDim, fontSize: 8),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassic() {
+    final isToday = _isToday(widget.dateKey);
+    final label = isToday
+        ? 'TODAY  ${_formatDate(widget.dateKey)}'
+        : _formatDate(widget.dateKey);
+    final icon = _collapsed ? '▸ ' : '▾ ';
+
+    return GestureDetector(
+      onTap: _toggle,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          width: double.infinity,
+          color: kText,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+          child: Row(
+            children: [
+              Text(
+                icon,
+                style: mono(
+                  color: kBg,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  label,
+                  style: mono(
+                    color: kBg,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: isToday ? 0.8 : 0.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.visible,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

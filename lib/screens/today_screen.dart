@@ -2,16 +2,26 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../app_theme.dart';
+import '../flavor.dart';
+import '../models/entry_display_mode.dart';
 import '../models/memo.dart';
+import '../models/memo_actions.dart';
 import '../models/today_tab.dart';
+import '../utils/logroom_entries.dart';
+import '../widgets/input_bar.dart';
+import '../widgets/logroom_entry_tile.dart';
 import '../widgets/today_tab_config_sheet.dart';
 
-const _kTodayTabsKey    = 'today_tabs_v1';
-const _kTimelogKey      = 'today_timelog_entries_v1';
+const _kTodayTabsKey = 'today_tabs_v1';
+const _kTimelogKey = 'today_timelog_entries_v1';
 
 // 날짜 key: yyyy-MM-dd
 String _dateKey(DateTime dt) =>
     '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+
+Color _todayDoneTextColor() => Color.lerp(kText, kDim, 0.55) ?? kDim;
+
+Color _todayDoneAccentColor() => Color.lerp(kMint, kDim, 0.62) ?? kDim;
 
 // SharedPreferences에서 전체 timelog map 읽기: { "yyyy-MM-dd": { "06": "text", ... } }
 Future<Map<String, Map<String, String>>> _loadAllTimelogs() async {
@@ -21,8 +31,9 @@ Future<Map<String, Map<String, String>>> _loadAllTimelogs() async {
     if (raw == null) return {};
     final outer = jsonDecode(raw) as Map<String, dynamic>;
     return outer.map((date, inner) {
-      final hours = (inner as Map<String, dynamic>)
-          .map((h, v) => MapEntry(h, v as String));
+      final hours = (inner as Map<String, dynamic>).map(
+        (h, v) => MapEntry(h, v as String),
+      );
       return MapEntry(date, hours);
     });
   } catch (_) {
@@ -52,12 +63,31 @@ class TodayScreen extends StatefulWidget {
   final List<Memo> memos;
   final int streak;
   final void Function(Memo memo, String newContent) onUpdateMemo;
+  final void Function(
+    Memo memo,
+    String content,
+    bool isChecklist,
+    DateTime? reminderAt,
+    String? folderId,
+    List<String> imagePaths,
+    String reminderRepeat,
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  )?
+  onEditMemo;
+  final MemoActions? actions;
 
   const TodayScreen({
     super.key,
     required this.memos,
     required this.streak,
     required this.onUpdateMemo,
+    this.onEditMemo,
+    this.actions,
   });
 
   @override
@@ -68,6 +98,7 @@ class _TodayScreenState extends State<TodayScreen> {
   late List<TodayTab> _tabs;
   late String _activeTabId;
   bool _editing = false;
+  Memo? _editingMemo;
 
   @override
   void initState() {
@@ -113,24 +144,80 @@ class _TodayScreenState extends State<TodayScreen> {
     return dt.year == now.year && dt.month == now.month && dt.day == now.day;
   }
 
-  List<Memo> get _todayMemos =>
-      widget.memos.where((m) => _isToday(m.createdAt)).toList();
+  DateTime _todayBasis(Memo memo) {
+    if (isNemo2Test && memo.scheduledAt != null) return memo.scheduledAt!;
+    return memo.createdAt;
+  }
 
-  List<Memo> get _todayNonChecklist =>
-      _todayMemos.where((m) => !m.isChecklist && !m.tags.contains('habit')).toList();
+  List<Memo> get _todayMemos =>
+      widget.memos.where((m) => _isToday(_todayBasis(m))).toList();
+
+  List<Memo> get _todayNonChecklist => _todayMemos
+      .where(
+        (m) =>
+            !m.isChecklist &&
+            m.scheduledAt == null &&
+            !m.tags.contains('habit') &&
+            !m.tags.contains('goal'),
+      )
+      .toList();
 
   List<Memo> get _todayChecklists =>
       _todayMemos.where((m) => m.isChecklist).toList();
 
-  List<Memo> get _todayHabits =>
-      widget.memos.where((m) => m.tags.contains('habit') && _isToday(m.createdAt)).toList();
+  List<Memo> get _todayHabits => widget.memos
+      .where((m) => m.tags.contains('habit') && _isToday(_todayBasis(m)))
+      .toList();
 
-  List<Memo> get _upcomingToday => widget.memos
-      .where((m) => m.scheduledAt != null && _isToday(m.scheduledAt!))
-      .toList()
-    ..sort((a, b) => a.scheduledAt!.compareTo(b.scheduledAt!));
+  List<Memo> get _todayGoals => widget.memos
+      .where((m) => m.tags.contains('goal') && _isToday(_todayBasis(m)))
+      .toList();
+
+  List<Memo> get _upcomingToday =>
+      widget.memos
+          .where((m) => m.scheduledAt != null && _isToday(m.scheduledAt!))
+          .toList()
+        ..sort((a, b) => a.scheduledAt!.compareTo(b.scheduledAt!));
 
   TodayTab get _activeTab => _tabs.firstWhere((t) => t.id == _activeTabId);
+
+  MemoActions? get _localActions => widget.actions?.copyWith(
+    onEditRequest: (memo) => setState(() => _editingMemo = memo),
+  );
+
+  void _submitEdit(
+    String content,
+    bool isChecklist,
+    DateTime? reminderAt,
+    String? folderId,
+    List<String> imagePaths,
+    String reminderRepeat,
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  ) {
+    final editing = _editingMemo;
+    if (editing == null || widget.onEditMemo == null) return;
+    widget.onEditMemo!(
+      editing,
+      content,
+      isChecklist,
+      reminderAt,
+      folderId,
+      imagePaths,
+      reminderRepeat,
+      scheduledAt,
+      rangeEndDate,
+      scheduleRepeat,
+      repeatEndType,
+      repeatEndCount,
+      repeatEndDate,
+    );
+    setState(() => _editingMemo = null);
+  }
 
   String _dateStr() {
     final now = DateTime.now();
@@ -185,7 +272,7 @@ class _TodayScreenState extends State<TodayScreen> {
         children: [
           _buildDateHero(),
           Container(height: 1, color: kBorder),
-          if (_editing)
+          if (_editing && !isLogroomUi)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
               color: kSurface,
@@ -194,9 +281,20 @@ class _TodayScreenState extends State<TodayScreen> {
                 style: mono(color: kMint, fontSize: 10, letterSpacing: 0.5),
               ),
             ),
-          _buildInnerTabs(),
-          Container(height: 1, color: kBorder),
-          Expanded(child: _buildPanel()),
+          if (!isLogroomUi) ...[
+            _buildInnerTabs(),
+            Container(height: 1, color: kBorder),
+            Expanded(child: _buildPanel()),
+          ] else
+            Expanded(child: _buildLogroomPanel()),
+          if (_editingMemo != null && widget.onEditMemo != null) ...[
+            Container(height: 1, color: kBorder),
+            InputBar(
+              onSubmit: _submitEdit,
+              editingMemo: _editingMemo,
+              onCancelEdit: () => setState(() => _editingMemo = null),
+            ),
+          ],
         ],
       ),
     );
@@ -210,29 +308,37 @@ class _TodayScreenState extends State<TodayScreen> {
         children: [
           Expanded(
             child: RichText(
-              text: TextSpan(children: [
-                TextSpan(
-                  text: '[TODAY]',
-                  style: mono(color: kMint, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                ),
-                TextSpan(
-                  text: '  ${_dateStr()}',
-                  style: mono(color: kDim, fontSize: 11),
-                ),
-              ]),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => setState(() => _editing = !_editing),
-            child: Text(
-              _editing ? '[완료]' : '[편집]',
-              style: mono(
-                color: _editing ? kMint : kDim,
-                fontSize: 11,
-                fontWeight: _editing ? FontWeight.bold : FontWeight.normal,
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'TODAY',
+                    style: mono(
+                      color: kMint,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '  ${_dateStr()}',
+                    style: mono(color: kDim, fontSize: 11),
+                  ),
+                ],
               ),
             ),
           ),
+          if (!isLogroomUi)
+            GestureDetector(
+              onTap: () => setState(() => _editing = !_editing),
+              child: Text(
+                _editing ? '완료' : '편집',
+                style: mono(
+                  color: _editing ? kMint : kDim,
+                  fontSize: 11,
+                  fontWeight: _editing ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -266,7 +372,7 @@ class _TodayScreenState extends State<TodayScreen> {
     if (sections.isEmpty) {
       return Center(
         child: Text(
-          '섹션 없음 — [편집]에서 추가하세요',
+          '섹션 없음 — 편집에서 추가하세요',
           style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
         ),
       );
@@ -279,14 +385,77 @@ class _TodayScreenState extends State<TodayScreen> {
     );
   }
 
+  Widget _buildLogroomPanel() {
+    final open = _todayMemos
+        .where(
+          (m) =>
+              !m.isChecklist &&
+              m.scheduledAt == null &&
+              !m.tags.contains('habit') &&
+              !m.tags.contains('goal'),
+        )
+        .toList();
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 12),
+      children: [
+        _LogroomTodaySection(
+          label: 'OPEN',
+          memos: open,
+          actions: _localActions,
+          isFirst: true,
+        ),
+        _LogroomTodaySection(
+          label: 'EVENTS',
+          memos: _upcomingToday,
+          actions: _localActions,
+        ),
+        _LogroomTodoSection(
+          todos: _todayChecklists,
+          actions: _localActions,
+          onUpdate: widget.onUpdateMemo,
+        ),
+        _LogroomTodaySection(
+          label: 'HABITS',
+          memos: _todayHabits,
+          actions: _localActions,
+        ),
+        _LogroomTodaySection(
+          label: 'GOALS',
+          memos: _todayGoals,
+          actions: _localActions,
+        ),
+        _LogroomTodaySection(
+          label: 'ENTRIES',
+          memos: _todayNonChecklist,
+          actions: _localActions,
+        ),
+        const _TimelogSection(isFirst: false),
+      ],
+    );
+  }
+
   Widget _buildSection(TodaySection section, {required bool isFirst}) {
     switch (section) {
-      case TodaySection.stats:    return _StatsSection(memos: widget.memos, streak: widget.streak, isFirst: isFirst);
-      case TodaySection.habits:   return _HabitsSection(habits: _todayHabits, isFirst: isFirst);
-      case TodaySection.upcoming: return _UpcomingSection(events: _upcomingToday, isFirst: isFirst);
-      case TodaySection.memos:    return _MemosSection(memos: _todayNonChecklist, isFirst: isFirst);
-      case TodaySection.todo:     return _TodoSection(todos: _todayChecklists, isFirst: isFirst, onUpdate: widget.onUpdateMemo);
-      case TodaySection.timelog:  return _TimelogSection(isFirst: isFirst);
+      case TodaySection.stats:
+        return _StatsSection(
+          memos: widget.memos,
+          streak: widget.streak,
+          isFirst: isFirst,
+        );
+      case TodaySection.habits:
+        return _HabitsSection(habits: _todayHabits, isFirst: isFirst);
+      case TodaySection.upcoming:
+        return _UpcomingSection(events: _upcomingToday, isFirst: isFirst);
+      case TodaySection.memos:
+        return _MemosSection(memos: _todayNonChecklist, isFirst: isFirst);
+      case TodaySection.todo:
+        return _TodoSection(
+          todos: _todayChecklists,
+          isFirst: isFirst,
+          onUpdate: widget.onUpdateMemo,
+        );
+      case TodaySection.timelog:
+        return _TimelogSection(isFirst: isFirst);
     }
   }
 }
@@ -354,7 +523,10 @@ class _InnerTabBtn extends StatelessWidget {
                 top: 6,
                 bottom: 6,
                 right: 0,
-                child: Container(width: 1, color: kBorder.withValues(alpha: 0.5)),
+                child: Container(
+                  width: 1,
+                  color: kBorder.withValues(alpha: 0.5),
+                ),
               ),
           ],
         ),
@@ -369,24 +541,232 @@ class _SectionHeader extends StatelessWidget {
   final String label;
   final bool isFirst;
 
-  const _SectionHeader({
-    required this.label,
-    required this.isFirst,
-  });
+  const _SectionHeader({required this.label, required this.isFirst});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 5),
       decoration: BoxDecoration(
-        border: isFirst
-            ? null
-            : Border(top: BorderSide(color: kBorder)),
+        border: isFirst ? null : Border(top: BorderSide(color: kBorder)),
       ),
       child: Text(
         label,
-        style: mono(color: kText, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+        style: mono(
+          color: kText,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.8,
+        ),
       ),
+    );
+  }
+}
+
+class _LogroomTodaySection extends StatelessWidget {
+  final String label;
+  final List<Memo> memos;
+  final MemoActions? actions;
+  final bool isFirst;
+
+  const _LogroomTodaySection({
+    required this.label,
+    required this.memos,
+    this.actions,
+    this.isFirst = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeader(label: label, isFirst: isFirst),
+        if (memos.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
+            child: Text(
+              '비어 있음',
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+            ),
+          )
+        else
+          ...memos.map(
+            (m) => actions == null
+                ? _LogroomTodayRow(memo: m)
+                : LogroomEntryTile(memo: m, actions: actions!),
+          ),
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+}
+
+class _LogroomTodayRow extends StatelessWidget {
+  final Memo memo;
+
+  const _LogroomTodayRow({required this.memo});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: entryDisplayModeNotifier,
+      builder: (context, mode, _) {
+        final tags = memo.tags
+            .where((t) => t != 'habit' && t != 'goal')
+            .toList();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: mode == EntryDisplayMode.text ? 58 : 64,
+                child: Text(
+                  logroomPrefix(memo, mode),
+                  style: mono(color: kText, fontSize: 11),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      logroomTitle(memo),
+                      style: mono(color: kText, fontSize: 12, height: 1.35),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 3,
+                      children: [
+                        Text(
+                          logroomTime(memo.createdAt),
+                          style: mono(color: kDim, fontSize: 10),
+                        ),
+                        if (tags.isNotEmpty)
+                          Text(
+                            tags.map((t) => '#$t').join(' '),
+                            style: mono(color: kDim, fontSize: 10),
+                          ),
+                        if (memo.scheduledAt != null)
+                          Text('일정 있음', style: mono(color: kDim, fontSize: 10)),
+                        if (memo.appendNotes.isNotEmpty)
+                          Text(
+                            '댓글 ${memo.appendNotes.length}',
+                            style: mono(color: kDim, fontSize: 10),
+                          ),
+                        if (memo.imagePaths.isNotEmpty)
+                          Text(
+                            '첨부 ${memo.imagePaths.length}',
+                            style: mono(color: kDim, fontSize: 10),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LogroomTodoSection extends StatelessWidget {
+  final List<Memo> todos;
+  final MemoActions? actions;
+  final void Function(Memo, String) onUpdate;
+
+  const _LogroomTodoSection({
+    required this.todos,
+    required this.onUpdate,
+    this.actions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionHeader(label: 'TASKS', isFirst: false),
+        if (todos.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
+            child: Text(
+              '비어 있음',
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+            ),
+          )
+        else
+          ...todos.map(
+            (m) => actions == null
+                ? _LogroomTodoRow(memo: m, onUpdate: onUpdate)
+                : LogroomEntryTile(memo: m, actions: actions!),
+          ),
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+}
+
+class _LogroomTodoRow extends StatelessWidget {
+  final Memo memo;
+  final void Function(Memo, String) onUpdate;
+
+  const _LogroomTodoRow({required this.memo, required this.onUpdate});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _parseChecklistItems(memo.content);
+    if (items.isEmpty) return _LogroomTodayRow(memo: memo);
+    return ValueListenableBuilder(
+      valueListenable: entryDisplayModeNotifier,
+      builder: (context, mode, _) {
+        return Column(
+          children: items.map((item) {
+            return GestureDetector(
+              onTap: () =>
+                  onUpdate(memo, _toggleLine(memo.content, item.lineIndex)),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: mode == EntryDisplayMode.text ? 58 : 64,
+                      child: Text(
+                        logroomPrefix(memo, mode),
+                        style: mono(
+                          color: item.done ? _todayDoneTextColor() : kText,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item.text,
+                        style: mono(
+                          color: item.done ? _todayDoneTextColor() : kText,
+                          fontSize: 12,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }
@@ -398,7 +778,11 @@ class _StatsSection extends StatelessWidget {
   final int streak;
   final bool isFirst;
 
-  const _StatsSection({required this.memos, required this.streak, required this.isFirst});
+  const _StatsSection({
+    required this.memos,
+    required this.streak,
+    required this.isFirst,
+  });
 
   int get _todayCount {
     final now = DateTime.now();
@@ -414,7 +798,11 @@ class _StatsSection extends StatelessWidget {
     for (final m in memos) {
       final d = m.createdAt;
       if (d.year == now.year && d.month == now.month && d.day == now.day) {
-        total += m.content.trim().split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
+        total += m.content
+            .trim()
+            .split(RegExp(r'\s+'))
+            .where((s) => s.isNotEmpty)
+            .length;
       }
     }
     return total;
@@ -430,9 +818,7 @@ class _StatsSection extends StatelessWidget {
         _SectionHeader(label: 'STATS', isFirst: isFirst),
         Container(
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: kBorder),
-            ),
+            border: Border(bottom: BorderSide(color: kBorder)),
           ),
           child: Row(
             children: [
@@ -465,14 +851,29 @@ class _StatCell extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(
           children: [
-            Text(label, style: mono(color: kDim, fontSize: 9, letterSpacing: 0.5)),
+            Text(
+              label,
+              style: mono(color: kDim, fontSize: 9, letterSpacing: 0.5),
+            ),
             const SizedBox(height: 2),
             RichText(
-              text: TextSpan(children: [
-                TextSpan(text: value, style: mono(color: kText, fontSize: 16, fontWeight: FontWeight.bold)),
-                if (unit != null)
-                  TextSpan(text: unit, style: mono(color: kDim, fontSize: 9)),
-              ]),
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: value,
+                    style: mono(
+                      color: kText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (unit != null)
+                    TextSpan(
+                      text: unit,
+                      style: mono(color: kDim, fontSize: 9),
+                    ),
+                ],
+              ),
             ),
           ],
         ),
@@ -498,7 +899,10 @@ class _HabitsSection extends StatelessWidget {
         if (habits.isEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
-            child: Text('오늘 #habit 메모 없음', style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11)),
+            child: Text(
+              '오늘 #habit 메모 없음',
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+            ),
           )
         else
           ...habits.map((m) => _HabitRow(content: m.content)),
@@ -522,7 +926,11 @@ class _HabitRow extends StatelessWidget {
         children: [
           Text('· ', style: mono(color: kDim, fontSize: 12)),
           Expanded(
-            child: Text(display, style: mono(color: kDim, fontSize: 12), overflow: TextOverflow.ellipsis),
+            child: Text(
+              display,
+              style: mono(color: kDim, fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -547,7 +955,10 @@ class _UpcomingSection extends StatelessWidget {
         if (events.isEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
-            child: Text('오늘 일정 없음', style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11)),
+            child: Text(
+              '오늘 일정 없음',
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+            ),
           )
         else
           ...events.map((m) => _EventRow(memo: m)),
@@ -615,7 +1026,10 @@ class _MemosSection extends StatelessWidget {
         if (memos.isEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
-            child: Text('오늘 메모 없음', style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11)),
+            child: Text(
+              '오늘 메모 없음',
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+            ),
           )
         else
           ...memos.take(5).map((m) => _MemoRow(memo: m)),
@@ -643,7 +1057,7 @@ class _MemoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = memo.createdAt;
     final timeStr =
-        '[${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}]';
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 5, 14, 4),
       child: Column(
@@ -691,7 +1105,10 @@ class _TodoSection extends StatelessWidget {
         if (todos.isEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
-            child: Text('오늘 할일 없음', style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11)),
+            child: Text(
+              '오늘 할일 없음',
+              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+            ),
           )
         else
           ...todos.map((m) => _TodoRow(memo: m, onUpdate: onUpdate)),
@@ -703,7 +1120,9 @@ class _TodoSection extends StatelessWidget {
 
 // 체크리스트 마크다운 문법(- [ ], - [x], * [ ], * [x])을 파싱해
 // 체크 상태·텍스트·원본 줄 인덱스를 반환. 원본 Memo 데이터는 변경하지 않음.
-List<({bool done, String text, int lineIndex})> _parseChecklistItems(String content) {
+List<({bool done, String text, int lineIndex})> _parseChecklistItems(
+  String content,
+) {
   final lines = content.split('\n');
   final result = <({bool done, String text, int lineIndex})>[];
   for (int i = 0; i < lines.length; i++) {
@@ -764,24 +1183,34 @@ class _TodoRow extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 3),
                   child: Container(
-                  width: 11,
-                  height: 11,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: item.done ? kDim : kBorder),
-                    color: item.done ? kDim.withValues(alpha: 0.15) : Colors.transparent,
+                    width: 11,
+                    height: 11,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: item.done ? _todayDoneAccentColor() : kBorder,
+                      ),
+                      color: item.done
+                          ? _todayDoneAccentColor().withValues(alpha: 0.15)
+                          : Colors.transparent,
+                    ),
+                    alignment: Alignment.center,
+                    child: item.done
+                        ? Text(
+                            '✓',
+                            style: mono(
+                              color: _todayDoneAccentColor(),
+                              fontSize: 8,
+                            ),
+                          )
+                        : null,
                   ),
-                  alignment: Alignment.center,
-                  child: item.done
-                      ? Text('✓', style: mono(color: kDim, fontSize: 8))
-                      : null,
-                ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     item.text,
                     style: mono(
-                      color: item.done ? kDim : kText,
+                      color: item.done ? _todayDoneTextColor() : kText,
                       fontSize: 12,
                     ),
                     maxLines: 2,
@@ -879,7 +1308,9 @@ class _TimelogSectionState extends State<_TimelogSection> {
 
   void _startEdit(int hour) {
     final ctrl = _ctrls.putIfAbsent(
-        hour, () => TextEditingController(text: _entries[hour] ?? ''));
+      hour,
+      () => TextEditingController(text: _entries[hour] ?? ''),
+    );
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -887,82 +1318,98 @@ class _TimelogSectionState extends State<_TimelogSection> {
       builder: (sheetCtx) {
         final bottomInset = MediaQuery.of(sheetCtx).viewInsets.bottom;
         return Padding(
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: SafeArea(
-          top: false,
-          child: Container(
-          decoration: BoxDecoration(
-            color: kSurface,
-            border: Border(top: BorderSide(color: kBorder)),
-          ),
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${hour.toString().padLeft(2, '0')}:00',
-                style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5),
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: SafeArea(
+            top: false,
+            child: Container(
+              decoration: BoxDecoration(
+                color: kSurface,
+                border: Border(top: BorderSide(color: kBorder)),
               ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: ctrl,
-                autofocus: true,
-                style: mono(color: kText, fontSize: 12),
-                cursorColor: kMint,
-                maxLines: 3,
-                minLines: 1,
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                  filled: true,
-                  fillColor: kBg,
-                  hintText: '이 시간에 뭘 했나요...',
-                  hintStyle: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: kBorder),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: kBorder),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: kMint),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Text('[취소]', style: mono(color: kDim, fontSize: 11)),
+                  Text(
+                    '${hour.toString().padLeft(2, '0')}:00',
+                    style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5),
                   ),
-                  const SizedBox(width: 16),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        final v = ctrl.text.trim();
-                        if (v.isEmpty) {
-                          _entries.remove(hour);
-                        } else {
-                          _entries[hour] = v;
-                        }
-                      });
-                      _persist();
-                      Navigator.pop(context);
-                    },
-                    child: Text('[저장]', style: mono(color: kMint, fontSize: 11, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: ctrl,
+                    autofocus: true,
+                    style: mono(color: kText, fontSize: 12),
+                    cursorColor: kMint,
+                    maxLines: 3,
+                    minLines: 1,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 7,
+                      ),
+                      filled: true,
+                      fillColor: kBg,
+                      hintText: '이 시간에 뭘 했나요...',
+                      hintStyle: mono(
+                        color: kDim.withValues(alpha: 0.5),
+                        fontSize: 11,
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: kBorder),
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: kBorder),
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: kMint),
+                        borderRadius: BorderRadius.zero,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Text(
+                          '취소',
+                          style: mono(color: kDim, fontSize: 11),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            final v = ctrl.text.trim();
+                            if (v.isEmpty) {
+                              _entries.remove(hour);
+                            } else {
+                              _entries[hour] = v;
+                            }
+                          });
+                          _persist();
+                          Navigator.pop(context);
+                        },
+                        child: Text(
+                          '저장',
+                          style: mono(
+                            color: kMint,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-        ),
         );
       },
     );
@@ -1019,7 +1466,10 @@ class _TimeRow extends StatelessWidget {
                     Positioned(
                       top: 0,
                       bottom: 0,
-                      child: Container(width: 1, color: kBorder.withValues(alpha: 0.5)),
+                      child: Container(
+                        width: 1,
+                        color: kBorder.withValues(alpha: 0.5),
+                      ),
                     ),
                     Positioned(
                       top: 9,
@@ -1029,7 +1479,9 @@ class _TimeRow extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isNow ? kMint : (has ? kText : kBg),
-                          border: Border.all(color: isNow ? kMint : (has ? kText : kBorder)),
+                          border: Border.all(
+                            color: isNow ? kMint : (has ? kText : kBorder),
+                          ),
                         ),
                       ),
                     ),

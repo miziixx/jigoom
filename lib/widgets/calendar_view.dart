@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../flavor.dart';
 import '../models/memo.dart';
 import '../models/memo_actions.dart';
+import 'logroom_entry_tile.dart';
 import 'memo_tile.dart';
 import 'input_bar.dart';
 import 'scroll_picker_dialog.dart';
-
 
 // Wide layout threshold: side-by-side calendar + day panel
 const _kWide = 620.0;
@@ -26,7 +27,24 @@ class CalendarView extends StatefulWidget {
     String repeatEndType,
     int repeatEndCount,
     DateTime? repeatEndDate,
-  ) onAddMemo;
+  )
+  onAddMemo;
+  final void Function(
+    Memo memo,
+    String content,
+    bool isChecklist,
+    DateTime? reminderAt,
+    String? folderId,
+    List<String> imagePaths,
+    String reminderRepeat,
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  )?
+  onEditMemo;
   final String? highlightedMemoId;
 
   const CalendarView({
@@ -34,6 +52,7 @@ class CalendarView extends StatefulWidget {
     required this.memos,
     required this.actions,
     required this.onAddMemo,
+    this.onEditMemo,
     this.highlightedMemoId,
   });
 
@@ -45,6 +64,7 @@ class _CalendarViewState extends State<CalendarView> {
   late int _year;
   late int _month;
   late DateTime _selectedDay;
+  Memo? _editingMemo;
 
   static const _cellH = 42.0;
 
@@ -52,8 +72,8 @@ class _CalendarViewState extends State<CalendarView> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _year        = now.year;
-    _month       = now.month;
+    _year = now.year;
+    _month = now.month;
     _selectedDay = DateTime(now.year, now.month, now.day);
   }
 
@@ -86,31 +106,85 @@ class _CalendarViewState extends State<CalendarView> {
     return [...list]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
+  MemoActions get _localActions => widget.actions.copyWith(
+    onEditRequest: (memo) => setState(() => _editingMemo = memo),
+  );
+
+  void _submitFromInput(
+    String content,
+    bool isChecklist,
+    DateTime? reminderAt,
+    String? folderId,
+    List<String> imagePaths,
+    String reminderRepeat,
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  ) {
+    final editing = _editingMemo;
+    if (editing != null && widget.onEditMemo != null) {
+      widget.onEditMemo!(
+        editing,
+        content,
+        isChecklist,
+        reminderAt,
+        folderId,
+        imagePaths,
+        reminderRepeat,
+        scheduledAt,
+        rangeEndDate,
+        scheduleRepeat,
+        repeatEndType,
+        repeatEndCount,
+        repeatEndDate,
+      );
+      setState(() => _editingMemo = null);
+      return;
+    }
+    widget.onAddMemo(
+      content,
+      _selectedDay,
+      isChecklist,
+      reminderAt,
+      imagePaths,
+      reminderRepeat,
+      scheduledAt,
+      rangeEndDate,
+      scheduleRepeat,
+      repeatEndType,
+      repeatEndCount,
+      repeatEndDate,
+    );
+  }
+
   // ── Month navigation ──────────────────────────────────────────
 
   void _prevMonth() => setState(() {
-        if (_month == 1) {
-          _month = 12;
-          _year--;
-        } else {
-          _month--;
-        }
-      });
+    if (_month == 1) {
+      _month = 12;
+      _year--;
+    } else {
+      _month--;
+    }
+  });
 
   void _nextMonth() => setState(() {
-        if (_month == 12) {
-          _month = 1;
-          _year++;
-        } else {
-          _month++;
-        }
-      });
+    if (_month == 12) {
+      _month = 1;
+      _year++;
+    } else {
+      _month++;
+    }
+  });
 
   void _goToday() {
     final now = DateTime.now();
     setState(() {
-      _year        = now.year;
-      _month       = now.month;
+      _year = now.year;
+      _month = now.month;
       _selectedDay = DateTime(now.year, now.month, now.day);
     });
   }
@@ -119,22 +193,24 @@ class _CalendarViewState extends State<CalendarView> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (_, constraints) {
-      final isWide = constraints.maxWidth >= _kWide;
-      if (isWide) {
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(width: 330, child: _buildCalendarPanel()),
-            Expanded(child: _buildDayPanel()),
-          ],
-        );
-      }
-      // Narrow (phone): calendar + day header + memo list share one scroll
-      // area, and the input bar is pinned at the bottom. This keeps the
-      // input usable (and on-screen) even when the keyboard pushes up.
-      return _buildNarrowLayout();
-    });
+    return LayoutBuilder(
+      builder: (_, constraints) {
+        final isWide = constraints.maxWidth >= _kWide;
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 330, child: _buildCalendarPanel()),
+              Expanded(child: _buildDayPanel()),
+            ],
+          );
+        }
+        // Narrow (phone): calendar + day header + memo list share one scroll
+        // area, and the input bar is pinned at the bottom. This keeps the
+        // input usable (and on-screen) even when the keyboard pushes up.
+        return _buildNarrowLayout();
+      },
+    );
   }
 
   Widget _buildNarrowLayout() {
@@ -155,26 +231,62 @@ class _CalendarViewState extends State<CalendarView> {
                     child: Text(
                       'no memos on this day',
                       style: mono(
-                          color: kDim.withValues(alpha: 0.35), fontSize: 12),
+                        color: kDim.withValues(alpha: 0.35),
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 )
               else
-                ...memos.map((memo) => MemoTile(
-                      memo:        memo,
-                      actions:     widget.actions,
-                      highlighted: widget.highlightedMemoId == memo.id,
-                    )),
+                ...memos.map(
+                  (memo) => isLogroomUi
+                      ? LogroomEntryTile(
+                          memo: memo,
+                          actions: _localActions,
+                          highlighted: widget.highlightedMemoId == memo.id,
+                        )
+                      : MemoTile(
+                          memo: memo,
+                          actions: _localActions,
+                          highlighted: widget.highlightedMemoId == memo.id,
+                        ),
+                ),
             ],
           ),
         ),
         // Input bar — pinned at bottom, always usable above the keyboard.
         InputBar(
           initialDate: _selectedDay,
-          onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched,
-                  rangeEnd, schedRep, endType, endCount, endDate) =>
-              widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt,
-                  imgs, rep, sched, rangeEnd, schedRep, endType, endCount, endDate),
+          onSubmit:
+              (
+                content,
+                isChecklist,
+                reminderAt,
+                _,
+                imgs,
+                rep,
+                sched,
+                rangeEnd,
+                schedRep,
+                endType,
+                endCount,
+                endDate,
+              ) => _submitFromInput(
+                content,
+                isChecklist,
+                reminderAt,
+                null,
+                imgs,
+                rep,
+                sched,
+                rangeEnd,
+                schedRep,
+                endType,
+                endCount,
+                endDate,
+              ),
+          editingMemo: _editingMemo,
+          onCancelEdit: () => setState(() => _editingMemo = null),
         ),
       ],
     );
@@ -191,8 +303,15 @@ class _CalendarViewState extends State<CalendarView> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       child: Row(
         children: [
-          Text(dateLabel,
-              style: mono(color: kBg, fontSize: 11, letterSpacing: 1, fontWeight: FontWeight.bold)),
+          Text(
+            dateLabel,
+            style: mono(
+              color: kBg,
+              fontSize: 11,
+              letterSpacing: 1,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(width: 10),
           Text(
             memos.isEmpty
@@ -211,16 +330,14 @@ class _CalendarViewState extends State<CalendarView> {
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         final v = details.primaryVelocity ?? 0;
-        if (v < -200) _nextMonth();
-        else if (v > 200) _prevMonth();
+        if (v < -200)
+          _nextMonth();
+        else if (v > 200)
+          _prevMonth();
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildMonthHeader(),
-          _buildWeekdayRow(),
-          _buildGrid(),
-        ],
+        children: [_buildMonthHeader(), _buildWeekdayRow(), _buildGrid()],
       ),
     );
   }
@@ -258,25 +375,38 @@ class _CalendarViewState extends State<CalendarView> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          _NavBtn(label: '[<]', onTap: _prevMonth),
+          _NavBtn(label: '<', onTap: _prevMonth),
           const Spacer(),
           GestureDetector(
             onTap: _showYearPicker,
             child: Text(
               '$_year',
-              style: mono(color: labelColor, fontSize: 13, letterSpacing: 1, fontWeight: weight),
+              style: mono(
+                color: labelColor,
+                fontSize: 13,
+                letterSpacing: 1,
+                fontWeight: weight,
+              ),
             ),
           ),
-          Text(' · ', style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 13)),
+          Text(
+            ' · ',
+            style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 13),
+          ),
           GestureDetector(
             onTap: _showMonthPicker,
             child: Text(
               _month.toString().padLeft(2, '0'),
-              style: mono(color: labelColor, fontSize: 13, letterSpacing: 1, fontWeight: weight),
+              style: mono(
+                color: labelColor,
+                fontSize: 13,
+                letterSpacing: 1,
+                fontWeight: weight,
+              ),
             ),
           ),
           const Spacer(),
-          _NavBtn(label: '[>]', onTap: _nextMonth),
+          _NavBtn(label: '>', onTap: _nextMonth),
         ],
       ),
     );
@@ -293,12 +423,14 @@ class _CalendarViewState extends State<CalendarView> {
           final color = isSun
               ? const Color(0xFFFF1744).withValues(alpha: 0.8)
               : isSat
-                  ? kTeal.withValues(alpha: 0.7)
-                  : kDim.withValues(alpha: 0.55);
+              ? kTeal.withValues(alpha: 0.7)
+              : kDim.withValues(alpha: 0.55);
           return Expanded(
             child: Center(
-              child: Text(e.value,
-                  style: mono(color: color, fontSize: 9, letterSpacing: 0.5)),
+              child: Text(
+                e.value,
+                style: mono(color: color, fontSize: 9, letterSpacing: 0.5),
+              ),
             ),
           );
         }).toList(),
@@ -307,64 +439,67 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   Widget _buildGrid() {
-    final firstDay    = DateTime(_year, _month, 1);
+    final firstDay = DateTime(_year, _month, 1);
     final daysInMonth = DateTime(_year, _month + 1, 0).day;
-    final offset      = firstDay.weekday - 1; // Mon=0 … Sun=6
-    const rows        = 6; // always 6 rows → consistent height across months
+    final offset = firstDay.weekday - 1; // Mon=0 … Sun=6
+    const rows = 6; // always 6 rows → consistent height across months
 
-    final byDate      = _memosByDate;
+    final byDate = _memosByDate;
     final reminderSet = _reminderDates;
-    final now         = DateTime.now();
-    final todayKey    = _key(now.year, now.month, now.day);
+    final now = DateTime.now();
+    final todayKey = _key(now.year, now.month, now.day);
 
-    return LayoutBuilder(builder: (ctx, c) {
-      final cellW = c.maxWidth / 7;
-      return SizedBox(
-        height: rows * _cellH,
-        child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            childAspectRatio: cellW / _cellH,
+    return LayoutBuilder(
+      builder: (ctx, c) {
+        final cellW = c.maxWidth / 7;
+        return SizedBox(
+          height: rows * _cellH,
+          child: GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: cellW / _cellH,
+            ),
+            itemCount: rows * 7,
+            itemBuilder: (_, i) {
+              final dayNum = i - offset + 1;
+              if (dayNum < 1 || dayNum > daysInMonth) {
+                return const SizedBox.shrink();
+              }
+
+              final date = DateTime(_year, _month, dayNum);
+              final k = _key(_year, _month, dayNum);
+              final hasMemo = (byDate[k]?.isNotEmpty) ?? false;
+              final hasReminder = reminderSet.contains(k);
+              final isToday = k == todayKey;
+              final isSelected =
+                  date.year == _selectedDay.year &&
+                  date.month == _selectedDay.month &&
+                  date.day == _selectedDay.day;
+              final weekIdx = i % 7;
+
+              return _DayCell(
+                day: dayNum,
+                hasMemo: hasMemo,
+                hasReminder: hasReminder,
+                isToday: isToday,
+                isSelected: isSelected,
+                isSat: weekIdx == 5,
+                isSun: weekIdx == 6,
+                onTap: () => setState(() => _selectedDay = date),
+              );
+            },
           ),
-          itemCount: rows * 7,
-          itemBuilder: (_, i) {
-            final dayNum = i - offset + 1;
-            if (dayNum < 1 || dayNum > daysInMonth) {
-              return const SizedBox.shrink();
-            }
-
-            final date         = DateTime(_year, _month, dayNum);
-            final k            = _key(_year, _month, dayNum);
-            final hasMemo      = (byDate[k]?.isNotEmpty) ?? false;
-            final hasReminder  = reminderSet.contains(k);
-            final isToday      = k == todayKey;
-            final isSelected   = date.year == _selectedDay.year &&
-                date.month == _selectedDay.month &&
-                date.day == _selectedDay.day;
-            final weekIdx      = i % 7;
-
-            return _DayCell(
-              day:          dayNum,
-              hasMemo:      hasMemo,
-              hasReminder:  hasReminder,
-              isToday:      isToday,
-              isSelected:   isSelected,
-              isSat:        weekIdx == 5,
-              isSun:        weekIdx == 6,
-              onTap:        () => setState(() => _selectedDay = date),
-            );
-          },
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 
   // ── Day memo panel ────────────────────────────────────────────
 
   Widget _buildDayPanel() {
     final memos = _memosForDay(_selectedDay);
-    final d     = _selectedDay;
+    final d = _selectedDay;
     const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     final wdLabel = weekdays[d.weekday - 1];
     final dateLabel =
@@ -379,8 +514,15 @@ class _CalendarViewState extends State<CalendarView> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           child: Row(
             children: [
-              Text(dateLabel,
-                  style: mono(color: kBg, fontSize: 11, letterSpacing: 1, fontWeight: FontWeight.bold)),
+              Text(
+                dateLabel,
+                style: mono(
+                  color: kBg,
+                  fontSize: 11,
+                  letterSpacing: 1,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(width: 10),
               Text(
                 memos.isEmpty
@@ -399,18 +541,28 @@ class _CalendarViewState extends State<CalendarView> {
                   child: Text(
                     'no memos on this day',
                     style: mono(
-                        color: kDim.withValues(alpha: 0.35), fontSize: 12),
+                      color: kDim.withValues(alpha: 0.35),
+                      fontSize: 12,
+                    ),
                   ),
                 )
               : ListView.builder(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.only(bottom: 12),
                   itemCount: memos.length,
                   itemBuilder: (_, i) {
                     final memo = memos[i];
+                    if (isLogroomUi) {
+                      return LogroomEntryTile(
+                        memo: memo,
+                        actions: _localActions,
+                        highlighted: widget.highlightedMemoId == memo.id,
+                      );
+                    }
                     return MemoTile(
-                      memo:        memo,
-                      actions:     widget.actions,
+                      memo: memo,
+                      actions: _localActions,
                       highlighted: widget.highlightedMemoId == memo.id,
                     );
                   },
@@ -419,10 +571,36 @@ class _CalendarViewState extends State<CalendarView> {
         // Input bar — saves memo to selected day's date
         InputBar(
           initialDate: _selectedDay,
-          onSubmit: (content, isChecklist, reminderAt, _, imgs, rep, sched,
-                  rangeEnd, schedRep, endType, endCount, endDate) =>
-              widget.onAddMemo(content, _selectedDay, isChecklist, reminderAt,
-                  imgs, rep, sched, rangeEnd, schedRep, endType, endCount, endDate),
+          onSubmit:
+              (
+                content,
+                isChecklist,
+                reminderAt,
+                _,
+                imgs,
+                rep,
+                sched,
+                rangeEnd,
+                schedRep,
+                endType,
+                endCount,
+                endDate,
+              ) => _submitFromInput(
+                content,
+                isChecklist,
+                reminderAt,
+                null,
+                imgs,
+                rep,
+                sched,
+                rangeEnd,
+                schedRep,
+                endType,
+                endCount,
+                endDate,
+              ),
+          editingMemo: _editingMemo,
+          onCancelEdit: () => setState(() => _editingMemo = null),
         ),
       ],
     );
@@ -484,8 +662,8 @@ class _DayCellState extends State<_DayCell> {
             color: widget.isSelected
                 ? kMint.withValues(alpha: 0.10)
                 : _hovered
-                    ? kSurface
-                    : Colors.transparent,
+                ? kSurface
+                : Colors.transparent,
           ),
           alignment: Alignment.center,
           // FittedBox guarantees the cell content never overflows the fixed
@@ -529,8 +707,7 @@ class _DayCellState extends State<_DayCell> {
                         child: Text(
                           '!',
                           style: mono(
-                            color: Colors.amber.shade600
-                                .withValues(alpha: 0.9),
+                            color: Colors.amber.shade600.withValues(alpha: 0.9),
                             fontSize: 9,
                             height: 1.1,
                           ),
@@ -584,8 +761,10 @@ class _NavBtnState extends State<_NavBtn> {
                 ? kMint.withValues(alpha: 0.08)
                 : Colors.transparent,
           ),
-          child: Text(widget.label,
-              style: mono(color: _hovered ? kMint : kDim, fontSize: 11)),
+          child: Text(
+            widget.label,
+            style: mono(color: _hovered ? kMint : kDim, fontSize: 11),
+          ),
         ),
       ),
     );

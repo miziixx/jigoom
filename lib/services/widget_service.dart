@@ -5,9 +5,10 @@ import '../models/memo.dart';
 import '../models/folder.dart';
 
 class WidgetService {
-  static const _androidProvider     = 'com.example.memo_app.MemoWidgetProvider';
-  static const _listProvider        = 'com.example.memo_app.MemoListWidgetProvider';
-  static const _calendarProvider    = 'com.example.memo_app.CalendarWidgetProvider';
+  static const _androidProvider = 'com.example.memo_app.MemoWidgetProvider';
+  static const _listProvider = 'com.example.memo_app.MemoListWidgetProvider';
+  static const _calendarProvider =
+      'com.example.memo_app.CalendarWidgetProvider';
 
   static Future<void> init() async {
     if (kIsWeb) return;
@@ -52,7 +53,9 @@ class WidgetService {
   static Future<void> syncFolders(List<Folder> folders) async {
     if (kIsWeb) return;
     try {
-      final json = jsonEncode(folders.map((f) => {'id': f.id, 'name': f.name}).toList());
+      final json = jsonEncode(
+        folders.map((f) => {'id': f.id, 'name': f.name}).toList(),
+      );
       await HomeWidget.saveWidgetData<String>('widget_folders', json);
     } catch (_) {}
   }
@@ -74,9 +77,9 @@ class WidgetService {
         if (content.isEmpty) continue;
 
         final isChecklist = data['isChecklist'] as bool? ?? false;
-        final reminderMs  = data['reminderAt'] as int?;
-        final createdMs   = data['createdAt']  as int?;
-        final createdIso  = data['createdAtIso'] as String?;
+        final reminderMs = data['reminderAt'] as int?;
+        final createdMs = data['createdAt'] as int?;
+        final createdIso = data['createdAtIso'] as String?;
 
         DateTime createdAt;
         if (createdIso != null && createdIso.isNotEmpty) {
@@ -89,16 +92,18 @@ class WidgetService {
 
         final folderId = data['folderId'] as String?;
 
-        memos.add(Memo(
-          id: (createdMs ?? DateTime.now().millisecondsSinceEpoch).toString(),
-          content: content,
-          createdAt: createdAt,
-          isChecklist: isChecklist,
-          folderId: folderId,
-          reminderAt: reminderMs != null
-              ? DateTime.fromMillisecondsSinceEpoch(reminderMs)
-              : null,
-        ));
+        memos.add(
+          Memo(
+            id: (createdMs ?? DateTime.now().millisecondsSinceEpoch).toString(),
+            content: content,
+            createdAt: createdAt,
+            isChecklist: isChecklist,
+            folderId: folderId,
+            reminderAt: reminderMs != null
+                ? DateTime.fromMillisecondsSinceEpoch(reminderMs)
+                : null,
+          ),
+        );
       }
 
       // Clear queue

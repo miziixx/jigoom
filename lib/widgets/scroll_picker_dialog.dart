@@ -72,7 +72,9 @@ class _ScrollPickerDialogState extends State<ScrollPickerDialog> {
                 return GestureDetector(
                   onTap: () => Navigator.pop(context, v),
                   child: Container(
-                    color: isSel ? kMint.withValues(alpha: 0.12) : Colors.transparent,
+                    color: isSel
+                        ? kMint.withValues(alpha: 0.12)
+                        : Colors.transparent,
                     alignment: Alignment.center,
                     child: Text(
                       widget.labels[i],

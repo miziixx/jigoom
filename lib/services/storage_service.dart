@@ -6,7 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/memo.dart';
 import '../models/folder.dart';
 import '../models/quick_tab.dart';
+import '../models/entry_display_mode.dart';
 import 'widget_service.dart';
+import '../app_theme.dart';
 
 class StorageService {
   static const _memosKey = 'memos_v1';
@@ -18,6 +20,9 @@ class StorageService {
   static const _fontSizeKey = 'font_size';
   static const _spacingKey = 'spacing';
   static const _tabLockedKey = 'tab_locked';
+  static const _bottomMenusKey = 'nemo2test_bottom_menus_v1';
+  static const _entryDisplayModeKey = 'entry_display_mode';
+  static const _appThemeModeKey = 'app_theme_mode';
   static const _firstOpenKey = 'first_open_date';
   static const _habitActivatedKey = 'habit_activated';
   static const _goalActivatedKey = 'goal_activated';
@@ -131,6 +136,41 @@ class StorageService {
   static Future<bool> loadTabLocked() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_tabLockedKey) ?? false;
+  }
+
+  // ── nemo2test bottom menus ────────────────────────
+
+  static Future<void> saveBottomMenus(List<String> menus) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_bottomMenusKey, menus);
+  }
+
+  static Future<List<String>> loadBottomMenus() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_bottomMenusKey) ??
+        const ['TODAY', 'LIST', 'CAL', 'MORE'];
+  }
+
+  // ── Entry display mode ────────────────────────────
+
+  static Future<void> saveEntryDisplayMode(EntryDisplayMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_entryDisplayModeKey, mode.storageValue);
+  }
+
+  static Future<EntryDisplayMode> loadEntryDisplayMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return EntryDisplayModeX.parse(prefs.getString(_entryDisplayModeKey));
+  }
+
+  static Future<void> saveAppThemeMode(AppThemeMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_appThemeModeKey, mode.storageValue);
+  }
+
+  static Future<AppThemeMode> loadAppThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return AppThemeModeX.parse(prefs.getString(_appThemeModeKey));
   }
 
   // ── Colors ─────────────────────────────────────────

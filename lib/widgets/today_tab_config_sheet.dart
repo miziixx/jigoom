@@ -18,7 +18,7 @@ class TodayTabConfigSheet extends StatefulWidget {
 
 class _TodayTabConfigSheetState extends State<TodayTabConfigSheet> {
   late TextEditingController _nameCtrl;
-  late List<TodaySection> _order;   // 전체 6개, 드래그로 변경 가능
+  late List<TodaySection> _order; // 전체 6개, 드래그로 변경 가능
   late Map<TodaySection, bool> _checks;
 
   // 행 높이 고정값 (6개 * 38px)
@@ -30,8 +30,7 @@ class _TodayTabConfigSheetState extends State<TodayTabConfigSheet> {
     _nameCtrl = TextEditingController(text: widget.tab.name);
     _order = List.from(widget.tab.sectionOrder);
     _checks = {
-      for (final s in TodaySection.values)
-        s: widget.tab.sections.contains(s),
+      for (final s in TodaySection.values) s: widget.tab.sections.contains(s),
     };
   }
 
@@ -45,11 +44,13 @@ class _TodayTabConfigSheetState extends State<TodayTabConfigSheet> {
     final name = _nameCtrl.text.trim();
     // 체크된 섹션들을 현재 _order 순서대로 추출
     final sections = _order.where((s) => _checks[s] == true).toList();
-    widget.onConfirm(widget.tab.copyWith(
-      name: name.isEmpty ? widget.tab.name : name,
-      sections: sections,
-      sectionOrder: List.from(_order),
-    ));
+    widget.onConfirm(
+      widget.tab.copyWith(
+        name: name.isEmpty ? widget.tab.name : name,
+        sections: sections,
+        sectionOrder: List.from(_order),
+      ),
+    );
     Navigator.pop(context);
   }
 
@@ -88,7 +89,10 @@ class _TodayTabConfigSheetState extends State<TodayTabConfigSheet> {
               ),
               child: Row(
                 children: [
-                  Text('탭 이름  ', style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5)),
+                  Text(
+                    '탭 이름  ',
+                    style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5),
+                  ),
                   Expanded(
                     child: TextField(
                       controller: _nameCtrl,
@@ -98,8 +102,10 @@ class _TodayTabConfigSheetState extends State<TodayTabConfigSheet> {
                       decoration: InputDecoration(
                         counterText: '',
                         isDense: true,
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
                         filled: true,
                         fillColor: kBg,
                         border: OutlineInputBorder(
@@ -131,12 +137,19 @@ class _TodayTabConfigSheetState extends State<TodayTabConfigSheet> {
                   Expanded(
                     child: Text(
                       '섹션 선택 · 드래그로 순서 변경',
-                      style: mono(color: kText, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: mono(
+                        color: kText,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   Text(
                     '⠿ 드래그',
-                    style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 10),
+                    style: mono(
+                      color: kDim.withValues(alpha: 0.5),
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -176,16 +189,12 @@ class _TodayTabConfigSheetState extends State<TodayTabConfigSheet> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   _SheetBtn(
-                    label: '[취소]',
+                    label: '취소',
                     color: kDim,
                     onTap: () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 16),
-                  _SheetBtn(
-                    label: '[확인]',
-                    color: kMint,
-                    onTap: _apply,
-                  ),
+                  _SheetBtn(label: '확인', color: kMint, onTap: _apply),
                 ],
               ),
             ),

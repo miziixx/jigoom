@@ -12,16 +12,18 @@ class BackupService {
     required Map<String, dynamic> settings,
   }) => {
     'version': 1,
-    'memos':    memos.map((m) => m.toJson()).toList(),
-    'folders':  folders.map((f) => f.toJson()).toList(),
-    'tabs':     tabs.map((t) => t.toJson()).toList(),
+    'memos': memos.map((m) => m.toJson()).toList(),
+    'folders': folders.map((f) => f.toJson()).toList(),
+    'tabs': tabs.map((t) => t.toJson()).toList(),
     'settings': settings,
   };
 
   static String _filename() {
     final now = DateTime.now();
-    final d = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final t = '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    final d =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final t =
+        '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
     return 'nemo_backup_${d}_$t.json';
   }
 
@@ -33,7 +35,13 @@ class BackupService {
     required Map<String, dynamic> settings,
   }) async {
     final json = const JsonEncoder.withIndent('  ').convert(
-        _buildData(memos: memos, folders: folders, tabs: tabs, settings: settings));
+      _buildData(
+        memos: memos,
+        folders: folders,
+        tabs: tabs,
+        settings: settings,
+      ),
+    );
     await platformDownload(json, _filename());
   }
 
@@ -45,7 +53,13 @@ class BackupService {
     required Map<String, dynamic> settings,
   }) async {
     final json = const JsonEncoder.withIndent('  ').convert(
-        _buildData(memos: memos, folders: folders, tabs: tabs, settings: settings));
+      _buildData(
+        memos: memos,
+        folders: folders,
+        tabs: tabs,
+        settings: settings,
+      ),
+    );
     return platformSaveToPhone(json, _filename());
   }
 

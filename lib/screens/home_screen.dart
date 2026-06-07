@@ -17,13 +17,16 @@ import 'settings_screen.dart';
 import '../widgets/bottom_tab_bar.dart';
 import '../models/quick_tab.dart';
 import '../models/append_note.dart';
+import '../models/entry_display_mode.dart';
 import '../services/storage_service.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
 import '../services/widget_service.dart';
 import '../services/image_service.dart';
 import '../utils/memo_view_calculations.dart';
+import '../utils/logroom_entries.dart';
 import '../widgets/calendar_view.dart';
+import '../widgets/logroom_entry_tile.dart';
 import 'stats_screen.dart';
 import 'schedule_screen.dart';
 import 'today_screen.dart';
@@ -43,7 +46,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _memos = <Memo>[];
   final _folders = <Folder>[];
   final _tabs = <QuickTab>[];
+  final _bottomMenus = <String>['TODAY', 'LIST', 'CAL', 'MORE'];
   final _scrollController = ScrollController();
+  final _inputBarKey = GlobalKey();
   final _memoKeys = <String, GlobalKey>{};
 
   bool _sidebarOpen = true;
@@ -59,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _selectedTag;
   String? _selectedTabId;
   String? _highlightedMemoId; // briefly highlighted after notification tap
+  Memo? _editingMemo;
 
   int _dayCount = 1;
   bool _habitActivated = false;
@@ -70,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _searchFocusNode = FocusNode();
 
   final _collapsedDates = <String>{};
+  final _expandedLogroomGroups = <String>{};
 
   StreamSubscription? _shareSubscription;
 
@@ -113,9 +120,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _initShareIntent() {
     if (kIsWeb) return;
     // Hot-start: app already running when another app shares to us
-    _shareSubscription = ReceiveSharingIntent.instance
-        .getMediaStream()
-        .listen((List<SharedMediaFile> files) {
+    _shareSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((
+      List<SharedMediaFile> files,
+    ) {
       _handleSharedFiles(files);
       ReceiveSharingIntent.instance.reset();
     });
@@ -131,17 +138,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static String _sourceTag(String? url) {
     if (url == null) return '#공유기사';
     final u = url.toLowerCase();
-    if (u.contains('instagram.com'))                               return '#공유인스타';
-    if (u.contains('threads.net') || u.contains('threads.com'))   return '#공유스레드';
-    if (u.contains('kakao'))                                       return '#공유카톡';
-    if (u.contains('youtube.com') || u.contains('youtu.be'))      return '#공유유튜브';
-    if (u.contains('twitter.com') || u.contains('x.com'))         return '#공유X';
-    if (u.contains('tiktok.com'))                                  return '#공유틱톡';
-    if (u.contains('facebook.com') || u.contains('fb.com'))       return '#공유페북';
-    if (u.contains('chatgpt.com') || u.contains('chat.openai.com')) return '#공유GPT';
-    if (u.contains('google.com'))                                  return '#공유구글';
-    if (u.contains('naver.com'))                                   return '#공유네이버';
-    if (u.contains('blog.') || u.contains('/blog'))               return '#공유블로그';
+    if (u.contains('instagram.com')) return '#공유인스타';
+    if (u.contains('threads.net') || u.contains('threads.com')) return '#공유스레드';
+    if (u.contains('kakao')) return '#공유카톡';
+    if (u.contains('youtube.com') || u.contains('youtu.be')) return '#공유유튜브';
+    if (u.contains('twitter.com') || u.contains('x.com')) return '#공유X';
+    if (u.contains('tiktok.com')) return '#공유틱톡';
+    if (u.contains('facebook.com') || u.contains('fb.com')) return '#공유페북';
+    if (u.contains('chatgpt.com') || u.contains('chat.openai.com'))
+      return '#공유GPT';
+    if (u.contains('google.com')) return '#공유구글';
+    if (u.contains('naver.com')) return '#공유네이버';
+    if (u.contains('blog.') || u.contains('/blog')) return '#공유블로그';
     return '#공유기사';
   }
 
@@ -149,7 +157,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       final client = HttpClient()
         ..connectionTimeout = const Duration(seconds: 4);
-      final req = await client.getUrl(Uri.parse(url))
+      final req = await client
+          .getUrl(Uri.parse(url))
           .timeout(const Duration(seconds: 4));
       req.headers.set('User-Agent', 'Mozilla/5.0');
       final res = await req.close().timeout(const Duration(seconds: 4));
@@ -171,10 +180,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  static String _stripSharedMemoText(String raw) => raw
+      .replaceAll(RegExp(r'https?://\S+', caseSensitive: false), '')
+      .replaceAll(RegExp(r'#[a-zA-Z0-9_ㄱ-ㅎㅏ-ㅣ가-힣]+'), '')
+      .replaceAll(RegExp(r'\n+'), ' ')
+      .replaceAll(RegExp(r' {2,}'), ' ')
+      .trim();
+
   Future<void> _handleSharedFiles(List<SharedMediaFile> files) async {
     if (!mounted) return;
     final textFiles = files
-        .where((f) => f.type == SharedMediaType.text || f.type == SharedMediaType.url)
+        .where(
+          (f) =>
+              f.type == SharedMediaType.text || f.type == SharedMediaType.url,
+        )
         .toList();
     if (textFiles.isEmpty) return;
 
@@ -188,38 +207,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final sourceTag = _sourceTag(detectedUrl);
     final tags = '#공유 $sourceTag';
 
-    // Title: non-URL text in the shared content, or fetched from page <title>
-    String? title;
-    final nonUrl = raw.replaceAll(urlRegex, '').replaceAll(RegExp(r'\n+'), ' ').trim();
-    if (nonUrl.isNotEmpty) {
-      title = nonUrl;
-    } else if (detectedUrl != null) {
-      title = await _fetchPageTitle(detectedUrl);
-    }
+    final initialContent = _stripSharedMemoText(raw);
 
-    if (!mounted) return;
-
-    final String initialContent;
-    if (title != null && title.isNotEmpty) {
-      initialContent = detectedUrl != null
-          ? '$tags\n$title\n$detectedUrl'
-          : '$tags\n$title';
-    } else if (detectedUrl != null) {
-      initialContent = '$tags\n$detectedUrl';
-    } else {
-      initialContent = '$tags\n$raw';
-    }
-
-    _showShareDialog(sharedText: raw, initialContent: initialContent, detectedUrl: detectedUrl);
+    _showShareDialog(
+      initialContent: initialContent,
+      detectedUrl: detectedUrl,
+      initialTags: tags,
+    );
   }
 
   void _showShareDialog({
-    required String sharedText,
     required String initialContent,
+    required String initialTags,
     String? detectedUrl,
   }) {
     final contentController = TextEditingController(text: initialContent);
     final urlController = TextEditingController(text: detectedUrl ?? '');
+    final tagController = TextEditingController(text: initialTags);
 
     showDialog(
       context: context,
@@ -235,31 +239,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('[SHARED CONTENT]',
-                    style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
+                Text(
+                  'SHARED CONTENT',
+                  style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                ),
                 const SizedBox(height: 10),
                 Container(height: 1, color: kBorder),
                 const SizedBox(height: 12),
-
-                // Source preview
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  color: kBg,
-                  child: Text(
-                    sharedText.length > 200
-                        ? '${sharedText.substring(0, 200)}...'
-                        : sharedText,
-                    style: mono(color: kDim, fontSize: 11, height: 1.5),
-                  ),
-                ),
-                const SizedBox(height: 14),
 
                 // Memo content field
                 Text('메모 내용', style: mono(color: kDim, fontSize: 10)),
                 const SizedBox(height: 5),
                 Container(
                   color: kBg,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   child: TextField(
                     controller: contentController,
                     maxLines: 4,
@@ -268,7 +264,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     cursorColor: kMint,
                     decoration: InputDecoration(
                       hintText: '내용을 입력하거나 비워두세요...',
-                      hintStyle: mono(color: kDim.withValues(alpha: 0.5), fontSize: 12),
+                      hintStyle: mono(
+                        color: kDim.withValues(alpha: 0.5),
+                        fontSize: 12,
+                      ),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
@@ -282,7 +281,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 const SizedBox(height: 5),
                 Container(
                   color: kBg,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   child: TextField(
                     controller: urlController,
                     maxLines: 1,
@@ -290,7 +292,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     cursorColor: kMint,
                     decoration: InputDecoration(
                       hintText: 'https://...',
-                      hintStyle: mono(color: kDim.withValues(alpha: 0.4), fontSize: 11),
+                      hintStyle: mono(
+                        color: kDim.withValues(alpha: 0.4),
+                        fontSize: 11,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                Text('태그', style: mono(color: kDim, fontSize: 10)),
+                const SizedBox(height: 5),
+                Container(
+                  color: kBg,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: TextField(
+                    controller: tagController,
+                    maxLines: 1,
+                    style: mono(fontSize: 11, height: 1.4, color: kTeal),
+                    cursorColor: kMint,
+                    decoration: InputDecoration(
+                      hintText: '#공유',
+                      hintStyle: mono(
+                        color: kDim.withValues(alpha: 0.4),
+                        fontSize: 11,
+                      ),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
@@ -302,26 +334,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    _DialogBtn(action: _DialogAction(
-                      label: '취소',
-                      color: kDim,
-                      onTap: () => Navigator.pop(ctx),
-                    )),
+                    _DialogBtn(
+                      action: _DialogAction(
+                        label: '취소',
+                        color: kDim,
+                        onTap: () => Navigator.pop(ctx),
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    _DialogBtn(action: _DialogAction(
-                      label: '저장',
-                      color: kMint,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        final content = contentController.text.trim().isNotEmpty
-                            ? contentController.text.trim()
-                            : sharedText;
-                        final url = urlController.text.trim().isNotEmpty
-                            ? urlController.text.trim()
-                            : null;
-                        _addMemoWithSource(content, url);
-                      },
-                    )),
+                    _DialogBtn(
+                      action: _DialogAction(
+                        label: '저장',
+                        color: kMint,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          final memoText = contentController.text.trim();
+                          final tagText = tagController.text.trim();
+                          final content = [
+                            memoText,
+                            tagText,
+                          ].where((part) => part.isNotEmpty).join('\n');
+                          final url = urlController.text.trim().isNotEmpty
+                              ? urlController.text.trim()
+                              : null;
+                          _addMemoWithSource(content, url);
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -335,13 +374,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _addMemoWithSource(String content, String? sourceUrl) {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     setState(() {
-      _memos.add(Memo(
-        id: id,
-        content: content,
-        createdAt: DateTime.now(),
-        folderId: _selectedFolderId,
-        sourceUrl: sourceUrl,
-      ));
+      _memos.add(
+        Memo(
+          id: id,
+          content: content,
+          createdAt: DateTime.now(),
+          folderId: _selectedFolderId,
+          sourceUrl: sourceUrl,
+        ),
+      );
     });
     StorageService.saveMemos(_memos);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -414,9 +455,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _openSearch() {
-    setState(() { _searchOpen = true; _searchQuery = ''; });
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _searchFocusNode.requestFocus());
+    setState(() {
+      _searchOpen = true;
+      _searchQuery = '';
+    });
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _searchFocusNode.requestFocus(),
+    );
   }
 
   void _closeSearch() {
@@ -442,13 +487,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final memo = _memos.where((m) => m.id == memoId).firstOrNull;
     if (memo == null) return;
     setState(() {
-      _selectedFolderId  = memo.folderId;
-      _selectedTag       = null;
-      _selectedTabId     = null;
+      _selectedFolderId = memo.folderId;
+      _selectedTag = null;
+      _selectedTabId = null;
       _highlightedMemoId = memoId;
-      _calendarOpen      = false;
-      _statsOpen         = false;
-      _scheduleOpen      = false;
+      _calendarOpen = false;
+      _statsOpen = false;
+      _scheduleOpen = false;
     });
     // Remove highlight after 3 seconds.
     Future.delayed(const Duration(seconds: 3), () {
@@ -457,9 +502,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Scroll to top so the user can see the memo.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(0,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut);
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
@@ -480,6 +527,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final memos = await StorageService.loadMemos();
     final folders = await StorageService.loadFolders();
     final tabs = await StorageService.loadTabs();
+    final bottomMenus = await StorageService.loadBottomMenus();
     final tabLocked = await StorageService.loadTabLocked();
     final dayCount = await StorageService.getDayCount();
     final habitActivated = await StorageService.getHabitActivated();
@@ -489,6 +537,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _memos.addAll(memos);
       _folders.addAll(folders);
       _tabs.addAll(tabs);
+      _bottomMenus
+        ..clear()
+        ..addAll(_sanitizeBottomMenus(bottomMenus));
       _tabLocked = tabLocked;
       _dayCount = dayCount;
       _habitActivated = habitActivated;
@@ -548,22 +599,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final targetFolder = folderOverride ?? _selectedFolderId;
     setState(() {
-      _memos.add(Memo(
-        id: id,
-        content: content,
-        createdAt: DateTime.now(),
-        folderId: targetFolder,
-        isChecklist: isChecklist,
-        reminderAt: reminderAt,
-        reminderRepeat: reminderRepeat,
-        scheduledAt: scheduledAt,
-        imagePaths: imagePaths ?? const [],
-        rangeEndDate: rangeEndDate,
-        scheduleRepeat: scheduleRepeat,
-        repeatEndType: repeatEndType,
-        repeatEndCount: repeatEndCount,
-        repeatEndDate: repeatEndDate,
-      ));
+      _memos.add(
+        Memo(
+          id: id,
+          content: content,
+          createdAt: DateTime.now(),
+          folderId: targetFolder,
+          isChecklist: isChecklist,
+          reminderAt: reminderAt,
+          reminderRepeat: reminderRepeat,
+          scheduledAt: scheduledAt,
+          imagePaths: imagePaths ?? const [],
+          rangeEndDate: rangeEndDate,
+          scheduleRepeat: scheduleRepeat,
+          repeatEndType: repeatEndType,
+          repeatEndCount: repeatEndCount,
+          repeatEndDate: repeatEndDate,
+        ),
+      );
       if (folderOverride != null) _selectedFolderId = folderOverride;
     });
     StorageService.saveMemos(_memos);
@@ -606,7 +659,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final now = DateTime.now();
     final id = now.millisecondsSinceEpoch.toString();
     final createdAt = DateTime(
-        date.year, date.month, date.day, now.hour, now.minute, now.second);
+      date.year,
+      date.month,
+      date.day,
+      now.hour,
+      now.minute,
+      now.second,
+    );
     final scheduleDate = scheduledAt == null
         ? null
         : DateTime(
@@ -618,26 +677,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             scheduledAt.second,
           );
     setState(() {
-      _memos.add(Memo(
-        id: id,
-        content: content,
-        createdAt: createdAt,
-        isChecklist: isChecklist,
-        reminderAt: reminderAt,
-        reminderRepeat: reminderRepeat,
-        imagePaths: imagePaths ?? const [],
-        scheduledAt: scheduleDate,
-        rangeEndDate: rangeEndDate,
-        scheduleRepeat: scheduleRepeat,
-        repeatEndType: repeatEndType,
-        repeatEndCount: repeatEndCount,
-        repeatEndDate: repeatEndDate,
-      ));
+      _memos.add(
+        Memo(
+          id: id,
+          content: content,
+          createdAt: createdAt,
+          isChecklist: isChecklist,
+          reminderAt: reminderAt,
+          reminderRepeat: reminderRepeat,
+          imagePaths: imagePaths ?? const [],
+          scheduledAt: scheduleDate,
+          rangeEndDate: rangeEndDate,
+          scheduleRepeat: scheduleRepeat,
+          repeatEndType: repeatEndType,
+          repeatEndCount: repeatEndCount,
+          repeatEndDate: repeatEndDate,
+        ),
+      );
     });
     StorageService.saveMemos(_memos);
     if (reminderAt != null) {
       NotificationService.schedule(
-          memoId: id, content: content, scheduledAt: reminderAt, repeat: reminderRepeat);
+        memoId: id,
+        content: content,
+        scheduledAt: reminderAt,
+        repeat: reminderRepeat,
+      );
     }
   }
 
@@ -661,7 +726,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final notes = [..._memos[i].appendNotes];
         if (index >= 0 && index < notes.length) {
           notes[index] = AppendNote(
-              content: content, addedAt: notes[index].addedAt);
+            content: content,
+            addedAt: notes[index].addedAt,
+          );
           _memos[i] = _memos[i].copyWith(appendNotes: notes);
         }
       }
@@ -692,8 +759,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         for (final sysTag in ['habit', 'goal']) {
           if (original.tags.contains(sysTag)) {
             final tempTags = Memo(
-                    id: '', content: content, createdAt: DateTime.now())
-                .tags;
+              id: '',
+              content: content,
+              createdAt: DateTime.now(),
+            ).tags;
             if (!tempTags.contains(sysTag)) content += ' #$sysTag';
           }
         }
@@ -706,6 +775,81 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     StorageService.saveMemos(_memos);
   }
 
+  void _updateMemoFromInput(
+    Memo memo,
+    String content,
+    bool isChecklist,
+    DateTime? reminderAt,
+    String? folderId,
+    List<String> imagePaths,
+    String reminderRepeat,
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  ) {
+    setState(() {
+      final i = _memos.indexWhere((m) => m.id == memo.id);
+      if (i != -1) {
+        final contentToSave = _contentPreservingSourceTags(_memos[i], content);
+        _memos[i] = _memos[i].copyWith(
+          content: contentToSave,
+          isChecklist: isChecklist,
+          reminderAt: reminderAt,
+          clearReminder: reminderAt == null,
+          reminderRepeat: reminderAt == null ? 'none' : reminderRepeat,
+          scheduledAt: scheduledAt,
+          clearSchedule: scheduledAt == null,
+          rangeEndDate: rangeEndDate,
+          clearRangeEnd: rangeEndDate == null,
+          scheduleRepeat: scheduledAt == null ? 'none' : scheduleRepeat,
+          repeatEndType: repeatEndType,
+          repeatEndCount: repeatEndCount,
+          repeatEndDate: repeatEndDate,
+          clearRepeatEndDate: repeatEndDate == null,
+          imagePaths: imagePaths,
+          folderId: folderId,
+          clearFolder: folderId == null,
+          editHistory: [..._memos[i].editHistory, DateTime.now()],
+        );
+      }
+      _editingMemo = null;
+    });
+    StorageService.saveMemos(_memos);
+    if (reminderAt == null) {
+      NotificationService.cancel(memo.id);
+    } else {
+      NotificationService.schedule(
+        memoId: memo.id,
+        content: content,
+        scheduledAt: reminderAt,
+        repeat: reminderRepeat,
+        repeatEndDate: repeatEndDate,
+      );
+    }
+  }
+
+  String _contentPreservingSourceTags(Memo memo, String content) {
+    if (memo.sourceUrl == null) return content;
+    final submittedTags = Memo(
+      id: '',
+      content: content,
+      createdAt: DateTime.now(),
+    ).tags;
+    if (submittedTags.isNotEmpty) return content;
+    final existingTags = memo.tags
+        .where((tag) => tag != 'habit' && tag != 'goal')
+        .map((tag) => '#$tag')
+        .join(' ');
+    if (existingTags.isEmpty) return content;
+    return [
+      content.trim(),
+      existingTags,
+    ].where((part) => part.isNotEmpty).join('\n');
+  }
+
   void _addImageToMemo(Memo memo, String imagePath) {
     setState(() {
       final i = _memos.indexWhere((m) => m.id == memo.id);
@@ -713,6 +857,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _memos[i] = _memos[i].copyWith(
           imagePaths: [..._memos[i].imagePaths, imagePath],
         );
+      }
+    });
+    StorageService.saveMemos(_memos);
+  }
+
+  void _deleteImageFromMemo(Memo memo, int index) {
+    setState(() {
+      final i = _memos.indexWhere((m) => m.id == memo.id);
+      if (i != -1 && index >= 0 && index < _memos[i].imagePaths.length) {
+        final paths = [..._memos[i].imagePaths];
+        final removed = paths.removeAt(index);
+        _memos[i] = _memos[i].copyWith(imagePaths: paths);
+        ImageService.deleteImages([removed]);
       }
     });
     StorageService.saveMemos(_memos);
@@ -770,7 +927,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   Icon(Icons.undo, color: kMint, size: kFontSize + 4),
                   const SizedBox(width: 4),
-                  Text('되돌리기', style: mono(color: kMint, fontSize: kFontSize * 0.8)),
+                  Text(
+                    '되돌리기',
+                    style: mono(color: kMint, fontSize: kFontSize * 0.8),
+                  ),
                 ],
               ),
             ),
@@ -784,14 +944,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     showDialog(
       context: context,
       builder: (ctx) => _TerminalDialog(
-        title: '[DELETE MEMO]',
+        title: 'DELETE MEMO',
         body:
             '"${memo.content.length > 50 ? '${memo.content.substring(0, 50)}...' : memo.content}"',
         actions: [
           _DialogAction(
-              label: '취소',
-              color: kDim,
-              onTap: () => Navigator.pop(ctx)),
+            label: '취소',
+            color: kDim,
+            onTap: () => Navigator.pop(ctx),
+          ),
           _DialogAction(
             label: '삭제',
             color: Colors.red.shade400,
@@ -822,8 +983,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ? safeName.substring(0, _nameLimit)
         : safeName;
     if (limitedName.isEmpty) return;
-    final siblingCount =
-        _folders.where((f) => f.parentId == parentId).length;
+    final siblingCount = _folders.where((f) => f.parentId == parentId).length;
     final folder = Folder(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: limitedName,
@@ -873,10 +1033,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (idsToDelete.contains(_selectedFolderId)) {
         _selectedFolderId = null;
       }
-      _tabs.removeWhere((t) =>
-          !t.isTag && t.folderId != null && idsToDelete.contains(t.folderId));
-      if (_selectedTabId != null &&
-          !_tabs.any((t) => t.id == _selectedTabId)) {
+      _tabs.removeWhere(
+        (t) =>
+            !t.isTag && t.folderId != null && idsToDelete.contains(t.folderId),
+      );
+      if (_selectedTabId != null && !_tabs.any((t) => t.id == _selectedTabId)) {
         _selectedTabId = null;
       }
     });
@@ -955,7 +1116,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     StorageService.saveMemos(_memos);
 
     () async {
-      try { await NotificationService.cancel(memo.id); } catch (_) {}
+      try {
+        await NotificationService.cancel(memo.id);
+      } catch (_) {}
       if (newTime != null) {
         try {
           await NotificationService.schedule(
@@ -987,8 +1150,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isDescendant(String ancestorId, String checkId) {
     var currentId = checkId;
     while (true) {
-      final folder =
-          _folders.where((f) => f.id == currentId).firstOrNull;
+      final folder = _folders.where((f) => f.id == currentId).firstOrNull;
       if (folder == null || folder.parentId == null) return false;
       if (folder.parentId == ancestorId) return true;
       currentId = folder.parentId!;
@@ -1030,12 +1192,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (moved.parentId == newParentId && moved.order < targetIndex) {
         targetIndex--;
       }
-      final siblings = _folders
-          .where((f) => f.parentId == newParentId && f.id != folderId)
-          .toList()
-        ..sort((a, b) => a.order != b.order
-            ? a.order.compareTo(b.order)
-            : a.name.compareTo(b.name));
+      final siblings =
+          _folders
+              .where((f) => f.parentId == newParentId && f.id != folderId)
+              .toList()
+            ..sort(
+              (a, b) => a.order != b.order
+                  ? a.order.compareTo(b.order)
+                  : a.name.compareTo(b.name),
+            );
 
       final pos = targetIndex.clamp(0, siblings.length);
 
@@ -1095,8 +1260,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _selectTab(QuickTab tab) {
     setState(() {
       _selectedTabId = tab.id;
-      _calendarOpen  = false;
-      _statsOpen     = false;
+      _calendarOpen = false;
+      _statsOpen = false;
       if (tab.isTag && tab.tag != null) {
         _selectedTag = tab.tag;
         _selectedFolderId = null;
@@ -1107,6 +1272,211 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
+  List<String> _sanitizeBottomMenus(List<String> menus) {
+    final result = <String>[];
+    for (final menu in menus) {
+      final upper = menu.toUpperCase();
+      if (upper == 'SEARCH') continue;
+      if (!nemo2TestMenuOptions.contains(upper) && upper != 'MORE') continue;
+      if (result.contains(upper)) continue;
+      result.add(upper);
+      if (result.length == 4) break;
+    }
+    for (final fallback in const ['TODAY', 'LIST', 'CAL', 'MORE']) {
+      if (result.length == 4) break;
+      if (!result.contains(fallback)) result.add(fallback);
+    }
+    return result;
+  }
+
+  String get _activeBottomMenu {
+    if (_todayOpen) return 'TODAY';
+    if (_calendarOpen) return 'CAL';
+    if (_scheduleOpen) return 'EVENTS';
+    if (_tasksOnly) return 'TASKS';
+    if (_selectedTag == 'habit') return 'HABITS';
+    if (_selectedTag == 'goal') return 'GOALS';
+    if (_statsOpen) return 'STATS';
+    if (_tagsOpen) return 'TAGS';
+    return 'LIST';
+  }
+
+  void _selectBottomMenu(String menu, {bool narrow = false}) {
+    switch (menu) {
+      case 'TODAY':
+        setState(() {
+          _todayOpen = true;
+          _calendarOpen = false;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _tagsOpen = false;
+          _tasksOnly = false;
+          _selectedTabId = null;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'CAL':
+        setState(() {
+          _calendarOpen = true;
+          _selectedTabId = null;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _todayOpen = false;
+          _tagsOpen = false;
+          _tasksOnly = false;
+          _selectedTag = null;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'EVENTS':
+        setState(() {
+          _scheduleOpen = true;
+          _statsOpen = false;
+          _calendarOpen = false;
+          _tasksOnly = false;
+          _tagsOpen = false;
+          _todayOpen = false;
+          _selectedTabId = null;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'TASKS':
+        setState(() {
+          _tasksOnly = true;
+          _calendarOpen = false;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _tagsOpen = false;
+          _todayOpen = false;
+          _selectedTag = null;
+          _selectedFolderId = null;
+          _selectedTabId = null;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'HABITS':
+        setState(() {
+          _selectedTag = 'habit';
+          _selectedFolderId = null;
+          _selectedTabId = null;
+          _tasksOnly = false;
+          _tagsOpen = false;
+          _calendarOpen = false;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _todayOpen = false;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'GOALS':
+        setState(() {
+          _selectedTag = 'goal';
+          _selectedFolderId = null;
+          _selectedTabId = null;
+          _tasksOnly = false;
+          _tagsOpen = false;
+          _calendarOpen = false;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _todayOpen = false;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'STATS':
+        setState(() {
+          _statsOpen = true;
+          _calendarOpen = false;
+          _scheduleOpen = false;
+          _todayOpen = false;
+          _tagsOpen = false;
+          _tasksOnly = false;
+          _selectedTabId = null;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'SETTINGS':
+        _showSettings();
+        break;
+      case 'TAGS':
+        setState(() {
+          _tagsOpen = true;
+          _tasksOnly = false;
+          _calendarOpen = false;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _todayOpen = false;
+          _selectedTag = null;
+          _selectedFolderId = null;
+          _selectedTabId = null;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'MORE':
+        setState(() => _sidebarOpen = true);
+        break;
+      case 'LIST':
+      default:
+        setState(() {
+          _selectedFolderId = null;
+          _selectedTag = null;
+          _selectedTabId = null;
+          _calendarOpen = false;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _tasksOnly = false;
+          _tagsOpen = false;
+          _todayOpen = false;
+          _searchOpen = false;
+          if (narrow) _sidebarOpen = false;
+        });
+    }
+  }
+
+  void _showBottomMenuReplaceSheet(int index) {
+    final current = _bottomMenus[index];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kSurface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      builder: (ctx) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+            children: [
+              Text('REPLACE $current', style: mono(color: kMint, fontSize: 12)),
+              const SizedBox(height: 8),
+              Container(height: 1, color: kBorder),
+              const SizedBox(height: 6),
+              ...nemo2TestMenuOptions.map((menu) {
+                final duplicate =
+                    _bottomMenus.contains(menu) && menu != current;
+                return Opacity(
+                  opacity: duplicate ? 0.35 : 1,
+                  child: ListTile(
+                    dense: true,
+                    title: Text(menu, style: mono(color: kText, fontSize: 13)),
+                    trailing: duplicate
+                        ? Text('USED', style: mono(color: kDim, fontSize: 10))
+                        : null,
+                    onTap: duplicate
+                        ? null
+                        : () {
+                            Navigator.pop(ctx);
+                            setState(() => _bottomMenus[index] = menu);
+                            StorageService.saveBottomMenus(_bottomMenus);
+                            _selectBottomMenu(menu);
+                          },
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showTabDialog(QuickTab? existing) {
     showDialog(
       context: context,
@@ -1114,8 +1484,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         tab: existing,
         folders: _folders,
         allTags: _allTags,
-        onSave: (tab) =>
-            existing == null ? _addTab(tab) : _updateTab(tab),
+        onSave: (tab) => existing == null ? _addTab(tab) : _updateTab(tab),
         onDelete: existing != null ? () => _deleteTab(existing.id) : null,
       ),
     );
@@ -1125,15 +1494,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     showDialog(
       context: context,
       builder: (ctx) => _TerminalDialog(
-        title: '[DELETE TAB]',
+        title: 'DELETE TAB',
         body: '"${tab.label}" 탭을 삭제하시겠습니까?',
         actions: [
           _DialogAction(
-              label: '[취소]',
-              color: kDim,
-              onTap: () => Navigator.pop(ctx)),
+            label: '취소',
+            color: kDim,
+            onTap: () => Navigator.pop(ctx),
+          ),
           _DialogAction(
-            label: '[삭제]',
+            label: '삭제',
             color: Colors.red.shade400,
             onTap: () {
               Navigator.pop(ctx);
@@ -1155,32 +1525,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   List<Memo> get _recentMemos => recentMemos(_memos);
 
-  int get _totalWords =>
-      _memos.fold(0, (sum, m) => sum + m.content.length);
+  int get _totalWords => _memos.fold(0, (sum, m) => sum + m.content.length);
 
   int get _taskCount => _memos.where((m) => m.isChecklist).length;
   int get _habitCount => _memos.where((m) => m.tags.contains('habit')).length;
 
   MemoActions get _memoActions => MemoActions(
-        folders: _folders,
-        onDelete: _deleteMemo,
-        onUpdate: (m, c) => _updateMemo(m.id, c),
-        onMove: _moveMemoToFolder,
-        onSetReminder: _setReminder,
-        onSetSchedule: _setSchedule,
-        onAddNote: _addNote,
-        onUpdateNote: _updateNote,
-        onDeleteNote: _deleteNote,
-        onMerge: _mergeMemos,
-        onAddImage: _addImageToMemo,
-        onTagTap: (tag) => setState(() => _selectedTag = tag),
-      );
+    folders: _folders,
+    onDelete: _deleteMemo,
+    onEditRequest: (memo) {
+      setState(() => _editingMemo = memo);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _inputBarKey.currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            alignment: 1,
+          );
+        }
+      });
+    },
+    onUpdate: (m, c) => _updateMemo(m.id, c),
+    onMove: _moveMemoToFolder,
+    onSetReminder: _setReminder,
+    onSetSchedule: _setSchedule,
+    onAddNote: _addNote,
+    onUpdateNote: _updateNote,
+    onDeleteNote: _deleteNote,
+    onMerge: _mergeMemos,
+    onAddImage: _addImageToMemo,
+    onDeleteImage: _deleteImageFromMemo,
+    onTagTap: (tag) => setState(() => _selectedTag = tag),
+  );
 
   String get _activeSidebarSection {
     if (_calendarOpen) return 'calendar';
     if (_statsOpen) return 'stats';
     if (_scheduleOpen) return 'event';
     if (_todayOpen) return 'today';
+    if (_searchOpen) return 'search';
     if (_tasksOnly) return 'tasks';
     if (_tagsOpen) return 'tags';
     if (_selectedTag == 'habit') return 'habits';
@@ -1190,14 +1575,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   int get _streak {
     if (_memos.isEmpty) return 0;
-    final days = _memos
-        .map((m) {
-          final d = m.createdAt;
-          return DateTime(d.year, d.month, d.day);
-        })
-        .toSet()
-        .toList()
-      ..sort((a, b) => b.compareTo(a));
+    final days =
+        _memos
+            .map((m) {
+              final d = m.createdAt;
+              return DateTime(d.year, d.month, d.day);
+            })
+            .toSet()
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -1235,7 +1621,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
     final grouped = <String, List<Memo>>{};
     for (final memo in visible) {
-      grouped.putIfAbsent(memo.dateKey, () => []).add(memo);
+      grouped.putIfAbsent(_listDateKey(memo), () => []).add(memo);
     }
     final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
     final items = <Object>[];
@@ -1243,11 +1629,78 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       items.add(dateKey);
       if (!_collapsedDates.contains(dateKey)) {
         final dayMemos = grouped[dateKey]!
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          ..sort((a, b) => _listSortDate(b).compareTo(_listSortDate(a)));
         items.addAll(dayMemos);
       }
     }
     return items;
+  }
+
+  List<Object> _buildLogroomFlatList() {
+    final List<Memo> visible;
+    if (_tasksOnly) {
+      visible = _memos.where((m) => m.isChecklist).toList();
+    } else if (_selectedTag != null) {
+      visible = _memos.where((m) => m.tags.contains(_selectedTag)).toList();
+    } else {
+      visible = _memos.where((m) => m.folderId == _selectedFolderId).toList();
+    }
+    visible.sort((a, b) => _listSortDate(b).compareTo(_listSortDate(a)));
+    final grouped = <String, List<Memo>>{};
+    for (final memo in visible) {
+      grouped
+          .putIfAbsent(_logroomGroupKey(_listSortDate(memo)), () => [])
+          .add(memo);
+    }
+    final items = <Object>[];
+    for (final entry in grouped.entries) {
+      final key = entry.key;
+      items.add(key);
+      final autoCollapsed = _isAutoCollapsedLogroomGroup(key);
+      final collapsed = autoCollapsed
+          ? !_expandedLogroomGroups.contains(key)
+          : _collapsedDates.contains(key);
+      if (!collapsed) items.addAll(entry.value);
+    }
+    return items;
+  }
+
+  DateTime _listSortDate(Memo memo) {
+    if (isNemo2Test && memo.scheduledAt != null) return memo.scheduledAt!;
+    return memo.createdAt;
+  }
+
+  String _listDateKey(Memo memo) {
+    final d = _listSortDate(memo);
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  String _logroomGroupKey(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(dt.year, dt.month, dt.day);
+    final weekStart = today.subtract(Duration(days: today.weekday - 1));
+    if (day == today) return '오늘';
+    if (!day.isBefore(weekStart)) return _logroomDateLabel(dt);
+    if (dt.year == now.year && dt.month == now.month) {
+      final week = ((dt.day - 1) ~/ 7) + 1;
+      return '${dt.year} ${dt.month.toString().padLeft(2, '0')}월 $week주차';
+    }
+    if (dt.year == now.year) {
+      return '${dt.year} ${dt.month.toString().padLeft(2, '0')}월';
+    }
+    return '${dt.year}';
+  }
+
+  String _logroomDateLabel(DateTime dt) {
+    const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    return '${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')} ${weekdays[dt.weekday - 1]}';
+  }
+
+  bool _isAutoCollapsedLogroomGroup(String key) {
+    if (key == '오늘') return false;
+    if (RegExp(r'^\d{2}\.\d{2} ').hasMatch(key)) return false;
+    return true;
   }
 
   // ── Settings ───────────────────────────────────────
@@ -1258,24 +1711,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Map<String, dynamic> _buildSettingsMap() => {
-        'bg_color':    _colorToInt(kBg),
-        'text_color':  _colorToInt(kText),
-        'font_family': kFontFamily,
-        'font_size':   kFontSize,
-        'spacing':     kSpacing,
-        'tab_locked':  _tabLocked,
-      };
+    'bg_color': _colorToInt(kBg),
+    'text_color': _colorToInt(kText),
+    'font_family': kFontFamily,
+    'font_size': kFontSize,
+    'spacing': kSpacing,
+    'tab_locked': _tabLocked,
+    'entry_display_mode': entryDisplayModeNotifier.value.storageValue,
+    'app_theme_mode': appThemeModeNotifier.value.storageValue,
+  };
 
   void _applyBackupData(Map<String, dynamic> backup, {bool merge = false}) {
-    final backupMemos = (backup['memos'] as List?)
+    final backupMemos =
+        (backup['memos'] as List?)
             ?.map((e) => Memo.fromJson(e as Map<String, dynamic>))
-            .toList() ?? [];
-    final backupFolders = (backup['folders'] as List?)
+            .toList() ??
+        [];
+    final backupFolders =
+        (backup['folders'] as List?)
             ?.map((e) => Folder.fromJson(e as Map<String, dynamic>))
-            .toList() ?? [];
-    final backupTabs = (backup['tabs'] as List?)
+            .toList() ??
+        [];
+    final backupTabs =
+        (backup['tabs'] as List?)
             ?.map((e) => QuickTab.fromJson(e as Map<String, dynamic>))
-            .toList() ?? [];
+            .toList() ??
+        [];
     final settings = backup['settings'] as Map<String, dynamic>?;
 
     final List<Memo> memos;
@@ -1286,19 +1747,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final existingMemoIds = _memos.map((m) => m.id).toSet();
       final existingFolderIds = _folders.map((f) => f.id).toSet();
       final existingTabIds = _tabs.map((t) => t.id).toSet();
-      memos   = [..._memos,   ...backupMemos.where((m) => !existingMemoIds.contains(m.id))];
-      folders = [..._folders, ...backupFolders.where((f) => !existingFolderIds.contains(f.id))];
-      tabs    = [..._tabs,    ...backupTabs.where((t) => !existingTabIds.contains(t.id))];
+      memos = [
+        ..._memos,
+        ...backupMemos.where((m) => !existingMemoIds.contains(m.id)),
+      ];
+      folders = [
+        ..._folders,
+        ...backupFolders.where((f) => !existingFolderIds.contains(f.id)),
+      ];
+      tabs = [
+        ..._tabs,
+        ...backupTabs.where((t) => !existingTabIds.contains(t.id)),
+      ];
     } else {
-      memos   = backupMemos;
+      memos = backupMemos;
       folders = backupFolders;
-      tabs    = backupTabs;
+      tabs = backupTabs;
     }
 
     setState(() {
-      _memos..clear()..addAll(memos);
-      _folders..clear()..addAll(folders);
-      _tabs..clear()..addAll(tabs);
+      _memos
+        ..clear()
+        ..addAll(memos);
+      _folders
+        ..clear()
+        ..addAll(folders);
+      _tabs
+        ..clear()
+        ..addAll(tabs);
       _selectedFolderId = null;
       _selectedTag = null;
       _selectedTabId = null;
@@ -1313,16 +1789,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     StorageService.saveTabLocked(_tabLocked);
 
     if (settings != null) {
-      final bgInt   = settings['bg_color'] as int?;
+      final bgInt = settings['bg_color'] as int?;
       final textInt = settings['text_color'] as int?;
       if (bgInt != null && textInt != null) {
-        final bg   = Color(bgInt);
+        final bg = Color(bgInt);
         final text = Color(textInt);
         applyColors(bg, text);
         StorageService.saveColors(bg, text);
       }
       final fontFamily = settings['font_family'] as String?;
-      final fontSize   = (settings['font_size'] as num?)?.toDouble();
+      final fontSize = (settings['font_size'] as num?)?.toDouble();
       if (fontFamily != null && fontSize != null) {
         applyFont(fontFamily, fontSize);
         StorageService.saveFont(fontFamily, fontSize);
@@ -1332,6 +1808,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         applySpacing(spacing);
         StorageService.saveSpacing(spacing);
       }
+      final entryDisplayMode = EntryDisplayModeX.parse(
+        settings['entry_display_mode'] as String?,
+      );
+      applyEntryDisplayMode(entryDisplayMode);
+      StorageService.saveEntryDisplayMode(entryDisplayMode);
+      final appThemeMode = AppThemeModeX.parse(
+        settings['app_theme_mode'] as String?,
+      );
+      applyAppThemeMode(appThemeMode);
+      StorageService.saveAppThemeMode(appThemeMode);
     }
   }
 
@@ -1356,8 +1842,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             setState(() => _tabLocked = tabLocked);
           },
           onBackupSave: () => BackupService.exportToPhone(
-            memos: _memos, folders: _folders,
-            tabs: _tabs, settings: _buildSettingsMap(),
+            memos: _memos,
+            folders: _folders,
+            tabs: _tabs,
+            settings: _buildSettingsMap(),
           ),
           onRestoreConfirmed: _applyBackupData,
           onClearCache: _clearAllCache,
@@ -1382,6 +1870,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _memos.clear();
       _folders.clear();
       _tabs.clear();
+      _bottomMenus
+        ..clear()
+        ..addAll(const ['TODAY', 'LIST', 'CAL', 'MORE']);
       _tabLocked = false;
       _selectedFolderId = null;
       _selectedTag = null;
@@ -1404,28 +1895,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final items = (_calendarOpen || _statsOpen || _scheduleOpen || _tagsOpen || _todayOpen) ? const [] : _buildFlatList();
+    final items =
+        (_calendarOpen ||
+            _statsOpen ||
+            _scheduleOpen ||
+            _tagsOpen ||
+            _todayOpen)
+        ? const []
+        : (isLogroomUi ? _buildLogroomFlatList() : _buildFlatList());
     // Header path
     final folderName = _selectedFolderId == null
-        ? '/inbox'
-        : '/${_folders.firstWhere((f) => f.id == _selectedFolderId, orElse: () => const Folder(id: '', name: 'inbox')).name}';
+        ? (isNemo2Test ? '/INBOX' : '/inbox')
+        : '/${_folders.firstWhere(
+            (f) => f.id == _selectedFolderId,
+            orElse: () => Folder(id: '', name: isNemo2Test ? 'INBOX' : 'inbox'),
+          ).name}';
     final selectedPath = _calendarOpen
-        ? '[CAL]'
+        ? 'CAL'
         : (_statsOpen
-            ? '[STATS]'
-            : (_scheduleOpen
-                ? 'event'
-                : (_todayOpen
-                    ? '[TODAY]'
-                    : (_tagsOpen
-                        ? 'tags'
-                        : (_tasksOnly
-                            ? 'tasks'
-                            : (_selectedTag != null && _selectedFolderId != null
-                                ? '$folderName  #$_selectedTag'
-                                : (_selectedTag != null
-                                    ? '#$_selectedTag'
-                                    : folderName)))))));
+              ? 'STATS'
+              : (_scheduleOpen
+                    ? 'event'
+                    : (_todayOpen
+                          ? 'TODAY'
+                          : (_tagsOpen
+                                ? 'tags'
+                                : (_tasksOnly
+                                      ? 'tasks'
+                                      : (_selectedTag != null &&
+                                                _selectedFolderId != null
+                                            ? '$folderName  #$_selectedTag'
+                                            : (_selectedTag != null
+                                                  ? '#$_selectedTag'
+                                                  : folderName)))))));
 
     final allTags = _allTags;
     final tagCounts = _tagCounts;
@@ -1439,6 +1941,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             final isNarrow = constraints.maxWidth < _kNarrowBreak;
 
             final sidebar = Sidebar(
+              favorites: _tabs,
+              onSelectFavorite: (tab) {
+                _selectTab(tab);
+                if (isNarrow) setState(() => _sidebarOpen = false);
+              },
               onSelectMemo: () => setState(() {
                 _selectedFolderId = null;
                 _selectedTag = null;
@@ -1495,6 +2002,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _selectedTabId = null;
                 if (isNarrow) _sidebarOpen = false;
               }),
+              onSelectSearch: () {
+                if (isNarrow) setState(() => _sidebarOpen = false);
+                _openSearch();
+              },
               onSelectStats: () => setState(() {
                 _statsOpen = true;
                 _calendarOpen = false;
@@ -1590,53 +2101,66 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             final mainContent = Column(
               children: [
                 _AppHeader(
-                  sidebarOpen:      _sidebarOpen,
-                  isNarrow:         isNarrow,
-                  onToggle:         () => setState(() => _sidebarOpen = !_sidebarOpen),
-                  selectedPath:     selectedPath,
-                  calendarOpen:     _calendarOpen,
-                  statsOpen:        _statsOpen,
-                  scheduleOpen:     _scheduleOpen,
-                  todayOpen:        _todayOpen,
-                  tagsOpen:         _tagsOpen,
-                  tasksOnly:        _tasksOnly,
-                  onShowList:       () => setState(() { _calendarOpen = false; _statsOpen = false; _scheduleOpen = false; _tagsOpen = false; _tasksOnly = false; _todayOpen = false; }),
-                  onShowCal:        () => setState(() {
-                    _calendarOpen  = true;
+                  sidebarOpen: _sidebarOpen,
+                  isNarrow: isNarrow,
+                  onToggle: () => setState(() => _sidebarOpen = !_sidebarOpen),
+                  selectedPath: selectedPath,
+                  calendarOpen: _calendarOpen,
+                  statsOpen: _statsOpen,
+                  scheduleOpen: _scheduleOpen,
+                  todayOpen: _todayOpen,
+                  tagsOpen: _tagsOpen,
+                  tasksOnly: _tasksOnly,
+                  onShowList: () => setState(() {
+                    _calendarOpen = false;
+                    _statsOpen = false;
+                    _scheduleOpen = false;
+                    _tagsOpen = false;
+                    _tasksOnly = false;
+                    _todayOpen = false;
+                  }),
+                  onShowCal: () => setState(() {
+                    _calendarOpen = true;
                     _selectedTabId = null;
-                    _statsOpen     = false;
-                    _scheduleOpen  = false;
-                    _todayOpen     = false;
-                    _tagsOpen      = false;
-                    _tasksOnly     = false;
-                    _selectedTag   = null;
+                    _statsOpen = false;
+                    _scheduleOpen = false;
+                    _todayOpen = false;
+                    _tagsOpen = false;
+                    _tasksOnly = false;
+                    _selectedTag = null;
                     if (isNarrow) _sidebarOpen = false;
                   }),
-                  onSelectStats:    () => setState(() {
-                    _statsOpen     = true;
-                    _calendarOpen  = false;
-                    _scheduleOpen  = false;
-                    _todayOpen     = false;
-                    _tagsOpen      = false;
-                    _tasksOnly     = false;
-                    _selectedTabId = null;
-                    if (isNarrow) _sidebarOpen = false;
-                  }),
-                  onSelectToday:    () => setState(() {
-                    _todayOpen     = true;
-                    _calendarOpen  = false;
-                    _statsOpen     = false;
-                    _scheduleOpen  = false;
-                    _tagsOpen      = false;
-                    _tasksOnly     = false;
+                  onSelectStats: () => setState(() {
+                    _statsOpen = true;
+                    _calendarOpen = false;
+                    _scheduleOpen = false;
+                    _todayOpen = false;
+                    _tagsOpen = false;
+                    _tasksOnly = false;
                     _selectedTabId = null;
                     if (isNarrow) _sidebarOpen = false;
                   }),
-                  searchOpen:       _searchOpen,
-                  onSearchTap:      () { if (_searchOpen) { _closeSearch(); } else { _openSearch(); } },
-                  folders:          _folders,
+                  onSelectToday: () => setState(() {
+                    _todayOpen = true;
+                    _calendarOpen = false;
+                    _statsOpen = false;
+                    _scheduleOpen = false;
+                    _tagsOpen = false;
+                    _tasksOnly = false;
+                    _selectedTabId = null;
+                    if (isNarrow) _sidebarOpen = false;
+                  }),
+                  searchOpen: _searchOpen,
+                  onSearchTap: () {
+                    if (_searchOpen) {
+                      _closeSearch();
+                    } else {
+                      _openSearch();
+                    }
+                  },
+                  folders: _folders,
                   selectedFolderId: _selectedFolderId,
-                  onSelectFolder:   (id) => setState(() {
+                  onSelectFolder: (id) => setState(() {
                     _selectedFolderId = id;
                     _selectedTag = null;
                     _selectedTabId = null;
@@ -1657,7 +2181,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _selectedTabId = null;
                     if (isNarrow) _sidebarOpen = false;
                   }),
-                  onSelectTasks:    () => setState(() {
+                  onSelectTasks: () => setState(() {
                     _tasksOnly = true;
                     _calendarOpen = false;
                     _statsOpen = false;
@@ -1669,7 +2193,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _selectedTabId = null;
                     if (isNarrow) _sidebarOpen = false;
                   }),
-                  onSelectTags:     () => setState(() {
+                  onSelectTags: () => setState(() {
                     _tagsOpen = true;
                     _tasksOnly = false;
                     _calendarOpen = false;
@@ -1681,7 +2205,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _selectedTabId = null;
                     if (isNarrow) _sidebarOpen = false;
                   }),
-                  onSelectHabit:    () => setState(() {
+                  onSelectHabit: () => setState(() {
                     _selectedTag = 'habit';
                     _selectedFolderId = null;
                     _selectedTabId = null;
@@ -1693,7 +2217,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _todayOpen = false;
                     if (isNarrow) _sidebarOpen = false;
                   }),
-                  onSelectGoal:     () => setState(() {
+                  onSelectGoal: () => setState(() {
                     _selectedTag = 'goal';
                     _selectedFolderId = null;
                     _selectedTabId = null;
@@ -1705,9 +2229,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _todayOpen = false;
                     if (isNarrow) _sidebarOpen = false;
                   }),
-                  onSettings:       _showSettings,
-                  habitActivated:   _habitActivated,
-                  goalActivated:    _goalActivated,
+                  onSettings: _showSettings,
+                  habitActivated: _habitActivated,
+                  goalActivated: _goalActivated,
                 ),
                 Container(height: 1, color: kBorder),
 
@@ -1715,63 +2239,96 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 if (_searchOpen) ...[
                   _SearchBar(
                     controller: _searchController,
-                    focusNode:  _searchFocusNode,
-                    onChanged:  (v) => setState(() => _searchQuery = v),
-                    onClose:    _closeSearch,
+                    focusNode: _searchFocusNode,
+                    onChanged: (v) => setState(() => _searchQuery = v),
+                    onClose: _closeSearch,
                   ),
                   Container(height: 1, color: kBorder),
                 ],
 
                 // ── Main area: search OR calendar view OR memo list ──
                 if (_searchOpen) ...[
-                  Builder(builder: (context) {
-                    final results = _getSearchResults();
-                    final q = _searchQuery.trim();
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (q.isNotEmpty) ...[
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 7, 16, 5),
-                            child: Text(
-                              results.isEmpty
-                                  ? 'no results for "$q"'
-                                  : '${results.length} result${results.length == 1 ? '' : 's'}',
-                              style: mono(color: kDim, fontSize: 10),
-                            ),
-                          ),
-                          Container(height: 1, color: kBorder.withValues(alpha: 0.4)),
-                        ],
-                      ],
-                    );
-                  }),
-                  Expanded(
-                    child: Builder(builder: (context) {
+                  Builder(
+                    builder: (context) {
                       final results = _getSearchResults();
                       final q = _searchQuery.trim();
-                      if (q.isEmpty) {
-                        return Center(
-                          child: Text('type to search...',
-                              style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 12)));
-                      }
-                      if (results.isEmpty) {
-                        return Center(
-                          child: Text('no results',
-                              style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 12)));
-                      }
-                      return ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        itemCount: results.length,
-                        itemBuilder: (_, i) => _SearchTile(
-                          memo:  results[i],
-                          query: q,
-                          onTap: () {
-                            _closeSearch();
-                            _navigateToMemo(results[i].id);
-                          },
-                        ),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (q.isNotEmpty) ...[
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 7, 16, 5),
+                              child: Text(
+                                results.isEmpty
+                                    ? 'no results for "$q"'
+                                    : '${results.length} result${results.length == 1 ? '' : 's'}',
+                                style: mono(color: kDim, fontSize: 10),
+                              ),
+                            ),
+                            Container(
+                              height: 1,
+                              color: kBorder.withValues(alpha: 0.4),
+                            ),
+                          ],
+                        ],
                       );
-                    }),
+                    },
+                  ),
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        final results = _getSearchResults();
+                        final q = _searchQuery.trim();
+                        if (q.isEmpty) {
+                          return Center(
+                            child: Text(
+                              'type to search...',
+                              style: mono(
+                                color: kDim.withValues(alpha: 0.4),
+                                fontSize: 12,
+                              ),
+                            ),
+                          );
+                        }
+                        if (results.isEmpty) {
+                          return Center(
+                            child: Text(
+                              'no results',
+                              style: mono(
+                                color: kDim.withValues(alpha: 0.4),
+                                fontSize: 12,
+                              ),
+                            ),
+                          );
+                        }
+                        return ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          itemCount: results.length,
+                          itemBuilder: (_, i) {
+                            final memo = results[i];
+                            if (isLogroomUi) {
+                              return LogroomEntryTile(
+                                memo: memo,
+                                actions: _memoActions,
+                                expandable: false,
+                                onTap: () {
+                                  _closeSearch();
+                                  _navigateToMemo(memo.id);
+                                },
+                              );
+                            }
+                            return _SearchTile(
+                              memo: memo,
+                              query: q,
+                              onTap: () {
+                                _closeSearch();
+                                _navigateToMemo(memo.id);
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ] else if (_tagsOpen) ...[
                   Expanded(
@@ -1790,48 +2347,131 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Expanded(
                     child: StatsView(
                       memos: _selectedTag != null
-                          ? _memos.where((m) => m.tags.contains(_selectedTag)).toList()
-                          : _memos.where((m) => m.folderId == _selectedFolderId).toList(),
+                          ? _memos
+                                .where((m) => m.tags.contains(_selectedTag))
+                                .toList()
+                          : _memos
+                                .where((m) => m.folderId == _selectedFolderId)
+                                .toList(),
                       actions: _memoActions,
                       contextLabel: _selectedTag != null
                           ? '#$_selectedTag'
                           : (_selectedFolderId == null
-                              ? 'inbox'
-                              : _folders.firstWhere(
-                                  (f) => f.id == _selectedFolderId,
-                                  orElse: () => const Folder(id: '', name: 'inbox'),
-                                ).name),
+                                ? (isNemo2Test ? 'INBOX' : 'inbox')
+                                : _folders
+                                      .firstWhere(
+                                        (f) => f.id == _selectedFolderId,
+                                        orElse: () => Folder(
+                                          id: '',
+                                          name: isNemo2Test ? 'INBOX' : 'inbox',
+                                        ),
+                                      )
+                                      .name),
+                      onEditMemo: _updateMemoFromInput,
                     ),
                   ),
                 ] else if (_scheduleOpen) ...[
                   Expanded(
                     child: ScheduleView(
-                      memos:    _memos,
-                      actions:  _memoActions,
-                      onAddMemo: (c, isCl, rem, fid, imgs, rep, sched,
-                              rangeEnd, schedRep, endType, endCount, endDate) =>
-                          _addMemo(c, isCl, rem, fid, imgs, rep, sched,
-                              rangeEnd, schedRep, endType, endCount, endDate),
+                      memos: _memos,
+                      actions: _memoActions,
+                      onEditMemo: _updateMemoFromInput,
+                      onAddMemo:
+                          (
+                            c,
+                            isCl,
+                            rem,
+                            fid,
+                            imgs,
+                            rep,
+                            sched,
+                            rangeEnd,
+                            schedRep,
+                            endType,
+                            endCount,
+                            endDate,
+                          ) {
+                            final editing = _editingMemo;
+                            if (editing != null) {
+                              _updateMemoFromInput(
+                                editing,
+                                c,
+                                isCl,
+                                rem,
+                                fid,
+                                imgs,
+                                rep,
+                                sched,
+                                rangeEnd,
+                                schedRep,
+                                endType,
+                                endCount,
+                                endDate,
+                              );
+                              return;
+                            }
+                            _addMemo(
+                              c,
+                              isCl,
+                              rem,
+                              fid,
+                              imgs,
+                              rep,
+                              sched,
+                              rangeEnd,
+                              schedRep,
+                              endType,
+                              endCount,
+                              endDate,
+                            );
+                          },
                     ),
                   ),
                 ] else if (_calendarOpen) ...[
                   Expanded(
                     child: CalendarView(
-                      memos:             _memos,
-                      actions:           _memoActions,
-                      onAddMemo:         (c, d, isCl, rem, imgs, rep, sched,
-                              rangeEnd, schedRep, endType, endCount, endDate) =>
-                          _addMemoOnDate(c, d, isCl, rem, imgs, rep, sched,
-                              rangeEnd, schedRep, endType, endCount, endDate),
+                      memos: _memos,
+                      actions: _memoActions,
+                      onEditMemo: _updateMemoFromInput,
+                      onAddMemo:
+                          (
+                            c,
+                            d,
+                            isCl,
+                            rem,
+                            imgs,
+                            rep,
+                            sched,
+                            rangeEnd,
+                            schedRep,
+                            endType,
+                            endCount,
+                            endDate,
+                          ) => _addMemoOnDate(
+                            c,
+                            d,
+                            isCl,
+                            rem,
+                            imgs,
+                            rep,
+                            sched,
+                            rangeEnd,
+                            schedRep,
+                            endType,
+                            endCount,
+                            endDate,
+                          ),
                       highlightedMemoId: _highlightedMemoId,
                     ),
                   ),
                 ] else if (_todayOpen) ...[
                   Expanded(
                     child: TodayScreen(
-                      memos:        _memos,
-                      streak:       streak,
+                      memos: _memos,
+                      streak: streak,
                       onUpdateMemo: (m, c) => _updateMemo(m.id, c),
+                      onEditMemo: _updateMemoFromInput,
+                      actions: _memoActions,
                     ),
                   ),
                 ] else ...[
@@ -1840,36 +2480,63 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ? const _EmptyState()
                         : ListView.builder(
                             controller: _scrollController,
-                            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                            keyboardDismissBehavior:
+                                ScrollViewKeyboardDismissBehavior.onDrag,
                             padding: const EdgeInsets.only(bottom: 12),
                             itemCount: items.length,
                             itemBuilder: (context, index) {
                               final item = items[index];
                               if (item is String) {
+                                final logroomAutoCollapsed =
+                                    isLogroomUi &&
+                                    _isAutoCollapsedLogroomGroup(item);
                                 return DateGroupHeader(
+                                  key: ValueKey('group-$item'),
                                   dateKey: item,
-                                  initiallyCollapsed: _collapsedDates.contains(item),
+                                  initiallyCollapsed: logroomAutoCollapsed
+                                      ? !_expandedLogroomGroups.contains(item)
+                                      : _collapsedDates.contains(item),
                                   onCollapsedChanged: (collapsed) {
                                     setState(() {
-                                      if (collapsed) {
-                                        _collapsedDates.add(item);
+                                      if (logroomAutoCollapsed) {
+                                        if (collapsed) {
+                                          _expandedLogroomGroups.remove(item);
+                                        } else {
+                                          _expandedLogroomGroups.add(item);
+                                        }
                                       } else {
-                                        _collapsedDates.remove(item);
+                                        if (collapsed) {
+                                          _collapsedDates.add(item);
+                                        } else {
+                                          _collapsedDates.remove(item);
+                                        }
                                       }
                                     });
                                   },
                                 );
                               } else if (item is Memo) {
-                                final memoKey = _memoKeys.putIfAbsent(item.id, () => GlobalKey());
+                                final memoKey = _memoKeys.putIfAbsent(
+                                  item.id,
+                                  () => GlobalKey(),
+                                );
                                 return Column(
                                   key: memoKey,
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
-                                    MemoTile(
-                                      memo:        item,
-                                      actions:     _memoActions,
-                                      highlighted: _highlightedMemoId == item.id,
-                                    ),
+                                    isLogroomUi
+                                        ? LogroomEntryTile(
+                                            memo: item,
+                                            actions: _memoActions,
+                                            highlighted:
+                                                _highlightedMemoId == item.id,
+                                          )
+                                        : MemoTile(
+                                            memo: item,
+                                            actions: _memoActions,
+                                            highlighted:
+                                                _highlightedMemoId == item.id,
+                                          ),
                                   ],
                                 );
                               }
@@ -1882,55 +2549,163 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     flex: 0,
                     fit: FlexFit.loose,
                     child: InputBar(
-                      onSubmit: (c, isCl, rem, fid, imgs, rep, sched,
-                              rangeEnd, schedRep, endType, endCount, endDate) =>
-                          _addMemo(c, isCl, rem, fid, imgs, rep, sched,
-                              rangeEnd, schedRep, endType, endCount, endDate),
+                      key: _inputBarKey,
+                      onSubmit:
+                          (
+                            c,
+                            isCl,
+                            rem,
+                            fid,
+                            imgs,
+                            rep,
+                            sched,
+                            rangeEnd,
+                            schedRep,
+                            endType,
+                            endCount,
+                            endDate,
+                          ) {
+                            final editing = _editingMemo;
+                            if (editing != null) {
+                              _updateMemoFromInput(
+                                editing,
+                                c,
+                                isCl,
+                                rem,
+                                fid,
+                                imgs,
+                                rep,
+                                sched,
+                                rangeEnd,
+                                schedRep,
+                                endType,
+                                endCount,
+                                endDate,
+                              );
+                              return;
+                            }
+                            _addMemo(
+                              c,
+                              isCl,
+                              rem,
+                              fid,
+                              imgs,
+                              rep,
+                              sched,
+                              rangeEnd,
+                              schedRep,
+                              endType,
+                              endCount,
+                              endDate,
+                            );
+                          },
                       folders: _folders,
                       currentFolderId: _selectedFolderId,
+                      habitActivated: _habitActivated,
+                      goalActivated: _goalActivated,
+                      dayCount: _dayCount,
+                      streak: streak,
+                      onActivateHabit: _activateHabit,
+                      onActivateGoal: _activateGoal,
+                      editingMemo: _editingMemo,
+                      onCancelEdit: () => setState(() => _editingMemo = null),
                     ),
                   ),
                 ],
 
                 Container(height: 1, color: kBorder),
-                BottomTabBar(
-                  tabs:             _tabs,
-                  selectedTabId:    _selectedTabId,
-                  onSelect:         _selectTab,
-                  canAdd:           _tabs.length < 5,
-                  onAddTap:         () => _showTabDialog(null),
-                  onLongPress:      (tab) => _confirmDeleteTab(tab),
-                  locked:           _tabLocked,
-                  calendarSelected: _calendarOpen,
-                  onCalendarTap: () => setState(() {
-                    if (!_calendarOpen) {
-                      _calendarOpen  = true;
+                if (isNemo2Test)
+                  Nemo2TestBottomNav(
+                    menus: _bottomMenus,
+                    activeMenu: _activeBottomMenu,
+                    onTap: (menu) => _selectBottomMenu(menu, narrow: isNarrow),
+                    onReplace: _showBottomMenuReplaceSheet,
+                  )
+                else if (isLogroomUi)
+                  LogroomBottomNav(
+                    todaySelected: _todayOpen,
+                    entriesSelected:
+                        !_calendarOpen &&
+                        !_statsOpen &&
+                        !_scheduleOpen &&
+                        !_todayOpen &&
+                        !_tagsOpen &&
+                        !_tasksOnly &&
+                        !_searchOpen,
+                    calendarSelected: _calendarOpen,
+                    onTodayTap: () => setState(() {
+                      _todayOpen = !_todayOpen;
+                      _calendarOpen = false;
+                      _statsOpen = false;
+                      _scheduleOpen = false;
+                      _tagsOpen = false;
+                      _tasksOnly = false;
                       _selectedTabId = null;
-                      _statsOpen     = false;
-                      _scheduleOpen  = false;
-                    }
-                  }),
-                  statsSelected: _statsOpen,
-                  onStatsTap: () => setState(() {
-                    if (!_statsOpen) {
-                      _statsOpen     = true;
-                      _calendarOpen  = false;
-                      _scheduleOpen  = false;
-                      _todayOpen     = false;
+                    }),
+                    onEntriesTap: () => setState(() {
+                      _selectedFolderId = null;
+                      _selectedTag = null;
                       _selectedTabId = null;
-                    }
-                  }),
-                  todaySelected: _todayOpen,
-                  onTodayTap: () => setState(() {
-                    _todayOpen     = !_todayOpen;
-                    _calendarOpen  = false;
-                    _statsOpen     = false;
-                    _scheduleOpen  = false;
-                    _tagsOpen      = false;
-                    _tasksOnly     = false;
-                    _selectedTabId = null;
-                  }),
-                ),
+                      _calendarOpen = false;
+                      _statsOpen = false;
+                      _scheduleOpen = false;
+                      _tasksOnly = false;
+                      _tagsOpen = false;
+                      _todayOpen = false;
+                      _searchOpen = false;
+                    }),
+                    onCalendarTap: () => setState(() {
+                      _calendarOpen = true;
+                      _selectedTabId = null;
+                      _statsOpen = false;
+                      _scheduleOpen = false;
+                      _todayOpen = false;
+                      _tagsOpen = false;
+                      _tasksOnly = false;
+                      _selectedTag = null;
+                      if (isNarrow) _sidebarOpen = false;
+                    }),
+                    onMoreTap: () => setState(() => _sidebarOpen = true),
+                  )
+                else
+                  BottomTabBar(
+                    tabs: _tabs,
+                    selectedTabId: _selectedTabId,
+                    onSelect: _selectTab,
+                    canAdd: _tabs.length < 5,
+                    onAddTap: () => _showTabDialog(null),
+                    onLongPress: (tab) => _confirmDeleteTab(tab),
+                    locked: _tabLocked,
+                    calendarSelected: _calendarOpen,
+                    onCalendarTap: () => setState(() {
+                      if (!_calendarOpen) {
+                        _calendarOpen = true;
+                        _selectedTabId = null;
+                        _statsOpen = false;
+                        _scheduleOpen = false;
+                      }
+                    }),
+                    statsSelected: _statsOpen,
+                    onStatsTap: () => setState(() {
+                      if (!_statsOpen) {
+                        _statsOpen = true;
+                        _calendarOpen = false;
+                        _scheduleOpen = false;
+                        _todayOpen = false;
+                        _selectedTabId = null;
+                      }
+                    }),
+                    todaySelected: _todayOpen,
+                    onTodayTap: () => setState(() {
+                      _todayOpen = !_todayOpen;
+                      _calendarOpen = false;
+                      _statsOpen = false;
+                      _scheduleOpen = false;
+                      _tagsOpen = false;
+                      _tasksOnly = false;
+                      _selectedTabId = null;
+                    }),
+                  ),
               ],
             );
 
@@ -2011,18 +2786,22 @@ List<TextSpan> _highlightSpans(String text, String query, TextStyle base) {
   while (true) {
     final idx = lower.indexOf(q, start);
     if (idx == -1) {
-      if (start < text.length) spans.add(TextSpan(text: text.substring(start), style: base));
+      if (start < text.length)
+        spans.add(TextSpan(text: text.substring(start), style: base));
       break;
     }
-    if (idx > start) spans.add(TextSpan(text: text.substring(start, idx), style: base));
-    spans.add(TextSpan(
-      text: text.substring(idx, idx + q.length),
-      style: base.copyWith(
-        color: kMint,
-        backgroundColor: kMint.withValues(alpha: 0.18),
-        fontWeight: FontWeight.bold,
+    if (idx > start)
+      spans.add(TextSpan(text: text.substring(start, idx), style: base));
+    spans.add(
+      TextSpan(
+        text: text.substring(idx, idx + q.length),
+        style: base.copyWith(
+          color: kMint,
+          backgroundColor: kMint.withValues(alpha: 0.18),
+          fontWeight: FontWeight.bold,
+        ),
       ),
-    ));
+    );
     start = idx + q.length;
   }
   return spans;
@@ -2053,7 +2832,14 @@ class _SearchBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text('>_ ', style: mono(color: kMint, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(
+            '>_ ',
+            style: mono(
+              color: kMint,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           Expanded(
             child: TextField(
               controller: controller,
@@ -2064,7 +2850,10 @@ class _SearchBar extends StatelessWidget {
               cursorWidth: 2,
               decoration: InputDecoration(
                 hintText: 'search memos...',
-                hintStyle: mono(color: kDim.withValues(alpha: 0.55), fontSize: 13),
+                hintStyle: mono(
+                  color: kDim.withValues(alpha: 0.55),
+                  fontSize: 13,
+                ),
                 filled: false,
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -2079,7 +2868,7 @@ class _SearchBar extends StatelessWidget {
             onTap: onClose,
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
-              child: Text('[×]', style: mono(color: kDim, fontSize: 12)),
+              child: Text('×', style: mono(color: kDim, fontSize: 12)),
             ),
           ),
         ],
@@ -2097,7 +2886,11 @@ class _SearchTile extends StatefulWidget {
   final String query;
   final VoidCallback onTap;
 
-  const _SearchTile({required this.memo, required this.query, required this.onTap});
+  const _SearchTile({
+    required this.memo,
+    required this.query,
+    required this.onTap,
+  });
 
   @override
   State<_SearchTile> createState() => _SearchTileState();
@@ -2106,24 +2899,28 @@ class _SearchTile extends StatefulWidget {
 class _SearchTileState extends State<_SearchTile> {
   bool _hovered = false;
 
-  static final _tagRe = RegExp(r'(?<![^\s])#[a-zA-Zㄱ-ㅎㅏ-ㅣ가-힣][a-zA-Z0-9_ㄱ-ㅎㅏ-ㅣ가-힣]*');
+  static final _tagRe = RegExp(
+    r'(?<![^\s])#[a-zA-Zㄱ-ㅎㅏ-ㅣ가-힣][a-zA-Z0-9_ㄱ-ㅎㅏ-ㅣ가-힣]*',
+  );
 
   @override
   Widget build(BuildContext context) {
-    final memo  = widget.memo;
-    final q     = widget.query;
-    final tags  = memo.tags;
+    final memo = widget.memo;
+    final q = widget.query;
+    final tags = memo.tags;
 
     // Up to 3 non-empty content lines, prefixes stripped
     final lines = memo.content
         .split('\n')
         .where((l) => l.trim().isNotEmpty)
         .take(3)
-        .map((l) => l
-            .replaceAll(_tagRe, '')
-            .replaceAll(RegExp(r'^- \[[ x]\] '), '')
-            .replaceAll(RegExp(r'^• '), '')
-            .trim())
+        .map(
+          (l) => l
+              .replaceAll(_tagRe, '')
+              .replaceAll(RegExp(r'^- \[[ x]\] '), '')
+              .replaceAll(RegExp(r'^• '), '')
+              .trim(),
+        )
         .where((l) => l.isNotEmpty)
         .toList();
 
@@ -2133,7 +2930,7 @@ class _SearchTileState extends State<_SearchTile> {
         MouseRegion(
           cursor: SystemMouseCursors.click,
           onEnter: (_) => setState(() => _hovered = true),
-          onExit:  (_) => setState(() => _hovered = false),
+          onExit: (_) => setState(() => _hovered = false),
           child: GestureDetector(
             onTap: widget.onTap,
             child: AnimatedContainer(
@@ -2146,18 +2943,26 @@ class _SearchTileState extends State<_SearchTile> {
                   // Header row
                   Row(
                     children: [
-                      Text('[${memo.timeStr}]',
-                          style: mono(color: kDim, fontSize: 11)),
+                      Text(
+                        memo.timeStr,
+                        style: mono(color: kDim, fontSize: 11),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Wrap(
                           spacing: 6,
                           children: tags
-                              .map((t) => Text.rich(TextSpan(
+                              .map(
+                                (t) => Text.rich(
+                                  TextSpan(
                                     children: _highlightSpans(
-                                        '#$t', q,
-                                        mono(color: kTeal, fontSize: 11)),
-                                  )))
+                                      '#$t',
+                                      q,
+                                      mono(color: kTeal, fontSize: 11),
+                                    ),
+                                  ),
+                                ),
+                              )
                               .toList(),
                         ),
                       ),
@@ -2165,29 +2970,39 @@ class _SearchTileState extends State<_SearchTile> {
                   ),
                   const SizedBox(height: 5),
                   // Content lines
-                  ...lines.map((line) => Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('• ', style: mono(color: kText, fontSize: 12)),
-                            Expanded(
-                              child: Text.rich(TextSpan(
+                  ...lines.map(
+                    (line) => Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('• ', style: mono(color: kText, fontSize: 12)),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
                                 children: _highlightSpans(
-                                    line, q,
-                                    mono(color: kText, fontSize: 12, height: 1.5)),
-                              )),
+                                  line,
+                                  q,
+                                  mono(color: kText, fontSize: 12, height: 1.5),
+                                ),
+                              ),
                             ),
-                          ],
-                        ),
-                      )),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   // Date
-                  Text.rich(TextSpan(
-                    children: _highlightSpans(
-                        memo.dateKey, q,
-                        mono(color: kDim, fontSize: 10)),
-                  )),
+                  Text.rich(
+                    TextSpan(
+                      children: _highlightSpans(
+                        memo.dateKey,
+                        q,
+                        mono(color: kDim, fontSize: 10),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -2230,7 +3045,7 @@ class _SearchToggleBtnState extends State<_SearchToggleBtn> {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
-      onExit:  (_) => setState(() => _hovered = false),
+      onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
@@ -2319,16 +3134,28 @@ class _AppHeader extends StatelessWidget {
         value: '__inbox__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('/inbox',
-            style: mono(color: selectedFolderId == null ? kMint : kText, fontSize: 12)),
+        child: Text(
+          isNemo2Test ? '/INBOX' : '/inbox',
+          style: mono(
+            color: selectedFolderId == null ? kMint : kText,
+            fontSize: 12,
+          ),
+        ),
       ),
-      ...folders.map((f) => PopupMenuItem<String>(
-        value: 'folder:${f.id}',
-        height: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('/${f.name}',
-            style: mono(color: selectedFolderId == f.id ? kMint : kText, fontSize: 12)),
-      )),
+      ...folders.map(
+        (f) => PopupMenuItem<String>(
+          value: 'folder:${f.id}',
+          height: 30,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text(
+            '/${f.name}',
+            style: mono(
+              color: selectedFolderId == f.id ? kMint : kText,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
       PopupMenuItem<String>(
         enabled: false,
         height: 1,
@@ -2345,51 +3172,81 @@ class _AppHeader extends StatelessWidget {
         value: '__tags__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('> tags', style: mono(color: tagsOpen ? kMint : kDim, fontSize: 12)),
+        child: Text(
+          '> tags',
+          style: mono(color: tagsOpen ? kMint : kDim, fontSize: 12),
+        ),
       ),
       PopupMenuItem<String>(
         value: '__calendar__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('> calendar', style: mono(color: calendarOpen ? kMint : kDim, fontSize: 12)),
+        child: Text(
+          '> calendar',
+          style: mono(color: calendarOpen ? kMint : kDim, fontSize: 12),
+        ),
       ),
       PopupMenuItem<String>(
         value: '__today__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('> today', style: mono(color: todayOpen ? kMint : kDim, fontSize: 12)),
+        child: Text(
+          '> today',
+          style: mono(color: todayOpen ? kMint : kDim, fontSize: 12),
+        ),
       ),
       PopupMenuItem<String>(
         value: '__schedule__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('> event', style: mono(color: scheduleOpen ? kMint : kDim, fontSize: 12)),
+        child: Text(
+          '> event',
+          style: mono(color: scheduleOpen ? kMint : kDim, fontSize: 12),
+        ),
       ),
       PopupMenuItem<String>(
         value: '__tasks__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('> tasks', style: mono(color: tasksOnly ? kMint : kDim, fontSize: 12)),
+        child: Text(
+          '> tasks',
+          style: mono(color: tasksOnly ? kMint : kDim, fontSize: 12),
+        ),
       ),
       if (habitActivated)
         PopupMenuItem<String>(
           value: '__habits__',
           height: 30,
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('> habits', style: mono(color: selectedPath == '#habit' ? kMint : kDim, fontSize: 12)),
+          child: Text(
+            '> habits',
+            style: mono(
+              color: selectedPath == '#habit' ? kMint : kDim,
+              fontSize: 12,
+            ),
+          ),
         ),
       if (goalActivated)
         PopupMenuItem<String>(
           value: '__goals__',
           height: 30,
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('> goals', style: mono(color: selectedPath == '#goal' ? kMint : kDim, fontSize: 12)),
+          child: Text(
+            '> goals',
+            style: mono(
+              color: selectedPath == '#goal' ? kMint : kDim,
+              fontSize: 12,
+            ),
+          ),
         ),
       PopupMenuItem<String>(
         value: '__stats__',
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Text('> stats', style: mono(color: statsOpen ? kMint : kDim, fontSize: 12)),
+        child: Text(
+          '> stats',
+          style: mono(color: statsOpen ? kMint : kDim, fontSize: 12),
+        ),
       ),
       PopupMenuItem<String>(
         enabled: false,
@@ -2473,7 +3330,7 @@ class _AppHeader extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  '[MEMO]',
+                  'MEMO',
                   style: mono(
                     color: kTeal,
                     fontSize: 13,
@@ -2506,14 +3363,33 @@ class _AppHeader extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           MediaQuery(
-            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.noScaling),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: (calendarOpen || statsOpen || scheduleOpen || todayOpen || tagsOpen || tasksOnly) ? onShowList : null,
-                  child: _ViewBtn(label: 'LIST', active: !calendarOpen && !statsOpen && !scheduleOpen && !todayOpen && !tagsOpen && !tasksOnly),
+                  onTap:
+                      (calendarOpen ||
+                          statsOpen ||
+                          scheduleOpen ||
+                          todayOpen ||
+                          tagsOpen ||
+                          tasksOnly)
+                      ? onShowList
+                      : null,
+                  child: _ViewBtn(
+                    label: 'LIST',
+                    active:
+                        !calendarOpen &&
+                        !statsOpen &&
+                        !scheduleOpen &&
+                        !todayOpen &&
+                        !tagsOpen &&
+                        !tasksOnly,
+                  ),
                 ),
                 const SizedBox(width: 2),
                 _SearchToggleBtn(active: searchOpen, onTap: onSearchTap),
@@ -2554,8 +3430,13 @@ class _ViewToggle extends StatelessWidget {
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: (calendarOpen || statsOpen || scheduleOpen) ? onShowList : null,
-          child: _ViewBtn(label: 'LIST', active: !calendarOpen && !statsOpen && !scheduleOpen),
+          onTap: (calendarOpen || statsOpen || scheduleOpen)
+              ? onShowList
+              : null,
+          child: _ViewBtn(
+            label: 'LIST',
+            active: !calendarOpen && !statsOpen && !scheduleOpen,
+          ),
         ),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -2616,10 +3497,12 @@ class _ToggleBtnState extends State<_ToggleBtn> {
           duration: const Duration(milliseconds: 100),
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
           decoration: BoxDecoration(
-            color: _hovered ? kMint.withValues(alpha: 0.08) : Colors.transparent,
+            color: _hovered
+                ? kMint.withValues(alpha: 0.08)
+                : Colors.transparent,
           ),
           child: Text(
-            '[≡]',
+            '≡',
             style: mono(color: _hovered ? kMint : kDim, fontSize: 12),
           ),
         ),
@@ -2637,7 +3520,12 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('inbox is empty.', style: mono(color: kDim, fontSize: 13)),
+          Text(
+            isDosTheme
+                ? 'NO LOGS FOUND.'
+                : (isNemo2Test ? 'INBOX is empty.' : 'inbox is empty.'),
+            style: mono(color: kDim, fontSize: 13),
+          ),
           const SizedBox(height: 6),
           Text(
             'start writing.',
@@ -2678,6 +3566,40 @@ class _TerminalDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isDosTheme) {
+      return Dialog(
+        backgroundColor: kBg,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 380),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(border: Border.all(color: kBorder)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('SYSTEM MESSAGE', style: mono(color: kMint, fontSize: 12)),
+              const SizedBox(height: 8),
+              Text(title, style: mono(color: kText, fontSize: 12)),
+              const SizedBox(height: 8),
+              Text(body, style: mono(color: kDim, fontSize: 12, height: 1.5)),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: actions
+                    .map(
+                      (a) => Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: _DialogBtn(action: a),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Dialog(
       backgroundColor: kSurface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -2688,8 +3610,10 @@ class _TerminalDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
+            Text(
+              title,
+              style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+            ),
             const SizedBox(height: 10),
             Container(height: 1, color: kBorder),
             const SizedBox(height: 12),
@@ -2698,10 +3622,12 @@ class _TerminalDialog extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: actions
-                  .map((a) => Padding(
-                        padding: const EdgeInsets.only(left: 10),
-                        child: _DialogBtn(action: a),
-                      ))
+                  .map(
+                    (a) => Padding(
+                      padding: const EdgeInsets.only(left: 10),
+                      child: _DialogBtn(action: a),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -2736,9 +3662,14 @@ class _DialogBtnState extends State<_DialogBtn> {
           duration: const Duration(milliseconds: 100),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: _hovered ? a.color.withValues(alpha: 0.1) : Colors.transparent,
+            color: _hovered
+                ? a.color.withValues(alpha: 0.1)
+                : Colors.transparent,
           ),
-          child: Text(a.label, style: mono(color: a.color, fontSize: 12)),
+          child: Text(
+            isDosTheme ? '[ ${a.label.toUpperCase()} ]' : a.label,
+            style: mono(color: a.color, fontSize: 12),
+          ),
         ),
       ),
     );
@@ -2758,15 +3689,16 @@ _TagGroup _classifyTag(String tag) {
   final first = tag.codeUnitAt(0);
   if (first >= 0xAC00 && first <= 0xD7A3) return _TagGroup.korean; // 가~힣
   if (first >= 0x3131 && first <= 0x3163) return _TagGroup.korean; // ㄱ~ㅣ
-  if ((first >= 0x41 && first <= 0x5A) || (first >= 0x61 && first <= 0x7A)) return _TagGroup.english;
+  if ((first >= 0x41 && first <= 0x5A) || (first >= 0x61 && first <= 0x7A))
+    return _TagGroup.english;
   if (first >= 0x30 && first <= 0x39) return _TagGroup.number;
   return _TagGroup.special;
 }
 
 const _tagGroupLabel = {
-  _TagGroup.korean:  'ㄱㄴㄷ',
+  _TagGroup.korean: 'ㄱㄴㄷ',
   _TagGroup.english: 'ABC',
-  _TagGroup.number:  '123',
+  _TagGroup.number: '123',
   _TagGroup.special: '#?!',
 };
 
@@ -2803,8 +3735,10 @@ class _TagsBrowseViewState extends State<_TagsBrowseView> {
   Widget build(BuildContext context) {
     if (widget.allTags.isEmpty) {
       return Center(
-        child: Text('no tags yet.',
-            style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 12)),
+        child: Text(
+          'no tags yet.',
+          style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 12),
+        ),
       );
     }
 
@@ -2823,23 +3757,30 @@ class _TagsBrowseViewState extends State<_TagsBrowseView> {
       final label = _tagGroupLabel[group]!;
 
       // 섹션 헤더
-      items.add(_TagGroupHeader(
-        label: label,
-        count: tags.length,
-        isCollapsed: isCollapsed,
-        onTap: () => setState(() {
-          if (isCollapsed) _collapsed.remove(group); else _collapsed.add(group);
-        }),
-      ));
+      items.add(
+        _TagGroupHeader(
+          label: label,
+          count: tags.length,
+          isCollapsed: isCollapsed,
+          onTap: () => setState(() {
+            if (isCollapsed)
+              _collapsed.remove(group);
+            else
+              _collapsed.add(group);
+          }),
+        ),
+      );
 
       // 태그 행들
       if (!isCollapsed) {
         for (final tag in tags) {
-          items.add(_TagBrowseRow(
-            tag: tag,
-            count: widget.tagCounts[tag] ?? 0,
-            onTap: () => widget.onSelectTag(tag),
-          ));
+          items.add(
+            _TagBrowseRow(
+              tag: tag,
+              count: widget.tagCounts[tag] ?? 0,
+              onTap: () => widget.onSelectTag(tag),
+            ),
+          );
         }
       }
     }
@@ -2881,7 +3822,9 @@ class _TagGroupHeaderState extends State<_TagGroupHeader> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          color: _hovered ? kBorder.withValues(alpha: 0.15) : Colors.transparent,
+          color: _hovered
+              ? kBorder.withValues(alpha: 0.15)
+              : Colors.transparent,
           padding: const EdgeInsets.fromLTRB(16, 7, 16, 5),
           child: Row(
             children: [
@@ -2892,10 +3835,11 @@ class _TagGroupHeaderState extends State<_TagGroupHeader> {
               Text(
                 widget.label,
                 style: mono(
-                    color: kMint.withValues(alpha: 0.7),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8),
+                  color: kMint.withValues(alpha: 0.7),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                ),
               ),
               const SizedBox(width: 6),
               Text(
@@ -2938,18 +3882,24 @@ class _TagBrowseRowState extends State<_TagBrowseRow> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          color: _hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent,
+          color: _hovered
+              ? kBorder.withValues(alpha: 0.22)
+              : Colors.transparent,
           padding: const EdgeInsets.fromLTRB(24, 4, 16, 4),
           child: Row(
             children: [
               Text('# ', style: mono(color: kTeal, fontSize: 11)),
               Expanded(
-                child: Text(widget.tag,
-                    style: mono(color: _hovered ? kText : kDim, fontSize: 11),
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  widget.tag,
+                  style: mono(color: _hovered ? kText : kDim, fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              Text('${widget.count}',
-                  style: mono(color: kDim.withValues(alpha: 0.45), fontSize: 10)),
+              Text(
+                '${widget.count}',
+                style: mono(color: kDim.withValues(alpha: 0.45), fontSize: 10),
+              ),
             ],
           ),
         ),

@@ -8,7 +8,7 @@ import 'scroll_picker_dialog.dart';
 // ──────────────────────────────────────────────────────────────
 
 enum ScheduleSheetMode {
-  event,    // 일정: 날짜 범위 + scheduleRepeat
+  event, // 일정: 날짜 범위 + scheduleRepeat
   reminder, // 알림: 단일 시각 + reminderRepeat
 }
 
@@ -34,31 +34,43 @@ Future<void> showScheduleSheet(
     int repeatEndCount,
     DateTime? repeatEndDate,
     bool notifyForEvent,
-  ) onResult,
+  )
+  onResult,
 }) {
   return showModalBottomSheet(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-    builder: (ctx) => DraggableScrollableSheet(
-      initialChildSize: 0.88,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (_, scrollCtrl) => _ScheduleSheet(
-        mode: mode,
-        current: current,
-        rangeEndDate: rangeEndDate,
-        currentRepeat: currentRepeat,
-        repeatEndType: repeatEndType,
-        repeatEndCount: repeatEndCount,
-        repeatEndDate: repeatEndDate,
-        initialNotifyForEvent: initialNotifyForEvent,
-        onResult: onResult,
-        scrollController: scrollCtrl,
-      ),
-    ),
+    builder: (ctx) {
+      final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
+      return AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: SafeArea(
+          top: false,
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.88,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (_, scrollCtrl) => _ScheduleSheet(
+              mode: mode,
+              current: current,
+              rangeEndDate: rangeEndDate,
+              currentRepeat: currentRepeat,
+              repeatEndType: repeatEndType,
+              repeatEndCount: repeatEndCount,
+              repeatEndDate: repeatEndDate,
+              initialNotifyForEvent: initialNotifyForEvent,
+              onResult: onResult,
+              scrollController: scrollCtrl,
+            ),
+          ),
+        ),
+      );
+    },
   );
 }
 
@@ -96,7 +108,8 @@ class _ScheduleSheet extends StatefulWidget {
     int,
     DateTime?,
     bool,
-  ) onResult;
+  )
+  onResult;
   final ScrollController? scrollController;
 
   const _ScheduleSheet({
@@ -157,28 +170,29 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
     final now = DateTime.now();
     final ref = widget.current ?? now;
 
-    _calYear  = ref.year;
+    _calYear = ref.year;
     _calMonth = ref.month;
 
     // Date mode (event only; reminder always single)
-    _dateMode = widget.mode == ScheduleSheetMode.event && widget.rangeEndDate != null
+    _dateMode =
+        widget.mode == ScheduleSheetMode.event && widget.rangeEndDate != null
         ? _DateMode.range
         : _DateMode.single;
 
     if (widget.current != null) {
       _selDay = widget.current!.day;
-      _hour   = widget.current!.hour;
+      _hour = widget.current!.hour;
       _minute = widget.current!.minute;
     } else {
       _selDay = null;
-      _hour   = now.hour;
+      _hour = now.hour;
       _minute = now.minute;
     }
 
     // Range
     if (_dateMode == _DateMode.range) {
       _rangeStart = widget.current;
-      _rangeEnd   = widget.rangeEndDate;
+      _rangeEnd = widget.rangeEndDate;
     }
 
     // Repeat unit
@@ -193,39 +207,52 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
       default:
         _repeatEndMode = _RepeatEndMode.infinite;
     }
-    _repeatEndCount  = widget.repeatEndCount;
+    _repeatEndCount = widget.repeatEndCount;
     _repeatEndDateVal = widget.repeatEndDate;
-    _notifyForEvent = widget.mode == ScheduleSheetMode.event &&
-        widget.initialNotifyForEvent;
+    _notifyForEvent =
+        widget.mode == ScheduleSheetMode.event && widget.initialNotifyForEvent;
   }
 
   // ── Helpers ─────────────────────────────────────────────────
 
   _RepeatUnit? _parseRepeatUnit(String s) {
     switch (s) {
-      case 'daily':   return _RepeatUnit.daily;
-      case 'weekly':  return _RepeatUnit.weekly;
-      case 'monthly': return _RepeatUnit.monthly;
-      case 'yearly':  return _RepeatUnit.yearly;
-      default:        return null;
+      case 'daily':
+        return _RepeatUnit.daily;
+      case 'weekly':
+        return _RepeatUnit.weekly;
+      case 'monthly':
+        return _RepeatUnit.monthly;
+      case 'yearly':
+        return _RepeatUnit.yearly;
+      default:
+        return null;
     }
   }
 
   String _repeatString() {
     switch (_repeatUnit) {
-      case _RepeatUnit.daily:   return 'daily';
-      case _RepeatUnit.weekly:  return 'weekly';
-      case _RepeatUnit.monthly: return 'monthly';
-      case _RepeatUnit.yearly:  return 'yearly';
-      case null:                return 'none';
+      case _RepeatUnit.daily:
+        return 'daily';
+      case _RepeatUnit.weekly:
+        return 'weekly';
+      case _RepeatUnit.monthly:
+        return 'monthly';
+      case _RepeatUnit.yearly:
+        return 'yearly';
+      case null:
+        return 'none';
     }
   }
 
   String _repeatEndTypeString() {
     switch (_repeatEndMode) {
-      case _RepeatEndMode.count: return 'count';
-      case _RepeatEndMode.date:  return 'date';
-      case _RepeatEndMode.infinite: return 'infinite';
+      case _RepeatEndMode.count:
+        return 'count';
+      case _RepeatEndMode.date:
+        return 'date';
+      case _RepeatEndMode.infinite:
+        return 'infinite';
     }
   }
 
@@ -250,11 +277,11 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
     setState(() {
       if (!_pickingRangeEnd) {
         _rangeStart = tapped;
-        _rangeEnd   = null;
+        _rangeEnd = null;
         _pickingRangeEnd = true;
       } else {
         if (tapped.isBefore(_rangeStart!)) {
-          _rangeEnd   = _rangeStart;
+          _rangeEnd = _rangeStart;
           _rangeStart = tapped;
         } else {
           _rangeEnd = tapped;
@@ -264,20 +291,28 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
       // Keep _selDay in sync with range start for confirm logic
       _selDay = _rangeStart?.day;
       if (_rangeStart != null) {
-        _calYear  = _rangeStart!.year;
+        _calYear = _rangeStart!.year;
         _calMonth = _rangeStart!.month;
       }
     });
   }
 
   void _prevMonth() => setState(() {
-    if (_calMonth == 1) { _calMonth = 12; _calYear--; }
-    else { _calMonth--; }
+    if (_calMonth == 1) {
+      _calMonth = 12;
+      _calYear--;
+    } else {
+      _calMonth--;
+    }
   });
 
   void _nextMonth() => setState(() {
-    if (_calMonth == 12) { _calMonth = 1; _calYear++; }
-    else { _calMonth++; }
+    if (_calMonth == 12) {
+      _calMonth = 1;
+      _calYear++;
+    } else {
+      _calMonth++;
+    }
   });
 
   Future<void> _pickYear() async {
@@ -305,15 +340,15 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
   void _selectQuick(int daysFromNow) {
     final d = DateTime.now().add(Duration(days: daysFromNow));
     setState(() {
-      _calYear  = d.year;
+      _calYear = d.year;
       _calMonth = d.month;
       if (_dateMode == _DateMode.single) {
         _selDay = d.day;
       } else {
-        _rangeStart      = d;
-        _rangeEnd        = null;
+        _rangeStart = d;
+        _rangeEnd = null;
         _pickingRangeEnd = true;
-        _selDay          = d.day;
+        _selDay = d.day;
       }
     });
   }
@@ -328,21 +363,31 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
       if (_selDay == null) return;
       try {
         dt = DateTime(_calYear, _calMonth, _selDay!, _hour, _minute);
-      } catch (_) { return; }
+      } catch (_) {
+        return;
+      }
     } else {
       if (_rangeStart == null) return;
       try {
         dt = DateTime(
-          _rangeStart!.year, _rangeStart!.month, _rangeStart!.day,
-          _hour, _minute,
+          _rangeStart!.year,
+          _rangeStart!.month,
+          _rangeStart!.day,
+          _hour,
+          _minute,
         );
         if (_rangeEnd != null) {
           rangeEnd = DateTime(
-            _rangeEnd!.year, _rangeEnd!.month, _rangeEnd!.day,
-            _hour, _minute,
+            _rangeEnd!.year,
+            _rangeEnd!.month,
+            _rangeEnd!.day,
+            _hour,
+            _minute,
           );
         }
-      } catch (_) { return; }
+      } catch (_) {
+        return;
+      }
     }
 
     Navigator.pop(context);
@@ -384,6 +429,11 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
               Expanded(
                 child: SingleChildScrollView(
                   controller: widget.scrollController,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -416,15 +466,17 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Row(
             children: [
-              _PillBtn(label: '오늘',   onTap: () => _selectQuick(0)),
+              _PillBtn(label: '오늘', onTap: () => _selectQuick(0)),
               const SizedBox(width: 8),
-              _PillBtn(label: '내일',   onTap: () => _selectQuick(1)),
+              _PillBtn(label: '내일', onTap: () => _selectQuick(1)),
               const SizedBox(width: 8),
               _PillBtn(label: '다음주', onTap: () => _selectQuick(7)),
               if (widget.current != null) ...[
                 const Spacer(),
                 _PillBtn(
-                  label: widget.mode == ScheduleSheetMode.event ? '일정취소' : '알림취소',
+                  label: widget.mode == ScheduleSheetMode.event
+                      ? '일정취소'
+                      : '알림취소',
                   danger: true,
                   onTap: _clear,
                 ),
@@ -452,13 +504,13 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                   label: '범위',
                   selected: _dateMode == _DateMode.range,
                   onTap: () => setState(() {
-                    _dateMode        = _DateMode.range;
-                    _rangeStart      = _selDay != null
+                    _dateMode = _DateMode.range;
+                    _rangeStart = _selDay != null
                         ? DateTime(_calYear, _calMonth, _selDay!)
                         : null;
-                    _rangeEnd        = null;
+                    _rangeEnd = null;
                     _pickingRangeEnd = _rangeStart != null;
-                    _calTarget       = _CalTarget.eventDate;
+                    _calTarget = _CalTarget.eventDate;
                   }),
                 ),
                 if (_dateMode == _DateMode.range) ...[
@@ -476,7 +528,8 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
           ),
 
         // Range display
-        if (widget.mode == ScheduleSheetMode.event && _dateMode == _DateMode.range)
+        if (widget.mode == ScheduleSheetMode.event &&
+            _dateMode == _DateMode.range)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
             child: Text(
@@ -497,7 +550,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
               child: Row(
                 children: [
                   Text(
-                    _notifyForEventOn ? '[✓]' : '[ ]',
+                    _notifyForEventOn ? '✓' : '□',
                     style: mono(
                       color: _notifyForEventOn ? kMint : kDim,
                       fontSize: 12,
@@ -529,18 +582,25 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
         GestureDetector(
           onHorizontalDragEnd: (d) {
             final v = d.primaryVelocity ?? 0;
-            if (v < -200) _nextMonth();
-            else if (v > 200) _prevMonth();
+            if (v < -200)
+              _nextMonth();
+            else if (v > 200)
+              _prevMonth();
           },
           child: _MiniCalendar(
-            year: _calYear, month: _calMonth,
+            year: _calYear,
+            month: _calMonth,
             selectedDay: _dateMode == _DateMode.single ? _selDay : null,
             rangeStart: _dateMode == _DateMode.range ? _rangeStart : null,
-            rangeEnd:   _dateMode == _DateMode.range ? _rangeEnd   : null,
-            repeatEndDate: _calTarget == _CalTarget.repeatEndDate ? _repeatEndDateVal : null,
+            rangeEnd: _dateMode == _DateMode.range ? _rangeEnd : null,
+            repeatEndDate: _calTarget == _CalTarget.repeatEndDate
+                ? _repeatEndDateVal
+                : null,
             onDayTap: _onDayTap,
-            onPrev: _prevMonth, onNext: _nextMonth,
-            onYearTap: _pickYear, onMonthTap: _pickMonth,
+            onPrev: _prevMonth,
+            onNext: _nextMonth,
+            onYearTap: _pickYear,
+            onMonthTap: _pickMonth,
           ),
         ),
       ],
@@ -558,50 +618,72 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
           padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
           child: Column(
             children: [
-              Text(
-                '키보드 없이 조작',
-                style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 11),
-              ),
-              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _TimeBtn(label: '+', tapStep: 1, holdStep: 1,
-                      onStep: (s) => setState(() => _hour = (_hour + s + 24) % 24)),
+                  _TimeBtn(
+                    label: '+',
+                    tapStep: 1,
+                    holdStep: 1,
+                    onStep: (s) =>
+                        setState(() => _hour = (_hour + s + 24) % 24),
+                  ),
                   const SizedBox(width: 60),
-                  _TimeBtn(label: '+', tapStep: 5, holdStep: 1,
-                      onStep: (s) => setState(() => _minute = (_minute + s + 60) % 60)),
+                  _TimeBtn(
+                    label: '+',
+                    tapStep: 1,
+                    holdStep: 1,
+                    onStep: (s) =>
+                        setState(() => _minute = (_minute + s + 60) % 60),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(_hour.toString().padLeft(2, '0'),
-                      style: mono(color: kMint, fontSize: 42, fontWeight: FontWeight.bold)),
+                  Text(
+                    _hour.toString().padLeft(2, '0'),
+                    style: mono(
+                      color: kMint,
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Text(':', style: mono(color: kDim, fontSize: 36)),
                   ),
-                  Text(_minute.toString().padLeft(2, '0'),
-                      style: mono(color: kMint, fontSize: 42, fontWeight: FontWeight.bold)),
+                  Text(
+                    _minute.toString().padLeft(2, '0'),
+                    style: mono(
+                      color: kMint,
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _TimeBtn(label: '−', tapStep: -1, holdStep: -1,
-                      onStep: (s) => setState(() => _hour = (_hour + s + 24) % 24)),
+                  _TimeBtn(
+                    label: '−',
+                    tapStep: -1,
+                    holdStep: -1,
+                    onStep: (s) =>
+                        setState(() => _hour = (_hour + s + 24) % 24),
+                  ),
                   const SizedBox(width: 60),
-                  _TimeBtn(label: '−', tapStep: -5, holdStep: -1,
-                      onStep: (s) => setState(() => _minute = (_minute + s + 60) % 60)),
+                  _TimeBtn(
+                    label: '−',
+                    tapStep: -1,
+                    holdStep: -1,
+                    onStep: (s) =>
+                        setState(() => _minute = (_minute + s + 60) % 60),
+                  ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '분 단위 : 5분씩  ·  길게 누르면 1분씩',
-                style: mono(color: kDim.withValues(alpha: 0.35), fontSize: 10),
               ),
             ],
           ),
@@ -627,11 +709,18 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                 children: [
                   Text('반복', style: mono(color: kDim, fontSize: 12)),
                   const Spacer(),
-                  _SegBtn(label: 'OFF', selected: !_repeatOn,
-                      onTap: () => setState(() => _repeatUnit = null)),
+                  _SegBtn(
+                    label: 'OFF',
+                    selected: !_repeatOn,
+                    onTap: () => setState(() => _repeatUnit = null),
+                  ),
                   const SizedBox(width: 8),
-                  _SegBtn(label: 'ON', selected: _repeatOn,
-                      onTap: () => setState(() => _repeatUnit ??= _RepeatUnit.daily)),
+                  _SegBtn(
+                    label: 'ON',
+                    selected: _repeatOn,
+                    onTap: () =>
+                        setState(() => _repeatUnit ??= _RepeatUnit.daily),
+                  ),
                 ],
               ),
 
@@ -654,7 +743,8 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                     _RepeatUnitBtn(
                       label: '매주',
                       selected: _repeatUnit == _RepeatUnit.weekly,
-                      onTap: () => setState(() => _repeatUnit = _RepeatUnit.weekly),
+                      onTap: () =>
+                          setState(() => _repeatUnit = _RepeatUnit.weekly),
                     ),
                     _RepeatUnitBtn(
                       label: '매월',
@@ -681,8 +771,10 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                   _WeekdayRow(
                     selected: _weekdays,
                     onToggle: (d) => setState(() {
-                      if (_weekdays.contains(d)) _weekdays.remove(d);
-                      else _weekdays.add(d);
+                      if (_weekdays.contains(d))
+                        _weekdays.remove(d);
+                      else
+                        _weekdays.add(d);
                     }),
                   ),
                 ],
@@ -715,7 +807,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                       selected: _repeatEndMode == _RepeatEndMode.infinite,
                       onTap: () => setState(() {
                         _repeatEndMode = _RepeatEndMode.infinite;
-                        _calTarget     = _CalTarget.eventDate;
+                        _calTarget = _CalTarget.eventDate;
                       }),
                     ),
                   ),
@@ -726,7 +818,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                       selected: _repeatEndMode == _RepeatEndMode.count,
                       onTap: () => setState(() {
                         _repeatEndMode = _RepeatEndMode.count;
-                        _calTarget     = _CalTarget.eventDate;
+                        _calTarget = _CalTarget.eventDate;
                       }),
                     ),
                   ),
@@ -737,7 +829,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                       selected: _repeatEndMode == _RepeatEndMode.date,
                       onTap: () => setState(() {
                         _repeatEndMode = _RepeatEndMode.date;
-                        _calTarget     = _CalTarget.repeatEndDate;
+                        _calTarget = _CalTarget.repeatEndDate;
                       }),
                     ),
                   ),
@@ -751,7 +843,9 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _TimeBtn(
-                      label: '−', tapStep: -1, holdStep: -1,
+                      label: '−',
+                      tapStep: -1,
+                      holdStep: -1,
                       onStep: (s) => setState(() {
                         _repeatEndCount = (_repeatEndCount + s).clamp(1, 999);
                       }),
@@ -760,11 +854,17 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         '$_repeatEndCount 회',
-                        style: mono(color: kMint, fontSize: 18, fontWeight: FontWeight.bold),
+                        style: mono(
+                          color: kMint,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     _TimeBtn(
-                      label: '+', tapStep: 1, holdStep: 1,
+                      label: '+',
+                      tapStep: 1,
+                      holdStep: 1,
                       onStep: (s) => setState(() {
                         _repeatEndCount = (_repeatEndCount + s).clamp(1, 999);
                       }),
@@ -775,7 +875,10 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                 Center(
                   child: Text(
                     'N회 종료는 현재 저장/표시만 지원합니다',
-                    style: mono(color: kDim.withValues(alpha: 0.45), fontSize: 10),
+                    style: mono(
+                      color: kDim.withValues(alpha: 0.45),
+                      fontSize: 10,
+                    ),
                   ),
                 ),
               ],
@@ -793,7 +896,9 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                       ? _fmtDate(_repeatEndDateVal!)
                       : '종료일 미설정',
                   style: mono(
-                    color: _repeatEndDateVal != null ? kMint : kDim.withValues(alpha: 0.5),
+                    color: _repeatEndDateVal != null
+                        ? kMint
+                        : kDim.withValues(alpha: 0.5),
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
@@ -801,7 +906,10 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                 const SizedBox(height: 6),
                 Text(
                   '연간 반복 및 N회 종료의 실제 OS 알림 예약은 추후 지원 예정입니다',
-                  style: mono(color: kDim.withValues(alpha: 0.35), fontSize: 10),
+                  style: mono(
+                    color: kDim.withValues(alpha: 0.35),
+                    fontSize: 10,
+                  ),
                 ),
               ],
             ],
@@ -819,10 +927,10 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          _PillBtn(label: '[취소]', onTap: () => Navigator.pop(context)),
+          _PillBtn(label: '취소', onTap: () => Navigator.pop(context)),
           const SizedBox(width: 8),
           _PillBtn(
-            label: '[확인]',
+            label: '확인',
             active: _canConfirm,
             onTap: _canConfirm ? _confirm : null,
           ),
@@ -845,10 +953,10 @@ String _fmtDate(DateTime d) =>
 
 class _MiniCalendar extends StatelessWidget {
   final int year, month;
-  final int? selectedDay;         // single mode
-  final DateTime? rangeStart;     // range mode
-  final DateTime? rangeEnd;       // range mode
-  final DateTime? repeatEndDate;  // highlighted as repeat-end marker
+  final int? selectedDay; // single mode
+  final DateTime? rangeStart; // range mode
+  final DateTime? rangeEnd; // range mode
+  final DateTime? repeatEndDate; // highlighted as repeat-end marker
   final void Function(int) onDayTap;
   final VoidCallback onPrev, onNext;
   final VoidCallback? onYearTap, onMonthTap;
@@ -873,11 +981,11 @@ class _MiniCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now          = DateTime.now();
-    final firstDay    = DateTime(year, month, 1);
+    final now = DateTime.now();
+    final firstDay = DateTime(year, month, 1);
     final daysInMonth = DateTime(year, month + 1, 0).day;
-    final offset      = firstDay.weekday - 1;
-    const rows        = 6;
+    final offset = firstDay.weekday - 1;
+    const rows = 6;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
@@ -886,21 +994,36 @@ class _MiniCalendar extends StatelessWidget {
           // Month nav row
           Row(
             children: [
-              _CalNavBtn(label: '[<]', onTap: onPrev),
+              _CalNavBtn(label: '<', onTap: onPrev),
               const Spacer(),
               GestureDetector(
                 onTap: onYearTap,
-                child: Text('$year',
-                    style: mono(color: kMint, fontSize: fontSize, letterSpacing: 0.5)),
+                child: Text(
+                  '$year',
+                  style: mono(
+                    color: kMint,
+                    fontSize: fontSize,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
-              Text(' . ', style: mono(color: kBorder, fontSize: fontSize)),
+              Text(
+                ' . ',
+                style: mono(color: kBorder, fontSize: fontSize),
+              ),
               GestureDetector(
                 onTap: onMonthTap,
-                child: Text(month.toString().padLeft(2, '0'),
-                    style: mono(color: kMint, fontSize: fontSize, letterSpacing: 0.5)),
+                child: Text(
+                  month.toString().padLeft(2, '0'),
+                  style: mono(
+                    color: kMint,
+                    fontSize: fontSize,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
               const Spacer(),
-              _CalNavBtn(label: '[>]', onTap: onNext),
+              _CalNavBtn(label: '>', onTap: onNext),
             ],
           ),
           const SizedBox(height: 4),
@@ -909,119 +1032,151 @@ class _MiniCalendar extends StatelessWidget {
             children: List.generate(7, (i) {
               final c = i == 6
                   ? const Color(0xFFFF1744).withValues(alpha: 0.7)
-                  : i == 5 ? kTeal.withValues(alpha: 0.7) : kDim.withValues(alpha: 0.4);
+                  : i == 5
+                  ? kTeal.withValues(alpha: 0.7)
+                  : kDim.withValues(alpha: 0.4);
               return Expanded(
-                child: Center(child: Text(_wd[i], style: mono(color: c, fontSize: fontSize - 3))),
-              );
-            }),
-          ),
-          const SizedBox(height: 2),
-          ...List.generate(rows, (row) => Row(
-            children: List.generate(7, (col) {
-              final dayNum = row * 7 + col - offset + 1;
-              if (dayNum < 1 || dayNum > daysInMonth) {
-                return const Expanded(child: SizedBox(height: 30));
-              }
-
-              final date       = DateTime(year, month, dayNum);
-              final isToday    = date.year == now.year && date.month == now.month && date.day == now.day;
-              final isPast     = date.isBefore(DateTime(now.year, now.month, now.day));
-              final isSun      = col == 6;
-              final isSat      = col == 5;
-
-              // Single mode
-              final isSelected = selectedDay == dayNum && rangeStart == null;
-
-              // Range mode
-              final isRangeStart = rangeStart != null &&
-                  date.year == rangeStart!.year &&
-                  date.month == rangeStart!.month &&
-                  date.day == rangeStart!.day;
-              final isRangeEnd = rangeEnd != null &&
-                  date.year == rangeEnd!.year &&
-                  date.month == rangeEnd!.month &&
-                  date.day == rangeEnd!.day;
-              final isInRange = rangeStart != null && rangeEnd != null &&
-                  date.isAfter(rangeStart!) && date.isBefore(rangeEnd!);
-
-              // Repeat-end marker
-              final isRepeatEnd = repeatEndDate != null &&
-                  date.year == repeatEndDate!.year &&
-                  date.month == repeatEndDate!.month &&
-                  date.day == repeatEndDate!.day;
-
-              final isHighlighted = isSelected || isRangeStart || isRangeEnd;
-
-              Color fg;
-              if (isHighlighted)   fg = kBg;
-              else if (isPast && !isRepeatEnd) fg = kDim.withValues(alpha: 0.25);
-              else if (isSun)      fg = const Color(0xFFFF1744).withValues(alpha: 0.8);
-              else if (isSat)      fg = kTeal.withValues(alpha: 0.8);
-              else if (isToday)    fg = kMint;
-              else                 fg = kDim;
-
-              Color? bgColor;
-              BorderRadius? borderRadius;
-              if (isHighlighted) {
-                bgColor = kMint;
-                if (isRangeStart && rangeEnd != null) {
-                  borderRadius = const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    bottomLeft: Radius.circular(4),
-                  );
-                } else if (isRangeEnd) {
-                  borderRadius = const BorderRadius.only(
-                    topRight: Radius.circular(4),
-                    bottomRight: Radius.circular(4),
-                  );
-                }
-              } else if (isInRange) {
-                bgColor = kMint.withValues(alpha: 0.15);
-              } else if (isToday) {
-                bgColor = kMint.withValues(alpha: 0.1);
-              } else if (isRepeatEnd) {
-                bgColor = kTeal.withValues(alpha: 0.15);
-                fg = kTeal;
-              }
-
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => onDayTap(dayNum),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 80),
-                    height: 30,
-                    margin: const EdgeInsets.all(1),
-                    decoration: BoxDecoration(
-                      color: bgColor,
-                      borderRadius: borderRadius,
-                    ),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '$dayNum',
-                          style: mono(
-                            color: fg,
-                            fontSize: isHighlighted || isToday ? fontSize : fontSize - 1,
-                            fontWeight: isHighlighted || isToday ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        if (isRepeatEnd)
-                          Container(
-                            width: 4, height: 4,
-                            decoration: BoxDecoration(
-                              color: kTeal,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                      ],
-                    ),
+                child: Center(
+                  child: Text(
+                    _wd[i],
+                    style: mono(color: c, fontSize: fontSize - 3),
                   ),
                 ),
               );
             }),
-          )),
+          ),
+          const SizedBox(height: 2),
+          ...List.generate(
+            rows,
+            (row) => Row(
+              children: List.generate(7, (col) {
+                final dayNum = row * 7 + col - offset + 1;
+                if (dayNum < 1 || dayNum > daysInMonth) {
+                  return const Expanded(child: SizedBox(height: 30));
+                }
+
+                final date = DateTime(year, month, dayNum);
+                final isToday =
+                    date.year == now.year &&
+                    date.month == now.month &&
+                    date.day == now.day;
+                final isPast = date.isBefore(
+                  DateTime(now.year, now.month, now.day),
+                );
+                final isSun = col == 6;
+                final isSat = col == 5;
+
+                // Single mode
+                final isSelected = selectedDay == dayNum && rangeStart == null;
+
+                // Range mode
+                final isRangeStart =
+                    rangeStart != null &&
+                    date.year == rangeStart!.year &&
+                    date.month == rangeStart!.month &&
+                    date.day == rangeStart!.day;
+                final isRangeEnd =
+                    rangeEnd != null &&
+                    date.year == rangeEnd!.year &&
+                    date.month == rangeEnd!.month &&
+                    date.day == rangeEnd!.day;
+                final isInRange =
+                    rangeStart != null &&
+                    rangeEnd != null &&
+                    date.isAfter(rangeStart!) &&
+                    date.isBefore(rangeEnd!);
+
+                // Repeat-end marker
+                final isRepeatEnd =
+                    repeatEndDate != null &&
+                    date.year == repeatEndDate!.year &&
+                    date.month == repeatEndDate!.month &&
+                    date.day == repeatEndDate!.day;
+
+                final isHighlighted = isSelected || isRangeStart || isRangeEnd;
+
+                Color fg;
+                if (isHighlighted)
+                  fg = kBg;
+                else if (isPast && !isRepeatEnd)
+                  fg = kDim.withValues(alpha: 0.25);
+                else if (isSun)
+                  fg = const Color(0xFFFF1744).withValues(alpha: 0.8);
+                else if (isSat)
+                  fg = kTeal.withValues(alpha: 0.8);
+                else if (isToday)
+                  fg = kMint;
+                else
+                  fg = kDim;
+
+                Color? bgColor;
+                BorderRadius? borderRadius;
+                if (isHighlighted) {
+                  bgColor = kMint;
+                  if (isRangeStart && rangeEnd != null) {
+                    borderRadius = const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      bottomLeft: Radius.circular(4),
+                    );
+                  } else if (isRangeEnd) {
+                    borderRadius = const BorderRadius.only(
+                      topRight: Radius.circular(4),
+                      bottomRight: Radius.circular(4),
+                    );
+                  }
+                } else if (isInRange) {
+                  bgColor = kMint.withValues(alpha: 0.15);
+                } else if (isToday) {
+                  bgColor = kMint.withValues(alpha: 0.1);
+                } else if (isRepeatEnd) {
+                  bgColor = kTeal.withValues(alpha: 0.15);
+                  fg = kTeal;
+                }
+
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => onDayTap(dayNum),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 80),
+                      height: 30,
+                      margin: const EdgeInsets.all(1),
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        borderRadius: borderRadius,
+                      ),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$dayNum',
+                            style: mono(
+                              color: fg,
+                              fontSize: isHighlighted || isToday
+                                  ? fontSize
+                                  : fontSize - 1,
+                              fontWeight: isHighlighted || isToday
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          if (isRepeatEnd)
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: kTeal,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
         ],
       ),
     );
@@ -1045,7 +1200,14 @@ class _SectionHeader extends StatelessWidget {
         children: [
           _DashedLine(),
           const SizedBox(height: 4),
-          Text(title, style: mono(color: kText, fontSize: 11, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: mono(
+              color: kText,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 4),
           _DashedLine(),
         ],
@@ -1057,15 +1219,17 @@ class _SectionHeader extends StatelessWidget {
 class _DashedLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (_, c) {
-      final n = (c.maxWidth / 7).floor();
-      return Text(
-        List.filled(n, '-').join(' '),
-        style: mono(color: kBorder.withValues(alpha: 0.7), fontSize: 10),
-        overflow: TextOverflow.clip,
-        maxLines: 1,
-      );
-    });
+    return LayoutBuilder(
+      builder: (_, c) {
+        final n = (c.maxWidth / 7).floor();
+        return Text(
+          List.filled(n, '-').join(' '),
+          style: mono(color: kBorder.withValues(alpha: 0.7), fontSize: 10),
+          overflow: TextOverflow.clip,
+          maxLines: 1,
+        );
+      },
+    );
   }
 }
 
@@ -1074,7 +1238,12 @@ class _PillBtn extends StatefulWidget {
   final VoidCallback? onTap;
   final bool danger;
   final bool active;
-  const _PillBtn({required this.label, this.onTap, this.danger = false, this.active = true});
+  const _PillBtn({
+    required this.label,
+    this.onTap,
+    this.danger = false,
+    this.active = true,
+  });
 
   @override
   State<_PillBtn> createState() => _PillBtnState();
@@ -1086,12 +1255,16 @@ class _PillBtnState extends State<_PillBtn> {
   @override
   Widget build(BuildContext context) {
     final enabled = widget.onTap != null && widget.active;
-    final color   = widget.danger
+    final color = widget.danger
         ? Colors.red.shade400
-        : enabled ? kDim : kDim.withValues(alpha: 0.3);
+        : enabled
+        ? kDim
+        : kDim.withValues(alpha: 0.3);
     return GestureDetector(
       onTap: enabled ? widget.onTap : null,
-      onTapDown: (_) { if (enabled) setState(() => _pressing = true); },
+      onTapDown: (_) {
+        if (enabled) setState(() => _pressing = true);
+      },
       onTapUp: (_) => setState(() => _pressing = false),
       onTapCancel: () => setState(() => _pressing = false),
       child: AnimatedContainer(
@@ -1100,7 +1273,9 @@ class _PillBtnState extends State<_PillBtn> {
         decoration: BoxDecoration(
           color: _pressing ? color.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: _pressing ? color : color.withValues(alpha: 0.5)),
+          border: Border.all(
+            color: _pressing ? color : color.withValues(alpha: 0.5),
+          ),
         ),
         child: Text(widget.label, style: mono(color: color, fontSize: 12)),
       ),
@@ -1113,7 +1288,11 @@ class _SegBtn extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const _SegBtn({required this.label, required this.selected, required this.onTap});
+  const _SegBtn({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1145,7 +1324,11 @@ class _RepeatUnitBtn extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const _RepeatUnitBtn({required this.label, required this.selected, required this.onTap});
+  const _RepeatUnitBtn({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1185,13 +1368,15 @@ class _WeekdayRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: List.generate(7, (i) {
-        final day     = i + 1;
-        final isSel   = selected.contains(day);
-        final isSun   = day == 7;
-        final isSat   = day == 6;
+        final day = i + 1;
+        final isSel = selected.contains(day);
+        final isSun = day == 7;
+        final isSat = day == 6;
         final baseColor = isSun
             ? const Color(0xFFFF1744).withValues(alpha: 0.8)
-            : isSat ? kTeal : kDim;
+            : isSat
+            ? kTeal
+            : kDim;
         return Expanded(
           child: GestureDetector(
             onTap: () => onToggle(day),
@@ -1200,7 +1385,9 @@ class _WeekdayRow extends StatelessWidget {
               height: 32,
               margin: const EdgeInsets.symmetric(horizontal: 1),
               decoration: BoxDecoration(
-                color: isSel ? baseColor.withValues(alpha: 0.15) : Colors.transparent,
+                color: isSel
+                    ? baseColor.withValues(alpha: 0.15)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: isSel ? baseColor : kBorder.withValues(alpha: 0.5),
@@ -1229,7 +1416,12 @@ class _TimeBtn extends StatefulWidget {
   final int tapStep;
   final int holdStep;
   final void Function(int) onStep;
-  const _TimeBtn({required this.label, required this.tapStep, required this.holdStep, required this.onStep});
+  const _TimeBtn({
+    required this.label,
+    required this.tapStep,
+    required this.holdStep,
+    required this.onStep,
+  });
 
   @override
   State<_TimeBtn> createState() => _TimeBtnState();
@@ -1249,14 +1441,24 @@ class _TimeBtnState extends State<_TimeBtn> {
     if (!mounted) return;
     widget.onStep(widget.holdStep);
     _ticks++;
-    final ms = _ticks < 8 ? 120 : _ticks < 20 ? 70 : 35;
+    final ms = _ticks < 8
+        ? 120
+        : _ticks < 20
+        ? 70
+        : 35;
     _timer = Timer(Duration(milliseconds: ms), _repeat);
   }
 
-  void _stop() { _timer?.cancel(); _timer = null; }
+  void _stop() {
+    _timer?.cancel();
+    _timer = null;
+  }
 
   @override
-  void dispose() { _timer?.cancel(); super.dispose(); }
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1265,13 +1467,17 @@ class _TimeBtnState extends State<_TimeBtn> {
       onTapUp: (_) => _stop(),
       onTapCancel: () => _stop(),
       child: Container(
-        width: 56, height: 44,
+        width: 56,
+        height: 44,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: kBorder),
         ),
         alignment: Alignment.center,
-        child: Text(widget.label, style: mono(color: kDim.withValues(alpha: 0.6), fontSize: 18)),
+        child: Text(
+          widget.label,
+          style: mono(color: kDim.withValues(alpha: 0.6), fontSize: 18),
+        ),
       ),
     );
   }
@@ -1298,7 +1504,10 @@ class _CalNavBtnState extends State<_CalNavBtn> {
       onTapCancel: () => setState(() => _pressing = false),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Text(widget.label, style: mono(color: _pressing ? kMint : kDim, fontSize: 12)),
+        child: Text(
+          widget.label,
+          style: mono(color: _pressing ? kMint : kDim, fontSize: 12),
+        ),
       ),
     );
   }

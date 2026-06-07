@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
+import '../flavor.dart';
 import '../models/memo.dart';
 import '../models/memo_actions.dart';
+import '../widgets/logroom_entry_tile.dart';
 import '../widgets/memo_tile.dart';
 import '../widgets/input_bar.dart';
-import '../widgets/schedule_sheet.dart';
 
 class ScheduleView extends StatefulWidget {
   final List<Memo> memos;
@@ -22,13 +23,31 @@ class ScheduleView extends StatefulWidget {
     String repeatEndType,
     int repeatEndCount,
     DateTime? repeatEndDate,
-  )? onAddMemo;
+  )?
+  onAddMemo;
+  final void Function(
+    Memo memo,
+    String content,
+    bool isChecklist,
+    DateTime? reminderAt,
+    String? folderId,
+    List<String> imagePaths,
+    String reminderRepeat,
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  )?
+  onEditMemo;
 
   const ScheduleView({
     super.key,
     required this.memos,
     required this.actions,
     this.onAddMemo,
+    this.onEditMemo,
   });
 
   @override
@@ -37,6 +56,61 @@ class ScheduleView extends StatefulWidget {
 
 class _ScheduleViewState extends State<ScheduleView> {
   final _collapsed = <String>{};
+  Memo? _editingMemo;
+
+  MemoActions get _localActions => widget.actions.copyWith(
+    onEditRequest: (memo) => setState(() => _editingMemo = memo),
+  );
+
+  void _submitFromInput(
+    String content,
+    bool isChecklist,
+    DateTime? reminderAt,
+    String? folderId,
+    List<String> imagePaths,
+    String reminderRepeat,
+    DateTime? scheduledAt,
+    DateTime? rangeEndDate,
+    String scheduleRepeat,
+    String repeatEndType,
+    int repeatEndCount,
+    DateTime? repeatEndDate,
+  ) {
+    final editing = _editingMemo;
+    if (editing != null && widget.onEditMemo != null) {
+      widget.onEditMemo!(
+        editing,
+        content,
+        isChecklist,
+        reminderAt,
+        folderId,
+        imagePaths,
+        reminderRepeat,
+        scheduledAt,
+        rangeEndDate,
+        scheduleRepeat,
+        repeatEndType,
+        repeatEndCount,
+        repeatEndDate,
+      );
+      setState(() => _editingMemo = null);
+      return;
+    }
+    widget.onAddMemo?.call(
+      content,
+      isChecklist,
+      reminderAt,
+      folderId,
+      imagePaths,
+      reminderRepeat,
+      scheduledAt,
+      rangeEndDate,
+      scheduleRepeat,
+      repeatEndType,
+      repeatEndCount,
+      repeatEndDate,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +124,7 @@ class _ScheduleViewState extends State<ScheduleView> {
     final now = DateTime.now();
     final todayKey = _dateKey(now);
 
-    final scheduled = widget.memos
-        .where((m) => m.scheduledAt != null)
-        .toList();
+    final scheduled = widget.memos.where((m) => m.scheduledAt != null).toList();
 
     if (scheduled.isEmpty) {
       return Column(
@@ -69,7 +141,9 @@ class _ScheduleViewState extends State<ScheduleView> {
           if (widget.onAddMemo != null)
             InputBar(
               scheduleMode: true,
-              onSubmit: widget.onAddMemo!,
+              onSubmit: _submitFromInput,
+              editingMemo: _editingMemo,
+              onCancelEdit: () => setState(() => _editingMemo = null),
             ),
         ],
       );
@@ -87,50 +161,23 @@ class _ScheduleViewState extends State<ScheduleView> {
     }
 
     // Split date keys: future/today (ascending) then past (descending)
-    final futureKeys = grouped.keys
-        .where((k) => k.compareTo(todayKey) >= 0)
-        .toList()
-      ..sort();
-    final pastKeys = grouped.keys
-        .where((k) => k.compareTo(todayKey) < 0)
-        .toList()
-      ..sort((a, b) => b.compareTo(a)); // most recent past first
+    final futureKeys =
+        grouped.keys.where((k) => k.compareTo(todayKey) >= 0).toList()..sort();
+    final pastKeys =
+        grouped.keys.where((k) => k.compareTo(todayKey) < 0).toList()
+          ..sort((a, b) => b.compareTo(a)); // most recent past first
 
     final items = <Widget>[];
 
     for (final key in futureKeys) {
       final memos = grouped[key]!;
       final isToday = key == todayKey;
-      items.add(_DateHeader(
-        dateKey: key,
-        count: memos.length,
-        isToday: isToday,
-        isPast: false,
-        collapsed: _collapsed.contains(key),
-        onToggle: () => setState(() {
-          if (_collapsed.contains(key)) {
-            _collapsed.remove(key);
-          } else {
-            _collapsed.add(key);
-          }
-        }),
-      ));
-      if (!_collapsed.contains(key)) {
-        for (final m in memos) {
-          items.add(_ScheduleTile(memo: m, actions: widget.actions));
-        }
-      }
-    }
-
-    if (pastKeys.isNotEmpty) {
-      items.add(_PastDivider());
-      for (final key in pastKeys) {
-        final memos = grouped[key]!;
-        items.add(_DateHeader(
+      items.add(
+        _DateHeader(
           dateKey: key,
           count: memos.length,
-          isToday: false,
-          isPast: true,
+          isToday: isToday,
+          isPast: false,
           collapsed: _collapsed.contains(key),
           onToggle: () => setState(() {
             if (_collapsed.contains(key)) {
@@ -139,10 +186,40 @@ class _ScheduleViewState extends State<ScheduleView> {
               _collapsed.add(key);
             }
           }),
-        ));
+        ),
+      );
+      if (!_collapsed.contains(key)) {
+        for (final m in memos) {
+          items.add(_ScheduleTile(memo: m, actions: _localActions));
+        }
+      }
+    }
+
+    if (pastKeys.isNotEmpty) {
+      items.add(_PastDivider());
+      for (final key in pastKeys) {
+        final memos = grouped[key]!;
+        items.add(
+          _DateHeader(
+            dateKey: key,
+            count: memos.length,
+            isToday: false,
+            isPast: true,
+            collapsed: _collapsed.contains(key),
+            onToggle: () => setState(() {
+              if (_collapsed.contains(key)) {
+                _collapsed.remove(key);
+              } else {
+                _collapsed.add(key);
+              }
+            }),
+          ),
+        );
         if (!_collapsed.contains(key)) {
           for (final m in memos) {
-            items.add(_ScheduleTile(memo: m, actions: widget.actions, isPast: true));
+            items.add(
+              _ScheduleTile(memo: m, actions: _localActions, isPast: true),
+            );
           }
         }
       }
@@ -160,7 +237,9 @@ class _ScheduleViewState extends State<ScheduleView> {
         if (widget.onAddMemo != null)
           InputBar(
             scheduleMode: true,
-            onSubmit: widget.onAddMemo!,
+            onSubmit: _submitFromInput,
+            editingMemo: _editingMemo,
+            onCancelEdit: () => setState(() => _editingMemo = null),
           ),
       ],
     );
@@ -201,18 +280,26 @@ class _DateHeaderState extends State<_DateHeader> {
   static String _fmt(String key, bool isToday) {
     final parts = key.split('-');
     final d = DateTime(
-        int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+      int.parse(parts[2]),
+    );
     const wd = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final diff = d.difference(today).inDays;
 
     String label;
-    if (diff == 0) label = '오늘';
-    else if (diff == 1) label = '내일';
-    else if (diff == -1) label = '어제';
-    else if (diff > 0) label = 'D-$diff';
-    else label = 'D+${-diff}';
+    if (diff == 0)
+      label = '오늘';
+    else if (diff == 1)
+      label = '내일';
+    else if (diff == -1)
+      label = '어제';
+    else if (diff > 0)
+      label = 'D-$diff';
+    else
+      label = 'D+${-diff}';
 
     return '${parts[0]}.${parts[1]}.${parts[2]}  ${wd[d.weekday - 1]}  $label';
   }
@@ -222,13 +309,13 @@ class _DateHeaderState extends State<_DateHeader> {
     final color = widget.isToday
         ? kMint
         : widget.isPast
-            ? kDim.withValues(alpha: 0.45)
-            : kText;
+        ? kDim.withValues(alpha: 0.45)
+        : kText;
     final bg = widget.isToday
         ? kMint.withValues(alpha: 0.08)
         : _hovered
-            ? kSurface
-            : Colors.transparent;
+        ? kSurface
+        : Colors.transparent;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -247,7 +334,9 @@ class _DateHeaderState extends State<_DateHeader> {
                 style: mono(
                   color: color,
                   fontSize: 11,
-                  fontWeight: widget.isToday ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: widget.isToday
+                      ? FontWeight.bold
+                      : FontWeight.normal,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -282,7 +371,11 @@ class _PastDivider extends StatelessWidget {
         children: [
           Text(
             '── 지난 일정 ',
-            style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 9, letterSpacing: 0.5),
+            style: mono(
+              color: kDim.withValues(alpha: 0.4),
+              fontSize: 9,
+              letterSpacing: 0.5,
+            ),
           ),
           Expanded(
             child: Text(
@@ -321,6 +414,27 @@ class _ScheduleTile extends StatelessWidget {
         '${r.hour.toString().padLeft(2, '0')}:${r.minute.toString().padLeft(2, '0')}';
     final color = isPast ? kDim.withValues(alpha: 0.4) : kMint;
 
-    return MemoTile(memo: memo, actions: actions);
+    if (isLogroomUi) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 7, 14, 0),
+            child: Text(timeStr, style: mono(color: color, fontSize: 10)),
+          ),
+          LogroomEntryTile(memo: memo, actions: actions),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 7, 14, 0),
+          child: Text(timeStr, style: mono(color: color, fontSize: 10)),
+        ),
+        MemoTile(memo: memo, actions: actions),
+      ],
+    );
   }
 }

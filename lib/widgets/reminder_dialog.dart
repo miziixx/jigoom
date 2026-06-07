@@ -134,7 +134,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
             children: [
               // Header
               Text(
-                '[ SET REMINDER ]',
+                'SET REMINDER',
                 style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
               ),
               const SizedBox(height: 10),
@@ -146,13 +146,13 @@ class _ReminderDialogState extends State<ReminderDialog> {
                 Row(
                   children: [
                     _QuickDateBtn(
-                      label: '[심플코스]',
+                      label: '심플코스',
                       sub: '+183일',
                       onTap: () => _showBaseDatePicker(183),
                     ),
                     const SizedBox(width: 8),
                     _QuickDateBtn(
-                      label: '[요금할인]',
+                      label: '요금할인',
                       sub: '+120일',
                       onTap: () => _showBaseDatePicker(120),
                     ),
@@ -203,18 +203,18 @@ class _ReminderDialogState extends State<ReminderDialog> {
                 children: [
                   if (widget.current != null)
                     _Btn(
-                      label: '[ 알림 취소 ]',
+                      label: '알림 취소',
                       color: Colors.red.shade400,
                       onTap: _clear,
                     ),
                   const Spacer(),
                   _Btn(
-                    label: '[ CANCEL ]',
+                    label: 'CANCEL',
                     color: kDim,
                     onTap: () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 10),
-                  _Btn(label: '[ SET ]', color: kMint, onTap: _confirm),
+                  _Btn(label: 'SET', color: kMint, onTap: _confirm),
                 ],
               ),
             ],
@@ -452,7 +452,7 @@ class _BaseDateDialogState extends State<_BaseDateDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '[ 기준 날짜 선택 ]',
+                '기준 날짜 선택',
                 style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
               ),
               const SizedBox(height: 10),
@@ -463,7 +463,7 @@ class _BaseDateDialogState extends State<_BaseDateDialog> {
                 Row(
                   children: [
                     _Btn(
-                      label: '[ 오늘 ]',
+                      label: '오늘',
                       color: kMint,
                       onTap: () {
                         Navigator.pop(context);
@@ -472,7 +472,7 @@ class _BaseDateDialogState extends State<_BaseDateDialog> {
                     ),
                     const SizedBox(width: 10),
                     _Btn(
-                      label: '[ 직접 입력 ]',
+                      label: '직접 입력',
                       color: kTeal,
                       onTap: () => setState(() => _showInput = true),
                     ),
@@ -506,13 +506,13 @@ class _BaseDateDialogState extends State<_BaseDateDialog> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   _Btn(
-                    label: '[ CANCEL ]',
+                    label: 'CANCEL',
                     color: kDim,
                     onTap: () => Navigator.pop(context),
                   ),
                   if (_showInput) ...[
                     const SizedBox(width: 10),
-                    _Btn(label: '[ 확인 ]', color: kMint, onTap: _confirm),
+                    _Btn(label: '확인', color: kMint, onTap: _confirm),
                   ],
                 ],
               ),

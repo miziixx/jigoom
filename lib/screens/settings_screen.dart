@@ -1,10 +1,11 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_theme.dart';
+import '../flavor.dart';
+import '../models/entry_display_mode.dart';
 import '../services/backup_service.dart';
-import '../services/notification_service.dart';
 import '../services/storage_service.dart';
+import '../utils/logroom_entries.dart';
 
 // ──────────────────────────────────────────────────────────────────
 // Settings Screen (full page, replaces SettingsDialog)
@@ -24,9 +25,11 @@ class SettingsScreen extends StatefulWidget {
     double fontSize,
     double spacing,
     bool tabLocked,
-  ) onSave;
-  final VoidCallback onBackupSave;
-  final void Function(Map<String, dynamic> data, {bool merge}) onRestoreConfirmed;
+  )
+  onSave;
+  final Future<bool> Function() onBackupSave;
+  final void Function(Map<String, dynamic> data, {bool merge})
+  onRestoreConfirmed;
   final VoidCallback onClearCache;
 
   const SettingsScreen({
@@ -56,6 +59,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _fontFamily;
   late double _fontSize;
   late double _spacing;
+  late EntryDisplayMode _entryDisplayMode;
+  late EntryDisplayMode _initialEntryDisplayMode;
+  late AppThemeMode _themeMode;
+  late AppThemeMode _initialThemeMode;
   bool _saved = false;
   bool _restoring = false;
 
@@ -63,38 +70,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late List<(Color, Color)?> _palettes;
   bool _palettesLoaded = false;
 
-  // notification diagnostics
-  bool? _notifEnabled;
-  bool? _exactAlarm;
-  bool? _batteryExempt;
-
   @override
   void initState() {
     super.initState();
-    _bg         = widget.initialBg;
-    _text       = widget.initialText;
-    _tabLocked  = widget.initialTabLocked;
+    _bg = widget.initialBg;
+    _text = widget.initialText;
+    _tabLocked = widget.initialTabLocked;
     _fontFamily = widget.initialFontFamily;
-    _fontSize   = widget.initialFontSize;
-    _spacing    = widget.initialSpacing;
-    _bgCtrl     = TextEditingController(text: _toHex(_bg));
-    _textCtrl   = TextEditingController(text: _toHex(_text));
-    _palettes   = List.filled(StorageService.paletteSlotCount, null);
+    _fontSize = widget.initialFontSize;
+    _spacing = widget.initialSpacing;
+    _initialEntryDisplayMode = entryDisplayModeNotifier.value;
+    _entryDisplayMode = _initialEntryDisplayMode;
+    _initialThemeMode = appThemeModeNotifier.value;
+    _themeMode = _initialThemeMode;
+    _bgCtrl = TextEditingController(text: _toHex(_bg));
+    _textCtrl = TextEditingController(text: _toHex(_text));
+    _palettes = List.filled(StorageService.paletteSlotCount, null);
     _loadPalettes();
-    _loadNotifStatus();
-  }
-
-  Future<void> _loadNotifStatus() async {
-    if (kIsWeb) return;
-    final enabled = await NotificationService.areNotificationsEnabled();
-    final exact   = await NotificationService.canScheduleExact();
-    final battery = await NotificationService.isIgnoringBatteryOptimizations();
-    if (!mounted) return;
-    setState(() {
-      _notifEnabled  = enabled;
-      _exactAlarm    = exact;
-      _batteryExempt = battery;
-    });
   }
 
   Future<void> _loadPalettes() async {
@@ -116,6 +108,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         applyColors(widget.initialBg, widget.initialText);
         applyFont(widget.initialFontFamily, widget.initialFontSize);
         applySpacing(widget.initialSpacing);
+        applyEntryDisplayMode(_initialEntryDisplayMode);
+        applyAppThemeMode(_initialThemeMode);
       });
     }
     super.dispose();
@@ -125,10 +119,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   static String _toHex(Color c) {
     int ch(double v) => (v * 255.0).round().clamp(0, 255);
-    return [ch(c.r), ch(c.g), ch(c.b)]
-        .map((v) => v.toRadixString(16).padLeft(2, '0'))
-        .join()
-        .toUpperCase();
+    return [
+      ch(c.r),
+      ch(c.g),
+      ch(c.b),
+    ].map((v) => v.toRadixString(16).padLeft(2, '0')).join().toUpperCase();
   }
 
   static Color? _parseHex(String raw) {
@@ -145,8 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _g(Color c) => (c.g * 255).round().clamp(0, 255);
   int _b(Color c) => (c.b * 255).round().clamp(0, 255);
 
-  Color _fromRGB(int r, int g, int b) =>
-      Color.fromARGB(255, r, g, b);
+  Color _fromRGB(int r, int g, int b) => Color.fromARGB(255, r, g, b);
 
   void _setBg(Color c) {
     setState(() => _bg = c);
@@ -176,11 +170,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _snack(String msg) {
     ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      backgroundColor: kSurface,
-      duration: const Duration(seconds: 2),
-      content: Text(msg, style: mono(color: kMint, fontSize: 12)),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: kSurface,
+        duration: const Duration(seconds: 2),
+        content: Text(msg, style: mono(color: kMint, fontSize: 12)),
+      ),
+    );
   }
 
   Future<void> _savePaletteToCurrent() async {
@@ -191,13 +187,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     await StorageService.savePaletteSlot(emptyIdx, _bg, _text);
     setState(() => _palettes[emptyIdx] = (_bg, _text));
-    _snack('saved.');
+    _snack('저장했습니다.');
   }
 
   Future<void> _saveToSlot(int i) async {
     await StorageService.savePaletteSlot(i, _bg, _text);
     setState(() => _palettes[i] = (_bg, _text));
-    _snack('saved.');
+    _snack('저장했습니다.');
   }
 
   Future<void> _applySlot(int i) async {
@@ -205,49 +201,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (slot == null) return;
     final (bg, text) = slot;
     setState(() {
-      _bg   = bg;
+      _bg = bg;
       _text = text;
-      _bgCtrl.text   = _toHex(bg);
+      _bgCtrl.text = _toHex(bg);
       _textCtrl.text = _toHex(text);
     });
     applyColors(bg, text);
-    _snack('applied.');
+    _snack('적용했습니다.');
   }
 
   Future<void> _deleteSlot(int i) async {
     await StorageService.clearPaletteSlot(i);
     setState(() => _palettes[i] = null);
-    _snack('removed.');
+    _snack('삭제했습니다.');
   }
 
   // ── Actions ────────────────────────────────────────
 
   void _resetDefaults() {
-    final bg   = const Color(0xFFEDF2ED);
+    final bg = const Color(0xFFEDF2ED);
     final text = const Color(0xFF556B2F);
     setState(() {
-      _bg         = bg;
-      _text       = text;
-      _tabLocked  = false;
+      _bg = bg;
+      _text = text;
+      _tabLocked = false;
       _fontFamily = 'JetBrains Mono';
-      _fontSize   = 13.0;
-      _spacing    = 12.0;
-      _bgCtrl.text   = _toHex(_bg);
+      _fontSize = 13.0;
+      _spacing = 12.0;
+      _themeMode = AppThemeMode.normal;
+      _bgCtrl.text = _toHex(_bg);
       _textCtrl.text = _toHex(_text);
     });
     applyColors(bg, text);
     applyFont(_fontFamily, _fontSize);
     applySpacing(_spacing);
+    applyAppThemeMode(_themeMode);
   }
 
   void _save() {
     _saved = true;
+    StorageService.saveEntryDisplayMode(_entryDisplayMode);
+    StorageService.saveAppThemeMode(_themeMode);
     widget.onSave(_bg, _text, _fontFamily, _fontSize, _spacing, _tabLocked);
     Navigator.pop(context);
   }
 
   Future<void> _doBackup() async {
-    widget.onBackupSave();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => _ConfirmDialog(
+        title: '데이터 백업',
+        body: '백업하시겠습니까?\n백업 파일이 휴대폰에 저장됩니다.',
+        confirmLabel: '백업',
+        onCancel: () => Navigator.pop(ctx, false),
+        onConfirm: () => Navigator.pop(ctx, true),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final saved = await widget.onBackupSave();
+    if (!mounted) return;
+    _snack(saved ? '백업 완료. 선택한 저장 위치에 저장되었습니다.' : '백업이 취소되었습니다.');
   }
 
   Future<void> _doRestore() async {
@@ -286,23 +299,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('[ RESTORE ]', style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
+              Text(
+                '데이터 복원',
+                style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+              ),
               const SizedBox(height: 10),
               Container(height: 1, color: kBorder),
               const SizedBox(height: 12),
               Text('복원 방법을 선택하세요.', style: mono(color: kText, fontSize: 12)),
               const SizedBox(height: 6),
-              Text('• 덮어쓰기: 현재 데이터를 모두 백업으로 교체', style: mono(color: kDim, fontSize: 11, height: 1.6)),
-              Text('• 합치기: 현재 데이터에 백업 내용을 추가 (중복 제외)', style: mono(color: kDim, fontSize: 11, height: 1.6)),
+              Text(
+                '• 덮어쓰기: 현재 데이터를 모두 백업으로 교체',
+                style: mono(color: kDim, fontSize: 11, height: 1.6),
+              ),
+              Text(
+                '• 합치기: 현재 데이터에 백업 내용을 추가 (중복 제외)',
+                style: mono(color: kDim, fontSize: 11, height: 1.6),
+              ),
               const SizedBox(height: 18),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _Btn(label: '[ 취소 ]', color: kDim, onTap: () => Navigator.pop(ctx, null)),
+                  _Btn(
+                    label: '취소',
+                    color: kDim,
+                    onTap: () => Navigator.pop(ctx, null),
+                  ),
                   const SizedBox(width: 8),
-                  _Btn(label: '[ 합치기 ]', color: kText, onTap: () => Navigator.pop(ctx, 'merge')),
+                  _Btn(
+                    label: '합치기',
+                    color: kText,
+                    onTap: () => Navigator.pop(ctx, 'merge'),
+                  ),
                   const SizedBox(width: 8),
-                  _Btn(label: '[ 덮어쓰기 ]', color: kMint, onTap: () => Navigator.pop(ctx, 'overwrite')),
+                  _Btn(
+                    label: '덮어쓰기',
+                    color: kMint,
+                    onTap: () => Navigator.pop(ctx, 'overwrite'),
+                  ),
                 ],
               ),
             ],
@@ -320,28 +354,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) Navigator.pop(context);
   }
 
-  Future<bool?> _showRestoreConfirm() {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => _ConfirmDialog(
-        title: '[ RESTORE ]',
-        body: '기존 데이터가 덮어씌워집니다.\n계속할까요?',
-        onCancel: () => Navigator.pop(ctx, false),
-        onConfirm: () => Navigator.pop(ctx, true),
-      ),
-    );
-  }
-
   Future<bool?> _showClearCacheConfirm() {
     return showDialog<bool>(
       context: context,
       builder: (ctx) => _ConfirmDialog(
-        title: '[ CLEAR CACHE ]',
+        title: '캐시 삭제',
         body: '모든 앱 데이터가 삭제됩니다.\n백업 후 진행하세요.',
         onCancel: () => Navigator.pop(ctx, false),
         onConfirm: () => Navigator.pop(ctx, true),
         confirmColor: Colors.red.shade400,
-        confirmLabel: '[ CLEAR ]',
+        confirmLabel: '삭제',
       ),
     );
   }
@@ -366,25 +388,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ── SAVED PALETTES ───────────────────────
-                      _SectionHeader(label: 'SAVED PALETTES'),
+                      _SectionHeader(label: '저장한 색상'),
                       const SizedBox(height: 14),
                       _PaletteGrid(
                         palettes: _palettes,
                         loaded: _palettesLoaded,
-                        onTapFilled:  _applySlot,
-                        onLongPress:  _deleteSlot,
-                        onTapEmpty:   _saveToSlot,
+                        onTapFilled: _applySlot,
+                        onLongPress: _deleteSlot,
+                        onTapEmpty: _saveToSlot,
                       ),
                       const SizedBox(height: 12),
                       _SavePaletteBtn(onTap: _savePaletteToCurrent),
                       const SizedBox(height: 22),
 
                       // ── APPEARANCE ───────────────────────────
-                      _SectionHeader(label: 'APPEARANCE'),
+                      _SectionHeader(label: '화면'),
                       const SizedBox(height: 14),
 
                       _RgbColorSection(
-                        label: 'bg_color',
+                        label: '배경색',
                         color: _bg,
                         hexCtrl: _bgCtrl,
                         onColorChanged: _setBg,
@@ -395,15 +417,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         rVal: _r(_bg),
                         gVal: _g(_bg),
                         bVal: _b(_bg),
-                        onRChanged: (v) => _setBg(_fromRGB(v, _g(_bg), _b(_bg))),
-                        onGChanged: (v) => _setBg(_fromRGB(_r(_bg), v, _b(_bg))),
-                        onBChanged: (v) => _setBg(_fromRGB(_r(_bg), _g(_bg), v)),
+                        onRChanged: (v) =>
+                            _setBg(_fromRGB(v, _g(_bg), _b(_bg))),
+                        onGChanged: (v) =>
+                            _setBg(_fromRGB(_r(_bg), v, _b(_bg))),
+                        onBChanged: (v) =>
+                            _setBg(_fromRGB(_r(_bg), _g(_bg), v)),
                       ),
 
                       const SizedBox(height: 20),
 
                       _RgbColorSection(
-                        label: 'text_color',
+                        label: '글자색',
                         color: _text,
                         hexCtrl: _textCtrl,
                         onColorChanged: _setText,
@@ -414,22 +439,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         rVal: _r(_text),
                         gVal: _g(_text),
                         bVal: _b(_text),
-                        onRChanged: (v) => _setText(_fromRGB(v, _g(_text), _b(_text))),
-                        onGChanged: (v) => _setText(_fromRGB(_r(_text), v, _b(_text))),
-                        onBChanged: (v) => _setText(_fromRGB(_r(_text), _g(_text), v)),
+                        onRChanged: (v) =>
+                            _setText(_fromRGB(v, _g(_text), _b(_text))),
+                        onGChanged: (v) =>
+                            _setText(_fromRGB(_r(_text), v, _b(_text))),
+                        onBChanged: (v) =>
+                            _setText(_fromRGB(_r(_text), _g(_text), v)),
                       ),
 
                       const SizedBox(height: 20),
 
-                      // font_family
                       Text(
-                        'font_family',
-                        style: mono(color: kDim, fontSize: 11, letterSpacing: 0.5),
+                        '글꼴',
+                        style: mono(
+                          color: kDim,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: kBorder.withValues(alpha: 0.7)),
+                          border: Border.all(
+                            color: kBorder.withValues(alpha: 0.7),
+                          ),
                         ),
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxHeight: 168),
@@ -437,14 +470,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             shrinkWrap: true,
                             padding: EdgeInsets.zero,
                             children: kFontOptions
-                                .map((f) => _FontOption(
-                                      fontName: f,
-                                      isSelected: _fontFamily == f,
-                                      onTap: () {
-                                        setState(() => _fontFamily = f);
-                                        applyFont(_fontFamily, _fontSize);
-                                      },
-                                    ))
+                                .map(
+                                  (f) => _FontOption(
+                                    fontName: f,
+                                    isSelected: _fontFamily == f,
+                                    onTap: () {
+                                      setState(() => _fontFamily = f);
+                                      applyFont(_fontFamily, _fontSize);
+                                    },
+                                  ),
+                                )
                                 .toList(),
                           ),
                         ),
@@ -452,48 +487,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                       const SizedBox(height: 14),
 
-                      // font_size
-                      Row(
-                        children: [
-                          Text(
-                            'font_size',
-                            style: mono(color: kDim, fontSize: 11, letterSpacing: 0.5),
-                          ),
-                          const Spacer(),
-                          _StepBtn(
-                            label: '-',
-                            enabled: _fontSize > 6,
-                            onTap: () {
-                              setState(() => _fontSize = (_fontSize - 1).clamp(6, 20));
-                              applyFont(_fontFamily, _fontSize);
-                            },
-                          ),
-                          const SizedBox(width: 10),
-                          SizedBox(
-                            width: 44,
-                            child: Text(
-                              '${_fontSize.toInt()} px',
-                              style: mono(color: kText, fontSize: 12),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          _StepBtn(
-                            label: '+',
-                            enabled: _fontSize < 20,
-                            onTap: () {
-                              setState(() => _fontSize = (_fontSize + 1).clamp(6, 20));
-                              applyFont(_fontFamily, _fontSize);
-                            },
-                          ),
-                        ],
+                      _FontSizeSlider(
+                        value: _fontSize,
+                        min: 10,
+                        max: 20,
+                        onChanged: (v) {
+                          setState(() => _fontSize = v);
+                          applyFont(_fontFamily, _fontSize);
+                        },
                       ),
 
                       const SizedBox(height: 22),
 
                       Text(
-                        'spacing',
-                        style: mono(color: kDim, fontSize: 11, letterSpacing: 0.5),
+                        '간격',
+                        style: mono(
+                          color: kDim,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       _SpacingSelector(
@@ -507,86 +519,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 22),
 
                       // ── GENERAL ──────────────────────────────
-                      _SectionHeader(label: 'GENERAL'),
+                      _SectionHeader(label: '기본 설정'),
                       const SizedBox(height: 14),
 
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'tab_lock',
-                            style: mono(color: kDim, fontSize: 11, letterSpacing: 0.5),
-                          ),
-                          _ToggleSwitch(
-                            value: _tabLocked,
-                            onChanged: (v) => setState(() => _tabLocked = v),
-                          ),
-                        ],
+                      Text(
+                        '기록 표시 방식',
+                        style: mono(
+                          color: kDim,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _EntryDisplayModeSelector(
+                        value: _entryDisplayMode,
+                        onChanged: (mode) {
+                          setState(() => _entryDisplayMode = mode);
+                          applyEntryDisplayMode(mode);
+                        },
                       ),
 
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 16),
+                      Text(
+                        '화면 모드',
+                        style: mono(
+                          color: kDim,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _ThemeModeSelector(
+                        value: _themeMode,
+                        onChanged: (mode) {
+                          setState(() => _themeMode = mode);
+                          if (mode == AppThemeMode.normal) {
+                            applyColors(_bg, _text);
+                            applyFont(_fontFamily, _fontSize);
+                          }
+                          applyAppThemeMode(mode);
+                        },
+                      ),
 
-                      // ── NOTIFICATIONS ────────────────────────
-                      _SectionHeader(label: 'NOTIFICATIONS'),
-                      const SizedBox(height: 14),
-                      _NotifStatusRow(
-                        label: '알림 권한',
-                        status: _notifEnabled,
-                        onFix: () async {
-                          await NotificationService.requestPermissions();
-                          await NotificationService.openNotificationSettings();
-                          await _loadNotifStatus();
-                        },
-                      ),
-                      const SizedBox(height: 6),
-                      _NotifStatusRow(
-                        label: '정확한 알람',
-                        status: _exactAlarm,
-                        onFix: () async {
-                          await NotificationService.ensureExactAlarmPermission();
-                          await _loadNotifStatus();
-                        },
-                      ),
-                      const SizedBox(height: 6),
-                      _NotifStatusRow(
-                        label: '배터리 최적화 제외',
-                        status: _batteryExempt,
-                        onFix: () async {
-                          await NotificationService.requestBatteryOptimizationExemption();
-                          await _loadNotifStatus();
-                        },
-                      ),
                       const SizedBox(height: 22),
 
                       // ── BACKUP ───────────────────────────────
-                      _SectionHeader(label: 'BACKUP'),
+                      _SectionHeader(label: '데이터 백업'),
                       const SizedBox(height: 14),
 
                       Wrap(
                         spacing: 10,
                         runSpacing: 8,
                         children: [
+                          _Btn(label: '데이터 백업', color: kDim, onTap: _doBackup),
                           _Btn(
-                            label: '[ BACKUP ]',
-                            color: kDim,
-                            onTap: _doBackup,
-                          ),
-                          _Btn(
-                            label: _restoring ? '...' : '[ RESTORE ]',
-                            color: _restoring ? kDim.withValues(alpha: 0.4) : kDim,
+                            label: _restoring ? '...' : '복원',
+                            color: _restoring
+                                ? kDim.withValues(alpha: 0.4)
+                                : kDim,
                             onTap: _doRestore,
                           ),
+                          _Btn(label: '가져오기', color: kDim, onTap: _doRestore),
                           _Btn(
-                            label: '[ IMPORT ]',
-                            color: kDim,
-                            onTap: _doRestore,
-                          ),
-                          _Btn(
-                            label: '[ CLEAR CACHE ]',
+                            label: '캐시 삭제',
                             color: Colors.red.shade400,
                             onTap: _doClearCache,
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 12),
+                      Text(
+                        '앱 삭제 전 반드시 데이터를 백업하세요.\n삭제 후 데이터는 복구되지 않을 수 있습니다.',
+                        style: mono(
+                          color: kDim.withValues(alpha: 0.72),
+                          fontSize: 10,
+                          height: 1.55,
+                        ),
                       ),
 
                       const SizedBox(height: 28),
@@ -598,16 +607,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           _Btn(
-                            label: '[ RESET ]',
+                            label: '초기화',
                             color: kDim,
                             onTap: _resetDefaults,
                           ),
                           const SizedBox(width: 10),
-                          _Btn(
-                            label: '[ SAVE ]',
-                            color: kMint,
-                            onTap: _save,
-                          ),
+                          _Btn(label: '저장', color: kMint, onTap: _save),
                         ],
                       ),
 
@@ -634,7 +639,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '[ SETTINGS ]',
+              '설정',
               style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
               textAlign: TextAlign.center,
             ),
@@ -646,12 +651,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _dotLine() => Text(
-        '. ' * 100,
-        style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
-        overflow: TextOverflow.clip,
-        maxLines: 1,
-        softWrap: false,
-      );
+    '. ' * 100,
+    style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
+    overflow: TextOverflow.clip,
+    maxLines: 1,
+    softWrap: false,
+  );
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -669,7 +674,12 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           label,
-          style: mono(color: kText, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+          style: mono(
+            color: kText,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -719,11 +729,26 @@ class _RgbColorSection extends StatelessWidget {
         Text(label, style: mono(color: kDim, fontSize: 11, letterSpacing: 0.5)),
         const SizedBox(height: 10),
 
-        _RgbSliderRow(channel: 'R', value: rVal, trackColor: kText, onChanged: onRChanged),
+        _RgbSliderRow(
+          channel: 'R',
+          value: rVal,
+          trackColor: kText,
+          onChanged: onRChanged,
+        ),
         const SizedBox(height: 6),
-        _RgbSliderRow(channel: 'G', value: gVal, trackColor: kText, onChanged: onGChanged),
+        _RgbSliderRow(
+          channel: 'G',
+          value: gVal,
+          trackColor: kText,
+          onChanged: onGChanged,
+        ),
         const SizedBox(height: 6),
-        _RgbSliderRow(channel: 'B', value: bVal, trackColor: kText, onChanged: onBChanged),
+        _RgbSliderRow(
+          channel: 'B',
+          value: bVal,
+          trackColor: kText,
+          onChanged: onBChanged,
+        ),
 
         const SizedBox(height: 10),
 
@@ -752,8 +777,10 @@ class _RgbColorSection extends StatelessWidget {
                 decoration: InputDecoration(
                   counterText: '',
                   isDense: true,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
                   filled: true,
                   fillColor: kBorder.withValues(alpha: 0.25),
                   hintText: 'RRGGBB',
@@ -852,22 +879,36 @@ class _BorderedThumb extends SliderComponentShape {
   Size getPreferredSize(bool isEnabled, bool isDiscrete) => const Size(14, 14);
 
   @override
-  void paint(PaintingContext context, Offset center,
-      {required Animation<double> activationAnimation,
-      required Animation<double> enableAnimation,
-      required bool isDiscrete,
-      required TextPainter labelPainter,
-      required RenderBox parentBox,
-      required SliderThemeData sliderTheme,
-      required TextDirection textDirection,
-      required double value,
-      required double textScaleFactor,
-      required Size sizeWithOverflow}) {
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
     final canvas = context.canvas;
-    canvas.drawCircle(center, 7,
-        Paint()..color = thumbColor..style = PaintingStyle.fill);
-    canvas.drawCircle(center, 7,
-        Paint()..color = borderColor..style = PaintingStyle.stroke..strokeWidth = 1.5);
+    canvas.drawCircle(
+      center,
+      7,
+      Paint()
+        ..color = thumbColor
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      center,
+      7,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
   }
 }
 
@@ -937,6 +978,61 @@ class _FontOptionState extends State<_FontOption> {
   }
 }
 
+class _FontSizeSlider extends StatelessWidget {
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+
+  const _FontSizeSlider({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              '글자 크기',
+              style: mono(color: kDim, fontSize: 11, letterSpacing: 0.5),
+            ),
+            const Spacer(),
+            Text(
+              value.toInt().toString(),
+              style: mono(color: kText, fontSize: 12),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 2,
+            activeTrackColor: kText,
+            inactiveTrackColor: kBorder.withValues(alpha: 0.4),
+            thumbColor: kBg,
+            overlayColor: kText.withValues(alpha: 0.12),
+            thumbShape: _BorderedThumb(thumbColor: kBg, borderColor: kText),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+          ),
+          child: Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            divisions: (max - min).round(),
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────
 // Toggle switch
 // ──────────────────────────────────────────────────────────────────
@@ -948,6 +1044,109 @@ class _ToggleSwitch extends StatefulWidget {
 
   @override
   State<_ToggleSwitch> createState() => _ToggleSwitchState();
+}
+
+class _EntryDisplayModeSelector extends StatelessWidget {
+  final EntryDisplayMode value;
+  final ValueChanged<EntryDisplayMode> onChanged;
+
+  const _EntryDisplayModeSelector({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: appSpace(6),
+      runSpacing: appSpace(6),
+      children: EntryDisplayMode.values
+          .map(
+            (mode) => _ModeOption(
+              label: mode.settingsLabel,
+              active: value == mode,
+              onTap: () => onChanged(mode),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class _ModeOption extends StatefulWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _ModeOption({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  State<_ModeOption> createState() => _ModeOptionState();
+}
+
+class _ModeOptionState extends State<_ModeOption> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          padding: appInsetsSymmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: widget.active
+                ? kMint.withValues(alpha: 0.12)
+                : (_hovered
+                      ? kBorder.withValues(alpha: 0.15)
+                      : Colors.transparent),
+            border: widget.active
+                ? Border.all(color: kMint.withValues(alpha: 0.4))
+                : Border.all(color: kBorder.withValues(alpha: 0.5)),
+          ),
+          child: Text(
+            widget.label,
+            style: mono(color: widget.active ? kMint : kDim, fontSize: 11),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeModeSelector extends StatelessWidget {
+  final AppThemeMode value;
+  final ValueChanged<AppThemeMode> onChanged;
+
+  const _ThemeModeSelector({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final modes = AppThemeMode.values
+        .where((mode) => mode != AppThemeMode.minimal || isLogroomUi)
+        .toList();
+    return Wrap(
+      spacing: appSpace(6),
+      runSpacing: appSpace(6),
+      children: modes
+          .map(
+            (mode) => _ModeOption(
+              label: mode.label,
+              active: value == mode,
+              onTap: () => onChanged(mode),
+            ),
+          )
+          .toList(),
+    );
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -1010,13 +1209,15 @@ class _SpacingOptionState extends State<_SpacingOption> {
           decoration: BoxDecoration(
             color: widget.active
                 ? kMint.withValues(alpha: 0.12)
-                : (_hovered ? kBorder.withValues(alpha: 0.15) : Colors.transparent),
+                : (_hovered
+                      ? kBorder.withValues(alpha: 0.15)
+                      : Colors.transparent),
             border: widget.active
                 ? Border.all(color: kMint.withValues(alpha: 0.4))
                 : Border.all(color: kBorder.withValues(alpha: 0.5)),
           ),
           child: Text(
-            '[ ${widget.label} ]',
+            widget.label,
             style: mono(color: widget.active ? kMint : kDim, fontSize: 11),
           ),
         ),
@@ -1052,7 +1253,11 @@ class _SwitchOption extends StatefulWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const _SwitchOption({required this.label, required this.active, required this.onTap});
+  const _SwitchOption({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   State<_SwitchOption> createState() => _SwitchOptionState();
@@ -1075,7 +1280,9 @@ class _SwitchOptionState extends State<_SwitchOption> {
           decoration: BoxDecoration(
             color: widget.active
                 ? kMint.withValues(alpha: 0.12)
-                : (_hovered ? kBorder.withValues(alpha: 0.15) : Colors.transparent),
+                : (_hovered
+                      ? kBorder.withValues(alpha: 0.15)
+                      : Colors.transparent),
             border: widget.active
                 ? Border.all(color: kMint.withValues(alpha: 0.4))
                 : Border.all(color: kBorder.withValues(alpha: 0.5)),
@@ -1098,7 +1305,11 @@ class _StepBtn extends StatefulWidget {
   final String label;
   final bool enabled;
   final VoidCallback onTap;
-  const _StepBtn({required this.label, required this.enabled, required this.onTap});
+  const _StepBtn({
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
 
   @override
   State<_StepBtn> createState() => _StepBtnState();
@@ -1168,7 +1379,10 @@ class _BtnState extends State<_Btn> {
                 ? widget.color.withValues(alpha: 0.1)
                 : Colors.transparent,
           ),
-          child: Text(widget.label, style: mono(color: widget.color, fontSize: 12)),
+          child: Text(
+            widget.label,
+            style: mono(color: widget.color, fontSize: 12),
+          ),
         ),
       ),
     );
@@ -1202,10 +1416,12 @@ class _BackBtnState extends State<_BackBtn> {
           duration: const Duration(milliseconds: 100),
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
           decoration: BoxDecoration(
-            color: _hovered ? kMint.withValues(alpha: 0.08) : Colors.transparent,
+            color: _hovered
+                ? kMint.withValues(alpha: 0.08)
+                : Colors.transparent,
           ),
           child: Text(
-            '[←]',
+            '←',
             style: mono(color: _hovered ? kMint : kDim, fontSize: 12),
           ),
         ),
@@ -1239,7 +1455,9 @@ class _PaletteGrid extends StatelessWidget {
       children: List.generate(StorageService.paletteSlotCount, (i) {
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(right: i < StorageService.paletteSlotCount - 1 ? 6 : 0),
+            padding: EdgeInsets.only(
+              right: i < StorageService.paletteSlotCount - 1 ? 6 : 0,
+            ),
             child: _PaletteSlotCard(
               slot: loaded ? palettes[i] : null,
               onTap: () {
@@ -1289,12 +1507,17 @@ class _PaletteSlotCardState extends State<_PaletteSlotCard> {
           duration: const Duration(milliseconds: 80),
           height: cardH,
           decoration: BoxDecoration(
-            color: _pressed ? kBorder.withValues(alpha: 0.15) : Colors.transparent,
+            color: _pressed
+                ? kBorder.withValues(alpha: 0.15)
+                : Colors.transparent,
           ),
           child: CustomPaint(
             painter: _DashBorderPainter(color: kBorder.withValues(alpha: 0.6)),
             child: Center(
-              child: Text('+', style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 16)),
+              child: Text(
+                '+',
+                style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 16),
+              ),
             ),
           ),
         ),
@@ -1313,16 +1536,16 @@ class _PaletteSlotCardState extends State<_PaletteSlotCard> {
         height: cardH,
         decoration: BoxDecoration(
           border: Border.all(
-            color: _pressed ? kMint.withValues(alpha: 0.6) : kBorder.withValues(alpha: 0.4),
+            color: _pressed
+                ? kMint.withValues(alpha: 0.6)
+                : kBorder.withValues(alpha: 0.4),
             width: _pressed ? 1.5 : 1,
           ),
         ),
         child: Column(
           children: [
             // Top half — bg color
-            Expanded(
-              child: Container(color: bg),
-            ),
+            Expanded(child: Container(color: bg)),
             // Bottom half — bg color + "Aa" in text color
             Expanded(
               child: Container(
@@ -1330,7 +1553,11 @@ class _PaletteSlotCardState extends State<_PaletteSlotCard> {
                 alignment: Alignment.center,
                 child: Text(
                   'Aa',
-                  style: mono(color: textColor, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: mono(
+                    color: textColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -1353,7 +1580,7 @@ class _DashBorderPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     const dash = 4.0;
-    const gap  = 4.0;
+    const gap = 4.0;
 
     void drawDashed(Offset start, Offset end) {
       final dx = end.dx - start.dx;
@@ -1411,7 +1638,7 @@ class _SavePaletteBtnState extends State<_SavePaletteBtn> {
           padding: const EdgeInsets.symmetric(vertical: 9),
           color: _hovered ? kMint.withValues(alpha: 0.08) : Colors.transparent,
           child: Text(
-            '[ + 현재 색조합 저장 ]',
+            '+ 현재 색조합 저장',
             style: mono(color: _hovered ? kMint : kDim, fontSize: 12),
             textAlign: TextAlign.center,
           ),
@@ -1454,21 +1681,28 @@ class _ConfirmDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: mono(color: kMint, fontSize: 13, letterSpacing: 1)),
+            Text(
+              title,
+              style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+            ),
             const SizedBox(height: 10),
-            Text('. ' * 100,
-                style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
-                overflow: TextOverflow.clip, maxLines: 1, softWrap: false),
+            Text(
+              '. ' * 100,
+              style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
+              overflow: TextOverflow.clip,
+              maxLines: 1,
+              softWrap: false,
+            ),
             const SizedBox(height: 14),
             Text(body, style: mono(color: kDim, fontSize: 12, height: 1.7)),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _Btn(label: '[ CANCEL ]', color: kDim, onTap: onCancel),
+                _Btn(label: '취소', color: kDim, onTap: onCancel),
                 const SizedBox(width: 10),
                 _Btn(
-                  label: confirmLabel ?? '[ OK ]',
+                  label: confirmLabel ?? '확인',
                   color: confirmColor ?? kMint,
                   onTap: onConfirm,
                 ),
@@ -1477,41 +1711,6 @@ class _ConfirmDialog extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _NotifStatusRow extends StatelessWidget {
-  final String label;
-  final bool? status;
-  final VoidCallback onFix;
-
-  const _NotifStatusRow({
-    required this.label,
-    required this.status,
-    required this.onFix,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final ok = status == true;
-    final loading = status == null;
-    final statusText = loading ? '...' : (ok ? 'OK' : 'X');
-    final statusColor = loading ? kDim : (ok ? kMint : Colors.red.shade400);
-
-    return Row(
-      children: [
-        Text('  $label', style: mono(color: kDim, fontSize: 11)),
-        const SizedBox(width: 8),
-        Text(statusText, style: mono(color: statusColor, fontSize: 11)),
-        if (!ok && !loading) ...[
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: onFix,
-            child: Text('[ 수정 ]', style: mono(color: kMint, fontSize: 10)),
-          ),
-        ],
-      ],
     );
   }
 }

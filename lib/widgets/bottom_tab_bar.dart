@@ -4,6 +4,249 @@ import '../models/folder.dart';
 import '../models/quick_tab.dart';
 import '../app_theme.dart';
 
+const nemo2TestMenuOptions = <String>[
+  'TODAY',
+  'LIST',
+  'CAL',
+  'EVENTS',
+  'TASKS',
+  'HABITS',
+  'GOALS',
+  'STATS',
+  'SETTINGS',
+  'TAGS',
+];
+
+// ──────────────────────────────────────────────────────────────
+// Logroom bottom nav  (TODAY | ENTRIES | CAL | MORE)
+// ──────────────────────────────────────────────────────────────
+
+class LogroomBottomNav extends StatelessWidget {
+  final bool todaySelected;
+  final bool entriesSelected;
+  final bool calendarSelected;
+  final VoidCallback onTodayTap;
+  final VoidCallback onEntriesTap;
+  final VoidCallback onCalendarTap;
+  final VoidCallback onMoreTap;
+
+  const LogroomBottomNav({
+    super.key,
+    required this.todaySelected,
+    required this.entriesSelected,
+    required this.calendarSelected,
+    required this.onTodayTap,
+    required this.onEntriesTap,
+    required this.onCalendarTap,
+    required this.onMoreTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: kSurface,
+          border: Border(top: BorderSide(color: kBorder, width: 1)),
+        ),
+        child: Row(
+          children: [
+            _LrNavItem(
+              label: 'TODAY',
+              symbol: '●',
+              selected: todaySelected,
+              onTap: onTodayTap,
+            ),
+            Container(width: 1, color: kBorder),
+            _LrNavItem(
+              label: 'ENTRIES',
+              symbol: '≡',
+              selected: entriesSelected,
+              onTap: onEntriesTap,
+            ),
+            Container(width: 1, color: kBorder),
+            _LrNavItem(
+              label: 'CAL',
+              symbol: '△',
+              selected: calendarSelected,
+              onTap: onCalendarTap,
+            ),
+            Container(width: 1, color: kBorder),
+            _LrNavItem(
+              label: 'MORE',
+              symbol: '≡',
+              selected: false,
+              onTap: onMoreTap,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class Nemo2TestBottomNav extends StatelessWidget {
+  final List<String> menus;
+  final String activeMenu;
+  final void Function(String menu) onTap;
+  final void Function(int index) onReplace;
+
+  const Nemo2TestBottomNav({
+    super.key,
+    required this.menus,
+    required this.activeMenu,
+    required this.onTap,
+    required this.onReplace,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final safeMenus = [
+      ...menus.take(4),
+      ...const ['TODAY', 'LIST', 'CAL', 'MORE'],
+    ].take(4).toList();
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: kSurface,
+          border: Border(top: BorderSide(color: kBorder, width: 1)),
+        ),
+        child: Row(
+          children: List.generate(safeMenus.length, (i) {
+            final menu = safeMenus[i];
+            return Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _N2TestNavItem(
+                      label: menu,
+                      selected: activeMenu == menu,
+                      onTap: () => onTap(menu),
+                      onLongPress: () => onReplace(i),
+                    ),
+                  ),
+                  if (i != safeMenus.length - 1)
+                    Container(width: 1, color: kBorder),
+                ],
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+class _N2TestNavItem extends StatefulWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _N2TestNavItem({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  State<_N2TestNavItem> createState() => _N2TestNavItemState();
+}
+
+class _N2TestNavItemState extends State<_N2TestNavItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = widget.selected ? kMint : (_hovered ? kText : kDim);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        child: Container(
+          color: widget.selected
+              ? kMint.withValues(alpha: 0.06)
+              : Colors.transparent,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            widget.label,
+            style: mono(
+              color: fg,
+              fontSize: 10,
+              fontWeight: widget.selected ? FontWeight.bold : FontWeight.w400,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LrNavItem extends StatefulWidget {
+  final String label;
+  final String symbol;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LrNavItem({
+    required this.label,
+    required this.symbol,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  State<_LrNavItem> createState() => _LrNavItemState();
+}
+
+class _LrNavItemState extends State<_LrNavItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = widget.selected ? kMint : (_hovered ? kText : kDim);
+    return Expanded(
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: Container(
+            color: widget.selected
+                ? kMint.withValues(alpha: 0.06)
+                : Colors.transparent,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(widget.symbol, style: mono(color: fg, fontSize: 10)),
+                const SizedBox(height: 1),
+                Text(
+                  widget.label,
+                  style: mono(color: fg, fontSize: 7, letterSpacing: 0.6),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ──────────────────────────────────────────────────────────────
 // Bottom tab bar
 // ──────────────────────────────────────────────────────────────
@@ -46,48 +289,52 @@ class BottomTabBar extends StatelessWidget {
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
       child: SizedBox(
-      height: 28,
-      child: Row(
-        children: [
-          // Left fluid area: tabs flex-fill equally
-          Expanded(
-            child: Row(
-              children: List.generate(slotCount, (i) {
-                if (i < tabs.length) {
-                  final tab = tabs[i];
+        height: 28,
+        child: Row(
+          children: [
+            // Left fluid area: tabs flex-fill equally
+            Expanded(
+              child: Row(
+                children: List.generate(slotCount, (i) {
+                  if (i < tabs.length) {
+                    final tab = tabs[i];
+                    return Expanded(
+                      child: _TabChip(
+                        tab: tab,
+                        isSelected: tab.id == selectedTabId,
+                        onTap: () => onSelect(tab),
+                        onLongPress: locked ? null : () => onLongPress(tab),
+                        onDelete: locked ? null : () => onLongPress(tab),
+                      ),
+                    );
+                  }
                   return Expanded(
-                    child: _TabChip(
-                      tab: tab,
-                      isSelected: tab.id == selectedTabId,
-                      onTap: () => onSelect(tab),
-                      onLongPress: locked ? null : () => onLongPress(tab),
-                      onDelete: locked ? null : () => onLongPress(tab),
-                    ),
+                    child: locked || !canAdd
+                        ? Center(
+                            child: Text(
+                              '탭추가',
+                              style: mono(
+                                color: kDim.withValues(alpha: 0.25),
+                                fontSize: 10,
+                              ),
+                            ),
+                          )
+                        : _AddPlaceholder(onTap: onAddTap),
                   );
-                }
-                return Expanded(
-                  child: locked || !canAdd
-                      ? Center(
-                          child: Text(
-                            '탭추가',
-                            style: mono(color: kDim.withValues(alpha: 0.25), fontSize: 10),
-                          ),
-                        )
-                      : _AddPlaceholder(onTap: onAddTap),
-                );
-              }),
+                }),
+              ),
             ),
-          ),
-          // Right fixed area: TODAY, CAL, STATS
-          Container(width: 0.5, color: kBorder),
-          _TodayBtn(isSelected: todaySelected, onTap: onTodayTap),
-          Container(width: 0.5, color: kBorder),
-          _CalBtn(isSelected: calendarSelected, onTap: onCalendarTap),
-          Container(width: 0.5, color: kBorder),
-          _StatsBtn(isSelected: statsSelected, onTap: onStatsTap),
-        ],
+            // Right fixed area: TODAY, CAL, STATS
+            Container(width: 0.5, color: kBorder),
+            _TodayBtn(isSelected: todaySelected, onTap: onTodayTap),
+            Container(width: 0.5, color: kBorder),
+            _CalBtn(isSelected: calendarSelected, onTap: onCalendarTap),
+            Container(width: 0.5, color: kBorder),
+            _StatsBtn(isSelected: statsSelected, onTap: onStatsTap),
+          ],
+        ),
       ),
-    ));
+    );
   }
 }
 
@@ -119,11 +366,8 @@ class _TabChipState extends State<_TabChip> {
 
   @override
   Widget build(BuildContext context) {
-    final label =
-        widget.tab.isTag ? '#${widget.tab.label}' : widget.tab.label;
-    final fg = widget.isSelected
-        ? kMint
-        : (_hovered ? kText : kDim);
+    final label = widget.tab.isTag ? '#${widget.tab.label}' : widget.tab.label;
+    final fg = widget.isSelected ? kMint : (_hovered ? kText : kDim);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -143,7 +387,7 @@ class _TabChipState extends State<_TabChip> {
                   behavior: HitTestBehavior.opaque,
                   onTap: widget.onDelete,
                   child: Text(
-                    '[삭제]',
+                    '삭제',
                     style: mono(color: Colors.red.shade300, fontSize: 9),
                   ),
                 ),
@@ -230,7 +474,7 @@ class _AddBtnState extends State<_AddBtn> {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
           alignment: Alignment.center,
           child: Text(
-            '[+]',
+            '+',
             style: mono(color: _hovered ? kMint : kDim, fontSize: 10),
           ),
         ),
@@ -268,7 +512,7 @@ class _TodayBtnState extends State<_TodayBtn> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
-          child: Text('[TODAY]', style: mono(color: fg, fontSize: 10)),
+          child: Text('TODAY', style: mono(color: fg, fontSize: 10)),
         ),
       ),
     );
@@ -294,9 +538,7 @@ class _CalBtnState extends State<_CalBtn> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isSelected
-        ? kMint
-        : (_hovered ? kText : kDim);
+    final fg = widget.isSelected ? kMint : (_hovered ? kText : kDim);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -307,10 +549,7 @@ class _CalBtnState extends State<_CalBtn> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
-          child: Text(
-            '[CAL]',
-            style: mono(color: fg, fontSize: 10),
-          ),
+          child: Text('CAL', style: mono(color: fg, fontSize: 10)),
         ),
       ),
     );
@@ -336,9 +575,7 @@ class _StatsBtnState extends State<_StatsBtn> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isSelected
-        ? kMint
-        : (_hovered ? kText : kDim);
+    final fg = widget.isSelected ? kMint : (_hovered ? kText : kDim);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -349,10 +586,7 @@ class _StatsBtnState extends State<_StatsBtn> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
-          child: Text(
-            '[STATS]',
-            style: mono(color: fg, fontSize: 10),
-          ),
+          child: Text('STATS', style: mono(color: fg, fontSize: 10)),
         ),
       ),
     );
@@ -418,13 +652,12 @@ class _TabEditDialogState extends State<TabEditDialog> {
   }
 
   QuickTab _buildTab() => QuickTab(
-        id: widget.tab?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
-        label: _labelCtrl.text.trim(),
-        isTag: false,
-        folderId: _inboxSelected ? null : _folderId,
-        tag: null,
-      );
+    id: widget.tab?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+    label: _labelCtrl.text.trim(),
+    isTag: false,
+    folderId: _inboxSelected ? null : _folderId,
+    tag: null,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -445,7 +678,7 @@ class _TabEditDialogState extends State<TabEditDialog> {
           children: [
             // ── Header ──────────────────────────────
             Text(
-              isAdd ? '[ADD TAB]' : '[EDIT TAB]',
+              isAdd ? 'ADD TAB' : 'EDIT TAB',
               style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
             ),
             const SizedBox(height: 10),
@@ -453,9 +686,10 @@ class _TabEditDialogState extends State<TabEditDialog> {
             const SizedBox(height: 14),
 
             // ── Label ────────────────────────────────
-            Text('label',
-                style: mono(
-                    color: kDim, fontSize: 10, letterSpacing: 0.5)),
+            Text(
+              'label',
+              style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5),
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: _labelCtrl,
@@ -467,8 +701,10 @@ class _TabEditDialogState extends State<TabEditDialog> {
               decoration: InputDecoration(
                 counterText: '',
                 isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 8,
+                ),
                 filled: true,
                 fillColor: kBg,
                 hintText: 'tab name...',
@@ -490,17 +726,17 @@ class _TabEditDialogState extends State<TabEditDialog> {
             const SizedBox(height: 16),
 
             // ── Folder target ─────────────────────────
-            Text('folder',
-                style: mono(
-                    color: kDim, fontSize: 10, letterSpacing: 0.5)),
+            Text(
+              'folder',
+              style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5),
+            ),
             const SizedBox(height: 6),
             Flexible(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 180),
                 child: Container(
                   decoration: BoxDecoration(
-                    border: Border.all(
-                        color: kBorder.withValues(alpha: 0.7)),
+                    border: Border.all(color: kBorder.withValues(alpha: 0.7)),
                   ),
                   child: _buildFolderList(),
                 ),
@@ -558,14 +794,16 @@ class _TabEditDialogState extends State<TabEditDialog> {
           _folderId = null;
         }),
       ),
-      ...widget.folders.map((f) => _TargetItem(
-            label: f.name,
-            isSelected: !_inboxSelected && _folderId == f.id,
-            onTap: () => setState(() {
-              _inboxSelected = false;
-              _folderId = f.id;
-            }),
-          )),
+      ...widget.folders.map(
+        (f) => _TargetItem(
+          label: f.name,
+          isSelected: !_inboxSelected && _folderId == f.id,
+          onTap: () => setState(() {
+            _inboxSelected = false;
+            _folderId = f.id;
+          }),
+        ),
+      ),
     ];
     return ListView(shrinkWrap: true, children: items);
   }
@@ -575,20 +813,23 @@ class _TabEditDialogState extends State<TabEditDialog> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Text('no tags yet',
-              style: mono(
-                  color: kDim.withValues(alpha: 0.5), fontSize: 11)),
+          child: Text(
+            'no tags yet',
+            style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
+          ),
         ),
       );
     }
     return ListView(
       shrinkWrap: true,
       children: widget.allTags
-          .map((tag) => _TargetItem(
-                label: '#$tag',
-                isSelected: _tag == tag,
-                onTap: () => setState(() => _tag = tag),
-              ))
+          .map(
+            (tag) => _TargetItem(
+              label: '#$tag',
+              isSelected: _tag == tag,
+              onTap: () => setState(() => _tag = tag),
+            ),
+          )
           .toList(),
     );
   }
@@ -603,11 +844,7 @@ class _TypeBtn extends StatefulWidget {
   final bool isSelected;
   final VoidCallback? onTap;
 
-  const _TypeBtn({
-    required this.label,
-    required this.isSelected,
-    this.onTap,
-  });
+  const _TypeBtn({required this.label, required this.isSelected, this.onTap});
 
   @override
   State<_TypeBtn> createState() => _TypeBtnState();
@@ -631,8 +868,7 @@ class _TypeBtnState extends State<_TypeBtn> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
             color: widget.isSelected
                 ? kMint.withValues(alpha: 0.1)
@@ -679,8 +915,7 @@ class _TargetItemState extends State<_TargetItem> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 80),
           color: bg,
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           child: Row(
             children: [
               Text(
@@ -688,9 +923,11 @@ class _TargetItemState extends State<_TargetItem> {
                 style: mono(color: kMint, fontSize: 11),
               ),
               Expanded(
-                child: Text(widget.label,
-                    style: mono(color: fg, fontSize: 11),
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  widget.label,
+                  style: mono(color: fg, fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -705,11 +942,7 @@ class _ActionBtn extends StatefulWidget {
   final Color color;
   final VoidCallback? onTap;
 
-  const _ActionBtn({
-    required this.label,
-    required this.color,
-    this.onTap,
-  });
+  const _ActionBtn({required this.label, required this.color, this.onTap});
 
   @override
   State<_ActionBtn> createState() => _ActionBtnState();
@@ -729,15 +962,16 @@ class _ActionBtnState extends State<_ActionBtn> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: active && _hovered
                 ? widget.color.withValues(alpha: 0.1)
                 : Colors.transparent,
           ),
-          child: Text(widget.label,
-              style: mono(color: widget.color, fontSize: 11)),
+          child: Text(
+            widget.label,
+            style: mono(color: widget.color, fontSize: 11),
+          ),
         ),
       ),
     );

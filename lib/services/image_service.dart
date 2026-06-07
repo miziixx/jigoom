@@ -1,10 +1,21 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+class PickedImagesResult {
+  final List<String> paths;
+  final int rejectedCount;
+
+  const PickedImagesResult({required this.paths, this.rejectedCount = 0});
+}
+
 class ImageService {
-  static const _maxBytes = 5 * 1024 * 1024; // 5 MB
+  static const maxImagesPerMemo = 10;
+  static const maxPickCount = 5;
+  static const _maxBytes = 10 * 1024 * 1024; // compressed copy guard
+  static const _channel = MethodChannel('app/images');
   static final _picker = ImagePicker();
 
   static Future<String?> pick(ImageSource source) async {
@@ -12,9 +23,9 @@ class ImageService {
     try {
       final xfile = await _picker.pickImage(
         source: source,
-        imageQuality: 90,
-        maxWidth: 2048,
-        maxHeight: 2048,
+        imageQuality: 88,
+        maxWidth: 2560,
+        maxHeight: 2560,
       );
       if (xfile == null) return null;
 
@@ -25,6 +36,50 @@ class ImageService {
       return _copyToAppDir(xfile.path);
     } catch (_) {
       return null;
+    }
+  }
+
+  static Future<PickedImagesResult> pickManyFromGallery({
+    int remainingSlots = maxImagesPerMemo,
+  }) async {
+    if (kIsWeb || remainingSlots <= 0) {
+      return const PickedImagesResult(paths: []);
+    }
+    final limit = remainingSlots.clamp(0, maxPickCount);
+    try {
+      final files = await _picker.pickMultiImage(
+        limit: limit,
+        imageQuality: 88,
+        maxWidth: 2560,
+        maxHeight: 2560,
+      );
+      final saved = <String>[];
+      var rejected = 0;
+      for (final xfile in files.take(limit)) {
+        final file = File(xfile.path);
+        if (await file.length() > _maxBytes) {
+          rejected++;
+          continue;
+        }
+        saved.add(await _copyToAppDir(xfile.path));
+      }
+      return PickedImagesResult(paths: saved, rejectedCount: rejected);
+    } catch (_) {
+      return const PickedImagesResult(paths: []);
+    }
+  }
+
+  static Future<bool> saveToGallery(String path) async {
+    if (kIsWeb) return false;
+    try {
+      final file = File(path);
+      if (!await file.exists()) return false;
+      final ok = await _channel.invokeMethod<bool>('saveImageToGallery', {
+        'path': path,
+      });
+      return ok ?? false;
+    } catch (_) {
+      return false;
     }
   }
 

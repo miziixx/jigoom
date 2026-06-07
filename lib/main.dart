@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
 import 'services/widget_service.dart';
+import 'utils/logroom_entries.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,11 +15,17 @@ void main() async {
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await initFlavor();
   final colors = await StorageService.loadColors();
-  if (colors != null) applyColors(colors.$1, colors.$2);
+  if (colors != null) {
+    applyColors(colors.$1, colors.$2);
+  } else if (isLogroom) {
+    applyLogroomFinalDefaults();
+  }
   final font = await StorageService.loadFont();
   if (font != null) applyFont(font.$1, font.$2);
   final spacing = await StorageService.loadSpacing();
   if (spacing != null) applySpacing(spacing);
+  applyEntryDisplayMode(await StorageService.loadEntryDisplayMode());
+  applyAppThemeMode(await StorageService.loadAppThemeMode());
   await NotificationService.init();
   await WidgetService.init();
   // Sync system UI overlay with current theme (also synced on every applyColors call)

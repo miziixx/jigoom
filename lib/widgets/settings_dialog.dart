@@ -148,7 +148,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '[ RESTORE ]',
+                  'RESTORE',
                   style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
                 ),
                 const SizedBox(height: 10),
@@ -172,13 +172,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     _Btn(
-                      label: '[ CANCEL ]',
+                      label: 'CANCEL',
                       color: kDim,
                       onTap: () => Navigator.pop(ctx, false),
                     ),
                     const SizedBox(width: 10),
                     _Btn(
-                      label: '[ OK ]',
+                      label: 'OK',
                       color: kMint,
                       onTap: () => Navigator.pop(ctx, true),
                     ),
@@ -210,7 +210,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
             children: [
               // ── Header ──────────────────────────────
               Text(
-                '[ SETTINGS ]',
+                'SETTINGS',
                 style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
               ),
               const SizedBox(height: 10),
@@ -313,7 +313,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   border: Border.all(color: kBorder.withValues(alpha: 0.7)),
                 ),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.25),
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.25,
+                  ),
                   child: ListView(
                     shrinkWrap: true,
                     padding: EdgeInsets.zero,
@@ -390,14 +392,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  _Btn(
-                    label: '[ BACKUP ]',
-                    color: kDim,
-                    onTap: widget.onBackupTap,
-                  ),
+                  _Btn(label: 'BACKUP', color: kDim, onTap: widget.onBackupTap),
                   const SizedBox(width: 10),
                   _Btn(
-                    label: _restoring ? '...' : '[ RESTORE ]',
+                    label: _restoring ? '...' : 'RESTORE',
                     color: _restoring ? kDim.withValues(alpha: 0.4) : kDim,
                     onTap: _doRestore,
                   ),
@@ -418,10 +416,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  _Btn(label: '[ RESET ]', color: kDim, onTap: _resetDefaults),
+                  _Btn(label: 'RESET', color: kDim, onTap: _resetDefaults),
                   const SizedBox(width: 10),
                   _Btn(
-                    label: '[ SAVE ]',
+                    label: 'SAVE',
                     color: kMint,
                     onTap: () {
                       _saved = true;
@@ -560,7 +558,7 @@ class _ToggleSwitchState extends State<_ToggleSwitch> {
                       : Colors.transparent),
           ),
           child: Text(
-            on ? '[ ON  ]' : '[ OFF ]',
+            on ? 'ON' : 'OFF',
             style: mono(color: on ? kMint : kDim, fontSize: 11),
           ),
         ),

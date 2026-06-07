@@ -119,7 +119,22 @@
       "Bash(git remote *)",
       "Bash(git push *)",
       "Bash(git fetch *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(grep \"\\\\.kt$\")",
+      "Bash(git diff *)",
+      "Bash(cp build/app/outputs/flutter-apk/app-nemo2-release.apk ~/Desktop/app-nemo2-release.apk && echo \"done\")",
+      "Bash(dart format *)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb -s R5KL10033GY shell pm list packages)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb -s R5KL10033GY install -r build/app/outputs/flutter-apk/app-logroom-debug.apk)",
+      "Bash(cp build/app/outputs/flutter-apk/app-logroom-debug.apk ~/Desktop/logroom-debug.apk)",
+      "Bash(cp build/app/outputs/flutter-apk/app-logroom-release.apk ~/Desktop/logroom-release.apk)",
+      "Bash(git -C /Users/ziia/memo_app status --short)",
+      "Bash(git -C /Users/ziia/memo_app diff --stat)",
+      "Bash(git -C /Users/ziia/memo_app log --oneline -8)",
+      "Bash(git -C /Users/ziia/memo_app diff --stat HEAD -- lib/models/ lib/services/ lib/flavor.dart lib/main.dart android/)",
+      "Bash(git -C /Users/ziia/memo_app diff -- lib/flavor.dart lib/main.dart android/app/build.gradle.kts android/app/src/main/kotlin/com/example/memo_app/MainActivity.kt)",
+      "Bash(git -C /Users/ziia/memo_app diff -- lib/screens/home_screen.dart)",
+      "Bash(git -C /Users/ziia/memo_app add -A)"
     ]
   }
 }

@@ -16,6 +16,11 @@ Future<void> platformDownload(String content, String filename) async {
   html.Url.revokeObjectUrl(url);
 }
 
+Future<bool> platformSaveToPhone(String content, String filename) async {
+  await platformDownload(content, filename);
+  return true;
+}
+
 Future<String?> platformPickFile() async {
   final result = await FilePicker.platform.pickFiles(
     type: FileType.custom,

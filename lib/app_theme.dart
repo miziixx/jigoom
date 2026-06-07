@@ -30,6 +30,49 @@ const kSpacingOptions = [0.0, 4.0, 8.0, 12.0, 16.0, 20.0, 24.0];
 
 final themeNotifier = ValueNotifier<int>(0);
 
+enum AppThemeMode { normal, dos, minimal }
+
+extension AppThemeModeX on AppThemeMode {
+  String get storageValue => switch (this) {
+    AppThemeMode.dos => 'dos',
+    AppThemeMode.minimal => 'minimal',
+    AppThemeMode.normal => 'normal',
+  };
+
+  String get label => switch (this) {
+    AppThemeMode.dos => 'DOS',
+    AppThemeMode.minimal => 'MINIMAL',
+    AppThemeMode.normal => '기본',
+  };
+
+  static AppThemeMode parse(String? raw) => switch (raw) {
+    'dos' => AppThemeMode.dos,
+    'minimal' => AppThemeMode.minimal,
+    _ => AppThemeMode.normal,
+  };
+}
+
+final appThemeModeNotifier = ValueNotifier<AppThemeMode>(AppThemeMode.normal);
+
+bool get isDosTheme => appThemeModeNotifier.value == AppThemeMode.dos;
+bool get isMinimalTheme => appThemeModeNotifier.value == AppThemeMode.minimal;
+
+void applyAppThemeMode(AppThemeMode mode) {
+  appThemeModeNotifier.value = mode;
+  if (mode == AppThemeMode.dos) {
+    kBg = const Color(0xFF000000);
+    kSurface = const Color(0xFF050505);
+    kText = const Color(0xFF00FF66);
+    kDim = const Color(0xFF00A844);
+    kBorder = const Color(0xFF00CC55);
+    kMint = const Color(0xFF00FF66);
+    kTeal = const Color(0xFF66FF99);
+    kFontFamily = 'JetBrains Mono';
+  }
+  themeNotifier.value++;
+  syncSystemUiOverlay();
+}
+
 void applyColors(Color bg, Color text) {
   kBg = bg;
   kText = text;
@@ -38,6 +81,18 @@ void applyColors(Color bg, Color text) {
   kDim = Color.lerp(text, bg, 0.25)!;
   kMint = text;
   kTeal = Color.lerp(text, Colors.black, 0.15)!;
+  themeNotifier.value++;
+  syncSystemUiOverlay();
+}
+
+void applyLogroomFinalDefaults() {
+  // HTML v2 palette: --bg #F1EDE3 / --txt #1C1A12 / --hi #5A4A2E / --hi2 #8A6E42
+  applyColors(const Color(0xFFF1EDE3), const Color(0xFF1C1A12));
+  kSurface = const Color(0xFFE2DDD1); // --sur
+  kBorder = const Color(0xFFC0B8A4); // --brd
+  kDim = const Color(0xFF7C7462); // --mu
+  kMint = const Color(0xFF5A4A2E); // --hi  (accent/active/links)
+  kTeal = const Color(0xFF8A6E42); // --hi2
   themeNotifier.value++;
   syncSystemUiOverlay();
 }

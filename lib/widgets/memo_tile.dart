@@ -14,6 +14,10 @@ import '../app_theme.dart';
 import '../services/image_service.dart';
 import 'schedule_sheet.dart';
 
+Color _memoDoneTextColor() => Color.lerp(kText, kDim, 0.55) ?? kDim;
+
+Color _memoDoneAccentColor() => Color.lerp(kMint, kDim, 0.62) ?? kDim;
+
 class MemoTile extends StatefulWidget {
   final Memo memo;
   final MemoActions actions;
@@ -186,7 +190,7 @@ class _MemoTileState extends State<MemoTile> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '[DELETE NOTE]',
+                'DELETE NOTE',
                 style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
               ),
               const SizedBox(height: 10),
@@ -275,13 +279,13 @@ class _MemoTileState extends State<MemoTile> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   _ActionBtn(
-                    label: '[취소]',
+                    label: '취소',
                     color: kDim,
                     onTap: () => Navigator.pop(ctx),
                   ),
                   const SizedBox(width: 8),
                   _ActionBtn(
-                    label: '[확인]',
+                    label: '삭제',
                     color: Colors.red.shade400,
                     onTap: () {
                       Navigator.pop(ctx);
@@ -602,7 +606,7 @@ class _MemoTileState extends State<MemoTile> {
         final ts =
             '${nt.hour.toString().padLeft(2, '0')}:${nt.minute.toString().padLeft(2, '0')}';
         buf.writeln();
-        buf.write('∟ [$ts]  ${note.content}');
+        buf.write('∟ $ts  ${note.content}');
       }
     }
 
@@ -631,16 +635,13 @@ class _MemoTileState extends State<MemoTile> {
                 Row(
                   children: [
                     Text(
-                      '[${widget.memo.timeStr}]',
+                      widget.memo.timeStr,
                       style: mono(color: kDim, fontSize: 11),
                     ),
                     const Spacer(),
                     GestureDetector(
                       onTap: () => Navigator.pop(ctx),
-                      child: Text(
-                        '[×]',
-                        style: mono(color: kDim, fontSize: 11),
-                      ),
+                      child: Text('×', style: mono(color: kDim, fontSize: 11)),
                     ),
                   ],
                 ),
@@ -663,7 +664,7 @@ class _MemoTileState extends State<MemoTile> {
                           ...notes.map((n) {
                             final t = n.addedAt;
                             final ts =
-                                '[${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}]';
+                                '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 8),
                               child: Column(
@@ -715,7 +716,7 @@ class _MemoTileState extends State<MemoTile> {
           value: 'share',
           height: 36,
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('[공유]', style: mono(color: kText, fontSize: 12)),
+          child: Text('공유', style: mono(color: kText, fontSize: 12)),
         ),
       ],
     );
@@ -728,58 +729,88 @@ class _MemoTileState extends State<MemoTile> {
     if (kIsWeb) return;
     final source = await _showImageSourceSheet();
     if (source == null) return;
+
+    if (widget.memo.imagePaths.length >= ImageService.maxImagesPerMemo) {
+      _showSnack('이미지는 최대 10개까지 첨부할 수 있습니다');
+      return;
+    }
+
+    if (source == ImageSource.gallery) {
+      final result = await ImageService.pickManyFromGallery(
+        remainingSlots:
+            ImageService.maxImagesPerMemo - widget.memo.imagePaths.length,
+      );
+      if (!mounted) return;
+      for (final path in result.paths) {
+        _a.onAddImage(widget.memo, path);
+      }
+      if (result.rejectedCount > 0) {
+        _showSnack('일부 이미지는 용량이 커서 첨부하지 못했습니다');
+      }
+      return;
+    }
+
     final path = await ImageService.pick(source);
     if (!mounted) return;
     if (path == '__TOO_LARGE__') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: kSurface,
-          duration: const Duration(seconds: 2),
-          content: Text(
-            '이미지 용량이 5MB를 초과합니다',
-            style: mono(color: Colors.red.shade400, fontSize: 12),
-          ),
-        ),
-      );
+      _showSnack('이미지 용량이 너무 커서 첨부하지 못했습니다');
       return;
     }
     if (path != null) _a.onAddImage(widget.memo, path);
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: kSurface,
+        duration: const Duration(seconds: 2),
+        content: Text(message, style: mono(color: kText, fontSize: 12)),
+      ),
+    );
   }
 
   Future<ImageSource?> _showImageSourceSheet() {
     return showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: kSurface,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '[이미지 추가]',
-                style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
-              ),
-              const SizedBox(height: 12),
-              Container(height: 1, color: kBorder),
-              const SizedBox(height: 12),
-              Row(
+      builder: (ctx) => AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SheetBtn(
-                    label: '[갤러리]',
-                    onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                  Text(
+                    '이미지 추가',
+                    style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
                   ),
-                  const SizedBox(width: 12),
-                  _SheetBtn(
-                    label: '[카메라]',
-                    onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                  const SizedBox(height: 12),
+                  Container(height: 1, color: kBorder),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _SheetBtn(
+                        label: '갤러리',
+                        onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                      ),
+                      const SizedBox(width: 12),
+                      _SheetBtn(
+                        label: '카메라',
+                        onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 8),
                 ],
               ),
-              const SizedBox(height: 8),
-            ],
+            ),
           ),
         ),
       ),
@@ -812,20 +843,44 @@ class _MemoTileState extends State<MemoTile> {
       repeatEndType: widget.memo.repeatEndType,
       repeatEndCount: widget.memo.repeatEndCount,
       repeatEndDate: widget.memo.repeatEndDate,
-      initialNotifyForEvent:
-          _isSameMinute(widget.memo.reminderAt, widget.memo.scheduledAt),
-      onResult: (dt, repeat, rangeEnd, endType, endCount, endDate, notifyForEvent) {
-        _a.onSetSchedule(widget.memo, dt, repeat, rangeEnd, endType, endCount, endDate);
-        if (dt == null) {
-          if (_isSameMinute(widget.memo.reminderAt, widget.memo.scheduledAt)) {
-            _a.onSetReminder(widget.memo, null, 'none', 'infinite', 5, null);
-          }
-        } else if (notifyForEvent) {
-          _a.onSetReminder(widget.memo, dt, 'none', 'infinite', 5, null);
-        } else if (_isSameMinute(widget.memo.reminderAt, widget.memo.scheduledAt)) {
-          _a.onSetReminder(widget.memo, null, 'none', 'infinite', 5, null);
-        }
-      },
+      initialNotifyForEvent: _isSameMinute(
+        widget.memo.reminderAt,
+        widget.memo.scheduledAt,
+      ),
+      onResult:
+          (dt, repeat, rangeEnd, endType, endCount, endDate, notifyForEvent) {
+            _a.onSetSchedule(
+              widget.memo,
+              dt,
+              repeat,
+              rangeEnd,
+              endType,
+              endCount,
+              endDate,
+            );
+            if (dt == null) {
+              if (_isSameMinute(
+                widget.memo.reminderAt,
+                widget.memo.scheduledAt,
+              )) {
+                _a.onSetReminder(
+                  widget.memo,
+                  null,
+                  'none',
+                  'infinite',
+                  5,
+                  null,
+                );
+              }
+            } else if (notifyForEvent) {
+              _a.onSetReminder(widget.memo, dt, 'none', 'infinite', 5, null);
+            } else if (_isSameMinute(
+              widget.memo.reminderAt,
+              widget.memo.scheduledAt,
+            )) {
+              _a.onSetReminder(widget.memo, null, 'none', 'infinite', 5, null);
+            }
+          },
     );
   }
 
@@ -860,7 +915,7 @@ class _MemoTileState extends State<MemoTile> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '[MOVE TO]',
+                'MOVE TO',
                 style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
               ),
               const SizedBox(height: 8),
@@ -929,7 +984,7 @@ class _MemoTileState extends State<MemoTile> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '[HISTORY]',
+                'HISTORY',
                 style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
               ),
               const SizedBox(height: 10),
@@ -974,7 +1029,7 @@ class _MemoTileState extends State<MemoTile> {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          Text('[$ts]', style: mono(color: kDim, fontSize: 11)),
+          Text(ts, style: mono(color: kDim, fontSize: 11)),
           const SizedBox(width: 10),
           Text(label, style: mono(color: kText, fontSize: 11)),
         ],
@@ -1059,10 +1114,7 @@ class _MemoTileState extends State<MemoTile> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '[${widget.memo.timeStr}]',
-              style: mono(color: kDim, fontSize: 10),
-            ),
+            Text(widget.memo.timeStr, style: mono(color: kDim, fontSize: 10)),
             const SizedBox(height: 3),
             Text(
               preview.isEmpty ? '...' : preview,
@@ -1100,7 +1152,7 @@ class _MemoTileState extends State<MemoTile> {
                     horizontal: 10,
                     vertical: 10,
                   ),
-                  child: Text('[이동]', style: mono(color: kMint, fontSize: 12)),
+                  child: Text('이동', style: mono(color: kMint, fontSize: 12)),
                 ),
               ),
             ),
@@ -1123,7 +1175,7 @@ class _MemoTileState extends State<MemoTile> {
                         vertical: 10,
                       ),
                       child: Text(
-                        '[삭제]',
+                        '삭제',
                         style: mono(color: Colors.white, fontSize: 12),
                       ),
                     ),
@@ -1219,7 +1271,7 @@ class _MemoTileState extends State<MemoTile> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
-                              '[${widget.memo.timeStr}]',
+                              widget.memo.timeStr,
                               style: mono(color: kDim, fontSize: 11),
                             ),
                             ...tags.map(
@@ -1287,7 +1339,7 @@ class _MemoTileState extends State<MemoTile> {
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: Text(
-                              '[수정]',
+                              '수정',
                               style: mono(
                                 color: _hovered
                                     ? kDim
@@ -1372,7 +1424,7 @@ class _MemoTileState extends State<MemoTile> {
   Widget _buildNoteCard(AppendNote note, int index) {
     final t = note.addedAt;
     final timeStr =
-        '[${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}]';
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
 
     if (_editingNoteIndex == index) {
       return Container(
@@ -1446,7 +1498,7 @@ class _MemoTileState extends State<MemoTile> {
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: Text(
-                      '[×]',
+                      '×',
                       style: mono(
                         color: kDim.withValues(alpha: 0.7),
                         fontSize: 10,
@@ -1491,7 +1543,7 @@ class _MemoTileState extends State<MemoTile> {
               );
             },
             child: Text(
-              '[+ 추가]',
+              '+ 추가',
               style: mono(
                 color: widget.memo.appendNotes.isNotEmpty
                     ? kTeal
@@ -1633,7 +1685,7 @@ class _MemoTileState extends State<MemoTile> {
               child: Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: Text(
-                  '[×]',
+                  '×',
                   style: mono(
                     color: _hovered ? kDim : kDim.withValues(alpha: 0.5),
                     fontSize: 10,
@@ -1652,9 +1704,13 @@ class _MemoTileState extends State<MemoTile> {
       return _buildCheckItemEditRow(lineIndex);
     }
     final textStyle =
-        mono(color: checked ? kDim : kText, fontSize: 13, height: 1.5).copyWith(
+        mono(
+          color: checked ? _memoDoneTextColor() : kText,
+          fontSize: 13,
+          height: 1.5,
+        ).copyWith(
           decoration: checked ? TextDecoration.lineThrough : null,
-          decorationColor: kDim,
+          decorationColor: _memoDoneAccentColor(),
         );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -1670,7 +1726,10 @@ class _MemoTileState extends State<MemoTile> {
                 padding: const EdgeInsets.only(right: 2),
                 child: Text(
                   checked ? '✓ ' : '□ ',
-                  style: mono(color: checked ? kDim : kMint, fontSize: 13),
+                  style: mono(
+                    color: checked ? _memoDoneAccentColor() : kMint,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
@@ -1688,7 +1747,7 @@ class _MemoTileState extends State<MemoTile> {
               child: Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: Text(
-                  '[×]',
+                  '×',
                   style: mono(
                     color: _hovered ? kDim : kDim.withValues(alpha: 0.5),
                     fontSize: 10,
@@ -1745,7 +1804,7 @@ class _MemoTileState extends State<MemoTile> {
             onTap: _saveCheckItem,
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
-              child: Text('[OK]', style: mono(color: kMint, fontSize: 11)),
+              child: Text('OK', style: mono(color: kMint, fontSize: 11)),
             ),
           ),
           const SizedBox(width: 6),
@@ -1753,7 +1812,7 @@ class _MemoTileState extends State<MemoTile> {
             onTap: _cancelCheckEdit,
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
-              child: Text('[×]', style: mono(color: kDim, fontSize: 11)),
+              child: Text('×', style: mono(color: kDim, fontSize: 11)),
             ),
           ),
         ],
@@ -1774,7 +1833,7 @@ class _MemoTileState extends State<MemoTile> {
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: Text(
-            '[+ 항목 추가]',
+            '+ 항목 추가',
             style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
           ),
         ),
@@ -1823,7 +1882,7 @@ class _MemoTileState extends State<MemoTile> {
               cursor: SystemMouseCursors.click,
               child: Padding(
                 padding: const EdgeInsets.only(left: 8),
-                child: Text('[+]', style: mono(color: kTeal, fontSize: 11)),
+                child: Text('+', style: mono(color: kTeal, fontSize: 11)),
               ),
             ),
           ),
@@ -1838,7 +1897,7 @@ class _MemoTileState extends State<MemoTile> {
               child: Padding(
                 padding: const EdgeInsets.only(left: 6),
                 child: Text(
-                  '[×]',
+                  '×',
                   style: mono(color: kDim.withValues(alpha: 0.6), fontSize: 11),
                 ),
               ),
@@ -2065,10 +2124,7 @@ class _MemoTileState extends State<MemoTile> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '[${widget.memo.timeStr}]',
-                style: mono(color: kDim, fontSize: 11),
-              ),
+              Text(widget.memo.timeStr, style: mono(color: kDim, fontSize: 11)),
               const SizedBox(height: 6),
               TextField(
                 controller: _editController,
@@ -2447,6 +2503,22 @@ class _ImageViewerDialogState extends State<_ImageViewerDialog> {
     await Share.shareXFiles([XFile(path)]);
   }
 
+  Future<void> _saveToGallery() async {
+    final path = widget.paths[_index];
+    final ok = await ImageService.saveToGallery(path);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: kSurface,
+        duration: const Duration(seconds: 2),
+        content: Text(
+          ok ? '이미지를 저장했습니다' : '이미지 저장에 실패했습니다',
+          style: mono(color: ok ? kText : Colors.red.shade300, fontSize: 12),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -2497,6 +2569,24 @@ class _ImageViewerDialogState extends State<_ImageViewerDialog> {
                       ),
                     const Spacer(),
                     GestureDetector(
+                      onTap: _saveToGallery,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black45,
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Text(
+                          '저장',
+                          style: mono(color: Colors.white70, fontSize: 11),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
                       onTap: _share,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -2508,7 +2598,7 @@ class _ImageViewerDialogState extends State<_ImageViewerDialog> {
                           border: Border.all(color: Colors.white24),
                         ),
                         child: Text(
-                          '[저장/공유]',
+                          '공유',
                           style: mono(color: Colors.white70, fontSize: 11),
                         ),
                       ),
@@ -2523,7 +2613,7 @@ class _ImageViewerDialogState extends State<_ImageViewerDialog> {
                         ),
                         color: Colors.black45,
                         child: Text(
-                          '[×]',
+                          '×',
                           style: mono(color: Colors.white70, fontSize: 11),
                         ),
                       ),

@@ -1,9 +1,9 @@
 class QuickTab {
   final String id;
   final String label;
-  final bool isTag;       // true = tag tab, false = folder tab
+  final bool isTag; // true = tag tab, false = folder tab
   final String? folderId; // when !isTag; null = inbox
-  final String? tag;      // when isTag
+  final String? tag; // when isTag
 
   const QuickTab({
     required this.id,
@@ -14,18 +14,18 @@ class QuickTab {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'label': label,
-        'isTag': isTag,
-        'folderId': folderId,
-        'tag': tag,
-      };
+    'id': id,
+    'label': label,
+    'isTag': isTag,
+    'folderId': folderId,
+    'tag': tag,
+  };
 
   factory QuickTab.fromJson(Map<String, dynamic> json) => QuickTab(
-        id: json['id'] as String,
-        label: json['label'] as String,
-        isTag: (json['isTag'] as bool?) ?? false,
-        folderId: json['folderId'] as String?,
-        tag: json['tag'] as String?,
-      );
+    id: json['id'] as String,
+    label: json['label'] as String,
+    isTag: (json['isTag'] as bool?) ?? false,
+    folderId: json['folderId'] as String?,
+    tag: json['tag'] as String?,
+  );
 }
