@@ -99,6 +99,7 @@ class _TodayScreenState extends State<TodayScreen> {
   late String _activeTabId;
   bool _editing = false;
   Memo? _editingMemo;
+  final Set<String> _collapsedLogroomSections = {};
 
   @override
   void initState() {
@@ -169,15 +170,20 @@ class _TodayScreenState extends State<TodayScreen> {
       .where((m) => m.tags.contains('habit') && _isToday(_todayBasis(m)))
       .toList();
 
-  List<Memo> get _todayGoals => widget.memos
-      .where((m) => m.tags.contains('goal') && _isToday(_todayBasis(m)))
-      .toList();
-
   List<Memo> get _upcomingToday =>
       widget.memos
           .where((m) => m.scheduledAt != null && _isToday(m.scheduledAt!))
           .toList()
         ..sort((a, b) => a.scheduledAt!.compareTo(b.scheduledAt!));
+
+  List<Memo> get _todayReminders =>
+      widget.memos
+          .where((m) => m.reminderAt != null && _isToday(m.reminderAt!))
+          .toList()
+        ..sort((a, b) => a.reminderAt!.compareTo(b.reminderAt!));
+
+  List<Memo> get _todayEntries =>
+      _todayMemos.where((m) => !m.isChecklist && m.scheduledAt == null).toList();
 
   TodayTab get _activeTab => _tabs.firstWhere((t) => t.id == _activeTabId);
 
@@ -386,50 +392,48 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   Widget _buildLogroomPanel() {
-    final open = _todayMemos
-        .where(
-          (m) =>
-              !m.isChecklist &&
-              m.scheduledAt == null &&
-              !m.tags.contains('habit') &&
-              !m.tags.contains('goal'),
-        )
-        .toList();
+    bool isCollapsed(String key) => _collapsedLogroomSections.contains(key);
+    void toggle(String key) => setState(() {
+      if (!_collapsedLogroomSections.remove(key)) _collapsedLogroomSections.add(key);
+    });
+
     return ListView(
       padding: const EdgeInsets.only(bottom: 12),
       children: [
-        _LogroomTodaySection(
-          label: 'OPEN',
-          memos: open,
-          actions: _localActions,
-          isFirst: true,
-        ),
-        _LogroomTodaySection(
-          label: 'EVENTS',
-          memos: _upcomingToday,
-          actions: _localActions,
-        ),
+        _TodayEntrySummary(memos: widget.memos),
+        _TodayTimeMap(memos: widget.memos),
         _LogroomTodoSection(
           todos: _todayChecklists,
           actions: _localActions,
           onUpdate: widget.onUpdateMemo,
+          isFirst: true,
+          collapsed: isCollapsed('tasks'),
+          onToggle: () => toggle('tasks'),
         ),
         _LogroomTodaySection(
-          label: 'HABITS',
-          memos: _todayHabits,
+          label: '일정',
+          memos: _upcomingToday,
           actions: _localActions,
+          collapsed: isCollapsed('events'),
+          onToggle: () => toggle('events'),
+        ),
+        _LogroomReminderSection(
+          memos: _todayReminders,
+          collapsed: isCollapsed('reminders'),
+          onToggle: () => toggle('reminders'),
         ),
         _LogroomTodaySection(
-          label: 'GOALS',
-          memos: _todayGoals,
+          label: '기록',
+          memos: _todayEntries,
           actions: _localActions,
+          collapsed: isCollapsed('entries'),
+          onToggle: () => toggle('entries'),
         ),
-        _LogroomTodaySection(
-          label: 'ENTRIES',
-          memos: _todayNonChecklist,
-          actions: _localActions,
+        _TimelogSection(
+          isFirst: false,
+          collapsed: isCollapsed('timelog'),
+          onToggle: () => toggle('timelog'),
         ),
-        const _TimelogSection(isFirst: false),
       ],
     );
   }
@@ -563,17 +567,72 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+class _CollapsibleSectionHeader extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool collapsed;
+  final bool isFirst;
+  final VoidCallback onToggle;
+
+  const _CollapsibleSectionHeader({
+    required this.label,
+    required this.count,
+    required this.collapsed,
+    required this.onToggle,
+    this.isFirst = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 7),
+        decoration: BoxDecoration(
+          border: isFirst ? null : Border(top: BorderSide(color: kBorder)),
+        ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: mono(
+                color: kText,
+                fontSize: tsSmall,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '($count)',
+              style: mono(color: kDim, fontSize: tsMeta),
+            ),
+            const Spacer(),
+            Text(
+              collapsed ? '▶' : '▼',
+              style: mono(color: kDim, fontSize: tsTiny),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _LogroomTodaySection extends StatelessWidget {
   final String label;
   final List<Memo> memos;
   final MemoActions? actions;
-  final bool isFirst;
+  final bool collapsed;
+  final VoidCallback? onToggle;
 
   const _LogroomTodaySection({
     required this.label,
     required this.memos,
     this.actions,
-    this.isFirst = false,
+    this.collapsed = false,
+    this.onToggle,
   });
 
   @override
@@ -581,22 +640,31 @@ class _LogroomTodaySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionHeader(label: label, isFirst: isFirst),
-        if (memos.isEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
-            child: Text(
-              '비어 있음',
-              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
+        onToggle != null
+            ? _CollapsibleSectionHeader(
+                label: label,
+                count: memos.length,
+                collapsed: collapsed,
+                onToggle: onToggle!,
+              )
+            : _SectionHeader(label: label, isFirst: false),
+        if (!collapsed) ...[
+          if (memos.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
+              child: Text(
+                '비어 있음',
+                style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
+              ),
+            )
+          else
+            ...memos.map(
+              (m) => actions == null
+                  ? _LogroomTodayRow(memo: m)
+                  : LogroomEntryTile(memo: m, actions: actions!),
             ),
-          )
-        else
-          ...memos.map(
-            (m) => actions == null
-                ? _LogroomTodayRow(memo: m)
-                : LogroomEntryTile(memo: m, actions: actions!),
-          ),
-        const SizedBox(height: 4),
+          const SizedBox(height: 4),
+        ],
       ],
     );
   }
@@ -681,11 +749,17 @@ class _LogroomTodoSection extends StatelessWidget {
   final List<Memo> todos;
   final MemoActions? actions;
   final void Function(Memo, String) onUpdate;
+  final bool isFirst;
+  final bool collapsed;
+  final VoidCallback? onToggle;
 
   const _LogroomTodoSection({
     required this.todos,
     required this.onUpdate,
     this.actions,
+    this.isFirst = false,
+    this.collapsed = false,
+    this.onToggle,
   });
 
   @override
@@ -693,22 +767,32 @@ class _LogroomTodoSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _SectionHeader(label: 'TASKS', isFirst: false),
-        if (todos.isEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
-            child: Text(
-              '비어 있음',
-              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
+        onToggle != null
+            ? _CollapsibleSectionHeader(
+                label: '할일',
+                count: todos.length,
+                collapsed: collapsed,
+                isFirst: isFirst,
+                onToggle: onToggle!,
+              )
+            : _SectionHeader(label: 'TASKS', isFirst: isFirst),
+        if (!collapsed) ...[
+          if (todos.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
+              child: Text(
+                '비어 있음',
+                style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
+              ),
+            )
+          else
+            ...todos.map(
+              (m) => actions == null
+                  ? _LogroomTodoRow(memo: m, onUpdate: onUpdate)
+                  : LogroomEntryTile(memo: m, actions: actions!),
             ),
-          )
-        else
-          ...todos.map(
-            (m) => actions == null
-                ? _LogroomTodoRow(memo: m, onUpdate: onUpdate)
-                : LogroomEntryTile(memo: m, actions: actions!),
-          ),
-        const SizedBox(height: 4),
+          const SizedBox(height: 4),
+        ],
       ],
     );
   }
@@ -1230,8 +1314,14 @@ class _TodoRow extends StatelessWidget {
 
 class _TimelogSection extends StatefulWidget {
   final bool isFirst;
+  final bool collapsed;
+  final VoidCallback? onToggle;
 
-  const _TimelogSection({required this.isFirst});
+  const _TimelogSection({
+    required this.isFirst,
+    this.collapsed = false,
+    this.onToggle,
+  });
 
   @override
   State<_TimelogSection> createState() => _TimelogSectionState();
@@ -1286,7 +1376,16 @@ class _TimelogSectionState extends State<_TimelogSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionHeader(label: 'TIMELOG', isFirst: widget.isFirst),
+        widget.onToggle != null
+            ? _CollapsibleSectionHeader(
+                label: 'TIMELOG',
+                count: _entries.length,
+                collapsed: widget.collapsed,
+                isFirst: widget.isFirst,
+                onToggle: widget.onToggle!,
+              )
+            : _SectionHeader(label: 'TIMELOG', isFirst: widget.isFirst),
+        if (!widget.collapsed) ...[
         for (int h = _startHour; h <= _endHour; h++) ...[
           _TimeRow(
             hour: h,
@@ -1302,6 +1401,7 @@ class _TimelogSectionState extends State<_TimelogSection> {
             ),
         ],
         const SizedBox(height: 8),
+        ], // end if (!widget.collapsed)
       ],
     );
   }
@@ -1505,6 +1605,229 @@ class _TimeRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Today entry summary ───────────────────────────────────────────────────────
+
+class _TodayEntrySummary extends StatelessWidget {
+  final List<Memo> memos;
+
+  const _TodayEntrySummary({required this.memos});
+
+  List<Memo> _todayMemos() {
+    final now = DateTime.now();
+    return memos.where((m) {
+      final d = m.createdAt;
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    }).toList();
+  }
+
+  Map<int, int> _hourCounts(List<Memo> today) {
+    final counts = <int, int>{};
+    for (final m in today) {
+      final h = m.createdAt.hour;
+      counts[h] = (counts[h] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: themeNotifier,
+      builder: (context, _, _) {
+        final today = _todayMemos();
+        if (today.isEmpty) return const SizedBox.shrink();
+        final hourCounts = _hourCounts(today);
+        final sortedHours = hourCounts.keys.toList()..sort();
+        final items = <Widget>[];
+        for (int i = 0; i < sortedHours.length; i++) {
+          final h = sortedHours[i];
+          final label = '${h.toString().padLeft(2, '0')}시 · ${hourCounts[h]}개';
+          items.add(Text(label, style: mono(color: kDim, fontSize: tsMeta)));
+          if (i < sortedHours.length - 1) {
+            items.add(
+              Text(' / ', style: mono(color: kDim.withValues(alpha: 0.4), fontSize: tsMeta)),
+            );
+          }
+        }
+        return Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: kBorder)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '오늘 기록 ${today.length}개',
+                style: mono(
+                  color: kMint,
+                  fontSize: tsSmall,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(runSpacing: 3, children: items),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── Today time map ────────────────────────────────────────────────────────────
+
+class _TodayTimeMap extends StatelessWidget {
+  final List<Memo> memos;
+
+  const _TodayTimeMap({required this.memos});
+
+  Map<int, int> get _hourCounts {
+    final now = DateTime.now();
+    final counts = <int, int>{};
+    for (final m in memos) {
+      final d = m.createdAt;
+      if (d.year == now.year && d.month == now.month && d.day == now.day) {
+        counts[d.hour] = (counts[d.hour] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: themeNotifier,
+      builder: (context, _, _) {
+        final hourCounts = _hourCounts;
+        if (hourCounts.isEmpty) return const SizedBox.shrink();
+        final sortedHours = hourCounts.keys.toList()..sort();
+        final maxCount = hourCounts.values.reduce((a, b) => a > b ? a : b);
+        return Container(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: kBorder)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: sortedHours.map((h) {
+              final count = hourCounts[h]!;
+              final bars = ((count / maxCount) * 10).round().clamp(1, 10);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 1),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        h.toString().padLeft(2, '0'),
+                        style: mono(color: kDim, fontSize: tsMeta),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '■' * bars,
+                      style: mono(
+                        color: kMint.withValues(alpha: 0.55),
+                        fontSize: tsMeta,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── Logroom reminder section ──────────────────────────────────────────────────
+
+class _LogroomReminderSection extends StatelessWidget {
+  final List<Memo> memos;
+  final bool collapsed;
+  final VoidCallback onToggle;
+
+  const _LogroomReminderSection({
+    required this.memos,
+    required this.collapsed,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _CollapsibleSectionHeader(
+          label: '알림',
+          count: memos.length,
+          collapsed: collapsed,
+          isFirst: false,
+          onToggle: onToggle,
+        ),
+        if (!collapsed) ...[
+          if (memos.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 4, 14, 10),
+              child: Text(
+                '오늘 알림 없음',
+                style: mono(color: kDim.withValues(alpha: 0.5), fontSize: tsSmall),
+              ),
+            )
+          else
+            ...memos.map((m) => _ReminderRow(memo: m)),
+          const SizedBox(height: 4),
+        ],
+      ],
+    );
+  }
+}
+
+class _ReminderRow extends StatelessWidget {
+  final Memo memo;
+
+  const _ReminderRow({required this.memo});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = memo.reminderAt!;
+    final timeStr =
+        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 64,
+            child: Text(
+              timeStr,
+              style: mono(color: kDim, fontSize: tsMeta),
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.visible,
+            ),
+          ),
+          Container(width: 2, height: 20, color: kTeal),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              memo.content,
+              style: mono(color: kText, fontSize: tsAlt),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
