@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_theme.dart';
 import '../flavor.dart';
+import 'dev_center_screen.dart';
 import '../models/entry_display_mode.dart';
 import '../services/backup_service.dart';
 import '../services/storage_service.dart';
@@ -67,6 +69,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late AppThemeMode _initialThemeMode;
   bool _saved = false;
   bool _restoring = false;
+  int _versionTapCount = 0;
+  Timer? _versionTapTimer;
 
   // palette slots: null = empty
   late List<(Color, Color)?> _palettes;
@@ -104,6 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _bgCtrl.dispose();
     _textCtrl.dispose();
+    _versionTapTimer?.cancel();
     if (!_saved) {
       // Revert real-time preview changes on cancel
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -354,6 +359,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _saved = true;
     widget.onClearCache();
     if (mounted) Navigator.pop(context);
+  }
+
+  void _onVersionTap() {
+    if (!isNemo2Test) return;
+    _versionTapTimer?.cancel();
+    _versionTapCount++;
+    if (_versionTapCount >= 5) {
+      _versionTapCount = 0;
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const DevCenterScreen(),
+          transitionsBuilder: (_, anim, __, child) => FadeTransition(
+            opacity: anim,
+            child: child,
+          ),
+        ),
+      );
+      return;
+    }
+    _versionTapTimer = Timer(const Duration(seconds: 2), () {
+      _versionTapCount = 0;
+    });
   }
 
   Future<void> _doImportTxt() async {
@@ -653,6 +681,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       ),
 
+                      const SizedBox(height: 8),
+
+                      // ── VERSION (nemo2test: 5-tap to open Dev Center) ─
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        onTap: _onVersionTap,
+                        behavior: HitTestBehavior.opaque,
+                        child: Center(
+                          child: Text(
+                            'v2.0.0',
+                            style: mono(
+                              color: kDim.withValues(alpha: 0.35),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 8),
                     ],
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 
 const _channel = MethodChannel('app/flavor');
 String _flavorName = 'personal';
+final DateTime appStartTime = DateTime.now();
 
 Future<void> initFlavor() async {
   try {
@@ -12,6 +13,7 @@ Future<void> initFlavor() async {
   }
 }
 
+String get flavorName => _flavorName;
 bool get isStoreFlavor => _flavorName == 'store' || _flavorName == 'nemo2store';
 bool get isNemo2 => _flavorName == 'nemo2' || _flavorName == 'nemo2store';
 bool get isNemo2Test => _flavorName == 'nemo2test';
