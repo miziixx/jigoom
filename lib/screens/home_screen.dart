@@ -1665,10 +1665,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return items;
   }
 
-  DateTime _listSortDate(Memo memo) {
-    if (isNemo2Test && memo.scheduledAt != null) return memo.scheduledAt!;
-    return memo.createdAt;
-  }
+  DateTime _listSortDate(Memo memo) => memo.createdAt;
 
   String _listDateKey(Memo memo) {
     final d = _listSortDate(memo);

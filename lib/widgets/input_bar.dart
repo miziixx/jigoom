@@ -278,6 +278,11 @@ class _InputBarState extends State<InputBar> {
         _forceChecklist = false;
         _suggestionSelectedKind = null;
       }
+      if (_controller.text.trim().isEmpty && widget.editingMemo == null) {
+        _draftKind = _LogroomDraftKind.entry;
+        _forceChecklist = false;
+        _suggestionSelectedKind = null;
+      }
     });
     // 태그 배지가 나타나면서 레이아웃이 변해 Android가 IME를 내리는 경우 방지.
     // hasFocus가 true인 상태에서도 키보드가 내려갈 수 있으므로
@@ -343,8 +348,7 @@ class _InputBarState extends State<InputBar> {
 
   bool get _isChecklist {
     if (_forceChecklist || _draftKind == _LogroomDraftKind.task) return true;
-    return _hasChecklistMarker(_controller.text) ||
-        _looksChecklist(_controller.text);
+    return _looksChecklist(_controller.text);
   }
 
   bool _looksChecklist(String value) {
@@ -576,13 +580,6 @@ class _InputBarState extends State<InputBar> {
   }
 
   void _insertListPrefix(String prefix) {
-    if (prefix == '- [ ] ') {
-      setState(() {
-        _draftKind = _LogroomDraftKind.task;
-        _forceChecklist = true;
-        _suggestionSelectedKind = null;
-      });
-    }
     final sel = _controller.selection;
     final old = _controller.text;
     if (old.isEmpty || !sel.isValid || sel.start <= 0) {
@@ -787,29 +784,7 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  String _reorderChecklistFirst(String content) {
-    final lines = content.split('\n');
-    final listLines = lines
-        .where(
-          (l) =>
-              l.startsWith('- [ ] ') ||
-              l.startsWith('- [x] ') ||
-              l.startsWith('• '),
-        )
-        .toList();
-    final plainLines = lines
-        .where(
-          (l) =>
-              !l.startsWith('- [ ] ') &&
-              !l.startsWith('- [x] ') &&
-              !l.startsWith('• '),
-        )
-        .toList();
-    if (listLines.isEmpty || plainLines.isEmpty) return content;
-    return [...listLines, ...plainLines].join('\n');
-  }
-
-  String _contentForDraftKind(String raw) {
+String _contentForDraftKind(String raw) {
     var content = raw.trim();
     if (_draftKind == _LogroomDraftKind.task &&
         !_hasChecklistMarker(content) &&
@@ -1129,14 +1104,13 @@ class _InputBarState extends State<InputBar> {
 
   void _submit() {
     final raw = _contentForDraftKind(_controller.text);
-    final text = _reorderChecklistFirst(raw);
-    if (text.isEmpty &&
+    if (raw.isEmpty &&
         _pendingImages.isEmpty &&
         widget.editingMemo?.sourceUrl == null) {
       return;
     }
     widget.onSubmit(
-      text,
+      raw,
       _isChecklist,
       _reminderAt,
       _selectedFolderId,

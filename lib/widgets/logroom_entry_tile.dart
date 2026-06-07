@@ -27,6 +27,10 @@ String _entryTagRow(Memo memo) => memo.tags
 String _stripUrls(String text) =>
     text.replaceAll(_urlRe, '').replaceAll(RegExp(r'[ \t]+\n'), '\n').trim();
 
+bool _contentHasChecklistLines(String content) =>
+    content.split('\n').any((l) =>
+        l.startsWith('- [ ] ') || l.startsWith('- [x] '));
+
 String _stripVisibleTags(String text) => text
     .replaceAll(RegExp(r'#[a-zA-Z0-9_ㄱ-ㅎㅏ-ㅣ가-힣]+'), '')
     .replaceAll(RegExp(r'[ \t]+\n'), '\n')
@@ -607,7 +611,9 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
     final memo = widget.memo;
     if (isDosTheme) return _buildDosEntry(memo);
     if (isMinimalTheme) return _buildMinimalEntry(memo);
-    final isTask = memo.isChecklist;
+    final isTaskMemo = memo.isChecklist;
+    final hasInlineChecklist = _contentHasChecklistLines(memo.content);
+    final shouldRenderChecklistLines = isTaskMemo || hasInlineChecklist;
     final links = _entryLinks(memo);
     final visibleTags = _entryTagRow(memo);
     final displayText = _stripVisibleTags(_stripUrls(logroomTitle(memo)));
@@ -641,7 +647,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: isTask ? _toggleTask : null,
+                      onTap: isTaskMemo ? _toggleTask : null,
                       behavior: HitTestBehavior.opaque,
                       child: logroomPrefixText(memo, fontSize: 10),
                     ),
@@ -660,7 +666,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: isTask
+                      child: shouldRenderChecklistLines
                           ? _ChecklistContent(
                               content: memo.content,
                               onToggle: _toggleChecklistLine,
@@ -824,7 +830,9 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
   }
 
   Widget _buildMinimalEntry(Memo memo) {
-    final isTask = memo.isChecklist;
+    final isTaskMemo = memo.isChecklist;
+    final hasInlineChecklist = _contentHasChecklistLines(memo.content);
+    final shouldRenderChecklistLines = isTaskMemo || hasInlineChecklist;
     final links = _entryLinks(memo);
     final visibleTags = memo.tags
         .where((t) => t != 'habit' && t != 'goal')
@@ -858,7 +866,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
             padding: const EdgeInsets.only(top: 1),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: isTask ? _toggleTask : null,
+              onTap: isTaskMemo ? _toggleTask : null,
               child: _MinimalTypeLabel(
                 label: type,
                 checked: _minimalDone(memo),
@@ -878,7 +886,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                       style: mono(color: kTeal, fontSize: 9, height: 1.3),
                     ),
                   ),
-                if (isTask)
+                if (shouldRenderChecklistLines)
                   _MinimalChecklistContent(
                     content: memo.content,
                     onToggle: _toggleChecklistLine,
@@ -1066,7 +1074,9 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
   }
 
   Widget _buildDosEntry(Memo memo) {
-    final isTask = memo.isChecklist;
+    final isTaskMemo = memo.isChecklist;
+    final hasInlineChecklist = _contentHasChecklistLines(memo.content);
+    final shouldRenderChecklistLines = isTaskMemo || hasInlineChecklist;
     final links = _entryLinks(memo);
     final visibleTags = memo.tags
         .where((t) => t != 'habit' && t != 'goal')
@@ -1103,7 +1113,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: isTask ? _toggleTask : null,
+                        onTap: isTaskMemo ? _toggleTask : null,
                         child: Text(
                           '$type ${logroomTime(memo.createdAt)}',
                           style: mono(color: kMint, fontSize: 11),
@@ -1130,7 +1140,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  if (isTask)
+                  if (shouldRenderChecklistLines)
                     _DosChecklistContent(
                       content: memo.content,
                       onToggle: _toggleChecklistLine,
@@ -1382,7 +1392,7 @@ class _ChecklistContent extends StatelessWidget {
               Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => onEdit(i),
+                  onTap: () => onToggle(i),
                   onLongPress: () => onDelete(i),
                   child: Text(
                     text,

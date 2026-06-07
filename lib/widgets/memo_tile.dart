@@ -367,32 +367,9 @@ class _MemoTileState extends State<MemoTile> {
     );
   }
 
-  String _reorderChecklistFirst(String content) {
-    final lines = content.split('\n');
-    final listLines = lines
-        .where(
-          (l) =>
-              l.startsWith('- [ ] ') ||
-              l.startsWith('- [x] ') ||
-              l.startsWith('• '),
-        )
-        .toList();
-    final plainLines = lines
-        .where(
-          (l) =>
-              !l.startsWith('- [ ] ') &&
-              !l.startsWith('- [x] ') &&
-              !l.startsWith('• '),
-        )
-        .toList();
-    if (listLines.isEmpty || plainLines.isEmpty) return content;
-    return [...listLines, ...plainLines].join('\n');
-  }
-
   void _saveEdit() {
     final raw = _editController.text.trim();
-    final newContent = _reorderChecklistFirst(raw);
-    if (newContent.isNotEmpty) _a.onUpdate(widget.memo, newContent);
+    if (raw.isNotEmpty) _a.onUpdate(widget.memo, raw);
     if (_editFolderId != widget.memo.folderId && !_isSystemMemo) {
       _a.onMove(widget.memo, _editFolderId);
     }
@@ -1736,7 +1713,8 @@ class _MemoTileState extends State<MemoTile> {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: () => _startEditingCheckItem(lineIndex, text),
+              onTap: () => _toggleCheck(lineIndex),
+              onLongPress: () => _startEditingCheckItem(lineIndex, text),
               child: Text.rich(_parseInline(text, textStyle)),
             ),
           ),
