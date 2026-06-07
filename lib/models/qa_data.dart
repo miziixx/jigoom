@@ -12,7 +12,7 @@ class QaCategory {
 
 const kQaCategories = <QaCategory>[
   QaCategory(
-    label: '메모 기본',
+    label: '메모',
     items: [
       QaItem(id: 'memo_create', label: '메모 작성'),
       QaItem(id: 'memo_edit', label: '메모 수정'),
@@ -24,26 +24,22 @@ const kQaCategories = <QaCategory>[
     label: '체크리스트',
     items: [
       QaItem(id: 'check_create', label: '체크리스트 생성'),
-      QaItem(id: 'check_toggle', label: '항목 토글'),
-      QaItem(id: 'check_order', label: '순서 유지'),
+      QaItem(id: 'check_toggle', label: '체크박스 체크'),
+      QaItem(id: 'check_order', label: '순서 확인'),
     ],
   ),
   QaCategory(
-    label: '일정 / 알림',
+    label: '일정',
     items: [
-      QaItem(id: 'sched_create', label: '일정 생성 (!)'),
+      QaItem(id: 'sched_create', label: '일정 생성'),
       QaItem(id: 'sched_view', label: '일정 화면 확인'),
-      QaItem(id: 'reminder_set', label: '알림 설정 (🔔)'),
-      QaItem(id: 'reminder_cancel', label: '알림 취소'),
     ],
   ),
   QaCategory(
-    label: '태그 / 폴더',
+    label: '알림',
     items: [
-      QaItem(id: 'tag_add', label: '태그 추가'),
-      QaItem(id: 'tag_filter', label: '태그 필터'),
-      QaItem(id: 'folder_create', label: '폴더 생성'),
-      QaItem(id: 'folder_move', label: '폴더 이동'),
+      QaItem(id: 'reminder_set', label: '알림 생성'),
+      QaItem(id: 'reminder_cancel', label: '알림 삭제'),
     ],
   ),
   QaCategory(
@@ -56,11 +52,11 @@ const kQaCategories = <QaCategory>[
     ],
   ),
   QaCategory(
-    label: 'UI / 테마',
+    label: '테마 / UI',
     items: [
-      QaItem(id: 'theme_normal', label: 'Normal 테마'),
-      QaItem(id: 'theme_dos', label: 'DOS 테마'),
-      QaItem(id: 'theme_minimal', label: 'Minimal 테마'),
+      QaItem(id: 'theme_normal', label: '기본 테마 확인'),
+      QaItem(id: 'theme_dos', label: 'DOS 테마 확인'),
+      QaItem(id: 'theme_minimal', label: 'Minimal 테마 확인'),
       QaItem(id: 'today_dashboard', label: 'Today 대시보드'),
       QaItem(id: 'logroom_ui', label: 'Logroom UI'),
     ],

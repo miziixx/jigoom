@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../app_theme.dart';
 import '../flavor.dart';
-import '../models/changelog_entry.dart';
+import '../models/changelog_data.dart';
+import '../models/dev_log_data.dart';
 import '../models/folder.dart';
 import '../models/memo.dart';
-import '../models/qa_item.dart';
-import '../models/entry_display_mode.dart';
+import '../models/qa_data.dart';
 import '../services/storage_service.dart';
-import '../utils/logroom_entries.dart';
 
 // ──────────────────────────────────────────────────────────────────
 // Dev Center — nemo2test only
@@ -24,13 +23,13 @@ class DevCenterScreen extends StatefulWidget {
 
 class _DevCenterScreenState extends State<DevCenterScreen> {
   int _tab = 0;
-  static const _tabs = ['DEV', 'CHANGELOG', 'QA'];
+  static const _tabs = ['DEV LOG', 'CHANGELOG', 'QA'];
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: themeNotifier,
-      builder: (_, __, ___) => Scaffold(
+      builder: (_, _, _) => Scaffold(
         backgroundColor: kBg,
         body: SafeArea(
           child: Column(
@@ -112,7 +111,7 @@ class _DevCenterScreenState extends State<DevCenterScreen> {
   Widget _buildBody() {
     switch (_tab) {
       case 0:
-        return const _DevTab();
+        return const _DevLogTab();
       case 1:
         return const _ChangelogTab();
       case 2:
@@ -124,19 +123,22 @@ class _DevCenterScreenState extends State<DevCenterScreen> {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// DEV Tab
+// DEV LOG Tab
 // ──────────────────────────────────────────────────────────────────
 
-class _DevTab extends StatefulWidget {
-  const _DevTab();
+class _DevLogTab extends StatefulWidget {
+  const _DevLogTab();
 
   @override
-  State<_DevTab> createState() => _DevTabState();
+  State<_DevLogTab> createState() => _DevLogTabState();
 }
 
-class _DevTabState extends State<_DevTab> {
-  List<Memo>? _memos;
-  List<Folder>? _folders;
+class _DevLogTabState extends State<_DevLogTab> {
+  int _memoCount = 0;
+  int _folderCount = 0;
+  int _tagCount = 0;
+  int _todayCount = 0;
+  bool _loaded = false;
   late Timer _timer;
 
   @override
@@ -155,9 +157,23 @@ class _DevTabState extends State<_DevTab> {
   }
 
   Future<void> _load() async {
-    final memos = await StorageService.loadMemos();
-    final folders = await StorageService.loadFolders();
-    if (mounted) setState(() { _memos = memos; _folders = folders; });
+    final List<Memo> memos = await StorageService.loadMemos();
+    final List<Folder> folders = await StorageService.loadFolders();
+    final today = DateTime.now();
+    if (mounted) {
+      setState(() {
+        _memoCount = memos.length;
+        _folderCount = folders.length;
+        _tagCount = {for (final m in memos) ...m.tags}.length;
+        _todayCount = memos.where((m) {
+          final c = m.createdAt;
+          return c.year == today.year &&
+              c.month == today.month &&
+              c.day == today.day;
+        }).length;
+        _loaded = true;
+      });
+    }
   }
 
   String _fmtUptime() {
@@ -170,109 +186,111 @@ class _DevTabState extends State<_DevTab> {
 
   @override
   Widget build(BuildContext context) {
-    final memos = _memos;
-    final folders = _folders;
-    final loading = memos == null;
-
-    final totalMemos = memos?.length ?? 0;
-    final checklists = memos?.where((m) => m.isChecklist).length ?? 0;
-    final scheduled = memos?.where((m) => m.scheduledAt != null).length ?? 0;
-    final reminders = memos?.where((m) => m.reminderAt != null).length ?? 0;
-    final folderCount = folders?.length ?? 0;
-    final tags = memos == null
-        ? 0
-        : {for (final m in memos) ...m.tags}.length;
-
-    return SingleChildScrollView(
+    return ListView(
       padding: appInsetsSymmetric(horizontal: 20, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _group('BUILD', [
-            _row('FLAVOR', flavorName),
-            _row('VERSION', 'v2.0.0'),
-            _row('BUILD', 'debug'),
-          ]),
-          const SizedBox(height: 20),
-          _group('REPO', [
-            _row('COMMIT', kCurrentGitCommit),
-            _row('BRANCH', kCurrentBranch),
-            _row('LAST VER', kChangelog.last.version),
-          ]),
-          const SizedBox(height: 20),
-          _group('DATA', loading
-              ? [_row('', '로딩 중...')]
-              : [
-                  _row('MEMOS', '$totalMemos'),
-                  _row('CHECKLISTS', '$checklists'),
-                  _row('SCHEDULED', '$scheduled'),
-                  _row('REMINDERS', '$reminders'),
-                  _row('FOLDERS', '$folderCount'),
-                  _row('TAGS', '$tags'),
-                ]),
-          const SizedBox(height: 20),
-          _group('SETTINGS', [
-            ValueListenableBuilder<AppThemeMode>(
-              valueListenable: appThemeModeNotifier,
-              builder: (_, mode, __) => _row('THEME', mode.label),
-            ),
-            ValueListenableBuilder<EntryDisplayMode>(
-              valueListenable: entryDisplayModeNotifier,
-              builder: (_, mode, __) => _row('ENTRY MODE', mode.settingsLabel),
-            ),
-          ]),
-          const SizedBox(height: 20),
-          _group('RUNTIME', [
-            _row('UPTIME', _fmtUptime()),
-            _row('STARTED', _fmtDateTime(appStartTime)),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _group(String label, List<Widget> rows) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: mono(color: kDim, fontSize: 10, letterSpacing: 1.5)),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(border: Border.all(color: kBorder)),
-          child: Column(children: rows),
-        ),
+        _buildSummaryCard(),
+        const SizedBox(height: 24),
+        _buildMilestonesSection(),
       ],
     );
   }
 
-  Widget _row(String key, String value) {
+  Widget _buildSummaryCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: kBorder.withValues(alpha: 0.5))),
+        border: Border.all(color: kMint.withValues(alpha: 0.25)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 110,
-            child: Text(key, style: mono(color: kDim, fontSize: 11)),
+          Text(
+            kChangelog.last.version,
+            style: mono(color: kMint, fontSize: 22, letterSpacing: 1),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: mono(color: kText, fontSize: 11),
-              textAlign: TextAlign.right,
-            ),
+          Text('현재 버전', style: mono(color: kDim, fontSize: 10, letterSpacing: 1)),
+          const SizedBox(height: 14),
+          if (_loaded) _buildStatGrid() else Text('로딩 중...', style: mono(color: kDim, fontSize: 11)),
+          const SizedBox(height: 12),
+          Container(height: 1, color: kBorder.withValues(alpha: 0.4)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text('앱 실행시간  ', style: mono(color: kDim, fontSize: 10)),
+              Text(_fmtUptime(), style: mono(color: kText, fontSize: 11)),
+            ],
           ),
         ],
       ),
     );
   }
 
-  String _fmtDateTime(DateTime dt) {
-    final d = '${dt.year}-${dt.month.toString().padLeft(2,'0')}-${dt.day.toString().padLeft(2,'0')}';
-    final t = '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
-    return '$d $t';
+  Widget _buildStatGrid() {
+    final items = [
+      ('메모', '$_memoCount'),
+      ('폴더', '$_folderCount'),
+      ('태그', '$_tagCount'),
+      ('오늘 기록', '$_todayCount'),
+    ];
+    return Row(
+      children: items
+          .map(
+            (e) => Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(e.$2, style: mono(color: kText, fontSize: 18)),
+                  Text(e.$1, style: mono(color: kDim, fontSize: 10)),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildMilestonesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('개발 이력', style: mono(color: kDim, fontSize: 10, letterSpacing: 1.5)),
+        const SizedBox(height: 12),
+        ...kDevMilestones.map(_buildMilestoneBlock),
+      ],
+    );
+  }
+
+  Widget _buildMilestoneBlock(DevMilestone milestone) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            milestone.title,
+            style: mono(color: kMint, fontSize: 11, letterSpacing: 1),
+          ),
+          const SizedBox(height: 6),
+          ...milestone.items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 3),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('- ', style: mono(color: kDim, fontSize: 11)),
+                  Expanded(
+                    child: Text(item, style: mono(color: kText, fontSize: 11, height: 1.5)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(height: 1, color: kBorder.withValues(alpha: 0.3)),
+        ],
+      ),
+    );
   }
 }
 
@@ -286,57 +304,10 @@ class _ChangelogTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entries = kChangelog.reversed.toList();
-    final totalChanges = kChangelog.fold<int>(0, (s, e) => s + e.changes.length);
     return ListView.builder(
       padding: appInsetsSymmetric(horizontal: 20, vertical: 16),
-      itemCount: entries.length + 1,
-      itemBuilder: (_, i) {
-        if (i == 0) {
-          return _HistorySummaryCard(
-            versionCount: entries.length,
-            changeCount: totalChanges,
-          );
-        }
-        return _ChangelogCard(entry: entries[i - 1]);
-      },
-    );
-  }
-}
-
-class _HistorySummaryCard extends StatelessWidget {
-  final int versionCount;
-  final int changeCount;
-  const _HistorySummaryCard({required this.versionCount, required this.changeCount});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(border: Border.all(color: kMint.withValues(alpha: 0.3))),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('PROJECT HISTORY', style: mono(color: kMint, fontSize: 10, letterSpacing: 1.5)),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _statCol('VERSIONS', '$versionCount')),
-              Expanded(child: _statCol('CHANGES', '$changeCount')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statCol(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(value, style: mono(color: kText, fontSize: 22)),
-        Text(label, style: mono(color: kDim, fontSize: 10, letterSpacing: 1)),
-      ],
+      itemCount: entries.length,
+      itemBuilder: (_, i) => _ChangelogCard(entry: entries[i]),
     );
   }
 }
@@ -348,31 +319,43 @@ class _ChangelogCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Text(entry.date, style: mono(color: kDim, fontSize: 10)),
+              const SizedBox(width: 10),
               Text(
                 entry.version,
                 style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
               ),
-              if (entry.date != null) ...[
-                const SizedBox(width: 10),
-                Text(entry.date!, style: mono(color: kDim, fontSize: 10)),
-              ],
-              if (entry.category != null) ...[
-                const SizedBox(width: 10),
-                Text(
-                  '[${entry.category}]',
-                  style: mono(color: kTeal, fontSize: 10),
-                ),
-              ],
             ],
           ),
-          const SizedBox(height: 6),
-          ...entry.changes.map(
+          const SizedBox(height: 8),
+          if (entry.features.isNotEmpty) _section('기능', entry.features),
+          if (entry.fixes.isNotEmpty) _section('수정', entry.fixes),
+          if (entry.design.isNotEmpty) _section('디자인', entry.design),
+          const SizedBox(height: 4),
+          Container(height: 1, color: kBorder.withValues(alpha: 0.4)),
+        ],
+      ),
+    );
+  }
+
+  Widget _section(String label, List<String> items) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '[$label]',
+            style: mono(color: kTeal, fontSize: 10, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 4),
+          ...items.map(
             (c) => Padding(
               padding: const EdgeInsets.only(bottom: 3),
               child: Row(
@@ -386,15 +369,6 @@ class _ChangelogCard extends StatelessWidget {
               ),
             ),
           ),
-          if (entry.developerNote != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '⚙ ${entry.developerNote}',
-              style: mono(color: kDim, fontSize: 10),
-            ),
-          ],
-          const SizedBox(height: 4),
-          Container(height: 1, color: kBorder.withValues(alpha: 0.4)),
         ],
       ),
     );
@@ -551,9 +525,7 @@ class _QaTabState extends State<_QaTab> {
     final pct = total == 0 ? 0.0 : done / total;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: kBorder)),
-      ),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: kBorder))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -650,11 +622,7 @@ class _QaTabState extends State<_QaTab> {
           children: [
             SizedBox(width: 80, child: Text(key, style: mono(color: kDim, fontSize: 11))),
             Expanded(
-              child: Text(
-                value,
-                style: mono(color: kText, fontSize: 11),
-                textAlign: TextAlign.right,
-              ),
+              child: Text(value, style: mono(color: kText, fontSize: 11), textAlign: TextAlign.right),
             ),
             const SizedBox(width: 6),
             Text('›', style: mono(color: kDim, fontSize: 11)),
@@ -669,10 +637,7 @@ class _QaTabState extends State<_QaTab> {
       padding: const EdgeInsets.only(top: 16, bottom: 8),
       child: GestureDetector(
         onTap: _resetAll,
-        child: Text(
-          '전체 초기화',
-          style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 10),
-        ),
+        child: Text('전체 초기화', style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 10)),
       ),
     );
   }
@@ -696,10 +661,7 @@ class _QaCategorySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            category.label,
-            style: mono(color: kDim, fontSize: 10, letterSpacing: 1.2),
-          ),
+          Text(category.label, style: mono(color: kDim, fontSize: 10, letterSpacing: 1.2)),
           const SizedBox(height: 6),
           ...category.items.map(
             (item) => _QaCheckRow(
@@ -719,11 +681,7 @@ class _QaCheckRow extends StatelessWidget {
   final bool checked;
   final VoidCallback onToggle;
 
-  const _QaCheckRow({
-    required this.item,
-    required this.checked,
-    required this.onToggle,
-  });
+  const _QaCheckRow({required this.item, required this.checked, required this.onToggle});
 
   @override
   Widget build(BuildContext context) {
@@ -736,19 +694,12 @@ class _QaCheckRow extends StatelessWidget {
           children: [
             Text(
               checked ? '[x]' : '[ ]',
-              style: mono(
-                color: checked ? kMint : kDim,
-                fontSize: 11,
-                letterSpacing: 0.5,
-              ),
+              style: mono(color: checked ? kMint : kDim, fontSize: 11, letterSpacing: 0.5),
             ),
             const SizedBox(width: 10),
             Text(
               item.label,
-              style: mono(
-                color: checked ? kText : kDim.withValues(alpha: 0.8),
-                fontSize: 11,
-              ),
+              style: mono(color: checked ? kText : kDim.withValues(alpha: 0.8), fontSize: 11),
             ),
           ],
         ),
