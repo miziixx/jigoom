@@ -205,8 +205,8 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
   Widget _buildHourToc() {
     return Container(
       color: kBg,
-      // aligns with entry content (26px lane + 8px = 34px, use 34)
-      padding: const EdgeInsets.fromLTRB(34, 2, 14, 6),
+      // aligns with entry content (34px lane + 8px = 42px)
+      padding: const EdgeInsets.fromLTRB(42, 2, 14, 6),
       child: Wrap(
         spacing: 10,
         runSpacing: 2,

@@ -1643,12 +1643,12 @@ String _contentForDraftKind(String raw) {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Timeline-style accent dot
+                // Timeline-style accent dot (7px matches HTML q-dot)
                 Padding(
-                  padding: const EdgeInsets.only(top: 5, right: 9),
+                  padding: const EdgeInsets.only(top: 4, right: 8),
                   child: Container(
-                    width: 5,
-                    height: 5,
+                    width: 7,
+                    height: 7,
                     decoration: BoxDecoration(
                       color: kAccent.withValues(alpha: 0.55),
                       shape: BoxShape.circle,

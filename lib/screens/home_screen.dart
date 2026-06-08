@@ -1713,15 +1713,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Timeline lane — same 26px width as _LogroomTimelineLane
+            // Timeline lane — same 34px width as _LogroomTimelineLane
             SizedBox(
-              width: 26,
+              width: 34,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   // Continuous vertical line
                   Positioned(
-                    left: 10.5,
+                    left: 15.5,
                     top: 0,
                     bottom: 0,
                     width: 1,
@@ -1729,7 +1729,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   // Larger hollow dot — signals a time group boundary
                   Positioned(
-                    left: 11 - 4,
+                    left: 16 - 4,
                     top: 10,
                     child: Container(
                       width: 8,

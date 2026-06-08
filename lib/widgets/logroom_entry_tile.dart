@@ -808,7 +808,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
               ],
             ),      // Row
           ),        // IntrinsicHeight
-          Container(height: 1, color: kBorder.withValues(alpha: 0.2)),
+          // gap only — no separator line (mirrors HTML gap-en between entries)
         ],
       ),
     );
@@ -1287,7 +1287,11 @@ class _FullContentText extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = Text(
       text,
-      style: mono(color: kText, fontSize: tsBody, height: 1.45),
+      style: mono(
+        color: kText.withValues(alpha: 0.82),
+        fontSize: tsBody,
+        height: 1.6,
+      ),
       softWrap: true,
     );
 
@@ -2135,8 +2139,8 @@ class _LogroomTimelineLane extends StatelessWidget {
 
   const _LogroomTimelineLane({required this.dotColor});
 
-  static const double _width   = 26.0; // total lane width
-  static const double _lineX   = 11.0; // dot/line center from left edge
+  static const double _width   = 34.0; // total lane width (HTML --tl-pl 38px equiv)
+  static const double _lineX   = 16.0; // dot/line center (HTML --tl-x 18px equiv)
   static const double _dotSize =  5.0;
   static const double _dotTop  = 12.0; // distance from top of entry to dot
 
