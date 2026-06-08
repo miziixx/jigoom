@@ -195,6 +195,7 @@ class StorageService {
           border: _toInt(border),
           teal: _toInt(teal),
           mint: _toInt(mint),
+          accent: _toInt(kAccent),
         ),
       );
     }

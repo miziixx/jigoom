@@ -40,9 +40,17 @@ class MemoInputActivity : Activity() {
         getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
     }
 
-    private val bgColor     get() = readColor("widget_bg",     Color.parseColor("#EDF2ED"))
-    private val textColor   get() = readColor("widget_text",   Color.parseColor("#556B2F"))
-    private val dimColor    get() = readColor("widget_dim",    Color.parseColor("#7A8F5A"))
+    private fun isLogroomFlavor(): Boolean =
+        BuildConfig.FLAVOR == "logroomtemp"
+
+    // v3 defaults used when widget_bg hasn't been synced yet (first launch)
+    private val defaultBg   get() = if (isLogroomFlavor()) Color.parseColor("#0C0B09") else Color.parseColor("#EDF2ED")
+    private val defaultText get() = if (isLogroomFlavor()) Color.parseColor("#EDE8DF") else Color.parseColor("#556B2F")
+    private val defaultDim  get() = if (isLogroomFlavor()) Color.parseColor("#5A5445") else Color.parseColor("#7A8F5A")
+
+    private val bgColor     get() = readColor("widget_bg",     defaultBg)
+    private val textColor   get() = readColor("widget_text",   defaultText)
+    private val dimColor    get() = readColor("widget_dim",    defaultDim)
     private val borderColor get() = readColor("widget_border", Color.parseColor("#B0C4B0"))
     private val tealColor   get() = readColor("widget_teal",   Color.parseColor("#527A22"))
     private val mintColor   get() = readColor("widget_mint",   Color.parseColor("#556B2F"))

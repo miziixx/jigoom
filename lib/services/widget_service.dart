@@ -34,6 +34,7 @@ class WidgetService {
     required int border,
     required int teal,
     required int mint,
+    int? accent,
   }) async {
     if (kIsWeb) return;
     try {
@@ -43,6 +44,9 @@ class WidgetService {
       await HomeWidget.saveWidgetData<int>('widget_border', border);
       await HomeWidget.saveWidgetData<int>('widget_teal', teal);
       await HomeWidget.saveWidgetData<int>('widget_mint', mint);
+      if (accent != null) {
+        await HomeWidget.saveWidgetData<int>('widget_accent', accent);
+      }
       await HomeWidget.updateWidget(qualifiedAndroidName: _androidProvider);
       await HomeWidget.updateWidget(qualifiedAndroidName: _listProvider);
       await HomeWidget.updateWidget(qualifiedAndroidName: _calendarProvider);

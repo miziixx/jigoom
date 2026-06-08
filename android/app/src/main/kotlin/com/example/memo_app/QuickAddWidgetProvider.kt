@@ -23,7 +23,7 @@ class QuickAddWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_quick_add)
 
         views.setInt(R.id.qa_root, "setBackgroundColor", c.bg)
-        views.setTextColor(R.id.qa_plus, c.text)
+        views.setTextColor(R.id.qa_plus, c.accent)
         views.setTextColor(R.id.qa_label, c.dim)
 
         val intent = Intent(context, MemoInputActivity::class.java).apply {

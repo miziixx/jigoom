@@ -26,6 +26,7 @@ object WidgetDataHelper {
         val border: Int,
         val teal: Int,
         val mint: Int,
+        val accent: Int,
     )
 
     fun widgetColors(context: Context): WidgetColors {
@@ -37,6 +38,7 @@ object WidgetDataHelper {
             border = readColor(p, "widget_border", Color.parseColor("#B0C4B0")),
             teal   = readColor(p, "widget_teal",   Color.parseColor("#527A22")),
             mint   = readColor(p, "widget_mint",   Color.parseColor("#556B2F")),
+            accent = readColor(p, "widget_accent", Color.parseColor("#B8882A")),
         )
     }
 
