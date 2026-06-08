@@ -16,6 +16,7 @@ class StorageService {
   static const _tabsKey = 'tabs_v1';
   static const _bgKey = 'color_bg';
   static const _textKey = 'color_text';
+  static const _accentKey = 'color_accent';
   static const _fontFamilyKey = 'font_family';
   static const _fontSizeKey = 'font_size';
   static const _spacingKey = 'spacing';
@@ -205,6 +206,17 @@ class StorageService {
     final textInt = prefs.getInt(_textKey);
     if (bgInt == null || textInt == null) return null;
     return (Color(bgInt), Color(textInt));
+  }
+
+  static Future<void> saveAccent(Color accent) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_accentKey, _toInt(accent));
+  }
+
+  static Future<Color?> loadAccent() async {
+    final prefs = await SharedPreferences.getInstance();
+    final v = prefs.getInt(_accentKey);
+    return v == null ? null : Color(v);
   }
 
   static int _toInt(Color c) {

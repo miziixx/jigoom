@@ -34,6 +34,12 @@ import 'today_screen.dart';
 // Below this width → mobile overlay sidebar; above → desktop inline sidebar
 const _kNarrowBreak = 700.0;
 
+// Logroom v3: hour separator marker inserted between memo entries
+class _HourMarker {
+  final int hour;
+  const _HourMarker(this.hour);
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -1670,7 +1676,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _memoKeys.putIfAbsent(m.id, () => GlobalKey());
         }
       }
-      if (!collapsed) items.addAll(entry.value);
+      if (!collapsed) {
+        int? lastHour;
+        for (final m in entry.value) {
+          final h = _listSortDate(m).hour;
+          if (lastHour == null || h != lastHour) {
+            items.add(_HourMarker(h));
+            lastHour = h;
+          }
+          items.add(m);
+        }
+      }
     }
     return items;
   }
@@ -1685,6 +1701,78 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         .map((h) => HourSlot(hour: h, count: buckets[h]!.length, firstMemoId: buckets[h]!.first))
         .toList();
   }
+
+  // v3 hour group marker — inserted between memo entries when hour changes.
+  // Left lane (26px) mirrors _LogroomTimelineLane: full-height line + larger dot.
+  // Right side: time text + faint horizontal rule. Does not collapse.
+  Widget _buildHourMarker(int hour) {
+    final label = '${hour.toString().padLeft(2, '0')}:00';
+    return Container(
+      color: kBg,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Timeline lane — same 26px width as _LogroomTimelineLane
+            SizedBox(
+              width: 26,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Continuous vertical line
+                  Positioned(
+                    left: 10.5,
+                    top: 0,
+                    bottom: 0,
+                    width: 1,
+                    child: Container(color: kTlLine),
+                  ),
+                  // Larger hollow dot — signals a time group boundary
+                  Positioned(
+                    left: 11 - 4,
+                    top: 10,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: kBg4,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: kTlDot, width: 1),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Time label + horizontal rule
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(6, 7, 12, 7),
+                child: Row(
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: kFontFamily,
+                        fontSize: tsMeta * (kFontSize / 13.0),
+                        color: kText3,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(height: 1, color: kTlLine),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   void _scrollToMemo(String memoId) {
     void onFound() {
@@ -1895,7 +1983,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (bgInt != null && textInt != null) {
         final bg = Color(bgInt);
         final text = Color(textInt);
-        applyColors(bg, text);
+        if (isLogroomUi) {
+          applyColorsV3(bg, text, kAccent);
+        } else {
+          applyColors(bg, text);
+        }
         StorageService.saveColors(bg, text);
       }
       final fontFamily = settings['font_family'] as String?;
@@ -1934,7 +2026,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           initialFontSize: kFontSize,
           initialSpacing: kSpacing,
           onSave: (bg, text, fontFamily, fontSize, spacing, tabLocked) {
-            applyColors(bg, text);
+            if (isLogroomUi) {
+              applyColorsV3(bg, text, kAccent);
+            } else {
+              applyColors(bg, text);
+            }
             applySpacing(spacing);
             StorageService.saveColors(bg, text);
             StorageService.saveFont(fontFamily, fontSize);
@@ -2637,6 +2733,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       : const [],
                                   onHourTap: isLogroomUi ? _scrollToMemo : null,
                                 );
+                              } else if (item is _HourMarker) {
+                                return _buildHourMarker(item.hour);
                               } else if (item is Memo) {
                                 final memoKey = _memoKeys.putIfAbsent(
                                   item.id,

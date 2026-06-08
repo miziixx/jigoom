@@ -452,29 +452,52 @@ class _SidebarState extends State<Sidebar> {
         children: [
           // Brand header
           Container(
-            height: 44,
+            height: 48,
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: kBorder, width: 1)),
+              border: Border(bottom: BorderSide(color: kTlLine)),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 15),
+            padding: const EdgeInsets.fromLTRB(15, 0, 12, 0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'LOGROOM',
-                  style: mono(
-                    color: kText,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2.5,
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: kAccent.withValues(alpha: 0.7),
+                    shape: BoxShape.circle,
                   ),
                 ),
-                // streak indicator
-                if (widget.streak > 0)
-                  Text(
-                    '${widget.streak}d ↗',
-                    style: mono(color: kDim, fontSize: 9),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    'LOGROOM',
+                    style: mono(
+                      color: kText2,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2.0,
+                    ),
                   ),
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      dateStr,
+                      style: mono(color: kText3, fontSize: 8, height: 1.3),
+                    ),
+                    if (widget.streak > 0)
+                      Text(
+                        '${widget.streak}d',
+                        style: mono(
+                          color: kText3.withValues(alpha: 0.65),
+                          fontSize: 8,
+                          height: 1.3,
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -614,20 +637,6 @@ class _SidebarState extends State<Sidebar> {
                   onTap: widget.onSettingsTap,
                 ),
                 _SdSep(),
-
-                // System info block
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(15, 5, 15, 5),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SdInfoLine('entries', '${widget.noteCount}'),
-                      _SdInfoLine('tasks', '${widget.taskCount}'),
-                      _SdInfoLine('streak', '${widget.streak}d'),
-                      _SdInfoLine('date', dateStr),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -1675,15 +1684,10 @@ class _SdSecHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(15, 8, 15, 2),
+      padding: const EdgeInsets.fromLTRB(15, 10, 15, 2),
       child: Text(
         label,
-        style: mono(
-          color: kDim.withValues(alpha: 0.7),
-          fontSize: 9,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
+        style: mono(color: kText3, fontSize: 9, letterSpacing: 1.2),
       ),
     );
   }
@@ -1696,8 +1700,8 @@ class _SdSep extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 1,
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 15),
-      color: kBorder.withValues(alpha: 0.5),
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      color: kTlLine,
     );
   }
 }
@@ -1728,10 +1732,10 @@ class _SdRowState extends State<_SdRow> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isActive ? kMint : (_hovered ? kText : kDim);
+    final fg = widget.isActive ? kAccent : (_hovered ? kText2 : kText3);
     final bg = widget.isActive
-        ? kMint.withValues(alpha: 0.08)
-        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+        ? kAccent.withValues(alpha: 0.07)
+        : (_hovered ? kBorder.withValues(alpha: 0.12) : Colors.transparent);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -1742,38 +1746,66 @@ class _SdRowState extends State<_SdRow> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           color: bg,
-          padding: const EdgeInsets.fromLTRB(15, 6, 10, 6),
-          child: Row(
-            children: [
-              // active indicator bar (HTML .sdi.ac::before)
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 100),
-                width: 2,
-                height: 14,
-                color: widget.isActive ? kMint : Colors.transparent,
-                margin: const EdgeInsets.only(right: 8),
-              ),
-              // symbol
-              if (widget.sym.isNotEmpty) ...[
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // timeline lane
                 SizedBox(
-                  width: 15,
-                  child: Text(
-                    widget.sym,
-                    style: mono(color: kDim, fontSize: 11),
+                  width: 26,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Positioned(
+                        left: 12, top: 0, bottom: 0, width: 1,
+                        child: Container(color: kTlLine),
+                      ),
+                      Positioned(
+                        left: 8, top: 0, bottom: 0, width: 8,
+                        child: Center(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 100),
+                            width: 7, height: 7,
+                            decoration: BoxDecoration(
+                              color: widget.isActive
+                                  ? kAccent.withValues(alpha: 0.65)
+                                  : kBg4,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: widget.isActive ? kAccent : kTlDot,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 7),
+                // content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 7, 10, 7),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.label,
+                            style: mono(color: fg, fontSize: 11),
+                          ),
+                        ),
+                        if (widget.count != null)
+                          Text(
+                            '${widget.count}',
+                            style: mono(color: kText4, fontSize: 9),
+                          ),
+                        if (widget.trailing != null) widget.trailing!,
+                      ],
+                    ),
+                  ),
+                ),
               ],
-              // label
-              Expanded(
-                child: Text(widget.label, style: mono(color: fg, fontSize: 11)),
-              ),
-              // count badge
-              if (widget.count != null)
-                Text('${widget.count}', style: mono(color: kDim, fontSize: 9)),
-              // optional trailing widget (expand toggle)
-              if (widget.trailing != null) widget.trailing!,
-            ],
+            ),
           ),
         ),
       ),
@@ -1801,10 +1833,10 @@ class _SdSubRowState extends State<_SdSubRow> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isActive ? kMint : (_hovered ? kText : kDim);
+    final fg = widget.isActive ? kAccent : (_hovered ? kText2 : kText3);
     final bg = widget.isActive
-        ? kMint.withValues(alpha: 0.08)
-        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+        ? kAccent.withValues(alpha: 0.07)
+        : (_hovered ? kBorder.withValues(alpha: 0.12) : Colors.transparent);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -1827,34 +1859,6 @@ class _SdSubRowState extends State<_SdSubRow> {
   }
 }
 
-class _SdInfoLine extends StatelessWidget {
-  final String label;
-  final String value;
-  const _SdInfoLine(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 56,
-            child: Text(
-              label,
-              style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 9),
-            ),
-          ),
-          Text(
-            ': ',
-            style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 9),
-          ),
-          Text(value, style: mono(color: kDim, fontSize: 9)),
-        ],
-      ),
-    );
-  }
-}
 
 // Habits row for logroom sidebar (shows streak info)
 class _SdHabitRow extends StatefulWidget {
@@ -1883,10 +1887,10 @@ class _SdHabitRowState extends State<_SdHabitRow> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isActive ? kMint : (_hovered ? kText : kDim);
+    final fg = widget.isActive ? kAccent : (_hovered ? kText2 : kText3);
     final bg = widget.isActive
-        ? kMint.withValues(alpha: 0.08)
-        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+        ? kAccent.withValues(alpha: 0.07)
+        : (_hovered ? kBorder.withValues(alpha: 0.12) : Colors.transparent);
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -1897,34 +1901,65 @@ class _SdHabitRowState extends State<_SdHabitRow> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           color: bg,
-          padding: const EdgeInsets.fromLTRB(15, 6, 10, 6),
-          child: Row(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 100),
-                width: 2,
-                height: 14,
-                color: widget.isActive ? kMint : Colors.transparent,
-                margin: const EdgeInsets.only(right: 8),
-              ),
-              if (!isNemo2Test) ...[
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                 SizedBox(
-                  width: 15,
-                  child: Text('○', style: mono(color: kDim, fontSize: 11)),
+                  width: 26,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Positioned(
+                        left: 12, top: 0, bottom: 0, width: 1,
+                        child: Container(color: kTlLine),
+                      ),
+                      Positioned(
+                        left: 8, top: 0, bottom: 0, width: 8,
+                        child: Center(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 100),
+                            width: 7, height: 7,
+                            decoration: BoxDecoration(
+                              color: widget.isActive
+                                  ? kAccent.withValues(alpha: 0.65)
+                                  : kBg4,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: widget.isActive ? kAccent : kTlDot,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 7),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 7, 10, 7),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text('HABITS', style: mono(color: fg, fontSize: 11)),
+                        ),
+                        if (widget.habitActivated && widget.streak > 0)
+                          Text(
+                            '${widget.streak}d',
+                            style: mono(color: kText3, fontSize: 9),
+                          )
+                        else if (widget.count > 0)
+                          Text(
+                            '${widget.count}',
+                            style: mono(color: kText4, fontSize: 9),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
-              Expanded(
-                child: Text('HABITS', style: mono(color: fg, fontSize: 11)),
-              ),
-              if (widget.habitActivated && widget.streak > 0)
-                Text(
-                  '${widget.streak}d↗',
-                  style: mono(color: kTeal, fontSize: 9),
-                )
-              else if (widget.count > 0)
-                Text('${widget.count}', style: mono(color: kDim, fontSize: 9)),
-            ],
+            ),
           ),
         ),
       ),
@@ -1956,10 +1991,10 @@ class _SdGoalRowState extends State<_SdGoalRow> {
   @override
   Widget build(BuildContext context) {
     final locked = !widget.goalActivated && widget.dayCount < 14;
-    final fg = widget.isActive ? kMint : (_hovered ? kText : kDim);
+    final fg = widget.isActive ? kAccent : (_hovered ? kText2 : kText3);
     final bg = widget.isActive
-        ? kMint.withValues(alpha: 0.08)
-        : (_hovered ? kBorder.withValues(alpha: 0.22) : Colors.transparent);
+        ? kAccent.withValues(alpha: 0.07)
+        : (_hovered ? kBorder.withValues(alpha: 0.12) : Colors.transparent);
 
     return Opacity(
       opacity: locked ? 0.5 : 1.0,
@@ -1972,37 +2007,62 @@ class _SdGoalRowState extends State<_SdGoalRow> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 100),
             color: bg,
-            padding: const EdgeInsets.fromLTRB(15, 6, 10, 6),
-            child: Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 100),
-                  width: 2,
-                  height: 14,
-                  color: widget.isActive ? kMint : Colors.transparent,
-                  margin: const EdgeInsets.only(right: 8),
-                ),
-                if (!isNemo2Test) ...[
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   SizedBox(
-                    width: 15,
-                    child: Text('◇', style: mono(color: kDim, fontSize: 11)),
-                  ),
-                  const SizedBox(width: 7),
-                ],
-                Expanded(
-                  child: Text('GOALS', style: mono(color: fg, fontSize: 11)),
-                ),
-                if (!widget.goalActivated && !locked)
-                  Text('NEW', style: mono(color: kTeal, fontSize: 9))
-                else if (locked)
-                  Text(
-                    '${14 - widget.dayCount}d',
-                    style: mono(
-                      color: kDim.withValues(alpha: 0.5),
-                      fontSize: 9,
+                    width: 26,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Positioned(
+                          left: 12, top: 0, bottom: 0, width: 1,
+                          child: Container(color: kTlLine),
+                        ),
+                        Positioned(
+                          left: 8, top: 0, bottom: 0, width: 8,
+                          child: Center(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 100),
+                              width: 7, height: 7,
+                              decoration: BoxDecoration(
+                                color: widget.isActive
+                                    ? kAccent.withValues(alpha: 0.65)
+                                    : kBg4,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: widget.isActive ? kAccent : kTlDot,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-              ],
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 7, 10, 7),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text('GOALS', style: mono(color: fg, fontSize: 11)),
+                          ),
+                          if (!widget.goalActivated && !locked)
+                            Text('NEW', style: mono(color: kText3, fontSize: 9))
+                          else if (locked)
+                            Text(
+                              '${14 - widget.dayCount}d',
+                              style: mono(color: kText4, fontSize: 9),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -14,18 +14,23 @@ void main() async {
   // Flutter가 status bar / navigation bar 뒤까지 그리도록 설정
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await initFlavor();
+  // Theme mode first — so saved colors applied after can override DOS/Minimal defaults
+  applyAppThemeMode(await StorageService.loadAppThemeMode());
   final colors = await StorageService.loadColors();
-  if (colors != null) {
+  final savedAccent = await StorageService.loadAccent();
+  if (isLogroomUi) {
+    final bg = colors?.$1 ?? const Color(0xFF0C0B09);
+    final text = colors?.$2 ?? const Color(0xFFEDE8DF);
+    final ac = savedAccent ?? const Color(0xFFB8882A);
+    applyColorsV3(bg, text, ac);
+  } else if (colors != null) {
     applyColors(colors.$1, colors.$2);
-  } else if (isLogroom) {
-    applyLogroomFinalDefaults();
   }
   final font = await StorageService.loadFont();
   if (font != null) applyFont(font.$1, font.$2);
   final spacing = await StorageService.loadSpacing();
   if (spacing != null) applySpacing(spacing);
   applyEntryDisplayMode(await StorageService.loadEntryDisplayMode());
-  applyAppThemeMode(await StorageService.loadAppThemeMode());
   await NotificationService.init();
   await WidgetService.init();
   // Sync system UI overlay with current theme (also synced on every applyColors call)

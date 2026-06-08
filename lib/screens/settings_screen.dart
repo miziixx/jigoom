@@ -63,6 +63,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late String _fontFamily;
   late double _fontSize;
   late double _spacing;
+  late Color _accent;
+  late TextEditingController _accentCtrl;
   late EntryDisplayMode _entryDisplayMode;
   late EntryDisplayMode _initialEntryDisplayMode;
   late AppThemeMode _themeMode;
@@ -89,8 +91,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _entryDisplayMode = _initialEntryDisplayMode;
     _initialThemeMode = appThemeModeNotifier.value;
     _themeMode = _initialThemeMode;
+    _accent = kAccent;
     _bgCtrl = TextEditingController(text: _toHex(_bg));
     _textCtrl = TextEditingController(text: _toHex(_text));
+    _accentCtrl = TextEditingController(text: _toHex(_accent));
     _palettes = List.filled(StorageService.paletteSlotCount, null);
     _loadPalettes();
   }
@@ -108,6 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _bgCtrl.dispose();
     _textCtrl.dispose();
+    _accentCtrl.dispose();
     _versionTapTimer?.cancel();
     if (!_saved) {
       // Revert real-time preview changes on cancel
@@ -171,6 +176,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     }
     applyColors(_bg, c); // real-time preview
+  }
+
+  void _setAccent(Color c) {
+    setState(() => _accent = c);
+    final hex = _toHex(c);
+    if (_accentCtrl.text.toUpperCase() != hex) {
+      _accentCtrl.value = _accentCtrl.value.copyWith(
+        text: hex,
+        selection: TextSelection.collapsed(offset: hex.length),
+      );
+    }
+    applyColorsV3(_bg, _text, c);
+  }
+
+  void _applyPreset(Color bg, Color text, Color accent) {
+    setState(() {
+      _bg = bg;
+      _text = text;
+      _accent = accent;
+      _bgCtrl.text = _toHex(bg);
+      _textCtrl.text = _toHex(text);
+      _accentCtrl.text = _toHex(accent);
+    });
+    applyColorsV3(bg, text, accent);
   }
 
   // ── Palette actions ────────────────────────────────
@@ -249,6 +278,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _saved = true;
     StorageService.saveEntryDisplayMode(_entryDisplayMode);
     StorageService.saveAppThemeMode(_themeMode);
+    if (isLogroomUi) StorageService.saveAccent(_accent);
     widget.onSave(_bg, _text, _fontFamily, _fontSize, _spacing, _tabLocked);
     Navigator.pop(context);
   }
@@ -435,6 +465,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── V3 PRESETS (logroomUi only) ──────────
+                      if (isLogroomUi) ...[
+                        _SectionHeader(label: '색상 프리셋'),
+                        const SizedBox(height: 12),
+                        _V3PresetGrid(onSelect: _applyPreset),
+                        const SizedBox(height: 22),
+                      ],
+
                       // ── SAVED PALETTES ───────────────────────
                       _SectionHeader(label: '저장한 색상'),
                       const SizedBox(height: 14),
@@ -494,6 +532,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onBChanged: (v) =>
                             _setText(_fromRGB(_r(_text), _g(_text), v)),
                       ),
+
+                      if (isLogroomUi) ...[
+                        const SizedBox(height: 20),
+                        _AccentSection(
+                          accent: _accent,
+                          hexCtrl: _accentCtrl,
+                          onAccentChanged: _setAccent,
+                          onHexInput: (raw) {
+                            final c = _parseHex(raw);
+                            if (c != null) _setAccent(c);
+                          },
+                          rVal: _r(_accent),
+                          gVal: _g(_accent),
+                          bVal: _b(_accent),
+                          onRChanged: (v) =>
+                              _setAccent(_fromRGB(v, _g(_accent), _b(_accent))),
+                          onGChanged: (v) =>
+                              _setAccent(_fromRGB(_r(_accent), v, _b(_accent))),
+                          onBChanged: (v) =>
+                              _setAccent(_fromRGB(_r(_accent), _g(_accent), v)),
+                        ),
+                      ],
 
                       const SizedBox(height: 20),
 
@@ -1747,6 +1807,154 @@ class _PaletteSlotCardState extends State<_PaletteSlotCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// v3 Preset grid (logroomUi only)
+// ──────────────────────────────────────────────────────────────────
+
+typedef _PresetTriplet = (Color bg, Color text, Color accent);
+
+const List<(String, _PresetTriplet)> _v3Presets = [
+  ('Default',  (Color(0xFF0C0B09), Color(0xFFEDE8DF), Color(0xFFB8882A))),
+  ('Slate',    (Color(0xFF0D0F12), Color(0xFFE0E6F0), Color(0xFF6891C8))),
+  ('Forest',   (Color(0xFF0A0E0B), Color(0xFFD8EAD8), Color(0xFF5A9E5A))),
+  ('Dusk',     (Color(0xFF120D12), Color(0xFFEDD8F0), Color(0xFFA06AB0))),
+  ('Sepia',    (Color(0xFFF5F0E8), Color(0xFF3C3020), Color(0xFF8A6030))),
+  ('Paper',    (Color(0xFFFAFAFA), Color(0xFF2A2A2A), Color(0xFF4A80C8))),
+  ('Ash',      (Color(0xFF0F0F0F), Color(0xFFD8D8D8), Color(0xFF888888))),
+  ('Ember',    (Color(0xFF110A05), Color(0xFFF0DCC8), Color(0xFFC85818))),
+];
+
+class _V3PresetGrid extends StatelessWidget {
+  final void Function(Color bg, Color text, Color accent) onSelect;
+  const _V3PresetGrid({required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _v3Presets.map((entry) {
+        final (name, (bg, text, accent)) = entry;
+        return _V3PresetChip(
+          name: name,
+          bg: bg,
+          text: text,
+          accent: accent,
+          onTap: () => onSelect(bg, text, accent),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _V3PresetChip extends StatefulWidget {
+  final String name;
+  final Color bg, text, accent;
+  final VoidCallback onTap;
+  const _V3PresetChip({
+    required this.name,
+    required this.bg,
+    required this.text,
+    required this.accent,
+    required this.onTap,
+  });
+
+  @override
+  State<_V3PresetChip> createState() => _V3PresetChipState();
+}
+
+class _V3PresetChipState extends State<_V3PresetChip> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        width: 72,
+        height: 52,
+        decoration: BoxDecoration(
+          color: widget.bg,
+          border: Border.all(
+            color: _pressed
+                ? widget.accent.withValues(alpha: 0.9)
+                : widget.accent.withValues(alpha: 0.45),
+            width: _pressed ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Text(
+                  widget.name,
+                  style: TextStyle(
+                    fontFamily: kFontFamily,
+                    fontSize: 9,
+                    color: widget.text.withValues(alpha: 0.9),
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              height: 5,
+              color: widget.accent.withValues(alpha: 0.75),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Accent color section (logroomUi only)
+// ──────────────────────────────────────────────────────────────────
+
+class _AccentSection extends StatelessWidget {
+  final Color accent;
+  final TextEditingController hexCtrl;
+  final ValueChanged<Color> onAccentChanged;
+  final ValueChanged<String> onHexInput;
+  final int rVal, gVal, bVal;
+  final ValueChanged<int> onRChanged, onGChanged, onBChanged;
+
+  const _AccentSection({
+    required this.accent,
+    required this.hexCtrl,
+    required this.onAccentChanged,
+    required this.onHexInput,
+    required this.rVal,
+    required this.gVal,
+    required this.bVal,
+    required this.onRChanged,
+    required this.onGChanged,
+    required this.onBChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _RgbColorSection(
+      label: '강조색 (accent)',
+      color: accent,
+      hexCtrl: hexCtrl,
+      onColorChanged: onAccentChanged,
+      onHexInput: onHexInput,
+      rVal: rVal,
+      gVal: gVal,
+      bVal: bVal,
+      onRChanged: onRChanged,
+      onGChanged: onGChanged,
+      onBChanged: onBChanged,
     );
   }
 }

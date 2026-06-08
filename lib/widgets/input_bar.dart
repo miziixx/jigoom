@@ -1244,6 +1244,13 @@ String _contentForDraftKind(String raw) {
         badgeChildren: badgeChildren,
       );
     }
+    if (isLogroomUi) {
+      return _buildLogroomInput(
+        tags: tags,
+        suggestions: suggestions,
+        badgeChildren: badgeChildren,
+      );
+    }
     return Container(
       color: kBg,
       child: Column(
@@ -1605,6 +1612,269 @@ String _contentForDraftKind(String raw) {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  String _logroomInputHint() => switch (_draftKind) {
+    _LogroomDraftKind.entry => '지금 무슨 생각을 하고 있나요?',
+    _LogroomDraftKind.task  => '새 할일',
+    _LogroomDraftKind.event => '새 일정',
+    _LogroomDraftKind.habit => '새 습관',
+    _LogroomDraftKind.goal  => '새 목표',
+  };
+
+  // v3 Logroom input — text field first, toolbar below and muted.
+  Widget _buildLogroomInput({
+    required List<String> tags,
+    required List<_SuggestionChipData> suggestions,
+    required List<Widget> badgeChildren,
+  }) {
+    return Container(
+      color: kBg,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Text input (first, with left accent dot) ──────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 7, 14, 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Timeline-style accent dot
+                Padding(
+                  padding: const EdgeInsets.only(top: 5, right: 9),
+                  child: Container(
+                    width: 5,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: kAccent.withValues(alpha: 0.55),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    style: mono(fontSize: 13, height: 1.35),
+                    maxLines: 6,
+                    minLines: 1,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
+                    cursorColor: kAccent,
+                    cursorWidth: 1.5,
+                    decoration: InputDecoration(
+                      hintText: _logroomInputHint(),
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                      hintStyle: mono(
+                        color: kText3.withValues(alpha: 0.7),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Badges ────────────────────────────────────────────
+          if (badgeChildren.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 14, 3),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: badgeChildren
+                      .map((w) => Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: w,
+                          ))
+                      .toList(),
+                ),
+              ),
+            ),
+
+          // ── Suggestions ───────────────────────────────────────
+          if (suggestions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 14, 3),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: suggestions
+                      .map((s) => Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: _SuggestionChip(
+                              label: s.label,
+                              onTap: () => _applySuggestion(s.kind),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ),
+
+          // ── Pending images ────────────────────────────────────
+          if (_pendingImages.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 4, 14, 0),
+              child: SizedBox(
+                height: 60,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _pendingImages.length,
+                  itemBuilder: (ctx, i) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.zero,
+                            child: Image.file(
+                              File(_pendingImages[i]),
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 2,
+                            right: 2,
+                            child: GestureDetector(
+                              onTap: () =>
+                                  setState(() => _pendingImages.removeAt(i)),
+                              child: Container(
+                                color: Colors.black54,
+                                padding: const EdgeInsets.all(2),
+                                child: const Icon(Icons.close,
+                                    size: 10, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+          // ── Toolbar (below text, muted) ───────────────────────
+          MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.noScaling),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(8, 1, 6, 1),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: kTlLine),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _TextFmtBtn(
+                            label: 'B',
+                            bold: true,
+                            onTap: () => _wrapSelection('**', '**'),
+                          ),
+                          _TextFmtBtn(
+                            label: 'I',
+                            italic: true,
+                            onTap: () => _wrapSelection('*', '*'),
+                          ),
+                          _TextFmtBtn(
+                            label: 'S',
+                            strike: true,
+                            onTap: () => _wrapSelection('~~', '~~'),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 12,
+                            color: kTlLine,
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                          ),
+                          _ToolBtn(
+                            icon: Icons.add,
+                            tooltip: '새 항목',
+                            active: _draftKind != _LogroomDraftKind.entry,
+                            onTap: _showLogroomCreateMenu,
+                          ),
+                          Container(
+                            width: 1,
+                            height: 12,
+                            color: kTlLine,
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                          ),
+                          _ToolBtn(
+                            icon: Icons.check_box_outline_blank,
+                            tooltip: '체크박스',
+                            onTap: () => _insertListPrefix('- [ ] '),
+                          ),
+                          _ToolBtn(
+                            icon: Icons.format_list_bulleted,
+                            tooltip: '불릿',
+                            onTap: () => _insertListPrefix('• '),
+                          ),
+                          _ToolBtn(
+                            icon: Icons.tag,
+                            tooltip: '태그',
+                            onTap: () => _insertText('#'),
+                          ),
+                          _ToolBtn(
+                            icon: Icons.calendar_today,
+                            tooltip: 'event',
+                            active: _scheduledAt != null,
+                            onTap: _showSchedulePicker,
+                          ),
+                          _ToolBtn(
+                            icon: Icons.alarm_outlined,
+                            tooltip: 'task 알림',
+                            active: _reminderAt != null,
+                            onTap: _showReminderPicker,
+                          ),
+                          if (!kIsWeb)
+                            _ToolBtn(
+                              icon: Icons.image_outlined,
+                              tooltip: '이미지',
+                              active: _pendingImages.isNotEmpty,
+                              onTap: _pickImage,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _AddBtn(
+                    label: widget.editingMemo == null ? '추가' : '수정 완료',
+                    onTap: _submit,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          if (widget.editingMemo != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [_TextActionBtn(label: '취소', onTap: _cancelEdit)],
+              ),
+            ),
         ],
       ),
     );

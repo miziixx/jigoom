@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../app_theme.dart';
 import '../flavor.dart';
 import '../models/changelog_data.dart';
+import '../models/checklist_data.dart';
 import '../models/dev_log_data.dart';
 import '../models/folder.dart';
 import '../models/memo.dart';
@@ -23,7 +24,20 @@ class DevCenterScreen extends StatefulWidget {
 
 class _DevCenterScreenState extends State<DevCenterScreen> {
   int _tab = 0;
-  static const _tabs = ['DEV LOG', 'CHANGELOG', 'QA'];
+  static const _tabs = ['STATUS', 'CHANGELOG', 'QA', 'TOKENS', 'NOTES', 'CHECKS'];
+  late final PageController _pageCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageCtrl = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,14 +86,19 @@ class _DevCenterScreenState extends State<DevCenterScreen> {
   }
 
   Widget _buildTabBar() {
-    return Row(
-      children: List.generate(_tabs.length, (i) {
-        final active = _tab == i;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _tab = i),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: List.generate(_tabs.length, (i) {
+          final active = _tab == i;
+          return GestureDetector(
+            onTap: () {
+              setState(() => _tab = i);
+              _pageCtrl.jumpToPage(i);
+            },
             child: Container(
               height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: active ? kMint.withValues(alpha: 0.08) : Colors.transparent,
@@ -102,38 +121,40 @@ class _DevCenterScreenState extends State<DevCenterScreen> {
                 ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 
   Widget _buildBody() {
-    switch (_tab) {
-      case 0:
-        return const _DevLogTab();
-      case 1:
-        return const _ChangelogTab();
-      case 2:
-        return const _QaTab();
-      default:
-        return const SizedBox();
-    }
+    return PageView(
+      controller: _pageCtrl,
+      onPageChanged: (i) => setState(() => _tab = i),
+      children: const [
+        _StatusTab(),
+        _ChangelogTab(),
+        _QaTab(),
+        _TokensTab(),
+        _NotesTab(),
+        _ChecksTab(),
+      ],
+    );
   }
 }
 
 // ──────────────────────────────────────────────────────────────────
-// DEV LOG Tab
+// STATUS Tab
 // ──────────────────────────────────────────────────────────────────
 
-class _DevLogTab extends StatefulWidget {
-  const _DevLogTab();
+class _StatusTab extends StatefulWidget {
+  const _StatusTab();
 
   @override
-  State<_DevLogTab> createState() => _DevLogTabState();
+  State<_StatusTab> createState() => _StatusTabState();
 }
 
-class _DevLogTabState extends State<_DevLogTab> {
+class _StatusTabState extends State<_StatusTab> {
   int _memoCount = 0;
   int _folderCount = 0;
   int _tagCount = 0;
@@ -192,6 +213,7 @@ class _DevLogTabState extends State<_DevLogTab> {
         _buildSummaryCard(),
         const SizedBox(height: 24),
         _buildMilestonesSection(),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -211,7 +233,10 @@ class _DevLogTabState extends State<_DevLogTab> {
           ),
           Text('현재 버전', style: mono(color: kDim, fontSize: 10, letterSpacing: 1)),
           const SizedBox(height: 14),
-          if (_loaded) _buildStatGrid() else Text('로딩 중...', style: mono(color: kDim, fontSize: 11)),
+          if (_loaded)
+            _buildStatGrid()
+          else
+            Text('로딩 중...', style: mono(color: kDim, fontSize: 11)),
           const SizedBox(height: 12),
           Container(height: 1, color: kBorder.withValues(alpha: 0.4)),
           const SizedBox(height: 10),
@@ -700,6 +725,616 @@ class _QaCheckRow extends StatelessWidget {
             Text(
               item.label,
               style: mono(color: checked ? kText : kDim.withValues(alpha: 0.8), fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// TOKENS Tab
+// ──────────────────────────────────────────────────────────────────
+
+class _TokensTab extends StatelessWidget {
+  const _TokensTab();
+
+  String _hex(Color c) {
+    final r = (c.r * 255).round().toRadixString(16).padLeft(2, '0');
+    final g = (c.g * 255).round().toRadixString(16).padLeft(2, '0');
+    final b = (c.b * 255).round().toRadixString(16).padLeft(2, '0');
+    final a = (c.a * 255).round().toRadixString(16).padLeft(2, '0');
+    return a == 'ff' ? '#$r$g$b' : '#$a$r$g$b';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = [
+      ('ACCENT', [('kAccent', kAccent)]),
+      ('BACKGROUND', [
+        ('kBg2', kBg2),
+        ('kBg3', kBg3),
+        ('kBg4', kBg4),
+        ('kBg5', kBg5),
+      ]),
+      ('TEXT', [
+        ('kText2', kText2),
+        ('kText3', kText3),
+        ('kText4', kText4),
+      ]),
+      ('TIMELINE', [
+        ('kTlLine', kTlLine),
+        ('kTlDot', kTlDot),
+      ]),
+    ];
+
+    return ListView(
+      padding: appInsetsSymmetric(horizontal: 20, vertical: 16),
+      children: [
+        for (final group in groups) ...[
+          Text(group.$1, style: mono(color: kDim, fontSize: 10, letterSpacing: 1.5)),
+          const SizedBox(height: 8),
+          for (final token in group.$2)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: token.$2,
+                      border: Border.all(color: kBorder.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 80,
+                    child: Text(token.$1, style: mono(color: kText, fontSize: 11)),
+                  ),
+                  Text(_hex(token.$2), style: mono(color: kDim, fontSize: 11)),
+                ],
+              ),
+            ),
+          const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// NOTES Tab
+// ──────────────────────────────────────────────────────────────────
+
+class _NotesTab extends StatefulWidget {
+  const _NotesTab();
+
+  @override
+  State<_NotesTab> createState() => _NotesTabState();
+}
+
+class _NotesTabState extends State<_NotesTab> {
+  static const _key = 'devcenter_notes';
+  late final TextEditingController _ctrl;
+  Timer? _debounce;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController();
+    _loadNotes();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final text = prefs.getString(_key) ?? '';
+    if (mounted) {
+      _ctrl.text = text;
+      _ctrl.selection = TextSelection.collapsed(offset: text.length);
+      setState(() => _loaded = true);
+    }
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 600), () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_key, value);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) {
+      return Center(child: Text('로딩 중...', style: mono(color: kDim, fontSize: 11)));
+    }
+    return Padding(
+      padding: appInsetsSymmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('NOTES', style: mono(color: kDim, fontSize: 10, letterSpacing: 1.5)),
+          const SizedBox(height: 10),
+          Expanded(
+            child: TextField(
+              controller: _ctrl,
+              onChanged: _onChanged,
+              style: mono(color: kText, fontSize: 12, height: 1.6),
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: kBorder),
+                  borderRadius: BorderRadius.zero,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: kBorder),
+                  borderRadius: BorderRadius.zero,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: kMint.withValues(alpha: 0.5)),
+                  borderRadius: BorderRadius.zero,
+                ),
+                contentPadding: const EdgeInsets.all(12),
+                hintText: '개발 메모...',
+                hintStyle: mono(color: kDim.withValues(alpha: 0.4), fontSize: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// CHECKS Tab — 개발 관리 체크리스트 3종
+// ──────────────────────────────────────────────────────────────────
+
+String _clKey(String listId, String itemId, String field) =>
+    'devcenter_cl_${listId}_${itemId}_$field';
+
+String _clListKey(String listId, String field) =>
+    'devcenter_cl_${listId}_$field';
+
+String _fmtTime(DateTime dt) {
+  final y = dt.year.toString();
+  final mo = dt.month.toString().padLeft(2, '0');
+  final d = dt.day.toString().padLeft(2, '0');
+  final h = dt.hour.toString().padLeft(2, '0');
+  final mi = dt.minute.toString().padLeft(2, '0');
+  final s = dt.second.toString().padLeft(2, '0');
+  return '$y-$mo-$d $h:$mi:$s';
+}
+
+class _ChecksTab extends StatefulWidget {
+  const _ChecksTab();
+
+  @override
+  State<_ChecksTab> createState() => _ChecksTabState();
+}
+
+class _ChecksTabState extends State<_ChecksTab> {
+  Map<String, bool> _checked = {};
+  Map<String, String> _checkedAt = {};
+  Map<String, String> _memos = {};
+  Map<String, String> _createdAt = {};
+  Map<String, String> _updatedAt = {};
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = _fmtTime(DateTime.now());
+    final checked = <String, bool>{};
+    final checkedAt = <String, String>{};
+    final memos = <String, String>{};
+    final createdAt = <String, String>{};
+    final updatedAt = <String, String>{};
+
+    for (final list in kChecklists) {
+      final ca = prefs.getString(_clListKey(list.id, 'createdAt'));
+      if (ca == null) {
+        await prefs.setString(_clListKey(list.id, 'createdAt'), now);
+        createdAt[list.id] = now;
+      } else {
+        createdAt[list.id] = ca;
+      }
+      updatedAt[list.id] = prefs.getString(_clListKey(list.id, 'updatedAt')) ?? createdAt[list.id]!;
+
+      for (final item in list.items) {
+        final k = '${list.id}/${item.id}';
+        checked[k] = prefs.getBool(_clKey(list.id, item.id, 'checked')) ?? false;
+        checkedAt[k] = prefs.getString(_clKey(list.id, item.id, 'checkedAt')) ?? '';
+        memos[k] = prefs.getString(_clKey(list.id, item.id, 'memo')) ?? '';
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _checked = checked;
+        _checkedAt = checkedAt;
+        _memos = memos;
+        _createdAt = createdAt;
+        _updatedAt = updatedAt;
+        _loaded = true;
+      });
+    }
+  }
+
+  Future<void> _toggle(String listId, String itemId) async {
+    final k = '$listId/$itemId';
+    final next = !(_checked[k] ?? false);
+    final now = _fmtTime(DateTime.now());
+    setState(() {
+      _checked[k] = next;
+      if (next) _checkedAt[k] = now;
+      _updatedAt[listId] = now;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_clKey(listId, itemId, 'checked'), next);
+    if (next) await prefs.setString(_clKey(listId, itemId, 'checkedAt'), now);
+    await prefs.setString(_clListKey(listId, 'updatedAt'), now);
+  }
+
+  Future<void> _editMemo(String listId, String itemId) async {
+    final k = '$listId/$itemId';
+    final ctrl = TextEditingController(text: _memos[k] ?? '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: kBg,
+        title: Text('메모', style: mono(color: kMint, fontSize: 12, letterSpacing: 1)),
+        content: TextField(
+          controller: ctrl,
+          style: mono(color: kText, fontSize: 12),
+          maxLines: 5,
+          decoration: InputDecoration(
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: kBorder)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: kMint)),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('취소', style: mono(color: kDim, fontSize: 11)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, ctrl.text),
+            child: Text('저장', style: mono(color: kMint, fontSize: 11)),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+    final now = _fmtTime(DateTime.now());
+    setState(() {
+      _memos[k] = result;
+      _updatedAt[listId] = now;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_clKey(listId, itemId, 'memo'), result);
+    await prefs.setString(_clListKey(listId, 'updatedAt'), now);
+  }
+
+  Future<void> _resetWorkflow() async {
+    const listId = 'workflow';
+    final list = kChecklists.firstWhere((l) => l.id == listId);
+    final now = _fmtTime(DateTime.now());
+    final prefs = await SharedPreferences.getInstance();
+    for (final item in list.items) {
+      final k = '$listId/${item.id}';
+      await prefs.remove(_clKey(listId, item.id, 'checked'));
+      await prefs.remove(_clKey(listId, item.id, 'checkedAt'));
+      await prefs.remove(_clKey(listId, item.id, 'memo'));
+      if (mounted) {
+        setState(() {
+          _checked[k] = false;
+          _checkedAt[k] = '';
+          _memos[k] = '';
+        });
+      }
+    }
+    await prefs.setString(_clListKey(listId, 'updatedAt'), now);
+    if (mounted) setState(() => _updatedAt[listId] = now);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded) {
+      return Center(child: Text('로딩 중...', style: mono(color: kDim, fontSize: 11)));
+    }
+    return ListView.builder(
+      padding: appInsetsSymmetric(horizontal: 20, vertical: 16),
+      itemCount: kChecklists.length,
+      itemBuilder: (_, i) {
+        final list = kChecklists[i];
+        final items = list.items;
+        final totalDone = items.where((it) => _checked['${list.id}/${it.id}'] == true).length;
+        final requiredItems = items.where((it) => it.isRequired).toList();
+        final requiredDone = requiredItems.where((it) => _checked['${list.id}/${it.id}'] == true).length;
+        final canClose = requiredItems.isNotEmpty && requiredDone == requiredItems.length;
+
+        return _ChecklistSection(
+          list: list,
+          totalDone: totalDone,
+          requiredDone: requiredDone,
+          requiredTotal: requiredItems.length,
+          canClose: canClose,
+          createdAt: _createdAt[list.id] ?? '',
+          updatedAt: _updatedAt[list.id] ?? '',
+          checked: _checked,
+          checkedAt: _checkedAt,
+          memos: _memos,
+          onToggle: (itemId) => _toggle(list.id, itemId),
+          onMemoEdit: (itemId) => _editMemo(list.id, itemId),
+          onResetWorkflow: list.id == 'workflow' ? _resetWorkflow : null,
+        );
+      },
+    );
+  }
+}
+
+class _ChecklistSection extends StatelessWidget {
+  final ChecklistList list;
+  final int totalDone;
+  final int requiredDone;
+  final int requiredTotal;
+  final bool canClose;
+  final String createdAt;
+  final String updatedAt;
+  final Map<String, bool> checked;
+  final Map<String, String> checkedAt;
+  final Map<String, String> memos;
+  final void Function(String itemId) onToggle;
+  final void Function(String itemId) onMemoEdit;
+  final VoidCallback? onResetWorkflow;
+
+  const _ChecklistSection({
+    required this.list,
+    required this.totalDone,
+    required this.requiredDone,
+    required this.requiredTotal,
+    required this.canClose,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.checked,
+    required this.checkedAt,
+    required this.memos,
+    required this.onToggle,
+    required this.onMemoEdit,
+    this.onResetWorkflow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final total = list.items.length;
+    final groups = <String, List<ChecklistItem>>{};
+    for (final item in list.items) {
+      groups.putIfAbsent(item.category, () => []).add(item);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 36),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Text(list.label, style: mono(color: kDim, fontSize: 10, letterSpacing: 1.5)),
+          const SizedBox(height: 6),
+          // Progress row
+          Row(
+            children: [
+              Text(
+                '전체 $totalDone/$total',
+                style: mono(color: totalDone == total ? kMint : kText, fontSize: 10),
+              ),
+              Text('  ·  ', style: mono(color: kDim, fontSize: 10)),
+              Text(
+                '필수 $requiredDone/$requiredTotal',
+                style: mono(color: requiredDone == requiredTotal ? kMint : kDim, fontSize: 10),
+              ),
+              Text('  ·  ', style: mono(color: kDim, fontSize: 10)),
+              Text(
+                canClose ? '마감 가능' : '아직 마감 불가',
+                style: mono(
+                  color: canClose ? kMint : kDim.withValues(alpha: 0.5),
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Progress bar
+          ClipRRect(
+            child: LinearProgressIndicator(
+              value: total == 0 ? 0 : totalDone / total,
+              backgroundColor: kBorder.withValues(alpha: 0.3),
+              valueColor: AlwaysStoppedAnimation(totalDone == total ? kMint : kMint.withValues(alpha: 0.5)),
+              minHeight: 2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // Meta
+          if (createdAt.isNotEmpty)
+            Text('생성 $createdAt', style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 9)),
+          if (updatedAt.isNotEmpty)
+            Text('수정 $updatedAt', style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 9)),
+          const SizedBox(height: 12),
+          // Items by category
+          ...groups.entries.map((entry) => _CategoryGroup(
+            category: entry.key,
+            items: entry.value,
+            listId: list.id,
+            checked: checked,
+            checkedAt: checkedAt,
+            memos: memos,
+            onToggle: onToggle,
+            onMemoEdit: onMemoEdit,
+          )),
+          // WORKFLOW reset button
+          if (onResetWorkflow != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: GestureDetector(
+                onTap: onResetWorkflow,
+                child: Text(
+                  'WORKFLOW 초기화',
+                  style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 9),
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Container(height: 1, color: kBorder.withValues(alpha: 0.2)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryGroup extends StatelessWidget {
+  final String category;
+  final String listId;
+  final List<ChecklistItem> items;
+  final Map<String, bool> checked;
+  final Map<String, String> checkedAt;
+  final Map<String, String> memos;
+  final void Function(String itemId) onToggle;
+  final void Function(String itemId) onMemoEdit;
+
+  const _CategoryGroup({
+    required this.category,
+    required this.listId,
+    required this.items,
+    required this.checked,
+    required this.checkedAt,
+    required this.memos,
+    required this.onToggle,
+    required this.onMemoEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(category, style: mono(color: kDim.withValues(alpha: 0.6), fontSize: 9, letterSpacing: 1.2)),
+          const SizedBox(height: 4),
+          ...items.map((item) {
+            final k = '$listId/${item.id}';
+            return _ChecklistItemRow(
+              item: item,
+              isChecked: checked[k] ?? false,
+              checkedAt: checkedAt[k] ?? '',
+              memo: memos[k] ?? '',
+              onToggle: () => onToggle(item.id),
+              onMemoEdit: () => onMemoEdit(item.id),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChecklistItemRow extends StatelessWidget {
+  final ChecklistItem item;
+  final bool isChecked;
+  final String checkedAt;
+  final String memo;
+  final VoidCallback onToggle;
+  final VoidCallback onMemoEdit;
+
+  const _ChecklistItemRow({
+    required this.item,
+    required this.isChecked,
+    required this.checkedAt,
+    required this.memo,
+    required this.onToggle,
+    required this.onMemoEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor = isChecked ? kDim.withValues(alpha: 0.55) : kText;
+    return GestureDetector(
+      onTap: onToggle,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Checkbox indicator
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Text(
+                isChecked ? '[x]' : '[ ]',
+                style: mono(color: isChecked ? kMint : kDim, fontSize: 11, letterSpacing: 0.5),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(item.label, style: mono(color: labelColor, fontSize: 11)),
+                      ),
+                      if (item.isRequired)
+                        Text(' *', style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 9)),
+                    ],
+                  ),
+                  Text(
+                    item.description,
+                    style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 9, height: 1.4),
+                  ),
+                  if (isChecked && checkedAt.isNotEmpty)
+                    Text(
+                      '체크 $checkedAt',
+                      style: mono(color: kDim.withValues(alpha: 0.4), fontSize: 9),
+                    ),
+                  if (memo.isNotEmpty)
+                    Text(
+                      memo,
+                      style: mono(color: kDim.withValues(alpha: 0.7), fontSize: 10, height: 1.4),
+                    ),
+                ],
+              ),
+            ),
+            // Memo edit button
+            GestureDetector(
+              onTap: onMemoEdit,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8, top: 2),
+                child: Text(
+                  memo.isEmpty ? '…' : '›',
+                  style: mono(color: kDim.withValues(alpha: 0.35), fontSize: 11),
+                ),
+              ),
             ),
           ],
         ),

@@ -53,6 +53,29 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
     }
   }
 
+  // v3 date-marker label: "오늘 · 2026-06-08 · 월" / "어제 · ..." / "2026-06-06 · 토"
+  String _v3DateLabel(String key) {
+    try {
+      final parts = key.split('-');
+      final date = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final diff = today.difference(DateTime(date.year, date.month, date.day)).inDays;
+      const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+      final wd = weekdays[date.weekday - 1];
+      if (diff == 0) return '오늘 · $key · $wd';
+      if (diff == 1) return '어제 · $key · $wd';
+      if (diff == -1) return '내일 · $key · $wd';
+      return '$key · $wd';
+    } catch (_) {
+      return key;
+    }
+  }
+
   bool _isToday(String key) {
     final now = DateTime.now();
     final today =
@@ -120,8 +143,12 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
   Widget _buildLogroom() {
     final isToday = _isToday(widget.dateKey);
     final label = widget.dateKey.contains('-') && widget.dateKey.length == 10
-        ? _formatDate(widget.dateKey).toUpperCase()
-        : widget.dateKey.toUpperCase();
+        ? _v3DateLabel(widget.dateKey)
+        : widget.dateKey;
+    // Active color: today = kMint tinted, others = kText2 (v3 --fg2 equivalent)
+    final labelColor = isToday
+        ? kMint.withValues(alpha: 0.85)
+        : kText2.withValues(alpha: 0.65);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -133,29 +160,37 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
             cursor: SystemMouseCursors.click,
             child: Container(
               color: kBg,
-              padding: const EdgeInsets.fromLTRB(15, 8, 15, 4),
+              // left padding aligns with timeline lane (26px lane + 8px entry padding = 34px)
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
               child: Row(
                 children: [
+                  // v3 date-marker label — italic, muted
                   Text(
                     label,
-                    style: mono(
-                      color: isToday ? kMint : kDim,
-                      fontSize: tsAlt,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.5,
+                    style: TextStyle(
+                      fontFamily: kFontFamily,
+                      fontStyle: FontStyle.italic,
+                      fontSize: tsSmall * (kFontSize / 13.0),
+                      color: labelColor,
+                      height: 1.3,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
+                  // horizontal rule
                   Expanded(
                     child: Container(
                       height: 1,
-                      color: kBorder.withValues(alpha: 0.4),
+                      color: kTlLine,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
+                  // collapse toggle — small and quiet
                   Text(
-                    _collapsed ? '▶' : '▼',
-                    style: mono(color: kDim, fontSize: tsTiny),
+                    _collapsed ? '›' : '·',
+                    style: mono(
+                      color: kText3.withValues(alpha: 0.6),
+                      fontSize: tsMeta,
+                    ),
                   ),
                 ],
               ),
@@ -170,7 +205,8 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
   Widget _buildHourToc() {
     return Container(
       color: kBg,
-      padding: const EdgeInsets.fromLTRB(15, 2, 15, 8),
+      // aligns with entry content (26px lane + 8px = 34px, use 34)
+      padding: const EdgeInsets.fromLTRB(34, 2, 14, 6),
       child: Wrap(
         spacing: 10,
         runSpacing: 2,
@@ -184,10 +220,10 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 3),
                 child: Text(
-                  '$h시·${slot.count}',
-                  style: mono(color: kDim.withValues(alpha: 0.75), fontSize: tsMeta),
+                  '$h:00 · ${slot.count}',
+                  style: mono(color: kText3.withValues(alpha: 0.75), fontSize: tsMeta),
                 ),
               ),
             ),

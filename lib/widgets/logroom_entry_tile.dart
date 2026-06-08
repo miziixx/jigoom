@@ -644,6 +644,8 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
     final hasStructMeta =
         memo.reminderAt != null || memo.folderId != null || repeat;
 
+    final dotColor = _timelineDotColorForMemo(memo, links);
+
     final body = AnimatedContainer(
       duration: const Duration(milliseconds: 120),
       color: widget.highlighted
@@ -652,8 +654,14 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(15, 7, 12, 7),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _LogroomTimelineLane(dotColor: dotColor),
+                Expanded(
+                  child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 7, 12, 7),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -796,6 +804,10 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
               ],
             ),
           ),
+                ),  // Expanded
+              ],
+            ),      // Row
+          ),        // IntrinsicHeight
           Container(height: 1, color: kBorder.withValues(alpha: 0.2)),
         ],
       ),
@@ -2094,6 +2106,69 @@ class _MoveRowState extends State<_MoveRow> {
             style: mono(color: _hovered ? kMint : kText, fontSize: 12),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── v3 Timeline ───────────────────────────────────────────────────────────────
+
+// Returns a dot color for the timeline lane based on entry type.
+// Mirrors the v3 HTML en-dot color scheme.
+Color _timelineDotColorForMemo(Memo memo, List<String> links) {
+  if (memo.isChecklist || _contentHasChecklistLines(memo.content)) {
+    // todo — accent color, muted
+    return kAccent.withValues(alpha: 0.40);
+  }
+  if (links.isNotEmpty) {
+    // link — muted teal-green (rgba(100,170,130,0.35) from v3)
+    return const Color(0x5964AA82);
+  }
+  // memo / default — use kTlDot (derived from bg brightness in app_theme)
+  return kTlDot;
+}
+
+// Vertical timeline lane: a thin line with a small dot at the top.
+// Width is fixed; height stretches to the entry's IntrinsicHeight.
+class _LogroomTimelineLane extends StatelessWidget {
+  final Color dotColor;
+
+  const _LogroomTimelineLane({required this.dotColor});
+
+  static const double _width   = 26.0; // total lane width
+  static const double _lineX   = 11.0; // dot/line center from left edge
+  static const double _dotSize =  5.0;
+  static const double _dotTop  = 12.0; // distance from top of entry to dot
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _width,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // vertical line — full height so adjacent entries visually connect
+          Positioned(
+            left: _lineX - 0.5,
+            top: 0,
+            bottom: 0,
+            width: 1,
+            child: Container(color: kTlLine),
+          ),
+          // dot overlaid on line
+          Positioned(
+            left: _lineX - _dotSize / 2,
+            top: _dotTop,
+            child: Container(
+              width: _dotSize,
+              height: _dotSize,
+              decoration: BoxDecoration(
+                color: dotColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -12,6 +12,26 @@ Color kDim = const Color(0xFF7A8F5A);
 Color kMint = const Color(0xFF6E9530);
 Color kTeal = const Color(0xFF527A22);
 
+// ── v3 design tokens ─────────────────────────────────────────────────────────
+// Independent accent (kAccent). Initialized to v3 Default amber.
+// applyColorsV3() sets this independently; applyColors() mirrors kMint.
+Color kAccent = const Color(0xFFB8882A);
+
+// Background steps (bg2..bg5) — lighter in dark mode, darker in light mode.
+Color kBg2 = const Color(0xFF141210);
+Color kBg3 = const Color(0xFF1A1815);
+Color kBg4 = const Color(0xFF201E18);
+Color kBg5 = const Color(0xFF262420);
+
+// Text steps (text2..text4) — progressively dimmed toward background.
+Color kText2 = const Color(0xFFA09880);
+Color kText3 = const Color(0xFF5A5445);
+Color kText4 = const Color(0xFF302E26);
+
+// Timeline tokens — derived from bg brightness.
+Color kTlLine = const Color(0x12FFFFFF); // rgba(255,255,255,0.07)
+Color kTlDot  = const Color(0x1FFFFFFF); // rgba(255,255,255,0.12)
+
 // Font options (Google Fonts + system fonts)
 const kFontOptions = [
   'JetBrains Mono',
@@ -70,19 +90,72 @@ bool get isMinimalTheme => appThemeModeNotifier.value == AppThemeMode.minimal;
 void applyAppThemeMode(AppThemeMode mode) {
   appThemeModeNotifier.value = mode;
   if (mode == AppThemeMode.dos) {
-    kBg = const Color(0xFF000000);
+    const bg  = Color(0xFF000000);
+    const fg  = Color(0xFF00FF66);
+    const ac  = Color(0xFF00FF66);
+    kBg     = bg;
     kSurface = const Color(0xFF050505);
-    kText = const Color(0xFF00FF66);
-    kDim = const Color(0xFF00A844);
+    kText   = fg;
+    kDim    = const Color(0xFF00A844);
     kBorder = const Color(0xFF00CC55);
-    kMint = const Color(0xFF00FF66);
-    kTeal = const Color(0xFF66FF99);
+    kMint   = ac;
+    kTeal   = const Color(0xFF66FF99);
     kFontFamily = 'JetBrains Mono';
+    _deriveV3Tokens(bg, fg, ac);
   }
   themeNotifier.value++;
   syncSystemUiOverlay();
 }
 
+// ── v3 token derivation ───────────────────────────────────────────────────────
+// Mirrors the JS deriveTokens() in logroom-v3-2.html.
+void _deriveV3Tokens(Color bg, Color text, Color accent) {
+  final lum = 0.299 * bg.r + 0.587 * bg.g + 0.114 * bg.b;
+  final dark = lum < 0.5;
+  final lift = dark ? 8 / 255.0 : -6 / 255.0;
+
+  Color step(Color c, int n) => Color.fromARGB(
+    255,
+    (c.r * 255 + lift * 255 * n).clamp(0, 255).round(),
+    (c.g * 255 + lift * 255 * n).clamp(0, 255).round(),
+    (c.b * 255 + lift * 255 * n).clamp(0, 255).round(),
+  );
+
+  kBg2 = step(bg, 1);
+  kBg3 = step(bg, 2);
+  kBg4 = step(bg, 3);
+  kBg5 = step(bg, 4);
+
+  kText2 = Color.lerp(text, bg, 0.42)!;
+  kText3 = Color.lerp(text, bg, 0.68)!;
+  kText4 = Color.lerp(text, bg, 0.85)!;
+
+  kAccent = accent;
+
+  kTlLine = dark
+      ? Colors.white.withValues(alpha: 0.07)
+      : Colors.black.withValues(alpha: 0.09);
+  kTlDot = dark
+      ? Colors.white.withValues(alpha: 0.14)
+      : Colors.black.withValues(alpha: 0.18);
+}
+
+// Preferred v3 function — takes independent accent color.
+void applyColorsV3(Color bg, Color text, Color accent) {
+  kBg = bg;
+  kText = text;
+  kSurface = Color.lerp(bg, Colors.black, 0.05)!;
+  kBorder = Color.lerp(bg, text, 0.35)!;
+  kDim = Color.lerp(text, bg, 0.25)!;
+  kMint = accent;
+  kTeal = Color.lerp(accent, Colors.black, 0.15)!;
+  _deriveV3Tokens(bg, text, accent);
+  themeNotifier.value++;
+  syncSystemUiOverlay();
+}
+
+// Legacy 2-arg form — unchanged signature, now also updates v3 tokens.
+// Accent mirrors kText (old behavior preserved).
 void applyColors(Color bg, Color text) {
   kBg = bg;
   kText = text;
@@ -91,20 +164,18 @@ void applyColors(Color bg, Color text) {
   kDim = Color.lerp(text, bg, 0.25)!;
   kMint = text;
   kTeal = Color.lerp(text, Colors.black, 0.15)!;
+  _deriveV3Tokens(bg, text, text); // accent = text (legacy)
   themeNotifier.value++;
   syncSystemUiOverlay();
 }
 
 void applyLogroomFinalDefaults() {
-  // HTML v2 palette: --bg #F1EDE3 / --txt #1C1A12 / --hi #5A4A2E / --hi2 #8A6E42
-  applyColors(const Color(0xFFF1EDE3), const Color(0xFF1C1A12));
-  kSurface = const Color(0xFFE2DDD1); // --sur
-  kBorder = const Color(0xFFC0B8A4); // --brd
-  kDim = const Color(0xFF7C7462); // --mu
-  kMint = const Color(0xFF5A4A2E); // --hi  (accent/active/links)
-  kTeal = const Color(0xFF8A6E42); // --hi2
-  themeNotifier.value++;
-  syncSystemUiOverlay();
+  // v3 Default preset: bg #0c0b09 / fg #ede8df / ac #b8882a
+  applyColorsV3(
+    const Color(0xFF0C0B09),
+    const Color(0xFFEDE8DF),
+    const Color(0xFFB8882A),
+  );
 }
 
 void syncSystemUiOverlay() {
