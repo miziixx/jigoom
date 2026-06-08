@@ -76,6 +76,24 @@ const kChangelog = <ChangelogEntry>[
       '프로젝트 이력 요약',
     ],
   ),
+  ChangelogEntry(
+    version: 'v2.3',
+    date: '2026-06-09',
+    fixes: [
+      '도스 테마 강제종료 후 테마 모드 초기화 버그 — 모드 변경 시 즉시 저장하도록 수정',
+      '도스 테마 강제종료 후 색상 초기화 버그 — 색상 변경 시 800ms debounce 자동 저장 추가',
+    ],
+    design: [
+      '위젯 메모 입력창 UI 개선 — 메인 앱 logroom 입력창과 동일한 구조로 통일',
+      '텍스트 입력창 상단 배치 + 왼쪽 accent dot 추가',
+      '툴바를 하단으로 이동, top border 구분선 적용',
+      '폴더 버튼을 툴바 안으로 이동',
+      'nemo2test 앱 아이콘 변경 — 7×14 도트 토끼 (배경 #0C0B09 / 토끼 #B8882A)',
+      '최소 지원 Android 버전: API 24 (Android 7.0 Nougat, 2016)',
+      '위젯 입력창 툴바 제거 — ADD 버튼 입력창 오른쪽 인라인 배치',
+      '위젯 입력창 폭 화면의 88%로 축소, 텍스트 영역 minLines 3으로 확장',
+    ],
+  ),
   // ──────────────────────────────────────────────────────────────────
   // ADD NEW CHANGELOG ENTRY HERE ↑
   // newest entry last — CHANGELOG tab reverses order automatically.

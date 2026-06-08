@@ -73,6 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _restoring = false;
   int _versionTapCount = 0;
   Timer? _versionTapTimer;
+  Timer? _colorSaveDebounce;
 
   // palette slots: null = empty
   late List<(Color, Color)?> _palettes;
@@ -113,6 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _bgCtrl.dispose();
     _textCtrl.dispose();
     _accentCtrl.dispose();
+    _colorSaveDebounce?.cancel();
     _versionTapTimer?.cancel();
     if (!_saved) {
       // Revert real-time preview changes on cancel
@@ -154,6 +156,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Color _fromRGB(int r, int g, int b) => Color.fromARGB(255, r, g, b);
 
+  void _scheduleColorSave() {
+    _colorSaveDebounce?.cancel();
+    _colorSaveDebounce = Timer(const Duration(milliseconds: 800), () {
+      StorageService.saveColors(_bg, _text);
+      if (isLogroomUi) StorageService.saveAccent(_accent);
+    });
+  }
+
   void _setBg(Color c) {
     setState(() => _bg = c);
     final hex = _toHex(c);
@@ -164,6 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     }
     applyColors(c, _text); // real-time preview
+    _scheduleColorSave();
   }
 
   void _setText(Color c) {
@@ -176,6 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     }
     applyColors(_bg, c); // real-time preview
+    _scheduleColorSave();
   }
 
   void _setAccent(Color c) {
@@ -188,6 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     }
     applyColorsV3(_bg, _text, c);
+    _scheduleColorSave();
   }
 
   void _applyPreset(Color bg, Color text, Color accent) {
@@ -200,6 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _accentCtrl.text = _toHex(accent);
     });
     applyColorsV3(bg, text, accent);
+    _scheduleColorSave();
   }
 
   // ── Palette actions ────────────────────────────────
@@ -666,6 +680,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             applyFont(_fontFamily, _fontSize);
                           }
                           applyAppThemeMode(mode);
+                          StorageService.saveAppThemeMode(mode);
                         },
                       ),
 

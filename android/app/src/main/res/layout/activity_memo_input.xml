@@ -4,10 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingStart="14dp"
-    android:paddingEnd="14dp"
-    android:paddingTop="12dp"
-    android:paddingBottom="12dp"
     android:background="#EDF2ED">
 
     <!-- 캘린더 위젯에서 날짜 지정 진입 시에만 표시 -->
@@ -20,17 +16,74 @@
         android:fontFamily="monospace"
         android:textSize="11sp"
         android:letterSpacing="0.05"
-        android:paddingBottom="6dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp"
         android:visibility="gone" />
 
-    <!-- 리마인더 설정 시 텍스트 위에 표시 -->
+    <!-- 텍스트 입력 영역 (accent dot + EditText + ADD 버튼) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:gravity="top">
+
+        <!-- Accent dot -->
+        <View
+            android:id="@+id/input_accent_dot"
+            android:layout_width="7dp"
+            android:layout_height="7dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/shape_accent_dot" />
+
+        <EditText
+            android:id="@+id/input_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="new memo"
+            android:textColor="#556B2F"
+            android:fontFamily="monospace"
+            android:textSize="13sp"
+            android:lineSpacingMultiplier="1.35"
+            android:background="@null"
+            android:padding="0dp"
+            android:gravity="top|start"
+            android:inputType="textMultiLine|textCapSentences"
+            android:minLines="3"
+            android:maxLines="6" />
+
+        <!-- ADD 버튼 (인라인, 오른쪽) -->
+        <TextView
+            android:id="@+id/input_btn_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginTop="1dp"
+            android:text="추가"
+            android:textColor="#556B2F"
+            android:fontFamily="monospace"
+            android:textSize="11sp"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <!-- 리마인더 배지 (설정 시에만 표시) -->
     <LinearLayout
         android:id="@+id/mode_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="3dp"
+        android:paddingStart="25dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="8dp"
         android:visibility="gone">
 
         <TextView
@@ -47,145 +100,22 @@
             android:id="@+id/reminder_clear_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="[×]"
+            android:text="×"
             android:textColor="#7A8F5A"
             android:fontFamily="monospace"
-            android:textSize="10sp"
+            android:textSize="11sp"
             android:paddingStart="6dp"
             android:clickable="true"
             android:focusable="true" />
     </LinearLayout>
 
-    <!-- 폴더 버튼 -->
-    <TextView
-        android:id="@+id/input_btn_folder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="[[ ▾ ]]"
-        android:textColor="#7A8F5A"
-        android:fontFamily="monospace"
-        android:textSize="10sp"
-        android:paddingBottom="6dp"
-        android:clickable="true"
-        android:focusable="true" />
-
-    <!-- 텍스트 입력 + 오른쪽 버튼 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="top"
-        android:minHeight="48dp">
-
-        <EditText
-            android:id="@+id/input_text"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="write a memo..."
-            android:textColor="#556B2F"
-            android:fontFamily="monospace"
-            android:textSize="13sp"
-            android:lineSpacingMultiplier="1.55"
-            android:background="@null"
-            android:padding="0dp"
-            android:paddingTop="4dp"
-            android:gravity="top|start"
-            android:inputType="textMultiLine|textCapSentences"
-            android:minLines="2"
-            android:maxLines="6" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="4dp">
-
-            <TextView
-                android:id="@+id/input_btn_checklist"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="☑"
-                android:textColor="#7A8F5A"
-                android:fontFamily="monospace"
-                android:textSize="15sp"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/input_btn_format"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="≡"
-                android:textColor="#7A8F5A"
-                android:fontFamily="monospace"
-                android:textSize="15sp"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/input_btn_tag"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="#"
-                android:textColor="#7A8F5A"
-                android:fontFamily="monospace"
-                android:textSize="15sp"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/input_btn_reminder"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔔"
-                android:textSize="13sp"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/input_btn_simple"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="[심플코스]"
-                android:textColor="#7A8F5A"
-                android:fontFamily="monospace"
-                android:textSize="9sp"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/input_btn_discount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="[요금할인]"
-                android:textColor="#7A8F5A"
-                android:fontFamily="monospace"
-                android:textSize="9sp"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/input_btn_add"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="[ ADD ]"
-                android:textColor="#556B2F"
-                android:fontFamily="monospace"
-                android:textSize="11sp"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true" />
-        </LinearLayout>
-    </LinearLayout>
+    <!-- 이하 버튼들: 코드 참조용으로 유지 (화면에 표시 안 됨) -->
+    <TextView android:id="@+id/input_btn_checklist" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <TextView android:id="@+id/input_btn_format"    android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <TextView android:id="@+id/input_btn_tag"       android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <TextView android:id="@+id/input_btn_reminder"  android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <TextView android:id="@+id/input_btn_folder"    android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <TextView android:id="@+id/input_btn_simple"    android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+    <TextView android:id="@+id/input_btn_discount"  android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
 
 </LinearLayout>

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../app_theme.dart';
 import '../flavor.dart';
@@ -2147,7 +2148,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final tagCounts = _tagCounts;
     final streak = _streak;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) SystemNavigator.pop(); // 종료 말고 백그라운드로
+      },
+      child: Scaffold(
       backgroundColor: kBg,
       body: SafeArea(
         child: LayoutBuilder(
@@ -2990,7 +2996,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           },
         ),
       ),
-    );
+    ), // Scaffold
+    ); // PopScope
   }
 }
 

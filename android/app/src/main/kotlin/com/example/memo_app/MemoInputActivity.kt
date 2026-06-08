@@ -93,6 +93,12 @@ class MemoInputActivity : Activity() {
             title.visibility = View.VISIBLE
         }
 
+        // 창 폭을 화면의 88%로 제한
+        window.setLayout(
+            (resources.displayMetrics.widthPixels * 0.88).toInt(),
+            WindowManager.LayoutParams.WRAP_CONTENT,
+        )
+
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
         findViewById<EditText>(R.id.input_text).requestFocus()
     }
@@ -133,6 +139,20 @@ class MemoInputActivity : Activity() {
         inputText.setTextColor(textColor)
         inputText.setHintTextColor(dimColor)
         inputText.setBackgroundColor(Color.TRANSPARENT)
+
+        // Accent dot color (kAccent ≈ teal with 55% alpha)
+        val accentColor = Color.argb(
+            (0.55 * 255).toInt(),
+            Color.red(tealColor),
+            Color.green(tealColor),
+            Color.blue(tealColor),
+        )
+        val dot = findViewById<View>(R.id.input_accent_dot)
+        val dotDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            setColor(accentColor)
+        }
+        dot?.background = dotDrawable
 
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
