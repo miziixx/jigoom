@@ -27,6 +27,9 @@ class StorageService {
   static const _firstOpenKey = 'first_open_date';
   static const _habitActivatedKey = 'habit_activated';
   static const _goalActivatedKey = 'goal_activated';
+  static const _claudeApiKeyKey = 'claude_api_key';
+  static const _claudeModelKey = 'claude_model';
+  static const _kwCacheKey = 'keyword_cache_v1';
 
   // ── Memos ──────────────────────────────────────────
 
@@ -288,6 +291,47 @@ class StorageService {
   static Future<void> setGoalActivated(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_goalActivatedKey, value);
+  }
+
+  // ── Claude API key ─────────────────────────────────
+
+  static Future<void> saveClaudeApiKey(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_claudeApiKeyKey, key);
+  }
+
+  static Future<String> loadClaudeApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_claudeApiKeyKey) ?? '';
+  }
+
+  static Future<void> saveClaudeModel(String model) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_claudeModelKey, model);
+  }
+
+  static Future<String> loadClaudeModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_claudeModelKey) ?? 'claude-haiku-4-5-20251001';
+  }
+
+  // ── Keyword cache (AI mode) ─────────────────────────
+
+  static Future<void> saveKeywordCache(Map<String, List<String>> cache) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kwCacheKey, jsonEncode(cache));
+  }
+
+  static Future<Map<String, List<String>>> loadKeywordCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kwCacheKey);
+    if (raw == null) return {};
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return decoded.map((k, v) => MapEntry(k, (v as List).cast<String>()));
+    } catch (_) {
+      return {};
+    }
   }
 
   // ── Clear all ──────────────────────────────────────

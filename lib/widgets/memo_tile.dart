@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/memo.dart';
-import '../models/folder.dart';
 import '../models/append_note.dart';
 import '../models/memo_actions.dart';
 import '../app_theme.dart';
@@ -158,9 +157,9 @@ class _MemoTileState extends State<MemoTile> {
         offset: _editNoteController.text.length,
       );
     });
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _editNoteFocusNode.requestFocus(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _editNoteFocusNode.requestFocus();
+    });
   }
 
   void _saveNoteEdit() {
@@ -444,55 +443,6 @@ class _MemoTileState extends State<MemoTile> {
     _editFocusNode.requestFocus();
   }
 
-  void _showEditFolderPicker() async {
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-    final pos = renderBox.localToGlobal(Offset.zero);
-
-    final result = await showMenu<String?>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromLTWH(pos.dx + 14, pos.dy, 1, 1),
-        Offset.zero & overlay.size,
-      ),
-      color: kSurface,
-      elevation: 3,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      items: [
-        PopupMenuItem<String?>(
-          value: '__inbox__',
-          height: 24,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text(
-            '/inbox',
-            style: mono(
-              color: _editFolderId == null ? kMint : kText,
-              fontSize: 12,
-            ),
-          ),
-        ),
-        ..._a.folders.map(
-          (f) => PopupMenuItem<String?>(
-            value: f.id,
-            height: 24,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Text(
-              '/${f.name}',
-              style: mono(
-                color: _editFolderId == f.id ? kMint : kText,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-    if (result != null) {
-      setState(() => _editFolderId = result == '__inbox__' ? null : result);
-    }
-  }
-
   void _cancelEdit() => setState(() => _isEditing = false);
 
   void _toggleCheck(int lineIndex) {
@@ -675,29 +625,6 @@ class _MemoTileState extends State<MemoTile> {
         );
       },
     );
-  }
-
-  Future<void> _showContextMenu() async {
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final result = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        _tapPosition & const Size(1, 1),
-        Offset.zero & overlay.size,
-      ),
-      color: kSurface,
-      elevation: 3,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      items: [
-        PopupMenuItem<String>(
-          value: 'share',
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('공유', style: mono(color: kText, fontSize: 12)),
-        ),
-      ],
-    );
-    if (result == 'share') _shareMemo();
   }
 
   // ── Image pick (edit mode) ───────────────────────────
@@ -935,57 +862,6 @@ class _MemoTileState extends State<MemoTile> {
                 alignment: Alignment.centerRight,
                 child: _ActionBtn(
                   label: '취소',
-                  color: kDim,
-                  onTap: () => Navigator.pop(ctx),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showHistory() {
-    final history = widget.memo.editHistory;
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: kSurface,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 320),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'HISTORY',
-                style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
-              ),
-              const SizedBox(height: 10),
-              Container(height: 1, color: kBorder),
-              const SizedBox(height: 8),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 220),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _historyRow(widget.memo.createdAt, '작성'),
-                      ...history.map((t) => _historyRow(t, '수정')),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(height: 1, color: kBorder),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: _ActionBtn(
-                  label: '닫기',
                   color: kDim,
                   onTap: () => Navigator.pop(ctx),
                 ),

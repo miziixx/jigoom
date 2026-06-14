@@ -46,16 +46,12 @@ class LogroomEntryTile extends StatefulWidget {
   final MemoActions actions;
   final bool highlighted;
   final VoidCallback? onTap;
-  // expandable kept for API compatibility but ignored — always shows full content
-  final bool expandable;
-
   const LogroomEntryTile({
     super.key,
     required this.memo,
     required this.actions,
     this.highlighted = false,
     this.onTap,
-    this.expandable = true,
   });
 
   @override
@@ -207,248 +203,28 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
     );
   }
 
-  void _showEditDialog() {
-    final controller = TextEditingController(text: widget.memo.content);
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: kSurface,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('EDIT', style: mono(color: kMint, fontSize: 12)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                maxLines: null,
-                style: mono(color: kText, fontSize: 12),
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: kBorder),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: kBorder),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: kMint),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  contentPadding: const EdgeInsets.all(10),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      child: Text('취소', style: mono(color: kDim, fontSize: 12)),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      final updated = controller.text.trim();
-                      if (updated.isNotEmpty) {
-                        widget.actions.onUpdate(widget.memo, updated);
-                      }
-                      Navigator.pop(ctx);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      child: Text(
-                        '저장',
-                        style: mono(color: kMint, fontSize: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _editNote(int index) {
     final note = widget.memo.appendNotes[index];
-    final controller = TextEditingController(text: note.content);
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: kSurface,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        insetPadding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('💬 댓글 수정', style: mono(color: kMint, fontSize: 12)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                maxLines: null,
-                style: mono(color: kText, fontSize: 12),
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: kBorder),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: kBorder),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: kMint),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  contentPadding: const EdgeInsets.all(10),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      child: Text('취소', style: mono(color: kDim, fontSize: 12)),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      final updated = controller.text.trim();
-                      if (updated.isNotEmpty) {
-                        widget.actions.onUpdateNote(
-                          widget.memo,
-                          index,
-                          updated,
-                        );
-                      }
-                      Navigator.pop(ctx);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      child: Text(
-                        '저장',
-                        style: mono(color: kMint, fontSize: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          ),
-        ),
+      builder: (_) => _NoteDialog(
+        title: '💬 댓글 수정',
+        initialText: note.content,
+        bordered: true,
+        onSave: (text) =>
+            widget.actions.onUpdateNote(widget.memo, index, text),
       ),
     );
   }
 
   void _addNote() {
-    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: kSurface,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        insetPadding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('댓글 추가', style: mono(color: kMint, fontSize: 12)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                maxLines: null,
-                style: mono(color: kText, fontSize: 12),
-                decoration: const InputDecoration(border: InputBorder.none),
-                onSubmitted: (_) {
-                  final text = controller.text.trim();
-                  if (text.isNotEmpty)
-                    widget.actions.onAddNote(widget.memo, text);
-                  Navigator.pop(ctx);
-                },
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      child: Text('취소', style: mono(color: kDim, fontSize: 12)),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      final text = controller.text.trim();
-                      if (text.isNotEmpty)
-                        widget.actions.onAddNote(widget.memo, text);
-                      Navigator.pop(ctx);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      child: Text(
-                        '저장',
-                        style: mono(color: kMint, fontSize: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          ),
-        ),
+      builder: (_) => _NoteDialog(
+        title: '댓글 추가',
+        initialText: '',
+        bordered: false,
+        onSave: (text) => widget.actions.onAddNote(widget.memo, text),
       ),
     );
   }
@@ -646,6 +422,17 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
 
     final dotColor = _timelineDotColorForMemo(memo, links);
 
+    // Entry type badge — only for non-default types
+    Widget? typeBadge;
+    if (isTaskMemo) {
+      final done = !logroomHasUnchecked(memo.content);
+      typeBadge = _TypeBadge(done ? 'DONE' : 'TODO', color: kMint);
+    } else if (memo.scheduledAt != null) {
+      typeBadge = _TypeBadge('SCHED', color: kTeal);
+    } else if (links.isNotEmpty) {
+      typeBadge = _TypeBadge('LINK', color: const Color(0xFF64AA82));
+    }
+
     final body = AnimatedContainer(
       duration: const Duration(milliseconds: 120),
       color: widget.highlighted
@@ -661,13 +448,13 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                 _LogroomTimelineLane(dotColor: dotColor),
                 Expanded(
                   child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 7, 12, 7),
+            padding: EdgeInsets.fromLTRB(appSpace(5), appSpace(5), appSpace(8), appSpace(5)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Wrap(
-                  spacing: 7,
-                  runSpacing: 2,
+                  spacing: appSpace(7),
+                  runSpacing: appSpace(2),
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     GestureDetector(
@@ -675,6 +462,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                       behavior: HitTestBehavior.opaque,
                       child: logroomPrefixText(memo, fontSize: tsMeta),
                     ),
+                    if (typeBadge != null) typeBadge,
                     Text(displayTime, style: mono(color: kDim, fontSize: tsMeta)),
                     if (scheduleMeta != null)
                       Text(
@@ -683,7 +471,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: appSpace(4)),
 
                 // ── Main content row ──
                 Row(
@@ -704,12 +492,12 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                               onTap: widget.onTap,
                             ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: appSpace(8)),
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: _showMoreMenu,
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 0, 2, 6),
+                        padding: EdgeInsets.fromLTRB(appSpace(8), 0, appSpace(2), appSpace(6)),
                         child: Text(
                           '⋮',
                           style: mono(color: kDim, fontSize: 16),
@@ -720,16 +508,16 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                 ),
 
                 if (links.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  SizedBox(height: appSpace(4)),
                   ...links.map((url) => _LinkRow(url: url)),
                 ],
 
                 // ── Structural meta badges ──
                 if (hasStructMeta) ...[
-                  const SizedBox(height: 4),
+                  SizedBox(height: appSpace(4)),
                   Wrap(
-                    spacing: 7,
-                    runSpacing: 2,
+                    spacing: appSpace(7),
+                    runSpacing: appSpace(2),
                     children: [
                       if (memo.reminderAt != null)
                         _MBadge('🔔 ${logroomShortDateTime(memo.reminderAt!)}'),
@@ -740,7 +528,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                 ],
 
                 if (visibleTags.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  SizedBox(height: appSpace(4)),
                   Text(
                     visibleTags,
                     style: mono(
@@ -752,10 +540,10 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                   ),
                 ],
 
-                const SizedBox(height: 4),
+                SizedBox(height: appSpace(4)),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 2,
+                  spacing: appSpace(8),
+                  runSpacing: appSpace(2),
                   children: [
                     if (memo.appendNotes.isNotEmpty)
                       _MBadge('💬 댓글 ${memo.appendNotes.length}개'),
@@ -774,7 +562,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
 
                 // ── Inline notes ──
                 if (memo.appendNotes.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  SizedBox(height: appSpace(4)),
                   ...List.generate(memo.appendNotes.length, (i) {
                     final note = memo.appendNotes[i];
                     return _InlineNoteRow(
@@ -787,7 +575,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
 
                 // ── Inline image thumbnails ──
                 if (memo.imagePaths.isNotEmpty) ...[
-                  const SizedBox(height: 5),
+                  SizedBox(height: appSpace(5)),
                   _ImageStrip(
                     paths: memo.imagePaths,
                     onTap: (index) => showDialog(
@@ -1275,34 +1063,80 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
   }
 }
 
-// ── Full content text — no maxLines, natural wrap ─────────────────────────────
+// ── Full content text — collapses beyond 10 lines ─────────────────────────────
 
-class _FullContentText extends StatelessWidget {
+class _FullContentText extends StatefulWidget {
   final String text;
   final VoidCallback? onTap;
 
   const _FullContentText({required this.text, this.onTap});
 
   @override
+  State<_FullContentText> createState() => _FullContentTextState();
+}
+
+class _FullContentTextState extends State<_FullContentText> {
+  static const _maxLines = 10;
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final child = Text(
-      text,
-      style: mono(
-        color: kText.withValues(alpha: 0.82),
-        fontSize: tsBody,
-        height: 1.6,
-      ),
-      softWrap: true,
+    final lineCount = widget.text.split('\n').length;
+    final needsCollapse = lineCount > _maxLines;
+    final style = mono(
+      color: kText.withValues(alpha: 0.82),
+      fontSize: tsBody,
+      height: 1.6,
     );
 
-    if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: child,
-      );
+    if (!needsCollapse) {
+      final child = Text(widget.text, style: style, softWrap: true);
+      if (widget.onTap != null) {
+        return GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: child,
+        );
+      }
+      return child;
     }
-    return child;
+
+    return GestureDetector(
+      onTap: () {
+        if (_expanded) {
+          widget.onTap?.call();
+        } else {
+          setState(() => _expanded = true);
+        }
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.text,
+            style: style,
+            softWrap: true,
+            maxLines: _expanded ? null : _maxLines,
+            overflow: _expanded ? TextOverflow.visible : TextOverflow.fade,
+          ),
+          if (!_expanded) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: kText.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child: Text(
+                '▾ 더 보기',
+                style: mono(color: kBg, fontSize: tsBody - 1),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -1736,6 +1570,116 @@ class _MinimalLinkRow extends StatelessWidget {
 
 // ── Inline note row with edit/delete ─────────────────────────────────────────
 
+// Owns its own TextEditingController so it is disposed only after the dialog
+// route is fully removed (after the close animation). Disposing the controller
+// synchronously right after `await showDialog` crashes, because the still-
+// animating TextField touches the disposed controller.
+class _NoteDialog extends StatefulWidget {
+  final String title;
+  final String initialText;
+  final bool bordered;
+  final ValueChanged<String> onSave;
+
+  const _NoteDialog({
+    required this.title,
+    required this.initialText,
+    required this.bordered,
+    required this.onSave,
+  });
+
+  @override
+  State<_NoteDialog> createState() => _NoteDialogState();
+}
+
+class _NoteDialogState extends State<_NoteDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initialText);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final text = _controller.text.trim();
+    if (text.isNotEmpty) widget.onSave(text);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: kSurface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      insetPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(widget.title, style: mono(color: kMint, fontSize: 12)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _controller,
+                autofocus: true,
+                maxLines: null,
+                style: mono(color: kText, fontSize: 12),
+                decoration: widget.bordered
+                    ? InputDecoration(
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(color: kBorder),
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: kBorder),
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: kMint),
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        contentPadding: const EdgeInsets.all(10),
+                      )
+                    : const InputDecoration(border: InputBorder.none),
+                onSubmitted: widget.bordered ? null : (_) => _save(),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Text('취소', style: mono(color: kDim, fontSize: 12)),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _save,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Text('저장', style: mono(color: kMint, fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _InlineNoteRow extends StatelessWidget {
   final String content;
   final VoidCallback onEdit;
@@ -1830,31 +1774,6 @@ class _ImageStrip extends StatelessWidget {
   }
 }
 
-// ── Tiny action button ────────────────────────────────────────────────────────
-
-class _TinyBtn extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final bool danger;
-
-  const _TinyBtn({
-    required this.label,
-    required this.onTap,
-    this.danger = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Text(
-        label,
-        style: mono(color: danger ? Colors.red.shade400 : kMint, fontSize: 10),
-      ),
-    );
-  }
-}
-
 // ── Meta badge ────────────────────────────────────────────────────────────────
 
 class _MBadge extends StatelessWidget {
@@ -1868,39 +1787,6 @@ class _MBadge extends StatelessWidget {
       style: mono(color: kDim, fontSize: 9),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-    );
-  }
-}
-
-// ── Source URL link badge ─────────────────────────────────────────────────────
-
-class _SourceLink extends StatelessWidget {
-  final String url;
-  const _SourceLink({required this.url});
-
-  String get _host {
-    try {
-      return Uri.parse(url).host.replaceFirst('www.', '');
-    } catch (_) {
-      return url.length > 24 ? '${url.substring(0, 24)}…' : url;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        final uri = Uri.tryParse(url);
-        if (uri != null) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      },
-      child: Text(
-        '🔗 $_host',
-        style: mono(color: kTeal, fontSize: 9),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
     );
   }
 }
@@ -2115,6 +2001,30 @@ class _MoveRowState extends State<_MoveRow> {
   }
 }
 
+// ── Entry type badge ──────────────────────────────────────────────────────────
+
+class _TypeBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _TypeBadge(this.label, {required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        border: Border.all(color: color.withValues(alpha: 0.20), width: 0.5),
+        borderRadius: BorderRadius.circular(2),
+      ),
+      child: Text(
+        label,
+        style: mono(color: color.withValues(alpha: 0.62), fontSize: tsTiny, height: 1.1),
+      ),
+    );
+  }
+}
+
 // ── v3 Timeline ───────────────────────────────────────────────────────────────
 
 // Returns a dot color for the timeline lane based on entry type.
@@ -2122,7 +2032,7 @@ class _MoveRowState extends State<_MoveRow> {
 Color _timelineDotColorForMemo(Memo memo, List<String> links) {
   if (memo.isChecklist || _contentHasChecklistLines(memo.content)) {
     // todo — accent color, muted
-    return kAccent.withValues(alpha: 0.40);
+    return kMint.withValues(alpha: 0.40);
   }
   if (links.isNotEmpty) {
     // link — muted teal-green (rgba(100,170,130,0.35) from v3)
@@ -2139,21 +2049,20 @@ class _LogroomTimelineLane extends StatelessWidget {
 
   const _LogroomTimelineLane({required this.dotColor});
 
-  static const double _width   = 34.0; // total lane width (HTML --tl-pl 38px equiv)
-  static const double _lineX   = 16.0; // dot/line center (HTML --tl-x 18px equiv)
-  static const double _dotSize =  5.0;
-  static const double _dotTop  = 12.0; // distance from top of entry to dot
-
   @override
   Widget build(BuildContext context) {
+    final width   = appSpace(34.0);
+    final lineX   = appSpace(16.0);
+    final dotSize = appSpace(5.0);
+    final dotTop  = appSpace(12.0);
     return SizedBox(
-      width: _width,
+      width: width,
       child: Stack(
         fit: StackFit.expand,
         children: [
           // vertical line — full height so adjacent entries visually connect
           Positioned(
-            left: _lineX - 0.5,
+            left: lineX - 0.5,
             top: 0,
             bottom: 0,
             width: 1,
@@ -2161,11 +2070,11 @@ class _LogroomTimelineLane extends StatelessWidget {
           ),
           // dot overlaid on line
           Positioned(
-            left: _lineX - _dotSize / 2,
-            top: _dotTop,
+            left: lineX - dotSize / 2,
+            top: dotTop,
             child: Container(
-              width: _dotSize,
-              height: _dotSize,
+              width: dotSize,
+              height: dotSize,
               decoration: BoxDecoration(
                 color: dotColor,
                 shape: BoxShape.circle,

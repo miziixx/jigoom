@@ -14,6 +14,8 @@ class Sidebar extends StatefulWidget {
   final VoidCallback onSelectSearch;
   final VoidCallback onSelectStats;
   final VoidCallback onSelectSchedule;
+  final VoidCallback? onSelectGraph;
+  final VoidCallback? onSelectBrain;
   final VoidCallback onSettingsTap;
   final void Function(String name, String? parentId) onCreate;
   final void Function(String id, String name) onRenameFolder;
@@ -58,6 +60,8 @@ class Sidebar extends StatefulWidget {
     required this.onSelectStats,
     required this.onSelectSchedule,
     required this.onSettingsTap,
+    this.onSelectGraph,
+    this.onSelectBrain,
     required this.onCreate,
     required this.onRenameFolder,
     required this.onDeleteFolder,
@@ -350,6 +354,16 @@ class _SidebarState extends State<Sidebar> {
                     isActive: widget.activeSection == 'stats',
                     onTap: widget.onSelectStats,
                   ),
+                  _MenuRow(
+                    label: 'graph',
+                    isActive: widget.activeSection == 'graph',
+                    onTap: widget.onSelectGraph ?? () {},
+                  ),
+                  _MenuRow(
+                    label: 'brain',
+                    isActive: widget.activeSection == 'brain',
+                    onTap: widget.onSelectBrain ?? () {},
+                  ),
                   _DivRow(),
                   _MenuRow(
                     label: 'settings',
@@ -388,6 +402,16 @@ class _SidebarState extends State<Sidebar> {
                     label: 'stats',
                     isActive: widget.activeSection == 'stats',
                     onTap: widget.onSelectStats,
+                  ),
+                  _MenuRow(
+                    label: 'graph',
+                    isActive: widget.activeSection == 'graph',
+                    onTap: widget.onSelectGraph ?? () {},
+                  ),
+                  _MenuRow(
+                    label: 'brain',
+                    isActive: widget.activeSection == 'brain',
+                    onTap: widget.onSelectBrain ?? () {},
                   ),
                   _MenuRow(
                     label: 'settings',
@@ -463,7 +487,7 @@ class _SidebarState extends State<Sidebar> {
                   width: 5,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: kAccent.withValues(alpha: 0.7),
+                    color: kMint.withValues(alpha: 0.7),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -631,6 +655,18 @@ class _SidebarState extends State<Sidebar> {
                   onTap: widget.onSelectStats,
                 ),
                 _SdRow(
+                  sym: '',
+                  label: 'GRAPH',
+                  isActive: widget.activeSection == 'graph',
+                  onTap: widget.onSelectGraph ?? () {},
+                ),
+                _SdRow(
+                  sym: '',
+                  label: 'BRAIN',
+                  isActive: widget.activeSection == 'brain',
+                  onTap: widget.onSelectBrain ?? () {},
+                ),
+                _SdRow(
                   sym: isNemo2Test ? '' : '⚙',
                   label: 'SETTINGS',
                   isActive: false,
@@ -728,6 +764,8 @@ class _SidebarState extends State<Sidebar> {
                 row('habits', 'HABITS', widget.onSelectHabit),
                 row('goals', 'GOALS', widget.onSelectGoal),
                 row('stats', 'STATS', widget.onSelectStats),
+                row('graph', 'GRAPH', widget.onSelectGraph),
+                row('brain', 'BRAIN', widget.onSelectBrain),
                 row('settings', 'SETTINGS', widget.onSettingsTap),
               ],
             ),
@@ -1732,9 +1770,9 @@ class _SdRowState extends State<_SdRow> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isActive ? kAccent : (_hovered ? kText2 : kText3);
+    final fg = widget.isActive ? kMint : (_hovered ? kText2 : kText3);
     final bg = widget.isActive
-        ? kAccent.withValues(alpha: 0.07)
+        ? kMint.withValues(alpha: 0.07)
         : (_hovered ? kBorder.withValues(alpha: 0.12) : Colors.transparent);
 
     return MouseRegion(
@@ -1768,11 +1806,11 @@ class _SdRowState extends State<_SdRow> {
                             width: 7, height: 7,
                             decoration: BoxDecoration(
                               color: widget.isActive
-                                  ? kAccent.withValues(alpha: 0.65)
+                                  ? kMint.withValues(alpha: 0.65)
                                   : kBg4,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: widget.isActive ? kAccent : kTlDot,
+                                color: widget.isActive ? kMint : kTlDot,
                                 width: 1,
                               ),
                             ),
@@ -1833,9 +1871,9 @@ class _SdSubRowState extends State<_SdSubRow> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isActive ? kAccent : (_hovered ? kText2 : kText3);
+    final fg = widget.isActive ? kMint : (_hovered ? kText2 : kText3);
     final bg = widget.isActive
-        ? kAccent.withValues(alpha: 0.07)
+        ? kMint.withValues(alpha: 0.07)
         : (_hovered ? kBorder.withValues(alpha: 0.12) : Colors.transparent);
 
     return MouseRegion(
@@ -1887,9 +1925,9 @@ class _SdHabitRowState extends State<_SdHabitRow> {
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.isActive ? kAccent : (_hovered ? kText2 : kText3);
+    final fg = widget.isActive ? kMint : (_hovered ? kText2 : kText3);
     final bg = widget.isActive
-        ? kAccent.withValues(alpha: 0.07)
+        ? kMint.withValues(alpha: 0.07)
         : (_hovered ? kBorder.withValues(alpha: 0.12) : Colors.transparent);
 
     return MouseRegion(
@@ -1922,11 +1960,11 @@ class _SdHabitRowState extends State<_SdHabitRow> {
                             width: 7, height: 7,
                             decoration: BoxDecoration(
                               color: widget.isActive
-                                  ? kAccent.withValues(alpha: 0.65)
+                                  ? kMint.withValues(alpha: 0.65)
                                   : kBg4,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: widget.isActive ? kAccent : kTlDot,
+                                color: widget.isActive ? kMint : kTlDot,
                                 width: 1,
                               ),
                             ),
@@ -1991,9 +2029,9 @@ class _SdGoalRowState extends State<_SdGoalRow> {
   @override
   Widget build(BuildContext context) {
     final locked = !widget.goalActivated && widget.dayCount < 14;
-    final fg = widget.isActive ? kAccent : (_hovered ? kText2 : kText3);
+    final fg = widget.isActive ? kMint : (_hovered ? kText2 : kText3);
     final bg = widget.isActive
-        ? kAccent.withValues(alpha: 0.07)
+        ? kMint.withValues(alpha: 0.07)
         : (_hovered ? kBorder.withValues(alpha: 0.12) : Colors.transparent);
 
     return Opacity(
@@ -2028,11 +2066,11 @@ class _SdGoalRowState extends State<_SdGoalRow> {
                               width: 7, height: 7,
                               decoration: BoxDecoration(
                                 color: widget.isActive
-                                    ? kAccent.withValues(alpha: 0.65)
+                                    ? kMint.withValues(alpha: 0.65)
                                     : kBg4,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: widget.isActive ? kAccent : kTlDot,
+                                  color: widget.isActive ? kMint : kTlDot,
                                   width: 1,
                                 ),
                               ),

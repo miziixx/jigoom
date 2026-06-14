@@ -299,6 +299,43 @@ class NotificationService {
     final ts = int.tryParse(memoId) ?? memoId.hashCode;
     return ts.abs() % 2147483647;
   }
+
+  // ── 주간 요약 알림 (매주 일요일 오전 10시) ─────────────────────
+  static const _weeklyNotifId = 99999;
+
+  static Future<void> scheduleWeeklyBrief() async {
+    if (kIsWeb) return;
+    await _plugin.cancel(_weeklyNotifId);
+
+    final now = tz.TZDateTime.now(tz.local);
+    // 다음 일요일 10시 계산
+    var next = tz.TZDateTime(tz.local, now.year, now.month, now.day, 10);
+    final daysUntilSunday = (DateTime.sunday - now.weekday + 7) % 7;
+    next = next.add(Duration(days: daysUntilSunday == 0 ? 7 : daysUntilSunday));
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'weekly_brief',
+        '주간 브레인 요약',
+        channelDescription: '매주 저장한 내용 요약',
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+      ),
+    );
+
+    await _plugin.zonedSchedule(
+      _weeklyNotifId,
+      '🧠 이번 주 브레인 요약',
+      'BRAIN 탭에서 이번 주 저장한 내용을 확인해보세요',
+      next,
+      details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      payload: 'weekly_brief',
+    );
+  }
 }
 
 @pragma('vm:entry-point')

@@ -19,13 +19,11 @@ class SettingsScreen extends StatefulWidget {
   final bool initialTabLocked;
   final String initialFontFamily;
   final double initialFontSize;
-  final double initialSpacing;
   final void Function(
     Color bg,
     Color text,
     String fontFamily,
     double fontSize,
-    double spacing,
     bool tabLocked,
   )
   onSave;
@@ -42,7 +40,6 @@ class SettingsScreen extends StatefulWidget {
     required this.initialTabLocked,
     required this.initialFontFamily,
     required this.initialFontSize,
-    required this.initialSpacing,
     required this.onSave,
     required this.onBackupSave,
     required this.onRestoreConfirmed,
@@ -62,9 +59,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late bool _tabLocked;
   late String _fontFamily;
   late double _fontSize;
-  late double _spacing;
-  late Color _accent;
-  late TextEditingController _accentCtrl;
   late EntryDisplayMode _entryDisplayMode;
   late EntryDisplayMode _initialEntryDisplayMode;
   late AppThemeMode _themeMode;
@@ -74,6 +68,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _versionTapCount = 0;
   Timer? _versionTapTimer;
   Timer? _colorSaveDebounce;
+  late TextEditingController _apiKeyCtrl;
+  bool _apiKeyObscure = true;
+  String _claudeModel = 'claude-haiku-4-5-20251001';
 
   // palette slots: null = empty
   late List<(Color, Color)?> _palettes;
@@ -87,17 +84,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _tabLocked = widget.initialTabLocked;
     _fontFamily = widget.initialFontFamily;
     _fontSize = widget.initialFontSize;
-    _spacing = widget.initialSpacing;
     _initialEntryDisplayMode = entryDisplayModeNotifier.value;
     _entryDisplayMode = _initialEntryDisplayMode;
     _initialThemeMode = appThemeModeNotifier.value;
     _themeMode = _initialThemeMode;
-    _accent = kAccent;
     _bgCtrl = TextEditingController(text: _toHex(_bg));
     _textCtrl = TextEditingController(text: _toHex(_text));
-    _accentCtrl = TextEditingController(text: _toHex(_accent));
     _palettes = List.filled(StorageService.paletteSlotCount, null);
     _loadPalettes();
+    _apiKeyCtrl = TextEditingController();
+    _loadApiKey();
+  }
+
+  Future<void> _loadApiKey() async {
+    final key = await StorageService.loadClaudeApiKey();
+    final model = await StorageService.loadClaudeModel();
+    if (mounted) {
+      _apiKeyCtrl.text = key;
+      setState(() => _claudeModel = model);
+    }
   }
 
   Future<void> _loadPalettes() async {
@@ -113,7 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _bgCtrl.dispose();
     _textCtrl.dispose();
-    _accentCtrl.dispose();
+    _apiKeyCtrl.dispose();
     _colorSaveDebounce?.cancel();
     _versionTapTimer?.cancel();
     if (!_saved) {
@@ -121,7 +126,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         applyColors(widget.initialBg, widget.initialText);
         applyFont(widget.initialFontFamily, widget.initialFontSize);
-        applySpacing(widget.initialSpacing);
         applyEntryDisplayMode(_initialEntryDisplayMode);
         applyAppThemeMode(_initialThemeMode);
       });
@@ -160,7 +164,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _colorSaveDebounce?.cancel();
     _colorSaveDebounce = Timer(const Duration(milliseconds: 800), () {
       StorageService.saveColors(_bg, _text);
-      if (isLogroomUi) StorageService.saveAccent(_accent);
     });
   }
 
@@ -173,7 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         selection: TextSelection.collapsed(offset: hex.length),
       );
     }
-    applyColors(c, _text); // real-time preview
+    applyColors(c, _text);
     _scheduleColorSave();
   }
 
@@ -186,33 +189,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         selection: TextSelection.collapsed(offset: hex.length),
       );
     }
-    applyColors(_bg, c); // real-time preview
-    _scheduleColorSave();
-  }
-
-  void _setAccent(Color c) {
-    setState(() => _accent = c);
-    final hex = _toHex(c);
-    if (_accentCtrl.text.toUpperCase() != hex) {
-      _accentCtrl.value = _accentCtrl.value.copyWith(
-        text: hex,
-        selection: TextSelection.collapsed(offset: hex.length),
-      );
-    }
-    applyColorsV3(_bg, _text, c);
-    _scheduleColorSave();
-  }
-
-  void _applyPreset(Color bg, Color text, Color accent) {
-    setState(() {
-      _bg = bg;
-      _text = text;
-      _accent = accent;
-      _bgCtrl.text = _toHex(bg);
-      _textCtrl.text = _toHex(text);
-      _accentCtrl.text = _toHex(accent);
-    });
-    applyColorsV3(bg, text, accent);
+    applyColors(_bg, c);
     _scheduleColorSave();
   }
 
@@ -269,22 +246,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── Actions ────────────────────────────────────────
 
   void _resetDefaults() {
-    final bg = const Color(0xFFEDF2ED);
-    final text = const Color(0xFF556B2F);
+    final Color bg;
+    final Color text;
+    if (isLogroomUi) {
+      bg = const Color(0xFF0C0B09);
+      text = const Color(0xFFEDE8DF);
+    } else {
+      bg = const Color(0xFFEDF2ED);
+      text = const Color(0xFF556B2F);
+    }
     setState(() {
       _bg = bg;
       _text = text;
       _tabLocked = false;
       _fontFamily = 'JetBrains Mono';
       _fontSize = 13.0;
-      _spacing = 12.0;
       _themeMode = AppThemeMode.normal;
       _bgCtrl.text = _toHex(_bg);
       _textCtrl.text = _toHex(_text);
     });
     applyColors(bg, text);
     applyFont(_fontFamily, _fontSize);
-    applySpacing(_spacing);
     applyAppThemeMode(_themeMode);
   }
 
@@ -292,8 +274,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _saved = true;
     StorageService.saveEntryDisplayMode(_entryDisplayMode);
     StorageService.saveAppThemeMode(_themeMode);
-    if (isLogroomUi) StorageService.saveAccent(_accent);
-    widget.onSave(_bg, _text, _fontFamily, _fontSize, _spacing, _tabLocked);
+    widget.onSave(_bg, _text, _fontFamily, _fontSize, _tabLocked);
     Navigator.pop(context);
   }
 
@@ -479,14 +460,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── V3 PRESETS (logroomUi only) ──────────
-                      if (isLogroomUi) ...[
-                        _SectionHeader(label: '색상 프리셋'),
-                        const SizedBox(height: 12),
-                        _V3PresetGrid(onSelect: _applyPreset),
-                        const SizedBox(height: 22),
-                      ],
-
                       // ── SAVED PALETTES ───────────────────────
                       _SectionHeader(label: '저장한 색상'),
                       const SizedBox(height: 14),
@@ -547,27 +520,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             _setText(_fromRGB(_r(_text), _g(_text), v)),
                       ),
 
-                      if (isLogroomUi) ...[
-                        const SizedBox(height: 20),
-                        _AccentSection(
-                          accent: _accent,
-                          hexCtrl: _accentCtrl,
-                          onAccentChanged: _setAccent,
-                          onHexInput: (raw) {
-                            final c = _parseHex(raw);
-                            if (c != null) _setAccent(c);
-                          },
-                          rVal: _r(_accent),
-                          gVal: _g(_accent),
-                          bVal: _b(_accent),
-                          onRChanged: (v) =>
-                              _setAccent(_fromRGB(v, _g(_accent), _b(_accent))),
-                          onGChanged: (v) =>
-                              _setAccent(_fromRGB(_r(_accent), v, _b(_accent))),
-                          onBChanged: (v) =>
-                              _setAccent(_fromRGB(_r(_accent), _g(_accent), v)),
-                        ),
-                      ],
 
                       const SizedBox(height: 20),
 
@@ -616,25 +568,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onChanged: (v) {
                           setState(() => _fontSize = v);
                           applyFont(_fontFamily, _fontSize);
-                        },
-                      ),
-
-                      const SizedBox(height: 22),
-
-                      Text(
-                        '간격',
-                        style: mono(
-                          color: kDim,
-                          fontSize: 11,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _SpacingSelector(
-                        value: _spacing,
-                        onChanged: (v) {
-                          setState(() => _spacing = v);
-                          applySpacing(v);
                         },
                       ),
 
@@ -737,6 +670,131 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           height: 1.55,
                         ),
                       ),
+
+                      const SizedBox(height: 22),
+
+                      // ── AI / GRAPH ────────────────────────────
+                      _SectionHeader(label: 'AI 그래프 (선택)'),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Claude API 키를 입력하면 GRAPH 뷰에서 AI가 메모 키워드를 분석합니다.\n없어도 기본 그래프는 사용할 수 있습니다.',
+                        style: mono(
+                          color: kDim.withValues(alpha: 0.72),
+                          fontSize: 10,
+                          height: 1.55,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: kSurface,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              child: TextField(
+                                controller: _apiKeyCtrl,
+                                obscureText: _apiKeyObscure,
+                                style: mono(color: kText, fontSize: 11),
+                                decoration: InputDecoration(
+                                  hintText: 'sk-ant-...',
+                                  hintStyle: mono(
+                                    color: kDim.withValues(alpha: 0.45),
+                                    fontSize: 11,
+                                  ),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () => setState(() => _apiKeyObscure = !_apiKeyObscure),
+                            child: Container(
+                              height: 34,
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: kSurface,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: kBorder),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                _apiKeyObscure ? '표시' : '숨김',
+                                style: mono(color: kDim, fontSize: 10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          _Btn(
+                            label: '저장',
+                            color: kMint,
+                            onTap: () async {
+                              await StorageService.saveClaudeApiKey(_apiKeyCtrl.text.trim());
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'API 키 저장됨',
+                                      style: mono(color: kBg, fontSize: 12),
+                                    ),
+                                    backgroundColor: kMint,
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // ── 모델 선택 ─────────────────────────────
+                      Text(
+                        'AI 모델',
+                        style: mono(color: kDim, fontSize: 10),
+                      ),
+                      const SizedBox(height: 6),
+                      ...{
+                        'claude-haiku-4-5-20251001': 'Haiku 4.5 — 빠름·저렴',
+                        'claude-sonnet-4-6': 'Sonnet 4.6 — 균형',
+                        'claude-opus-4-8': 'Opus 4.8 — 최고품질',
+                      }.entries.map((e) => GestureDetector(
+                        onTap: () async {
+                          setState(() => _claudeModel = e.key);
+                          await StorageService.saveClaudeModel(e.key);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8,
+                          ),
+                          color: _claudeModel == e.key
+                              ? kMint.withValues(alpha: 0.12)
+                              : kSurface,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 7, height: 7,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _claudeModel == e.key ? kMint : kDim,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(e.value, style: mono(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      )),
 
                       const SizedBox(height: 28),
                       _dotLine(),
@@ -1195,8 +1253,8 @@ class _FontOptionState extends State<_FontOption> {
   TextStyle _nameStyle() {
     final c = widget.isSelected ? kMint : (_hovered ? kText : kDim);
     const sz = 11.0;
-    // Preview each option in its own bundled font (offline-safe).
-    return TextStyle(fontFamily: widget.fontName, fontSize: sz, color: c);
+    final family = widget.fontName == kSystemFont ? null : widget.fontName;
+    return TextStyle(fontFamily: family, fontSize: sz, color: c);
   }
 
   @override
@@ -1403,83 +1461,6 @@ class _ThemeModeSelector extends StatelessWidget {
             ),
           )
           .toList(),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Spacing selector
-// ──────────────────────────────────────────────────────────────────
-
-class _SpacingSelector extends StatelessWidget {
-  final double value;
-  final ValueChanged<double> onChanged;
-
-  const _SpacingSelector({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: appSpace(6),
-      runSpacing: appSpace(6),
-      children: kSpacingOptions
-          .map(
-            (option) => _SpacingOption(
-              label: option.toInt().toString(),
-              active: value == option,
-              onTap: () => onChanged(option),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
-
-class _SpacingOption extends StatefulWidget {
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  const _SpacingOption({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  @override
-  State<_SpacingOption> createState() => _SpacingOptionState();
-}
-
-class _SpacingOptionState extends State<_SpacingOption> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          padding: appInsetsSymmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: widget.active
-                ? kMint.withValues(alpha: 0.12)
-                : (_hovered
-                      ? kBorder.withValues(alpha: 0.15)
-                      : Colors.transparent),
-            border: widget.active
-                ? Border.all(color: kMint.withValues(alpha: 0.4))
-                : Border.all(color: kBorder.withValues(alpha: 0.5)),
-          ),
-          child: Text(
-            widget.label,
-            style: mono(color: widget.active ? kMint : kDim, fontSize: 11),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1822,154 +1803,6 @@ class _PaletteSlotCardState extends State<_PaletteSlotCard> {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────
-// v3 Preset grid (logroomUi only)
-// ──────────────────────────────────────────────────────────────────
-
-typedef _PresetTriplet = (Color bg, Color text, Color accent);
-
-const List<(String, _PresetTriplet)> _v3Presets = [
-  ('Default',  (Color(0xFF0C0B09), Color(0xFFEDE8DF), Color(0xFFB8882A))),
-  ('Slate',    (Color(0xFF0D0F12), Color(0xFFE0E6F0), Color(0xFF6891C8))),
-  ('Forest',   (Color(0xFF0A0E0B), Color(0xFFD8EAD8), Color(0xFF5A9E5A))),
-  ('Dusk',     (Color(0xFF120D12), Color(0xFFEDD8F0), Color(0xFFA06AB0))),
-  ('Sepia',    (Color(0xFFF5F0E8), Color(0xFF3C3020), Color(0xFF8A6030))),
-  ('Paper',    (Color(0xFFFAFAFA), Color(0xFF2A2A2A), Color(0xFF4A80C8))),
-  ('Ash',      (Color(0xFF0F0F0F), Color(0xFFD8D8D8), Color(0xFF888888))),
-  ('Ember',    (Color(0xFF110A05), Color(0xFFF0DCC8), Color(0xFFC85818))),
-];
-
-class _V3PresetGrid extends StatelessWidget {
-  final void Function(Color bg, Color text, Color accent) onSelect;
-  const _V3PresetGrid({required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _v3Presets.map((entry) {
-        final (name, (bg, text, accent)) = entry;
-        return _V3PresetChip(
-          name: name,
-          bg: bg,
-          text: text,
-          accent: accent,
-          onTap: () => onSelect(bg, text, accent),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _V3PresetChip extends StatefulWidget {
-  final String name;
-  final Color bg, text, accent;
-  final VoidCallback onTap;
-  const _V3PresetChip({
-    required this.name,
-    required this.bg,
-    required this.text,
-    required this.accent,
-    required this.onTap,
-  });
-
-  @override
-  State<_V3PresetChip> createState() => _V3PresetChipState();
-}
-
-class _V3PresetChipState extends State<_V3PresetChip> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 80),
-        width: 72,
-        height: 52,
-        decoration: BoxDecoration(
-          color: widget.bg,
-          border: Border.all(
-            color: _pressed
-                ? widget.accent.withValues(alpha: 0.9)
-                : widget.accent.withValues(alpha: 0.45),
-            width: _pressed ? 1.5 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: Center(
-                child: Text(
-                  widget.name,
-                  style: TextStyle(
-                    fontFamily: kFontFamily,
-                    fontSize: 9,
-                    color: widget.text.withValues(alpha: 0.9),
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              height: 5,
-              color: widget.accent.withValues(alpha: 0.75),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Accent color section (logroomUi only)
-// ──────────────────────────────────────────────────────────────────
-
-class _AccentSection extends StatelessWidget {
-  final Color accent;
-  final TextEditingController hexCtrl;
-  final ValueChanged<Color> onAccentChanged;
-  final ValueChanged<String> onHexInput;
-  final int rVal, gVal, bVal;
-  final ValueChanged<int> onRChanged, onGChanged, onBChanged;
-
-  const _AccentSection({
-    required this.accent,
-    required this.hexCtrl,
-    required this.onAccentChanged,
-    required this.onHexInput,
-    required this.rVal,
-    required this.gVal,
-    required this.bVal,
-    required this.onRChanged,
-    required this.onGChanged,
-    required this.onBChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _RgbColorSection(
-      label: '강조색 (accent)',
-      color: accent,
-      hexCtrl: hexCtrl,
-      onColorChanged: onAccentChanged,
-      onHexInput: onHexInput,
-      rVal: rVal,
-      gVal: gVal,
-      bVal: bVal,
-      onRChanged: onRChanged,
-      onGChanged: onGChanged,
-      onBChanged: onBChanged,
     );
   }
 }

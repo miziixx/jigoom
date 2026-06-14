@@ -8,6 +8,8 @@ import '../flavor.dart';
 import '../models/folder.dart';
 import '../models/memo.dart';
 import '../services/image_service.dart';
+import '../services/ocr_service.dart';
+import '../services/storage_service.dart';
 import 'schedule_sheet.dart';
 
 enum _LogroomDraftKind { entry, task, event, habit, goal }
@@ -642,55 +644,6 @@ class _InputBarState extends State<InputBar> {
     );
   }
 
-  void _showFolderDropdown() async {
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-    final pos = renderBox.localToGlobal(Offset.zero);
-
-    final result = await showMenu<String?>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromLTWH(pos.dx + 14, pos.dy, 1, 1),
-        Offset.zero & overlay.size,
-      ),
-      color: kSurface,
-      elevation: 3,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      items: [
-        PopupMenuItem<String?>(
-          value: '__inbox__',
-          height: 24,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text(
-            '/inbox',
-            style: mono(
-              color: _selectedFolderId == null ? kMint : kText,
-              fontSize: 12,
-            ),
-          ),
-        ),
-        ...widget.folders.map(
-          (f) => PopupMenuItem<String?>(
-            value: f.id,
-            height: 24,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Text(
-              '/${f.name}',
-              style: mono(
-                color: _selectedFolderId == f.id ? kMint : kText,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-    if (result != null) {
-      setState(() => _selectedFolderId = result == '__inbox__' ? null : result);
-    }
-  }
-
   Future<void> _pickImage() async {
     if (kIsWeb) return;
     final source = await _showImageSourceSheet();
@@ -724,6 +677,40 @@ class _InputBarState extends State<InputBar> {
     }
 
     if (path != null) setState(() => _pendingImages.add(path));
+  }
+
+  Future<void> _pickImageForOcr() async {
+    if (kIsWeb) return;
+    final picker = ImagePicker();
+    final xfile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+    if (xfile == null || !mounted) return;
+
+    _showSnack('텍스트 인식 중...');
+    final raw = await OcrService.extractText(xfile.path);
+    if (!mounted) return;
+
+    if (raw == null || raw.isEmpty) {
+      _showSnack('텍스트를 인식하지 못했습니다');
+      return;
+    }
+
+    String text = raw;
+    final apiKey = await StorageService.loadClaudeApiKey();
+    if (apiKey.isNotEmpty) {
+      if (!mounted) return;
+      _showSnack('AI로 정리 중...');
+      final cleaned = await OcrService.cleanWithAI(raw, apiKey);
+      if (!mounted) return;
+      if (cleaned != null) text = cleaned;
+    }
+
+    final current = _controller.text;
+    final appended = current.isEmpty ? text : '$current\n$text';
+    _controller.value = TextEditingValue(
+      text: appended,
+      selection: TextSelection.collapsed(offset: appended.length),
+    );
+    _restoreInputFocus();
   }
 
   void _showSnack(String message) {
@@ -1088,6 +1075,14 @@ String _contentForDraftKind(String raw) {
         );
       },
     );
+    // Defer disposal past the dialog's close animation. `await showDialog`
+    // completes when the route starts popping, but the still-animating
+    // TextField keeps touching the controller/focusNode for a few frames —
+    // disposing synchronously here crashes ("used after being disposed").
+    Future.delayed(const Duration(milliseconds: 400), () {
+      controller.dispose();
+      focusNode.dispose();
+    });
     if (name == null || !mounted) return;
     if (isHabit) {
       widget.onActivateHabit?.call(name);
@@ -1650,7 +1645,7 @@ String _contentForDraftKind(String raw) {
                     width: 7,
                     height: 7,
                     decoration: BoxDecoration(
-                      color: kAccent.withValues(alpha: 0.55),
+                      color: kMint.withValues(alpha: 0.55),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -1664,7 +1659,7 @@ String _contentForDraftKind(String raw) {
                     minLines: 1,
                     keyboardType: TextInputType.multiline,
                     textInputAction: TextInputAction.newline,
-                    cursorColor: kAccent,
+                    cursorColor: kMint,
                     cursorWidth: 1.5,
                     decoration: InputDecoration(
                       hintText: _logroomInputHint(),
@@ -1852,6 +1847,12 @@ String _contentForDraftKind(String raw) {
                               tooltip: '이미지',
                               active: _pendingImages.isNotEmpty,
                               onTap: _pickImage,
+                            ),
+                          if (!kIsWeb && isNemo2Test)
+                            _ToolBtn(
+                              icon: Icons.document_scanner_outlined,
+                              tooltip: '스샷 텍스트 읽기',
+                              onTap: _pickImageForOcr,
                             ),
                         ],
                       ),

@@ -15,6 +15,8 @@ const nemo2TestMenuOptions = <String>[
   'STATS',
   'SETTINGS',
   'TAGS',
+  'GRAPH',
+  'BRAIN',
 ];
 
 // ──────────────────────────────────────────────────────────────
@@ -619,7 +621,6 @@ class TabEditDialog extends StatefulWidget {
 
 class _TabEditDialogState extends State<TabEditDialog> {
   late final TextEditingController _labelCtrl;
-  bool _isTag = false;
   bool _inboxSelected = false;
   String? _folderId;
   String? _tag;
@@ -630,7 +631,6 @@ class _TabEditDialogState extends State<TabEditDialog> {
     final t = widget.tab;
     _labelCtrl = TextEditingController(text: t?.label ?? '');
     if (t != null) {
-      _isTag = t.isTag;
       if (t.isTag) {
         _tag = t.tag;
       } else {
@@ -808,31 +808,6 @@ class _TabEditDialogState extends State<TabEditDialog> {
     return ListView(shrinkWrap: true, children: items);
   }
 
-  Widget _buildTagList() {
-    if (widget.allTags.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            'no tags yet',
-            style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 11),
-          ),
-        ),
-      );
-    }
-    return ListView(
-      shrinkWrap: true,
-      children: widget.allTags
-          .map(
-            (tag) => _TargetItem(
-              label: '#$tag',
-              isSelected: _tag == tag,
-              onTap: () => setState(() => _tag = tag),
-            ),
-          )
-          .toList(),
-    );
-  }
 }
 
 // ──────────────────────────────────────────────────────────────

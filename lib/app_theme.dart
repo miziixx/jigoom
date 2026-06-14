@@ -33,7 +33,10 @@ Color kTlLine = const Color(0x12FFFFFF); // rgba(255,255,255,0.07)
 Color kTlDot  = const Color(0x1FFFFFFF); // rgba(255,255,255,0.12)
 
 // Font options (Google Fonts + system fonts)
+const kSystemFont = '시스템 기본';
+
 const kFontOptions = [
+  kSystemFont,
   'JetBrains Mono',
   'Fira Code',
   'Source Code Pro',
@@ -198,6 +201,7 @@ void syncSystemUiOverlay() {
 void applyFont(String family, double size) {
   kFontFamily = family;
   kFontSize = size;
+  kSpacing = 12.0 * (size / 13.0);
   themeNotifier.value++;
 }
 
@@ -206,7 +210,9 @@ void applySpacing(double value) {
   themeNotifier.value++;
 }
 
-double appSpace(double value) => value * (kSpacing / 12.0);
+// Spacing scales softly with font size: full value at 13px, ~1.2× at max.
+// Using 0.6 + 0.4× so growth is gentler than pure proportional scaling.
+double appSpace(double value) => value * (0.6 + 0.4 * kFontSize / 13.0);
 
 EdgeInsets appInsetsAll(double value) => EdgeInsets.all(appSpace(value));
 
@@ -237,10 +243,9 @@ TextStyle mono({
 }) {
   final c = color ?? kText;
   final sz = fontSize * (kFontSize / 13.0);
-  // Fonts are bundled as assets (see pubspec.yaml). Reference the family
-  // directly so it works offline in release APKs — no runtime download.
+  final family = kFontFamily == kSystemFont ? null : kFontFamily;
   return TextStyle(
-    fontFamily: kFontFamily,
+    fontFamily: family,
     color: c,
     fontSize: sz,
     fontWeight: fontWeight,
@@ -250,8 +255,8 @@ TextStyle mono({
 }
 
 TextTheme _buildTextTheme(ThemeData base) {
-  // All font options are bundled assets — apply the family directly.
-  return base.textTheme.apply(fontFamily: kFontFamily);
+  final family = kFontFamily == kSystemFont ? null : kFontFamily;
+  return family != null ? base.textTheme.apply(fontFamily: family) : base.textTheme;
 }
 
 ThemeData buildTheme() {

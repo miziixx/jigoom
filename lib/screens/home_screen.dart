@@ -20,6 +20,7 @@ import '../models/quick_tab.dart';
 import '../models/append_note.dart';
 import '../models/entry_display_mode.dart';
 import '../services/storage_service.dart';
+import '../services/wiki_capture_service.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
 import '../services/widget_service.dart';
@@ -31,6 +32,8 @@ import '../widgets/logroom_entry_tile.dart';
 import 'stats_screen.dart';
 import 'schedule_screen.dart';
 import 'today_screen.dart';
+import 'graph_screen.dart';
+import 'brain_screen.dart';
 
 // Below this width → mobile overlay sidebar; above → desktop inline sidebar
 const _kNarrowBreak = 700.0;
@@ -38,7 +41,14 @@ const _kNarrowBreak = 700.0;
 // Logroom v3: hour separator marker inserted between memo entries
 class _HourMarker {
   final int hour;
-  const _HourMarker(this.hour);
+  final int count;
+  const _HourMarker(this.hour, {this.count = 0});
+}
+
+// Logroom v3: silence gap inserted when consecutive entries are far apart in time
+class _SilenceGap {
+  final int minutes;
+  const _SilenceGap(this.minutes);
 }
 
 class HomeScreen extends StatefulWidget {
@@ -66,12 +76,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _scheduleOpen = false;
   bool _tasksOnly = false;
   bool _tagsOpen = false;
+  bool _graphOpen = false;
+  bool _brainOpen = false;
   bool _todayOpen = false;
   String? _selectedFolderId;
   String? _selectedTag;
   String? _selectedTabId;
   String? _highlightedMemoId; // briefly highlighted after notification tap
   Memo? _editingMemo;
+
+  // ── Drag state ──────────────────────────────────────────────────
+  Memo? _draggingMemo;
+  String? _mergeTargetId; // memo id being hovered for merge
+  int? _reorderInsertIndex; // list index for reorder drop zone
 
   int _dayCount = 1;
   bool _habitActivated = false;
@@ -85,6 +102,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _collapsedDates = <String>{};
   final _expandedLogroomGroups = <String>{};
   final _logroomHourSlots = <String, List<HourSlot>>{};
+  final _logroomDaySummaries = <String, DaySummary>{};
   List<Object> _flatItems = const [];
 
   StreamSubscription? _shareSubscription;
@@ -160,33 +178,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (u.contains('naver.com')) return '#공유네이버';
     if (u.contains('blog.') || u.contains('/blog')) return '#공유블로그';
     return '#공유기사';
-  }
-
-  static Future<String?> _fetchPageTitle(String url) async {
-    try {
-      final client = HttpClient()
-        ..connectionTimeout = const Duration(seconds: 4);
-      final req = await client
-          .getUrl(Uri.parse(url))
-          .timeout(const Duration(seconds: 4));
-      req.headers.set('User-Agent', 'Mozilla/5.0');
-      final res = await req.close().timeout(const Duration(seconds: 4));
-      if (res.statusCode != 200) return null;
-      final bodyBytes = <int>[];
-      await for (final chunk in res.timeout(const Duration(seconds: 4))) {
-        bodyBytes.addAll(chunk);
-        if (bodyBytes.length > 32000) break;
-      }
-      final body = utf8.decode(bodyBytes, allowMalformed: true);
-      final match = RegExp(
-        r'<title[^>]*>(.*?)</title>',
-        caseSensitive: false,
-        dotAll: true,
-      ).firstMatch(body);
-      return match?.group(1)?.trim().replaceAll(RegExp(r'\s+'), ' ');
-    } catch (_) {
-      return null;
-    }
   }
 
   static String _stripSharedMemoText(String raw) => raw
@@ -377,7 +368,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
         ),
       ),
-    );
+    ).then((_) {
+      contentController.dispose();
+      urlController.dispose();
+      tagController.dispose();
+    });
   }
 
   void _addMemoWithSource(String content, String? sourceUrl) {
@@ -394,6 +389,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     });
     StorageService.saveMemos(_memos);
+    if (sourceUrl != null) _autoSummarize(id, sourceUrl);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final key = _memoKeys[id];
       if (key?.currentContext != null) {
@@ -404,6 +400,65 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           alignment: 0.5,
         );
       }
+    });
+  }
+
+  void _autoSummarize(String memoId, String sourceUrl) {
+    Future(() async {
+      final apiKey = await StorageService.loadClaudeApiKey();
+      if (apiKey.isEmpty) return;
+      final model = await StorageService.loadClaudeModel();
+
+      // 1. 요약
+      final summary = await WikiCaptureService.summarize(sourceUrl, apiKey, model: model);
+      if (summary == null || summary.isEmpty) return;
+
+      // 2. 연결 찾기
+      final otherMemos = _memos.where((m) => m.id != memoId).toList();
+      final connectedIds = await WikiCaptureService.findConnections(
+        summary, otherMemos, apiKey, model: model,
+      );
+
+      String fullNote = summary;
+      if (connectedIds.isNotEmpty) {
+        final connectedTitles = connectedIds.map((id) {
+          final m = _memos.firstWhere(
+            (m) => m.id == id,
+            orElse: () => Memo(id: id, content: '', createdAt: DateTime.now()),
+          );
+          return m.content.split('\n').first.trim();
+        }).where((t) => t.isNotEmpty).take(3).join(', ');
+        fullNote += '\n\n**연결된 메모**: $connectedTitles';
+      }
+
+      // 요약에서 #태그 추출해서 메모 본문에 자동 추가
+      final tagMatches = RegExp(r'#[\w가-힣]+').allMatches(fullNote);
+      final autoTags = tagMatches.map((m) => m.group(0)!).toSet().join(' ');
+
+      final memos = await StorageService.loadMemos();
+      final idx = memos.indexWhere((m) => m.id == memoId);
+      if (idx == -1) return;
+
+      final existingContent = memos[idx].content;
+      final newContent = autoTags.isNotEmpty &&
+              !existingContent.contains(autoTags.split(' ').first)
+          ? '$existingContent\n$autoTags'
+          : existingContent;
+
+      final updated = memos[idx].copyWith(
+        content: newContent,
+        appendNotes: [
+          ...memos[idx].appendNotes,
+          AppendNote(content: fullNote, addedAt: DateTime.now()),
+        ],
+      );
+      memos[idx] = updated;
+      await StorageService.saveMemos(memos);
+
+      if (mounted) setState(() {
+        final i = _memos.indexWhere((m) => m.id == memoId);
+        if (i != -1) _memos[i] = updated;
+      });
     });
   }
 
@@ -884,6 +939,67 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     StorageService.saveMemos(_memos);
   }
 
+  Future<void> _confirmAndMerge(Memo dragged, Memo target) async {
+    if (dragged.id == target.id) return;
+    final preview = dragged.content.length > 40
+        ? '${dragged.content.substring(0, 40)}...'
+        : dragged.content;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kSurface,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: Text('메모 합치기', style: mono(color: kText, fontSize: 13)),
+        content: Text(
+          '"$preview"\n\n위 메모를 대상 메모에 합칩니다.',
+          style: mono(color: kDim, fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('취소', style: mono(color: kDim, fontSize: 12)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('합치기', style: mono(color: kMint, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) _mergeMemos(dragged, target);
+  }
+
+  void _reorderMemo(Memo memo, int insertBefore, List<Memo> visibleMemos) {
+    final targetIndex = insertBefore.clamp(0, visibleMemos.length - 1);
+    final neighbor = visibleMemos[targetIndex];
+    if (neighbor.id == memo.id) return;
+
+    final newTime = neighbor.createdAt.subtract(const Duration(seconds: 1));
+    final idx = _memos.indexWhere((m) => m.id == memo.id);
+    if (idx == -1) return;
+    final old = _memos[idx];
+    setState(() => _memos[idx] = Memo(
+      id: old.id,
+      content: old.content,
+      createdAt: newTime,
+      folderId: old.folderId,
+      editHistory: old.editHistory,
+      reminderAt: old.reminderAt,
+      reminderRepeat: old.reminderRepeat,
+      scheduledAt: old.scheduledAt,
+      isChecklist: old.isChecklist,
+      appendNotes: old.appendNotes,
+      sourceUrl: old.sourceUrl,
+      imagePaths: old.imagePaths,
+      rangeEndDate: old.rangeEndDate,
+      scheduleRepeat: old.scheduleRepeat,
+      repeatEndType: old.repeatEndType,
+      repeatEndCount: old.repeatEndCount,
+      repeatEndDate: old.repeatEndDate,
+    ));
+    StorageService.saveMemos(_memos);
+  }
+
   void _mergeMemos(Memo dragged, Memo target) {
     if (dragged.id == target.id) return;
 
@@ -1307,6 +1423,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_selectedTag == 'goal') return 'GOALS';
     if (_statsOpen) return 'STATS';
     if (_tagsOpen) return 'TAGS';
+    if (_graphOpen) return 'GRAPH';
+    if (_brainOpen) return 'BRAIN';
     return 'LIST';
   }
 
@@ -1319,6 +1437,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _statsOpen = false;
           _scheduleOpen = false;
           _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
           _tasksOnly = false;
           _selectedTabId = null;
           if (narrow) _sidebarOpen = false;
@@ -1332,6 +1452,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _scheduleOpen = false;
           _todayOpen = false;
           _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
           _tasksOnly = false;
           _selectedTag = null;
           if (narrow) _sidebarOpen = false;
@@ -1344,6 +1466,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _calendarOpen = false;
           _tasksOnly = false;
           _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
           _todayOpen = false;
           _selectedTabId = null;
           if (narrow) _sidebarOpen = false;
@@ -1356,6 +1480,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _statsOpen = false;
           _scheduleOpen = false;
           _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
           _todayOpen = false;
           _selectedTag = null;
           _selectedFolderId = null;
@@ -1370,6 +1496,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _selectedTabId = null;
           _tasksOnly = false;
           _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
           _calendarOpen = false;
           _statsOpen = false;
           _scheduleOpen = false;
@@ -1384,6 +1512,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _selectedTabId = null;
           _tasksOnly = false;
           _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
           _calendarOpen = false;
           _statsOpen = false;
           _scheduleOpen = false;
@@ -1398,6 +1528,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _scheduleOpen = false;
           _todayOpen = false;
           _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
           _tasksOnly = false;
           _selectedTabId = null;
           if (narrow) _sidebarOpen = false;
@@ -1409,6 +1541,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       case 'TAGS':
         setState(() {
           _tagsOpen = true;
+          _tasksOnly = false;
+          _calendarOpen = false;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _todayOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
+          _selectedTag = null;
+          _selectedFolderId = null;
+          _selectedTabId = null;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'GRAPH':
+        setState(() {
+          _graphOpen = true;
+          _brainOpen = false;
+          _tagsOpen = false;
+          _tasksOnly = false;
+          _calendarOpen = false;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _todayOpen = false;
+          _selectedTag = null;
+          _selectedFolderId = null;
+          _selectedTabId = null;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
+      case 'BRAIN':
+        setState(() {
+          _brainOpen = true;
+          _graphOpen = false;
+          _tagsOpen = false;
           _tasksOnly = false;
           _calendarOpen = false;
           _statsOpen = false;
@@ -1434,6 +1600,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           _scheduleOpen = false;
           _tasksOnly = false;
           _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
           _todayOpen = false;
           _searchOpen = false;
           if (narrow) _sidebarOpen = false;
@@ -1530,12 +1698,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Map<String, int> get _tagCounts => countTags(_memos);
 
-  Map<String?, int> get _memoCounts => countMemosByFolder(_memos);
-
-  List<Memo> get _recentMemos => recentMemos(_memos);
-
-  int get _totalWords => _memos.fold(0, (sum, m) => sum + m.content.length);
-
   int get _taskCount => _memos.where((m) => m.isChecklist).length;
   int get _habitCount => _memos.where((m) => m.tags.contains('habit')).length;
 
@@ -1577,6 +1739,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_searchOpen) return 'search';
     if (_tasksOnly) return 'tasks';
     if (_tagsOpen) return 'tags';
+    if (_graphOpen) return 'graph';
+    if (_brainOpen) return 'brain';
     if (_selectedTag == 'habit') return 'habits';
     if (_selectedTag == 'goal') return 'goals';
     return 'memo';
@@ -1662,10 +1826,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           .add(memo);
     }
     _logroomHourSlots.clear();
+    _logroomDaySummaries.clear();
     final items = <Object>[];
     for (final entry in grouped.entries) {
       final key = entry.key;
       items.add(key);
+      // compute day summary (count + top tags) — always, regardless of collapse
+      final tagCounts = <String, int>{};
+      for (final m in entry.value) {
+        for (final t in m.tags) {
+          tagCounts[t] = (tagCounts[t] ?? 0) + 1;
+        }
+      }
+      final topTags = (tagCounts.entries.toList()
+            ..sort((a, b) => b.value.compareTo(a.value)))
+          .take(4)
+          .map((e) => (tag: e.key, n: e.value))
+          .toList();
+      _logroomDaySummaries[key] = DaySummary(
+        count: entry.value.length,
+        topTags: topTags,
+      );
       final autoCollapsed = _isAutoCollapsedLogroomGroup(key);
       final collapsed = autoCollapsed
           ? !_expandedLogroomGroups.contains(key)
@@ -1678,14 +1859,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         }
       }
       if (!collapsed) {
+        final hourCounts = <int, int>{};
+        for (final m in entry.value) {
+          hourCounts[m.createdAt.hour] = (hourCounts[m.createdAt.hour] ?? 0) + 1;
+        }
         int? lastHour;
+        DateTime? lastMemoTime;
         for (final m in entry.value) {
           final h = _listSortDate(m).hour;
+          final memoTime = _listSortDate(m);
+          if (lastMemoTime != null) {
+            final gapMin = lastMemoTime.difference(memoTime).inMinutes;
+            if (gapMin >= 120) items.add(_SilenceGap(gapMin));
+          }
           if (lastHour == null || h != lastHour) {
-            items.add(_HourMarker(h));
+            items.add(_HourMarker(h, count: hourCounts[h] ?? 0));
             lastHour = h;
           }
           items.add(m);
+          lastMemoTime = memoTime;
         }
       }
     }
@@ -1705,24 +1897,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // v3 hour group marker — inserted between memo entries when hour changes.
   // Left lane (26px) mirrors _LogroomTimelineLane: full-height line + larger dot.
-  // Right side: time text + faint horizontal rule. Does not collapse.
-  Widget _buildHourMarker(int hour) {
-    final label = '${hour.toString().padLeft(2, '0')}:00';
+  // Right side: time text + entry count + faint horizontal rule. Does not collapse.
+  Widget _buildHourMarker(int hour, {int count = 0}) {
+    final timeLabel = '${hour.toString().padLeft(2, '0')}:00';
+    final label = count > 0 ? '$timeLabel · $count' : timeLabel;
     return Container(
       color: kBg,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Timeline lane — same 34px width as _LogroomTimelineLane
+            // Timeline lane — mirrors _LogroomTimelineLane width
             SizedBox(
-              width: 34,
+              width: appSpace(34),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   // Continuous vertical line
                   Positioned(
-                    left: 15.5,
+                    left: appSpace(16) - 0.5,
                     top: 0,
                     bottom: 0,
                     width: 1,
@@ -1730,11 +1923,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   // Larger hollow dot — signals a time group boundary
                   Positioned(
-                    left: 16 - 4,
-                    top: 10,
+                    left: appSpace(16) - appSpace(4),
+                    top: appSpace(10),
                     child: Container(
-                      width: 8,
-                      height: 8,
+                      width: appSpace(8),
+                      height: appSpace(8),
                       decoration: BoxDecoration(
                         color: kBg4,
                         shape: BoxShape.circle,
@@ -1748,7 +1941,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             // Time label + horizontal rule
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(6, 7, 12, 7),
+                padding: EdgeInsets.fromLTRB(appSpace(6), appSpace(7), appSpace(12), appSpace(7)),
                 child: Row(
                   children: [
                     Text(
@@ -1760,7 +1953,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         height: 1.2,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: appSpace(8)),
                     Expanded(
                       child: Container(height: 1, color: kTlLine),
                     ),
@@ -1774,6 +1967,57 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+
+  Widget _buildSilenceGap(int minutes) {
+    final h = minutes ~/ 60;
+    final label = h >= 1 ? '${h}h' : '${minutes}m';
+    return SizedBox(
+      height: 22,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: appSpace(34),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned(
+                  left: appSpace(16) - 0.5,
+                  top: 0,
+                  bottom: 0,
+                  width: 1,
+                  child: Container(color: kTlLine.withValues(alpha: 0.35)),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(appSpace(6), 0, appSpace(12), 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Container(height: 1, color: kTlLine.withValues(alpha: 0.25)),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 7),
+                    child: Text(
+                      label,
+                      style: mono(color: kText3.withValues(alpha: 0.30), fontSize: tsMeta),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(height: 1, color: kTlLine.withValues(alpha: 0.25)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _scrollToMemo(String memoId) {
     void onFound() {
@@ -1905,7 +2149,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     'text_color': _colorToInt(kText),
     'font_family': kFontFamily,
     'font_size': kFontSize,
-    'spacing': kSpacing,
     'tab_locked': _tabLocked,
     'entry_display_mode': entryDisplayModeNotifier.value.storageValue,
     'app_theme_mode': appThemeModeNotifier.value.storageValue,
@@ -1985,7 +2228,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final bg = Color(bgInt);
         final text = Color(textInt);
         if (isLogroomUi) {
-          applyColorsV3(bg, text, kAccent);
+          applyColors(bg, text);
         } else {
           applyColors(bg, text);
         }
@@ -1996,11 +2239,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (fontFamily != null && fontSize != null) {
         applyFont(fontFamily, fontSize);
         StorageService.saveFont(fontFamily, fontSize);
-      }
-      final spacing = (settings['spacing'] as num?)?.toDouble();
-      if (spacing != null) {
-        applySpacing(spacing);
-        StorageService.saveSpacing(spacing);
       }
       final entryDisplayMode = EntryDisplayModeX.parse(
         settings['entry_display_mode'] as String?,
@@ -2025,17 +2263,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           initialTabLocked: _tabLocked,
           initialFontFamily: kFontFamily,
           initialFontSize: kFontSize,
-          initialSpacing: kSpacing,
-          onSave: (bg, text, fontFamily, fontSize, spacing, tabLocked) {
+          onSave: (bg, text, fontFamily, fontSize, tabLocked) {
             if (isLogroomUi) {
-              applyColorsV3(bg, text, kAccent);
+              applyColors(bg, text);
             } else {
               applyColors(bg, text);
             }
-            applySpacing(spacing);
             StorageService.saveColors(bg, text);
             StorageService.saveFont(fontFamily, fontSize);
-            StorageService.saveSpacing(spacing);
             StorageService.saveTabLocked(tabLocked);
             setState(() => _tabLocked = tabLocked);
           },
@@ -2079,7 +2314,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     StorageService.clearAll();
     applyColors(const Color(0xFFEDF2ED), const Color(0xFF556B2F));
     applyFont('JetBrains Mono', 13.0);
-    applySpacing(12.0);
     setState(() {
       _memos.clear();
       _folders.clear();
@@ -2107,6 +2341,68 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  Future<void> _handleBackPress(BuildContext context) async {
+    final isNarrow = MediaQuery.of(context).size.width < _kNarrowBreak;
+
+    if (_searchOpen) {
+      setState(() {
+        _searchOpen = false;
+        _searchQuery = '';
+      });
+      return;
+    }
+
+    if (isNarrow && _sidebarOpen) {
+      setState(() => _sidebarOpen = false);
+      return;
+    }
+
+    if (_todayOpen || _calendarOpen || _statsOpen || _scheduleOpen || _tasksOnly || _tagsOpen || _graphOpen || _brainOpen) {
+      setState(() {
+        _todayOpen = false;
+        _calendarOpen = false;
+        _statsOpen = false;
+        _scheduleOpen = false;
+        _tasksOnly = false;
+        _tagsOpen = false;
+        _graphOpen = false;
+        _brainOpen = false;
+      });
+      return;
+    }
+
+    if (_selectedFolderId != null || _selectedTag != null || _selectedTabId != null) {
+      setState(() {
+        _selectedFolderId = null;
+        _selectedTag = null;
+        _selectedTabId = null;
+      });
+      return;
+    }
+
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: Text('앱 종료', style: TextStyle(color: kText, fontSize: tsHeading, fontFamily: kFontFamily)),
+        content: Text('앱을 종료하시겠습니까?', style: TextStyle(color: kText, fontSize: tsBody, fontFamily: kFontFamily)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('취소', style: TextStyle(color: kDim, fontFamily: kFontFamily)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('종료', style: TextStyle(color: kMint, fontFamily: kFontFamily)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldExit == true) SystemNavigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final items =
@@ -2114,7 +2410,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             _statsOpen ||
             _scheduleOpen ||
             _tagsOpen ||
-            _todayOpen)
+            _todayOpen ||
+            _graphOpen ||
+            _brainOpen)
         ? const <Object>[]
         : (isLogroomUi ? _buildLogroomFlatList() : _buildFlatList());
     _flatItems = items;
@@ -2151,7 +2449,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) SystemNavigator.pop(); // 종료 말고 백그라운드로
+        if (!didPop) _handleBackPress(context);
       },
       child: Scaffold(
       backgroundColor: kBg,
@@ -2175,6 +2473,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 _todayOpen = false;
                 if (isNarrow) _sidebarOpen = false;
               }),
@@ -2184,6 +2484,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 _todayOpen = false;
                 _selectedTabId = null;
                 if (isNarrow) _sidebarOpen = false;
@@ -2195,6 +2497,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 _selectedTabId = null;
                 if (isNarrow) _sidebarOpen = false;
               }),
@@ -2204,6 +2508,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _statsOpen = false;
                 _scheduleOpen = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 _todayOpen = false;
                 _selectedTag = null;
                 _selectedFolderId = null;
@@ -2232,6 +2538,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 _todayOpen = false;
                 _selectedTabId = null;
                 if (isNarrow) _sidebarOpen = false;
@@ -2242,7 +2550,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _calendarOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 _todayOpen = false;
+                _selectedTabId = null;
+                if (isNarrow) _sidebarOpen = false;
+              }),
+              onSelectGraph: () => setState(() {
+                _graphOpen = true;
+                _brainOpen = false;
+                _statsOpen = false;
+                _calendarOpen = false;
+                _scheduleOpen = false;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                _todayOpen = false;
+                _selectedTabId = null;
+                if (isNarrow) _sidebarOpen = false;
+              }),
+              onSelectBrain: () => setState(() {
+                _brainOpen = true;
+                _graphOpen = false;
+                _statsOpen = false;
+                _calendarOpen = false;
+                _scheduleOpen = false;
+                _tasksOnly = false;
+                _tagsOpen = false;
+                _todayOpen = false;
+                _selectedTag = null;
+                _selectedFolderId = null;
                 _selectedTabId = null;
                 if (isNarrow) _sidebarOpen = false;
               }),
@@ -2266,6 +2602,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 _todayOpen = false;
                 if (isNarrow) _sidebarOpen = false;
               }),
@@ -2281,6 +2619,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _selectedTabId = null;
                 _tasksOnly = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 _calendarOpen = false;
                 _statsOpen = false;
                 _scheduleOpen = false;
@@ -2293,6 +2633,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _selectedTabId = null;
                 _tasksOnly = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 _calendarOpen = false;
                 _statsOpen = false;
                 _scheduleOpen = false;
@@ -2314,6 +2656,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 _scheduleOpen = false;
                 _tasksOnly = false;
                 _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                 if (isNarrow) _sidebarOpen = false;
               }),
             );
@@ -2336,6 +2680,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _statsOpen = false;
                     _scheduleOpen = false;
                     _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                     _tasksOnly = false;
                     _todayOpen = false;
                   }),
@@ -2346,6 +2692,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _scheduleOpen = false;
                     _todayOpen = false;
                     _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                     _tasksOnly = false;
                     _selectedTag = null;
                     if (isNarrow) _sidebarOpen = false;
@@ -2356,6 +2704,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _scheduleOpen = false;
                     _todayOpen = false;
                     _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                     _tasksOnly = false;
                     _selectedTabId = null;
                     if (isNarrow) _sidebarOpen = false;
@@ -2366,6 +2716,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _statsOpen = false;
                     _scheduleOpen = false;
                     _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                     _tasksOnly = false;
                     _selectedTabId = null;
                     if (isNarrow) _sidebarOpen = false;
@@ -2389,6 +2741,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _statsOpen = false;
                     _tasksOnly = false;
                     _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                     _todayOpen = false;
                   }),
                   onSelectSchedule: () => setState(() {
@@ -2397,6 +2751,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _calendarOpen = false;
                     _tasksOnly = false;
                     _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                     _todayOpen = false;
                     _selectedTabId = null;
                     if (isNarrow) _sidebarOpen = false;
@@ -2407,6 +2763,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _statsOpen = false;
                     _scheduleOpen = false;
                     _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                     _todayOpen = false;
                     _selectedTag = null;
                     _selectedFolderId = null;
@@ -2431,6 +2789,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _selectedTabId = null;
                     _tasksOnly = false;
                     _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                     _calendarOpen = false;
                     _statsOpen = false;
                     _scheduleOpen = false;
@@ -2443,10 +2803,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     _selectedTabId = null;
                     _tasksOnly = false;
                     _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                     _calendarOpen = false;
                     _statsOpen = false;
                     _scheduleOpen = false;
                     _todayOpen = false;
+                    if (isNarrow) _sidebarOpen = false;
+                  }),
+                  onSelectGraph: () => setState(() {
+                    _graphOpen = true;
+                    _statsOpen = false;
+                    _calendarOpen = false;
+                    _scheduleOpen = false;
+                    _tasksOnly = false;
+                    _tagsOpen = false;
+                    _todayOpen = false;
+                    _selectedTabId = null;
                     if (isNarrow) _sidebarOpen = false;
                   }),
                   onSettings: _showSettings,
@@ -2531,7 +2904,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               return LogroomEntryTile(
                                 memo: memo,
                                 actions: _memoActions,
-                                expandable: false,
                                 onTap: () {
                                   _closeSearch();
                                   _navigateToMemo(memo.id);
@@ -2558,10 +2930,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       tagCounts: tagCounts,
                       onSelectTag: (tag) => setState(() {
                         _tagsOpen = false;
+                        _graphOpen = false;
+          _brainOpen = false;
                         _selectedTag = tag;
                         _selectedFolderId = null;
                         _selectedTabId = null;
                       }),
+                    ),
+                  ),
+                ] else if (_brainOpen) ...[
+                  Expanded(
+                    child: BrainScreen(memos: _memos),
+                  ),
+                ] else if (_graphOpen) ...[
+                  Expanded(
+                    child: GraphScreen(
+                      memos: _memos,
+                      onSelectKeyword: (keyword, memoIds) {
+                        setState(() {
+                          _graphOpen = false;
+          _brainOpen = false;
+                          _searchOpen = true;
+                          _searchQuery = keyword;
+                        });
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _searchController.text = keyword;
+                          _searchFocusNode.requestFocus();
+                        });
+                      },
                     ),
                   ),
                 ] else if (_statsOpen) ...[
@@ -2738,32 +3134,107 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       ? (_logroomHourSlots[item] ?? const [])
                                       : const [],
                                   onHourTap: isLogroomUi ? _scrollToMemo : null,
+                                  daySummary: isLogroomUi
+                                      ? _logroomDaySummaries[item]
+                                      : null,
                                 );
                               } else if (item is _HourMarker) {
-                                return _buildHourMarker(item.hour);
+                                return _buildHourMarker(item.hour, count: item.count);
+                              } else if (item is _SilenceGap) {
+                                return _buildSilenceGap(item.minutes);
                               } else if (item is Memo) {
                                 final memoKey = _memoKeys.putIfAbsent(
                                   item.id,
                                   () => GlobalKey(),
                                 );
+                                final visibleMemos = items.whereType<Memo>().toList();
+                                final memoIndex = visibleMemos.indexOf(item);
+                                final isMergeTarget = _mergeTargetId == item.id && _draggingMemo?.id != item.id;
+                                final isDropZoneActive = _draggingMemo != null;
+                                final tile = isLogroomUi
+                                    ? LogroomEntryTile(
+                                        memo: item,
+                                        actions: _memoActions,
+                                        highlighted: _highlightedMemoId == item.id,
+                                      )
+                                    : MemoTile(
+                                        memo: item,
+                                        actions: _memoActions,
+                                        highlighted: _highlightedMemoId == item.id,
+                                      );
                                 return Column(
                                   key: memoKey,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    isLogroomUi
-                                        ? LogroomEntryTile(
-                                            memo: item,
-                                            actions: _memoActions,
-                                            highlighted:
-                                                _highlightedMemoId == item.id,
-                                          )
-                                        : MemoTile(
-                                            memo: item,
-                                            actions: _memoActions,
-                                            highlighted:
-                                                _highlightedMemoId == item.id,
+                                    // ── Reorder drop zone (above item) ──
+                                    if (isDropZoneActive)
+                                      DragTarget<Memo>(
+                                        onWillAcceptWithDetails: (d) => d.data.id != item.id,
+                                        onAcceptWithDetails: (d) {
+                                          setState(() => _reorderInsertIndex = null);
+                                          _reorderMemo(d.data, memoIndex, visibleMemos);
+                                        },
+                                        onMove: (_) => setState(() => _reorderInsertIndex = memoIndex),
+                                        onLeave: (_) => setState(() => _reorderInsertIndex = null),
+                                        builder: (_, candidate, __) => AnimatedContainer(
+                                          duration: const Duration(milliseconds: 150),
+                                          height: _reorderInsertIndex == memoIndex ? 3 : 2,
+                                          color: _reorderInsertIndex == memoIndex
+                                              ? kMint
+                                              : Colors.transparent,
+                                        ),
+                                      ),
+                                    // ── Memo tile with merge target ──
+                                    LongPressDraggable<Memo>(
+                                      data: item,
+                                      delay: const Duration(milliseconds: 400),
+                                      onDragStarted: () => setState(() => _draggingMemo = item),
+                                      onDragEnd: (_) => setState(() {
+                                        _draggingMemo = null;
+                                        _mergeTargetId = null;
+                                        _reorderInsertIndex = null;
+                                      }),
+                                      feedback: Material(
+                                        color: Colors.transparent,
+                                        child: Opacity(
+                                          opacity: 0.85,
+                                          child: ConstrainedBox(
+                                            constraints: const BoxConstraints(maxWidth: 320),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: kSurface,
+                                                border: Border.all(color: kMint, width: 1),
+                                              ),
+                                              padding: const EdgeInsets.all(10),
+                                              child: Text(
+                                                item.content.length > 60
+                                                    ? '${item.content.substring(0, 60)}...'
+                                                    : item.content,
+                                                style: mono(color: kText, fontSize: 11),
+                                              ),
+                                            ),
                                           ),
+                                        ),
+                                      ),
+                                      childWhenDragging: Opacity(opacity: 0.3, child: tile),
+                                      child: DragTarget<Memo>(
+                                        onWillAcceptWithDetails: (d) => d.data.id != item.id,
+                                        onAcceptWithDetails: (d) {
+                                          setState(() => _mergeTargetId = null);
+                                          _confirmAndMerge(d.data, item);
+                                        },
+                                        onMove: (_) => setState(() => _mergeTargetId = item.id),
+                                        onLeave: (_) => setState(() => _mergeTargetId = null),
+                                        builder: (_, candidate, __) => Container(
+                                          decoration: isMergeTarget
+                                              ? BoxDecoration(
+                                                  border: Border.all(color: kMint, width: 1.5),
+                                                )
+                                              : null,
+                                          child: tile,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 );
                               }
@@ -2866,6 +3337,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       _statsOpen = false;
                       _scheduleOpen = false;
                       _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                       _tasksOnly = false;
                       _selectedTabId = null;
                     }),
@@ -2878,6 +3351,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       _scheduleOpen = false;
                       _tasksOnly = false;
                       _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                       _todayOpen = false;
                       _searchOpen = false;
                     }),
@@ -2888,6 +3363,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       _scheduleOpen = false;
                       _todayOpen = false;
                       _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                       _tasksOnly = false;
                       _selectedTag = null;
                       if (isNarrow) _sidebarOpen = false;
@@ -2929,6 +3406,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       _statsOpen = false;
                       _scheduleOpen = false;
                       _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
                       _tasksOnly = false;
                       _selectedTabId = null;
                     }),
@@ -3320,6 +3799,7 @@ class _AppHeader extends StatelessWidget {
   final VoidCallback onSelectTags;
   final VoidCallback onSelectHabit;
   final VoidCallback onSelectGoal;
+  final VoidCallback onSelectGraph;
   final VoidCallback onSettings;
   final bool habitActivated;
   final bool goalActivated;
@@ -3350,6 +3830,7 @@ class _AppHeader extends StatelessWidget {
     required this.onSelectTags,
     required this.onSelectHabit,
     required this.onSelectGoal,
+    required this.onSelectGraph,
     required this.onSettings,
     required this.habitActivated,
     required this.goalActivated,
@@ -3479,6 +3960,15 @@ class _AppHeader extends StatelessWidget {
         ),
       ),
       PopupMenuItem<String>(
+        value: '__graph__',
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Text(
+          '> graph',
+          style: mono(color: kDim, fontSize: 12),
+        ),
+      ),
+      PopupMenuItem<String>(
         enabled: false,
         height: 1,
         padding: EdgeInsets.zero,
@@ -3531,6 +4021,8 @@ class _AppHeader extends StatelessWidget {
       onSelectGoal();
     } else if (result == '__stats__') {
       onSelectStats();
+    } else if (result == '__graph__') {
+      onSelectGraph();
     } else if (result == '__settings__') {
       onSettings();
     }
@@ -3545,7 +4037,6 @@ class _AppHeader extends StatelessWidget {
         '${now.year}.${now.month.toString().padLeft(2, '0')}.${now.day.toString().padLeft(2, '0')}  $dayStr';
 
     final pathLabel = selectedPath;
-    final pathTappable = true;
 
     return Container(
       height: 44,
@@ -3574,9 +4065,7 @@ class _AppHeader extends StatelessWidget {
                 Flexible(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTapDown: pathTappable
-                        ? (d) => _showPathMenu(context, d.globalPosition)
-                        : null,
+                    onTapDown: (d) => _showPathMenu(context, d.globalPosition),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(
@@ -3632,48 +4121,6 @@ class _AppHeader extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-// ── View toggle widget ─────────────────────────────────────────────
-
-class _ViewToggle extends StatelessWidget {
-  final bool calendarOpen;
-  final bool statsOpen;
-  final bool scheduleOpen;
-  final VoidCallback onShowList;
-  final VoidCallback onShowCal;
-
-  const _ViewToggle({
-    required this.calendarOpen,
-    required this.statsOpen,
-    required this.scheduleOpen,
-    required this.onShowList,
-    required this.onShowCal,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: (calendarOpen || statsOpen || scheduleOpen)
-              ? onShowList
-              : null,
-          child: _ViewBtn(
-            label: 'LIST',
-            active: !calendarOpen && !statsOpen && !scheduleOpen,
-          ),
-        ),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: calendarOpen ? null : onShowCal,
-          child: _ViewBtn(label: 'CAL', active: calendarOpen),
-        ),
-      ],
     );
   }
 }

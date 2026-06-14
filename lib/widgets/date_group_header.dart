@@ -9,12 +9,19 @@ class HourSlot {
   const HourSlot({required this.hour, required this.count, required this.firstMemoId});
 }
 
+class DaySummary {
+  final int count;
+  final List<({String tag, int n})> topTags;
+  const DaySummary({required this.count, this.topTags = const []});
+}
+
 class DateGroupHeader extends StatefulWidget {
   final String dateKey;
   final ValueChanged<bool>? onCollapsedChanged;
   final bool initiallyCollapsed;
   final List<HourSlot> hourSlots;
   final ValueChanged<String>? onHourTap;
+  final DaySummary? daySummary;
 
   const DateGroupHeader({
     super.key,
@@ -23,6 +30,7 @@ class DateGroupHeader extends StatefulWidget {
     this.initiallyCollapsed = false,
     this.hourSlots = const [],
     this.onHourTap,
+    this.daySummary,
   });
 
   @override
@@ -197,8 +205,24 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
             ),
           ),
         ),
+        if (widget.daySummary != null) _buildDaySummary(widget.daySummary!),
         if (!_collapsed && widget.hourSlots.isNotEmpty) _buildHourToc(),
       ],
+    );
+  }
+
+  Widget _buildDaySummary(DaySummary summary) {
+    final buf = StringBuffer('${summary.count}개');
+    for (final t in summary.topTags) {
+      buf.write('  ·  #${t.tag} ×${t.n}');
+    }
+    return Container(
+      color: kBg,
+      padding: const EdgeInsets.fromLTRB(42, 0, 14, 4),
+      child: Text(
+        buf.toString(),
+        style: mono(color: kText3.withValues(alpha: 0.55), fontSize: tsMeta),
+      ),
     );
   }
 

@@ -94,6 +94,21 @@ const kChangelog = <ChangelogEntry>[
       '위젯 입력창 폭 화면의 88%로 축소, 텍스트 영역 minLines 3으로 확장',
     ],
   ),
+  ChangelogEntry(
+    version: 'v2.4',
+    date: '2026-06-15',
+    features: [
+      '개인 위키 — 링크 공유 시 Claude가 자동 요약해 댓글로 첨부',
+      'BRAIN 탭 — 저장한 메모 기반 AI 채팅 (사이드바 메뉴 추가)',
+      'GRAPH 탭 — 키워드 연결 그래프',
+      '브레인 검색을 로컬 글자 n-gram 유사도로 처리 (업로드 0, substring 매칭 대체). 의미 임베딩(온디바이스)은 추후 ②로 예정',
+    ],
+    fixes: [
+      '댓글 수정/추가 다이얼로그 닫을 때 강제종료 — await showDialog 직후 컨트롤러를 dispose 해서 닫힘 애니메이션 중 죽은 컨트롤러를 건드리던 문제. 표면 에러는 _dependents.isEmpty 였으나 실제 원인은 "controller used after dispose". 컨트롤러를 StatefulWidget(_NoteDialog)이 소유하도록 변경',
+      '습관/목표 이름 다이얼로그 동일 크래시 — 닫힘 애니메이션 후 dispose 하도록 수정 (전 flavor 영향)',
+      'BRAIN 메뉴가 안 열리던 버그 — _brainOpen=true 직후 false로 덮어쓰던 복붙 코드 제거',
+    ],
+  ),
   // ──────────────────────────────────────────────────────────────────
   // ADD NEW CHANGELOG ENTRY HERE ↑
   // newest entry last — CHANGELOG tab reverses order automatically.

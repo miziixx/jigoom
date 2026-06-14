@@ -180,15 +180,6 @@ class _CalendarViewState extends State<CalendarView> {
     }
   });
 
-  void _goToday() {
-    final now = DateTime.now();
-    setState(() {
-      _year = now.year;
-      _month = now.month;
-      _selectedDay = DateTime(now.year, now.month, now.day);
-    });
-  }
-
   // ── Build ─────────────────────────────────────────────────────
 
   @override

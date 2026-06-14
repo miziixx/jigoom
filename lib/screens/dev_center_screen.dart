@@ -751,7 +751,7 @@ class _TokensTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groups = [
-      ('ACCENT', [('kAccent', kAccent)]),
+      ('ACCENT', [('kMint', kMint)]),
       ('BACKGROUND', [
         ('kBg2', kBg2),
         ('kBg3', kBg3),
