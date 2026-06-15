@@ -940,51 +940,6 @@ class _MemoTileState extends State<MemoTile> {
       widget.memo.isChecklist ||
       widget.memo.content.split('\n').any((l) => _checkRe.hasMatch(l.trim()));
 
-  String get _memoPreview {
-    final firstLine = widget.memo.content.split('\n').first;
-    return firstLine
-        .replaceAll(_tagRe, '')
-        .replaceAll(RegExp(r'^- \[[ x]\] '), '')
-        .replaceAll(RegExp(r'^• '), '')
-        .trim();
-  }
-
-  Widget _buildDragFeedback() {
-    final preview = _memoPreview;
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: 180,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: kSurface,
-          border: Border.all(color: kMint.withValues(alpha: 0.8)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.memo.timeStr, style: mono(color: kDim, fontSize: tsMeta)),
-            const SizedBox(height: 3),
-            Text(
-              preview.isEmpty ? '...' : preview,
-              style: mono(color: kText, fontSize: tsSmall),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ── Build ────────────────────────────────────────────
 
   @override
@@ -1045,16 +1000,7 @@ class _MemoTileState extends State<MemoTile> {
               offset: Offset(_swipeOffset, 0),
               child: Container(
                 color: Colors.transparent,
-                child: LongPressDraggable<Memo>(
-                  data: widget.memo,
-                  delay: const Duration(milliseconds: 400),
-                  feedback: _buildDragFeedback(),
-                  childWhenDragging: Opacity(
-                    opacity: 0.4,
-                    child: _buildViewMode(),
-                  ),
-                  child: _buildViewMode(),
-                ),
+                child: _buildViewMode(),
               ),
             ),
           ],
