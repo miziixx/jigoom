@@ -20,6 +20,7 @@ import '../models/quick_tab.dart';
 import '../models/append_note.dart';
 import '../models/entry_display_mode.dart';
 import '../services/storage_service.dart';
+import '../services/local_search_service.dart';
 import '../services/wiki_capture_service.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
@@ -537,14 +538,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   List<Memo> _getSearchResults() {
-    final q = _searchQuery.toLowerCase().trim();
+    final q = _searchQuery.trim();
     if (q.isEmpty) return [];
-    return _memos.where((m) {
-      if (m.content.toLowerCase().contains(q)) return true;
-      if (m.tags.any((t) => t.toLowerCase().contains(q))) return true;
-      if (m.dateKey.contains(q)) return true;
-      return false;
-    }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return LocalSearchService.search(q, _memos);
   }
 
   void _navigateToMemo(String memoId) {
