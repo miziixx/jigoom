@@ -11,6 +11,8 @@ import '../models/append_note.dart';
 import '../models/memo_actions.dart';
 import '../app_theme.dart';
 import '../services/image_service.dart';
+import '../services/local_search_service.dart';
+import '../flavor.dart';
 import 'schedule_sheet.dart';
 
 Color _memoDoneTextColor() => Color.lerp(kText, kDim, 0.55) ?? kDim;
@@ -21,12 +23,14 @@ class MemoTile extends StatefulWidget {
   final Memo memo;
   final MemoActions actions;
   final bool highlighted;
+  final List<Memo> allMemos;
 
   const MemoTile({
     super.key,
     required this.memo,
     required this.actions,
     this.highlighted = false,
+    this.allMemos = const [],
   });
 
   @override
@@ -1040,7 +1044,7 @@ class _MemoTileState extends State<MemoTile> {
             Transform.translate(
               offset: Offset(_swipeOffset, 0),
               child: Container(
-                color: kBg,
+                color: Colors.transparent,
                 child: LongPressDraggable<Memo>(
                   data: widget.memo,
                   delay: const Duration(milliseconds: 400),
@@ -1070,7 +1074,19 @@ class _MemoTileState extends State<MemoTile> {
       child: inner,
     );
 
-    if (_isSystemMemo) return withTapRegion;
+    Widget _card(Widget child) => isNemo2Test
+        ? Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: kBorder.withValues(alpha: 0.35)),
+            ),
+            clipBehavior: Clip.hardEdge,
+            child: child,
+          )
+        : child;
+
+    if (_isSystemMemo) return _card(withTapRegion);
 
     return DragTarget<Memo>(
       onWillAcceptWithDetails: (details) =>
@@ -1078,14 +1094,14 @@ class _MemoTileState extends State<MemoTile> {
           !details.data.tags.any((t) => t == 'habit' || t == 'goal'),
       onAcceptWithDetails: (details) => _a.onMerge(details.data, widget.memo),
       builder: (context, candidateData, _) {
-        if (candidateData.isEmpty) return withTapRegion;
-        return Container(
+        if (candidateData.isEmpty) return _card(withTapRegion);
+        return _card(Container(
           decoration: BoxDecoration(
             border: Border.all(color: kMint.withValues(alpha: 0.7), width: 1.5),
             color: kMint.withValues(alpha: 0.05),
           ),
           child: withTapRegion,
-        );
+        ));
       },
     );
   }
@@ -1102,7 +1118,7 @@ class _MemoTileState extends State<MemoTile> {
           onEnter: (_) => setState(() => _hovered = true),
           onExit: (_) => setState(() => _hovered = false),
           child: GestureDetector(
-            onLongPress: _showTextSelectionSheet,
+            onDoubleTap: _showTextSelectionSheet,
             onTapDown: (d) => _tapPosition = d.globalPosition,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 120),
@@ -1242,7 +1258,7 @@ class _MemoTileState extends State<MemoTile> {
         // Append notes cards
         if (widget.memo.appendNotes.isNotEmpty)
           Container(
-            color: kBg,
+            color: Colors.transparent,
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
             child: Column(
               children: widget.memo.appendNotes
@@ -1257,17 +1273,8 @@ class _MemoTileState extends State<MemoTile> {
         // Source URL badge
         if (widget.memo.sourceUrl != null)
           _SourceBadge(url: widget.memo.sourceUrl!),
-        // Dotted separator
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text(
-            '- ' * 80,
-            style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 9),
-            overflow: TextOverflow.clip,
-            maxLines: 1,
-            softWrap: false,
-          ),
-        ),
+        // Related memos
+        _buildRelatedMemos(),
       ],
     );
   }
@@ -1455,7 +1462,7 @@ class _MemoTileState extends State<MemoTile> {
 
   Widget _buildAddNoteBtn() {
     return Container(
-      color: kBg,
+      color: Colors.transparent,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Align(
         alignment: Alignment.centerRight,
@@ -1485,7 +1492,7 @@ class _MemoTileState extends State<MemoTile> {
 
   Widget _buildAddNoteInput() {
     return Container(
-      color: kBg,
+      color: Colors.transparent,
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
       child: Container(
         decoration: BoxDecoration(
@@ -1885,7 +1892,7 @@ class _MemoTileState extends State<MemoTile> {
   // ── Inline markdown parser ────────────────────────────
 
   static final _inlineRe = RegExp(
-    r'\*\*(.+?)\*\*|~~(.+?)~~|\*(.+?)\*|(https?://\S+)',
+    r'\*\*(.+?)\*\*|~~(.+?)~~|\*(.+?)\*|(https?://\S+)|\[\[(.+?)\]\]',
     dotAll: false,
   );
 
@@ -1932,6 +1939,25 @@ class _MemoTileState extends State<MemoTile> {
             recognizer: rec,
           ),
         );
+      } else if (m.group(5) != null) {
+        final linkText = m.group(5)!;
+        if (isNemo2Test) {
+          final rec = TapGestureRecognizer()
+            ..onTap = () => _a.onWikiLinkTap?.call(linkText);
+          children.add(
+            TextSpan(
+              text: '[[${linkText}]]',
+              style: base.copyWith(
+                color: kMint,
+                decoration: TextDecoration.underline,
+                decorationColor: kMint.withValues(alpha: 0.5),
+              ),
+              recognizer: rec,
+            ),
+          );
+        } else {
+          children.add(TextSpan(text: '[[${linkText}]]'));
+        }
       }
       lastEnd = m.end;
     }
@@ -1940,6 +1966,47 @@ class _MemoTileState extends State<MemoTile> {
     }
     if (children.isEmpty) return TextSpan(text: text, style: base);
     return TextSpan(children: children, style: base);
+  }
+
+  Widget _buildRelatedMemos() {
+    if (!isNemo2Test || widget.allMemos.isEmpty) return const SizedBox.shrink();
+    final others = widget.allMemos.where((m) => m.id != widget.memo.id).toList();
+    final related = LocalSearchService.search(widget.memo.content, others, limit: 3);
+    if (related.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        border: Border.all(color: kBorder.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'related',
+            style: mono(color: kDim, fontSize: 9, letterSpacing: 0.8),
+          ),
+          const SizedBox(height: 5),
+          ...related.map((m) {
+            final preview = m.content.split('\n').first;
+            final short = preview.length > 60 ? '${preview.substring(0, 60)}…' : preview;
+            return GestureDetector(
+              onTap: () => _a.onNavigateToMemo?.call(m.id),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  '→ $short',
+                  style: mono(color: kMint.withValues(alpha: 0.8), fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   Widget _buildRichContent(String content) {

@@ -18,6 +18,7 @@ import '../models/quick_tab.dart';
 import '../models/append_note.dart';
 import '../models/entry_display_mode.dart';
 import '../services/storage_service.dart';
+import '../services/local_search_service.dart';
 import '../services/wiki_capture_service.dart';
 import '../services/backup_service.dart';
 import '../services/notification_service.dart';
@@ -563,11 +564,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   List<Memo> _getSearchResults() {
-    final q = _searchQuery.toLowerCase().trim();
+    final q = _searchQuery.trim();
     if (q.isEmpty) return [];
+    if (isNemo2Test) return LocalSearchService.search(q, _memos);
     return _memos.where((m) {
-      if (m.content.toLowerCase().contains(q)) return true;
-      if (m.tags.any((t) => t.toLowerCase().contains(q))) return true;
+      if (m.content.toLowerCase().contains(q.toLowerCase())) return true;
+      if (m.tags.any((t) => t.toLowerCase().contains(q.toLowerCase()))) return true;
       if (m.dateKey.contains(q)) return true;
       return false;
     }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -1756,6 +1758,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     onDeleteImage: _deleteImageFromMemo,
     onTagTap: (tag) => setState(() => _selectedTag = tag),
     onNavigateToMemo: _navigateToMemo,
+    onWikiLinkTap: (linkText) {
+      final q = linkText.trim().toLowerCase();
+      final match = _memos.where((m) {
+        final first = m.content.split('\n').first.toLowerCase();
+        return first.contains(q);
+      }).firstOrNull ?? LocalSearchService.search(linkText, _memos).firstOrNull;
+      if (match != null) _navigateToMemo(match.id);
+    },
   );
 
   String get _activeSidebarSection {
@@ -3126,7 +3136,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             controller: _scrollController,
                             keyboardDismissBehavior:
                                 ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: const EdgeInsets.only(bottom: 12),
+                            padding: EdgeInsets.only(top: isNemo2Test ? 6 : 0, bottom: 12),
                             itemCount: items.length,
                             itemBuilder: (context, index) {
                               final item = items[index];
@@ -3188,6 +3198,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         memo: item,
                                         actions: _memoActions,
                                         highlighted: _highlightedMemoId == item.id,
+                                        allMemos: _memos,
                                       );
                                 return Column(
                                   key: memoKey,

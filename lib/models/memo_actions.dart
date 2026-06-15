@@ -36,6 +36,7 @@ class MemoActions {
   final void Function(Memo, String) onAddImage;
   final void Function(Memo, int) onDeleteImage;
   final void Function(String tag)? onTagTap;
+  final void Function(String linkText)? onWikiLinkTap;
   final void Function(String memoId)? onNavigateToMemo;
 
   const MemoActions({
@@ -53,6 +54,7 @@ class MemoActions {
     required this.onAddImage,
     required this.onDeleteImage,
     this.onTagTap,
+    this.onWikiLinkTap,
     this.onNavigateToMemo,
   });
 
@@ -88,6 +90,7 @@ class MemoActions {
     void Function(Memo, String)? onAddImage,
     void Function(Memo, int)? onDeleteImage,
     void Function(String tag)? onTagTap,
+    void Function(String linkText)? onWikiLinkTap,
     void Function(String memoId)? onNavigateToMemo,
   }) => MemoActions(
     folders: folders ?? this.folders,
@@ -104,6 +107,7 @@ class MemoActions {
     onAddImage: onAddImage ?? this.onAddImage,
     onDeleteImage: onDeleteImage ?? this.onDeleteImage,
     onTagTap: onTagTap ?? this.onTagTap,
+    onWikiLinkTap: onWikiLinkTap ?? this.onWikiLinkTap,
     onNavigateToMemo: onNavigateToMemo ?? this.onNavigateToMemo,
   );
 }

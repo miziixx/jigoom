@@ -249,11 +249,17 @@ class _InputBarState extends State<InputBar> {
     }
     final newText = _controller.text;
     final hadTags = _tagRe.hasMatch(_prevText);
+    final excIdx = newText.indexOf('!');
+    final isWordStart = excIdx == 0 ||
+        (excIdx > 0 && newText[excIdx - 1] == ' ');
+    final hasContentAfterExcl = excIdx != -1 &&
+        excIdx < newText.length - 1 &&
+        newText[excIdx + 1] != ' ';
     if (_scheduledAt == null &&
-        newText.contains('!') &&
+        hasContentAfterExcl &&
+        isWordStart &&
         !_prevText.contains('!')) {
       _processingExcl = true;
-      final excIdx = newText.indexOf('!');
       final cleaned = newText.replaceFirst('!', '');
       _controller.value = TextEditingValue(
         text: cleaned,
