@@ -209,10 +209,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final initialContent = _stripSharedMemoText(raw);
 
+    // 빠른 캡처: nemo2test는 확인 다이얼로그 없이 즉시 저장하고 실행취소 제공.
+    if (isNemo2Test) {
+      final body = initialContent.isEmpty ? tags : '$initialContent\n$tags';
+      _addMemoWithSource(body, detectedUrl);
+      _showCapturedSnackbar();
+      return;
+    }
+
     _showShareDialog(
       initialContent: initialContent,
       detectedUrl: detectedUrl,
       initialTags: tags,
+    );
+  }
+
+  void _showCapturedSnackbar() {
+    if (!mounted) return;
+    final added = _memos.isNotEmpty ? _memos.last : null;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: kSurface,
+        duration: const Duration(seconds: 4),
+        content: Text('캡처됨', style: mono(color: kText, fontSize: 12)),
+        action: added == null
+            ? null
+            : SnackBarAction(
+                label: '실행취소',
+                textColor: kMint,
+                onPressed: () => _deleteMemo(added),
+              ),
+      ),
     );
   }
 
@@ -560,6 +588,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _searchOpen = false;
       _searchQuery = '';
       _searchController.clear();
+    });
+  }
+
+  /// 오늘의 데일리 노트로 이동. 없으면 템플릿으로 생성한다.
+  void _openDailyNote() {
+    final now = DateTime.now();
+    final dateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final title = '# $dateStr';
+
+    // 이미 오늘의 데일리 노트가 있으면 그쪽으로 이동.
+    final existing = _memos.where((m) {
+      return m.tags.contains('daily') && m.content.startsWith(title);
+    }).firstOrNull;
+    if (existing != null) {
+      _navigateToMemo(existing.id);
+      return;
+    }
+
+    final template = '$title #daily\n\n'
+        '## 오늘 한 일\n\n'
+        '## 메모\n\n'
+        '## 내일 할 일\n';
+    _addMemo(template, false, null);
+    // 방금 추가된 메모로 스크롤/하이라이트.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_memos.isNotEmpty) _navigateToMemo(_memos.last.id);
     });
   }
 
@@ -2320,6 +2375,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onRestoreConfirmed: _applyBackupData,
           onClearCache: _clearAllCache,
           onImportTxt: _importTxtMemos,
+          onExportMarkdown: isNemo2Test
+              ? () => BackupService.exportMarkdown(
+                    memos: _memos,
+                    folders: _folders,
+                  )
+              : null,
         ),
         transitionsBuilder: (_, anim, __, child) => SlideTransition(
           position: Tween<Offset>(
@@ -2767,6 +2828,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       _openSearch();
                     }
                   },
+                  onDailyNote: _openDailyNote,
                   folders: _folders,
                   selectedFolderId: _selectedFolderId,
                   onSelectFolder: (id) => setState(() {
@@ -3809,6 +3871,39 @@ class _SearchToggleBtnState extends State<_SearchToggleBtn> {
   }
 }
 
+class _DailyNoteBtn extends StatefulWidget {
+  final VoidCallback onTap;
+  const _DailyNoteBtn({required this.onTap});
+
+  @override
+  State<_DailyNoteBtn> createState() => _DailyNoteBtnState();
+}
+
+class _DailyNoteBtnState extends State<_DailyNoteBtn> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _hovered ? kText : kDim;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+          decoration: BoxDecoration(
+            color: _hovered ? kSurface : Colors.transparent,
+          ),
+          child: Icon(Icons.today_outlined, size: 16, color: color),
+        ),
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Local widgets
 // ─────────────────────────────────────────────────────────────────
@@ -3830,6 +3925,7 @@ class _AppHeader extends StatelessWidget {
   final VoidCallback onSelectToday;
   final bool searchOpen;
   final VoidCallback onSearchTap;
+  final VoidCallback onDailyNote;
   final List<Folder> folders;
   final String? selectedFolderId;
   final void Function(String? id) onSelectFolder;
@@ -3861,6 +3957,7 @@ class _AppHeader extends StatelessWidget {
     required this.onSelectToday,
     required this.searchOpen,
     required this.onSearchTap,
+    required this.onDailyNote,
     required this.folders,
     required this.selectedFolderId,
     required this.onSelectFolder,
@@ -4149,6 +4246,10 @@ class _AppHeader extends StatelessWidget {
                         !tasksOnly,
                   ),
                 ),
+                if (isNemo2Test) ...[
+                  const SizedBox(width: 2),
+                  _DailyNoteBtn(onTap: onDailyNote),
+                ],
                 const SizedBox(width: 2),
                 _SearchToggleBtn(active: searchOpen, onTap: onSearchTap),
               ],

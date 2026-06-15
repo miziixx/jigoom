@@ -32,6 +32,7 @@ class SettingsScreen extends StatefulWidget {
   onRestoreConfirmed;
   final VoidCallback onClearCache;
   final void Function(List<String> blocks) onImportTxt;
+  final Future<void> Function()? onExportMarkdown;
 
   const SettingsScreen({
     super.key,
@@ -45,6 +46,7 @@ class SettingsScreen extends StatefulWidget {
     required this.onRestoreConfirmed,
     required this.onClearCache,
     required this.onImportTxt,
+    this.onExportMarkdown,
   });
 
   @override
@@ -293,6 +295,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final saved = await widget.onBackupSave();
     if (!mounted) return;
     _snack(saved ? '백업 완료. 선택한 저장 위치에 저장되었습니다.' : '백업이 취소되었습니다.');
+  }
+
+  Future<void> _doExportMarkdown() async {
+    final fn = widget.onExportMarkdown;
+    if (fn == null) return;
+    await fn();
+    if (!mounted) return;
+    _snack('마크다운 내보내기 완료');
   }
 
   Future<void> _doRestore() async {
@@ -636,6 +646,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onTap: _doRestore,
                           ),
                           _Btn(label: '가져오기', color: kDim, onTap: _doRestore),
+                          if (widget.onExportMarkdown != null)
+                            _Btn(
+                              label: '마크다운 내보내기',
+                              color: kMint,
+                              onTap: _doExportMarkdown,
+                            ),
                           _Btn(
                             label: '캐시 삭제',
                             color: Colors.red.shade400,
