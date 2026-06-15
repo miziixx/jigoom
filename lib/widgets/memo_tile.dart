@@ -12,6 +12,7 @@ import '../models/memo_actions.dart';
 import '../app_theme.dart';
 import '../services/image_service.dart';
 import '../services/local_search_service.dart';
+import '../flavor.dart';
 import 'schedule_sheet.dart';
 
 Color _memoDoneTextColor() => Color.lerp(kText, kDim, 0.55) ?? kDim;
@@ -1073,15 +1074,17 @@ class _MemoTileState extends State<MemoTile> {
       child: inner,
     );
 
-    Widget _card(Widget child) => Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: kBorder.withValues(alpha: 0.35)),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: child,
-    );
+    Widget _card(Widget child) => isNemo2Test
+        ? Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: kBorder.withValues(alpha: 0.35)),
+            ),
+            clipBehavior: Clip.hardEdge,
+            child: child,
+          )
+        : child;
 
     if (_isSystemMemo) return _card(withTapRegion);
 
@@ -1865,19 +1868,23 @@ class _MemoTileState extends State<MemoTile> {
         );
       } else if (m.group(5) != null) {
         final linkText = m.group(5)!;
-        final rec = TapGestureRecognizer()
-          ..onTap = () => _a.onWikiLinkTap?.call(linkText);
-        children.add(
-          TextSpan(
-            text: '[[${linkText}]]',
-            style: base.copyWith(
-              color: kMint,
-              decoration: TextDecoration.underline,
-              decorationColor: kMint.withValues(alpha: 0.5),
+        if (isNemo2Test) {
+          final rec = TapGestureRecognizer()
+            ..onTap = () => _a.onWikiLinkTap?.call(linkText);
+          children.add(
+            TextSpan(
+              text: '[[${linkText}]]',
+              style: base.copyWith(
+                color: kMint,
+                decoration: TextDecoration.underline,
+                decorationColor: kMint.withValues(alpha: 0.5),
+              ),
+              recognizer: rec,
             ),
-            recognizer: rec,
-          ),
-        );
+          );
+        } else {
+          children.add(TextSpan(text: '[[${linkText}]]'));
+        }
       }
       lastEnd = m.end;
     }
@@ -1889,7 +1896,7 @@ class _MemoTileState extends State<MemoTile> {
   }
 
   Widget _buildRelatedMemos() {
-    if (widget.allMemos.isEmpty) return const SizedBox.shrink();
+    if (!isNemo2Test || widget.allMemos.isEmpty) return const SizedBox.shrink();
     final others = widget.allMemos.where((m) => m.id != widget.memo.id).toList();
     final related = LocalSearchService.search(widget.memo.content, others, limit: 3);
     if (related.isEmpty) return const SizedBox.shrink();

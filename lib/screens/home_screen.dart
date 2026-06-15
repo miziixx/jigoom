@@ -540,7 +540,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<Memo> _getSearchResults() {
     final q = _searchQuery.trim();
     if (q.isEmpty) return [];
-    return LocalSearchService.search(q, _memos);
+    if (isNemo2Test) return LocalSearchService.search(q, _memos);
+    return _memos.where((m) {
+      if (m.content.toLowerCase().contains(q.toLowerCase())) return true;
+      if (m.tags.any((t) => t.toLowerCase().contains(q.toLowerCase()))) return true;
+      if (m.dateKey.contains(q)) return true;
+      return false;
+    }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   void _navigateToMemo(String memoId) {
@@ -3104,7 +3110,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             controller: _scrollController,
                             keyboardDismissBehavior:
                                 ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: const EdgeInsets.only(top: 6, bottom: 12),
+                            padding: EdgeInsets.only(top: isNemo2Test ? 6 : 0, bottom: 12),
                             itemCount: items.length,
                             itemBuilder: (context, index) {
                               final item = items[index];
