@@ -1043,7 +1043,7 @@ class _MemoTileState extends State<MemoTile> {
             Transform.translate(
               offset: Offset(_swipeOffset, 0),
               child: Container(
-                color: kBg,
+                color: Colors.transparent,
                 child: LongPressDraggable<Memo>(
                   data: widget.memo,
                   delay: const Duration(milliseconds: 400),
@@ -1076,9 +1076,8 @@ class _MemoTileState extends State<MemoTile> {
     Widget _card(Widget child) => Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: kSurface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: kBorder.withValues(alpha: 0.5)),
+        border: Border.all(color: kBorder.withValues(alpha: 0.35)),
       ),
       clipBehavior: Clip.hardEdge,
       child: child,
@@ -1256,7 +1255,7 @@ class _MemoTileState extends State<MemoTile> {
         // Append notes cards
         if (widget.memo.appendNotes.isNotEmpty)
           Container(
-            color: kBg,
+            color: Colors.transparent,
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
             child: Column(
               children: widget.memo.appendNotes
@@ -1387,7 +1386,7 @@ class _MemoTileState extends State<MemoTile> {
 
   Widget _buildAddNoteBtn() {
     return Container(
-      color: kBg,
+      color: Colors.transparent,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Align(
         alignment: Alignment.centerRight,
@@ -1417,7 +1416,7 @@ class _MemoTileState extends State<MemoTile> {
 
   Widget _buildAddNoteInput() {
     return Container(
-      color: kBg,
+      color: Colors.transparent,
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
       child: Container(
         decoration: BoxDecoration(
