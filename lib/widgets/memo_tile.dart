@@ -1105,7 +1105,7 @@ class _MemoTileState extends State<MemoTile> {
           onEnter: (_) => setState(() => _hovered = true),
           onExit: (_) => setState(() => _hovered = false),
           child: GestureDetector(
-            onLongPress: _showTextSelectionSheet,
+            onDoubleTap: _showTextSelectionSheet,
             onTapDown: (d) => _tapPosition = d.globalPosition,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 120),
