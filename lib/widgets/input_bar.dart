@@ -81,6 +81,8 @@ class InputBar extends StatefulWidget {
   final void Function(String name)? onActivateGoal;
   final Memo? editingMemo;
   final VoidCallback? onCancelEdit;
+  // 본문 [[ 위키링크 자동완성용 메모 목록
+  final List<Memo> allMemos;
 
   const InputBar({
     super.key,
@@ -97,6 +99,7 @@ class InputBar extends StatefulWidget {
     this.onActivateGoal,
     this.editingMemo,
     this.onCancelEdit,
+    this.allMemos = const [],
   });
 
   @override
@@ -127,6 +130,8 @@ class _InputBarState extends State<InputBar> {
   _LogroomDraftKind _draftKind = _LogroomDraftKind.entry;
   _LogroomDraftKind? _suggestionSelectedKind;
   String _prevText = '';
+  // 본문 [[ 위키링크 자동완성 후보
+  List<Memo> _wikiSuggestions = const [];
   bool _processingExcl = false;
   bool _schedulePickerOpened = false;
   bool _resettingDraft = false;
@@ -291,11 +296,53 @@ class _InputBarState extends State<InputBar> {
         _forceChecklist = false;
         _suggestionSelectedKind = null;
       }
+      _wikiSuggestions = _computeWikiSuggestions();
     });
     // 태그 배지가 나타나면서 레이아웃이 변해 Android가 IME를 내리는 경우 방지.
     // hasFocus가 true인 상태에서도 키보드가 내려갈 수 있으므로
     // requestFocus + TextInput.show 를 조건 없이 호출해 키보드를 명시적으로 복구.
     if (hadFocus) _restoreInputFocus(extraDelayed: hasTags && !hadTags);
+  }
+
+  /// 커서 앞에 닫히지 않은 `[[검색어`가 있으면 매칭 메모 후보를 반환.
+  List<Memo> _computeWikiSuggestions() {
+    if (!isNemo2Test || widget.allMemos.isEmpty) return const [];
+    final sel = _controller.selection;
+    if (!sel.isValid || !sel.isCollapsed) return const [];
+    final pos = sel.baseOffset.clamp(0, _controller.text.length);
+    final before = _controller.text.substring(0, pos);
+    final open = before.lastIndexOf('[[');
+    if (open == -1) return const [];
+    final fragment = before.substring(open + 2);
+    if (fragment.contains(']') || fragment.contains('\n')) return const [];
+    final q = fragment.trim().toLowerCase();
+    final matches = widget.allMemos.where((m) {
+      if (m.id == widget.editingMemo?.id) return false;
+      final title = m.content.split('\n').first.toLowerCase();
+      return q.isEmpty || title.contains(q);
+    }).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return matches.take(5).toList();
+  }
+
+  /// 선택한 메모를 `[[id:..|제목]]`로 삽입하고 `[[검색어`를 대체.
+  void _insertWikiLink(Memo memo) {
+    final sel = _controller.selection;
+    final pos = sel.baseOffset.clamp(0, _controller.text.length);
+    final text = _controller.text;
+    final before = text.substring(0, pos);
+    final open = before.lastIndexOf('[[');
+    if (open == -1) return;
+    final title = memo.content.split('\n').first.trim();
+    final link = '[[id:${memo.id}|$title]]';
+    final newText = text.substring(0, open) + link + text.substring(pos);
+    final newPos = open + link.length;
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newPos),
+    );
+    setState(() => _wikiSuggestions = const []);
+    _restoreInputFocus();
   }
 
   void _showSchedulePicker() {
@@ -1700,6 +1747,35 @@ String _contentForDraftKind(String raw) {
                           ))
                       .toList(),
                 ),
+              ),
+            ),
+
+          // ── Wiki link suggestions ([[ 자동완성) ────────────────
+          if (_wikiSuggestions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 14, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('연결할 메모',
+                      style: mono(color: kDim, fontSize: 9, letterSpacing: 0.8)),
+                  const SizedBox(height: 3),
+                  ..._wikiSuggestions.map((m) {
+                    final title = m.content.split('\n').first.trim();
+                    final short =
+                        title.length > 40 ? '${title.substring(0, 40)}…' : title;
+                    return GestureDetector(
+                      onTap: () => _insertWikiLink(m),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Text('[[ $short',
+                            style: mono(color: kMint, fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    );
+                  }),
+                ],
               ),
             ),
 

@@ -3286,6 +3286,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     fit: FlexFit.loose,
                     child: InputBar(
                       key: _inputBarKey,
+                      allMemos: _memos,
                       onSubmit:
                           (
                             c,
