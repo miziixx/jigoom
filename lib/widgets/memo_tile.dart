@@ -1812,7 +1812,7 @@ class _MemoTileState extends State<MemoTile> {
   // ── Inline markdown parser ────────────────────────────
 
   static final _inlineRe = RegExp(
-    r'\*\*(.+?)\*\*|~~(.+?)~~|\*(.+?)\*|(https?://\S+)',
+    r'\*\*(.+?)\*\*|~~(.+?)~~|\*(.+?)\*|(https?://\S+)|\[\[(.+?)\]\]',
     dotAll: false,
   );
 
@@ -1856,6 +1856,21 @@ class _MemoTileState extends State<MemoTile> {
           TextSpan(
             text: url,
             style: base.copyWith(color: kTeal),
+            recognizer: rec,
+          ),
+        );
+      } else if (m.group(5) != null) {
+        final linkText = m.group(5)!;
+        final rec = TapGestureRecognizer()
+          ..onTap = () => _a.onWikiLinkTap?.call(linkText);
+        children.add(
+          TextSpan(
+            text: '[[${linkText}]]',
+            style: base.copyWith(
+              color: kMint,
+              decoration: TextDecoration.underline,
+              decorationColor: kMint.withValues(alpha: 0.5),
+            ),
             recognizer: rec,
           ),
         );

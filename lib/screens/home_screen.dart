@@ -1725,6 +1725,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     onAddImage: _addImageToMemo,
     onDeleteImage: _deleteImageFromMemo,
     onTagTap: (tag) => setState(() => _selectedTag = tag),
+    onWikiLinkTap: (linkText) {
+      final q = linkText.trim().toLowerCase();
+      final match = _memos.where((m) {
+        final first = m.content.split('\n').first.toLowerCase();
+        return first.contains(q);
+      }).firstOrNull ?? LocalSearchService.search(linkText, _memos).firstOrNull;
+      if (match != null) _navigateToMemo(match.id);
+    },
   );
 
   String get _activeSidebarSection {
