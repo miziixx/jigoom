@@ -36,6 +36,7 @@ class MemoActions {
   final void Function(Memo, String) onAddImage;
   final void Function(Memo, int) onDeleteImage;
   final void Function(String tag)? onTagTap;
+  final void Function(String memoId)? onNavigateToMemo;
 
   const MemoActions({
     required this.folders,
@@ -52,6 +53,7 @@ class MemoActions {
     required this.onAddImage,
     required this.onDeleteImage,
     this.onTagTap,
+    this.onNavigateToMemo,
   });
 
   MemoActions copyWith({
@@ -86,6 +88,7 @@ class MemoActions {
     void Function(Memo, String)? onAddImage,
     void Function(Memo, int)? onDeleteImage,
     void Function(String tag)? onTagTap,
+    void Function(String memoId)? onNavigateToMemo,
   }) => MemoActions(
     folders: folders ?? this.folders,
     onDelete: onDelete ?? this.onDelete,
@@ -101,5 +104,6 @@ class MemoActions {
     onAddImage: onAddImage ?? this.onAddImage,
     onDeleteImage: onDeleteImage ?? this.onDeleteImage,
     onTagTap: onTagTap ?? this.onTagTap,
+    onNavigateToMemo: onNavigateToMemo ?? this.onNavigateToMemo,
   );
 }

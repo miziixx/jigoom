@@ -406,29 +406,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _autoSummarize(String memoId, String sourceUrl) {
     Future(() async {
       final apiKey = await StorageService.loadClaudeApiKey();
-      if (apiKey.isEmpty) return;
       final model = await StorageService.loadClaudeModel();
 
-      // 1. 요약
-      final summary = await WikiCaptureService.summarize(sourceUrl, apiKey, model: model);
+      String? summary;
+      List<String> connectedIds = [];
+
+      if (apiKey.isNotEmpty) {
+        // API 키 있으면: Claude 요약 + 연결 찾기
+        summary = await WikiCaptureService.summarize(sourceUrl, apiKey, model: model);
+        if (summary != null && summary.isNotEmpty) {
+          final otherMemos = _memos.where((m) => m.id != memoId).toList();
+          connectedIds = await WikiCaptureService.findConnections(
+            summary, otherMemos, apiKey, model: model,
+          );
+        }
+      } else {
+        // API 키 없으면: OG 메타데이터만 저장
+        summary = await WikiCaptureService.fetchMetadata(sourceUrl);
+      }
+
       if (summary == null || summary.isEmpty) return;
 
-      // 2. 연결 찾기
-      final otherMemos = _memos.where((m) => m.id != memoId).toList();
-      final connectedIds = await WikiCaptureService.findConnections(
-        summary, otherMemos, apiKey, model: model,
-      );
-
+      // 연결된 메모 링크를 [[id:memoId|title]] 포맷으로 기록
       String fullNote = summary;
       if (connectedIds.isNotEmpty) {
-        final connectedTitles = connectedIds.map((id) {
+        final links = connectedIds.map((id) {
           final m = _memos.firstWhere(
             (m) => m.id == id,
             orElse: () => Memo(id: id, content: '', createdAt: DateTime.now()),
           );
-          return m.content.split('\n').first.trim();
-        }).where((t) => t.isNotEmpty).take(3).join(', ');
-        fullNote += '\n\n**연결된 메모**: $connectedTitles';
+          final title = m.content.split('\n').first.trim();
+          return '[[id:$id|$title]]';
+        }).where((l) => l.isNotEmpty).take(3).join(' ');
+        if (links.isNotEmpty) fullNote += '\n\n**연결**: $links';
       }
 
       // 요약에서 #태그 추출해서 메모 본문에 자동 추가
@@ -445,6 +455,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ? '$existingContent\n$autoTags'
           : existingContent;
 
+      final newMemoTitle = newContent.split('\n').first.trim();
       final updated = memos[idx].copyWith(
         content: newContent,
         appendNotes: [
@@ -453,11 +464,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ],
       );
       memos[idx] = updated;
+
+      // 양방향 연결: 연결된 기존 메모들에 역참조 추가
+      for (final connId in connectedIds) {
+        final ci = memos.indexWhere((m) => m.id == connId);
+        if (ci == -1) continue;
+        final backLink = '**역연결**: [[id:$memoId|$newMemoTitle]]';
+        memos[ci] = memos[ci].copyWith(
+          appendNotes: [
+            ...memos[ci].appendNotes,
+            AppendNote(content: backLink, addedAt: DateTime.now()),
+          ],
+        );
+      }
+
       await StorageService.saveMemos(memos);
 
       if (mounted) setState(() {
-        final i = _memos.indexWhere((m) => m.id == memoId);
-        if (i != -1) _memos[i] = updated;
+        for (final m in memos) {
+          final i = _memos.indexWhere((x) => x.id == m.id);
+          if (i != -1) _memos[i] = m;
+        }
       });
     });
   }
@@ -1729,6 +1756,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     onAddImage: _addImageToMemo,
     onDeleteImage: _deleteImageFromMemo,
     onTagTap: (tag) => setState(() => _selectedTag = tag),
+    onNavigateToMemo: _navigateToMemo,
   );
 
   String get _activeSidebarSection {

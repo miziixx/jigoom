@@ -9,6 +9,20 @@ class WikiCaptureService {
     'claude-opus-4-8': 'Opus 4.8 (최고품질)',
   };
 
+  // OG 태그만으로 메타데이터 추출 (API 키 불필요)
+  static Future<String?> fetchMetadata(String url) async {
+    final pageText = await _fetchPage(url);
+    if (pageText == null) return null;
+    final lines = pageText.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    final title = lines.isNotEmpty ? lines.first.trim() : url;
+    final desc = lines.length > 1 ? lines.skip(1).take(3).join(' ').trim() : '';
+    final buf = StringBuffer();
+    buf.writeln('**제목**: $title');
+    if (desc.isNotEmpty) buf.writeln('\n**요약**: $desc');
+    buf.write('\n**출처**: $url');
+    return buf.toString();
+  }
+
   static Future<String?> summarize(String url, String apiKey, {String? model}) async {
     final pageText = await _fetchPage(url);
     if (pageText == null) return null;

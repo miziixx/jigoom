@@ -1366,16 +1366,89 @@ class _MemoTileState extends State<MemoTile> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('• ', style: mono(color: kText, fontSize: tsSmall)),
-                Expanded(
-                  child: Text(
-                    note.content,
-                    style: mono(color: kText, fontSize: tsSmall, height: 1.5),
-                  ),
-                ),
+                Expanded(child: _buildNoteContent(note.content)),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  static final _linkRe = RegExp(r'\[\[id:([^|]+)\|([^\]]+)\]\]');
+
+  Widget _buildNoteContent(String content) {
+    if (!_linkRe.hasMatch(content)) {
+      return Text(content, style: mono(color: kText, fontSize: tsSmall, height: 1.5));
+    }
+
+    final lines = content.split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines.map((line) => _buildNoteLine(line)).toList(),
+    );
+  }
+
+  Widget _buildNoteLine(String line) {
+    if (!_linkRe.hasMatch(line)) {
+      return Text(line, style: mono(color: kText, fontSize: tsSmall, height: 1.5));
+    }
+
+    // 연결/역연결 라인: [[id:...|...]] 칩으로 렌더
+    final isConnection = line.startsWith('**연결**:') || line.startsWith('**역연결**:');
+    final prefix = isConnection
+        ? (line.startsWith('**역연결**') ? '↩ ' : '→ ')
+        : '';
+    final chips = <Widget>[];
+    int lastEnd = 0;
+    final plainParts = <String>[];
+
+    for (final m in _linkRe.allMatches(line)) {
+      if (m.start > lastEnd) {
+        final text = line.substring(lastEnd, m.start)
+            .replaceAll('**연결**:', '')
+            .replaceAll('**역연결**:', '')
+            .trim();
+        if (text.isNotEmpty) plainParts.add(text);
+      }
+      final memoId = m.group(1)!;
+      final title = m.group(2)!;
+      chips.add(
+        GestureDetector(
+          onTap: () => _a.onNavigateToMemo?.call(memoId),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Container(
+              margin: const EdgeInsets.only(right: 4, top: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: kMint.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: kMint.withValues(alpha: 0.35)),
+              ),
+              child: Text(
+                title,
+                style: mono(color: kMint, fontSize: 10),
+              ),
+            ),
+          ),
+        ),
+      );
+      lastEnd = m.end;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (prefix.isNotEmpty || plainParts.isNotEmpty)
+            Text(
+              prefix + plainParts.join(' '),
+              style: mono(color: kDim, fontSize: tsSmall),
+            ),
+          ...chips,
+        ],
       ),
     );
   }

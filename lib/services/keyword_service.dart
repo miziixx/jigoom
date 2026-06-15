@@ -136,6 +136,32 @@ class KeywordService {
     return keywords.toList();
   }
 
+  static String? _extractDomain(String? url) {
+    if (url == null) return null;
+    try {
+      final uri = Uri.parse(url);
+      var host = uri.host.replaceFirst('www.', '');
+      // 짧게: 첫 번째 점 앞만 (naver, youtube 등)
+      final dot = host.indexOf('.');
+      return dot > 0 ? host.substring(0, dot) : host;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static final _linkRe = RegExp(r'\[\[id:([^|]+)\|[^\]]+\]\]');
+
+  // appendNotes에서 [[id:...|...]] 역참조 파싱
+  static List<String> _parseLinkedIds(Memo memo) {
+    final ids = <String>[];
+    for (final note in memo.appendNotes) {
+      for (final m in _linkRe.allMatches(note.content)) {
+        ids.add(m.group(1)!);
+      }
+    }
+    return ids;
+  }
+
   static GraphData buildGraph(List<Memo> memos, {Map<String, List<String>>? aiCache}) {
     final rng = Random(42);
     const cx = 1000.0;
@@ -173,6 +199,11 @@ class KeywordService {
           : extractKeywordsLocal(memo.content);
       for (final kw in keywords) {
         keywordMemos.putIfAbsent(kw, () => {}).add(memo.id);
+      }
+      // sourceUrl 도메인을 가상 키워드로 추가 (같은 출처 메모들 연결)
+      final domain = _extractDomain(memo.sourceUrl);
+      if (domain != null && domain.isNotEmpty) {
+        keywordMemos.putIfAbsent(domain, () => {}).add(memo.id);
       }
     }
 
@@ -223,6 +254,37 @@ class KeywordService {
           final pair = [hub, kw]..sort();
           final key = '${pair[0]}|${pair[1]}';
           edgeMap[key] = (edgeMap[key] ?? 0) + 1;
+        }
+      }
+    }
+
+    // ── 4. 명시적 연결([[id:...|...]])에서 추가 엣지 (가중치 높게) ──
+    // 두 메모가 명시적으로 연결된 경우, 공유하는 키워드 노드 간 엣지 강화
+    final memoKeywords = <String, Set<String>>{};
+    for (final memo in memos) {
+      final kws = (aiCache != null && aiCache.containsKey(memo.id)
+              ? aiCache[memo.id]!
+              : extractKeywordsLocal(memo.content))
+          .where(kwSet.contains)
+          .toSet();
+      final domain = _extractDomain(memo.sourceUrl);
+      if (domain != null && kwSet.contains(domain)) kws.add(domain);
+      memoKeywords[memo.id] = kws;
+    }
+
+    for (final memo in memos) {
+      final linkedIds = _parseLinkedIds(memo);
+      for (final linkedId in linkedIds) {
+        final kwsA = memoKeywords[memo.id] ?? {};
+        final kwsB = memoKeywords[linkedId] ?? {};
+        // 두 메모의 키워드 간 크로스 엣지 (연결 강화)
+        for (final kA in kwsA) {
+          for (final kB in kwsB) {
+            if (kA == kB) continue;
+            final pair = [kA, kB]..sort();
+            final key = '${pair[0]}|${pair[1]}';
+            edgeMap[key] = (edgeMap[key] ?? 0) + 3; // 명시적 연결은 가중치 +3
+          }
         }
       }
     }
