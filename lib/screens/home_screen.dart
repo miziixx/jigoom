@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -172,8 +170,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (u.contains('twitter.com') || u.contains('x.com')) return '#공유X';
     if (u.contains('tiktok.com')) return '#공유틱톡';
     if (u.contains('facebook.com') || u.contains('fb.com')) return '#공유페북';
-    if (u.contains('chatgpt.com') || u.contains('chat.openai.com'))
+    if (u.contains('chatgpt.com') || u.contains('chat.openai.com')) {
       return '#공유GPT';
+    }
     if (u.contains('google.com')) return '#공유구글';
     if (u.contains('naver.com')) return '#공유네이버';
     if (u.contains('blog.') || u.contains('/blog')) return '#공유블로그';
