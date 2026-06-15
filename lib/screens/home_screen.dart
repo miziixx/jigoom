@@ -1725,6 +1725,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     onAddImage: _addImageToMemo,
     onDeleteImage: _deleteImageFromMemo,
     onTagTap: (tag) => setState(() => _selectedTag = tag),
+    onNavigateToMemo: _navigateToMemo,
     onWikiLinkTap: (linkText) {
       final q = linkText.trim().toLowerCase();
       final match = _memos.where((m) {
@@ -3165,6 +3166,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         memo: item,
                                         actions: _memoActions,
                                         highlighted: _highlightedMemoId == item.id,
+                                        allMemos: _memos,
                                       );
                                 return Column(
                                   key: memoKey,

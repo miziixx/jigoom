@@ -11,6 +11,7 @@ import '../models/append_note.dart';
 import '../models/memo_actions.dart';
 import '../app_theme.dart';
 import '../services/image_service.dart';
+import '../services/local_search_service.dart';
 import 'schedule_sheet.dart';
 
 Color _memoDoneTextColor() => Color.lerp(kText, kDim, 0.55) ?? kDim;
@@ -21,12 +22,14 @@ class MemoTile extends StatefulWidget {
   final Memo memo;
   final MemoActions actions;
   final bool highlighted;
+  final List<Memo> allMemos;
 
   const MemoTile({
     super.key,
     required this.memo,
     required this.actions,
     this.highlighted = false,
+    this.allMemos = const [],
   });
 
   @override
@@ -1257,6 +1260,8 @@ class _MemoTileState extends State<MemoTile> {
         // Source URL badge
         if (widget.memo.sourceUrl != null)
           _SourceBadge(url: widget.memo.sourceUrl!),
+        // Related memos
+        _buildRelatedMemos(),
         // Dotted separator
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1882,6 +1887,47 @@ class _MemoTileState extends State<MemoTile> {
     }
     if (children.isEmpty) return TextSpan(text: text, style: base);
     return TextSpan(children: children, style: base);
+  }
+
+  Widget _buildRelatedMemos() {
+    if (widget.allMemos.isEmpty) return const SizedBox.shrink();
+    final others = widget.allMemos.where((m) => m.id != widget.memo.id).toList();
+    final related = LocalSearchService.search(widget.memo.content, others, limit: 3);
+    if (related.isEmpty) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        border: Border.all(color: kBorder.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'related',
+            style: mono(color: kDim, fontSize: 9, letterSpacing: 0.8),
+          ),
+          const SizedBox(height: 5),
+          ...related.map((m) {
+            final preview = m.content.split('\n').first;
+            final short = preview.length > 60 ? '${preview.substring(0, 60)}…' : preview;
+            return GestureDetector(
+              onTap: () => _a.onNavigateToMemo?.call(m.id),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  '→ $short',
+                  style: mono(color: kMint.withValues(alpha: 0.8), fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   Widget _buildRichContent(String content) {
