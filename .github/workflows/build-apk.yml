@@ -32,12 +32,12 @@ jobs:
       - name: Analyze
         run: flutter analyze lib/ --no-fatal-infos --no-fatal-warnings
 
-      - name: Build APK (personal debug)
-        run: flutter build apk --flavor personal --debug --android-skip-build-dependency-validation
+      - name: Build APK (nemo2test debug)
+        run: flutter build apk --flavor nemo2test --debug --android-skip-build-dependency-validation
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-personal-debug
-          path: build/app/outputs/flutter-apk/app-personal-debug.apk
+          name: app-nemo2test-debug
+          path: build/app/outputs/flutter-apk/app-nemo2test-debug.apk
           retention-days: 7
