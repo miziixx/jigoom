@@ -12,6 +12,7 @@ import '../models/memo_actions.dart';
 import '../app_theme.dart';
 import '../services/image_service.dart';
 import '../services/local_search_service.dart';
+import '../services/backlink_service.dart';
 import '../flavor.dart';
 import 'schedule_sheet.dart';
 
@@ -1219,6 +1220,8 @@ class _MemoTileState extends State<MemoTile> {
         // Source URL badge
         if (widget.memo.sourceUrl != null)
           _SourceBadge(url: widget.memo.sourceUrl!),
+        // Backlinks (역참조 + 비링크 언급)
+        _buildBacklinks(),
         // Related memos
         _buildRelatedMemos(),
       ],
@@ -1888,11 +1891,20 @@ class _MemoTileState extends State<MemoTile> {
       } else if (m.group(5) != null) {
         final linkText = m.group(5)!;
         if (isNemo2Test) {
+          // [[id:MEMO_ID|제목]] 포맷이면 id로 직접 이동, 아니면 제목 검색.
+          final idMatch = RegExp(r'^id:([^|]+)\|(.+)$').firstMatch(linkText);
+          final display = idMatch != null ? idMatch.group(2)! : linkText;
           final rec = TapGestureRecognizer()
-            ..onTap = () => _a.onWikiLinkTap?.call(linkText);
+            ..onTap = () {
+              if (idMatch != null) {
+                _a.onNavigateToMemo?.call(idMatch.group(1)!);
+              } else {
+                _a.onWikiLinkTap?.call(linkText);
+              }
+            };
           children.add(
             TextSpan(
-              text: '[[${linkText}]]',
+              text: display,
               style: base.copyWith(
                 color: kMint,
                 decoration: TextDecoration.underline,
@@ -1912,6 +1924,59 @@ class _MemoTileState extends State<MemoTile> {
     }
     if (children.isEmpty) return TextSpan(text: text, style: base);
     return TextSpan(children: children, style: base);
+  }
+
+  Widget _buildBacklinks() {
+    if (!isNemo2Test || widget.allMemos.isEmpty) return const SizedBox.shrink();
+    final linked =
+        BacklinkService.linkedBacklinks(widget.memo, widget.allMemos);
+    final unlinked =
+        BacklinkService.unlinkedMentions(widget.memo, widget.allMemos);
+    if (linked.isEmpty && unlinked.isEmpty) return const SizedBox.shrink();
+
+    Widget row(Memo m, {required bool isUnlinked}) {
+      final preview = m.content.split('\n').first;
+      final short =
+          preview.length > 56 ? '${preview.substring(0, 56)}…' : preview;
+      return GestureDetector(
+        onTap: () => _a.onNavigateToMemo?.call(m.id),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 3),
+          child: Text(
+            '${isUnlinked ? '◇' : '↩'} $short',
+            style: mono(
+              color: isUnlinked
+                  ? kDim.withValues(alpha: 0.85)
+                  : kMint.withValues(alpha: 0.85),
+              fontSize: 11,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        border: Border.all(color: kMint.withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'backlinks · ${linked.length + unlinked.length}',
+            style: mono(color: kDim, fontSize: 9, letterSpacing: 0.8),
+          ),
+          const SizedBox(height: 5),
+          ...linked.map((m) => row(m, isUnlinked: false)),
+          ...unlinked.map((m) => row(m, isUnlinked: true)),
+        ],
+      ),
+    );
   }
 
   Widget _buildRelatedMemos() {

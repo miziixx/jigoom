@@ -15,6 +15,17 @@ Future<void> platformDownload(String content, String filename) async {
   ], subject: filename);
 }
 
+// Share arbitrary text content (used for Markdown export)
+Future<void> platformExportText(
+    String content, String filename, String mime) async {
+  final dir = await getTemporaryDirectory();
+  final file = File('${dir.path}/$filename');
+  await file.writeAsString(content, flush: true);
+  await Share.shareXFiles([
+    XFile(file.path, mimeType: mime),
+  ], subject: filename);
+}
+
 // Save directly to phone using system file picker
 Future<bool> platformSaveToPhone(String content, String filename) async {
   try {

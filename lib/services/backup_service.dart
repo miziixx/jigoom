@@ -64,6 +64,70 @@ class BackupService {
     return platformSaveToPhone(json, _filename());
   }
 
+  // ── Markdown export (이식성: 옵시디언 등으로 가져갈 수 있게) ──
+
+  static final _idLinkRe = RegExp(r'\[\[id:([^|\]]+)\|([^\]]+)\]\]');
+
+  static String _mdFilename() {
+    final now = DateTime.now();
+    final d =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return 'nemo_export_$d.md';
+  }
+
+  /// 모든 메모를 하나의 마크다운 문서로 변환.
+  /// `[[id:x|제목]]` 링크는 옵시디언 호환 `[[제목]]`으로 변환된다.
+  static String buildMarkdown({
+    required List<Memo> memos,
+    required List<Folder> folders,
+  }) {
+    final folderName = {for (final f in folders) f.id: f.name};
+    final buf = StringBuffer();
+    final sorted = [...memos]
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    for (final m in sorted) {
+      final title = m.content.split('\n').first.trim();
+      buf.writeln('## ${title.isEmpty ? '(제목 없음)' : title}');
+      buf.writeln();
+      // 메타데이터 (YAML 비슷한 인라인)
+      final meta = <String>[];
+      meta.add('created: ${m.createdAt.toIso8601String()}');
+      if (m.folderId != null && folderName[m.folderId] != null) {
+        meta.add('folder: ${folderName[m.folderId]}');
+      }
+      if (m.tags.isNotEmpty) {
+        meta.add('tags: ${m.tags.map((t) => '#$t').join(' ')}');
+      }
+      if (m.scheduledAt != null) {
+        meta.add('scheduled: ${m.scheduledAt!.toIso8601String()}');
+      }
+      buf.writeln('> ${meta.join(' · ')}');
+      buf.writeln();
+      buf.writeln(_convertLinks(m.content));
+      buf.writeln();
+      for (final note in m.appendNotes) {
+        buf.writeln('- ${_convertLinks(note.content).replaceAll('\n', '\n  ')}');
+      }
+      if (m.appendNotes.isNotEmpty) buf.writeln();
+      buf.writeln('---');
+      buf.writeln();
+    }
+    return buf.toString();
+  }
+
+  static String _convertLinks(String text) =>
+      text.replaceAllMapped(_idLinkRe, (m) => '[[${m.group(2)}]]');
+
+  /// 마크다운을 시스템 공유 시트로 내보낸다.
+  static Future<void> exportMarkdown({
+    required List<Memo> memos,
+    required List<Folder> folders,
+  }) async {
+    final md = buildMarkdown(memos: memos, folders: folders);
+    await platformExportText(md, _mdFilename(), 'text/markdown');
+  }
+
   static Future<Map<String, dynamic>?> import() async {
     final content = await platformPickFile();
     if (content == null) return null;

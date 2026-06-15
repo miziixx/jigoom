@@ -16,6 +16,19 @@ Future<void> platformDownload(String content, String filename) async {
   html.Url.revokeObjectUrl(url);
 }
 
+Future<void> platformExportText(
+    String content, String filename, String mime) async {
+  final bytes = utf8.encode(content);
+  final blob = html.Blob([bytes], mime);
+  final url = html.Url.createObjectUrlFromBlob(blob);
+  final anchor = html.AnchorElement(href: url)
+    ..setAttribute('download', filename);
+  html.document.body?.append(anchor);
+  anchor.click();
+  anchor.remove();
+  html.Url.revokeObjectUrl(url);
+}
+
 Future<bool> platformSaveToPhone(String content, String filename) async {
   await platformDownload(content, filename);
   return true;
