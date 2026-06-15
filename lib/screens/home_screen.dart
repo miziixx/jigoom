@@ -3104,7 +3104,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             controller: _scrollController,
                             keyboardDismissBehavior:
                                 ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.only(top: 6, bottom: 12),
                             itemCount: items.length,
                             itemBuilder: (context, index) {
                               final item = items[index];

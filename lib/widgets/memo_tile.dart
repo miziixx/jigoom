@@ -1073,7 +1073,18 @@ class _MemoTileState extends State<MemoTile> {
       child: inner,
     );
 
-    if (_isSystemMemo) return withTapRegion;
+    Widget _card(Widget child) => Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: kSurface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorder.withValues(alpha: 0.5)),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: child,
+    );
+
+    if (_isSystemMemo) return _card(withTapRegion);
 
     return DragTarget<Memo>(
       onWillAcceptWithDetails: (details) =>
@@ -1081,14 +1092,14 @@ class _MemoTileState extends State<MemoTile> {
           !details.data.tags.any((t) => t == 'habit' || t == 'goal'),
       onAcceptWithDetails: (details) => _a.onMerge(details.data, widget.memo),
       builder: (context, candidateData, _) {
-        if (candidateData.isEmpty) return withTapRegion;
-        return Container(
+        if (candidateData.isEmpty) return _card(withTapRegion);
+        return _card(Container(
           decoration: BoxDecoration(
             border: Border.all(color: kMint.withValues(alpha: 0.7), width: 1.5),
             color: kMint.withValues(alpha: 0.05),
           ),
           child: withTapRegion,
-        );
+        ));
       },
     );
   }
@@ -1262,17 +1273,6 @@ class _MemoTileState extends State<MemoTile> {
           _SourceBadge(url: widget.memo.sourceUrl!),
         // Related memos
         _buildRelatedMemos(),
-        // Dotted separator
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text(
-            '- ' * 80,
-            style: mono(color: kDim.withValues(alpha: 0.5), fontSize: 9),
-            overflow: TextOverflow.clip,
-            maxLines: 1,
-            softWrap: false,
-          ),
-        ),
       ],
     );
   }
