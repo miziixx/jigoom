@@ -1680,14 +1680,17 @@ String _contentForDraftKind(String raw) {
     required List<Widget> badgeChildren,
   }) {
     return Container(
-      color: kBg,
+      decoration: BoxDecoration(
+        color: kBg,
+        border: Border(top: BorderSide(color: kBorder, width: 1.5)),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Text input (first, with left accent dot) ──────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 7, 14, 4),
+            padding: const EdgeInsets.fromLTRB(10, 10, 14, 4),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1698,7 +1701,7 @@ String _contentForDraftKind(String raw) {
                     width: 7,
                     height: 7,
                     decoration: BoxDecoration(
-                      color: kMint.withValues(alpha: 0.55),
+                      color: kAccent,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -2441,13 +2444,18 @@ class _AddBtnState extends State<_AddBtn> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: _hovered ? kMint.withValues(alpha: 0.1) : Colors.transparent,
+            color: _hovered ? kTeal : kAccent,
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             widget.label,
-            style: mono(color: _hovered ? kMint : kDim, fontSize: 11),
+            style: mono(
+              color: kBg,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),

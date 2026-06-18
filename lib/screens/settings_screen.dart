@@ -248,15 +248,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ── Actions ────────────────────────────────────────
 
   void _resetDefaults() {
-    final Color bg;
-    final Color text;
     if (isLogroomUi) {
-      bg = const Color(0xFF0C0B09);
-      text = const Color(0xFFEDE8DF);
-    } else {
-      bg = const Color(0xFFEDF2ED);
-      text = const Color(0xFF556B2F);
+      // Warm Paper default look + system sans font.
+      setState(() {
+        _bg = kPaperBg;
+        _text = kPaperInk;
+        _tabLocked = false;
+        _fontFamily = kSystemFont;
+        _fontSize = 13.0;
+        _themeMode = AppThemeMode.normal;
+        _bgCtrl.text = _toHex(_bg);
+        _textCtrl.text = _toHex(_text);
+      });
+      applyAppThemeMode(AppThemeMode.normal);
+      applyPaperDefaults();
+      applyFont(_fontFamily, _fontSize);
+      return;
     }
+    const bg = Color(0xFFEDF2ED);
+    const text = Color(0xFF556B2F);
     setState(() {
       _bg = bg;
       _text = text;
@@ -343,7 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text(
                 '데이터 복원',
-                style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                style: monoLabel(color: kMint, fontSize: 13),
               ),
               const SizedBox(height: 10),
               Container(height: 1, color: kBorder),
@@ -871,7 +881,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Expanded(
             child: Text(
               '설정',
-              style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+              style: monoLabel(color: kMint, fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ),
@@ -1005,22 +1015,16 @@ class _SectionHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
-          style: mono(
+          label.toUpperCase(),
+          style: monoLabel(
             color: kText,
             fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.8,
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          '- ' * 80,
-          style: mono(color: kBorder.withValues(alpha: 0.8), fontSize: 8),
-          overflow: TextOverflow.clip,
-          maxLines: 1,
-          softWrap: false,
-        ),
+        const SizedBox(height: 7),
+        Container(height: 1, color: kBorder),
       ],
     );
   }
@@ -1938,7 +1942,7 @@ class _ConfirmDialog extends StatelessWidget {
           children: [
             Text(
               title,
-              style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+              style: monoLabel(color: kMint, fontSize: 13),
             ),
             const SizedBox(height: 10),
             Text(

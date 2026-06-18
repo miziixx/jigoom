@@ -135,7 +135,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
               // Header
               Text(
                 'SET REMINDER',
-                style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                style: monoLabel(color: kMint, fontSize: 13),
               ),
               const SizedBox(height: 10),
               Container(height: 1, color: kBorder),
@@ -453,7 +453,7 @@ class _BaseDateDialogState extends State<_BaseDateDialog> {
             children: [
               Text(
                 '기준 날짜 선택',
-                style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                style: monoLabel(color: kMint, fontSize: 13),
               ),
               const SizedBox(height: 10),
               Container(height: 1, color: kBorder),

@@ -330,20 +330,20 @@ class _DateHeaderState extends State<_DateHeader> {
           child: Row(
             children: [
               Text(
-                _fmt(widget.dateKey, widget.isToday),
-                style: mono(
+                _fmt(widget.dateKey, widget.isToday).toUpperCase(),
+                style: monoLabel(
                   color: color,
                   fontSize: 11,
                   fontWeight: widget.isToday
-                      ? FontWeight.bold
+                      ? FontWeight.w600
                       : FontWeight.normal,
-                  letterSpacing: 0.5,
+                  letterSpacing: 1.4,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                '(${widget.count})',
-                style: mono(color: color.withValues(alpha: 0.6), fontSize: 10),
+                '${widget.count}',
+                style: monoLabel(color: color.withValues(alpha: 0.6), fontSize: 10),
               ),
               const Spacer(),
               Text(

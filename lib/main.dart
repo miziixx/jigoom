@@ -18,9 +18,12 @@ void main() async {
   // Colors first, then theme mode — so DOS/preset overrides saved colors correctly
   final colors = await StorageService.loadColors();
   if (isLogroomUi) {
-    final bg = colors?.$1 ?? const Color(0xFF0C0B09);
-    final text = colors?.$2 ?? const Color(0xFFEDE8DF);
-    applyColors(bg, text);
+    // Warm Paper is the default look; saved custom colors still win.
+    if (colors != null) {
+      applyColorsAuto(colors.$1, colors.$2);
+    } else {
+      applyPaperDefaults();
+    }
   } else if (colors != null) {
     applyColors(colors.$1, colors.$2);
   }

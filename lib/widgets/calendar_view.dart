@@ -629,14 +629,12 @@ class _DayCellState extends State<_DayCell> {
   Widget build(BuildContext context) {
     // Text color
     Color dayColor;
-    if (widget.isSelected) {
-      dayColor = kMint;
+    if (widget.isSelected || widget.isToday) {
+      dayColor = kAccent;
     } else if (widget.isSun) {
       dayColor = const Color(0xFFFF1744);
     } else if (widget.isSat) {
       dayColor = kTeal;
-    } else if (widget.isToday) {
-      dayColor = kText;
     } else {
       dayColor = kDim;
     }

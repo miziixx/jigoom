@@ -195,7 +195,7 @@ class _MemoTileState extends State<MemoTile> {
             children: [
               Text(
                 'DELETE NOTE',
-                style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                style: monoLabel(color: kMint, fontSize: 13),
               ),
               const SizedBox(height: 10),
               Container(height: 1, color: kBorder),
@@ -698,7 +698,7 @@ class _MemoTileState extends State<MemoTile> {
                 children: [
                   Text(
                     '이미지 추가',
-                    style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                    style: monoLabel(color: kMint, fontSize: 13),
                   ),
                   const SizedBox(height: 12),
                   Container(height: 1, color: kBorder),
@@ -825,7 +825,7 @@ class _MemoTileState extends State<MemoTile> {
             children: [
               Text(
                 'MOVE TO',
-                style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                style: monoLabel(color: kMint, fontSize: 13),
               ),
               const SizedBox(height: 8),
               Container(height: 1, color: kBorder),

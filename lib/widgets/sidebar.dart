@@ -478,29 +478,24 @@ class _SidebarState extends State<Sidebar> {
           Container(
             height: 48,
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: kTlLine)),
+              border: Border(bottom: BorderSide(color: kBorder)),
             ),
             padding: const EdgeInsets.fromLTRB(15, 0, 12, 0),
             child: Row(
               children: [
                 Container(
-                  width: 5,
-                  height: 5,
+                  width: 6,
+                  height: 6,
                   decoration: BoxDecoration(
-                    color: kMint.withValues(alpha: 0.7),
+                    color: kAccent,
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 9),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'LOGROOM',
-                    style: mono(
-                      color: kText2,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2.0,
-                    ),
+                    'logroom',
+                    style: display(color: kText, fontSize: 18),
                   ),
                 ),
                 Column(
@@ -1722,10 +1717,10 @@ class _SdSecHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(15, 10, 15, 2),
+      padding: const EdgeInsets.fromLTRB(15, 12, 15, 3),
       child: Text(
-        label,
-        style: mono(color: kText3, fontSize: 9, letterSpacing: 1.2),
+        label.toUpperCase(),
+        style: monoLabel(color: kText3, fontSize: 9, letterSpacing: 1.8),
       ),
     );
   }
@@ -1738,8 +1733,8 @@ class _SdSep extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 1,
-      margin: const EdgeInsets.symmetric(vertical: 3),
-      color: kTlLine,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      color: kBorder,
     );
   }
 }

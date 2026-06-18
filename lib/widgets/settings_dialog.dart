@@ -149,7 +149,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
               children: [
                 Text(
                   'RESTORE',
-                  style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                  style: monoLabel(color: kMint, fontSize: 13),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -211,7 +211,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
               // ── Header ──────────────────────────────
               Text(
                 'SETTINGS',
-                style: mono(color: kMint, fontSize: 13, letterSpacing: 1),
+                style: monoLabel(color: kMint, fontSize: 13),
               ),
               const SizedBox(height: 10),
               Text(

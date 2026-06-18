@@ -426,7 +426,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
     Widget? typeBadge;
     if (isTaskMemo) {
       final done = !logroomHasUnchecked(memo.content);
-      typeBadge = _TypeBadge(done ? 'DONE' : 'TODO', color: kMint);
+      typeBadge = _TypeBadge(done ? 'DONE' : 'TODO', color: kTypeTodo);
     } else if (memo.scheduledAt != null) {
       typeBadge = _TypeBadge('SCHED', color: kTeal);
     } else if (links.isNotEmpty) {
@@ -463,11 +463,14 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                       child: logroomPrefixText(memo, fontSize: tsMeta),
                     ),
                     if (typeBadge != null) typeBadge,
-                    Text(displayTime, style: mono(color: kDim, fontSize: tsMeta)),
+                    Text(
+                      displayTime,
+                      style: monoLabel(color: kText3, fontSize: tsMeta),
+                    ),
                     if (scheduleMeta != null)
                       Text(
                         '· $scheduleMeta',
-                        style: mono(color: kTeal, fontSize: tsMeta),
+                        style: monoLabel(color: kTeal, fontSize: tsMeta),
                       ),
                   ],
                 ),
@@ -528,15 +531,14 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                 ],
 
                 if (visibleTags.isNotEmpty) ...[
-                  SizedBox(height: appSpace(4)),
-                  Text(
-                    visibleTags,
-                    style: mono(
-                      color: kTeal.withValues(alpha: 0.75),
-                      fontSize: tsSmall,
-                      height: 1.35,
-                    ),
-                    softWrap: true,
+                  SizedBox(height: appSpace(6)),
+                  Wrap(
+                    spacing: appSpace(6),
+                    runSpacing: appSpace(4),
+                    children: memo.tags
+                        .where((t) => t != 'habit' && t != 'goal')
+                        .map((t) => _TagPill(t))
+                        .toList(),
                   ),
                 ],
 
@@ -552,7 +554,7 @@ class _LogroomEntryTileState extends State<LogroomEntryTile> {
                       onTap: _addNote,
                       child: Text(
                         memo.appendNotes.isEmpty ? '+ 댓글 추가' : '+ 댓글',
-                        style: mono(color: kTeal, fontSize: tsTiny),
+                        style: mono(color: kAccent, fontSize: tsTiny),
                       ),
                     ),
                     if (memo.imagePaths.isNotEmpty)
@@ -2010,16 +2012,36 @@ class _TypeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Editorial: borderless uppercase mono label in its type color.
+    return Text(
+      label.toUpperCase(),
+      style: monoLabel(color: color, fontSize: tsTiny, letterSpacing: 1.4),
+    );
+  }
+}
+
+// Terracotta outline tag pill — "dev", "secondbrain".
+class _TagPill extends StatelessWidget {
+  final String tag;
+  const _TagPill(this.tag);
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      padding: EdgeInsets.symmetric(
+        horizontal: appSpace(9),
+        vertical: appSpace(2),
+      ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.07),
-        border: Border.all(color: color.withValues(alpha: 0.20), width: 0.5),
-        borderRadius: BorderRadius.circular(2),
+        border: Border.all(
+          color: kAccent.withValues(alpha: 0.45),
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        label,
-        style: mono(color: color.withValues(alpha: 0.62), fontSize: tsTiny, height: 1.1),
+        tag,
+        style: mono(color: kAccent, fontSize: tsSmall, height: 1.2),
       ),
     );
   }
@@ -2031,15 +2053,15 @@ class _TypeBadge extends StatelessWidget {
 // Mirrors the v3 HTML en-dot color scheme.
 Color _timelineDotColorForMemo(Memo memo, List<String> links) {
   if (memo.isChecklist || _contentHasChecklistLines(memo.content)) {
-    // todo — accent color, muted
-    return kMint.withValues(alpha: 0.40);
+    return kTypeTodo; // 할 일 — 세이지
+  }
+  if (memo.scheduledAt != null) {
+    return kTeal; // 일정
   }
   if (links.isNotEmpty) {
-    // link — muted teal-green (rgba(100,170,130,0.35) from v3)
-    return const Color(0x5964AA82);
+    return const Color(0xFF64AA82); // 링크 — 그린
   }
-  // memo / default — use kTlDot (derived from bg brightness in app_theme)
-  return kTlDot;
+  return kAccent; // 로그(기본) — 테라코타
 }
 
 // Vertical timeline lane: a thin line with a small dot at the top.

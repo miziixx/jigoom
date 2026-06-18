@@ -229,9 +229,9 @@ class _StatusTabState extends State<_StatusTab> {
         children: [
           Text(
             kChangelog.last.version,
-            style: mono(color: kMint, fontSize: 22, letterSpacing: 1),
+            style: display(color: kAccent, fontSize: 26),
           ),
-          Text('현재 버전', style: mono(color: kDim, fontSize: 10, letterSpacing: 1)),
+          Text('현재 버전', style: monoLabel(color: kDim, fontSize: 10)),
           const SizedBox(height: 14),
           if (_loaded)
             _buildStatGrid()

@@ -74,6 +74,9 @@ flutter:
   # Bundled mono fonts (offline; no runtime download). Family names must match
   # kFontOptions in lib/app_theme.dart exactly.
   fonts:
+    - family: Anton
+      fonts:
+        - asset: assets/fonts/Anton-Regular.ttf
     - family: JetBrains Mono
       fonts:
         - asset: assets/fonts/JetBrainsMono-Regular.ttf

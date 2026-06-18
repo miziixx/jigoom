@@ -1,36 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// All mutable — updated together by applyColors()
-Color kBg = const Color(0xFFEDF2ED);
-Color kText = const Color(0xFF556B2F);
-Color kSurface = const Color(0xFFE0E8E0);
-Color kBorder = const Color(0xFFB0C4B0);
-Color kDim = const Color(0xFF7A8F5A);
+// ── Warm Paper — the default look ───────────────────────────────────────────
+// Calm cream-paper palette with a single terracotta accent. Replaces the old
+// dark v3 default. applyPaperDefaults() sets every token to these values.
+const kPaperBg     = Color(0xFFEFE9DA); // 종이 배경
+const kPaperInk    = Color(0xFF211C15); // 잉크 텍스트
+const kPaperAccent = Color(0xFFC2562C); // 테라코타 액센트
 
-// Accent colors — mutable, derived from kText via applyColors()
-Color kMint = const Color(0xFF6E9530);
-Color kTeal = const Color(0xFF527A22);
+// Entry type accents (dots / labels).
+const kTypeLog  = kPaperAccent;          // 로그 = 테라코타
+const kTypeIdea = kPaperInk;             // 아이디어 = 잉크
+const kTypeTodo = Color(0xFF8FA876);     // 할 일 = 세이지
+
+// All mutable — updated together by applyColors() / applyPaperDefaults()
+Color kBg = kPaperBg;
+Color kText = kPaperInk;
+Color kSurface = const Color(0xFFF6F1E4);
+Color kBorder = const Color(0xFFD6CAB3);
+Color kDim = const Color(0xFF8A7E68);
+
+// Accent colors — mutable
+Color kMint = kPaperAccent;
+Color kTeal = const Color(0xFF9E3F1E);
 
 // ── v3 design tokens ─────────────────────────────────────────────────────────
-// Independent accent (kAccent). Initialized to v3 Default amber.
-// applyColorsV3() sets this independently; applyColors() mirrors kMint.
-Color kAccent = const Color(0xFFB8882A);
+// Independent accent (kAccent).
+Color kAccent = kPaperAccent;
 
-// Background steps (bg2..bg5) — lighter in dark mode, darker in light mode.
-Color kBg2 = const Color(0xFF141210);
-Color kBg3 = const Color(0xFF1A1815);
-Color kBg4 = const Color(0xFF201E18);
-Color kBg5 = const Color(0xFF262420);
+// Background steps (bg2..bg5) — darker in light mode, lighter in dark mode.
+Color kBg2 = const Color(0xFFEAE3D2);
+Color kBg3 = const Color(0xFFE5DDCA);
+Color kBg4 = const Color(0xFFE0D6C1);
+Color kBg5 = const Color(0xFFDBCFB8);
 
 // Text steps (text2..text4) — progressively dimmed toward background.
-Color kText2 = const Color(0xFFA09880);
-Color kText3 = const Color(0xFF5A5445);
-Color kText4 = const Color(0xFF302E26);
+Color kText2 = const Color(0xFF8A7E68);
+Color kText3 = const Color(0xFFA89A80);
+Color kText4 = const Color(0xFFC9BCA6);
 
 // Timeline tokens — derived from bg brightness.
-Color kTlLine = const Color(0x12FFFFFF); // rgba(255,255,255,0.07)
-Color kTlDot  = const Color(0x1FFFFFFF); // rgba(255,255,255,0.12)
+Color kTlLine = const Color(0x14000000); // rgba(0,0,0,0.08)
+Color kTlDot  = const Color(0x29000000); // rgba(0,0,0,0.16)
 
 // Font options (Google Fonts + system fonts)
 const kSystemFont = '시스템 기본';
@@ -45,7 +56,7 @@ const kFontOptions = [
   'Nanum Gothic Coding',
 ];
 
-String kFontFamily = 'JetBrains Mono';
+String kFontFamily = kSystemFont;
 double kFontSize = 13.0;
 double kSpacing = 12.0;
 
@@ -172,13 +183,45 @@ void applyColors(Color bg, Color text) {
   syncSystemUiOverlay();
 }
 
-void applyLogroomFinalDefaults() {
-  // v3 Default preset: bg #0c0b09 / fg #ede8df / ac #b8882a
-  applyColorsV3(
-    const Color(0xFF0C0B09),
-    const Color(0xFFEDE8DF),
-    const Color(0xFFB8882A),
-  );
+// Warm Paper default — sets every token explicitly (the dark-tuned lerps in
+// applyColorsV3 don't translate cleanly to a light background, so we pin them).
+void applyPaperDefaults() {
+  kBg = kPaperBg;
+  kText = kPaperInk;
+  kSurface = const Color(0xFFF6F1E4);
+  kBorder = const Color(0xFFD6CAB3);
+  kDim = const Color(0xFF8A7E68);
+  kMint = kPaperAccent;
+  kTeal = const Color(0xFF9E3F1E);
+  kAccent = kPaperAccent;
+  kBg2 = const Color(0xFFEAE3D2);
+  kBg3 = const Color(0xFFE5DDCA);
+  kBg4 = const Color(0xFFE0D6C1);
+  kBg5 = const Color(0xFFDBCFB8);
+  kText2 = const Color(0xFF8A7E68);
+  kText3 = const Color(0xFFA89A80);
+  kText4 = const Color(0xFFC9BCA6);
+  kTlLine = Colors.black.withValues(alpha: 0.08);
+  kTlDot = Colors.black.withValues(alpha: 0.16);
+  themeNotifier.value++;
+  syncSystemUiOverlay();
+}
+
+// Legacy name kept for callers — now applies the Warm Paper default.
+void applyLogroomFinalDefaults() => applyPaperDefaults();
+
+bool isPaperPair(Color bg, Color text) =>
+    bg == kPaperBg && text == kPaperInk;
+
+// Routes the Warm Paper default pair through applyPaperDefaults() so it keeps
+// its terracotta accent and light-tuned tokens; any other custom bg/text pair
+// uses the standard 2-color derivation.
+void applyColorsAuto(Color bg, Color text) {
+  if (isPaperPair(bg, text)) {
+    applyPaperDefaults();
+  } else {
+    applyColors(bg, text);
+  }
 }
 
 void syncSystemUiOverlay() {
@@ -253,6 +296,35 @@ TextStyle mono({
     height: height,
   );
 }
+
+// Anton condensed display — wordmark / big titles only (Latin).
+TextStyle display({
+  Color? color,
+  double fontSize = 32,
+  double? letterSpacing,
+  double? height,
+}) => TextStyle(
+  fontFamily: 'Anton',
+  color: color ?? kText,
+  fontSize: fontSize * (kFontSize / 13.0),
+  letterSpacing: letterSpacing,
+  height: height,
+);
+
+// Monospace structural label — filter tabs, meta lines (09:14 · LOG), date
+// headers. Always JetBrains Mono regardless of the body font choice.
+TextStyle monoLabel({
+  Color? color,
+  double fontSize = 11,
+  FontWeight fontWeight = FontWeight.normal,
+  double letterSpacing = 1.6,
+}) => TextStyle(
+  fontFamily: 'JetBrains Mono',
+  color: color ?? kDim,
+  fontSize: fontSize * (kFontSize / 13.0),
+  fontWeight: fontWeight,
+  letterSpacing: letterSpacing,
+);
 
 TextTheme _buildTextTheme(ThemeData base) {
   final family = kFontFamily == kSystemFont ? null : kFontFamily;

@@ -293,7 +293,7 @@ class _GraphScreenState extends State<GraphScreen>
       ),
       child: Row(
         children: [
-          Text('GRAPH', style: mono(color: kMint, fontSize: 10, letterSpacing: 2.0)),
+          Text('graph', style: display(color: kText, fontSize: 16)),
           const SizedBox(width: 12),
           Expanded(
             child: Container(

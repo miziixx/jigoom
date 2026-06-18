@@ -308,7 +308,7 @@ class _StatsViewState extends State<StatsView> {
           children: [
             Text(
               'STATS',
-              style: mono(color: kMint, fontSize: 12, letterSpacing: 1),
+              style: monoLabel(color: kMint, fontSize: 12),
             ),
             if (widget.contextLabel != null) ...[
               const SizedBox(width: 8),
@@ -395,7 +395,7 @@ class _StatsViewState extends State<StatsView> {
                 children: [
                   Text(
                     'ACTIVITY',
-                    style: mono(color: kMint, fontSize: 12, letterSpacing: 1),
+                    style: monoLabel(color: kMint, fontSize: 12),
                   ),
                   const Spacer(),
                   _NavBtn(
@@ -599,7 +599,7 @@ class _StatsViewState extends State<StatsView> {
       children: [
         Text(
           'TOP TAGS',
-          style: mono(color: kMint, fontSize: 12, letterSpacing: 1),
+          style: monoLabel(color: kMint, fontSize: 12),
         ),
         const SizedBox(height: 10),
         if (counts.isEmpty)
@@ -688,7 +688,7 @@ class _StatsViewState extends State<StatsView> {
       children: [
         Text(
           'WORDS / MONTH',
-          style: mono(color: kMint, fontSize: 12, letterSpacing: 1),
+          style: monoLabel(color: kMint, fontSize: 12),
         ),
         const SizedBox(height: 10),
         if (data.isEmpty)

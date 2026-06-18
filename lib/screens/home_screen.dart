@@ -2319,11 +2319,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (bgInt != null && textInt != null) {
         final bg = Color(bgInt);
         final text = Color(textInt);
-        if (isLogroomUi) {
-          applyColors(bg, text);
-        } else {
-          applyColors(bg, text);
-        }
+        applyColorsAuto(bg, text);
         StorageService.saveColors(bg, text);
       }
       final fontFamily = settings['font_family'] as String?;
@@ -2356,11 +2352,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           initialFontFamily: kFontFamily,
           initialFontSize: kFontSize,
           onSave: (bg, text, fontFamily, fontSize, tabLocked) {
-            if (isLogroomUi) {
-              applyColors(bg, text);
-            } else {
-              applyColors(bg, text);
-            }
+            applyColorsAuto(bg, text);
             StorageService.saveColors(bg, text);
             StorageService.saveFont(fontFamily, fontSize);
             StorageService.saveTabLocked(tabLocked);
@@ -4186,17 +4178,22 @@ class _AppHeader extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                Text(
-                  'MEMO',
-                  style: mono(
-                    color: kTeal,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text('─', style: mono(color: kBorder, fontSize: 12)),
+                isLogroomUi
+                    ? Text(
+                        'logroom',
+                        style: display(color: kText, fontSize: 19),
+                      )
+                    : Text(
+                        'MEMO',
+                        style: mono(
+                          color: kTeal,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                const SizedBox(width: 10),
+                Text('/', style: mono(color: kBorder, fontSize: 13)),
                 const SizedBox(width: 8),
                 Flexible(
                   child: GestureDetector(
@@ -4205,8 +4202,8 @@ class _AppHeader extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(
-                        pathLabel,
-                        style: mono(color: kTeal, fontSize: 11),
+                        pathLabel.toUpperCase(),
+                        style: monoLabel(color: kAccent, fontSize: 10.5),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
@@ -4257,7 +4254,7 @@ class _AppHeader extends StatelessWidget {
           ),
           if (!isNarrow) ...[
             const SizedBox(width: 10),
-            Text(dateStr, style: mono(color: kDim, fontSize: 10)),
+            Text(dateStr, style: monoLabel(color: kText3, fontSize: 9.5)),
           ],
         ],
       ),

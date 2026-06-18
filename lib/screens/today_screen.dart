@@ -492,19 +492,19 @@ class _InnerTabBtn extends StatelessWidget {
         decoration: BoxDecoration(
           // 활성: 폰트색 기반 옅은 배경 / 편집모드: surface / 비활성: 투명
           color: isActive && !editing
-              ? kText.withValues(alpha: 0.08)
+              ? kAccent.withValues(alpha: 0.08)
               : (editing ? kSurface : Colors.transparent),
         ),
         child: Stack(
           children: [
             Center(
               child: Text(
-                label,
-                style: mono(
-                  color: isActive ? kText : kDim,
+                label.toUpperCase(),
+                style: monoLabel(
+                  color: isActive ? kAccent : kDim,
                   fontSize: 11,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  letterSpacing: 0.3,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                  letterSpacing: 1.0,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -555,12 +555,12 @@ class _SectionHeader extends StatelessWidget {
         border: isFirst ? null : Border(top: BorderSide(color: kBorder)),
       ),
       child: Text(
-        label,
-        style: mono(
+        label.toUpperCase(),
+        style: monoLabel(
           color: kText,
           fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.8,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.8,
         ),
       ),
     );
@@ -595,18 +595,18 @@ class _CollapsibleSectionHeader extends StatelessWidget {
         child: Row(
           children: [
             Text(
-              label,
-              style: mono(
+              label.toUpperCase(),
+              style: monoLabel(
                 color: kText,
                 fontSize: tsSmall,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.6,
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
-              '($count)',
-              style: mono(color: kDim, fontSize: tsMeta),
+              '$count',
+              style: monoLabel(color: kAccent, fontSize: tsMeta),
             ),
             const Spacer(),
             Text(
@@ -936,25 +936,21 @@ class _StatCell extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              label,
-              style: mono(color: kDim, fontSize: 9, letterSpacing: 0.5),
+              label.toUpperCase(),
+              style: monoLabel(color: kDim, fontSize: 9, letterSpacing: 1.4),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             RichText(
               text: TextSpan(
                 children: [
                   TextSpan(
                     text: value,
-                    style: mono(
-                      color: kText,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: display(color: kText, fontSize: 24),
                   ),
                   if (unit != null)
                     TextSpan(
                       text: unit,
-                      style: mono(color: kDim, fontSize: 9),
+                      style: mono(color: kAccent, fontSize: 10),
                     ),
                 ],
               ),

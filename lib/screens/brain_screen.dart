@@ -142,7 +142,7 @@ $context''';
             ),
             child: Row(
               children: [
-                Text('BRAIN', style: mono(fontSize: 11, color: kMint, letterSpacing: 2)),
+                Text('brain', style: display(fontSize: 17, color: kText)),
                 const SizedBox(width: 10),
                 Text(
                   '메모 ${widget.memos.length}개',

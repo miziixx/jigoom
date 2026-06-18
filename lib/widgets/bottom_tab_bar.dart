@@ -237,8 +237,8 @@ class _LrNavItemState extends State<_LrNavItem> {
                 Text(widget.symbol, style: mono(color: fg, fontSize: 10)),
                 const SizedBox(height: 1),
                 Text(
-                  widget.label,
-                  style: mono(color: fg, fontSize: 7, letterSpacing: 0.6),
+                  widget.label.toUpperCase(),
+                  style: monoLabel(color: fg, fontSize: 7, letterSpacing: 1.0),
                 ),
               ],
             ),
@@ -514,7 +514,7 @@ class _TodayBtnState extends State<_TodayBtn> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
-          child: Text('TODAY', style: mono(color: fg, fontSize: 10)),
+          child: Text('TODAY', style: monoLabel(color: fg, fontSize: 9.5)),
         ),
       ),
     );
@@ -551,7 +551,7 @@ class _CalBtnState extends State<_CalBtn> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
-          child: Text('CAL', style: mono(color: fg, fontSize: 10)),
+          child: Text('CAL', style: monoLabel(color: fg, fontSize: 9.5)),
         ),
       ),
     );
@@ -588,7 +588,7 @@ class _StatsBtnState extends State<_StatsBtn> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
-          child: Text('STATS', style: mono(color: fg, fontSize: 10)),
+          child: Text('STATS', style: monoLabel(color: fg, fontSize: 9.5)),
         ),
       ),
     );

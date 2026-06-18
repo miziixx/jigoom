@@ -61,29 +61,6 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
     }
   }
 
-  // v3 date-marker label: "오늘 · 2026-06-08 · 월" / "어제 · ..." / "2026-06-06 · 토"
-  String _v3DateLabel(String key) {
-    try {
-      final parts = key.split('-');
-      final date = DateTime(
-        int.parse(parts[0]),
-        int.parse(parts[1]),
-        int.parse(parts[2]),
-      );
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final diff = today.difference(DateTime(date.year, date.month, date.day)).inDays;
-      const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
-      final wd = weekdays[date.weekday - 1];
-      if (diff == 0) return '오늘 · $key · $wd';
-      if (diff == 1) return '어제 · $key · $wd';
-      if (diff == -1) return '내일 · $key · $wd';
-      return '$key · $wd';
-    } catch (_) {
-      return key;
-    }
-  }
-
   bool _isToday(String key) {
     final now = DateTime.now();
     final today =
@@ -148,15 +125,44 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
     );
   }
 
+  // Editorial label: "TODAY · JUN 19 · THU" / "YESTERDAY · …" / "JUN 18 · WED"
+  String _editorialLabel(String key) {
+    try {
+      final parts = key.split('-');
+      final date = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final diff = today
+          .difference(DateTime(date.year, date.month, date.day))
+          .inDays;
+      const months = [
+        'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+        'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+      ];
+      const wds = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+      final datePart = '${months[date.month - 1]} ${date.day} · ${wds[date.weekday - 1]}';
+      final rel = switch (diff) {
+        0 => 'TODAY · ',
+        1 => 'YESTERDAY · ',
+        -1 => 'TOMORROW · ',
+        _ => '',
+      };
+      return '$rel$datePart';
+    } catch (_) {
+      return key.toUpperCase();
+    }
+  }
+
   Widget _buildLogroom() {
     final isToday = _isToday(widget.dateKey);
     final label = widget.dateKey.contains('-') && widget.dateKey.length == 10
-        ? _v3DateLabel(widget.dateKey)
-        : widget.dateKey;
-    // Active color: today = kMint tinted, others = kText2 (v3 --fg2 equivalent)
-    final labelColor = isToday
-        ? kMint.withValues(alpha: 0.85)
-        : kText2.withValues(alpha: 0.65);
+        ? _editorialLabel(widget.dateKey)
+        : widget.dateKey.toUpperCase();
+    final labelColor = isToday ? kAccent : kText2;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -168,30 +174,25 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
             cursor: SystemMouseCursors.click,
             child: Container(
               color: kBg,
-              // left padding aligns with timeline lane (26px lane + 8px entry padding = 34px)
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
               child: Row(
                 children: [
-                  // v3 date-marker label — italic, muted
+                  // editorial mono label — uppercase, tracked
                   Text(
                     label,
-                    style: TextStyle(
-                      fontFamily: kFontFamily,
-                      fontStyle: FontStyle.italic,
-                      fontSize: tsSmall * (kFontSize / 13.0),
+                    style: monoLabel(
                       color: labelColor,
-                      height: 1.3,
+                      fontSize: tsSmall,
+                      fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
+                      letterSpacing: 1.8,
                     ),
+                  ),
+                  const SizedBox(width: 12),
+                  // hairline rule
+                  Expanded(
+                    child: Container(height: 1, color: kBorder),
                   ),
                   const SizedBox(width: 10),
-                  // horizontal rule
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      color: kTlLine,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   // collapse toggle — small and quiet
                   Text(
                     _collapsed ? '›' : '·',
