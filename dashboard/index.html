@@ -162,7 +162,7 @@ button,input{font-family:inherit;}
 .grip:active{cursor:grabbing;}
 .round{width:23px;height:23px;border-radius:50%;flex-shrink:0;border:2px solid #E0D8CC;background:#fff;cursor:pointer;font-size:12px;color:#fff;display:flex;align-items:center;justify-content:center;padding:0;}
 .round.done{background:var(--accent);border-color:var(--accent);}
-.c-text{flex:1;font-size:14px;font-weight:600;cursor:pointer;min-width:0;word-break:keep-all;overflow-wrap:anywhere;}
+.c-text{flex:1;font-size:14px;font-weight:600;cursor:pointer;min-width:0;word-break:break-word;overflow-wrap:break-word;}
 .strike{text-decoration:line-through;color:var(--faint);}
 .c-date{font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 8px;border-radius:99px;flex-shrink:0;white-space:nowrap;}
 .decide{border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:5px 11px;border-radius:99px;cursor:pointer;flex-shrink:0;}
@@ -290,6 +290,8 @@ button,input{font-family:inherit;}
 .proj-add-col .add-btn{padding:0 16px;flex-shrink:0;}
 .proj-mini-add{width:100%;border:1.5px dashed #E0D8CC;background:transparent;color:var(--faint);font-size:12px;font-weight:700;padding:9px;border-radius:11px;cursor:pointer;margin-top:7px;font-family:inherit;}
 .proj-mini-add:hover{color:var(--accent);border-color:rgba(var(--accent-rgb),.4);}
+.tmpl-open{width:100%;border:1.5px dashed rgba(var(--accent-rgb),.45);background:var(--accent-soft);color:var(--accent);font-size:13.5px;font-weight:800;padding:12px;border-radius:13px;cursor:pointer;margin-bottom:16px;font-family:inherit;}
+.tmpl-open:active{transform:scale(.99);}
 /* ── 루틴 화면 ── */
 .rt-list{display:flex;flex-direction:column;gap:9px;margin-bottom:16px;}
 .rt-row{display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid #EFE8DC;border-radius:14px;padding:13px 14px;box-shadow:0 1px 4px rgba(120,90,50,.04);}
@@ -716,7 +718,7 @@ var state={
   newCat:"미분류", editingId:null,
   queue:[], step:0,
   settings:false, moreMenu:false, colorFor:null,
-  projOpen:null, projColorPick:false, rtOpen:null,
+  projOpen:null, projColorPick:false, rtOpen:null, tmpl:null,
   theme:loadTheme(),
   tlOn:loadTL().on, tlMode:loadTL().mode,
   calY:now.getFullYear(), calM:now.getMonth(), calSel:TODAY
@@ -1000,6 +1002,36 @@ function addTaskToProject(pid,text){
   state.tasks.unshift({ id:nid(), text:v, cat:state.newCat, bucket:"이번주", done:false, date:null, proj:(pid===PROJ_NONE?null:pid) });
   save(); render();
 }
+/* ── 템플릿 ── */
+var ALLDAYS=[0,1,2,3,4,5,6], WEEKDAYS=[1,2,3,4,5];
+var PROJECT_TEMPLATES=[
+  { name:"블로그 운영", tasks:["주제·키워드 리서치","글 초안 작성","대표 이미지 준비","발행 & 검수","SNS로 홍보"] },
+  { name:"제품·굿즈 출시", tasks:["컨셉·기획 정리","디자인 시안 만들기","샘플 제작·확인","상세페이지 작성","오픈 준비"] },
+  { name:"SNS 채널 키우기", tasks:["콘텐츠 캘린더 짜기","콘텐츠 제작","썸네일/카드뉴스","예약 업로드","성과 분석"] },
+  { name:"여행 준비", tasks:["일정 짜기","숙소 예약","교통편 예약","짐 싸기 체크","환전·준비물"] }
+];
+var ROUTINE_TEMPLATES=[
+  { name:"아침 루틴", items:[{name:"기상 후 물 한 잔",days:ALLDAYS},{name:"가벼운 스트레칭",days:WEEKDAYS},{name:"오늘 할 일 정리",days:WEEKDAYS}] },
+  { name:"건강 챙기기", items:[{name:"물 2L 마시기",days:ALLDAYS},{name:"만보 걷기",days:ALLDAYS},{name:"영양제 먹기",days:ALLDAYS}] },
+  { name:"자기계발", items:[{name:"독서 30분",days:ALLDAYS},{name:"영어 공부",days:WEEKDAYS}] }
+];
+function openTemplates(kind){ state.tmpl=kind; render(); }
+function closeTemplates(){ state.tmpl=null; render(); }
+function applyProjectTemplate(idx){
+  var tpl=PROJECT_TEMPLATES[idx]; if(!tpl) return;
+  var pal=PALETTE[state.projects.length%PALETTE.length];
+  var pid="p"+nid();
+  state.projects.push({ id:pid, name:tpl.name, color:pal.dot });
+  tpl.tasks.slice().reverse().forEach(function(tx){
+    state.tasks.unshift({ id:nid(), text:tx, cat:state.newCat, bucket:"이번주", done:false, date:null, proj:pid });
+  });
+  state.tmpl=null; save(); openProject(pid);
+}
+function applyRoutineTemplate(idx){
+  var tpl=ROUTINE_TEMPLATES[idx]; if(!tpl) return;
+  tpl.items.forEach(function(it){ state.routines.push({ id:"r"+nid(), name:it.name, days:it.days.slice(), log:{} }); });
+  state.tmpl=null; save(); render();
+}
 function openProject(id){ state.projOpen=id; state.projColorPick=false; state.screen="projects"; render(); }
 function closeProject(){ state.projOpen=null; state.projColorPick=false; render(); }
 function setProjectField(id,field,val){
@@ -1087,10 +1119,11 @@ function cardHTML(t,nextId){
   var open=state.editingId===t.id;
   var tag=state.view==="bucket"&&state.screen==="tasks"
     ?'<span class="c-tag" style="background:'+catStyle(t.cat).chip+';color:'+catStyle(t.cat).text+'">'+esc(t.cat||UNCAT)+"</span>":"";
+  var compact=state.screen==="projects";
   var datePill=t.date&&state.screen==="tasks"?'<span class="c-date">'+calLabel(t.date)+"</span>":"";
-  var timePill=t.time?'<span class="c-time">🕐 '+esc(t.time)+(t.end?"–"+esc(t.end):"")+"</span>":"";
+  var timePill=(t.time&&!compact)?'<span class="c-time">🕐 '+esc(t.time)+(t.end?"–"+esc(t.end):"")+"</span>":"";
   var od=overdueDays(t);
-  var overPill=od>0?'<span class="c-over">'+od+'일 밀림</span>':"";
+  var overPill=(od>0&&!compact)?'<span class="c-over">'+od+'일 밀림</span>':"";
   var decide=t.bucket==="받은함"&&!t.done?'<button class="decide" data-decide="'+t.id+'">정하기</button>':"";
   var editor=open?('<div class="editor">'
     +'<div class="ed-row"><span class="ed-label">분류</span>'+CAT_KEYS_LIST().map(function(k){return '<button class="mini'+(t.cat===k?" on":"")+'" data-setcat="'+t.id+"|"+esc(k)+'">'+esc(k)+"</button>";}).join("")+"</div>"
@@ -1350,7 +1383,8 @@ function screenStats(){
 /* ══ 화면: 프로젝트 ══ */
 function screenProjects(){
   if(state.projOpen){ var po=projById(state.projOpen); if(po) return screenProjectDetail(po); state.projOpen=null; }
-  var addCol='<div class="proj-add-col"><input id="projInput" class="add-input" placeholder="새 프로젝트 이름"><button class="add-btn" id="projAddBtn">추가</button></div>';
+  var addCol='<div class="proj-add-col"><input id="projInput" class="add-input" placeholder="새 프로젝트 이름"><button class="add-btn" id="projAddBtn">추가</button></div>'
+    +'<button class="tmpl-open" data-tmpl="project">📋 템플릿에서 빠르게 시작</button>';
   var cols=state.projects.map(function(p){
     var items=projTasks(p.id).filter(function(t){return !state.hideDone||!t.done;});
     var st=projStats(p.id);
@@ -1411,7 +1445,8 @@ function screenProjectDetail(p){
 function screenRoutines(){
   if(state.rtOpen){ var ro=rtById(state.rtOpen); if(ro) return screenRoutineDetail(ro); state.rtOpen=null; }
   var dow=new Date().getDay();
-  var add='<div class="proj-add-col"><input id="rtInput" class="add-input" placeholder="새 루틴 이름"><button class="add-btn" id="rtAddBtn">추가</button></div>';
+  var add='<div class="proj-add-col"><input id="rtInput" class="add-input" placeholder="새 루틴 이름"><button class="add-btn" id="rtAddBtn">추가</button></div>'
+    +'<button class="tmpl-open" data-tmpl="routine">📋 추천 루틴에서 시작</button>';
   if(!state.routines.length) return '<div class="screen-title">'+ic("routines")+'루틴</div>'+add+'<div class="empty">아직 루틴이 없어. 매일 챙기고 싶은 걸 추가해봐.</div>';
   var rows=state.routines.map(function(r){
     var doneToday=r.log&&r.log[TODAY];
@@ -1523,10 +1558,30 @@ function moreMenuHTML(){
     +'<button class="sheet-skip" id="moreDone">닫기</button>'
     +'</div></div>';
 }
+function templatesHTML(){
+  var isProj=state.tmpl==="project";
+  var list=isProj
+    ? PROJECT_TEMPLATES.map(function(tpl,i){
+        return '<button class="sheet-opt" data-applytmpl="'+i+'"><div class="opt-title">'+esc(tpl.name)+'</div>'
+          +'<div class="opt-sub">'+tpl.tasks.length+'개 할 일 · '+esc(tpl.tasks.slice(0,3).join(", "))+'…</div></button>';
+      }).join("")
+    : ROUTINE_TEMPLATES.map(function(tpl,i){
+        return '<button class="sheet-opt" data-applytmpl="'+i+'"><div class="opt-title">'+esc(tpl.name)+'</div>'
+          +'<div class="opt-sub">'+esc(tpl.items.map(function(x){return x.name;}).join(", "))+'</div></button>';
+      }).join("");
+  return '<div class="backdrop" id="backdrop"><div class="sheet" id="sheet">'
+    +'<div class="sheet-grip"></div>'
+    +'<div class="sheet-q">'+(isProj?"프로젝트 템플릿":"추천 루틴")+'</div>'
+    +list
+    +'<div class="cm-hint">고르면 바로 추가돼요. 이름·내용은 나중에 수정할 수 있어요.</div>'
+    +'<button class="sheet-skip" id="tmplDone">닫기</button>'
+    +'</div></div>';
+}
 function renderSheet(){
   var slot=document.getElementById("sheetSlot");
   if(state.settings){ slot.innerHTML=settingsHTML(); return; }
   if(state.moreMenu){ slot.innerHTML=moreMenuHTML(); return; }
+  if(state.tmpl){ slot.innerHTML=templatesHTML(); return; }
   var t=sheetTask();
   if(!t){slot.innerHTML="";return;}
   var inner=state.step===0
@@ -1566,7 +1621,7 @@ function render(){
 
 /* ══ 클릭 위임 ══ */
 document.addEventListener("click",function(e){
-  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack");
+  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone");
   if(!el) return;
   if(el.hasAttribute("data-settings")){ openSettings(); return; }
   if(el.id==="settingsDone"){ closeSettings(); return; }
@@ -1582,6 +1637,9 @@ document.addEventListener("click",function(e){
   if(el.id==="projDetailAdd"){ var pdi=document.getElementById("projDetailInput"); if(pdi&&state.projOpen){ addTaskToProject(state.projOpen,pdi.value); } return; }
   if(el.hasAttribute("data-rtopen")){ openRoutine(el.getAttribute("data-rtopen")); return; }
   if(el.id==="rtBack"){ closeRoutine(); return; }
+  if(el.hasAttribute("data-tmpl")){ openTemplates(el.getAttribute("data-tmpl")); return; }
+  if(el.id==="tmplDone"){ closeTemplates(); return; }
+  if(el.hasAttribute("data-applytmpl")){ var ti=+el.getAttribute("data-applytmpl"); if(state.tmpl==="project") applyProjectTemplate(ti); else applyRoutineTemplate(ti); return; }
   if(el.hasAttribute("data-projdel")){ var pd=el.getAttribute("data-projdel"); var pp=projById(pd); if(confirm('"'+(pp?pp.name:"")+'" 프로젝트를 지울까?\n안에 든 할 일은 남아있어(프로젝트만 해제돼).')){ deleteProject(pd); } return; }
   if(el.hasAttribute("data-projaddtask")){ var pid=el.getAttribute("data-projaddtask"); var txt=prompt("할 일 내용"); if(txt) addTaskToProject(pid,txt); return; }
   if(el.id==="rtAddBtn"){ var ri=document.getElementById("rtInput"); if(ri){ addRoutine(ri.value); } return; }
@@ -1609,7 +1667,7 @@ document.addEventListener("click",function(e){
   if(el.hasAttribute("data-view")){ state.view=el.getAttribute("data-view"); render(); return; }
   if(el.hasAttribute("data-screen")){ state.screen=el.getAttribute("data-screen"); state.editingId=null; state.moreMenu=false; render(); window.scrollTo({top:0,behavior:"smooth"}); return; }
   if(el.id==="cleanupBtn"){ startCleanup(); return; }
-  if(el.id==="backdrop"){ if(state.settings) closeSettings(); else if(state.moreMenu) closeMore(); else closeSheet(); return; }
+  if(el.id==="backdrop"){ if(state.settings) closeSettings(); else if(state.moreMenu) closeMore(); else if(state.tmpl) closeTemplates(); else closeSheet(); return; }
   if(el.id==="sheet"){ e.stopPropagation(); return; }
   if(el.id==="sheetSkip"){ closeSheet(); return; }
   if(el.hasAttribute("data-when")){ answerWhen(el.getAttribute("data-when")); return; }
