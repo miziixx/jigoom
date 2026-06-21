@@ -1012,6 +1012,7 @@ var PROJECT_TEMPLATES=[
 ];
 var ROUTINE_TEMPLATES=[
   { name:"아침 루틴", items:[{name:"기상 후 물 한 잔",days:ALLDAYS},{name:"가벼운 스트레칭",days:WEEKDAYS},{name:"오늘 할 일 정리",days:WEEKDAYS}] },
+  { name:"블로그 글쓰기", items:[{name:"주제·키워드 정하기",days:WEEKDAYS},{name:"자료 조사하기",days:WEEKDAYS},{name:"개요(목차) 잡기",days:WEEKDAYS},{name:"초안 쓰기",days:WEEKDAYS},{name:"퇴고·교정하기",days:WEEKDAYS},{name:"발행 & 홍보",days:WEEKDAYS}] },
   { name:"건강 챙기기", items:[{name:"물 2L 마시기",days:ALLDAYS},{name:"만보 걷기",days:ALLDAYS},{name:"영양제 먹기",days:ALLDAYS}] },
   { name:"자기계발", items:[{name:"독서 30분",days:ALLDAYS},{name:"영어 공부",days:WEEKDAYS}] }
 ];
@@ -1022,7 +1023,7 @@ function applyProjectTemplate(idx){
   var pal=PALETTE[state.projects.length%PALETTE.length];
   var pid="p"+nid();
   state.projects.push({ id:pid, name:tpl.name, color:pal.dot });
-  tpl.tasks.slice().reverse().forEach(function(tx){
+  tpl.tasks.map(function(tx,i){ return (i+1)+". "+tx; }).reverse().forEach(function(tx){
     state.tasks.unshift({ id:nid(), text:tx, cat:state.newCat, bucket:"이번주", done:false, date:null, proj:pid });
   });
   state.tmpl=null; save(); openProject(pid);
