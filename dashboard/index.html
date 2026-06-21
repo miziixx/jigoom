@@ -315,6 +315,31 @@ button,input{font-family:inherit;}
 .more-item.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
 .more-item .nav-ic{width:20px;height:20px;flex-shrink:0;}
 .more-item>span{flex:1;min-width:0;}
+/* ── 상세 화면 (프로젝트/루틴) ── */
+.proj-name[data-projopen]{cursor:pointer;}
+.proj-name[data-projopen]:hover{text-decoration:underline;}
+.rt-body[data-rtopen]{cursor:pointer;}
+.detail-back{display:inline-flex;align-items:center;gap:4px;border:none;background:transparent;color:var(--mid);font-size:13px;font-weight:700;cursor:pointer;padding:2px 0;margin-bottom:12px;font-family:inherit;}
+.detail-back .nav-ic{width:16px;height:16px;}
+.detail-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.detail-dot{width:26px;height:26px;border-radius:8px;flex-shrink:0;cursor:pointer;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--border);padding:0;}
+.detail-name{flex:1;min-width:0;border:1.5px solid transparent;background:transparent;border-radius:10px;padding:5px 8px;font-size:20px;font-weight:900;color:var(--text);outline:none;font-family:inherit;}
+.detail-name:hover{background:var(--bg);}
+.detail-name:focus{border-color:var(--accent);background:#fff;}
+.detail-memo{width:100%;border:1.5px solid var(--border);background:#fff;border-radius:13px;padding:11px 13px;font-size:14px;line-height:1.5;color:var(--text);outline:none;font-family:inherit;resize:vertical;min-height:64px;margin-bottom:14px;}
+.detail-memo:focus{border-color:var(--accent);}
+.detail-due{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:13px;font-weight:700;color:var(--mid);}
+.proj-color-pick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.proj-color-pick button{width:30px;height:30px;border-radius:9px;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--border);cursor:pointer;padding:0;}
+.proj-color-pick button.on{box-shadow:0 0 0 2.5px var(--accent);}
+.heat-wd{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+.heat-wd span{text-align:center;font-size:10px;font-weight:800;color:var(--dim);}
+.heat-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.heat-c{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border-radius:8px;background:var(--bg);color:var(--faint);}
+.heat-c.blank{background:transparent;}
+.heat-c.due{color:var(--mid);box-shadow:inset 0 0 0 1.5px var(--border);}
+.heat-c.on{background:var(--accent);color:#fff;}
+.heat-c.today{box-shadow:0 0 0 2px var(--accent);}
 /* ── 아이콘 레일 사이드바 (데스크톱) ── */
 .side{width:68px;padding:18px 10px;align-items:center;gap:10px;}
 .brand{justify-content:center;}
@@ -691,6 +716,7 @@ var state={
   newCat:"미분류", editingId:null,
   queue:[], step:0,
   settings:false, moreMenu:false, colorFor:null,
+  projOpen:null, projColorPick:false, rtOpen:null,
   theme:loadTheme(),
   tlOn:loadTL().on, tlMode:loadTL().mode,
   calY:now.getFullYear(), calM:now.getMonth(), calSel:TODAY
@@ -974,6 +1000,18 @@ function addTaskToProject(pid,text){
   state.tasks.unshift({ id:nid(), text:v, cat:state.newCat, bucket:"이번주", done:false, date:null, proj:(pid===PROJ_NONE?null:pid) });
   save(); render();
 }
+function openProject(id){ state.projOpen=id; state.projColorPick=false; state.screen="projects"; render(); }
+function closeProject(){ state.projOpen=null; state.projColorPick=false; render(); }
+function setProjectField(id,field,val){
+  var p=projById(id); if(!p) return;
+  if(val===""||val===null) delete p[field]; else p[field]=val;
+  save();
+}
+function setProjectColor(id,color){ var p=projById(id); if(!p) return; p.color=color; state.projColorPick=false; save(); render(); }
+function projStats(pid){
+  var ts=projTasks(pid), done=ts.filter(function(t){return t.done;}).length;
+  return { total:ts.length, done:done, rate:ts.length?Math.round(done/ts.length*100):0 };
+}
 
 /* ── 루틴 ── */
 function rtById(id){ return state.routines.filter(function(r){return r.id===id;})[0]||null; }
@@ -1005,6 +1043,29 @@ function routineStreak(r){
   }
   return streak;
 }
+function routineBestStreak(r){
+  var log=r.log||{}, best=0, cur=0, d=new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-400);
+  for(var i=0;i<401;i++){
+    var ds=ymd(d), dow=d.getDay(), due=(r.days||[]).indexOf(dow)>=0;
+    if(due){ if(log[ds]){ cur++; if(cur>best) best=cur; } else cur=0; }
+    d.setDate(d.getDate()+1);
+  }
+  return best;
+}
+function routineRate(r,nDays){
+  var log=r.log||{}, due=0, hit=0, d=new Date(); d.setHours(0,0,0,0);
+  for(var i=0;i<nDays;i++){
+    var ds=ymd(d), dow=d.getDay();
+    if((r.days||[]).indexOf(dow)>=0){ due++; if(log[ds]) hit++; }
+    d.setDate(d.getDate()-1);
+  }
+  return due?Math.round(hit/due*100):0;
+}
+function openRoutine(id){ state.rtOpen=id; render(); }
+function closeRoutine(){ state.rtOpen=null; render(); }
+function renameRoutine(id,name){ var r=rtById(id); if(!r){render();return;} var v=(name||"").trim(); if(v) r.name=v; save(); render(); }
+function setRoutineNote(id,note){ var r=rtById(id); if(!r) return; if(note==="") delete r.note; else r.note=note; save(); }
 
 function openOne(id){ state.queue=[id]; state.step=0; render(); }
 function startCleanup(){ state.queue=inboxItems().map(function(t){return t.id;}); state.step=0; render(); }
@@ -1288,20 +1349,19 @@ function screenStats(){
 
 /* ══ 화면: 프로젝트 ══ */
 function screenProjects(){
+  if(state.projOpen){ var po=projById(state.projOpen); if(po) return screenProjectDetail(po); state.projOpen=null; }
   var addCol='<div class="proj-add-col"><input id="projInput" class="add-input" placeholder="새 프로젝트 이름"><button class="add-btn" id="projAddBtn">추가</button></div>';
   var cols=state.projects.map(function(p){
     var items=projTasks(p.id).filter(function(t){return !state.hideDone||!t.done;});
-    var doneN=projTasks(p.id).filter(function(t){return t.done;}).length;
-    var totN=projTasks(p.id).length;
-    var rate=totN?Math.round(doneN/totN*100):0;
+    var st=projStats(p.id);
     var body=items.length===0?'<div class="drop-empty">여기로 끌어다 놓기</div>'
       :items.map(function(t,idx){return cardHTML(t,items[idx+1]?items[idx+1].id:"");}).join("");
     return '<div class="proj-col" data-group="'+p.id+'">'
       +'<div class="proj-head"><span class="proj-dot" style="background:'+p.color+'"></span>'
-      +'<span class="proj-name">'+esc(p.name)+'</span>'
-      +'<span class="g-count">'+doneN+'/'+totN+'</span>'
+      +'<span class="proj-name" data-projopen="'+p.id+'">'+esc(p.name)+'</span>'
+      +'<span class="g-count">'+st.done+'/'+st.total+'</span>'
       +'<button class="x" data-projdel="'+p.id+'">×</button></div>'
-      +'<div class="proj-prog"><div class="proj-prog-fill" style="width:'+rate+'%;background:'+p.color+'"></div></div>'
+      +'<div class="proj-prog"><div class="proj-prog-fill" style="width:'+st.rate+'%;background:'+p.color+'"></div></div>'
       +body
       +'<button class="proj-mini-add" data-projaddtask="'+p.id+'">+ 할 일 추가</button>'
       +'</div>';
@@ -1316,11 +1376,40 @@ function screenProjects(){
   var board='<div class="proj-board">'+(cols||"")+noneCol+'</div>';
   if(!state.projects.length&&!noneItems.length) board='<div class="empty">아직 프로젝트가 없어. 위에서 하나 만들어봐.</div>';
   return '<div class="screen-title">'+ic("projects")+'프로젝트</div>'+addCol+board
-    +'<p class="foot">할 일 카드를 끌어서 프로젝트 사이로 옮길 수 있어.</p>';
+    +'<p class="foot">제목을 누르면 상세 화면, 카드를 끌면 프로젝트 사이로 이동돼.</p>';
+}
+function screenProjectDetail(p){
+  var st=projStats(p.id);
+  var palette='<div class="proj-color-pick">'+PALETTE.map(function(pl){
+    return '<button class="'+(p.color===pl.dot?"on":"")+'" style="background:'+pl.dot+'" data-projcolor="'+p.id+"|"+pl.dot+'"></button>';
+  }).join("")+'</div>';
+  var ts=projTasks(p.id);
+  var undone=ts.filter(function(t){return !t.done;}), done=ts.filter(function(t){return t.done;});
+  var ordered=undone.concat(done);
+  var list=ordered.length?ordered.map(function(t,idx){return cardHTML(t,ordered[idx+1]?ordered[idx+1].id:"");}).join("")
+    :'<div class="drop-empty">아직 할 일이 없어. 아래에서 추가해봐.</div>';
+  var dueLeft=p.due?(function(){var dd=dayDiff(p.due,TODAY); return dd>0?"D-"+dd:(dd===0?"오늘":"D+"+(-dd));})():"";
+  return '<button class="detail-back" id="projBack">'+ic("projects")+'← 프로젝트 목록</button>'
+    +'<div class="detail-head">'
+    +'<button class="detail-dot" style="background:'+p.color+'" data-projcolorpick title="색 바꾸기"></button>'
+    +'<input class="detail-name" data-projname="'+p.id+'" value="'+esc(p.name)+'" maxlength="30">'
+    +'<button class="x" data-projdel="'+p.id+'">×</button></div>'
+    +(state.projColorPick?palette:"")
+    +'<div class="sum-grid">'
+    +'<div class="sum-card"><div class="sum-num accent">'+st.rate+'%</div><div class="sum-lbl">진행률</div></div>'
+    +'<div class="sum-card"><div class="sum-num">'+st.done+'/'+st.total+'</div><div class="sum-lbl">완료/전체</div></div>'
+    +'<div class="sum-card"><div class="sum-num'+(dueLeft&&dueLeft.indexOf("D+")===0?" warn":"")+'">'+(dueLeft||"–")+'</div><div class="sum-lbl">마감</div></div>'
+    +'</div>'
+    +'<div class="proj-prog" style="margin-bottom:14px"><div class="proj-prog-fill" style="width:'+st.rate+'%;background:'+p.color+'"></div></div>'
+    +'<div class="detail-due"><span>마감일</span><input class="ed-date" type="date" data-projdue="'+p.id+'" value="'+(p.due||"")+'">'+(p.due?'<button class="mini" data-projdueclear="'+p.id+'">지우기</button>':"")+'</div>'
+    +'<textarea class="detail-memo" data-projmemo="'+p.id+'" placeholder="프로젝트 메모 — 목표, 링크, 메모 아무거나">'+esc(p.memo||"")+'</textarea>'
+    +'<div class="proj-add-col"><input id="projDetailInput" class="add-input" placeholder="이 프로젝트에 할 일 추가"><button class="add-btn" id="projDetailAdd">추가</button></div>'
+    +'<div class="group" data-group="'+p.id+'" style="margin-top:6px">'+list+'</div>';
 }
 
 /* ══ 화면: 루틴 ══ */
 function screenRoutines(){
+  if(state.rtOpen){ var ro=rtById(state.rtOpen); if(ro) return screenRoutineDetail(ro); state.rtOpen=null; }
   var dow=new Date().getDay();
   var add='<div class="proj-add-col"><input id="rtInput" class="add-input" placeholder="새 루틴 이름"><button class="add-btn" id="rtAddBtn">추가</button></div>';
   if(!state.routines.length) return '<div class="screen-title">'+ic("routines")+'루틴</div>'+add+'<div class="empty">아직 루틴이 없어. 매일 챙기고 싶은 걸 추가해봐.</div>';
@@ -1328,23 +1417,51 @@ function screenRoutines(){
     var doneToday=r.log&&r.log[TODAY];
     var due=(r.days||[]).indexOf(dow)>=0;
     var streak=routineStreak(r);
-    // 최근 7일 점
     var dots="";
     for(var i=6;i>=0;i--){ var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-i); var ds=ymd(d);
       var on=r.log&&r.log[ds]; dots+='<span class="rt-d'+(on?" on":"")+(i===0?" today":"")+'"></span>'; }
-    var dayPick='<div class="rt-day-pick">'+WD.map(function(w,di){
-      return '<button class="'+((r.days||[]).indexOf(di)>=0?"on":"")+'" data-rtday="'+r.id+"|"+di+'">'+w+'</button>';
-    }).join("")+'</div>';
     var dayNames=(r.days||[]).length===7?"매일":(r.days||[]).slice().sort().map(function(d){return WD[d];}).join("·");
     return '<div class="rt-row" style="opacity:'+(due?1:.55)+'">'
       +'<button class="rt-check'+(doneToday?" done":"")+'" data-rttoggle="'+r.id+'">'+(doneToday?"✓":"")+'</button>'
-      +'<div class="rt-body"><div class="rt-name'+(doneToday?" done":"")+'">'+esc(r.name)+'</div>'
+      +'<div class="rt-body" data-rtopen="'+r.id+'"><div class="rt-name'+(doneToday?" done":"")+'">'+esc(r.name)+' <span style="color:var(--faint);font-weight:700">›</span></div>'
       +'<div class="rt-meta"><span>'+dayNames+'</span>'+(streak>0?'<span class="rt-streak">🔥 '+streak+'일 연속</span>':"")+'</div>'
       +'<div class="rt-dots">'+dots+'</div></div>'
-      +'<button class="x" data-rtdel="'+r.id+'">×</button></div>'
-      +'<div style="margin:-4px 0 4px 37px">'+dayPick+'</div>';
+      +'<button class="x" data-rtdel="'+r.id+'">×</button></div>';
   }).join("");
   return '<div class="screen-title">'+ic("routines")+'루틴</div>'+add+'<div class="rt-list">'+rows+'</div>';
+}
+function rtHeatmap(r){
+  var nowd=new Date(), y=nowd.getFullYear(), m=nowd.getMonth();
+  var startDow=new Date(y,m,1).getDay(), daysIn=new Date(y,m+1,0).getDate();
+  var cells=[]; for(var i=0;i<startDow;i++) cells.push(null);
+  for(var d=1;d<=daysIn;d++) cells.push(d);
+  var grid=cells.map(function(c){
+    if(c===null) return '<span class="heat-c blank"></span>';
+    var ds=y+"-"+String(m+1).padStart(2,"0")+"-"+String(c).padStart(2,"0");
+    var dow=new Date(y,m,c).getDay(), due=(r.days||[]).indexOf(dow)>=0, on=r.log&&r.log[ds];
+    var cls=on?"on":(due?"due":"off");
+    return '<span class="heat-c '+cls+(ds===TODAY?" today":"")+'">'+c+'</span>';
+  }).join("");
+  return '<div class="heat-wd">'+WD.map(function(w){return"<span>"+w+"</span>";}).join("")+'</div><div class="heat-grid">'+grid+'</div>';
+}
+function screenRoutineDetail(r){
+  var doneToday=r.log&&r.log[TODAY];
+  var dayPick='<div class="rt-day-pick">'+WD.map(function(w,di){
+    return '<button class="'+((r.days||[]).indexOf(di)>=0?"on":"")+'" data-rtday="'+r.id+"|"+di+'">'+w+'</button>';
+  }).join("")+'</div>';
+  return '<button class="detail-back" id="rtBack">'+ic("routines")+'← 루틴 목록</button>'
+    +'<div class="detail-head">'
+    +'<button class="rt-check'+(doneToday?" done":"")+'" data-rttoggle="'+r.id+'" style="width:34px;height:34px">'+(doneToday?"✓":"")+'</button>'
+    +'<input class="detail-name" data-rtname="'+r.id+'" value="'+esc(r.name)+'" maxlength="30">'
+    +'<button class="x" data-rtdel="'+r.id+'">×</button></div>'
+    +'<div class="sum-grid">'
+    +'<div class="sum-card"><div class="sum-num accent">🔥 '+routineStreak(r)+'</div><div class="sum-lbl">현재 연속</div></div>'
+    +'<div class="sum-card"><div class="sum-num">'+routineBestStreak(r)+'</div><div class="sum-lbl">최고 연속</div></div>'
+    +'<div class="sum-card"><div class="sum-num">'+routineRate(r,30)+'%</div><div class="sum-lbl">30일 완료율</div></div>'
+    +'</div>'
+    +'<div class="sum-block"><div class="sum-block-h">'+ic("calendar")+'요일</div>'+dayPick+'</div>'
+    +'<div class="sum-block"><div class="sum-block-h">'+ic("clock")+'이번 달 기록</div>'+rtHeatmap(r)+'</div>'
+    +'<textarea class="detail-memo" data-rtnote="'+r.id+'" placeholder="루틴 메모 — 왜 하는지, 목표 등">'+esc(r.note||"")+'</textarea>';
 }
 
 /* ══ 시트 ══ */
@@ -1449,7 +1566,7 @@ function render(){
 
 /* ══ 클릭 위임 ══ */
 document.addEventListener("click",function(e){
-  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday]");
+  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack");
   if(!el) return;
   if(el.hasAttribute("data-settings")){ openSettings(); return; }
   if(el.id==="settingsDone"){ closeSettings(); return; }
@@ -1457,6 +1574,14 @@ document.addEventListener("click",function(e){
   if(el.id==="moreDone"){ closeMore(); return; }
   if(el.hasAttribute("data-themepick")){ setTheme(el.getAttribute("data-themepick")); return; }
   if(el.id==="projAddBtn"){ var pi=document.getElementById("projInput"); if(pi){ addProject(pi.value); } return; }
+  if(el.hasAttribute("data-projopen")){ openProject(el.getAttribute("data-projopen")); return; }
+  if(el.id==="projBack"){ closeProject(); return; }
+  if(el.hasAttribute("data-projcolorpick")){ state.projColorPick=!state.projColorPick; render(); return; }
+  if(el.hasAttribute("data-projcolor")){ var pc=el.getAttribute("data-projcolor").split("|"); setProjectColor(pc[0],pc[1]); return; }
+  if(el.hasAttribute("data-projdueclear")){ setProjectField(el.getAttribute("data-projdueclear"),"due",""); render(); return; }
+  if(el.id==="projDetailAdd"){ var pdi=document.getElementById("projDetailInput"); if(pdi&&state.projOpen){ addTaskToProject(state.projOpen,pdi.value); } return; }
+  if(el.hasAttribute("data-rtopen")){ openRoutine(el.getAttribute("data-rtopen")); return; }
+  if(el.id==="rtBack"){ closeRoutine(); return; }
   if(el.hasAttribute("data-projdel")){ var pd=el.getAttribute("data-projdel"); var pp=projById(pd); if(confirm('"'+(pp?pp.name:"")+'" 프로젝트를 지울까?\n안에 든 할 일은 남아있어(프로젝트만 해제돼).')){ deleteProject(pd); } return; }
   if(el.hasAttribute("data-projaddtask")){ var pid=el.getAttribute("data-projaddtask"); var txt=prompt("할 일 내용"); if(txt) addTaskToProject(pid,txt); return; }
   if(el.id==="rtAddBtn"){ var ri=document.getElementById("rtInput"); if(ri){ addRoutine(ri.value); } return; }
@@ -1510,6 +1635,7 @@ document.addEventListener("keydown",function(e){
   if(e.target.id==="dayInput") { addTask(e.target.value,{date:state.calSel,bucket:(state.calSel===TODAY?"오늘":"이번주")}); e.target.value=""; }
   if(e.target.id==="projInput") { addProject(e.target.value); }
   if(e.target.id==="rtInput")   { addRoutine(e.target.value); }
+  if(e.target.id==="projDetailInput"){ if(state.projOpen) addTaskToProject(state.projOpen,e.target.value); }
 });
 document.addEventListener("change",function(e){
   if(e.target.hasAttribute&&e.target.hasAttribute("data-setdate")){
@@ -1526,6 +1652,11 @@ document.addEventListener("change",function(e){
   if(e.target.hasAttribute&&e.target.hasAttribute("data-catname")){
     renameCat(+e.target.getAttribute("data-catname"), e.target.value);
   }
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-projname")){ renameProject(e.target.getAttribute("data-projname"), e.target.value); }
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-projmemo")){ setProjectField(e.target.getAttribute("data-projmemo"),"memo",e.target.value); }
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-projdue")){ setProjectField(e.target.getAttribute("data-projdue"),"due",e.target.value||""); render(); }
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-rtname")){ renameRoutine(e.target.getAttribute("data-rtname"), e.target.value); }
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-rtnote")){ setRoutineNote(e.target.getAttribute("data-rtnote"), e.target.value); }
 });
 
 /* ══ 드래그 ══ */
