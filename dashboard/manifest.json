@@ -4,8 +4,8 @@
   "description": "할 일·일정·받은함을 한눈에",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#FAF8F5",
-  "theme_color": "#FAF8F5",
+  "background_color": "#F6FAF8",
+  "theme_color": "#F6FAF8",
   "orientation": "any",
   "icons": [
     {
