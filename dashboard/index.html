@@ -302,6 +302,7 @@ button,input{font-family:inherit;}
 .rt-name.done{color:var(--faint);}
 .rt-meta{font-size:11px;font-weight:600;color:var(--dim);margin-top:3px;display:flex;gap:8px;}
 .rt-streak{color:var(--accent);font-weight:800;}
+.rt-seq{font-size:10px;font-weight:800;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:99px;}
 .rt-dots{display:flex;gap:3px;margin-top:5px;}
 .rt-d{width:13px;height:13px;border-radius:4px;background:var(--bg);border:1px solid var(--border);}
 .rt-d.on{background:var(--accent);border-color:var(--accent);}
@@ -1012,25 +1013,34 @@ var PROJECT_TEMPLATES=[
 ];
 var ROUTINE_TEMPLATES=[
   { name:"아침 루틴", items:[{name:"기상 후 물 한 잔",days:ALLDAYS},{name:"가벼운 스트레칭",days:WEEKDAYS},{name:"오늘 할 일 정리",days:WEEKDAYS}] },
-  { name:"블로그 글쓰기", items:[{name:"주제·키워드 정하기",days:WEEKDAYS},{name:"자료 조사하기",days:WEEKDAYS},{name:"개요(목차) 잡기",days:WEEKDAYS},{name:"초안 쓰기",days:WEEKDAYS},{name:"퇴고·교정하기",days:WEEKDAYS},{name:"발행 & 홍보",days:WEEKDAYS}] },
+  { name:"블로그 글쓰기", seq:true, items:[{name:"주제·키워드 정하기",days:WEEKDAYS},{name:"자료 조사하기",days:WEEKDAYS},{name:"개요(목차) 잡기",days:WEEKDAYS},{name:"초안 쓰기",days:WEEKDAYS},{name:"퇴고·교정하기",days:WEEKDAYS},{name:"발행 & 홍보",days:WEEKDAYS}] },
   { name:"건강 챙기기", items:[{name:"물 2L 마시기",days:ALLDAYS},{name:"만보 걷기",days:ALLDAYS},{name:"영양제 먹기",days:ALLDAYS}] },
   { name:"자기계발", items:[{name:"독서 30분",days:ALLDAYS},{name:"영어 공부",days:WEEKDAYS}] }
 ];
 function openTemplates(kind){ state.tmpl=kind; render(); }
 function closeTemplates(){ state.tmpl=null; render(); }
+function bucketForDate(ds){ var d=dayDiff(ds,TODAY); if(d<=0) return "오늘"; if(d<=7) return "이번주"; return "나중에"; }
 function applyProjectTemplate(idx){
   var tpl=PROJECT_TEMPLATES[idx]; if(!tpl) return;
   var pal=PALETTE[state.projects.length%PALETTE.length];
   var pid="p"+nid();
   state.projects.push({ id:pid, name:tpl.name, color:pal.dot });
-  tpl.tasks.map(function(tx,i){ return (i+1)+". "+tx; }).reverse().forEach(function(tx){
-    state.tasks.unshift({ id:nid(), text:tx, cat:state.newCat, bucket:"이번주", done:false, date:null, proj:pid });
-  });
+  var step=2; // 단계마다 2일 간격으로 마감 자동 배분
+  tpl.tasks.map(function(tx,i){ return { text:(i+1)+". "+tx, date:plusDays((i+1)*step) }; })
+    .reverse().forEach(function(o){
+      state.tasks.unshift({ id:nid(), text:o.text, cat:state.newCat, bucket:bucketForDate(o.date), done:false, date:o.date, proj:pid });
+    });
+  var pp=projById(pid); if(pp) pp.due=plusDays(tpl.tasks.length*step);
   state.tmpl=null; save(); openProject(pid);
 }
 function applyRoutineTemplate(idx){
   var tpl=ROUTINE_TEMPLATES[idx]; if(!tpl) return;
-  tpl.items.forEach(function(it){ state.routines.push({ id:"r"+nid(), name:it.name, days:it.days.slice(), log:{} }); });
+  tpl.items.forEach(function(it,i){
+    var nm=tpl.seq?((i+1)+". "+it.name):it.name;
+    var r={ id:"r"+nid(), name:nm, days:it.days.slice(), log:{} };
+    if(tpl.seq) r.seq=true;
+    state.routines.push(r);
+  });
   state.tmpl=null; save(); render();
 }
 function openProject(id){ state.projOpen=id; state.projColorPick=false; state.screen="projects"; render(); }
@@ -1460,7 +1470,7 @@ function screenRoutines(){
     return '<div class="rt-row" style="opacity:'+(due?1:.55)+'">'
       +'<button class="rt-check'+(doneToday?" done":"")+'" data-rttoggle="'+r.id+'">'+(doneToday?"✓":"")+'</button>'
       +'<div class="rt-body" data-rtopen="'+r.id+'"><div class="rt-name'+(doneToday?" done":"")+'">'+esc(r.name)+' <span style="color:var(--faint);font-weight:700">›</span></div>'
-      +'<div class="rt-meta"><span>'+dayNames+'</span>'+(streak>0?'<span class="rt-streak">🔥 '+streak+'일 연속</span>':"")+'</div>'
+      +'<div class="rt-meta"><span>'+dayNames+'</span>'+(r.seq?'<span class="rt-seq">절차</span>':"")+(streak>0?'<span class="rt-streak">🔥 '+streak+'일 연속</span>':"")+'</div>'
       +'<div class="rt-dots">'+dots+'</div></div>'
       +'<button class="x" data-rtdel="'+r.id+'">×</button></div>';
   }).join("");
@@ -1564,17 +1574,17 @@ function templatesHTML(){
   var list=isProj
     ? PROJECT_TEMPLATES.map(function(tpl,i){
         return '<button class="sheet-opt" data-applytmpl="'+i+'"><div class="opt-title">'+esc(tpl.name)+'</div>'
-          +'<div class="opt-sub">'+tpl.tasks.length+'개 할 일 · '+esc(tpl.tasks.slice(0,3).join(", "))+'…</div></button>';
+          +'<div class="opt-sub">'+tpl.tasks.length+'단계 · 마감일 자동 배분 · '+esc(tpl.tasks.slice(0,2).join(", "))+'…</div></button>';
       }).join("")
     : ROUTINE_TEMPLATES.map(function(tpl,i){
-        return '<button class="sheet-opt" data-applytmpl="'+i+'"><div class="opt-title">'+esc(tpl.name)+'</div>'
+        return '<button class="sheet-opt" data-applytmpl="'+i+'"><div class="opt-title">'+esc(tpl.name)+(tpl.seq?' <span class="rt-seq">절차</span>':"")+'</div>'
           +'<div class="opt-sub">'+esc(tpl.items.map(function(x){return x.name;}).join(", "))+'</div></button>';
       }).join("");
   return '<div class="backdrop" id="backdrop"><div class="sheet" id="sheet">'
     +'<div class="sheet-grip"></div>'
     +'<div class="sheet-q">'+(isProj?"프로젝트 템플릿":"추천 루틴")+'</div>'
     +list
-    +'<div class="cm-hint">고르면 바로 추가돼요. 이름·내용은 나중에 수정할 수 있어요.</div>'
+    +'<div class="cm-hint">'+(isProj?'프로젝트는 단계마다 2일 간격으로 마감이 자동 잡혀요. ':'')+'고르면 바로 추가돼요. 나중에 수정할 수 있어요.</div>'
     +'<button class="sheet-skip" id="tmplDone">닫기</button>'
     +'</div></div>';
 }
