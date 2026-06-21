@@ -59,6 +59,30 @@ button,input{font-family:inherit;}
 .sync-status.err{color:#C77B22;background:#FFF6E9;border:1px solid #F5D9A8;}
 .sync-status.off{color:var(--dim);background:var(--bg);}
 
+/* ── 메모 ── */
+.memo-list{display:flex;flex-direction:column;gap:10px;}
+.memo-card{background:#fff;border:1.5px solid #EFE8DC;border-radius:14px;padding:12px 13px;box-shadow:0 1px 4px rgba(120,90,50,.05);}
+.memo-ta{width:100%;border:none;background:transparent;outline:none;resize:vertical;font-family:inherit;font-size:14.5px;line-height:1.55;color:var(--text);min-height:42px;}
+.memo-ta::placeholder{color:var(--faint);}
+.memo-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
+.memo-time{font-size:11px;color:var(--faint);font-weight:600;}
+
+/* ── 일기 ── */
+.diary-nav{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.diary-arrow{width:36px;height:36px;border:1.5px solid var(--border);background:#fff;color:var(--mid);border-radius:11px;font-size:18px;font-weight:800;cursor:pointer;line-height:1;}
+.diary-arrow:hover{border-color:rgba(var(--accent-rgb),.4);}
+.diary-date{border:1.5px solid var(--border);background:#fff;border-radius:11px;padding:8px 12px;font-size:14px;font-family:inherit;color:var(--text);outline:none;}
+.diary-date:focus{border-color:var(--accent);}
+.diary-day{font-size:14px;font-weight:800;color:var(--mid);margin-bottom:8px;}
+.diary-ta{width:100%;min-height:240px;border:1.5px solid #EFE8DC;background:#fff;border-radius:16px;padding:16px;font-family:inherit;font-size:15px;line-height:1.7;color:var(--text);outline:none;resize:vertical;box-shadow:0 1px 4px rgba(120,90,50,.05);}
+.diary-ta:focus{border-color:var(--accent);}
+.diary-ta::placeholder{color:var(--faint);}
+.diary-recent{display:flex;flex-direction:column;gap:7px;}
+.diary-item{display:flex;flex-direction:column;gap:3px;text-align:left;background:#fff;border:1.5px solid #EFE8DC;border-radius:12px;padding:10px 13px;cursor:pointer;width:100%;font-family:inherit;}
+.diary-item:hover{border-color:rgba(var(--accent-rgb),.4);}
+.diary-item-d{font-size:12px;font-weight:800;color:var(--accent);}
+.diary-item-p{font-size:13px;color:var(--mid);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
 /* ── 셸 ── */
 .shell{display:flex;min-height:100vh;max-width:1760px;margin:0 auto;}
 
@@ -559,6 +583,8 @@ var ICONS={
   cat:'<path d="M11.5 4H6a2 2 0 0 0-2 2v5.5a2 2 0 0 0 .6 1.4l7 7a2 2 0 0 0 2.8 0l5.5-5.5a2 2 0 0 0 0-2.8l-7-7A2 2 0 0 0 11.5 4z"/><circle cx="8.5" cy="8.5" r="1.2"/>',
   logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.2 2"/>',
+  diary:'<path d="M6.5 3.5H19a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5v-12A2.5 2.5 0 0 1 6.5 4z"/><path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"/><path d="M9 8h7"/>',
+  memo:'<rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>',
   more:'<circle cx="5.5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18.5" cy="12" r="1.4"/>',
   gear:'<circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 0 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 .9-1.4V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.4.9H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5.9z"/>'
 };
@@ -573,6 +599,8 @@ var NAV=[
   { screen:"calendar", icon:"calendar", label:"일정" },
   { screen:"projects", icon:"projects", label:"프로젝트" },
   { screen:"routines", icon:"routines", label:"루틴" },
+  { screen:"diary",    icon:"diary",    label:"일기" },
+  { screen:"memos",    icon:"memo",     label:"메모" },
   { screen:"inbox",    icon:"inbox",    label:"받은함", badge:"inbox" },
   { screen:"stats",    icon:"stats",    label:"통계" }
 ];
@@ -627,6 +655,8 @@ var KEY_PROJ="myDash.projects";
 var KEY_RT="myDash.routines";
 var KEY_EMAIL="myDash.lastEmail";
 var KEY_BACKUP="myDash.backup";   // 동기화로 덮어쓰기 직전의 로컬 스냅샷 (복구용)
+var KEY_MEMOS="myDash.memos";
+var KEY_DIARY="myDash.diary";
 
 /* ══ 프로젝트 / 루틴 기본값 ══ */
 var PROJ_NONE="__none__";
@@ -645,6 +675,14 @@ function loadLocalProjects(){
 function loadLocalRoutines(){
   try{ var c=JSON.parse(localStorage.getItem(KEY_RT)); return Array.isArray(c)?c:DEFAULT_ROUTINES(); }
   catch(e){ return DEFAULT_ROUTINES(); }
+}
+function loadLocalMemos(){
+  try{ var c=JSON.parse(localStorage.getItem(KEY_MEMOS)); return Array.isArray(c)?c:[]; }
+  catch(e){ return []; }
+}
+function loadLocalDiary(){
+  try{ var c=JSON.parse(localStorage.getItem(KEY_DIARY)); return Array.isArray(c)?c:[]; }
+  catch(e){ return []; }
 }
 
 /* ══ 파스텔 테마 ══ */
@@ -720,6 +758,8 @@ function saveLocal(){
     localStorage.setItem(KEY_CATS,JSON.stringify(state.cats));
     localStorage.setItem(KEY_PROJ,JSON.stringify(state.projects));
     localStorage.setItem(KEY_RT,JSON.stringify(state.routines));
+    localStorage.setItem(KEY_MEMOS,JSON.stringify(state.memos));
+    localStorage.setItem(KEY_DIARY,JSON.stringify(state.diary));
     localStorage.setItem(KEY_TS,new Date().toISOString());
   }catch(e){}
 }
@@ -730,6 +770,9 @@ var state={
   cats:loadLocalCats(),
   projects:loadLocalProjects(),
   routines:loadLocalRoutines(),
+  memos:loadLocalMemos(),
+  diary:loadLocalDiary(),
+  diaryDate:TODAY,
   screen:"summary", view:"bucket", hideDone:false,
   newCat:"미분류", editingId:null,
   queue:[], step:0,
@@ -779,6 +822,7 @@ function snapshotBackup(){
   try{
     localStorage.setItem(KEY_BACKUP, JSON.stringify({
       tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines,
+      memos:state.memos, diary:state.diary,
       savedAt:new Date().toISOString()
     }));
   }catch(e){}
@@ -789,7 +833,7 @@ async function syncOnLoad(){
   if(!currentUser||!sb) return;
   setSync("syncing");
   try{
-    var res=await sb.from("user_data").select("tasks,cats,projects,routines,theme,updated_at").eq("user_id",currentUser.id).single();
+    var res=await sb.from("user_data").select("tasks,cats,projects,routines,memos,diary,theme,updated_at").eq("user_id",currentUser.id).single();
     if(res.error && res.error.code==="PGRST116"){
       // 첫 로그인: 로컬 데이터를 서버로 올림
       await pushToServer(); return;
@@ -805,17 +849,23 @@ async function syncOnLoad(){
     var sCats =(Array.isArray(srv.cats)&&srv.cats.length)?srv.cats:[];
     var sProj =Array.isArray(srv.projects)?srv.projects:[];
     var sRt   =Array.isArray(srv.routines)?srv.routines:[];
+    var sMemo =Array.isArray(srv.memos)?srv.memos:[];
+    var sDiary=Array.isArray(srv.diary)?srv.diary:[];
     if(serverNewer){
       state.tasks    = mergeByKey(sTasks, state.tasks, byId);
       if(sCats.length) state.cats = mergeByKey(sCats, state.cats, byName);
       state.projects = mergeByKey(sProj, state.projects, byId);
       state.routines = mergeByKey(sRt, state.routines, byId);
+      state.memos    = mergeByKey(sMemo, state.memos, byId);
+      state.diary    = mergeByKey(sDiary, state.diary, byId);
       if(srv.theme){ state.theme=srv.theme; applyTheme(srv.theme); }
     } else {
       state.tasks    = mergeByKey(state.tasks, sTasks, byId);
       state.cats     = mergeByKey(state.cats, sCats, byName);
       state.projects = mergeByKey(state.projects, sProj, byId);
       state.routines = mergeByKey(state.routines, sRt, byId);
+      state.memos    = mergeByKey(state.memos, sMemo, byId);
+      state.diary    = mergeByKey(state.diary, sDiary, byId);
     }
     recalcMaxId();
     sanitizeColors();
@@ -840,7 +890,7 @@ async function pushToServer(){
   setSync("syncing");
   try{
     var res=await sb.from("user_data").upsert(
-      { user_id:currentUser.id, tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines, theme:state.theme, updated_at:new Date().toISOString() },
+      { user_id:currentUser.id, tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines, memos:state.memos, diary:state.diary, theme:state.theme, updated_at:new Date().toISOString() },
       { onConflict:"user_id" }
     );
     if(res.error) throw res.error;
@@ -893,6 +943,8 @@ function subscribeRealtime(){
           if(Array.isArray(n.cats)&&n.cats.length) state.cats = mergeByKey(n.cats, state.cats, byName);
           if(Array.isArray(n.projects)) state.projects = mergeByKey(n.projects, state.projects, byId);
           if(Array.isArray(n.routines)) state.routines = mergeByKey(n.routines, state.routines, byId);
+          if(Array.isArray(n.memos)) state.memos = mergeByKey(n.memos, state.memos, byId);
+          if(Array.isArray(n.diary)) state.diary = mergeByKey(n.diary, state.diary, byId);
           if(n.theme){ state.theme=n.theme; applyTheme(n.theme); }
           recalcMaxId(); saveLocal(); render();
         }
@@ -1473,7 +1525,7 @@ function screenSearch(){
 
 /* ══ 데이터 백업 ══ */
 function exportData(){
-  var data={ tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines, theme:state.theme, exportedAt:new Date().toISOString() };
+  var data={ tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines, memos:state.memos, diary:state.diary, theme:state.theme, exportedAt:new Date().toISOString() };
   var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   var url=URL.createObjectURL(blob);
   var a=document.createElement("a"); a.href=url; a.download="dashboard-backup-"+TODAY+".json"; document.body.appendChild(a); a.click(); a.remove();
@@ -1490,6 +1542,8 @@ function importData(file){
       if(Array.isArray(d.cats)&&d.cats.length) state.cats=d.cats;
       if(Array.isArray(d.projects)) state.projects=d.projects;
       if(Array.isArray(d.routines)) state.routines=d.routines;
+      if(Array.isArray(d.memos)) state.memos=d.memos;
+      if(Array.isArray(d.diary)) state.diary=d.diary;
       if(d.theme){ state.theme=d.theme; applyTheme(d.theme); }
       sanitizeColors();
       var maxn=100; state.tasks.forEach(function(x){var n=parseInt(x.id,10);if(!isNaN(n)&&n>maxn)maxn=n;}); _id=maxn;
@@ -1497,6 +1551,80 @@ function importData(file){
     }catch(e){ alert("파일을 읽을 수 없어. JSON 백업 파일이 맞는지 확인해줘."); }
   };
   rd.readAsText(file);
+}
+
+/* ══ 메모 ══ */
+function mid(){ return "m"+Date.now().toString(36)+Math.floor(Math.random()*9000+1000); }
+function addMemo(text){
+  var v=(text||"").trim(); if(!v) return;
+  state.memos.unshift({ id:mid(), text:v, ts:Date.now() });
+  save(); render();
+}
+function updateMemo(id,text){
+  var m=state.memos.filter(function(x){return x.id===id;})[0]; if(!m) return;
+  m.text=text; m.ts=Date.now(); save();
+}
+function deleteMemo(id){ state.memos=state.memos.filter(function(x){return x.id!==id;}); save(); render(); }
+function fmtTs(ts){
+  if(!ts) return "";
+  var d=new Date(ts);
+  return d.getFullYear()+"."+(d.getMonth()+1)+"."+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+}
+function screenMemos(){
+  var add='<div class="proj-add-col"><input id="memoInput" class="add-input" placeholder="메모 한 줄… (Enter로 추가)"><button class="add-btn" id="memoAddBtn">추가</button></div>';
+  var head='<div class="screen-title">'+ic("memo")+'메모</div>';
+  if(!state.memos.length) return head+add+'<div class="empty">아직 메모가 없어. 떠오르는 생각을 적어둬.</div>';
+  var rows=state.memos.map(function(m){
+    var rows2=Math.min(10,Math.max(2,String(m.text||"").split("\n").length));
+    return '<div class="memo-card">'
+      +'<textarea class="memo-ta" data-memoedit="'+m.id+'" rows="'+rows2+'" placeholder="(빈 메모)">'+esc(m.text)+'</textarea>'
+      +'<div class="memo-foot"><span class="memo-time">'+esc(fmtTs(m.ts))+'</span>'
+      +'<button class="x" data-memodel="'+m.id+'">×</button></div></div>';
+  }).join("");
+  return head+add+'<div class="memo-list">'+rows+'</div>';
+}
+
+/* ══ 일기 ══ */
+function diaryGet(date){ return state.diary.filter(function(x){return x.id===date;})[0]||null; }
+function setDiary(date,text){
+  var v=text||"";
+  var e=diaryGet(date);
+  if(!v.trim()){
+    if(e) state.diary=state.diary.filter(function(x){return x.id!==date;});
+  } else if(e){ e.text=v; e.ts=Date.now(); }
+  else { state.diary.push({ id:date, date:date, text:v, ts:Date.now() }); }
+  save();
+}
+function shiftDiaryDate(delta){
+  var p=(state.diaryDate||TODAY).split("-");
+  var d=new Date(+p[0],+p[1]-1,+p[2]); d.setDate(d.getDate()+delta);
+  state.diaryDate=ymd(d); render();
+}
+function fmtKDate(ds){
+  var p=ds.split("-"); var d=new Date(+p[0],+p[1]-1,+p[2]);
+  return p[0]+"년 "+(+p[1])+"월 "+(+p[2])+"일 ("+WD[d.getDay()]+")";
+}
+function screenDiary(){
+  var date=state.diaryDate||TODAY;
+  var entry=diaryGet(date);
+  var nav='<div class="diary-nav">'
+    +'<button class="diary-arrow" data-diaryprev title="전날">‹</button>'
+    +'<input type="date" id="diaryDateInput" class="diary-date" data-diarydate value="'+date+'">'
+    +'<button class="diary-arrow" data-diarynext title="다음날">›</button>'
+    +'<button class="toggle'+(date===TODAY?" on":"")+'" data-diarytoday>오늘</button></div>';
+  var editor='<div class="diary-day">'+fmtKDate(date)+'</div>'
+    +'<textarea id="diaryText" class="diary-ta" data-diarytext placeholder="오늘 하루는 어땠어?">'+esc(entry?entry.text:"")+'</textarea>';
+  var others=state.diary.filter(function(x){return x.text&&x.text.trim()&&x.id!==date;})
+    .sort(function(a,b){return a.date<b.date?1:-1;});
+  var recent="";
+  if(others.length){
+    recent='<div class="section-title" style="margin-top:18px">'+ic("diary")+'지난 일기 '+others.length+'</div>'
+      +'<div class="diary-recent">'+others.slice(0,30).map(function(x){
+        var preview=String(x.text).replace(/\s+/g," ").slice(0,60);
+        return '<button class="diary-item" data-diaryopen="'+x.id+'"><span class="diary-item-d">'+esc(fmtKDate(x.id))+'</span><span class="diary-item-p">'+esc(preview)+'</span></button>';
+      }).join("")+'</div>';
+  }
+  return '<div class="screen-title">'+ic("diary")+'일기</div>'+nav+editor+recent;
 }
 
 /* ══ 화면: 요약 ══ */
@@ -1823,6 +1951,8 @@ function render(){
   else if(state.screen==="inbox") area.innerHTML=screenInbox();
   else if(state.screen==="projects") area.innerHTML=screenProjects();
   else if(state.screen==="routines") area.innerHTML=screenRoutines();
+  else if(state.screen==="diary") area.innerHTML=screenDiary();
+  else if(state.screen==="memos") area.innerHTML=screenMemos();
   else if(state.screen==="stats") area.innerHTML=screenStats();
   else area.innerHTML=screenTasks();
   document.querySelectorAll("#sideNav .nav-item").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-screen")===state.screen);});
@@ -1842,7 +1972,7 @@ function render(){
 
 /* ══ 클릭 위임 ══ */
 document.addEventListener("click",function(e){
-  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport");
+  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen]");
   if(!el) return;
   if(el.hasAttribute("data-settings")){ openSettings(); return; }
   if(el.id==="settingsDone"){ closeSettings(); return; }
@@ -1861,6 +1991,12 @@ document.addEventListener("click",function(e){
   if(el.hasAttribute("data-tmpl")){ openTemplates(el.getAttribute("data-tmpl")); return; }
   if(el.id==="tmplDone"){ closeTemplates(); return; }
   if(el.id==="dataExport"){ exportData(); return; }
+  if(el.id==="memoAddBtn"){ var mmi=document.getElementById("memoInput"); if(mmi){ addMemo(mmi.value); mmi.value=""; mmi.focus(); } return; }
+  if(el.hasAttribute("data-memodel")){ deleteMemo(el.getAttribute("data-memodel")); return; }
+  if(el.hasAttribute("data-diaryprev")){ shiftDiaryDate(-1); return; }
+  if(el.hasAttribute("data-diarynext")){ shiftDiaryDate(1); return; }
+  if(el.hasAttribute("data-diarytoday")){ state.diaryDate=TODAY; render(); return; }
+  if(el.hasAttribute("data-diaryopen")){ state.diaryDate=el.getAttribute("data-diaryopen"); render(); window.scrollTo({top:0,behavior:"smooth"}); return; }
   if(el.hasAttribute("data-searchm")){ closeMore(); var sq=prompt("검색어를 입력해줘"); state.search=sq||""; render(); return; }
   if(el.hasAttribute("data-applytmpl")){ var ti=+el.getAttribute("data-applytmpl"); if(state.tmpl==="project") applyProjectTemplate(ti); else applyRoutineTemplate(ti); return; }
   if(el.hasAttribute("data-projdel")){ var pd=el.getAttribute("data-projdel"); var pp=projById(pd); if(confirm('"'+(pp?pp.name:"")+'" 프로젝트를 지울까?\n안에 든 할 일은 남아있어(프로젝트만 해제돼).')){ deleteProject(pd); } return; }
@@ -1916,6 +2052,7 @@ document.addEventListener("keydown",function(e){
   if(e.target.id==="dayInput") { addTask(e.target.value,{date:state.calSel,bucket:(state.calSel===TODAY?"오늘":"이번주")}); e.target.value=""; }
   if(e.target.id==="projInput") { addProject(e.target.value); }
   if(e.target.id==="rtInput")   { addRoutine(e.target.value); }
+  if(e.target.id==="memoInput") { addMemo(e.target.value); e.target.value=""; }
   if(e.target.id==="projDetailInput"){ if(state.projOpen) addTaskToProject(state.projOpen,e.target.value); }
 });
 document.addEventListener("input",function(e){
@@ -1942,6 +2079,9 @@ document.addEventListener("change",function(e){
   if(e.target.hasAttribute&&e.target.hasAttribute("data-projdue")){ setProjectField(e.target.getAttribute("data-projdue"),"due",e.target.value||""); render(); }
   if(e.target.hasAttribute&&e.target.hasAttribute("data-rtname")){ renameRoutine(e.target.getAttribute("data-rtname"), e.target.value); }
   if(e.target.hasAttribute&&e.target.hasAttribute("data-rtnote")){ setRoutineNote(e.target.getAttribute("data-rtnote"), e.target.value); }
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-memoedit")){ updateMemo(e.target.getAttribute("data-memoedit"), e.target.value); }
+  if(e.target.id==="diaryText"){ setDiary(state.diaryDate||TODAY, e.target.value); }
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-diarydate")){ state.diaryDate=e.target.value||TODAY; render(); }
 });
 
 /* ══ 드래그 ══ */

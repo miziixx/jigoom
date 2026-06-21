@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS public.user_data (
   cats       JSONB       NOT NULL DEFAULT '[]',
   projects   JSONB       NOT NULL DEFAULT '[]',
   routines   JSONB       NOT NULL DEFAULT '[]',
+  memos      JSONB       NOT NULL DEFAULT '[]',
+  diary      JSONB       NOT NULL DEFAULT '[]',
   theme      TEXT        NOT NULL DEFAULT 'mint',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -18,6 +20,8 @@ CREATE TABLE IF NOT EXISTS public.user_data (
 ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS cats     JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS projects JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS routines JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS memos    JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS diary    JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS theme    TEXT  NOT NULL DEFAULT 'mint';
 
 -- 2. Row Level Security 활성화
