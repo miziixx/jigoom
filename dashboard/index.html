@@ -307,8 +307,32 @@ button,input{font-family:inherit;}
 .rt-day-pick{display:flex;gap:5px;flex-wrap:wrap;}
 .rt-day-pick button{border:1.5px solid var(--border);background:#fff;color:var(--dim);font-size:12px;font-weight:700;width:34px;height:34px;border-radius:9px;cursor:pointer;font-family:inherit;}
 .rt-day-pick button.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+/* ── 아이콘 레일 사이드바 (데스크톱) ── */
+.side{width:68px;padding:18px 10px;align-items:center;gap:10px;}
+.brand{justify-content:center;}
+.brand-t{display:none;}
+.avatar{width:42px;height:42px;}
+.side-add{display:none;}
+.side-sep{width:100%;}
+.side-label{display:none;}
+.side-nav{width:100%;align-items:stretch;}
+.nav-item{justify-content:center;padding:11px 0;gap:0;position:relative;}
+.nav-txt{display:none;}
+.nav-item .nav-badge{position:absolute;top:4px;right:11px;margin:0;min-width:8px;width:8px;height:8px;padding:0;font-size:0;line-height:0;border-radius:50%;}
+.side-sub{align-items:stretch;padding-left:0;}
+.user-box{align-items:center;width:100%;}
+.user-email{display:none;}
+.logout-btn,.manage-btn{width:44px;height:44px;padding:0;justify-content:center;gap:0;}
+.local-hint{font-size:0;}
+.side-toggle{display:none;}
+/* ── 메인 상단 빠른 입력 (데스크톱) ── */
+.main-add{display:flex;gap:8px;margin-bottom:9px;}
+.main-add .add-input{flex:1;}
+.main-add .add-btn{padding:0 18px;flex-shrink:0;white-space:nowrap;}
+.main-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
 @media(max-width:859px){
   .side{display:none;}
+  .main-add,.main-chips{display:none;}
   .main{padding:16px 14px 110px;}
   .mhead{display:block;margin-bottom:16px;}
   .mhead-top{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
@@ -380,11 +404,10 @@ button,input{font-family:inherit;}
     <div class="side-spacer"></div>
     <div id="userBox" class="user-box" style="display:none">
       <div class="user-email" id="userEmail"></div>
-      <button class="logout-btn" id="logoutBtn">로그아웃</button>
+      <button class="logout-btn" id="logoutBtn" title="로그아웃"></button>
     </div>
-    <button class="manage-btn" id="manageBtn" data-settings><span class="nav-ic" id="manageIc"></span>관리</button>
+    <button class="manage-btn" id="manageBtn" data-settings title="관리"><span class="nav-ic" id="manageIc"></span><span class="nav-txt">관리</span></button>
     <div id="localHint" class="local-hint" style="display:none">📴 로컬 전용 모드</div>
-    <button class="side-toggle" id="sideHide">완료 보임</button>
   </aside>
 
   <main class="main">
@@ -404,6 +427,11 @@ button,input{font-family:inherit;}
       </div>
       <div class="m-chips" id="mChips"></div>
     </header>
+    <div class="main-add">
+      <input id="topInput" class="add-input" placeholder="지금 뭐가 떠올랐어?">
+      <button class="add-btn" id="topAddBtn">받은함에 담기</button>
+    </div>
+    <div class="main-chips" id="topChips"></div>
     <div id="screenArea"></div>
   </main>
 </div>
@@ -479,6 +507,7 @@ var ICONS={
   stats:'<path d="M3 21h18"/><rect x="5" y="11" width="3" height="7" rx="1"/><rect x="10.5" y="5.5" width="3" height="12.5" rx="1"/><rect x="16" y="8.5" width="3" height="9.5" rx="1"/>',
   bucket:'<path d="M5 21V3.5M5 3.5h11l-2.2 3.3L16 10H5"/>',
   cat:'<path d="M11.5 4H6a2 2 0 0 0-2 2v5.5a2 2 0 0 0 .6 1.4l7 7a2 2 0 0 0 2.8 0l5.5-5.5a2 2 0 0 0 0-2.8l-7-7A2 2 0 0 0 11.5 4z"/><circle cx="8.5" cy="8.5" r="1.2"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>',
   gear:'<circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 0 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 .9-1.4V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.4.9H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5.9z"/>'
 };
 function ic(name){ return '<span class="nav-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[name]||"")+'</svg></span>'; }
@@ -499,13 +528,15 @@ function buildChrome(){
   var nav=document.getElementById("sideNav");
   if(nav) nav.innerHTML=NAV.map(function(n){
     var badge=n.badge==="inbox"?'<span class="nav-badge" id="sideInbox"></span>':"";
-    return '<button class="nav-item" data-screen="'+n.screen+'">'+ic(n.icon)+n.label+badge+'</button>';
+    return '<button class="nav-item" data-screen="'+n.screen+'" title="'+n.label+'">'+ic(n.icon)+'<span class="nav-txt">'+n.label+'</span>'+badge+'</button>';
   }).join("");
   var sub=document.getElementById("sideSubNav");
-  if(sub) sub.innerHTML='<button class="nav-item" data-view="bucket">'+ic("bucket")+'우선순위별</button>'
-    +'<button class="nav-item" data-view="cat">'+ic("cat")+'카테고리별</button>';
+  if(sub) sub.innerHTML='<button class="nav-item" data-view="bucket" title="우선순위별">'+ic("bucket")+'<span class="nav-txt">우선순위별</span></button>'
+    +'<button class="nav-item" data-view="cat" title="카테고리별">'+ic("cat")+'<span class="nav-txt">카테고리별</span></button>';
   var mic=document.getElementById("manageIc");
   if(mic) mic.outerHTML='<span class="nav-ic" id="manageIc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ICONS.gear+'</svg></span>';
+  var lo=document.getElementById("logoutBtn");
+  if(lo) lo.innerHTML=ic("logout")+'<span class="nav-txt">로그아웃</span>';
   var tb=document.getElementById("tabbar");
   if(tb) tb.innerHTML=NAV.filter(function(n){return TAB_SCREENS.indexOf(n.screen)>=0;}).map(function(n){
     var badge=n.badge==="inbox"?'<span class="tab-badge" id="tabInbox"></span>':"";
@@ -1342,7 +1373,7 @@ function renderSheet(){
 
 /* ══ 렌더 ══ */
 function render(){
-  ["sideChips","mChips"].forEach(function(id){ var e=document.getElementById(id); if(e) e.innerHTML=chipsHTML(); });
+  ["sideChips","mChips","topChips"].forEach(function(id){ var e=document.getElementById(id); if(e) e.innerHTML=chipsHTML(); });
   var area=document.getElementById("screenArea");
   if(!area) return;
   if(state.screen==="summary") area.innerHTML=screenSummary();
@@ -1365,7 +1396,7 @@ function render(){
 
 /* ══ 클릭 위임 ══ */
 document.addEventListener("click",function(e){
-  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,[data-themepick],[data-tltoggle],[data-tlmode],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday]");
+  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,[data-themepick],[data-tltoggle],[data-tlmode],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday]");
   if(!el) return;
   if(el.hasAttribute("data-settings")){ openSettings(); return; }
   if(el.id==="settingsDone"){ closeSettings(); return; }
@@ -1404,6 +1435,7 @@ document.addEventListener("click",function(e){
   if(el.hasAttribute("data-acat")){ answerCat(el.getAttribute("data-acat")); return; }
   if(el.id==="sideAddBtn"){ var si=document.getElementById("sideInput"); addTask(si.value); si.value=""; si.focus(); return; }
   if(el.id==="mAddBtn"){ var mi=document.getElementById("mInput"); addTask(mi.value); mi.value=""; mi.focus(); return; }
+  if(el.id==="topAddBtn"){ var ti=document.getElementById("topInput"); addTask(ti.value); ti.value=""; ti.focus(); return; }
   if(el.id==="dayAddBtn"){ var di=document.getElementById("dayInput"); if(di){ addTask(di.value,{date:state.calSel,bucket:(state.calSel===TODAY?"오늘":"이번주")}); } return; }
   if(el.id==="fab"){ var inp=window.matchMedia("(max-width:859px)").matches?document.getElementById("mInput"):document.getElementById("sideInput"); inp.scrollIntoView({behavior:"smooth",block:"center"}); inp.focus(); return; }
   if(el.id==="mHide"||el.id==="sideHide"){ state.hideDone=!state.hideDone; render(); return; }
@@ -1418,6 +1450,7 @@ document.addEventListener("keydown",function(e){
   if(e.key!=="Enter") return;
   if(e.target.id==="sideInput"){ addTask(e.target.value); e.target.value=""; }
   if(e.target.id==="mInput")   { addTask(e.target.value); e.target.value=""; }
+  if(e.target.id==="topInput") { addTask(e.target.value); e.target.value=""; }
   if(e.target.id==="dayInput") { addTask(e.target.value,{date:state.calSel,bucket:(state.calSel===TODAY?"오늘":"이번주")}); e.target.value=""; }
   if(e.target.id==="projInput") { addProject(e.target.value); }
   if(e.target.id==="rtInput")   { addRoutine(e.target.value); }
