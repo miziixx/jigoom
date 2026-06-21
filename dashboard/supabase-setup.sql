@@ -8,11 +8,17 @@ CREATE TABLE IF NOT EXISTS public.user_data (
   user_id    UUID        PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
   tasks      JSONB       NOT NULL DEFAULT '[]',
   cats       JSONB       NOT NULL DEFAULT '[]',
+  projects   JSONB       NOT NULL DEFAULT '[]',
+  routines   JSONB       NOT NULL DEFAULT '[]',
+  theme      TEXT        NOT NULL DEFAULT 'mint',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 이미 테이블을 만들어 둔 경우 cats 컬럼만 추가 (분류 기능용)
-ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS cats JSONB NOT NULL DEFAULT '[]';
+-- 이미 테이블을 만들어 둔 경우 추가 컬럼만 보강
+ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS cats     JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS projects JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS routines JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE public.user_data ADD COLUMN IF NOT EXISTS theme    TEXT  NOT NULL DEFAULT 'mint';
 
 -- 2. Row Level Security 활성화
 --    → 로그인 없이는 데이터에 전혀 접근 불가
