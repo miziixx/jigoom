@@ -1,4 +1,4 @@
-const CACHE = 'dash-v2';
+const CACHE = 'dash-v3';
 const ASSETS = [
   './',
   './index.html',
