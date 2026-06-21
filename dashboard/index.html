@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
 <meta name="theme-color" content="#F6FAF8">
 <meta name="description" content="할 일·일정·받은함을 한눈에">
 <link rel="manifest" href="manifest.json">
@@ -250,7 +251,8 @@ button,input{font-family:inherit;}
 .nav-ic svg{width:18px;height:18px;display:block;}
 .nav-ic svg *{stroke:currentColor;}
 .tab-ic{display:flex;align-items:center;justify-content:center;height:22px;}
-.tab-ic svg{width:21px;height:21px;display:block;color:var(--dim);}
+.tab-ic svg{width:22px;height:22px;display:block;color:var(--mid);}
+.tab-ic svg *{stroke:currentColor;}
 .tab-item.on .tab-ic svg{color:var(--accent);}
 .manage-btn{display:flex;align-items:center;justify-content:center;gap:7px;border:1.5px solid var(--border);background:#fff;color:var(--mid);font-size:12px;font-weight:700;padding:9px;border-radius:11px;cursor:pointer;width:100%;font-family:inherit;}
 .manage-btn:hover{color:var(--accent);border-color:rgba(var(--accent-rgb),.4);}
@@ -389,9 +391,7 @@ button,input{font-family:inherit;}
   .controls{flex-wrap:wrap;}
   .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;height:66px;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:400;}
   .tab-item{flex:1;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;position:relative;}
-  .tab-emoji{font-size:21px;line-height:1;filter:grayscale(.4) opacity(.55);}
-  .tab-lbl{font-size:10px;font-weight:800;color:var(--dim);}
-  .tab-item.on .tab-emoji{filter:none;}
+  .tab-lbl{font-size:10px;font-weight:800;color:var(--mid);}
   .tab-item.on .tab-lbl{color:var(--accent);}
   .tab-badge{position:absolute;top:8px;right:50%;margin-right:-22px;background:#F43F5E;color:#fff;font-size:9px;font-weight:800;border-radius:99px;padding:1px 5px;}
 }
@@ -414,7 +414,7 @@ button,input{font-family:inherit;}
     <label class="auth-label">이메일</label>
     <input class="auth-input" type="email" id="authEmail" placeholder="me@example.com" autocomplete="email">
     <label class="auth-label">비밀번호</label>
-    <input class="auth-input" type="password" id="authPw" placeholder="6자 이상" autocomplete="current-password">
+    <input class="auth-input" type="password" id="authPw" placeholder="8자 이상" autocomplete="current-password">
     <button class="auth-btn" id="authSubmit">로그인</button>
     <button class="auth-switch" id="authSwitch">계정이 없어 → 회원가입</button>
   </div>
@@ -755,6 +755,7 @@ async function syncOnLoad(){
       if(Array.isArray(res.data.projects)) state.projects=res.data.projects;
       if(Array.isArray(res.data.routines)) state.routines=res.data.routines;
       if(res.data.theme){ state.theme=res.data.theme; applyTheme(res.data.theme); }
+      sanitizeColors();
       saveLocal();
     } else {
       // 로컬이 더 최신 → 서버에 올림
@@ -804,7 +805,7 @@ function authErrKo(msg){
   if(msg.includes("Invalid login credentials")) return "이메일 또는 비밀번호가 틀렸어";
   if(msg.includes("Email not confirmed"))        return "이메일 인증이 필요해 — 메일함을 확인해봐";
   if(msg.includes("User already registered"))    return "이미 가입된 이메일이야";
-  if(msg.includes("Password should be at least"))return "비밀번호는 6자 이상이어야 해";
+  if(msg.includes("Password should be at least"))return "비밀번호는 8자 이상이어야 해";
   if(msg.includes("rate limit"))                 return "잠시 후 다시 시도해봐";
   return msg;
 }
@@ -834,7 +835,7 @@ async function handleAuthSubmit(){
   var email=document.getElementById("authEmail").value.trim();
   var pw=document.getElementById("authPw").value;
   if(!email){ setAuthErr("이메일을 입력해줘"); return; }
-  if(pw.length<6){ setAuthErr("비밀번호는 6자 이상이어야 해"); return; }
+  if(pw.length<8){ setAuthErr("비밀번호는 8자 이상이어야 해"); return; }
   try{ localStorage.setItem(KEY_EMAIL,email); }catch(_){}
   var btn=document.getElementById("authSubmit");
   btn.disabled=true; btn.textContent="잠깐만...";
@@ -925,6 +926,11 @@ function keyOf(t){ return state.view==="bucket"?t.bucket:(t.cat||"미분류"); }
 function inboxItems(){ return state.tasks.filter(function(t){ return t.bucket==="받은함"&&!t.done; }); }
 function sheetTask(){ var id=state.queue[0]; return state.tasks.filter(function(t){return t.id===id;})[0]||null; }
 function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];}); }
+function safeColor(c,fb){ return (typeof c==="string" && /^#[0-9a-fA-F]{3,8}$/.test(c)) ? c : (fb||"#9AA6A0"); }
+function sanitizeColors(){
+  state.cats.forEach(function(c){ c.dot=safeColor(c.dot,"#D6D0C8"); c.chip=safeColor(c.chip,"#F3EFE8"); c.text=safeColor(c.text,"#A89E96"); });
+  state.projects.forEach(function(p){ p.color=safeColor(p.color,"#9AA6A0"); });
+}
 
 function addTask(text,opts){
   var v=(text||"").trim(); if(!v) return;
@@ -1367,6 +1373,7 @@ function importData(file){
       if(Array.isArray(d.projects)) state.projects=d.projects;
       if(Array.isArray(d.routines)) state.routines=d.routines;
       if(d.theme){ state.theme=d.theme; applyTheme(d.theme); }
+      sanitizeColors();
       var maxn=100; state.tasks.forEach(function(x){var n=parseInt(x.id,10);if(!isNaN(n)&&n>maxn)maxn=n;}); _id=maxn;
       state.settings=false; save(); render(); alert("가져오기 완료!");
     }catch(e){ alert("파일을 읽을 수 없어. JSON 백업 파일이 맞는지 확인해줘."); }

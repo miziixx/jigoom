@@ -35,3 +35,18 @@ CREATE POLICY "본인 데이터만 접근"
 --    (Supabase 대시보드 > Database > Replication 에서
 --     user_data 테이블 토글도 켜줘야 해)
 ALTER PUBLICATION supabase_realtime ADD TABLE public.user_data;
+
+-- ════════════════════════════════════════════════
+-- 5. (점검용) RLS가 실제로 켜져 있는지 확인
+--    아래 두 쿼리를 SQL Editor에서 실행해봐.
+-- ════════════════════════════════════════════════
+
+-- (a) rowsecurity 가 true 여야 안전 (false면 anon 키로 전체 노출!)
+SELECT relname, relrowsecurity AS rls_enabled
+FROM pg_class
+WHERE relname = 'user_data';
+
+-- (b) "본인 데이터만 접근" 정책이 보여야 함
+SELECT policyname, cmd, qual, with_check
+FROM pg_policies
+WHERE tablename = 'user_data';
