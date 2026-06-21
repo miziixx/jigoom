@@ -777,9 +777,28 @@ function save(){
   pushToServer();
 }
 
+/* ══ 위젯 빠른메모 큐 → 받은함으로 끌어오기 ══ */
+async function drainInboxQueue(){
+  if(!currentUser||!sb) return false;
+  try{
+    var res=await sb.from("inbox_queue").select("id,text,created_at").eq("user_id",currentUser.id).order("created_at",{ascending:true});
+    if(res.error||!res.data||!res.data.length) return false;
+    res.data.forEach(function(row){
+      var v=(row.text||"").trim(); if(!v) return;
+      state.tasks.unshift({ id:nid(), text:v, cat:UNCAT, bucket:"받은함", done:false, date:null });
+    });
+    var ids=res.data.map(function(r){return r.id;});
+    await sb.from("inbox_queue").delete().in("id",ids);
+    saveLocal(); await pushToServer();
+    return true;
+  }catch(e){ return false; }
+}
+
 function subscribeRealtime(){
   if(realtimeSub) sb.removeChannel(realtimeSub);
   realtimeSub=sb.channel("dash_"+currentUser.id)
+    .on("postgres_changes",{ event:"INSERT", schema:"public", table:"inbox_queue", filter:"user_id=eq."+currentUser.id },
+      function(){ drainInboxQueue().then(function(ok){ if(ok) render(); }); })
     .on("postgres_changes",{ event:"*", schema:"public", table:"user_data", filter:"user_id=eq."+currentUser.id },
       function(payload){
         if(!payload.new||!Array.isArray(payload.new.tasks)) return;
@@ -871,6 +890,7 @@ async function init(){
     showUserBox(currentUser.email);
     render();
     await syncOnLoad(); render();
+    await drainInboxQueue(); render();
     subscribeRealtime();
   } else {
     showAuth(false);
@@ -882,6 +902,7 @@ async function init(){
       document.getElementById("app").style.display="block";
       showUserBox(currentUser.email);
       await syncOnLoad(); render();
+      await drainInboxQueue(); render();
       subscribeRealtime();
     } else if(event==="SIGNED_OUT"){
       currentUser=null;
@@ -1894,6 +1915,9 @@ document.addEventListener("pointerdown",function(e){
 });
 function pos(g,x,y){ if(g){g.style.left=x+"px";g.style.top=y+"px";} }
 
+document.addEventListener("visibilitychange",function(){
+  if(!document.hidden && currentUser && sb){ drainInboxQueue().then(function(ok){ if(ok) render(); }); }
+});
 init();
 </script>
 </body>
