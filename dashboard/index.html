@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data: https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">
 <meta name="theme-color" content="#F6FAF8">
 <meta name="description" content="할 일·일정·받은함을 한눈에">
@@ -54,6 +54,10 @@ button,input{font-family:inherit;}
 .logout-btn{border:1.5px solid var(--border);background:#fff;color:var(--dim);font-size:12px;font-weight:700;padding:9px;border-radius:11px;cursor:pointer;width:100%;font-family:inherit;}
 .logout-btn:hover{color:#E04560;border-color:#FCC8CE;}
 .local-hint{font-size:11px;color:var(--faint);font-weight:600;text-align:center;padding:4px 0;}
+.sync-status{font-size:11px;font-weight:700;text-align:center;padding:5px 8px;border-radius:9px;display:none;}
+.sync-status.on{color:var(--mid);background:var(--accent-soft);}
+.sync-status.err{color:#C77B22;background:#FFF6E9;border:1px solid #F5D9A8;}
+.sync-status.off{color:var(--dim);background:var(--bg);}
 
 /* ── 셸 ── */
 .shell{display:flex;min-height:100vh;max-width:1760px;margin:0 auto;}
@@ -444,6 +448,7 @@ button,input{font-family:inherit;}
     </div>
     <div class="side-spacer"></div>
     <div id="userBox" class="user-box" style="display:none">
+      <div class="sync-status" id="syncStatus"></div>
       <div class="user-email" id="userEmail"></div>
       <button class="logout-btn" id="logoutBtn" title="로그아웃"></button>
     </div>
@@ -492,7 +497,10 @@ button,input{font-family:inherit;}
 var SB_URL = 'https://zmwzbipnaidydziycnbc.supabase.co';   // 예: https://abcxyz.supabase.co
 var SB_KEY = 'sb_publishable_6_SK0EwoHDztbigjrHLeoA_K4N2O-FH';       // Supabase > Settings > API > anon public
 
-var SB_ON = SB_URL !== 'YOUR_SUPABASE_URL' && SB_KEY !== 'YOUR_ANON_KEY';
+var SB_CONFIGURED = SB_URL !== 'YOUR_SUPABASE_URL' && SB_KEY !== 'YOUR_ANON_KEY';
+// CDN 차단·오프라인 등으로 supabase-js 라이브러리 자체가 안 떴을 수도 있음 → 있을 때만 클라우드 모드
+var SB_LIB_OK = (typeof supabase !== 'undefined') && supabase && typeof supabase.createClient === 'function';
+var SB_ON = SB_CONFIGURED && SB_LIB_OK;
 var sb = SB_ON ? supabase.createClient(SB_URL, SB_KEY) : null;
 
 /* ══ 카테고리(분류) — 앱 안에서 수정 가능 ══ */
@@ -618,6 +626,7 @@ var KEY_THEME="myDash.theme";
 var KEY_PROJ="myDash.projects";
 var KEY_RT="myDash.routines";
 var KEY_EMAIL="myDash.lastEmail";
+var KEY_BACKUP="myDash.backup";   // 동기화로 덮어쓰기 직전의 로컬 스냅샷 (복구용)
 
 /* ══ 프로젝트 / 루틴 기본값 ══ */
 var PROJ_NONE="__none__";
@@ -733,44 +742,115 @@ var state={
 var currentUser=null;
 var realtimeSub=null;
 
+/* ══ 동기화 상태 표시 ══ */
+var syncStatus="idle";   // idle | syncing | error | offline
+function setSync(s){ if(syncStatus===s) return; syncStatus=s; paintSync(); }
+function paintSync(){
+  var el=document.getElementById("syncStatus"); if(!el) return;
+  var map={
+    idle:    { t:"",                                c:"" },
+    syncing: { t:"동기화 중…",                      c:"on" },
+    error:   { t:"⚠ 동기화 실패 — 다시 시도 중",    c:"err" },
+    offline: { t:"📴 오프라인 — 로컬에 저장됨",      c:"off" }
+  };
+  var m=map[syncStatus]||map.idle;
+  el.textContent=m.t; el.className="sync-status "+m.c;
+  el.style.display=m.t?"block":"none";
+}
+
+/* ══ 병합 / 백업 (기기 간 데이터 유실 방지) ══ */
+function byId(x){ return x&&x.id!=null ? x.id : undefined; }
+function byName(x){ return x&&x.name!=null ? x.name : undefined; }
+// primary(최신 쪽)의 내용·순서를 기준으로, secondary에만 있는 항목을 뒤에 덧붙임.
+// → 어느 기기에서 추가한 항목도 동기화 때 사라지지 않음.
+function mergeByKey(primary, secondary, keyFn){
+  if(!Array.isArray(primary)) return Array.isArray(secondary)?secondary.slice():[];
+  if(!Array.isArray(secondary)) return primary.slice();
+  var seen={}, out=[];
+  primary.forEach(function(x){ var k=keyFn(x); if(k!==undefined) seen[k]=true; out.push(x); });
+  secondary.forEach(function(x){ var k=keyFn(x); if(k!==undefined && !seen[k]) out.push(x); });
+  return out;
+}
+function recalcMaxId(){
+  var maxn=100; state.tasks.forEach(function(x){ var n=parseInt(x.id,10); if(!isNaN(n)&&n>maxn) maxn=n; }); _id=maxn;
+}
+// 동기화로 로컬을 덮어쓰기 직전에 현재 상태를 보관해 둠 (만일을 위한 복구 지점)
+function snapshotBackup(){
+  try{
+    localStorage.setItem(KEY_BACKUP, JSON.stringify({
+      tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines,
+      savedAt:new Date().toISOString()
+    }));
+  }catch(e){}
+}
+
 /* ══ Supabase 동기화 ══ */
 async function syncOnLoad(){
+  if(!currentUser||!sb) return;
+  setSync("syncing");
   try{
     var res=await sb.from("user_data").select("tasks,cats,projects,routines,theme,updated_at").eq("user_id",currentUser.id).single();
     if(res.error && res.error.code==="PGRST116"){
       // 첫 로그인: 로컬 데이터를 서버로 올림
       await pushToServer(); return;
     }
-    if(res.error) return;
-    var serverTs=res.data.updated_at ? new Date(res.data.updated_at).getTime() : 0;
+    if(res.error) throw res.error;
+    var srv=res.data;
+    var serverTs=srv.updated_at ? new Date(srv.updated_at).getTime() : 0;
     var localTs=localStorage.getItem(KEY_TS) ? new Date(localStorage.getItem(KEY_TS)).getTime() : 0;
-    if(serverTs>=localTs){
-      // 서버가 최신 → 서버 데이터 사용
-      if(Array.isArray(res.data.tasks)){
-        state.tasks=res.data.tasks;
-        var maxn=100; state.tasks.forEach(function(x){ var n=parseInt(x.id,10); if(!isNaN(n)&&n>maxn) maxn=n; });
-        _id=maxn;
-      }
-      if(Array.isArray(res.data.cats)&&res.data.cats.length) state.cats=res.data.cats;
-      if(Array.isArray(res.data.projects)) state.projects=res.data.projects;
-      if(Array.isArray(res.data.routines)) state.routines=res.data.routines;
-      if(res.data.theme){ state.theme=res.data.theme; applyTheme(res.data.theme); }
-      sanitizeColors();
-      saveLocal();
+    var serverNewer=serverTs>=localTs;
+    snapshotBackup();   // 합치기 전 현재 로컬 보관
+    // 최신 쪽을 기준으로 두고, 다른 기기에만 있던 항목은 보존(병합).
+    var sTasks=Array.isArray(srv.tasks)?srv.tasks:[];
+    var sCats =(Array.isArray(srv.cats)&&srv.cats.length)?srv.cats:[];
+    var sProj =Array.isArray(srv.projects)?srv.projects:[];
+    var sRt   =Array.isArray(srv.routines)?srv.routines:[];
+    if(serverNewer){
+      state.tasks    = mergeByKey(sTasks, state.tasks, byId);
+      if(sCats.length) state.cats = mergeByKey(sCats, state.cats, byName);
+      state.projects = mergeByKey(sProj, state.projects, byId);
+      state.routines = mergeByKey(sRt, state.routines, byId);
+      if(srv.theme){ state.theme=srv.theme; applyTheme(srv.theme); }
     } else {
-      // 로컬이 더 최신 → 서버에 올림
-      await pushToServer();
+      state.tasks    = mergeByKey(state.tasks, sTasks, byId);
+      state.cats     = mergeByKey(state.cats, sCats, byName);
+      state.projects = mergeByKey(state.projects, sProj, byId);
+      state.routines = mergeByKey(state.routines, sRt, byId);
     }
-  }catch(e){}
+    recalcMaxId();
+    sanitizeColors();
+    saveLocal();
+    await pushToServer();   // 합쳐진 결과를 서버에도 반영
+  }catch(e){
+    setSync(navigator.onLine?"error":"offline");
+    if(navigator.onLine) scheduleRetry();
+  }
+}
+
+var pushPending=false, pushTimer=null, pushRetries=0;
+function scheduleRetry(){
+  if(pushTimer) return;
+  var delay=Math.min(30000, 2000*Math.pow(2,pushRetries));   // 2s · 4s · 8s · 16s · 30s
+  pushRetries=Math.min(pushRetries+1,4);
+  pushTimer=setTimeout(function(){ pushTimer=null; if(pushPending) pushToServer(); }, delay);
 }
 async function pushToServer(){
-  if(!currentUser||!sb) return;
+  if(!currentUser||!sb) return false;
+  if(!navigator.onLine){ pushPending=true; setSync("offline"); return false; }
+  setSync("syncing");
   try{
-    await sb.from("user_data").upsert(
+    var res=await sb.from("user_data").upsert(
       { user_id:currentUser.id, tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines, theme:state.theme, updated_at:new Date().toISOString() },
       { onConflict:"user_id" }
     );
-  }catch(e){}
+    if(res.error) throw res.error;
+    pushPending=false; pushRetries=0; setSync("idle"); return true;
+  }catch(e){
+    pushPending=true;
+    setSync(navigator.onLine?"error":"offline");
+    scheduleRetry();
+    return false;
+  }
 }
 function save(){
   saveLocal();
@@ -802,17 +882,19 @@ function subscribeRealtime(){
     .on("postgres_changes",{ event:"*", schema:"public", table:"user_data", filter:"user_id=eq."+currentUser.id },
       function(payload){
         if(!payload.new||!Array.isArray(payload.new.tasks)) return;
-        var serverTs=payload.new.updated_at ? new Date(payload.new.updated_at).getTime() : 0;
+        var n=payload.new;
+        var serverTs=n.updated_at ? new Date(n.updated_at).getTime() : 0;
         var localTs=localStorage.getItem(KEY_TS) ? new Date(localStorage.getItem(KEY_TS)).getTime() : 0;
         // 다른 기기에서 온 변경만 반영 (내가 방금 저장한 건 무시)
         if(serverTs>localTs+1000){
-          state.tasks=payload.new.tasks;
-          if(Array.isArray(payload.new.cats)&&payload.new.cats.length) state.cats=payload.new.cats;
-          if(Array.isArray(payload.new.projects)) state.projects=payload.new.projects;
-          if(Array.isArray(payload.new.routines)) state.routines=payload.new.routines;
-          if(payload.new.theme){ state.theme=payload.new.theme; applyTheme(payload.new.theme); }
-          var maxn=100; state.tasks.forEach(function(x){ var n=parseInt(x.id,10); if(!isNaN(n)&&n>maxn) maxn=n; });
-          _id=maxn; saveLocal(); render();
+          snapshotBackup();
+          // 들어온 변경을 기준으로 두되, 아직 못 올린 로컬 항목은 보존(병합)
+          state.tasks = mergeByKey(n.tasks, state.tasks, byId);
+          if(Array.isArray(n.cats)&&n.cats.length) state.cats = mergeByKey(n.cats, state.cats, byName);
+          if(Array.isArray(n.projects)) state.projects = mergeByKey(n.projects, state.projects, byId);
+          if(Array.isArray(n.routines)) state.routines = mergeByKey(n.routines, state.routines, byId);
+          if(n.theme){ state.theme=n.theme; applyTheme(n.theme); }
+          recalcMaxId(); saveLocal(); render();
         }
       })
     .subscribe();
@@ -877,9 +959,13 @@ async function handleAuthSubmit(){
 async function init(){
   buildChrome();
   if(!SB_ON){
-    // Supabase 미설정 → 로컬 전용
+    // Supabase 미설정, 또는 CDN 차단으로 라이브러리 로드 실패 → 로컬 전용
     document.getElementById("app").style.display="block";
-    document.getElementById("localHint").style.display="block";
+    var hint=document.getElementById("localHint");
+    hint.textContent = (SB_CONFIGURED && !SB_LIB_OK)
+      ? "⚠️ 클라우드 연결 실패 — 로컬 전용으로 작동 중"
+      : "📴 로컬 전용 모드";
+    hint.style.display="block";
     render(); setupSW(); return;
   }
   // 먼저 로컬 캐시로 화면 표시 (빠른 로딩)
@@ -917,7 +1003,18 @@ function showUserBox(email){
   var box=document.getElementById("userBox");
   box.style.display="flex";
   document.getElementById("userEmail").textContent=email||"";
+  paintSync();
 }
+
+/* ══ 네트워크 복귀/끊김 → 동기화 재시도 ══ */
+window.addEventListener("online", function(){
+  if(!currentUser||!sb) return;
+  if(pushPending){ pushRetries=0; pushToServer(); }
+  else setSync("idle");
+});
+window.addEventListener("offline", function(){
+  if(currentUser&&sb) setSync("offline");
+});
 
 /* ══ 인증 이벤트 ══ */
 document.getElementById("authSubmit").addEventListener("click",handleAuthSubmit);
