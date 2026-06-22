@@ -424,6 +424,11 @@ button,input{font-family:inherit;}
   .tab-badge{position:absolute;top:8px;right:50%;margin-right:-22px;background:#F43F5E;color:#fff;font-size:9px;font-weight:800;border-radius:99px;padding:1px 5px;}
 }
 @media(min-width:860px){.mhead{display:none;}.fab{display:none;}.tabbar{display:none;}}
+/* ── 모바일 동기화 배너 ── */
+.mob-sync{display:none;position:fixed;top:0;left:0;right:0;z-index:800;font-size:12px;font-weight:700;text-align:center;padding:8px 12px;line-height:1.4;}
+.mob-sync.err{display:block;background:#FFF6E9;color:#C77B22;border-bottom:1px solid #F5D9A8;}
+.mob-sync.off{display:block;background:#F5F5F5;color:var(--dim);border-bottom:1px solid var(--border);}
+@media(min-width:860px){.mob-sync{display:none!important;}}
 </style>
 </head>
 <body>
@@ -509,6 +514,7 @@ button,input{font-family:inherit;}
 
 <button class="fab" id="fab" title="빠르게 적기">+</button>
 <nav class="tabbar" id="tabbar"></nav>
+<div id="mobSync" class="mob-sync"></div>
 <div id="ghostSlot"></div>
 <div id="sheetSlot"></div>
 </div><!-- #app -->
@@ -789,16 +795,17 @@ var realtimeSub=null;
 var syncStatus="idle";   // idle | syncing | error | offline
 function setSync(s){ if(syncStatus===s) return; syncStatus=s; paintSync(); }
 function paintSync(){
-  var el=document.getElementById("syncStatus"); if(!el) return;
+  var el=document.getElementById("syncStatus");
+  var mob=document.getElementById("mobSync");
   var map={
-    idle:    { t:"",                                c:"" },
-    syncing: { t:"동기화 중…",                      c:"on" },
-    error:   { t:"⚠ 동기화 실패 — 다시 시도 중",    c:"err" },
-    offline: { t:"📴 오프라인 — 로컬에 저장됨",      c:"off" }
+    idle:    { t:"",                                c:"",    mt:"",                              mc:"" },
+    syncing: { t:"동기화 중…",                      c:"on",  mt:"",                              mc:"" },
+    error:   { t:"⚠ 동기화 실패 — 다시 시도 중",    c:"err", mt:"⚠ 동기화 실패 — 다시 시도 중", mc:"err" },
+    offline: { t:"📴 오프라인 — 로컬에 저장됨",      c:"off", mt:"📴 오프라인 — 로컬에 저장됨",  mc:"off" }
   };
   var m=map[syncStatus]||map.idle;
-  el.textContent=m.t; el.className="sync-status "+m.c;
-  el.style.display=m.t?"block":"none";
+  if(el){ el.textContent=m.t; el.className="sync-status "+m.c; el.style.display=m.t?"block":"none"; }
+  if(mob){ mob.textContent=m.mt; mob.className="mob-sync "+m.mc; }
 }
 
 /* ══ 병합 / 백업 (기기 간 데이터 유실 방지) ══ */
