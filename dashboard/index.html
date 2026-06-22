@@ -851,13 +851,15 @@ async function syncOnLoad(){
     var sRt   =Array.isArray(srv.routines)?srv.routines:[];
     var sMemo =Array.isArray(srv.memos)?srv.memos:[];
     var sDiary=Array.isArray(srv.diary)?srv.diary:[];
+    // localTs===0 이면 이 기기에 저장된 적 없음 → SEED 데이터를 서버에 섞지 않음
+    var freshDevice = (localTs === 0);
     if(serverNewer){
-      state.tasks    = mergeByKey(sTasks, state.tasks, byId);
-      if(sCats.length) state.cats = mergeByKey(sCats, state.cats, byName);
-      state.projects = mergeByKey(sProj, state.projects, byId);
-      state.routines = mergeByKey(sRt, state.routines, byId);
-      state.memos    = mergeByKey(sMemo, state.memos, byId);
-      state.diary    = mergeByKey(sDiary, state.diary, byId);
+      state.tasks    = freshDevice ? sTasks.slice() : mergeByKey(sTasks, state.tasks, byId);
+      if(sCats.length) state.cats = freshDevice ? sCats.slice() : mergeByKey(sCats, state.cats, byName);
+      state.projects = freshDevice ? sProj.slice() : mergeByKey(sProj, state.projects, byId);
+      state.routines = freshDevice ? sRt.slice()   : mergeByKey(sRt, state.routines, byId);
+      state.memos    = freshDevice ? sMemo.slice()  : mergeByKey(sMemo, state.memos, byId);
+      state.diary    = freshDevice ? sDiary.slice() : mergeByKey(sDiary, state.diary, byId);
       if(srv.theme){ state.theme=srv.theme; applyTheme(srv.theme); }
     } else {
       state.tasks    = mergeByKey(state.tasks, sTasks, byId);
