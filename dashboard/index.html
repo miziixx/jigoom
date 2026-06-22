@@ -797,19 +797,35 @@ var realtimeSub=null;
 
 /* ══ 동기화 상태 표시 ══ */
 var syncStatus="idle";   // idle | syncing | error | offline
-function setSync(s){ if(syncStatus===s) return; syncStatus=s; paintSync(); }
+var syncErrDetail="";    // 에러 상세 (화면·콘솔 표시용)
+function setSync(s, detail){
+  var d=detail||"";
+  if(syncStatus===s && syncErrDetail===d) return;
+  syncStatus=s; syncErrDetail=d; paintSync();
+}
 function paintSync(){
   var el=document.getElementById("syncStatus");
   var mob=document.getElementById("mobSync");
+  var errSuffix=syncErrDetail?" · "+syncErrDetail:"";
   var map={
-    idle:    { t:"",                                c:"",    mt:"",                              mc:"" },
-    syncing: { t:"동기화 중…",                      c:"on",  mt:"",                              mc:"" },
-    error:   { t:"⚠ 동기화 실패 — 다시 시도 중",    c:"err", mt:"⚠ 동기화 실패 — 다시 시도 중", mc:"err" },
-    offline: { t:"📴 오프라인 — 로컬에 저장됨",      c:"off", mt:"📴 오프라인 — 로컬에 저장됨",  mc:"off" }
+    idle:    { t:"",                                         c:"",    mc:"" },
+    syncing: { t:"동기화 중…",                               c:"on",  mc:"" },
+    error:   { t:"⚠ 동기화 실패"+errSuffix,                 c:"err", mc:"err" },
+    offline: { t:"📴 오프라인 — 로컬에 저장됨",              c:"off", mc:"off" }
   };
   var m=map[syncStatus]||map.idle;
   if(el){ el.textContent=m.t; el.className="sync-status "+m.c; el.style.display=m.t?"block":"none"; }
-  if(mob){ mob.textContent=m.mt; mob.className="mob-sync "+m.mc; }
+  if(mob){
+    mob.className="mob-sync "+m.mc;
+    if(m.mc==="err"){
+      mob.innerHTML='<span>⚠ 동기화 실패'+esc(errSuffix)+'</span>'
+        +'<button id="mobSyncRetry" style="margin-left:10px;border:1.5px solid currentColor;background:transparent;color:inherit;font-size:11px;font-weight:800;padding:3px 10px;border-radius:8px;cursor:pointer;font-family:inherit">재시도</button>';
+    } else if(m.mc==="off"){
+      mob.innerHTML='<span>📴 오프라인 — 로컬에 저장됨</span>';
+    } else {
+      mob.innerHTML="";
+    }
+  }
 }
 
 /* ══ 병합 / 백업 (기기 간 데이터 유실 방지) ══ */
@@ -883,13 +899,29 @@ async function syncOnLoad(){
     recalcMaxId();
     sanitizeColors();
     saveLocal();
+    syncRetries=0; if(syncTimer){clearTimeout(syncTimer);syncTimer=null;}
+    recalcMaxId_after_sync=false;
     await pushToServer();   // 합쳐진 결과를 서버에도 반영
   }catch(e){
-    setSync(navigator.onLine?"error":"offline");
-    if(navigator.onLine) scheduleRetry();
+    console.error('[syncOnLoad]', e);
+    var code=String((e&&(e.code||e.status||e.statusCode))||"");
+    var msg=String((e&&e.message)||e||"").slice(0,80);
+    var detail=(code&&code!=="undefined"?code+" ":"")+(msg||"알 수 없는 오류");
+    setSync(navigator.onLine?"error":"offline", detail);
+    if(navigator.onLine) scheduleSyncRetry();
   }
 }
 
+// syncOnLoad 재시도 (서버→로컬 데이터 로드 실패 시)
+var syncRetries=0, syncTimer=null;
+function scheduleSyncRetry(){
+  if(syncTimer) return;
+  var delay=Math.min(30000, 2000*Math.pow(2,syncRetries));
+  syncRetries=Math.min(syncRetries+1,4);
+  syncTimer=setTimeout(function(){ syncTimer=null; syncOnLoad().then(function(){ render(); }); }, delay);
+}
+
+// pushToServer 재시도 (로컬→서버 업로드 실패 시)
 var pushPending=false, pushTimer=null, pushRetries=0;
 function scheduleRetry(){
   if(pushTimer) return;
@@ -897,6 +929,7 @@ function scheduleRetry(){
   pushRetries=Math.min(pushRetries+1,4);
   pushTimer=setTimeout(function(){ pushTimer=null; if(pushPending) pushToServer(); }, delay);
 }
+var recalcMaxId_after_sync=false;
 async function pushToServer(){
   if(!currentUser||!sb) return false;
   if(!navigator.onLine){ pushPending=true; setSync("offline"); return false; }
@@ -909,8 +942,12 @@ async function pushToServer(){
     if(res.error) throw res.error;
     pushPending=false; pushRetries=0; setSync("idle"); return true;
   }catch(e){
+    console.error('[pushToServer]', e);
+    var code=String((e&&(e.code||e.status||e.statusCode))||"");
+    var msg=String((e&&e.message)||e||"").slice(0,80);
+    var detail=(code&&code!=="undefined"?code+" ":"")+(msg||"알 수 없는 오류");
     pushPending=true;
-    setSync(navigator.onLine?"error":"offline");
+    setSync(navigator.onLine?"error":"offline", detail);
     scheduleRetry();
     return false;
   }
@@ -1074,7 +1111,11 @@ function showUserBox(email){
 /* ══ 네트워크 복귀/끊김 → 동기화 재시도 ══ */
 window.addEventListener("online", function(){
   if(!currentUser||!sb) return;
-  if(pushPending){ pushRetries=0; pushToServer(); }
+  // 오프라인→온라인: syncOnLoad 실패 상태였으면 재시도, 아니면 pushToServer만 재시도
+  if(syncStatus==="error"||syncStatus==="offline"){
+    syncRetries=0; if(syncTimer){clearTimeout(syncTimer);syncTimer=null;}
+    syncOnLoad().then(function(){render();});
+  } else if(pushPending){ pushRetries=0; pushToServer(); }
   else setSync("idle");
 });
 window.addEventListener("offline", function(){
@@ -1993,11 +2034,12 @@ function render(){
 
 /* ══ 클릭 위임 ══ */
 document.addEventListener("click",function(e){
-  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,#settingsLogout,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen]");
+  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,#settingsLogout,#mobSyncRetry,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen]");
   if(!el) return;
   if(el.hasAttribute("data-settings")){ openSettings(); return; }
   if(el.id==="settingsDone"){ closeSettings(); return; }
   if(el.id==="settingsLogout"){ if(sb) sb.auth.signOut(); closeSettings(); return; }
+  if(el.id==="mobSyncRetry"){ syncRetries=0; if(syncTimer){clearTimeout(syncTimer);syncTimer=null;} syncOnLoad().then(function(){render();}); return; }
   if(el.hasAttribute("data-more")){ openMore(); return; }
   if(el.id==="moreDone"){ closeMore(); return; }
   if(el.hasAttribute("data-themepick")){ setTheme(el.getAttribute("data-themepick")); return; }
