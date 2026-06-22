@@ -860,7 +860,7 @@ async function syncOnLoad(){
   if(!currentUser||!sb) return;
   setSync("syncing");
   try{
-    var res=await sb.from("user_data").select("tasks,cats,projects,routines,memos,diary,theme,updated_at").eq("user_id",currentUser.id).single();
+    var res=await sb.from("user_data").select("*").eq("user_id",currentUser.id).single();
     if(res.error && res.error.code==="PGRST116"){
       // 첫 로그인: 로컬 데이터를 서버로 올림
       await pushToServer(); return;
