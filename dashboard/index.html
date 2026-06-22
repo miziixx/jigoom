@@ -62,8 +62,8 @@ button,input{font-family:inherit;}
 /* ── 메모 ── */
 .memo-list{display:flex;flex-direction:column;gap:10px;}
 .memo-card{background:#fff;border:1.5px solid #EFE8DC;border-radius:14px;padding:12px 13px;box-shadow:0 1px 4px rgba(120,90,50,.05);}
-.memo-ta{width:100%;border:none;background:transparent;outline:none;resize:vertical;font-family:inherit;font-size:14.5px;line-height:1.55;color:var(--text);min-height:42px;}
-.memo-ta[readonly]{resize:none;cursor:default;-webkit-user-select:text;user-select:text;}
+.memo-ta{width:100%;border:none;background:transparent;outline:none;resize:none;font-family:inherit;font-size:14.5px;line-height:1.55;color:var(--text);min-height:42px;overflow:hidden;}
+.memo-ta[readonly]{cursor:default;-webkit-user-select:text;user-select:text;}
 .memo-ta::placeholder{color:var(--faint);}
 .memo-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
 .memo-time{font-size:11px;color:var(--faint);font-weight:600;}
@@ -1634,9 +1634,8 @@ function screenMemos(){
   var head='<div class="screen-title">'+ic("memo")+'메모</div>';
   if(!state.memos.length) return head+add+'<div class="empty">아직 메모가 없어. 떠오르는 생각을 적어둬.</div>';
   var rows=state.memos.map(function(m){
-    var rows2=Math.min(10,Math.max(2,String(m.text||"").split("\n").length));
     return '<div class="memo-card">'
-      +'<textarea class="memo-ta" data-memoedit="'+m.id+'" rows="'+rows2+'" placeholder="(빈 메모)" readonly>'+esc(m.text)+'</textarea>'
+      +'<textarea class="memo-ta" data-memoedit="'+m.id+'" rows="2" placeholder="(빈 메모)" readonly>'+esc(m.text)+'</textarea>'
       +'<div class="memo-foot"><span class="memo-time">'+esc(fmtTs(m.ts))+'</span>'
       +'<div style="display:flex;gap:2px;align-items:center;">'
       +'<button class="memo-edit-btn" data-memoeditbtn="'+m.id+'" title="수정">'+ic("pencil")+'</button>'
@@ -2009,6 +2008,8 @@ function renderSheet(){
 }
 
 /* ══ 렌더 ══ */
+function autoSizeMemoTa(ta){ ta.style.height="auto"; ta.style.height=ta.scrollHeight+"px"; }
+function autoSizeMemoTas(){ document.querySelectorAll(".memo-ta").forEach(autoSizeMemoTa); }
 function render(){
   ["sideChips","mChips","topChips"].forEach(function(id){ var e=document.getElementById(id); if(e) e.innerHTML=chipsHTML(); });
   var area=document.getElementById("screenArea");
@@ -2037,6 +2038,7 @@ function render(){
   var n=inboxItems().length;
   ["sideInbox","tabInbox"].forEach(function(id){var e=document.getElementById(id);if(e){e.textContent=n>0?n:"";e.style.display=n>0?"":"none";}});
   renderSheet();
+  requestAnimationFrame(autoSizeMemoTas);
 }
 
 /* ══ 클릭 위임 ══ */
@@ -2066,7 +2068,7 @@ document.addEventListener("click",function(e){
   if(el.hasAttribute("data-memodel")){ deleteMemo(el.getAttribute("data-memodel")); return; }
   if(el.hasAttribute("data-memoeditbtn")){
     var ta=document.querySelector('[data-memoedit="'+el.getAttribute("data-memoeditbtn")+'"]');
-    if(ta){ ta.removeAttribute("readonly"); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); }
+    if(ta){ ta.removeAttribute("readonly"); autoSizeMemoTa(ta); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); }
     return;
   }
   if(el.hasAttribute("data-diaryprev")){ shiftDiaryDate(-1); return; }
@@ -2133,6 +2135,7 @@ document.addEventListener("keydown",function(e){
 });
 document.addEventListener("input",function(e){
   if(e.target.id==="searchInput"){ state.search=e.target.value; render(); }
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-memoedit")){ autoSizeMemoTa(e.target); }
 });
 document.addEventListener("change",function(e){
   if(e.target.id==="dataImport"){ importData(e.target.files&&e.target.files[0]); e.target.value=""; return; }
