@@ -290,6 +290,10 @@ button,input{font-family:inherit;}
 .set-sec{margin-bottom:20px;}
 .set-sec-h{font-size:12px;font-weight:800;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:11px;display:flex;align-items:center;gap:6px;}
 .set-sep{height:1px;background:var(--border);margin:4px 0 18px;}
+.acct-email{font-size:14px;font-weight:700;color:var(--text);background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.acct-logout{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:1.5px solid #FCC8CE;background:#FFF1F2;color:#E04560;font-size:14px;font-weight:800;padding:13px;border-radius:13px;cursor:pointer;font-family:inherit;}
+.acct-logout:active{transform:scale(.99);}
+.acct-logout .nav-ic{width:17px;height:17px;}
 /* ── 요약 화면 ── */
 .sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:16px;}
 .sum-card{background:#fff;border:1.5px solid #EFE8DC;border-radius:16px;padding:15px 16px;box-shadow:0 1px 4px rgba(120,90,50,.05);}
@@ -1885,10 +1889,18 @@ function themeSectionHTML(){
     +'<div class="th-grid">'+cards+'</div>'
     +'<div class="cm-hint">파스텔 8종 · 고르면 바로 적용돼요.</div></div>';
 }
+function accountSectionHTML(){
+  if(!currentUser) return "";
+  return '<div class="set-sec"><div class="set-sec-h">'+ic("logout")+'계정</div>'
+    +'<div class="acct-email">'+esc(currentUser.email||"")+'</div>'
+    +'<button class="acct-logout" id="settingsLogout">'+ic("logout")+'<span>로그아웃</span></button></div>'
+    +'<div class="set-sep"></div>';
+}
 function settingsHTML(){
   return '<div class="backdrop" id="backdrop"><div class="sheet" id="sheet">'
     +'<div class="sheet-grip"></div>'
     +'<div class="sheet-q">관리</div>'
+    +accountSectionHTML()
     +catSectionHTML()
     +'<div class="set-sep"></div>'
     +themeSectionHTML()
@@ -1981,10 +1993,11 @@ function render(){
 
 /* ══ 클릭 위임 ══ */
 document.addEventListener("click",function(e){
-  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen]");
+  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,#settingsLogout,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen]");
   if(!el) return;
   if(el.hasAttribute("data-settings")){ openSettings(); return; }
   if(el.id==="settingsDone"){ closeSettings(); return; }
+  if(el.id==="settingsLogout"){ if(sb) sb.auth.signOut(); closeSettings(); return; }
   if(el.hasAttribute("data-more")){ openMore(); return; }
   if(el.id==="moreDone"){ closeMore(); return; }
   if(el.hasAttribute("data-themepick")){ setTheme(el.getAttribute("data-themepick")); return; }
