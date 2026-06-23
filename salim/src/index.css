@@ -1,0 +1,29 @@
+/* 0-1: 최소 리셋만. 테마/디자인 시스템은 0-2에서 도입. */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
+    "Malgun Gothic", system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  line-height: 1.5;
+}
+
+/* 모바일 우선: 본문은 폭 제한 컨테이너 안에서 */
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+}
+
+.app {
+  padding: 24px 16px;
+}

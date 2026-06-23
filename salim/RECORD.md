@@ -43,4 +43,27 @@
 - `salim/PROGRESS.md` — 작업 규칙 + 15장 개발 순서 체크리스트(전부 `[ ]` 예정).
 - `salim/RECORD.md` — 이 기록 파일.
 
-> 다음 작업: `0-1 Vite + React + TS 프로젝트 생성` (사용자 "다음" 지시 대기).
+---
+
+## 2026-06-23 — 0-1 Vite + React + TS 프로젝트 생성 ✅
+
+### 무엇을
+부팅되는 빈 Vite + React + TypeScript 스켈레톤을 `salim/`에 생성. 모바일 뷰포트 meta와 기본 폴더 구조까지.
+
+### 어떤 파일
+- `package.json` — react 18 · react-dom · react-router-dom · zustand / devDeps: vite 5 · @vitejs/plugin-react · typescript 5 · @types/react(-dom). scripts: dev/build/preview.
+- `vite.config.ts` — `base: './'`(정적·Capacitor 대비 상대경로), `server.host: true`(휴대폰 접속 테스트), react 플러그인.
+- `tsconfig.json` / `tsconfig.node.json` — Vite React-TS 표준. (node 설정은 composite 참조라 `noEmit` 사용 불가 → 제거.)
+- `index.html` — `lang="ko"`, 모바일 뷰포트 meta(`viewport-fit=cover`, `maximum-scale=1`), theme-color, 제목 "살림 관리".
+- `src/main.tsx` · `src/App.tsx`(플레이스홀더) · `src/index.css`(최소 리셋 + 모바일 max-width 480px 컨테이너) · `src/vite-env.d.ts`.
+- `.gitignore` — node_modules/dist/logs 등.
+- 빈 폴더 + `.gitkeep`: `src/{components,pages,store,data,lib,services,types}` — 이후 작업이 채울 자리.
+
+### 왜
+스토어(0-3)·테마(0-2)·탭 네비(0-4)·모델(0-5)은 각각 별도 작업으로 분리하고, 0-1은 "부팅되는 최소 골격 + 구조"만.
+
+### 검증
+- `npm install` 성공.
+- `npm run build`(tsc -b && vite build) 통과 — 타입 에러 없음, dist 생성(JS ~143kB / gzip 46kB).
+
+> 다음 작업: `0-2 전역 스타일/테마(CSS 변수) + 모바일 레이아웃 베이스` (사용자 "다음" 지시 대기).
