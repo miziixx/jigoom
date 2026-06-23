@@ -12,6 +12,8 @@ const TABS: { to: string; label: string; icon: string }[] = [
 export default function BottomTabBar() {
   return (
     <nav className="tabbar">
+      {/* 데스크톱 사이드바 상단 브랜드 (모바일에선 CSS로 숨김) */}
+      <div className="tab-brand">🪴 살림 관리</div>
       {TABS.map((t) => (
         <NavLink
           key={t.to}

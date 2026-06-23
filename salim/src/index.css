@@ -131,6 +131,9 @@ select {
 .tab-active .tab-icon {
   opacity: 1;
 }
+.tab-brand {
+  display: none; /* 모바일 하단 탭바에선 숨김 — 데스크톱 사이드바에서만 노출 */
+}
 
 /* ── 공용 요소 ─────────────────────────────────── */
 .card {
@@ -841,5 +844,102 @@ select {
 @media (prefers-reduced-motion: reduce) {
   .gauge-fill {
     transition: none;
+  }
+}
+
+/* ── PC(넓은 화면) 레이아웃: 사이드바 + 다단 본문 ─────
+   폰(<900px)은 위 규칙 그대로 — 아래 블록은 데스크톱에서만 적용 */
+@media (min-width: 900px) {
+  #root {
+    max-width: 1120px;
+  }
+
+  /* 2열 그리드: [사이드바] [상단바 / 본문] */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .appbar {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .content {
+    grid-column: 2;
+    grid-row: 2;
+    padding-bottom: 24px; /* 모바일 고정 탭바용 76px 여백 해제 */
+  }
+
+  /* 하단 탭바 → 왼쪽 세로 사이드바 (같은 요소 재스타일) */
+  .tabbar {
+    position: sticky;
+    top: 0;
+    left: auto;
+    transform: none;
+    width: auto;
+    max-width: none;
+    height: 100dvh;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 14px 10px;
+    background: var(--surface);
+    border-top: none;
+    border-right: 1px solid var(--border);
+  }
+  .tab-brand {
+    display: block;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--green-d);
+    padding: 6px 12px 14px;
+  }
+  .tab {
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+  .tab-icon {
+    font-size: 20px;
+  }
+  .tab-active {
+    background: var(--green-soft);
+  }
+
+  /* 본문을 다단 흐름으로 */
+  .page {
+    display: block;
+    column-count: 2;
+    column-gap: 16px;
+    padding: 18px 18px 28px;
+  }
+  .page > * {
+    break-inside: avoid;
+    margin: 0 0 14px;
+  }
+  /* 단에 갇히면 어색한 요소는 전체 폭으로 */
+  .page > .seg,
+  .page > .search.big {
+    column-span: all;
+  }
+  /* 모바일 전용 하단 고정 버튼 → 데스크톱은 일반 흐름 */
+  .sticky-action {
+    position: static;
+    bottom: auto;
+  }
+}
+
+@media (min-width: 1280px) {
+  #root {
+    max-width: 1320px;
+  }
+  .page {
+    column-count: 3;
   }
 }
