@@ -1,18 +1,24 @@
 import { useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
-import { shortKor } from "../lib/date";
+import { daysSince, shortKor } from "../lib/date";
 
-// 보관 (1-7): 물건+위치 추가/검색/삭제, '오늘 꺼냈어요'(lastTouched 갱신).
-// '잠자는 물건' 코칭(5-5)은 5단계에서.
+// 보관 (1-7) + 잠자는 물건 코칭 (5-5).
 export default function StashPage() {
   const stash = useStore((s) => s.stash);
   const addStash = useStore((s) => s.addStash);
   const touchStash = useStore((s) => s.touchStash);
   const deleteStash = useStore((s) => s.deleteStash);
+  const declutterStash = useStore((s) => s.declutterStash);
 
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [q, setQ] = useState("");
+
+  // 1년 넘게 안 건드린 물건 (5-5)
+  const sleeping = useMemo(
+    () => stash.filter((it) => (daysSince(it.lastTouched) ?? 0) > 365),
+    [stash],
+  );
 
   const add = () => {
     if (!name.trim() || !location.trim()) return;
@@ -39,6 +45,20 @@ export default function StashPage() {
           추가
         </button>
       </div>
+
+      {/* 5-5: 잠자는 물건 코칭 */}
+      {sleeping.length > 0 && (
+        <div className="banner">
+          <div className="small">😴 1년 넘게 안 쓴 물건이 {sleeping.length}개 있어요. 비울까요?</div>
+          <div className="sugg-row">
+            {sleeping.map((it) => (
+              <button key={it.id} className="chip" onClick={() => declutterStash(it.id)}>
+                🗑 {it.name} 비우기
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {stash.length > 0 && (
         <input className="search" placeholder="🔍 이름·위치로 검색" value={q} onChange={(e) => setQ(e.target.value)} />

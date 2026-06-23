@@ -44,6 +44,7 @@ export interface Chore {
   tip?: string;
   howtoId?: string;
   custom?: boolean;
+  weekdays?: number[]; // 요일 지정 주기 (0=일 ~ 6=토). 있으면 주기 대신 이 요일에 노출 (6-4)
 }
 
 export interface InventoryItem {
@@ -60,6 +61,7 @@ export interface ShoppingItem {
   name: string;
   checked: boolean;
   fromInventoryId?: string;
+  price?: number; // 구매 완료 시 가계부 지출로 합산 (5-3)
 }
 
 export interface Expense {
@@ -86,6 +88,11 @@ export interface LogEntry {
   type: LogType;
   label: string;
   meta?: Record<string, unknown>;
+}
+
+export interface Settings {
+  monthlyBudget?: number; // 월 예산 (6-4)
+  weatherEnabled?: boolean; // 날씨 연동 켜기 (6-2)
 }
 
 // 살림백과 (16장) — 앱 내장 상수

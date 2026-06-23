@@ -129,6 +129,7 @@ function Shopping() {
   const inventory = useStore((s) => s.inventory);
   const addShopping = useStore((s) => s.addShopping);
   const toggleShopping = useStore((s) => s.toggleShopping);
+  const setShoppingPrice = useStore((s) => s.setShoppingPrice);
   const deleteShopping = useStore((s) => s.deleteShopping);
   const purchaseChecked = useStore((s) => s.purchaseChecked);
 
@@ -194,16 +195,26 @@ function Shopping() {
                   <input type="checkbox" checked={x.checked} onChange={() => toggleShopping(x.id)} />
                   <span>{x.name}</span>
                 </label>
-                <button className="icon-btn" onClick={() => deleteShopping(x.id)} aria-label="삭제">
-                  ✕
-                </button>
+                <div className="shop-right">
+                  <input
+                    className="price-input"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="가격"
+                    value={x.price ?? ""}
+                    onChange={(e) => setShoppingPrice(x.id, Number(e.target.value))}
+                  />
+                  <button className="icon-btn" onClick={() => deleteShopping(x.id)} aria-label="삭제">
+                    ✕
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
           {checkedCount > 0 && (
             <div className="sticky-action">
               <button className="btn block" onClick={purchaseChecked}>
-                구매 완료 ({checkedCount}) — 재고 복구
+                구매 완료 ({checkedCount}) — 재고 복구 · 가계부 기록
               </button>
             </div>
           )}

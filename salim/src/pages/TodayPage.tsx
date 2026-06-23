@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
 import PlantGauge from "../components/PlantGauge";
 import TipCard from "../components/TipCard";
@@ -8,6 +8,8 @@ import { isRunningLow, avgGapDays } from "../lib/predict";
 import { seasonTips } from "../data/seasonTips";
 import { todayStr, shortKor } from "../lib/date";
 import { EFFORT_LABEL, CYCLE } from "../data/cycles";
+import { monthExpenses, sumAmount, streakDays, choresDoneInDays, countByType } from "../lib/stats";
+import { fetchWeatherSuggestions, weatherChore, type WeatherSuggestion } from "../services/weather";
 import type { Chore, Effort } from "../types";
 
 type TimeFilter = "all" | "15" | "30";
@@ -35,8 +37,26 @@ export default function TodayPage() {
   const [energy, setEnergy] = useState<EnergyFilter>("all");
   const [pinned, setPinned] = useState<Set<string>>(new Set()); // 계절 제안으로 끌어올린 이름
 
+  const weatherEnabled = useStore((s) => s.settings.weatherEnabled);
+  const setSetting = useStore((s) => s.setSetting);
+  const [weather, setWeather] = useState<WeatherSuggestion[]>([]);
+
   const score = useMemo(() => houseScore(chores), [chores]);
   const tips = useMemo(() => seasonTips(), []);
+
+  useEffect(() => {
+    let alive = true;
+    if (weatherEnabled) {
+      fetchWeatherSuggestions().then((w) => {
+        if (alive) setWeather(w);
+      });
+    } else {
+      setWeather([]);
+    }
+    return () => {
+      alive = false;
+    };
+  }, [weatherEnabled]);
 
   const todays = useMemo(() => {
     return chores
@@ -60,21 +80,39 @@ export default function TodayPage() {
         </div>
       </section>
 
-      {/* 2-2: 날씨/계절 제안 배너 */}
-      {tips.length > 0 && (
-        <section className="banner">
-          {tips.map((t) => (
-            <div key={t.text} className="banner-row">
-              <span>🌤 {t.text}</span>
-              {t.chore && (
-                <button className="link-btn" onClick={() => pullToToday(t.chore!)}>
-                  오늘 할 일로
-                </button>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
+      {/* 2-2 / 6-2: 날씨·계절 제안 배너 (날씨 켜져 있고 결과 있으면 날씨, 아니면 계절) */}
+      <section className="banner">
+        {weatherEnabled && weather.length > 0
+          ? weather.map((w) => {
+              const chore = weatherChore(w.tag);
+              return (
+                <div key={w.text} className="banner-row">
+                  <span>🌤 {w.text}</span>
+                  {chore && (
+                    <button className="link-btn" onClick={() => pullToToday(chore)}>
+                      오늘 할 일로
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          : tips.map((t) => (
+              <div key={t.text} className="banner-row">
+                <span>🗓 {t.text}</span>
+                {t.chore && (
+                  <button className="link-btn" onClick={() => pullToToday(t.chore!)}>
+                    오늘 할 일로
+                  </button>
+                )}
+              </div>
+            ))}
+        <button
+          className="link-btn small"
+          onClick={() => setSetting("weatherEnabled", !weatherEnabled)}
+        >
+          {weatherEnabled ? "날씨 연동 끄기" : "📍 날씨 연동 켜기"}
+        </button>
+      </section>
 
       {/* 2-1: 시간·기운 필터 */}
       <section className="filters">
@@ -134,9 +172,51 @@ export default function TodayPage() {
       {/* 4-5: 곧 떨어져요 요약 */}
       <RunningLowSummary />
 
+      {/* 5-4 / 6-3: 이번 달 지출 · 이번 주 요약 */}
+      <SummaryCards />
+
       {/* 2-3 / 2-4: 일지 */}
       <Journal />
     </div>
+  );
+}
+
+function SummaryCards() {
+  const expenses = useStore((s) => s.expenses);
+  const logs = useStore((s) => s.logs);
+  const budget = useStore((s) => s.settings.monthlyBudget);
+
+  const spent = useMemo(() => sumAmount(monthExpenses(expenses)), [expenses]);
+  const streak = useMemo(() => streakDays(logs), [logs]);
+  const weekChores = useMemo(() => choresDoneInDays(logs, 7), [logs]);
+  const monthDeclutter = useMemo(() => countByType(logs, "declutter", 30), [logs]);
+
+  const hasSpend = spent > 0;
+  const hasStats = streak > 0 || weekChores > 0;
+  if (!hasSpend && !hasStats) return null;
+
+  return (
+    <section className="summary-row">
+      {hasSpend && (
+        <div className="card stat">
+          <div className="stat-num">{spent.toLocaleString()}원</div>
+          <div className="dim small">
+            이번 달 지출
+            {budget ? ` · ${budget - spent >= 0 ? `${(budget - spent).toLocaleString()}원 남음` : "예산 초과"}` : ""}
+          </div>
+        </div>
+      )}
+      {hasStats && (
+        <div className="card stat">
+          <div className="stat-num">
+            🔥 {streak}일 · 🧹 {weekChores}
+          </div>
+          <div className="dim small">
+            연속 기록 · 이번 주 집안일{monthDeclutter > 0 ? ` · 비움 ${monthDeclutter}` : ""}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

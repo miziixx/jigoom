@@ -82,6 +82,8 @@ function MyChoreItem({ chore, onDone }: { chore: Chore; onDone: () => void }) {
   );
 }
 
+const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
 function ChoreEditor({ chore, onClose }: { chore: Chore; onClose: () => void }) {
   const updateChore = useStore((s) => s.updateChore);
   const deleteChore = useStore((s) => s.deleteChore);
@@ -89,6 +91,12 @@ function ChoreEditor({ chore, onClose }: { chore: Chore; onClose: () => void }) 
   const [cycle, setCycle] = useState<CycleKey>(chore.cycle);
   const [durationMin, setDuration] = useState(chore.durationMin);
   const [effort, setEffort] = useState<Effort>(chore.effort);
+  const [weekdays, setWeekdays] = useState<number[]>(chore.weekdays ?? []);
+
+  const toggleWeekday = (d: number) =>
+    setWeekdays((prev) =>
+      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort(),
+    );
 
   return (
     <div className="editor">
@@ -96,9 +104,13 @@ function ChoreEditor({ chore, onClose }: { chore: Chore; onClose: () => void }) 
         이름
         <input value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <label>
+      <label className={weekdays.length > 0 ? "dim" : ""}>
         주기
-        <select value={cycle} onChange={(e) => setCycle(e.target.value as CycleKey)}>
+        <select
+          value={cycle}
+          disabled={weekdays.length > 0}
+          onChange={(e) => setCycle(e.target.value as CycleKey)}
+        >
           {CYCLE_KEYS.map((k) => (
             <option key={k} value={k}>
               {CYCLE[k].label}
@@ -106,6 +118,21 @@ function ChoreEditor({ chore, onClose }: { chore: Chore; onClose: () => void }) 
           ))}
         </select>
       </label>
+      <div className="wd-field">
+        <span className="dim small">요일 지정 (선택 시 주기 대신 적용)</span>
+        <div className="wd-row">
+          {WEEKDAY_LABELS.map((lab, d) => (
+            <button
+              key={d}
+              type="button"
+              className={`wd-btn ${weekdays.includes(d) ? "wd-on" : ""}`}
+              onClick={() => toggleWeekday(d)}
+            >
+              {lab}
+            </button>
+          ))}
+        </div>
+      </div>
       <label>
         소요(분)
         <input
@@ -127,7 +154,7 @@ function ChoreEditor({ chore, onClose }: { chore: Chore; onClose: () => void }) 
         <button
           className="btn"
           onClick={() => {
-            updateChore(chore.id, { name, cycle, durationMin, effort });
+            updateChore(chore.id, { name, cycle, durationMin, effort, weekdays });
             onClose();
           }}
         >

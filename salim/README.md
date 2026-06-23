@@ -35,10 +35,23 @@
 나중에 스토어용 네이티브 앱으로 갈 수 있으므로, **지금 웹 코드를 그대로 재사용**하는 경로로 설계:
 
 - **Capacitor로 감싸기** — Vite 빌드 결과물을 그대로 Android/iOS 네이티브 셸로 패키징
-  (React Native 재작성 불필요).
-- **저장 로직은 추상화 레이어 뒤에** — localStorage를 직접 호출하지 않고 `storage` 모듈 하나로 통일.
+  (React Native 재작성 불필요). 설정은 `capacitor.config.json`에 준비됨.
+- **저장 로직은 추상화 레이어 뒤에** — localStorage를 직접 호출하지 않고 `src/lib/storage.ts` 하나로 통일.
   네이티브 전환 시 `@capacitor/preferences`·SQLite로 교체만 하면 됨.
-- **웹 전용 API 격리** — 위치/날씨 등은 서비스 모듈로 분리.
+- **웹 전용 API 격리** — 위치/날씨는 `src/services/weather.ts`로 분리.
+
+#### 스토어 출시 시 (Mac + Android Studio/Xcode 필요)
+
+```bash
+npm i -D @capacitor/cli && npm i @capacitor/core @capacitor/android @capacitor/ios
+npm run build              # dist/ 생성
+npx cap add android        # (또는 ios)
+npx cap sync
+npx cap open android       # Android Studio에서 빌드/서명/업로드
+```
+
+> 이 저장소 환경엔 모바일 SDK가 없어 실제 네이티브 빌드는 위 단계를 로컬에서 실행해야 함.
+> 앱 코드는 이미 호환되게(상대경로 `base:'./'`, HashRouter, 저장 추상화) 작성돼 있음.
 
 ---
 

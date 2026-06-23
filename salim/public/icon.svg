@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#3b9b4f"/>
+  <!-- 화분 -->
+  <rect x="176" y="300" width="160" height="34" rx="8" fill="#d98c5f"/>
+  <path d="M188 334 L324 334 L306 430 L206 430 Z" fill="#c8794b"/>
+  <!-- 줄기 -->
+  <rect x="250" y="180" width="12" height="124" rx="6" fill="#6b8f4e"/>
+  <!-- 잎 -->
+  <path d="M256 250 C 220 226 196 236 178 270 C 214 286 244 280 256 250 Z" fill="#eaf3ea"/>
+  <path d="M256 250 C 292 226 316 236 334 270 C 298 286 268 280 256 250 Z" fill="#eaf3ea"/>
+  <path d="M256 214 C 232 196 214 200 202 226 C 230 240 250 236 256 214 Z" fill="#f4f9f0"/>
+  <path d="M256 214 C 280 196 298 200 310 226 C 282 240 262 236 256 214 Z" fill="#f4f9f0"/>
+  <!-- 꽃 -->
+  <g transform="translate(256 176)">
+    <circle cx="0" cy="-22" r="12" fill="#f6b8cf"/>
+    <circle cx="21" cy="-7" r="12" fill="#f6b8cf"/>
+    <circle cx="13" cy="18" r="12" fill="#f6b8cf"/>
+    <circle cx="-13" cy="18" r="12" fill="#f6b8cf"/>
+    <circle cx="-21" cy="-7" r="12" fill="#f6b8cf"/>
+    <circle cx="0" cy="0" r="11" fill="#f4d35e"/>
+  </g>
+</svg>

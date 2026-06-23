@@ -703,6 +703,106 @@ select {
   font-weight: 600;
 }
 
+/* ── 가계부 ────────────────────────────────────── */
+.ledger-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.ledger-total {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--green-d);
+}
+.cat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cat-bar {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.cat-bar-label {
+  font-size: 13px;
+}
+.cat-bar-track {
+  height: 10px;
+  background: var(--surface-2);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.cat-bar-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 20px;
+}
+.cat-bar-amt {
+  color: var(--dim);
+}
+.expense-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 장보기 가격 입력 */
+.shop-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.price-input {
+  width: 76px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  text-align: right;
+}
+
+/* 오늘 요약 카드 */
+.summary-row {
+  display: flex;
+  gap: 10px;
+}
+.stat {
+  flex: 1;
+  text-align: center;
+}
+.stat-num {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--green-d);
+}
+
+/* 요일 지정 */
+.wd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wd-row {
+  display: flex;
+  gap: 4px;
+}
+.wd-btn {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.wd-on {
+  background: var(--green-soft);
+  border-color: var(--green);
+  color: var(--green-d);
+  font-weight: 700;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gauge-fill {
     transition: none;

@@ -12,6 +12,7 @@ import type {
   InventoryItem,
   LogEntry,
   LogType,
+  Settings,
   ShoppingItem,
   StashItem,
 } from "../types";
@@ -23,7 +24,10 @@ interface AppState {
   expenses: Expense[];
   stash: StashItem[];
   logs: LogEntry[];
-  settings: Record<string, unknown>;
+  settings: Settings;
+
+  // 설정
+  setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
 
   // 로그
   addLog: (type: LogType, label: string, meta?: Record<string, unknown>) => void;
@@ -47,13 +51,17 @@ interface AppState {
   setThreshold: (id: string, threshold: number) => void;
   deleteInventory: (id: string) => void;
 
+  // 보관 — 잠자는 물건 (5-5)
+  declutterStash: (id: string) => void;
+
   // 장보기
   addShopping: (name: string, fromInventoryId?: string) => void;
   toggleShopping: (id: string) => void;
+  setShoppingPrice: (id: string, price: number) => void;
   deleteShopping: (id: string) => void;
   purchaseChecked: () => void;
 
-  // 가계부 (기본 — 5단계에서 확장)
+  // 가계부
   addExpense: (input: Omit<Expense, "id">) => void;
   deleteExpense: (id: string) => void;
 }
@@ -68,6 +76,9 @@ export const useStore = create<AppState>()(
       stash: [],
       logs: [],
       settings: {},
+
+      setSetting: (key, value) =>
+        set((s) => ({ settings: { ...s.settings, [key]: value } })),
 
       addLog: (type, label, meta) =>
         set((s) => ({
@@ -175,6 +186,12 @@ export const useStore = create<AppState>()(
       deleteStash: (id) =>
         set((s) => ({ stash: s.stash.filter((it) => it.id !== id) })),
 
+      declutterStash: (id) => {
+        const item = get().stash.find((it) => it.id === id);
+        set((s) => ({ stash: s.stash.filter((it) => it.id !== id) }));
+        if (item) get().addLog("declutter", `${item.name} 비움`, { name: item.name });
+      },
+
       addInventory: (name, qty, threshold) =>
         set((s) => ({
           inventory: [
@@ -223,6 +240,13 @@ export const useStore = create<AppState>()(
           ),
         })),
 
+      setShoppingPrice: (id, price) =>
+        set((s) => ({
+          shopping: s.shopping.map((x) =>
+            x.id === id ? { ...x, price: Math.max(0, price) } : x,
+          ),
+        })),
+
       deleteShopping: (id) =>
         set((s) => ({ shopping: s.shopping.filter((x) => x.id !== id) })),
 
@@ -256,6 +280,17 @@ export const useStore = create<AppState>()(
               inventoryId: item.fromInventoryId,
             });
           }
+        }
+
+        // 5-3: 가격이 입력된 항목 합계를 가계부에 '장보기' 지출로 자동 연동
+        const total = checked.reduce((sum, x) => sum + (x.price ?? 0), 0);
+        if (total > 0) {
+          get().addExpense({
+            date: today,
+            amount: total,
+            category: "장보기",
+            memo: checked.map((x) => x.name).join(", "),
+          });
         }
       },
 

@@ -110,3 +110,34 @@
 - `vite preview` 서빙 확인(상대경로 `./assets/...`, base './' 적용).
 
 > 다음 작업: `5단계 — 가계부 + 장보기 연동 + 잠자는 물건` (사용자 지시 대기).
+
+---
+
+## 2026-06-23 — 5단계 + 향후(6단계) 전부 자동 구현 ✅ (사용자 "나머지 단계 다 자동실행")
+
+### 5단계 — 가계부 + 장보기 연동 + 잠자는 물건
+- `pages/LedgerPage.tsx` — 지출 추가(금액/분류/메모/날짜)·내역·삭제(5-1), 월 합계 + 카테고리 비중 막대(5-2), 월 예산 설정·진행 바·초과 경고.
+- 장보기 항목에 가격 입력 추가 → '구매 완료' 시 합계를 '장보기' 지출로 가계부 자동 기록(5-3). `store`: `setShoppingPrice`, `purchaseChecked`에 expense 연동, `ShoppingItem.price`.
+- 오늘 탭 '이번 달 지출' 요약 카드(5-4) — `lib/stats.ts`(monthExpenses/byCategory/sum).
+- `pages/StashPage.tsx` — 1년+ 미사용 '비울까요?' 배너 → `declutterStash`(일지 declutter 기록)(5-5).
+
+### 향후(6단계) — 선택 항목 전부 처리
+- **6-1 PWA**: `vite-plugin-pwa` 설치·설정, `public/icon.svg`(화분 아이콘), manifest/sw 생성 확인. 오프라인·홈 화면 설치 가능.
+- **6-2 날씨**: `services/weather.ts` — 키 없는 Open-Meteo + geolocation. 오늘 탭에서 '날씨 연동 켜기' 토글(`settings.weatherEnabled`). 실패·거부·오프라인 시 계절(오프라인) 규칙으로 폴백.
+- **6-3 통계**: `lib/stats.ts` streak(연속 기록)·주간 집안일 수·월 비움 수 → 오늘 탭 요약 카드.
+- **6-4 예산·요일 주기**: 가계부 월 예산(`settings.monthlyBudget`) + 초과 경고. 집안일 편집기에 요일 지정(0~6) → `isDue`가 요일 기반 판정(주기 대체).
+- **6-5 살림백과 추가**: 시드 22 → 28개(냉장고 냄새, 물때, 옷 수축, 동파, 화재 안전 등).
+- **6-6 Capacitor 준비**: `capacitor.config.json` + README에 출시 절차 문서화. 코드가 이미 호환(상대경로·HashRouter·저장 추상화). 실제 네이티브 빌드는 Mac/Android SDK 필요(이 환경엔 없음).
+
+### 타입/스토어 확장
+- `types`: Chore.weekdays, ShoppingItem.price, Settings(monthlyBudget·weatherEnabled).
+- `store`: setSetting, declutterStash, setShoppingPrice, purchaseChecked→가계부 연동.
+
+### 검증
+- `npm run build`(엄격 tsc + vite + PWA) 통과. 71 모듈, JS gzip ~75kB. sw.js·manifest.webmanifest 생성.
+- `vite preview` — manifest/registerSW 주입·아이콘 서빙 확인.
+
+### 남은 권장(직접 확인 필요)
+- 실제 브라우저/폰에서 UX 점검(`npm run dev`), PWA용 PNG 아이콘 추가(현재 SVG), 날씨 권한 동작 확인, Capacitor 네이티브 빌드(로컬 SDK).
+
+> 기획서 1~5단계 + 향후 항목까지 1차 구현 완료. 이후엔 사용성 다듬기·콘텐츠 확장 중심.
