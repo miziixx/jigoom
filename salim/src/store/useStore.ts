@@ -152,12 +152,15 @@ export const useStore = create<AppState>()(
 
       completeChore: (id) => {
         const chore = get().chores.find((c) => c.id === id);
+        if (!chore) return;
+        // 같은 날 이미 완료한 일은 무시 (일지·주간 카운트 중복 방지)
+        if (chore.lastDone === todayStr()) return;
         set((s) => ({
           chores: s.chores.map((c) =>
             c.id === id ? { ...c, lastDone: todayStr() } : c,
           ),
         }));
-        if (chore) get().addLog("chore", `${chore.name} 완료`, { choreId: id });
+        get().addLog("chore", `${chore.name} 완료`, { choreId: id });
       },
 
       updateChore: (id, patch) =>
