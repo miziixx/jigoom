@@ -15,6 +15,7 @@ export default defineConfig({
         name: "살림 관리",
         short_name: "살림",
         description: "집을 돌보는 살림 동반자 — 집안일·재고·가계부·보관",
+        lang: "ko",
         theme_color: "#3b9b4f",
         background_color: "#faf7f2",
         display: "standalone",

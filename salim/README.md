@@ -55,6 +55,21 @@ npx cap open android       # Android Studio에서 빌드/서명/업로드
 
 ---
 
+## 폰에서 쓰기 (배포)
+
+`claude/repository-structure-decision-i47yd6` 또는 `main`에 `salim/`이 푸시되면
+GitHub Actions(`.github/workflows/deploy-salim-pages.yml`)가 자동 빌드·배포합니다.
+
+- 공개 주소: **https://miziixx.github.io/myapps/**
+- 폰 브라우저로 위 주소를 열고 → 브라우저 메뉴 → **'홈 화면에 추가'**(PWA 설치)
+- 데이터는 그 기기의 localStorage에 저장됨(기기별 독립, 서버 없음)
+
+> **최초 1회만** 저장소 **Settings → Pages → Source를 "GitHub Actions"**로 지정해야 할 수 있어요
+> (워크플로가 자동 활성화를 시도하지만 권한에 따라 수동 지정이 필요할 수 있음).
+>
+> 배포 빌드는 Pages 하위 경로(`/myapps/`)에 맞춰 `--base=/myapps/`로 빌드합니다.
+> 로컬 개발(`npm run dev`)·Capacitor는 기본 상대경로(`./`)를 그대로 씁니다.
+
 ## 화면 구성 (하단 탭 6개)
 
 `오늘` · `집안일` · `살림` · `가계부` · `보관` · `백과(살림백과)`

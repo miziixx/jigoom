@@ -141,3 +141,27 @@
 - 실제 브라우저/폰에서 UX 점검(`npm run dev`), PWA용 PNG 아이콘 추가(현재 SVG), 날씨 권한 동작 확인, Capacitor 네이티브 빌드(로컬 SDK).
 
 > 기획서 1~5단계 + 향후 항목까지 1차 구현 완료. 이후엔 사용성 다듬기·콘텐츠 확장 중심.
+
+---
+
+## 2026-06-23 — 폰에서 쓰기: GitHub Pages 자동 배포 ✅
+
+### 무엇을 / 왜
+원격 컨테이너의 dev 서버는 폰에서 접속 불가 → 공개 URL 배포 필요. 사용자가 GitHub Pages 선택.
+저장소 GitHub Actions로 `salim/`을 빌드·배포 → 폰에서 `https://miziixx.github.io/myapps/` 접속·PWA 설치.
+
+### 어떤 파일
+- `.github/workflows/deploy-salim-pages.yml` — push(작업 브랜치/main, `salim/**`) + 수동 트리거.
+  build(node 20, `npm ci`, `npm run build -- --base=/myapps/`, configure-pages enablement) → deploy-pages.
+- `salim/vite.config.ts` — PWA manifest에 `lang: "ko"` 추가.
+- `salim/README.md` — '폰에서 쓰기(배포)' 섹션(공개 URL·Pages 활성화·홈 화면 추가).
+
+### 핵심 결정
+- Pages 하위 경로(`/myapps/`) 대응을 위해 **배포 빌드만 `--base=/myapps/`**. 로컬·Capacitor는 `./` 유지.
+- HashRouter라 SPA 새로고침 404 없음.
+
+### 사용자 1회 설정 / 한계
+- 첫 배포 시 저장소 Settings → Pages → Source "GitHub Actions" 수동 지정이 필요할 수 있음(권한 의존).
+- iOS Safari 홈 화면 아이콘은 PNG(apple-touch-icon) 권장 — 현재 SVG, 추후 보완.
+
+> 다음: 푸시 후 Actions 성공 확인 → 폰 접속 테스트.
