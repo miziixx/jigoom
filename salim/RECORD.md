@@ -67,3 +67,46 @@
 - `npm run build`(tsc -b && vite build) 통과 — 타입 에러 없음, dist 생성(JS ~143kB / gzip 46kB).
 
 > 다음 작업: `0-2 전역 스타일/테마(CSS 변수) + 모바일 레이아웃 베이스` (사용자 "다음" 지시 대기).
+
+---
+
+## 2026-06-23 — 0-2 ~ 4-5 일괄 구현 ✅ (사용자 "4단계까지 쭉 진행" 지시)
+
+> 사용자가 한 번에 4단계까지 진행하라고 해서, 0-2부터 4-5까지 구현하고 빌드 검증.
+
+### 기반 레이어 (0-2~0-6, 3-1)
+- `src/types/index.ts` — 11장 모든 타입(Chore, InventoryItem, Expense, StashItem, LogEntry, HowToEntry 등).
+- `src/data/cycles.ts` — CYCLE 상수(5장) + EFFORT_LABEL.
+- `src/data/choreTemplates.ts` — 12장 집안일 마스터 전체(카테고리·주기·시간·난이도·날씨/계절 태그). 일부에 tip/howtoId로 살림백과 연결.
+- `src/data/howtos.ts` — 16장 살림백과 시드 22개(냄새/곰팡이·물때/막힘·고장/얼룩/벌레/빨래기초/응급·안전/자취 첫 세팅) + 검색·조회 헬퍼.
+- `src/data/seasonTips.ts` — 8장 계절(월 기반 오프라인) 제안 규칙.
+- `src/lib/storage.ts` — **저장 추상화**(localStorage, 향후 Capacitor 교체 지점). `src/lib/{id,date,chores,condition,predict}.ts` 유틸.
+- `src/store/useStore.ts` — Zustand + persist(추상화 storage 사용). chores/inventory/shopping/expenses/stash/logs/settings + 액션 전부.
+- `src/index.css` — 디자인 토큰(화분/그린 테마) + 전 컴포넌트 스타일. 모바일 우선(max-width 480px).
+- 라우팅: `App.tsx` HashRouter(정적·Capacitor file:// 대비) + `Layout`(상단바·검색 아이콘 3-6) + `BottomTabBar`(6탭).
+
+### 1단계 (집안일 + 컨디션 + 보관)
+- `pages/ChoresPage.tsx` — 마스터 아코디언 다중 체크 담기(1-1) / 내 집안일 완료·수정·삭제·직접추가(1-2).
+- `lib/chores.ts` isDue·daysOverdue(1-3), `lib/condition.ts` choreHealth·houseScore·레벨(1-5).
+- `components/PlantGauge.tsx` 화분 SVG(레벨별 잎/꽃·시듦)(1-6) + 오늘 탭 게이지 바 width 트랜지션(차오름).
+- `pages/StashPage.tsx` 보관: 추가/검색/삭제 + '오늘 꺼냈어요'(lastTouched)(1-7).
+
+### 2단계 (필터 + 계절 + 일지)
+- `pages/TodayPage.tsx` — 시간·기운 필터 칩·필터링(2-1), 계절 배너 + '오늘 할 일로' 끌어올림(2-2), 오늘 일지 타임라인(2-3), 지난 기록 일자별(2-4).
+
+### 3단계 (살림백과)
+- `pages/EncyclopediaPage.tsx` — 큰 검색창 keywords 매칭(3-2), 카테고리 카드 둘러보기(3-3), 항목 상세(왜→해결→예방→⚠️, emergency 빨강 상단 강조)(3-4), 관련 집안일 '추가'.
+- `components/TipCard.tsx` — 집안일 💡팁 + '더 자세히' howtoId 링크(3-5). 상단 검색 아이콘(3-6).
+
+### 4단계 (재고 + 장보기 + 예측)
+- `pages/SupplyPage.tsx` — 재고 추가/수량±/알림기준/부족 뱃지(4-1), 장보기 추가·체크·삭제 + 부족 재고 자동 노출(4-2), '구매 완료' → 재고 복구 + 구매일 저장(4-3).
+- `lib/predict.ts` — 소비속도 예측(평균 간격 → 소진 예상일) + isRunningLow(4-4). 오늘 탭 '곧 떨어져요' 요약(4-5).
+
+### 가계부(5단계)는 자리만
+- `pages/LedgerPage.tsx` 플레이스홀더. 구매 완료 시 일지에 'purchase/restock'로만 기록(지출 연동은 5-3).
+
+### 검증
+- `npm run build`(tsc 엄격 + vite) 통과, 경고 0. 69 모듈, JS gzip ~72kB / CSS gzip ~2.4kB.
+- `vite preview` 서빙 확인(상대경로 `./assets/...`, base './' 적용).
+
+> 다음 작업: `5단계 — 가계부 + 장보기 연동 + 잠자는 물건` (사용자 지시 대기).
