@@ -1,3 +1,10 @@
+# 비밀키 / 환경변수 (절대 커밋 금지)
+.env
+.env.*
+*.local.env
+config.local.js
+**/config.local.js
+
 # Miscellaneous
 *.class
 *.log

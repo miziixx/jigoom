@@ -528,12 +528,20 @@ button,input{font-family:inherit;}
 </div><!-- #app -->
 
 <script>
-/* ══ SUPABASE 설정 ══════════════════════════════════════════════
-   supabase-setup.sql 실행 후 아래 두 줄을 채워줘.
-   채우지 않으면 로컬 전용(localStorage)으로 동작해.
+/* ══ SUPABASE 설정 (연결 대상은 여기 한 곳만 보면 됨) ══════════════
+   ▸ supabase-setup.sql 을 먼저 실행해 테이블을 만들어 둘 것.
+   ▸ SB_KEY 는 '퍼블리시블(공개용·anon) 키'다. 브라우저에 노출되도록
+     설계된 키라 코드에 들어 있어도 안전하다. 실제 데이터 보호는
+     Supabase RLS('본인 데이터만 접근')가 막아준다. (supabase-setup.sql 참고)
+   ▸ 절대 넣지 말 것: service_role(비밀) 키 — 그건 브라우저에 두면 안 됨.
+   ▸ 키를 코드에 두기 싫으면, 이 <script> '앞'에서
+        window.__SB_URL = '...'; window.__SB_KEY = '...';
+     를 먼저 정의하면 그 값이 우선 적용된다. (그 파일은 .gitignore 에 넣어
+     커밋되지 않게 할 것 — 예: config.local.js)
+   ▸ 비워두면(아래 placeholder 그대로면) 로컬 전용(localStorage)으로 동작.
    ════════════════════════════════════════════════════════════ */
-var SB_URL = 'https://zmwzbipnaidydziycnbc.supabase.co';   // 예: https://abcxyz.supabase.co
-var SB_KEY = 'sb_publishable_6_SK0EwoHDztbigjrHLeoA_K4N2O-FH';       // Supabase > Settings > API > anon public
+var SB_URL = (typeof window!=="undefined" && window.__SB_URL) || 'https://zmwzbipnaidydziycnbc.supabase.co';
+var SB_KEY = (typeof window!=="undefined" && window.__SB_KEY) || 'sb_publishable_6_SK0EwoHDztbigjrHLeoA_K4N2O-FH';  // 퍼블리시블(공개용) 키
 
 var SB_CONFIGURED = SB_URL !== 'YOUR_SUPABASE_URL' && SB_KEY !== 'YOUR_ANON_KEY';
 // CDN 차단·오프라인 등으로 supabase-js 라이브러리 자체가 안 떴을 수도 있음 → 있을 때만 클라우드 모드
