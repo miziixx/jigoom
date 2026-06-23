@@ -100,11 +100,13 @@ export interface HowToEntry {
   id: string;
   category: string;
   title: string;
+  summary?: string; // 목록에서 제목 아래 보여줄 한 줄 설명
   keywords: string[];
   cause?: string;
   steps: string[];
   prevent?: string[];
   caution?: string;
   emergency?: boolean;
+  featured?: boolean; // 백과 첫 화면 '자주 찾는 항목'에 노출
   relatedChores?: string[];
 }

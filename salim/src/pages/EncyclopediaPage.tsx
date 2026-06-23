@@ -1,8 +1,30 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "../store/useStore";
-import { HOWTO_CATEGORIES, HOWTOS, findHowto, searchHowtos } from "../data/howtos";
+import {
+  HOWTO_CATEGORIES,
+  HOWTOS,
+  FEATURED_HOWTOS,
+  countByCategory,
+  findHowto,
+  searchHowtos,
+} from "../data/howtos";
 import type { HowToEntry } from "../types";
+
+function HowtoRow({ h, onClick }: { h: HowToEntry; onClick: () => void }) {
+  return (
+    <li className="card howto-row" onClick={onClick}>
+      <div className="howto-row-main">
+        <div className="howto-row-title">
+          {h.emergency ? "🚨 " : ""}
+          {h.title}
+        </div>
+        {h.summary && <div className="howto-row-sum dim small">{h.summary}</div>}
+      </div>
+      <span className="howto-row-arr dim">›</span>
+    </li>
+  );
+}
 
 export default function EncyclopediaPage() {
   const [params, setParams] = useSearchParams();
@@ -22,6 +44,8 @@ export default function EncyclopediaPage() {
     return <Detail entry={selected} onBack={() => setParams({})} />;
   }
 
+  const open = (id: string) => setParams({ id });
+
   return (
     <div className="page">
       <input
@@ -29,7 +53,6 @@ export default function EncyclopediaPage() {
         placeholder="🔍 증상·문제로 검색 (쉰내, 곰팡이, 변기 막힘…)"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        autoFocus
       />
 
       {q.trim() ? (
@@ -39,17 +62,26 @@ export default function EncyclopediaPage() {
             <p className="dim">다른 단어로 찾거나 아래 카테고리를 둘러보세요.</p>
           </div>
         ) : (
-          <ul className="list">
-            {results.map((h) => (
-              <li key={h.id} className="card howto-row" onClick={() => setParams({ id: h.id })}>
-                <span>{h.emergency ? "🚨 " : ""}{h.title}</span>
-                <span className="dim small">{h.category}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <div className="dim small enc-count">{results.length}개 항목</div>
+            <ul className="list">
+              {results.map((h) => (
+                <HowtoRow key={h.id} h={h} onClick={() => open(h.id)} />
+              ))}
+            </ul>
+          </>
         )
       ) : (
         <>
+          {/* 자주 찾는 항목 */}
+          <h2 className="sec-title">자주 찾는 항목</h2>
+          <ul className="list">
+            {FEATURED_HOWTOS.map((h) => (
+              <HowtoRow key={h.id} h={h} onClick={() => open(h.id)} />
+            ))}
+          </ul>
+
+          {/* 카테고리 둘러보기 (항목 수 표시) */}
           <h2 className="sec-title">카테고리 둘러보기</h2>
           <div className="cat-grid">
             {HOWTO_CATEGORIES.map((c) => (
@@ -58,16 +90,15 @@ export default function EncyclopediaPage() {
                 className={`cat-card ${cat === c ? "cat-on" : ""}`}
                 onClick={() => setCat(cat === c ? null : c)}
               >
-                {c}
+                <span className="cat-card-name">{c}</span>
+                <span className="cat-card-count dim">{countByCategory(c)}</span>
               </button>
             ))}
           </div>
           {cat && (
             <ul className="list">
               {browse.map((h) => (
-                <li key={h.id} className="card howto-row" onClick={() => setParams({ id: h.id })}>
-                  <span>{h.emergency ? "🚨 " : ""}{h.title}</span>
-                </li>
+                <HowtoRow key={h.id} h={h} onClick={() => open(h.id)} />
               ))}
             </ul>
           )}
@@ -88,10 +119,13 @@ function Detail({ entry, onBack }: { entry: HowToEntry; onBack: () => void }) {
       </button>
 
       <article className={`howto ${entry.emergency ? "emergency" : ""}`}>
+        <div className="dim small howto-cat">{entry.category}</div>
         <h1 className="howto-title">
           {entry.emergency ? "🚨 " : ""}
           {entry.title}
         </h1>
+
+        {entry.summary && <p className="howto-lead">{entry.summary}</p>}
 
         {entry.emergency && entry.caution && (
           <div className="caution top">⚠️ {entry.caution}</div>

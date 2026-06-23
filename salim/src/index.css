@@ -635,7 +635,27 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   cursor: pointer;
+}
+.howto-row-main {
+  min-width: 0;
+}
+.howto-row-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+.howto-row-sum {
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.howto-row-arr {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.enc-count {
+  margin: 2px 0 8px;
 }
 .cat-grid {
   display: grid;
@@ -643,17 +663,32 @@ select {
   gap: 8px;
 }
 .cat-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 16px 10px;
+  padding: 14px 14px;
   font-size: 14px;
   font-weight: 600;
+}
+.cat-card-count {
+  font-weight: 600;
+  font-size: 13px;
 }
 .cat-on {
   background: var(--green-soft);
   border-color: var(--green);
   color: var(--green-d);
+}
+.howto-cat {
+  margin-bottom: 2px;
+}
+.howto-lead {
+  margin: 0 0 8px;
+  color: var(--dim);
+  line-height: 1.5;
 }
 .howto {
   background: var(--surface);
