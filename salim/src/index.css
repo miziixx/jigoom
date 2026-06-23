@@ -987,7 +987,8 @@ select {
    카드/섹션은 통째로 유지돼 단 경계에서 깨지지 않는다. */
 @media (min-width: 900px) {
   #root {
-    max-width: min(1280px, 100%);
+    max-width: none; /* PC에서 양옆 여백 없이 전체 폭 채움 */
+    width: 100%;
   }
 
   /* 2열 그리드: [사이드바] [상단바 / 본문] */
@@ -1051,13 +1052,11 @@ select {
     background: var(--green-soft);
   }
 
-  /* 본문: 넓은 화면을 채우되 너무 늘어지지 않게 가운데 정렬한 단일 흐름.
+  /* 본문: 전체 폭을 채움(양옆 여백 없음).
      안의 리스트/카테고리가 폭에 맞춰 여러 열로 펼쳐진다. */
   .page {
-    max-width: 980px;
     width: 100%;
-    margin-inline: auto;
-    padding: 20px 24px 32px;
+    padding: 20px 28px 36px;
   }
 
   /* 리스트 = 폭에 맞춰 열이 늘었다 줄었다 하는 카드 그리드.
@@ -1084,15 +1083,5 @@ select {
   .sticky-action {
     position: static;
     bottom: auto;
-  }
-}
-
-/* 아주 넓은 화면: 컨테이너·본문을 더 키우고 카드 열도 자연히 늘어난다 */
-@media (min-width: 1400px) {
-  #root {
-    max-width: 1440px;
-  }
-  .page {
-    max-width: 1200px;
   }
 }

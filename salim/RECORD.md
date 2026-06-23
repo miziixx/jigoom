@@ -339,3 +339,8 @@ PC 레이아웃이 `.page`에 CSS `column-count`(신문식 다단)을 써서 본
 ### 검증
 - `npm run build`(엄격 tsc + vite + PWA) 통과, 타입 에러 0. 72 모듈.
 - UI 크롬 이모지 0 확인(의도한 따뜻한 문구 제외). 육안 확인은 Vercel 배포 후 권장.
+
+### 후속 — PC 양옆 여백 제거(full-bleed) (사용자 "양쪽 여백 없게")
+- `#root` 데스크톱 `max-width: none`(기존 1280/1440 캡 제거) → 전체 폭 채움.
+- `.page` 가운데 정렬·max-width 제거 → 본문도 폭 채움. `.list` 그리드라 폭 넓어지면 열 수 자동 증가.
+- `.howto`(백과 상세)만 760px 가독 폭 유지(읽기 화면). `npm run build` 통과.
