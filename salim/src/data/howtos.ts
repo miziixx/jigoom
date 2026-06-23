@@ -381,6 +381,12 @@ export function searchHowtos(query: string): HowToEntry[] {
   if (!q) return [];
   return HOWTOS.filter((h) => {
     if (h.title.toLowerCase().includes(q)) return true;
-    return h.keywords.some((k) => k.toLowerCase().includes(q) || q.includes(k.toLowerCase()));
+    return h.keywords.some((k) => {
+      const kw = k.toLowerCase();
+      // 정방향: 키워드가 검색어를 포함 (예: "곰팡" → "곰팡이")
+      if (kw.includes(q)) return true;
+      // 역방향: 검색어가 키워드를 포함 — 한 글자 키워드는 과매칭이라 제외
+      return kw.length >= 2 && q.includes(kw);
+    });
   });
 }

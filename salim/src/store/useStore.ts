@@ -308,6 +308,20 @@ export const useStore = create<AppState>()(
     {
       name: STORAGE_KEY,
       storage: createJSONStorage(() => appStorage),
+      // 데이터 모델이 바뀌어도 기존 폰의 저장 데이터가 깨지지 않도록 버전 관리.
+      // 향후 구조 변경 시 version을 올리고 migrate에서 옛 상태를 변환한다.
+      version: 1,
+      migrate: (persisted) => persisted as AppState,
+      // 액션(함수)은 저장 대상에서 제외 — 데이터 필드만 영구 저장.
+      partialize: (s) => ({
+        chores: s.chores,
+        inventory: s.inventory,
+        shopping: s.shopping,
+        expenses: s.expenses,
+        stash: s.stash,
+        logs: s.logs,
+        settings: s.settings,
+      }),
     },
   ),
 );
