@@ -672,6 +672,7 @@ var KEY_EMAIL="myDash.lastEmail";
 var KEY_BACKUP="myDash.backup";   // 동기화로 덮어쓰기 직전의 로컬 스냅샷 (복구용)
 var KEY_MEMOS="myDash.memos";
 var KEY_DIARY="myDash.diary";
+var KEY_UTPL="myDash.userTemplates";   // 내 템플릿 (사용자가 저장한 프로젝트 골격)
 
 /* ══ 프로젝트 / 루틴 기본값 ══ */
 var PROJ_NONE="__none__";
@@ -697,6 +698,10 @@ function loadLocalMemos(){
 }
 function loadLocalDiary(){
   try{ var c=JSON.parse(localStorage.getItem(KEY_DIARY)); return Array.isArray(c)?c:[]; }
+  catch(e){ return []; }
+}
+function loadLocalUserTemplates(){
+  try{ var c=JSON.parse(localStorage.getItem(KEY_UTPL)); return Array.isArray(c)?c:[]; }
   catch(e){ return []; }
 }
 
@@ -775,6 +780,7 @@ function saveLocal(){
     localStorage.setItem(KEY_RT,JSON.stringify(state.routines));
     localStorage.setItem(KEY_MEMOS,JSON.stringify(state.memos));
     localStorage.setItem(KEY_DIARY,JSON.stringify(state.diary));
+    localStorage.setItem(KEY_UTPL,JSON.stringify(state.userTemplates));
     localStorage.setItem(KEY_TS,new Date().toISOString());
   }catch(e){}
 }
@@ -787,6 +793,7 @@ var state={
   routines:loadLocalRoutines(),
   memos:loadLocalMemos(),
   diary:loadLocalDiary(),
+  userTemplates:loadLocalUserTemplates(),
   diaryDate:TODAY,
   screen:"summary", view:"bucket", hideDone:false,
   newCat:"미분류", editingId:null,
@@ -799,6 +806,39 @@ var state={
 };
 var currentUser=null;
 var realtimeSub=null;
+
+/* ══ 데이터 정규화 (신규 필드 하위호환) ═══════════════════════
+   기존 데이터를 깨지 않고 새 필드를 채워 넣는다.
+   - 할일(task): proj/date 기본 null, order(프로젝트 내 단계 순서) 채우기
+   - 프로젝트(project): archived 기본 false, createdAt·cat·templateId 채우기
+   - userTemplates: 항상 배열 보장
+   * proj 가 곧 projectId(소속 프로젝트). 단독 할일이면 null = 기존 동작 그대로.
+   로드 시점과 동기화 병합 직후에 호출한다. */
+function normalizeData(){
+  if(!Array.isArray(state.userTemplates)) state.userTemplates=[];
+  // 프로젝트별 현재 최대 order 파악 → 비어있는 항목만 그 뒤로 채움
+  var maxOrder={};
+  state.tasks.forEach(function(t){
+    var k=t.proj||PROJ_NONE;
+    if(typeof t.order==="number" && (maxOrder[k]==null||t.order>maxOrder[k])) maxOrder[k]=t.order;
+  });
+  state.tasks.forEach(function(t){
+    if(t.proj===undefined) t.proj=null;
+    if(t.date===undefined) t.date=null;
+    if(typeof t.order!=="number"){
+      var k=t.proj||PROJ_NONE;
+      maxOrder[k]=(maxOrder[k]==null?0:maxOrder[k]+1);
+      t.order=maxOrder[k];
+    }
+  });
+  state.projects.forEach(function(p){
+    if(typeof p.archived!=="boolean") p.archived=false;
+    if(!p.createdAt) p.createdAt=new Date().toISOString();
+    if(p.cat===undefined) p.cat=null;
+    if(p.templateId===undefined) p.templateId=null;
+  });
+}
+normalizeData();
 
 /* ══ 동기화 상태 표시 ══ */
 var syncStatus="idle";   // idle | syncing | error | offline
@@ -854,7 +894,7 @@ function snapshotBackup(){
   try{
     localStorage.setItem(KEY_BACKUP, JSON.stringify({
       tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines,
-      memos:state.memos, diary:state.diary,
+      memos:state.memos, diary:state.diary, userTemplates:state.userTemplates,
       savedAt:new Date().toISOString()
     }));
   }catch(e){}
@@ -883,6 +923,7 @@ async function syncOnLoad(){
     var sRt   =Array.isArray(srv.routines)?srv.routines:[];
     var sMemo =Array.isArray(srv.memos)?srv.memos:[];
     var sDiary=Array.isArray(srv.diary)?srv.diary:[];
+    var sUtpl =Array.isArray(srv.user_templates)?srv.user_templates:[];
     // localTs===0 이면 이 기기에 저장된 적 없음 → SEED 데이터를 서버에 섞지 않음
     var freshDevice = (localTs === 0);
     if(serverNewer){
@@ -892,6 +933,7 @@ async function syncOnLoad(){
       state.routines = freshDevice ? sRt.slice()   : mergeByKey(sRt, state.routines, byId);
       state.memos    = freshDevice ? sMemo.slice()  : mergeByKey(sMemo, state.memos, byId);
       state.diary    = freshDevice ? sDiary.slice() : mergeByKey(sDiary, state.diary, byId);
+      state.userTemplates = freshDevice ? sUtpl.slice() : mergeByKey(sUtpl, state.userTemplates, byId);
       if(srv.theme){ state.theme=srv.theme; applyTheme(srv.theme); }
     } else {
       state.tasks    = mergeByKey(state.tasks, sTasks, byId);
@@ -900,9 +942,11 @@ async function syncOnLoad(){
       state.routines = mergeByKey(state.routines, sRt, byId);
       state.memos    = mergeByKey(state.memos, sMemo, byId);
       state.diary    = mergeByKey(state.diary, sDiary, byId);
+      state.userTemplates = mergeByKey(state.userTemplates, sUtpl, byId);
     }
     recalcMaxId();
     sanitizeColors();
+    normalizeData();
     saveLocal();
     syncRetries=0; if(syncTimer){clearTimeout(syncTimer);syncTimer=null;}
     recalcMaxId_after_sync=false;
@@ -941,7 +985,7 @@ async function pushToServer(){
   setSync("syncing");
   try{
     var res=await sb.from("user_data").upsert(
-      { user_id:currentUser.id, tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines, memos:state.memos, diary:state.diary, theme:state.theme, updated_at:new Date().toISOString() },
+      { user_id:currentUser.id, tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines, memos:state.memos, diary:state.diary, user_templates:state.userTemplates, theme:state.theme, updated_at:new Date().toISOString() },
       { onConflict:"user_id" }
     );
     if(res.error) throw res.error;
@@ -1000,7 +1044,9 @@ function subscribeRealtime(){
           if(Array.isArray(n.routines)) state.routines = mergeByKey(n.routines, state.routines, byId);
           if(Array.isArray(n.memos)) state.memos = mergeByKey(n.memos, state.memos, byId);
           if(Array.isArray(n.diary)) state.diary = mergeByKey(n.diary, state.diary, byId);
+          if(Array.isArray(n.user_templates)) state.userTemplates = mergeByKey(n.user_templates, state.userTemplates, byId);
           if(n.theme){ state.theme=n.theme; applyTheme(n.theme); }
+          normalizeData();
           recalcMaxId(); saveLocal(); render();
         }
       })
@@ -1224,6 +1270,11 @@ function deleteCat(idx){
 /* ── 프로젝트 ── */
 function projById(id){ return state.projects.filter(function(p){return p.id===id;})[0]||null; }
 function projTasks(pid){ return state.tasks.filter(function(t){return (t.proj||PROJ_NONE)===pid;}); }
+// 프로젝트 안에서 다음 단계 순서값 (마지막 단계 +1)
+function nextProjOrder(pid){
+  var mx=-1; projTasks(pid).forEach(function(t){ if(typeof t.order==="number"&&t.order>mx) mx=t.order; });
+  return mx+1;
+}
 function addProject(name){
   var v=(name||"").trim(); if(!v) return;
   var pal=PALETTE[state.projects.length%PALETTE.length];
@@ -1241,7 +1292,8 @@ function deleteProject(id){
 }
 function addTaskToProject(pid,text){
   var v=(text||"").trim(); if(!v) return;
-  state.tasks.unshift({ id:nid(), text:v, cat:state.newCat, bucket:"이번주", done:false, date:null, proj:(pid===PROJ_NONE?null:pid) });
+  var realPid=(pid===PROJ_NONE?null:pid);
+  state.tasks.unshift({ id:nid(), text:v, cat:state.newCat, bucket:"이번주", done:false, date:null, proj:realPid, order:nextProjOrder(pid) });
   save(); render();
 }
 /* ── 템플릿 ── */
@@ -1267,9 +1319,9 @@ function applyProjectTemplate(idx){
   var pid="p"+nid();
   state.projects.push({ id:pid, name:tpl.name, color:pal.dot });
   var step=2; // 단계마다 2일 간격으로 마감 자동 배분
-  tpl.tasks.map(function(tx,i){ return { text:(i+1)+". "+tx, date:plusDays((i+1)*step) }; })
+  tpl.tasks.map(function(tx,i){ return { text:(i+1)+". "+tx, date:plusDays((i+1)*step), order:i }; })
     .reverse().forEach(function(o){
-      state.tasks.unshift({ id:nid(), text:o.text, cat:state.newCat, bucket:bucketForDate(o.date), done:false, date:o.date, proj:pid });
+      state.tasks.unshift({ id:nid(), text:o.text, cat:state.newCat, bucket:bucketForDate(o.date), done:false, date:o.date, proj:pid, order:o.order });
     });
   var pp=projById(pid); if(pp) pp.due=plusDays(tpl.tasks.length*step);
   state.tmpl=null; save(); openProject(pid);
@@ -1584,7 +1636,7 @@ function screenSearch(){
 
 /* ══ 데이터 백업 ══ */
 function exportData(){
-  var data={ tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines, memos:state.memos, diary:state.diary, theme:state.theme, exportedAt:new Date().toISOString() };
+  var data={ tasks:state.tasks, cats:state.cats, projects:state.projects, routines:state.routines, memos:state.memos, diary:state.diary, userTemplates:state.userTemplates, theme:state.theme, exportedAt:new Date().toISOString() };
   var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   var url=URL.createObjectURL(blob);
   var a=document.createElement("a"); a.href=url; a.download="dashboard-backup-"+TODAY+".json"; document.body.appendChild(a); a.click(); a.remove();
@@ -1603,8 +1655,10 @@ function importData(file){
       if(Array.isArray(d.routines)) state.routines=d.routines;
       if(Array.isArray(d.memos)) state.memos=d.memos;
       if(Array.isArray(d.diary)) state.diary=d.diary;
+      if(Array.isArray(d.userTemplates)) state.userTemplates=d.userTemplates;
       if(d.theme){ state.theme=d.theme; applyTheme(d.theme); }
       sanitizeColors();
+      normalizeData();
       var maxn=100; state.tasks.forEach(function(x){var n=parseInt(x.id,10);if(!isNaN(n)&&n>maxn)maxn=n;}); _id=maxn;
       state.settings=false; save(); render(); alert("가져오기 완료!");
     }catch(e){ alert("파일을 읽을 수 없어. JSON 백업 파일이 맞는지 확인해줘."); }
