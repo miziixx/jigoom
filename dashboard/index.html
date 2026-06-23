@@ -437,6 +437,60 @@ button,input{font-family:inherit;}
 .mob-sync.err{display:block;background:#FFF6E9;color:#C77B22;border-bottom:1px solid #F5D9A8;}
 .mob-sync.off{display:block;background:#F5F5F5;color:var(--dim);border-bottom:1px solid var(--border);}
 @media(min-width:860px){.mob-sync{display:none!important;}}
+
+/* ── 토스트 ── */
+.toast{position:fixed;left:50%;bottom:84px;transform:translate(-50%,16px);background:var(--ink,#3D3530);color:#fff;font-size:13.5px;font-weight:800;padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.22);z-index:2000;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:88vw;text-align:center;}
+.toast.on{opacity:1;transform:translate(-50%,0);}
+@media(min-width:860px){.toast{bottom:32px;}}
+
+/* ── 블롭 마스코트 ── */
+.blob-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:22px 10px;}
+.blob{width:96px;height:96px;display:block;}
+.blob-say{font-size:13.5px;font-weight:800;color:var(--mid);line-height:1.5;white-space:pre-line;}
+.blob-sm .blob{width:60px;height:60px;}
+
+/* ── 새 프로젝트 마법사 ── */
+.np-backdrop{position:fixed;inset:0;background:rgba(61,53,48,.42);z-index:1500;display:flex;align-items:center;justify-content:center;padding:18px;}
+.np{position:relative;width:100%;max-width:440px;background:var(--bg);border-radius:24px;padding:24px 22px 26px;box-shadow:0 12px 48px rgba(0,0,0,.24);max-height:92vh;overflow-y:auto;animation:npin .2s ease;}
+@keyframes npin{from{opacity:0;transform:translateY(12px) scale(.98);}to{opacity:1;transform:none;}}
+@media(prefers-reduced-motion:reduce){.np{animation:none;}}
+.np-x{position:absolute;top:16px;right:16px;width:32px;height:32px;border:none;background:var(--card,#fff);border-radius:50%;color:var(--dim);font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.np-back{border:none;background:transparent;color:var(--dim);font-size:13px;font-weight:800;cursor:pointer;padding:2px 0 12px;font-family:inherit;}
+.np-h{font-size:21px;font-weight:900;color:var(--text);margin-bottom:4px;}
+.np-sub{font-size:13px;font-weight:700;color:var(--faint);margin-bottom:18px;line-height:1.5;}
+.np-cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.np-cat{display:flex;flex-direction:column;align-items:center;gap:8px;border:1.5px solid var(--border);background:var(--card,#fff);border-radius:18px;padding:20px 10px;cursor:pointer;font-family:inherit;font-size:14.5px;font-weight:800;color:var(--text);transition:border-color .12s,transform .08s;}
+.np-cat:hover{border-color:var(--accent);}
+.np-cat:active{transform:scale(.97);}
+.np-cat-emoji{font-size:30px;line-height:1;}
+.np-opt{display:flex;align-items:center;gap:13px;width:100%;text-align:left;border:1.5px solid var(--border);background:var(--card,#fff);border-radius:16px;padding:14px 15px;margin-bottom:10px;cursor:pointer;font-family:inherit;transition:border-color .12s;}
+.np-opt:hover{border-color:var(--accent);}
+.np-opt-emoji{font-size:26px;line-height:1;flex-shrink:0;}
+.np-opt .opt-title{font-size:15px;font-weight:800;color:var(--text);}
+.np-opt .opt-sub{font-size:12px;font-weight:700;color:var(--faint);margin-top:2px;}
+.np-mine-tag{font-size:10.5px;font-weight:800;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 6px;margin-left:6px;}
+.np-field{margin-bottom:14px;}
+.np-label{display:block;font-size:12px;font-weight:800;color:var(--mid);margin-bottom:6px;}
+.np-name-input{width:100%;border:1.5px solid var(--border);background:var(--card,#fff);border-radius:13px;padding:12px 14px;font-size:16px;font-weight:800;color:var(--text);outline:none;font-family:inherit;}
+.np-name-input:focus{border-color:var(--accent);}
+.np-start{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--accent-soft);border-radius:13px;padding:11px 13px;margin-bottom:16px;}
+.np-start-lbl{font-size:13px;font-weight:800;color:var(--mid);}
+.np-start input{border:1.5px solid var(--border);background:var(--card,#fff);border-radius:10px;padding:7px 10px;font-size:13px;font-family:inherit;color:var(--text);}
+.np-start-hint{font-size:11.5px;font-weight:700;color:var(--faint);}
+.np-steps{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.np-step{display:flex;align-items:center;gap:8px;background:var(--card,#fff);border:1.5px solid var(--border);border-radius:13px;padding:9px 11px;}
+.np-step-n{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;}
+.np-step-title{flex:1;min-width:0;border:none;background:transparent;font-size:14px;font-weight:700;color:var(--text);outline:none;font-family:inherit;}
+.np-step-date{border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:5px 7px;font-size:11.5px;font-family:inherit;color:var(--mid);flex-shrink:0;}
+.np-step-x{flex-shrink:0;border:none;background:transparent;color:var(--faint);font-size:16px;font-weight:800;cursor:pointer;padding:0 2px;}
+.np-add-step{width:100%;border:1.5px dashed var(--border);background:transparent;color:var(--dim);font-size:13px;font-weight:800;padding:10px;border-radius:12px;cursor:pointer;font-family:inherit;margin-bottom:18px;}
+.np-add-step:hover{border-color:var(--accent);color:var(--accent);}
+.np-go{width:100%;border:none;background:var(--accent);color:#fff;font-size:15.5px;font-weight:900;padding:15px;border-radius:15px;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(var(--accent-rgb),.3);}
+.np-go:active{transform:scale(.99);}
+.np-empty-steps{font-size:12.5px;font-weight:700;color:var(--faint);padding:8px 2px 14px;}
+/* 새 프로젝트 큰 버튼(목록 상단) */
+.np-new-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:none;background:var(--accent);color:#fff;font-size:14.5px;font-weight:900;padding:14px;border-radius:15px;cursor:pointer;font-family:inherit;margin-bottom:12px;box-shadow:0 3px 14px rgba(var(--accent-rgb),.28);}
+.np-new-btn:active{transform:scale(.99);}
 </style>
 </head>
 <body>
@@ -807,7 +861,7 @@ var state={
   newCat:"미분류", editingId:null,
   queue:[], step:0,
   settings:false, moreMenu:false, colorFor:null,
-  projOpen:null, projColorPick:false, rtOpen:null, tmpl:null, search:"",
+  projOpen:null, projColorPick:false, rtOpen:null, tmpl:null, search:"", np:null,
   theme:loadTheme(),
   tlOn:loadTL().on, tlMode:loadTL().mode,
   calY:now.getFullYear(), calM:now.getMonth(), calSel:TODAY
@@ -1209,6 +1263,39 @@ function keyOf(t){ return state.view==="bucket"?t.bucket:(t.cat||"미분류"); }
 function inboxItems(){ return state.tasks.filter(function(t){ return t.bucket==="받은함"&&!t.done; }); }
 function sheetTask(){ var id=state.queue[0]; return state.tasks.filter(function(t){return t.id===id;})[0]||null; }
 function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c];}); }
+
+/* ══ 토스트 (가벼운 안내 메시지) ══ */
+function toast(msg){
+  var el=document.getElementById("toast");
+  if(!el){ el=document.createElement("div"); el.id="toast"; el.className="toast"; document.body.appendChild(el); }
+  el.textContent=msg; void el.offsetWidth; el.classList.add("on");
+  clearTimeout(toast._t); toast._t=setTimeout(function(){ el.classList.remove("on"); }, 2600);
+}
+
+/* ══ 블롭 마스코트 (기획서 §7) — 보라 몸 + 점눈 + 새싹, 표정만 바뀜 ══
+   mood: happy(활짝) | sleepy(멍/졸림) | sparkle(반짝) | peek(두리번) */
+function blob(mood, say, small){
+  mood=mood||"peek";
+  var eyes, mouth, extra="";
+  if(mood==="happy"){ eyes='<circle cx="20" cy="30" r="3.2" fill="#3D3530"/><circle cx="36" cy="30" r="3.2" fill="#3D3530"/>'; mouth='<path d="M21 38 Q28 45 35 38" stroke="#3D3530" stroke-width="2.6" fill="none" stroke-linecap="round"/>'; extra='<path d="M13 30 q-3 1 -4 3" stroke="#F9A8C4" stroke-width="2" fill="none" stroke-linecap="round"/>'; }
+  else if(mood==="sleepy"){ eyes='<path d="M16 30 q4 3 8 0" stroke="#3D3530" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M32 30 q4 3 8 0" stroke="#3D3530" stroke-width="2.4" fill="none" stroke-linecap="round"/>'; mouth='<path d="M24 39 q4 2 8 0" stroke="#3D3530" stroke-width="2.4" fill="none" stroke-linecap="round"/>'; extra='<text x="40" y="20" font-size="9" fill="#A89E96" font-weight="700">z</text><text x="45" y="14" font-size="7" fill="#C5BEB6" font-weight="700">z</text>'; }
+  else if(mood==="sparkle"){ eyes='<path d="M17 27 l2 4 4 1 -4 1 -2 4 -2 -4 -4 -1 4 -1 z" fill="#3D3530"/><path d="M37 27 l1.6 3 3 .8 -3 .8 -1.6 3 -1.6 -3 -3 -.8 3 -.8 z" fill="#3D3530"/>'; mouth='<path d="M22 38 Q28 44 34 38" stroke="#3D3530" stroke-width="2.6" fill="none" stroke-linecap="round"/>'; }
+  else { eyes='<circle cx="22" cy="31" r="3" fill="#3D3530"/><circle cx="38" cy="31" r="3" fill="#3D3530"/>'; mouth='<path d="M25 39 q3 2 6 0" stroke="#3D3530" stroke-width="2.2" fill="none" stroke-linecap="round"/>'; }
+  var svg='<svg class="blob" viewBox="0 0 56 64" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    +'<path d="M20 6 q4 -5 8 0 q1 5 -4 7 q-5 -2 -4 -7z" fill="#86EFAC"/><path d="M28 6 l0 8" stroke="#4ADE80" stroke-width="2" stroke-linecap="round"/>'
+    +'<path d="M28 12 C13 12 8 26 9 38 C10 52 19 60 28 60 C37 60 46 52 47 38 C48 26 43 12 28 12 Z" fill="#A78BFA"/>'
+    +'<ellipse cx="28" cy="48" rx="13" ry="9" fill="#B9A4F7" opacity=".5"/>'
+    +eyes+mouth+extra+'</svg>';
+  return '<div class="blob-wrap'+(small?" blob-sm":"")+'">'+svg+(say?'<div class="blob-say">'+esc(say)+'</div>':"")+'</div>';
+}
+// 진행률(0~100) → 블롭 기분
+function blobMoodForRate(rate, total){
+  if(!total) return "peek";
+  if(rate>=100) return "sparkle";
+  if(rate>=66) return "happy";
+  if(rate<=33) return "sleepy";
+  return "peek";
+}
 function safeColor(c,fb){ return (typeof c==="string" && /^#[0-9a-fA-F]{3,8}$/.test(c)) ? c : (fb||"#9AA6A0"); }
 function sanitizeColors(){
   state.cats.forEach(function(c){ c.dot=safeColor(c.dot,"#D6D0C8"); c.chip=safeColor(c.chip,"#F3EFE8"); c.text=safeColor(c.text,"#A89E96"); });
@@ -1383,6 +1470,7 @@ function tplById(id){
   return TEMPLATES.filter(function(t){return t.id===id;})[0]
     || (state.userTemplates||[]).filter(function(t){return t.id===id;})[0] || null;
 }
+function isUserTpl(id){ return (state.userTemplates||[]).some(function(t){return t.id===id;}); }
 // offsetDays → 실제 마감일(ISO). 시작일 기본 오늘.
 function stepDate(offsetDays, startDate){
   var base=startDate||TODAY; var d=new Date(base+"T00:00:00");
@@ -1392,6 +1480,125 @@ function stepDate(offsetDays, startDate){
 // 날짜(ISO) → 버킷 (기획서 §5: 오늘~내일=오늘, 이번 주 안=이번주, 그 후=나중에)
 function bucketForDate(ds){ var d=dayDiff(ds,TODAY); if(d<=1) return "오늘"; if(d<=7) return "이번주"; return "나중에"; }
 function bucketFromDate(ds){ return bucketForDate(ds); }   // 기획서 표기 이름(별칭)
+
+/* ══ 새 프로젝트 마법사 (기획서 §6-1) ══════════════════════════════
+   state.np = { stage:"cat"|"tpl"|"preview", cat, tplId, name, start, steps:[] }
+   단계: 카테고리 고르기 → 템플릿 고르기 → 미리보기(수정) → 시작하기 */
+function openNewProject(){
+  state.np={ stage:"cat", cat:null, tplId:null, name:"", start:TODAY, steps:[] };
+  state.settings=false; state.moreMenu=false; state.tmpl=null; render();
+}
+function closeNewProject(){ state.np=null; render(); }
+function npPickCat(cat){ if(!state.np) return; state.np.cat=cat; state.np.stage="tpl"; render(); }
+function npRecalcDates(){
+  var np=state.np; if(!np) return;
+  np.steps.forEach(function(s){ if(typeof s.offsetDays==="number") s.date=stepDate(s.offsetDays, np.start); });
+}
+function npPickTemplate(id){
+  var np=state.np; if(!np) return;
+  var tpl=tplById(id); if(!tpl) return;
+  np.tplId=id;
+  np.name=tpl.name||"";
+  np.steps=(tpl.steps||[]).map(function(s){
+    return { title:s.title, offsetDays:s.offsetDays, date:stepDate(s.offsetDays, np.start) };
+  });
+  np.stage="preview"; render();
+}
+function npBack(){
+  var np=state.np; if(!np) return;
+  if(np.stage==="preview"){ np.stage="tpl"; }
+  else if(np.stage==="tpl"){ np.stage="cat"; np.cat=null; }
+  else { closeNewProject(); return; }
+  render();
+}
+function npSetStart(v){ if(!state.np) return; state.np.start=v||TODAY; npRecalcDates(); render(); }
+function npSetStepDate(i,v){
+  var np=state.np; if(!np||!np.steps[i]) return;
+  np.steps[i].date=v||null;
+  if(v) np.steps[i].offsetDays=dayDiff(v, np.start);
+  render();
+}
+function npRemoveStep(i){ if(!state.np) return; state.np.steps.splice(i,1); render(); }
+function npAddStep(){
+  var np=state.np; if(!np) return;
+  var lastOff=np.steps.length?(np.steps[np.steps.length-1].offsetDays||0):0;
+  np.steps.push({ title:"새 단계", offsetDays:lastOff, date:stepDate(lastOff, np.start) });
+  render();
+}
+// 미리보기 input 값들을 state 로 끌어와 동기화 (시작 전 호출)
+function npSyncInputs(){
+  var np=state.np; if(!np) return;
+  var nn=document.getElementById("npName"); if(nn) np.name=nn.value;
+  document.querySelectorAll("[data-npstep]").forEach(function(inp){
+    var i=+inp.getAttribute("data-npstep"); if(np.steps[i]) np.steps[i].title=inp.value;
+  });
+}
+function npStart(){
+  var np=state.np; if(!np) return;
+  npSyncInputs();
+  var name=(np.name||"").trim();
+  if(!name){ toast("프로젝트 이름을 적어주세요"); var nn=document.getElementById("npName"); if(nn) nn.focus(); return; }
+  var pid="p"+nid();
+  var col=catStyle(np.cat).dot || PALETTE[state.projects.length%PALETTE.length].dot;
+  state.projects.push({ id:pid, name:name, color:col, cat:np.cat, templateId:np.tplId||null, createdAt:new Date().toISOString(), archived:false });
+  var steps=np.steps||[];
+  for(var i=steps.length-1;i>=0;i--){
+    var s=steps[i], ds=s.date||null;
+    state.tasks.unshift({ id:nid(), text:(s.title||"").trim()||("단계 "+(i+1)), cat:np.cat, bucket:ds?bucketForDate(ds):"받은함", done:false, date:ds, proj:pid, order:i });
+  }
+  var pp=projById(pid), last=steps[steps.length-1];
+  if(pp&&last&&last.date) pp.due=last.date;
+  state.np=null; save();
+  toast(steps.length?("🎉 "+steps.length+"개 할 일이 준비됐어!"):"🎉 새 프로젝트가 만들어졌어!");
+  openProject(pid);
+}
+// ①②③… (1~20), 그 이상은 "n."
+var CIRCLED="①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
+function circ(n){ return (n>=1&&n<=20)?CIRCLED.charAt(n-1):(n+"."); }
+function npEmoji(cat){ var c=PROJECT_CATS.filter(function(x){return x.cat===cat;})[0]; return c?c.emoji:"📦"; }
+function npHTML(){
+  var np=state.np; if(!np) return "";
+  var inner;
+  if(np.stage==="cat"){
+    inner='<div class="np-h">뭘 만들 거야?</div>'
+      +'<div class="np-sub">고르기만 하면 할 일이 알아서 깔려요</div>'
+      +'<div class="np-cat-grid">'+PROJECT_CATS.map(function(c){
+        return '<button class="np-cat" data-npcat="'+esc(c.cat)+'"><span class="np-cat-emoji">'+c.emoji+'</span><span>'+esc(c.cat)+'</span></button>';
+      }).join("")+'</div>';
+  } else if(np.stage==="tpl"){
+    var tpls=allTemplatesByCat(np.cat);
+    var list=tpls.map(function(t){
+      var n=(t.steps||[]).length;
+      var mine=isUserTpl(t.id)?'<span class="np-mine-tag">내 템플릿</span>':"";
+      var sub=n?(n+'단계 · 마감일 자동'):'직접 채우는 빈 프로젝트';
+      return '<button class="np-opt" data-nptpl="'+esc(t.id)+'"><span class="np-opt-emoji">'+(t.emoji||"📋")+'</span>'
+        +'<div><div class="opt-title">'+esc(t.name)+mine+'</div><div class="opt-sub">'+sub+'</div></div></button>';
+    }).join("");
+    inner='<button class="np-back" data-npback>← 뒤로</button>'
+      +'<div class="np-h">'+npEmoji(np.cat)+' '+esc(np.cat)+'</div>'
+      +'<div class="np-sub">어떤 걸 만들까요?</div>'+list;
+  } else {
+    var stepsHTML=np.steps.length?np.steps.map(function(s,i){
+      return '<div class="np-step"><span class="np-step-n">'+circ(i+1)+'</span>'
+        +'<input class="np-step-title" data-npstep="'+i+'" value="'+esc(s.title||"")+'" placeholder="할 일">'
+        +'<input class="np-step-date" type="date" data-npstepdate="'+i+'" value="'+(s.date||"")+'">'
+        +'<button class="np-step-x" data-npstepdel="'+i+'" title="단계 빼기">×</button></div>';
+    }).join(""):'<div class="np-empty-steps">단계가 없어요. 아래에서 직접 추가하거나, 그냥 시작해도 돼요.</div>';
+    inner='<button class="np-back" data-npback>← 뒤로</button>'
+      +'<div class="np-h">미리보기</div>'
+      +'<div class="np-sub">이대로 시작하거나, 이름·날짜·단계를 손봐도 돼요.</div>'
+      +'<div class="np-field"><label class="np-label">프로젝트 이름</label>'
+      +'<input id="npName" class="np-name-input" value="'+esc(np.name||"")+'" placeholder="예: 점눈이 이모티콘 출시" maxlength="40"></div>'
+      +'<div class="np-start"><span class="np-start-lbl">시작 날짜</span>'
+      +'<input id="npStart" type="date" value="'+(np.start||TODAY)+'">'
+      +'<span class="np-start-hint">안 바꿔도 오늘로 시작해요</span></div>'
+      +'<div class="np-steps">'+stepsHTML+'</div>'
+      +'<button class="np-add-step" data-npaddstep>＋ 단계 추가</button>'
+      +'<button class="np-go" id="npGo">＋ 이 프로젝트 시작하기</button>';
+  }
+  return '<div class="np-backdrop" id="npBackdrop"><div class="np" id="npCard">'
+    +'<button class="np-x" id="npClose" title="닫기">✕</button>'+inner+'</div></div>';
+}
 function applyProjectTemplate(idx){
   var tpl=PROJECT_TEMPLATES[idx]; if(!tpl) return;
   var pal=PALETTE[state.projects.length%PALETTE.length];
@@ -1918,9 +2125,10 @@ function screenStats(){
 /* ══ 화면: 프로젝트 ══ */
 function screenProjects(){
   if(state.projOpen){ var po=projById(state.projOpen); if(po) return screenProjectDetail(po); state.projOpen=null; }
-  var addCol='<div class="proj-add-col"><input id="projInput" class="add-input" placeholder="새 프로젝트 이름"><button class="add-btn" id="projAddBtn">추가</button></div>'
-    +'<button class="tmpl-open" data-tmpl="project">📋 템플릿에서 빠르게 시작</button>';
-  var cols=state.projects.map(function(p){
+  var addCol='<button class="np-new-btn" data-npnew>✨ 새 프로젝트 시작하기</button>'
+    +'<div class="proj-add-col"><input id="projInput" class="add-input" placeholder="또는 빈 프로젝트 이름만 빠르게"><button class="add-btn" id="projAddBtn">추가</button></div>';
+  var activeProjects=state.projects.filter(function(p){return !p.archived;});
+  var cols=activeProjects.map(function(p){
     var items=projTasks(p.id).filter(function(t){return !state.hideDone||!t.done;});
     var st=projStats(p.id);
     var body=items.length===0?'<div class="drop-empty">여기로 끌어다 놓기</div>'
@@ -1943,9 +2151,9 @@ function screenProjects(){
     +noneItems.map(function(t,idx){return cardHTML(t,noneItems[idx+1]?noneItems[idx+1].id:"");}).join("")
     +'</div>':"";
   var board='<div class="proj-board">'+(cols||"")+noneCol+'</div>';
-  if(!state.projects.length&&!noneItems.length) board='<div class="empty">아직 프로젝트가 없어. 위에서 하나 만들어봐.</div>';
+  if(!activeProjects.length&&!noneItems.length) board=blob("peek","아직 프로젝트가 없어요.\n위 ‘새 프로젝트 시작하기’를 눌러볼까요?");
   return '<div class="screen-title">'+ic("projects")+'프로젝트</div>'+addCol+board
-    +'<p class="foot">제목을 누르면 상세 화면, 카드를 끌면 프로젝트 사이로 이동돼.</p>';
+    +(activeProjects.length||noneItems.length?'<p class="foot">제목을 누르면 상세 화면, 카드를 끌면 프로젝트 사이로 이동돼.</p>':"");
 }
 function screenProjectDetail(p){
   var st=projStats(p.id);
@@ -2128,6 +2336,7 @@ function templatesHTML(){
 }
 function renderSheet(){
   var slot=document.getElementById("sheetSlot");
+  if(state.np){ slot.innerHTML=npHTML(); return; }
   if(state.settings){ slot.innerHTML=settingsHTML(); return; }
   if(state.moreMenu){ slot.innerHTML=moreMenuHTML(); return; }
   if(state.tmpl){ slot.innerHTML=templatesHTML(); return; }
@@ -2176,8 +2385,19 @@ function render(){
 
 /* ══ 클릭 위임 ══ */
 document.addEventListener("click",function(e){
-  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,#settingsLogout,#mobSyncRetry,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-memoeditbtn],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen]");
+  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,#settingsLogout,#mobSyncRetry,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-memoeditbtn],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen],[data-npnew],#npClose,#npBackdrop,#npCard,[data-npback],[data-npcat],[data-nptpl],[data-npstepdel],[data-npaddstep],#npGo,[data-savetpl]");
   if(!el) return;
+  if(el.hasAttribute("data-npnew")){ openNewProject(); return; }
+  if(el.id==="npClose"){ closeNewProject(); return; }
+  if(el.id==="npBackdrop"){ closeNewProject(); return; }
+  if(el.id==="npCard"){ e.stopPropagation(); return; }
+  if(el.hasAttribute("data-npback")){ npBack(); return; }
+  if(el.hasAttribute("data-npcat")){ npPickCat(el.getAttribute("data-npcat")); return; }
+  if(el.hasAttribute("data-nptpl")){ npPickTemplate(el.getAttribute("data-nptpl")); return; }
+  if(el.hasAttribute("data-npstepdel")){ npRemoveStep(+el.getAttribute("data-npstepdel")); return; }
+  if(el.hasAttribute("data-npaddstep")){ npSyncInputs(); npAddStep(); return; }
+  if(el.id==="npGo"){ npStart(); return; }
+  if(el.hasAttribute("data-savetpl")){ saveProjectAsTemplate(el.getAttribute("data-savetpl")); return; }
   if(el.hasAttribute("data-settings")){ openSettings(); return; }
   if(el.id==="settingsDone"){ closeSettings(); return; }
   if(el.id==="settingsLogout"){ if(sb) sb.auth.signOut(); closeSettings(); return; }
@@ -2272,6 +2492,8 @@ document.addEventListener("input",function(e){
 });
 document.addEventListener("change",function(e){
   if(e.target.id==="dataImport"){ importData(e.target.files&&e.target.files[0]); e.target.value=""; return; }
+  if(e.target.id==="npStart"){ npSyncInputs(); npSetStart(e.target.value); return; }
+  if(e.target.hasAttribute&&e.target.hasAttribute("data-npstepdate")){ npSyncInputs(); npSetStepDate(+e.target.getAttribute("data-npstepdate"), e.target.value); return; }
   if(e.target.hasAttribute&&e.target.hasAttribute("data-setdate")){
     setField(e.target.getAttribute("data-setdate"),"date",e.target.value||null); render();
   }
