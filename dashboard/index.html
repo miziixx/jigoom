@@ -488,6 +488,22 @@ button,input{font-family:inherit;}
 .np-go{width:100%;border:none;background:var(--accent);color:#fff;font-size:15.5px;font-weight:900;padding:15px;border-radius:15px;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(var(--accent-rgb),.3);}
 .np-go:active{transform:scale(.99);}
 .np-empty-steps{font-size:12.5px;font-weight:700;color:var(--faint);padding:8px 2px 14px;}
+/* 카드 프로젝트 뱃지 */
+.c-proj{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:var(--mid);background:var(--accent-soft);border:1px solid var(--border);border-radius:7px;padding:2px 7px;cursor:pointer;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.c-proj-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0;}
+/* 프로젝트 카드 부드러운 한 줄 */
+.proj-soft{font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px;}
+/* 프로젝트 상세: 블롭 상태 + 액션 */
+.proj-detail-status{display:flex;justify-content:center;margin:2px 0 14px;}
+.proj-detail-status .blob-wrap{padding:6px 8px;}
+.proj-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+.proj-act{flex:1;min-width:130px;border:1.5px solid var(--border);background:var(--card,#fff);color:var(--mid);font-size:13px;font-weight:800;padding:11px;border-radius:12px;cursor:pointer;font-family:inherit;}
+.proj-act:hover{border-color:var(--accent);color:var(--accent);}
+/* 보관함 */
+.proj-arch{margin-top:18px;border-top:1.5px dashed var(--border);padding-top:14px;}
+.proj-arch-h{font-size:12.5px;font-weight:800;color:var(--faint);margin-bottom:9px;}
+.proj-arch-item{display:flex;align-items:center;gap:9px;background:var(--card,#fff);border:1.5px solid var(--border);border-radius:12px;padding:9px 12px;margin-bottom:7px;opacity:.75;}
+.proj-arch-name{flex:1;min-width:0;font-size:13.5px;font-weight:800;color:var(--mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;}
 /* 달력: 요약/빈 상태/드롭 하이라이트 */
 .cal-summary{font-size:13px;font-weight:800;color:var(--mid);margin:-6px 0 12px;}
 .cal-summary b{color:var(--accent);}
@@ -1639,6 +1655,8 @@ function setProjectField(id,field,val){
   save();
 }
 function setProjectColor(id,color){ var p=projById(id); if(!p) return; p.color=color; state.projColorPick=false; save(); render(); }
+function archiveProject(id){ var p=projById(id); if(!p) return; p.archived=true; state.projOpen=null; save(); toast("‘"+p.name+"’ 보관함으로 넣었어요"); render(); }
+function unarchiveProject(id){ var p=projById(id); if(!p) return; p.archived=false; save(); render(); }
 function projStats(pid){
   var ts=projTasks(pid), done=ts.filter(function(t){return t.done;}).length;
   return { total:ts.length, done:done, rate:ts.length?Math.round(done/ts.length*100):0 };
@@ -1714,6 +1732,23 @@ function chipsHTML(){
     return '<button class="chip'+(on?" on":"")+'" data-cat="'+esc(k)+'" '+st+'><span class="cdot" style="background:'+sty.dot+'"></span>'+esc(k)+'</button>';
   }).join("");
 }
+// 할 일 카드에 붙는 프로젝트 뱃지 (예: 점눈이 이모티콘 ②)
+function projBadge(t){
+  if(!t.proj || state.screen==="projects") return "";
+  var p=projById(t.proj); if(!p) return "";
+  var n=(typeof t.order==="number")?(" "+circ(t.order+1)):"";
+  return '<span class="c-proj" data-projopen="'+p.id+'" title="'+esc(p.name)+'">'
+    +'<span class="c-proj-dot" style="background:'+p.color+'"></span>'+esc(p.name)+n+'</span>';
+}
+// 진행률 → 부드러운 한 줄 (숫자 강박 X, 기획서 §6-4)
+function softProjMsg(rate,total){
+  if(!total) return "이제 시작이에요";
+  if(rate>=100) return "다 끝냈어요! 🎉";
+  if(rate>=80) return "거의 다 왔어요!";
+  if(rate>=40) return "잘 가고 있어요";
+  if(rate>0) return "한 걸음씩 가요";
+  return "이제 시작이에요";
+}
 function cardHTML(t,nextId){
   var open=state.editingId===t.id;
   var tag=state.view==="bucket"&&state.screen==="tasks"
@@ -1744,7 +1779,7 @@ function cardHTML(t,nextId){
     +'<span class="grip" data-grip="'+t.id+'" title="끌어서 옮기기">⠿</span>'
     +'<button class="round '+(t.done?"done":"")+'" data-toggle="'+t.id+'">'+(t.done?"✓":"")+"</button>"
     +'<span class="c-text '+(t.done?"strike":"")+'" data-edit="'+t.id+'">'+esc(t.text)+"</span>"
-    +timePill+datePill+overPill+decide+tag
+    +timePill+datePill+overPill+decide+tag+projBadge(t)
     +'<button class="x" data-remove="'+t.id+'">×</button>'
     +"</div>"+editor+"</div>";
 }
@@ -2157,10 +2192,18 @@ function screenProjects(){
       +'<span class="g-count">'+st.done+'/'+st.total+'</span>'
       +'<button class="x" data-projdel="'+p.id+'">×</button></div>'
       +'<div class="proj-prog"><div class="proj-prog-fill" style="width:'+st.rate+'%;background:'+p.color+'"></div></div>'
+      +'<div class="proj-soft">'+softProjMsg(st.rate,st.total)+'</div>'
       +body
       +'<button class="proj-mini-add" data-projaddtask="'+p.id+'">+ 할 일 추가</button>'
       +'</div>';
   }).join("");
+  // 보관된 프로젝트 (접힌 섹션)
+  var arch=state.projects.filter(function(p){return p.archived;});
+  var archHTML=arch.length?'<div class="proj-arch"><div class="proj-arch-h">📦 보관함 '+arch.length+'</div>'
+    +arch.map(function(p){var st=projStats(p.id);return '<div class="proj-arch-item"><span class="proj-dot" style="background:'+p.color+'"></span>'
+      +'<span class="proj-arch-name" data-projopen="'+p.id+'">'+esc(p.name)+'</span>'
+      +'<span class="g-count">'+st.done+'/'+st.total+'</span>'
+      +'<button class="mini" data-projunarch="'+p.id+'">되돌리기</button></div>';}).join("")+'</div>':"";
   // 프로젝트 없음 칼럼
   var noneItems=projTasks(PROJ_NONE).filter(function(t){return (!state.hideDone||!t.done)&&!t.done;});
   var noneCol=noneItems.length?'<div class="proj-col" data-group="'+PROJ_NONE+'">'
@@ -2170,7 +2213,7 @@ function screenProjects(){
     +'</div>':"";
   var board='<div class="proj-board">'+(cols||"")+noneCol+'</div>';
   if(!activeProjects.length&&!noneItems.length) board=blob("peek","아직 프로젝트가 없어요.\n위 ‘새 프로젝트 시작하기’를 눌러볼까요?");
-  return '<div class="screen-title">'+ic("projects")+'프로젝트</div>'+addCol+board
+  return '<div class="screen-title">'+ic("projects")+'프로젝트</div>'+addCol+board+archHTML
     +(activeProjects.length||noneItems.length?'<p class="foot">제목을 누르면 상세 화면, 카드를 끌면 프로젝트 사이로 이동돼.</p>':"");
 }
 function screenProjectDetail(p){
@@ -2195,11 +2238,13 @@ function screenProjectDetail(p){
     +'<div class="sum-card"><div class="sum-num">'+st.done+'/'+st.total+'</div><div class="sum-lbl">완료/전체</div></div>'
     +'<div class="sum-card"><div class="sum-num'+(dueLeft&&dueLeft.indexOf("D+")===0?" warn":"")+'">'+(dueLeft||"–")+'</div><div class="sum-lbl">마감</div></div>'
     +'</div>'
-    +'<div class="proj-prog" style="margin-bottom:14px"><div class="proj-prog-fill" style="width:'+st.rate+'%;background:'+p.color+'"></div></div>'
+    +'<div class="proj-prog" style="margin-bottom:10px"><div class="proj-prog-fill" style="width:'+st.rate+'%;background:'+p.color+'"></div></div>'
+    +'<div class="proj-detail-status">'+blob(blobMoodForRate(st.rate,st.total), softProjMsg(st.rate,st.total), true)+'</div>'
     +'<div class="detail-due"><span>마감일</span><input class="ed-date" type="date" data-projdue="'+p.id+'" value="'+(p.due||"")+'">'+(p.due?'<button class="mini" data-projdueclear="'+p.id+'">지우기</button>':"")+'</div>'
     +'<textarea class="detail-memo" data-projmemo="'+p.id+'" placeholder="프로젝트 메모 — 목표, 링크, 메모 아무거나">'+esc(p.memo||"")+'</textarea>'
     +'<div class="proj-add-col"><input id="projDetailInput" class="add-input" placeholder="이 프로젝트에 할 일 추가"><button class="add-btn" id="projDetailAdd">추가</button></div>'
-    +'<div class="group" data-group="'+p.id+'" style="margin-top:6px">'+list+'</div>';
+    +'<div class="group" data-group="'+p.id+'" style="margin-top:6px">'+list+'</div>'
+    +'<div class="proj-actions"><button class="proj-act" data-projarch="'+p.id+'">📦 보관하기</button></div>';
 }
 
 /* ══ 화면: 루틴 ══ */
@@ -2403,8 +2448,10 @@ function render(){
 
 /* ══ 클릭 위임 ══ */
 document.addEventListener("click",function(e){
-  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,#settingsLogout,#mobSyncRetry,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-memoeditbtn],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen],[data-npnew],#npClose,#npBackdrop,#npCard,[data-npback],[data-npcat],[data-nptpl],[data-npstepdel],[data-npaddstep],#npGo,[data-savetpl]");
+  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,#settingsLogout,#mobSyncRetry,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-memoeditbtn],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen],[data-npnew],#npClose,#npBackdrop,#npCard,[data-npback],[data-npcat],[data-nptpl],[data-npstepdel],[data-npaddstep],#npGo,[data-savetpl],[data-projarch],[data-projunarch]");
   if(!el) return;
+  if(el.hasAttribute("data-projarch")){ archiveProject(el.getAttribute("data-projarch")); return; }
+  if(el.hasAttribute("data-projunarch")){ unarchiveProject(el.getAttribute("data-projunarch")); return; }
   if(el.hasAttribute("data-npnew")){ openNewProject(); return; }
   if(el.id==="npClose"){ closeNewProject(); return; }
   if(el.id==="npBackdrop"){ closeNewProject(); return; }
