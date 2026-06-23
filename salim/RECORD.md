@@ -165,3 +165,20 @@
 - iOS Safari 홈 화면 아이콘은 PNG(apple-touch-icon) 권장 — 현재 SVG, 추후 보완.
 
 > 다음: 푸시 후 Actions 성공 확인 → 폰 접속 테스트.
+
+### 1차 배포 시도 결과 (run #1)
+- 빌드 성공(`/myapps/...` 절대경로, PWA 생성). 그러나 **Configure Pages 실패**:
+  `Get Pages site: Not Found` → `Create Pages site: Resource not accessible by integration`.
+- 원인: Pages 미활성화 + Actions 토큰은 Pages를 **자동 생성할 권한 없음**(GitHub 정책).
+  추가로 저장소가 **private** → Pages는 GitHub Pro 이상이거나 public 전환 필요.
+- 해결 경로(사용자 선택 필요): ① Settings→Pages→Source "GitHub Actions" 수동 활성화(Pro)
+  ② 저장소 public 전환(무료 Pages) ③ Vercel/Netlify 등 타 호스팅.
+- 워크플로/빌드 자체는 정상 — 위 중 하나 처리 후 재실행하면 배포됨.
+
+### 결정: Vercel로 변경 (사용자 선택)
+- private 저장소도 무료로 되고, 기존 대시보드와 동일 호스팅이라 Vercel 채택.
+- 실패하던 Pages 워크플로(`deploy-salim-pages.yml`) 삭제.
+- `salim/vercel.json`(framework vite, build `npm run build`, output `dist`) 추가.
+- Vercel은 도메인 루트 서빙 → 기본 `base:'./'` 그대로 사용(별도 base 불필요).
+- 사용자 1회 설정: Vercel에서 repo Import + **Root Directory = `salim`** 지정 후 Deploy.
+  이후 `salim/` push마다 자동 재배포. README에 절차 기재.
