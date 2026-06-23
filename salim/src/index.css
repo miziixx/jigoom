@@ -847,11 +847,13 @@ select {
   }
 }
 
-/* ── PC(넓은 화면) 레이아웃: 사이드바 + 다단 본문 ─────
-   폰(<900px)은 위 규칙 그대로 — 아래 블록은 데스크톱에서만 적용 */
+/* ── PC(넓은 화면) 레이아웃: 사이드바 + 반응형 본문 ─────
+   폰(<900px)은 위 규칙 그대로 — 아래 블록은 데스크톱에서만 적용.
+   본문 폭에 맞춰 카드 그리드의 열 수가 자동으로 늘었다 줄었다 하고,
+   카드/섹션은 통째로 유지돼 단 경계에서 깨지지 않는다. */
 @media (min-width: 900px) {
   #root {
-    max-width: 1120px;
+    max-width: min(1280px, 100%);
   }
 
   /* 2열 그리드: [사이드바] [상단바 / 본문] */
@@ -868,6 +870,7 @@ select {
     grid-column: 2;
     grid-row: 2;
     padding-bottom: 24px; /* 모바일 고정 탭바용 76px 여백 해제 */
+    min-width: 0; /* 그리드 자식이 넘쳐 가로 스크롤 생기는 것 방지 */
   }
 
   /* 하단 탭바 → 왼쪽 세로 사이드바 (같은 요소 재스타일) */
@@ -912,22 +915,35 @@ select {
     background: var(--green-soft);
   }
 
-  /* 본문을 다단 흐름으로 */
+  /* 본문: 넓은 화면을 채우되 너무 늘어지지 않게 가운데 정렬한 단일 흐름.
+     안의 리스트/카테고리가 폭에 맞춰 여러 열로 펼쳐진다. */
   .page {
-    display: block;
-    column-count: 2;
-    column-gap: 16px;
-    padding: 18px 18px 28px;
+    max-width: 980px;
+    width: 100%;
+    margin-inline: auto;
+    padding: 20px 24px 32px;
   }
-  .page > * {
-    break-inside: avoid;
-    margin: 0 0 14px;
+
+  /* 리스트 = 폭에 맞춰 열이 늘었다 줄었다 하는 카드 그리드.
+     각 카드는 한 셀에 통째로 들어가 잘리지 않는다. */
+  .list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    align-items: start;
+    gap: 12px;
   }
-  /* 단에 갇히면 어색한 요소는 전체 폭으로 */
-  .page > .seg,
-  .page > .search.big {
-    column-span: all;
+  /* 카테고리 카드: 폭에 맞춰 더 촘촘히 */
+  .cat-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
+
+  /* 살림백과 상세는 읽기 좋은 폭으로 가운데 정렬
+     (예전엔 좁은 한 단에 갇혀 본문이 답답했음) */
+  .howto {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+
   /* 모바일 전용 하단 고정 버튼 → 데스크톱은 일반 흐름 */
   .sticky-action {
     position: static;
@@ -935,11 +951,12 @@ select {
   }
 }
 
-@media (min-width: 1280px) {
+/* 아주 넓은 화면: 컨테이너·본문을 더 키우고 카드 열도 자연히 늘어난다 */
+@media (min-width: 1400px) {
   #root {
-    max-width: 1320px;
+    max-width: 1440px;
   }
   .page {
-    column-count: 3;
+    max-width: 1200px;
   }
 }
