@@ -1320,7 +1320,78 @@ var ROUTINE_TEMPLATES=[
 ];
 function openTemplates(kind){ state.tmpl=kind; render(); }
 function closeTemplates(){ state.tmpl=null; render(); }
-function bucketForDate(ds){ var d=dayDiff(ds,TODAY); if(d<=0) return "오늘"; if(d<=7) return "이번주"; return "나중에"; }
+
+/* ══ 새 프로젝트 템플릿 (카테고리별 · 날짜는 offsetDays 로 자동계산) ════
+   기획서 §4. '뭘 만들래?'만 고르면 단계가 날짜와 함께 깔린다.
+   각 단계: title(할 일), offsetDays(시작일+N일이 마감일), timeOfDay(선택). */
+var TEMPLATES=[
+  // 📝 블로그
+  { id:"blog-adsense", cat:"블로그", name:"애드센스 글 1편", emoji:"📝", steps:[
+    { title:"키워드 조사", offsetDays:0 },
+    { title:"글 지시서 작성", offsetDays:1 },
+    { title:"초안 작성", offsetDays:2 },
+    { title:"AI 탐지 검수", offsetDays:3 },
+    { title:"발행", offsetDays:3 }
+  ]},
+  { id:"blog-connect", cat:"블로그", name:"쇼핑커넥트 포스팅", emoji:"🛍️", steps:[
+    { title:"상품 발굴", offsetDays:0 },
+    { title:"키워드 분석", offsetDays:1 },
+    { title:"콘텐츠 작성", offsetDays:2 },
+    { title:"품질 검수", offsetDays:3 },
+    { title:"수동 발행", offsetDays:3 }
+  ]},
+  // 📱 SNS
+  { id:"sns-set", cat:"SNS", name:"콘텐츠 1세트", emoji:"📱", steps:[
+    { title:"기획", offsetDays:0 },
+    { title:"제작", offsetDays:1 },
+    { title:"예약 발행", offsetDays:2 },
+    { title:"반응 체크", offsetDays:4 }
+  ]},
+  // 🐱 점눈이
+  { id:"jum-content", cat:"점눈이", name:"캐릭터 콘텐츠 1세트", emoji:"🐱", steps:[
+    { title:"컨셉 잡기", offsetDays:0 },
+    { title:"일러스트 작업", offsetDays:2 },
+    { title:"활용/업로드", offsetDays:4 }
+  ]},
+  { id:"jum-emoji", cat:"점눈이", name:"이모티콘 출시", emoji:"😸", steps:[
+    { title:"컨셉·감정 기획", offsetDays:0 },
+    { title:"러프 스케치", offsetDays:2 },
+    { title:"시안 검수/추리기", offsetDays:4 },
+    { title:"채색·완성", offsetDays:9 },
+    { title:"움직임 작업", offsetDays:14 },
+    { title:"제안서 작성", offsetDays:16 },
+    { title:"카카오 제출", offsetDays:17 }
+  ]},
+  // 🙋 개인 — 빈 프로젝트(직접 채우기)
+  { id:"blank", cat:"개인", name:"빈 프로젝트", emoji:"🙋", steps:[] }
+];
+// 새 프로젝트에서 고르는 카테고리(기획서 §6-1) — 앱 분류와 별개로 고정 4종
+var PROJECT_CATS=[
+  { cat:"점눈이", emoji:"🐱" },
+  { cat:"블로그", emoji:"📝" },
+  { cat:"SNS",   emoji:"📱" },
+  { cat:"개인",   emoji:"🙋" }
+];
+function templatesByCat(cat){ return TEMPLATES.filter(function(t){return t.cat===cat;}); }
+// 기본 템플릿 + 사용자가 저장한 '내 템플릿' 합쳐서 카테고리별로
+function allTemplatesByCat(cat){
+  var mine=(state.userTemplates||[]).filter(function(t){return t.cat===cat;});
+  return templatesByCat(cat).concat(mine);
+}
+// id 로 템플릿 찾기 (기본·내 템플릿 모두)
+function tplById(id){
+  return TEMPLATES.filter(function(t){return t.id===id;})[0]
+    || (state.userTemplates||[]).filter(function(t){return t.id===id;})[0] || null;
+}
+// offsetDays → 실제 마감일(ISO). 시작일 기본 오늘.
+function stepDate(offsetDays, startDate){
+  var base=startDate||TODAY; var d=new Date(base+"T00:00:00");
+  d.setDate(d.getDate()+(offsetDays||0)); return ymd(d);
+}
+
+// 날짜(ISO) → 버킷 (기획서 §5: 오늘~내일=오늘, 이번 주 안=이번주, 그 후=나중에)
+function bucketForDate(ds){ var d=dayDiff(ds,TODAY); if(d<=1) return "오늘"; if(d<=7) return "이번주"; return "나중에"; }
+function bucketFromDate(ds){ return bucketForDate(ds); }   // 기획서 표기 이름(별칭)
 function applyProjectTemplate(idx){
   var tpl=PROJECT_TEMPLATES[idx]; if(!tpl) return;
   var pal=PALETTE[state.projects.length%PALETTE.length];
