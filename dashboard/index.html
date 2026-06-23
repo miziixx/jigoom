@@ -488,6 +488,14 @@ button,input{font-family:inherit;}
 .np-go{width:100%;border:none;background:var(--accent);color:#fff;font-size:15.5px;font-weight:900;padding:15px;border-radius:15px;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(var(--accent-rgb),.3);}
 .np-go:active{transform:scale(.99);}
 .np-empty-steps{font-size:12.5px;font-weight:700;color:var(--faint);padding:8px 2px 14px;}
+/* 달력: 요약/빈 상태/드롭 하이라이트 */
+.cal-summary{font-size:13px;font-weight:800;color:var(--mid);margin:-6px 0 12px;}
+.cal-summary b{color:var(--accent);}
+.cal-summary.muted{color:var(--faint);}
+.cal-summary.muted b{color:var(--faint);}
+.cal-empty-cta{background:var(--accent-soft);border:1.5px solid var(--border);border-radius:18px;padding:14px;margin-bottom:14px;}
+.cal-empty-cta .blob-wrap{padding:10px 8px 14px;}
+.cal-day.over{outline:2.5px solid var(--accent);outline-offset:-2px;background:var(--over)!important;border-radius:10px;}
 /* 새 프로젝트 큰 버튼(목록 상단) */
 .np-new-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:none;background:var(--accent);color:#fff;font-size:14.5px;font-weight:900;padding:14px;border-radius:15px;cursor:pointer;font-family:inherit;margin-bottom:12px;box-shadow:0 3px 14px rgba(var(--accent-rgb),.28);}
 .np-new-btn:active{transform:scale(.99);}
@@ -1880,7 +1888,17 @@ function screenCalendar(){
   var dueHTML=selDue.map(function(p){return '<div class="p-item" style="border-color:'+p.color+'"><span class="proj-dot" style="background:'+p.color+'"></span><span class="p-text" data-projopen="'+p.id+'" style="cursor:pointer">📌 '+esc(p.name)+' 마감</span></div>';}).join("");
   var selHTML=(selList.length===0&&selDue.length===0)?'<div class="empty">이 날엔 아직 일정이 없어. 아래에 적어봐.</div>'
     :dueHTML+selList.map(function(t,idx){return cardHTML(t,selList[idx+1]?selList[idx+1].id:"");}).join("");
-  return'<div class="screen-title">📅 일정</div>'
+  // 이번 달 한 줄 요약 (기획서 §6-2)
+  var monthPrefix=y+"-"+String(m+1).padStart(2,"0");
+  var monthTasks=state.tasks.filter(function(t){return t.date&&t.date.indexOf(monthPrefix)===0;});
+  var monthDone=monthTasks.filter(function(t){return t.done;}).length;
+  var summary=monthTasks.length
+    ? '<div class="cal-summary">이번 달 할 일 <b>'+monthTasks.length+'개</b> · 완료 <b>'+monthDone+'개</b></div>'
+    : '<div class="cal-summary muted">이번 달은 아직 일정이 없어요</div>';
+  // 어디에도 날짜 있는 할 일이 없으면: 블롭이 다음 행동 안내
+  var anyDated=state.tasks.some(function(t){return t.date;});
+  var emptyCTA=anyDated?"":'<div class="cal-empty-cta">'+blob("peek","아직 일정이 없어요.\n새 프로젝트를 시작해볼까요?")+'<button class="np-new-btn" data-npnew>✨ 새 프로젝트 시작하기</button></div>';
+  return'<div class="screen-title">📅 일정</div>'+summary+emptyCTA
     +'<div class="cal"><div class="cal-head"><button class="cal-nav" data-calprev>‹</button>'
     +'<span class="cal-title">'+y+"년 "+(m+1)+"월</span>"
     +'<button class="cal-nav" data-calnext>›</button>'
@@ -2536,8 +2554,11 @@ document.addEventListener("pointerdown",function(e){
   pos(ghost,e.clientX,e.clientY);
   function move(ev){
     pos(ghost,ev.clientX,ev.clientY);
-    document.querySelectorAll(".group.over,.proj-col.over,.tl-hour.over,.tl-panel.over").forEach(function(g){g.classList.remove("over");});
+    document.querySelectorAll(".group.over,.proj-col.over,.tl-hour.over,.tl-panel.over,.cal-day.over").forEach(function(g){g.classList.remove("over");});
     var under=document.elementFromPoint(ev.clientX,ev.clientY); if(!under){drag.drop=null;return;}
+    // 달력 날짜 칸 위에 올렸을 때 → 그 날로 일정 이동
+    var calCell=under.closest("[data-calday]");
+    if(calCell){ calCell.classList.add("over"); drag.drop={cal:calCell.getAttribute("data-calday")}; return; }
     // 타임라인 위에 올렸을 때
     var tlPanel=under.closest("[data-tldrop]");
     if(tlPanel){
@@ -2558,7 +2579,14 @@ document.addEventListener("pointerdown",function(e){
   }
   function up(){
     var d=drag.drop;
-    if(d&&d.tl){
+    if(d&&d.cal){
+      // 달력에서 다른 날로 끌어 옮김 → date 변경 + 버킷 자동 재계산
+      var mvc=state.tasks.filter(function(t){return t.id===id;})[0];
+      if(mvc){
+        state.tasks=state.tasks.map(function(t){return t.id===id?Object.assign({},t,{date:d.cal,bucket:bucketForDate(d.cal)}):t;});
+        state.calSel=d.cal; save();
+      }
+    }else if(d&&d.tl){
       var mv=state.tasks.filter(function(t){return t.id===id;})[0];
       if(mv){
         var upd={date:TODAY,bucket:"오늘"};
