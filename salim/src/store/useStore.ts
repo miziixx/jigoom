@@ -37,6 +37,7 @@ interface AppState {
   addChoreByName: (name: string) => void;
   addCustomChore: (input: Omit<Chore, "id" | "lastDone">) => void;
   completeChore: (id: string) => void;
+  uncompleteChore: (id: string) => void;
   updateChore: (id: string, patch: Partial<Chore>) => void;
   deleteChore: (id: string) => void;
 
@@ -155,12 +156,28 @@ export const useStore = create<AppState>()(
         if (!chore) return;
         // 같은 날 이미 완료한 일은 무시 (일지·주간 카운트 중복 방지)
         if (chore.lastDone === todayStr()) return;
+        const prevLastDone = chore.lastDone; // 되돌리기(undo) 복원용
         set((s) => ({
           chores: s.chores.map((c) =>
             c.id === id ? { ...c, lastDone: todayStr() } : c,
           ),
         }));
-        get().addLog("chore", `${chore.name} 완료`, { choreId: id });
+        get().addLog("chore", `${chore.name} 완료`, { choreId: id, prevLastDone });
+      },
+
+      // 오늘 완료를 되돌리기 (실수로 체크한 경우). 직전 완료일로 복원하고 해당 일지를 제거.
+      uncompleteChore: (id) => {
+        const chore = get().chores.find((c) => c.id === id);
+        if (!chore || chore.lastDone !== todayStr()) return;
+        // logs는 최신순(앞이 최신)이라 find가 가장 최근 완료 기록을 잡는다.
+        const log = get().logs.find(
+          (l) => l.type === "chore" && (l.meta?.choreId as string) === id,
+        );
+        const prev = (log?.meta?.prevLastDone as string | null | undefined) ?? null;
+        set((s) => ({
+          chores: s.chores.map((c) => (c.id === id ? { ...c, lastDone: prev } : c)),
+          logs: log ? s.logs.filter((l) => l.id !== log.id) : s.logs,
+        }));
       },
 
       updateChore: (id, patch) =>
@@ -311,7 +328,20 @@ export const useStore = create<AppState>()(
       // 데이터 모델이 바뀌어도 기존 폰의 저장 데이터가 깨지지 않도록 버전 관리.
       // 향후 구조 변경 시 version을 올리고 migrate에서 옛 상태를 변환한다.
       version: 1,
-      migrate: (persisted) => persisted as AppState,
+      // 구버전 저장 데이터에 새 필드가 없을 수 있으므로 기본값으로 메워 안전하게 복원.
+      migrate: (persisted) => {
+        const p = (persisted ?? {}) as Partial<AppState>;
+        return {
+          ...p,
+          chores: p.chores ?? [],
+          inventory: p.inventory ?? [],
+          shopping: p.shopping ?? [],
+          expenses: p.expenses ?? [],
+          stash: p.stash ?? [],
+          logs: p.logs ?? [],
+          settings: p.settings ?? {},
+        } as AppState;
+      },
       // 액션(함수)은 저장 대상에서 제외 — 데이터 필드만 영구 저장.
       partialize: (s) => ({
         chores: s.chores,

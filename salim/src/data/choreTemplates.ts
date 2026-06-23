@@ -15,6 +15,10 @@ export const CHORE_TEMPLATES: ChoreTemplate[] = [
   { category: "주방", name: "냉장고 청소", defaultCycle: "monthly", durationMin: 40, effort: "heavy" },
   { category: "주방", name: "후드/필터 청소", defaultCycle: "monthly", durationMin: 30, effort: "heavy" },
   { category: "주방", name: "정수기 청소·필터", defaultCycle: "quarterly", durationMin: 20, effort: "normal" },
+  { category: "주방", name: "식기건조대 물때 청소", defaultCycle: "weekly", durationMin: 10, effort: "normal", howtoId: "kitchen-dishrack" },
+  { category: "주방", name: "수세미·솔 교체", defaultCycle: "weekly", durationMin: 1, effort: "easy", tip: "수세미는 세균 온상이라 1~2주마다 교체하거나 삶아 써요." },
+  { category: "주방", name: "도마 소독", defaultCycle: "weekly", durationMin: 5, effort: "easy", tip: "베이킹소다+식초 또는 끓는 물로 소독해요.", howtoId: "kitchen-board" },
+  { category: "주방", name: "냉동실 정리·성에 제거", defaultCycle: "quarterly", durationMin: 30, effort: "heavy", howtoId: "kitchen-freezer" },
 
   // 청소 (바닥·방·거실)
   { category: "청소", name: "침대 정리", defaultCycle: "daily", durationMin: 3, effort: "easy" },
@@ -38,6 +42,7 @@ export const CHORE_TEMPLATES: ChoreTemplate[] = [
   { category: "욕실", name: "수건 교체", defaultCycle: "weekly", durationMin: 3, effort: "easy" },
   { category: "욕실", name: "곰팡이 점검·제거", defaultCycle: "monthly", durationMin: 25, effort: "heavy", seasonMonths: [6, 7, 8], tip: "환기하며 장갑 끼고, 다른 세제와 절대 섞지 마세요.", howtoId: "mold-silicone" },
   { category: "욕실", name: "환풍기 청소", defaultCycle: "quarterly", durationMin: 20, effort: "normal" },
+  { category: "욕실", name: "샤워헤드 세척", defaultCycle: "quarterly", durationMin: 15, effort: "normal", tip: "구연산 물에 담가 막힌 구멍의 물때를 녹여요.", howtoId: "stain-water-spot" },
 
   // 세탁
   { category: "세탁", name: "빨래 돌리기", defaultCycle: "few_days", durationMin: 5, effort: "easy", tip: "다 되면 바로 널기 — 방치하면 쉰내가 나요.", howtoId: "smell-laundry" },
@@ -75,6 +80,8 @@ export const CHORE_TEMPLATES: ChoreTemplate[] = [
   { category: "가전 관리", name: "에어컨 필터 청소", defaultCycle: "quarterly", durationMin: 20, effort: "normal", seasonMonths: [5, 6, 7, 8] },
   { category: "가전 관리", name: "냉장고 뒷면 먼지", defaultCycle: "quarterly", durationMin: 15, effort: "normal" },
   { category: "가전 관리", name: "보일러 점검", defaultCycle: "yearly", durationMin: 20, effort: "normal", seasonMonths: [10, 11] },
+  { category: "가전 관리", name: "TV·모니터 화면 닦기", defaultCycle: "monthly", durationMin: 5, effort: "easy", tip: "전원 끄고 마른 극세사 천으로. 세정액은 천에 묻혀 닦아요." },
+  { category: "가전 관리", name: "가습기 세척", defaultCycle: "weekly", durationMin: 10, effort: "normal", seasonMonths: [11, 12, 1, 2], tip: "물때를 방치하면 세균이 공기로 퍼져요. 매일 물 갈기.", howtoId: "limescale-kettle" },
 
   // 현관·베란다
   { category: "현관·베란다", name: "현관 바닥 닦기", defaultCycle: "biweekly", durationMin: 10, effort: "easy" },
@@ -92,6 +99,19 @@ export const CHORE_TEMPLATES: ChoreTemplate[] = [
   { category: "생활 관리", name: "생필품 재고 점검", defaultCycle: "weekly", durationMin: 10, effort: "easy" },
   { category: "생활 관리", name: "공과금 납부 확인", defaultCycle: "monthly", durationMin: 10, effort: "easy", tip: "자동이체를 걸어두면 연체를 막을 수 있어요.", howtoId: "setup-utility" },
   { category: "생활 관리", name: "상비약·유통기한 점검", defaultCycle: "quarterly", durationMin: 15, effort: "easy" },
+  { category: "생활 관리", name: "사진·문서 백업", defaultCycle: "monthly", durationMin: 15, effort: "easy", howtoId: "save-backup" },
+  { category: "생활 관리", name: "구독 서비스 점검", defaultCycle: "monthly", durationMin: 10, effort: "easy", tip: "안 쓰는 구독을 끊으면 매달 새는 돈을 막아요.", howtoId: "save-subscription" },
+
+  // 위생·건강
+  { category: "위생·건강", name: "칫솔 교체", defaultCycle: "quarterly", durationMin: 2, effort: "easy", tip: "칫솔은 3개월마다, 감기 앓은 뒤엔 바로 교체해요." },
+  { category: "위생·건강", name: "리모컨·스위치·휴대폰 닦기", defaultCycle: "weekly", durationMin: 5, effort: "easy", howtoId: "health-sanitize" },
+  { category: "위생·건강", name: "침구 햇볕 소독·털기", defaultCycle: "monthly", durationMin: 15, effort: "normal", weatherTag: "sunny", howtoId: "health-dustmite" },
+  { category: "위생·건강", name: "수건 삶기·살균", defaultCycle: "monthly", durationMin: 15, effort: "normal", tip: "삶거나 과탄산소다로 살균하면 쉰내·세균이 줄어요.", howtoId: "smell-laundry" },
+
+  // 수선·관리
+  { category: "수선·관리", name: "옷 보풀 제거", defaultCycle: "monthly", durationMin: 10, effort: "easy", howtoId: "mend-lint" },
+  { category: "수선·관리", name: "신발 관리·방수", defaultCycle: "monthly", durationMin: 10, effort: "easy", howtoId: "care-shoes" },
+  { category: "수선·관리", name: "가죽 제품 관리", defaultCycle: "quarterly", durationMin: 15, effort: "easy", howtoId: "care-leather" },
 
   // 계절·대청소
   { category: "계절·대청소", name: "커튼 세탁", defaultCycle: "quarterly", durationMin: 30, effort: "heavy", seasonMonths: [3, 4, 9, 10] },

@@ -6,6 +6,7 @@ import {
 } from "../data/choreTemplates";
 import { CYCLE, CYCLE_KEYS, EFFORT_LABEL } from "../data/cycles";
 import { isDue } from "../lib/chores";
+import { todayStr } from "../lib/date";
 import TipCard from "../components/TipCard";
 import type { Chore, CycleKey, Effort } from "../types";
 
@@ -33,7 +34,6 @@ export default function ChoresPage() {
 /* ── 내 집안일 (1-2) ───────────────────────────── */
 function MyChores() {
   const chores = useStore((s) => s.chores);
-  const completeChore = useStore((s) => s.completeChore);
 
   if (chores.length === 0) {
     return (
@@ -49,20 +49,30 @@ function MyChores() {
       <AddCustom />
       <ul className="list">
         {chores.map((c) => (
-          <MyChoreItem key={c.id} chore={c} onDone={() => completeChore(c.id)} />
+          <MyChoreItem key={c.id} chore={c} />
         ))}
       </ul>
     </>
   );
 }
 
-function MyChoreItem({ chore, onDone }: { chore: Chore; onDone: () => void }) {
+function MyChoreItem({ chore }: { chore: Chore }) {
+  const completeChore = useStore((s) => s.completeChore);
+  const uncompleteChore = useStore((s) => s.uncompleteChore);
   const [editing, setEditing] = useState(false);
   const due = isDue(chore);
+  const doneToday = chore.lastDone === todayStr();
+  // 오늘 완료한 일은 한 번 더 누르면 되돌리기(undo), 아니면 완료 처리
+  const onCheck = () => (doneToday ? uncompleteChore(chore.id) : completeChore(chore.id));
   return (
     <li className={`card chore ${due ? "due" : ""}`}>
       <div className="chore-row">
-        <button className="check" onClick={onDone} aria-label="완료">
+        <button
+          className="check"
+          onClick={onCheck}
+          aria-label={doneToday ? "완료 취소" : "완료"}
+          title={doneToday ? "오늘 완료 취소" : "완료"}
+        >
           {due ? "○" : "✓"}
         </button>
         <div className="chore-main">
@@ -70,6 +80,7 @@ function MyChoreItem({ chore, onDone }: { chore: Chore; onDone: () => void }) {
           <div className="chore-sub dim">
             {CYCLE[chore.cycle].label} · {chore.durationMin}분 · {EFFORT_LABEL[chore.effort]}
             {chore.lastDone ? ` · 마지막 ${chore.lastDone}` : " · 아직 안 함"}
+            {doneToday ? " · 오늘 완료 (눌러서 취소)" : ""}
           </div>
         </div>
         <button className="icon-btn" onClick={() => setEditing((v) => !v)} aria-label="수정">
