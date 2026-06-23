@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
 import { avgGapDays, isRunningLow, predictEmptyDate } from "../lib/predict";
 import { daysBetween, shortKor, todayStr } from "../lib/date";
+import Icon from "../components/Icon";
 
 type Mode = "inventory" | "shopping";
 
@@ -82,7 +83,7 @@ function Inventory() {
                     {low && <span className="badge">부족</span>}
                   </span>
                   <button className="icon-btn" onClick={() => deleteInventory(it.id)} aria-label="삭제">
-                    ✕
+                    <Icon name="close" size={16} />
                   </button>
                 </div>
                 <div className="qty-row">
@@ -205,7 +206,7 @@ function Shopping() {
                     onChange={(e) => setShoppingPrice(x.id, Number(e.target.value))}
                   />
                   <button className="icon-btn" onClick={() => deleteShopping(x.id)} aria-label="삭제">
-                    ✕
+                    <Icon name="close" size={16} />
                   </button>
                 </div>
               </li>

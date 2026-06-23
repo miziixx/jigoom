@@ -1,5 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import BottomTabBar from "./BottomTabBar";
+import Icon from "./Icon";
 
 const TITLES: Record<string, string> = {
   "/": "오늘",
@@ -26,7 +27,7 @@ export default function Layout() {
             aria-label="살림백과 검색"
             onClick={() => navigate("/encyclopedia")}
           >
-            🔍
+            <Icon name="search" size={20} />
           </button>
         )}
       </header>

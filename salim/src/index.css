@@ -14,10 +14,14 @@
   --warn-bg: #fff4e6;
   --emerg-bg: #fdecea;
   --emerg: #c0392b;
-  --radius: 14px;
-  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-sm: 12px;
   --gap: 12px;
   --maxw: 480px;
+  /* 깊이감 (은은한 그림자) */
+  --shadow-sm: 0 1px 2px rgba(44, 42, 38, 0.05), 0 1px 1px rgba(44, 42, 38, 0.03);
+  --shadow: 0 6px 18px rgba(44, 42, 38, 0.08);
+  --shadow-lg: 0 14px 34px rgba(44, 42, 38, 0.12);
 }
 
 * {
@@ -29,12 +33,16 @@ body {
   padding: 0;
 }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-    "Pretendard", "Malgun Gothic", system-ui, sans-serif;
+  font-family: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui,
+    sans-serif;
   -webkit-text-size-adjust: 100%;
   line-height: 1.5;
+  letter-spacing: -0.005em;
   background: var(--surface-2);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 button {
   font-family: inherit;
@@ -64,26 +72,36 @@ select {
   position: sticky;
   top: 0;
   z-index: 10;
-  height: 52px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  background: var(--green);
-  color: #fff;
+  padding: 0 18px;
+  background: rgba(250, 247, 242, 0.82);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
 }
 .appbar-title {
-  font-weight: 700;
-  font-size: 18px;
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.02em;
 }
 .appbar-search {
-  border: none;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--green-d);
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.appbar-search:active {
+  background: var(--surface-2);
 }
 .content {
   flex: 1;
@@ -105,8 +123,11 @@ select {
   width: 100%;
   max-width: var(--maxw);
   display: flex;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  backdrop-filter: saturate(1.4) blur(12px);
   border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 16px rgba(44, 42, 38, 0.05);
   z-index: 10;
 }
 .tab {
@@ -121,8 +142,10 @@ select {
   font-size: 11px;
 }
 .tab-icon {
-  font-size: 19px;
-  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
 }
 .tab-active {
   color: var(--green-d);
@@ -134,13 +157,18 @@ select {
 .tab-brand {
   display: none; /* 모바일 하단 탭바에선 숨김 — 데스크톱 사이드바에서만 노출 */
 }
+.icon-btn-on {
+  color: var(--green-d);
+  background: var(--green-soft);
+}
 
 /* ── 공용 요소 ─────────────────────────────────── */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px;
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
 }
 .sec-title {
   font-size: 14px;
@@ -177,9 +205,15 @@ select {
   background: var(--green);
   color: #fff;
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 11px 15px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(59, 155, 79, 0.22);
+  transition: transform 0.06s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(59, 155, 79, 0.2);
 }
 .btn.block {
   width: 100%;
@@ -187,11 +221,13 @@ select {
 .btn.ghost {
   background: transparent;
   color: var(--green-d);
+  box-shadow: none;
 }
 .btn.danger {
   background: transparent;
   border-color: var(--danger);
   color: var(--danger);
+  box-shadow: none;
 }
 .btn.sm {
   padding: 6px 10px;
@@ -207,11 +243,18 @@ select {
   align-self: flex-start;
 }
 .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: none;
   color: var(--dim);
   font-size: 16px;
-  padding: 4px 6px;
+  padding: 6px;
+  border-radius: 9px;
+}
+.icon-btn:active {
+  background: var(--surface-2);
 }
 .badge {
   display: inline-block;
@@ -325,7 +368,9 @@ select {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(180deg, var(--green-soft), var(--surface));
+  padding: 18px 14px;
+  background: linear-gradient(165deg, var(--green-soft), var(--surface) 75%);
+  box-shadow: var(--shadow);
 }
 .plant-gauge {
   display: flex;
@@ -653,9 +698,8 @@ select {
   line-height: 1.4;
 }
 .howto-row-arr {
-  font-size: 22px;
-  line-height: 1;
   flex-shrink: 0;
+  color: var(--dim);
 }
 .enc-count {
   margin: 2px 0 8px;
@@ -845,6 +889,96 @@ select {
   .gauge-fill {
     transition: none;
   }
+  .btn {
+    transition: none;
+  }
+}
+
+/* ── 아이콘·검색·배너 유틸 (디자인 리프레시) ───────── */
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-ico {
+  position: absolute;
+  left: 13px;
+  color: var(--dim);
+  pointer-events: none;
+}
+.search-wrap .search {
+  padding-left: 40px;
+}
+.search-wrap .search.big {
+  padding-left: 44px;
+}
+
+.banner-txt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.banner-txt svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.howto-row-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.emerg-ico {
+  color: var(--emerg);
+  flex-shrink: 0;
+}
+.howto-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.caution {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.caution-ico {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent);
+}
+.caution.top .caution-ico {
+  color: inherit;
+}
+
+.stat-row2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.stat-row2 svg {
+  color: var(--green-d);
+}
+.stat-dot {
+  color: var(--dim);
+  font-weight: 400;
+}
+
+.chip-ico {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.stash-loc {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stash-loc svg {
+  flex-shrink: 0;
+  opacity: 0.75;
 }
 
 /* ── PC(넓은 화면) 레이아웃: 사이드바 + 반응형 본문 ─────
@@ -893,7 +1027,9 @@ select {
     border-right: 1px solid var(--border);
   }
   .tab-brand {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-weight: 800;
     font-size: 16px;
     color: var(--green-d);

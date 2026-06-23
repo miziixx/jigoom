@@ -10,18 +10,19 @@ import {
   searchHowtos,
 } from "../data/howtos";
 import type { HowToEntry } from "../types";
+import Icon from "../components/Icon";
 
 function HowtoRow({ h, onClick }: { h: HowToEntry; onClick: () => void }) {
   return (
     <li className="card howto-row" onClick={onClick}>
       <div className="howto-row-main">
         <div className="howto-row-title">
-          {h.emergency ? "🚨 " : ""}
+          {h.emergency && <Icon name="alert" size={16} className="emerg-ico" />}
           {h.title}
         </div>
         {h.summary && <div className="howto-row-sum dim small">{h.summary}</div>}
       </div>
-      <span className="howto-row-arr dim">›</span>
+      <Icon name="chevron" size={18} className="howto-row-arr dim" />
     </li>
   );
 }
@@ -48,12 +49,15 @@ export default function EncyclopediaPage() {
 
   return (
     <div className="page">
-      <input
-        className="search big"
-        placeholder="🔍 증상·문제로 검색 (쉰내, 곰팡이, 변기 막힘…)"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      <div className="search-wrap">
+        <Icon name="search" size={18} className="search-ico" />
+        <input
+          className="search big"
+          placeholder="증상·문제로 검색 (쉰내, 곰팡이, 변기 막힘…)"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
 
       {q.trim() ? (
         results.length === 0 ? (
@@ -121,14 +125,17 @@ function Detail({ entry, onBack }: { entry: HowToEntry; onBack: () => void }) {
       <article className={`howto ${entry.emergency ? "emergency" : ""}`}>
         <div className="dim small howto-cat">{entry.category}</div>
         <h1 className="howto-title">
-          {entry.emergency ? "🚨 " : ""}
+          {entry.emergency && <Icon name="alert" size={20} className="emerg-ico" />}
           {entry.title}
         </h1>
 
         {entry.summary && <p className="howto-lead">{entry.summary}</p>}
 
         {entry.emergency && entry.caution && (
-          <div className="caution top">⚠️ {entry.caution}</div>
+          <div className="caution top">
+            <Icon name="alert" size={16} className="caution-ico" />
+            <span>{entry.caution}</span>
+          </div>
         )}
 
         {entry.cause && (
@@ -158,7 +165,12 @@ function Detail({ entry, onBack }: { entry: HowToEntry; onBack: () => void }) {
           </section>
         )}
 
-        {!entry.emergency && entry.caution && <div className="caution">⚠️ {entry.caution}</div>}
+        {!entry.emergency && entry.caution && (
+          <div className="caution">
+            <Icon name="alert" size={16} className="caution-ico" />
+            <span>{entry.caution}</span>
+          </div>
+        )}
 
         {entry.relatedChores && entry.relatedChores.length > 0 && (
           <section className="howto-sec">

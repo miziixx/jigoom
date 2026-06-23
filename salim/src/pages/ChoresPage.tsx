@@ -8,6 +8,7 @@ import { CYCLE, CYCLE_KEYS, EFFORT_LABEL } from "../data/cycles";
 import { isDue } from "../lib/chores";
 import { todayStr } from "../lib/date";
 import TipCard from "../components/TipCard";
+import Icon from "../components/Icon";
 import type { Chore, CycleKey, Effort } from "../types";
 
 type Mode = "mine" | "pick";
@@ -83,8 +84,12 @@ function MyChoreItem({ chore }: { chore: Chore }) {
             {doneToday ? " · 오늘 완료 (눌러서 취소)" : ""}
           </div>
         </div>
-        <button className="icon-btn" onClick={() => setEditing((v) => !v)} aria-label="수정">
-          ⚙
+        <button
+          className={`icon-btn ${editing ? "icon-btn-on" : ""}`}
+          onClick={() => setEditing((v) => !v)}
+          aria-label="수정"
+        >
+          <Icon name="edit" size={18} />
         </button>
       </div>
       <TipCard tip={chore.tip} howtoId={chore.howtoId} />

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
 import { byCategory, monthExpenses, sumAmount } from "../lib/stats";
 import { todayStr } from "../lib/date";
+import Icon from "../components/Icon";
 
 const CATEGORIES = ["식비", "장보기", "생활용품", "공과금", "교통", "여가", "기타"];
 
@@ -136,7 +137,7 @@ export default function LedgerPage() {
                   </div>
                 </div>
                 <button className="icon-btn" onClick={() => deleteExpense(e.id)} aria-label="삭제">
-                  ✕
+                  <Icon name="close" size={16} />
                 </button>
               </li>
             ))}

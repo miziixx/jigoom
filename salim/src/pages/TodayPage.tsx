@@ -10,6 +10,7 @@ import { todayStr, shortKor } from "../lib/date";
 import { EFFORT_LABEL, CYCLE } from "../data/cycles";
 import { monthExpenses, sumAmount, streakDays, choresDoneInDays, countByType } from "../lib/stats";
 import { fetchWeatherSuggestions, weatherChore, type WeatherSuggestion } from "../services/weather";
+import Icon from "../components/Icon";
 import type { Chore, Effort } from "../types";
 
 type TimeFilter = "all" | "15" | "30";
@@ -87,7 +88,9 @@ export default function TodayPage() {
               const chore = weatherChore(w.tag);
               return (
                 <div key={w.text} className="banner-row">
-                  <span>🌤 {w.text}</span>
+                  <span className="banner-txt">
+                    <Icon name="sun" size={16} /> {w.text}
+                  </span>
                   {chore && (
                     <button className="link-btn" onClick={() => pullToToday(chore)}>
                       오늘 할 일로
@@ -98,7 +101,9 @@ export default function TodayPage() {
             })
           : tips.map((t) => (
               <div key={t.text} className="banner-row">
-                <span>🗓 {t.text}</span>
+                <span className="banner-txt">
+                  <Icon name="calendar" size={16} /> {t.text}
+                </span>
                 {t.chore && (
                   <button className="link-btn" onClick={() => pullToToday(t.chore!)}>
                     오늘 할 일로
@@ -110,7 +115,7 @@ export default function TodayPage() {
           className="link-btn small"
           onClick={() => setSetting("weatherEnabled", !weatherEnabled)}
         >
-          {weatherEnabled ? "날씨 연동 끄기" : "📍 날씨 연동 켜기"}
+          {weatherEnabled ? "날씨 연동 끄기" : "날씨 연동 켜기"}
         </button>
       </section>
 
@@ -208,8 +213,10 @@ function SummaryCards() {
       )}
       {hasStats && (
         <div className="card stat">
-          <div className="stat-num">
-            🔥 {streak}일 · 🧹 {weekChores}
+          <div className="stat-num stat-row2">
+            <Icon name="flame" size={18} /> {streak}일
+            <span className="stat-dot">·</span>
+            <Icon name="clean" size={18} /> {weekChores}
           </div>
           <div className="dim small">
             연속 기록 · 이번 주 집안일{monthDeclutter > 0 ? ` · 비움 ${monthDeclutter}` : ""}

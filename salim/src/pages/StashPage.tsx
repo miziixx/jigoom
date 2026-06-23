@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useStore } from "../store/useStore";
 import { daysSince, shortKor } from "../lib/date";
+import Icon from "../components/Icon";
 
 // 보관 (1-7) + 잠자는 물건 코칭 (5-5).
 export default function StashPage() {
@@ -52,8 +53,8 @@ export default function StashPage() {
           <div className="small">😴 1년 넘게 안 쓴 물건이 {sleeping.length}개 있어요. 비울까요?</div>
           <div className="sugg-row">
             {sleeping.map((it) => (
-              <button key={it.id} className="chip" onClick={() => declutterStash(it.id)}>
-                🗑 {it.name} 비우기
+              <button key={it.id} className="chip chip-ico" onClick={() => declutterStash(it.id)}>
+                <Icon name="trash" size={14} /> {it.name} 비우기
               </button>
             ))}
           </div>
@@ -61,7 +62,15 @@ export default function StashPage() {
       )}
 
       {stash.length > 0 && (
-        <input className="search" placeholder="🔍 이름·위치로 검색" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="search-wrap">
+          <Icon name="search" size={18} className="search-ico" />
+          <input
+            className="search"
+            placeholder="이름·위치로 검색"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
       )}
 
       {stash.length === 0 ? (
@@ -75,8 +84,8 @@ export default function StashPage() {
             <li key={it.id} className="card stash-item">
               <div className="stash-main">
                 <div className="chore-name">{it.name}</div>
-                <div className="chore-sub dim">
-                  📍 {it.location} · 마지막 {shortKor(it.lastTouched)}
+                <div className="chore-sub dim stash-loc">
+                  <Icon name="pin" size={13} /> {it.location} · 마지막 {shortKor(it.lastTouched)}
                 </div>
               </div>
               <div className="stash-actions">
@@ -84,7 +93,7 @@ export default function StashPage() {
                   오늘 꺼냈어요
                 </button>
                 <button className="icon-btn" onClick={() => deleteStash(it.id)} aria-label="삭제">
-                  ✕
+                  <Icon name="close" size={16} />
                 </button>
               </div>
             </li>
