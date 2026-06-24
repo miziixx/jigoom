@@ -1588,7 +1588,8 @@ function npHTML(){
   var np=state.np; if(!np) return "";
   var inner;
   if(np.stage==="cat"){
-    inner='<div class="np-h">뭘 만들 거야?</div>'
+    inner=blob("happy",null,true)
+      +'<div class="np-h">뭘 만들 거야?</div>'
       +'<div class="np-sub">고르기만 하면 할 일이 알아서 깔려요</div>'
       +'<div class="np-cat-grid">'+PROJECT_CATS.map(function(c){
         return '<button class="np-cat" data-npcat="'+esc(c.cat)+'"><span class="np-cat-emoji">'+c.emoji+'</span><span>'+esc(c.cat)+'</span></button>';
@@ -1976,7 +1977,7 @@ function screenCalendar(){
 function screenInbox(){
   var items=inboxItems();
   var head='<div class="screen-title">📥 받은함</div>';
-  if(items.length===0) return head+'<div class="empty">받은함이 비었어. 떠오르는 건 위에 적어서 던져두면 돼.</div>';
+  if(items.length===0) return head+blob("happy","받은함이 깨끗해요!\n떠오르는 건 위에 적어서 던져두면 돼요.");
   return head
     +'<button class="cleanup" id="cleanupBtn" style="margin-bottom:14px"><span class="cleanup-l">'+items.length+'개 정리 안 됨</span><span class="cleanup-r">하나씩 정리하기 →</span></button>'
     +'<div class="group" data-group="받은함">'+items.map(function(t,idx){return cardHTML(t,items[idx+1]?items[idx+1].id:"");}).join("")+"</div>";
