@@ -177,6 +177,10 @@ button,input{font-family:inherit;}
 .tl-item{display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid #EFE8DC;border-radius:10px;padding:8px 10px;}
 .tl-item.done{opacity:.55;}
 .tl-item .round{width:20px;height:20px;}
+/* '한 일' 기록: 체크박스 대신 정적 ✓ */
+.tl-logmark{width:20px;height:20px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;font-weight:900;}
+.tl-block .tl-logmark{width:18px;height:18px;font-size:13px;}
+.tl-log .tl-itext,.tl-log .tl-btext{cursor:default;}
 .tl-itext{flex:1;font-size:13px;font-weight:600;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .board{display:grid;gap:14px;grid-template-columns:1fr 1fr;}
 .group{background:#fff;border:1.5px solid #EFE8DC;border-radius:18px;padding:14px;box-shadow:0 1px 4px rgba(120,90,50,.04);transition:border-color .12s,background .12s;}
@@ -2034,11 +2038,19 @@ function tlMovePicker(t){
     return '<button class="mini'+(t.bucket===k?" on":"")+'" data-tlbucket="'+t.id+"|"+k+'">'+k+'</button>';
   }).join("")+'</div>';
 }
+// 타임라인 항목 앞부분 — '한 일' 기록은 체크박스 대신 정적 ✓
+function tlLead(t){
+  return t.log ? '<span class="tl-logmark" title="한 일 기록">✓</span>'
+               : '<button class="round '+(t.done?"done":"")+'" data-toggle="'+t.id+'">'+(t.done?"✓":"")+"</button>";
+}
+function tlIsDone(t){ return t.done&&!t.log; }              // 기록은 '완료 흐림·취소선' 안 씀
+function tlEditAttr(t){ return t.log?"":' data-edit="'+t.id+'"'; }
+function tlDel(t){ return t.log?'<button class="x" data-remove="'+t.id+'" title="기록 삭제">×</button>':""; }
 function tlMiniCard(t){
-  return '<div class="tl-item'+(t.done?" done":"")+'">'
-    +'<button class="round '+(t.done?"done":"")+'" data-toggle="'+t.id+'">'+(t.done?"✓":"")+"</button>"
-    +'<span class="tl-itext '+(t.done?"strike":"")+'" data-edit="'+t.id+'">'+esc(t.text)+"</span>"
-    +'<span class="cdot" style="background:'+catStyle(t.cat).dot+'"></span></div>'+tlMovePicker(t);
+  return '<div class="tl-item'+(tlIsDone(t)?" done":"")+(t.log?" tl-log":"")+'">'
+    +tlLead(t)
+    +'<span class="tl-itext '+(tlIsDone(t)?"strike":"")+'"'+tlEditAttr(t)+'>'+esc(t.text)+"</span>"
+    +'<span class="cdot" style="background:'+catStyle(t.cat).dot+'"></span>'+tlDel(t)+'</div>'+tlMovePicker(t);
 }
 function tlClock(){
   var items=todayTimed();
@@ -2054,10 +2066,10 @@ function tlClock(){
     var hh=(h<10?"0":"")+h+":00";
     var inHour=timed.filter(function(t){return hourOf(t)===h;});
     var blocks=inHour.map(function(t){
-      return '<div class="tl-block'+(t.done?" done":"")+'" style="border-color:'+catStyle(t.cat).dot+'">'
-        +'<button class="round '+(t.done?"done":"")+'" data-toggle="'+t.id+'">'+(t.done?"✓":"")+"</button>"
-        +'<span class="tl-btext '+(t.done?"strike":"")+'" data-edit="'+t.id+'">'+esc(t.text)+"</span>"
-        +'<span class="tl-bt">'+esc(t.time)+(t.end?"–"+esc(t.end):"")+"</span></div>"+tlMovePicker(t);
+      return '<div class="tl-block'+(tlIsDone(t)?" done":"")+(t.log?" tl-log":"")+'" style="border-color:'+catStyle(t.cat).dot+'">'
+        +tlLead(t)
+        +'<span class="tl-btext '+(tlIsDone(t)?"strike":"")+'"'+tlEditAttr(t)+'>'+esc(t.text)+"</span>"
+        +'<span class="tl-bt">'+esc(t.time)+(t.end?"–"+esc(t.end):"")+"</span>"+tlDel(t)+"</div>"+tlMovePicker(t);
     }).join("");
     rows+='<div class="tl-hour" data-tlhour="'+h+'"><span class="tl-time">'+hh+'</span><div class="tl-slot">'+blocks+'</div></div>';
   }
@@ -2071,10 +2083,10 @@ function tlAgenda(){
   if(items.length===0) return '<div class="tl-empty">오늘 할 일이 없어요. 🌿</div>';
   return '<div class="tl-agenda">'+items.map(function(t){
     var tm=t.time?'<span class="tl-bt">'+esc(t.time)+"</span>":'<span class="tl-bt tl-bt-no">시간 미정</span>';
-    return '<div class="tl-item'+(t.done?" done":"")+'">'
-      +'<button class="round '+(t.done?"done":"")+'" data-toggle="'+t.id+'">'+(t.done?"✓":"")+"</button>"
-      +'<span class="tl-itext '+(t.done?"strike":"")+'" data-edit="'+t.id+'">'+esc(t.text)+"</span>"
-      +tm+'<span class="cdot" style="background:'+catStyle(t.cat).dot+'"></span></div>'+tlMovePicker(t);
+    return '<div class="tl-item'+(tlIsDone(t)?" done":"")+(t.log?" tl-log":"")+'">'
+      +tlLead(t)
+      +'<span class="tl-itext '+(tlIsDone(t)?"strike":"")+'"'+tlEditAttr(t)+'>'+esc(t.text)+"</span>"
+      +tm+'<span class="cdot" style="background:'+catStyle(t.cat).dot+'"></span>'+tlDel(t)+'</div>'+tlMovePicker(t);
   }).join("")+"</div>";
 }
 function screenTimeline(){
