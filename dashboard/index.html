@@ -1393,11 +1393,11 @@ var MERIDIEM={"오전":"am","아침":"am","새벽":"am","오후":"pm","낮":"pm"
 // '3시'/'3시30분'/'3시반' → {h,mi} (실패 시 null)
 function parseClock(tk){ var mt=tk.match(/^(\d{1,2})시(?:(\d{1,2})분|(반))?$/); if(!mt) return null; return { h:+mt[1], mi:mt[2]?+mt[2]:(mt[3]?30:0), hadMin:(mt[2]!=null||mt[3]!=null) }; }
 function parseQuickInput(raw, defaultCat){
-  var r={ text:"", cat:defaultCat||UNCAT, bucket:"받은함", date:null, time:null, done:false, proj:null };
+  var r={ text:"", cat:defaultCat||UNCAT, bucket:"받은함", date:null, time:null, done:false, log:false, proj:null };
   var tokens=(raw||"").trim().split(/\s+/).filter(Boolean);
   if(!tokens.length) return r;
-  // 1) 완료 키워드 ('한일')
-  if(tokens[0]==="한일"){ r.done=true; tokens.shift(); }
+  // 1) 완료 키워드 ('한일') → 완료 기록(log). 타임라인에만 뜨고 할일 목록엔 안 뜸.
+  if(tokens[0]==="한일"){ r.done=true; r.log=true; tokens.shift(); }
   // 2) 첫 단어가 프로젝트 또는 분류면 거기에 배정
   var catMatched=false;
   if(tokens.length){
@@ -1467,6 +1467,7 @@ function parseQuickInput(raw, defaultCat){
 function taskFromParse(p){
   var t={ id:nid(), text:p.text, cat:p.cat, bucket:p.bucket, done:!!p.done, date:p.date||null };
   if(p.time) t.time=p.time;
+  if(p.log) t.log=true;   // 완료 기록(타임라인 전용)
   if(p.proj){ t.proj=p.proj; t.order=nextProjOrder(p.proj); }
   return t;
 }
@@ -1537,7 +1538,7 @@ function projById(id){ return state.projects.filter(function(p){return p.id===id
 function liveProjects(){ return state.projects.filter(function(p){return !p.archived;}); }
 // 할 일 점 색: 프로젝트 소속이면 프로젝트 색, 아니면 분류 색
 function taskDotColor(t){ if(t.proj){ var p=projById(t.proj); if(p) return p.color; } return catStyle(t.cat).dot; }
-function projTasks(pid){ return state.tasks.filter(function(t){return (t.proj||PROJ_NONE)===pid;}); }
+function projTasks(pid){ return state.tasks.filter(function(t){return (t.proj||PROJ_NONE)===pid && !t.log;}); }
 // 프로젝트 안에서 다음 단계 순서값 (마지막 단계 +1)
 function nextProjOrder(pid){
   var mx=-1; projTasks(pid).forEach(function(t){ if(typeof t.order==="number"&&t.order>mx) mx=t.order; });
@@ -1999,7 +2000,7 @@ function screenTasks(){
     +"</div></div>";
   var groupKeys=state.view==="bucket"?BUCKET_KEYS:CAT_KEYS_LIST();
   var board='<div class="board">'+groupKeys.map(function(g){
-    var items=state.tasks.filter(function(t){return keyOf(t)===g&&(!state.hideDone||!t.done);});
+    var items=state.tasks.filter(function(t){return keyOf(t)===g&&!t.log&&(!state.hideDone||!t.done);});
     var headName,hint="";
     if(state.view==="bucket"){headName=BUCKETS[g].label;hint=BUCKETS[g].hint;}
     else headName='<span class="cdot" style="background:'+catStyle(g).dot+'"></span>'+esc(g);
@@ -2098,7 +2099,7 @@ function screenCalendar(){
   for(var d=1;d<=daysIn;d++) cells.push(d);
   while(cells.length%7!==0) cells.push(null);
   var byDate={};
-  state.tasks.forEach(function(t){ if(t.date)(byDate[t.date]=byDate[t.date]||[]).push(t); });
+  state.tasks.forEach(function(t){ if(t.date&&!t.log)(byDate[t.date]=byDate[t.date]||[]).push(t); });
   var dueBy={};
   liveProjects().forEach(function(p){ if(p.due)(dueBy[p.due]=dueBy[p.due]||[]).push(p); });
   var grid=cells.map(function(c){
@@ -2117,7 +2118,7 @@ function screenCalendar(){
     :dueHTML+selList.map(function(t,idx){return cardHTML(t,selList[idx+1]?selList[idx+1].id:"");}).join("");
   // 이번 달 한 줄 요약 (기획서 §6-2)
   var monthPrefix=y+"-"+String(m+1).padStart(2,"0");
-  var monthTasks=state.tasks.filter(function(t){return t.date&&t.date.indexOf(monthPrefix)===0;});
+  var monthTasks=state.tasks.filter(function(t){return t.date&&!t.log&&t.date.indexOf(monthPrefix)===0;});
   var monthDone=monthTasks.filter(function(t){return t.done;}).length;
   var summary=monthTasks.length
     ? '<div class="cal-summary">이번 달 할 일 <b>'+monthTasks.length+'개</b> · 완료 <b>'+monthDone+'개</b></div>'
@@ -2170,7 +2171,7 @@ function screenInbox(){
 /* ══ 화면: 검색 ══ */
 function screenSearch(){
   var q=state.search.trim().toLowerCase();
-  var tasks=state.tasks.filter(function(t){return (t.text||"").toLowerCase().indexOf(q)>=0;});
+  var tasks=state.tasks.filter(function(t){return !t.log&&(t.text||"").toLowerCase().indexOf(q)>=0;});
   var projs=state.projects.filter(function(p){return (p.name||"").toLowerCase().indexOf(q)>=0;});
   var rts=state.routines.filter(function(r){return (r.name||"").toLowerCase().indexOf(q)>=0;});
   var total=tasks.length+projs.length+rts.length;
