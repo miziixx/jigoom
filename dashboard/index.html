@@ -469,6 +469,10 @@ button,input{font-family:inherit;}
 .np-opt .opt-title{font-size:15px;font-weight:800;color:var(--text);}
 .np-opt .opt-sub{font-size:12px;font-weight:700;color:var(--faint);margin-top:2px;}
 .np-mine-tag{font-size:10.5px;font-weight:800;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 6px;margin-left:6px;}
+.np-opt-row{display:flex;align-items:stretch;gap:7px;margin-bottom:10px;}
+.np-opt-row .np-opt{flex:1;margin-bottom:0;}
+.np-opt-del{flex-shrink:0;border:1.5px solid var(--border);background:var(--card,#fff);color:var(--faint);font-size:17px;font-weight:800;border-radius:13px;padding:0 14px;cursor:pointer;font-family:inherit;}
+.np-opt-del:hover{border-color:#E88AA6;color:#E04560;}
 .np-field{margin-bottom:14px;}
 .np-label{display:block;font-size:12px;font-weight:800;color:var(--mid);margin-bottom:6px;}
 .np-name-input{width:100%;border:1.5px solid var(--border);background:var(--card,#fff);border-radius:13px;padding:12px 14px;font-size:16px;font-weight:800;color:var(--text);outline:none;font-family:inherit;}
@@ -1593,10 +1597,12 @@ function npHTML(){
     var tpls=allTemplatesByCat(np.cat);
     var list=tpls.map(function(t){
       var n=(t.steps||[]).length;
-      var mine=isUserTpl(t.id)?'<span class="np-mine-tag">내 템플릿</span>':"";
+      var isMine=isUserTpl(t.id);
+      var mine=isMine?'<span class="np-mine-tag">내 템플릿</span>':"";
       var sub=n?(n+'단계 · 마감일 자동'):'직접 채우는 빈 프로젝트';
-      return '<button class="np-opt" data-nptpl="'+esc(t.id)+'"><span class="np-opt-emoji">'+(t.emoji||"📋")+'</span>'
+      var opt='<button class="np-opt" data-nptpl="'+esc(t.id)+'"><span class="np-opt-emoji">'+(t.emoji||"📋")+'</span>'
         +'<div><div class="opt-title">'+esc(t.name)+mine+'</div><div class="opt-sub">'+sub+'</div></div></button>';
+      return isMine?('<div class="np-opt-row">'+opt+'<button class="np-opt-del" data-deltpl="'+esc(t.id)+'" title="이 템플릿 삭제">×</button></div>'):opt;
     }).join("");
     inner='<button class="np-back" data-npback>← 뒤로</button>'
       +'<div class="np-h">'+npEmoji(np.cat)+' '+esc(np.cat)+'</div>'
@@ -1657,6 +1663,27 @@ function setProjectField(id,field,val){
 function setProjectColor(id,color){ var p=projById(id); if(!p) return; p.color=color; state.projColorPick=false; save(); render(); }
 function archiveProject(id){ var p=projById(id); if(!p) return; p.archived=true; state.projOpen=null; save(); toast("‘"+p.name+"’ 보관함으로 넣었어요"); render(); }
 function unarchiveProject(id){ var p=projById(id); if(!p) return; p.archived=false; save(); render(); }
+// 프로젝트의 단계들을 '내 템플릿'으로 저장 (기획서 §6-4·§7)
+function saveProjectAsTemplate(pid){
+  var p=projById(pid); if(!p) return;
+  var ts=projTasks(pid).slice().sort(function(a,b){return (a.order||0)-(b.order||0);});
+  if(!ts.length){ toast("저장할 단계가 없어요"); return; }
+  // 기준일 = 단계 중 가장 이른 날짜(없으면 오늘). 각 단계는 기준일+N일 → offsetDays.
+  var dated=ts.filter(function(t){return t.date;}).map(function(t){return t.date;}).sort();
+  var base=dated.length?dated[0]:TODAY;
+  var steps=ts.map(function(t){ return { title:t.text, offsetDays:t.date?Math.max(0,dayDiff(t.date,base)):0 }; });
+  var tpl={ id:"ut"+nid(), name:p.name, cat:p.cat||"개인", emoji:npEmoji(p.cat||"개인"), steps:steps, createdAt:new Date().toISOString() };
+  state.userTemplates=state.userTemplates||[];
+  state.userTemplates.push(tpl);
+  save(); toast("📋 ‘"+p.name+"’ 내 템플릿으로 저장했어요");
+  render();
+}
+function deleteUserTemplate(id){
+  var t=(state.userTemplates||[]).filter(function(x){return x.id===id;})[0];
+  if(t&&!confirm('내 템플릿 “'+t.name+'” 을(를) 지울까요?')) return;
+  state.userTemplates=(state.userTemplates||[]).filter(function(x){return x.id!==id;});
+  save(); render();
+}
 function projStats(pid){
   var ts=projTasks(pid), done=ts.filter(function(t){return t.done;}).length;
   return { total:ts.length, done:done, rate:ts.length?Math.round(done/ts.length*100):0 };
@@ -2244,7 +2271,8 @@ function screenProjectDetail(p){
     +'<textarea class="detail-memo" data-projmemo="'+p.id+'" placeholder="프로젝트 메모 — 목표, 링크, 메모 아무거나">'+esc(p.memo||"")+'</textarea>'
     +'<div class="proj-add-col"><input id="projDetailInput" class="add-input" placeholder="이 프로젝트에 할 일 추가"><button class="add-btn" id="projDetailAdd">추가</button></div>'
     +'<div class="group" data-group="'+p.id+'" style="margin-top:6px">'+list+'</div>'
-    +'<div class="proj-actions"><button class="proj-act" data-projarch="'+p.id+'">📦 보관하기</button></div>';
+    +'<div class="proj-actions"><button class="proj-act" data-savetpl="'+p.id+'">📋 내 템플릿으로 저장</button>'
+    +'<button class="proj-act" data-projarch="'+p.id+'">📦 보관하기</button></div>';
 }
 
 /* ══ 화면: 루틴 ══ */
@@ -2448,8 +2476,9 @@ function render(){
 
 /* ══ 클릭 위임 ══ */
 document.addEventListener("click",function(e){
-  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,#settingsLogout,#mobSyncRetry,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-memoeditbtn],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen],[data-npnew],#npClose,#npBackdrop,#npCard,[data-npback],[data-npcat],[data-nptpl],[data-npstepdel],[data-npaddstep],#npGo,[data-savetpl],[data-projarch],[data-projunarch]");
+  var el=e.target.closest("[data-cat],[data-toggle],[data-remove],[data-edit],[data-decide],[data-setcat],[data-setbucket],[data-dquick],[data-dclear],[data-view],[data-screen],#cleanupBtn,#backdrop,#sheet,#sheetSkip,[data-when],[data-acat],#sideAddBtn,#mAddBtn,#topAddBtn,#dayAddBtn,#fab,[data-calday],[data-calprev],[data-calnext],[data-caltoday],#mHide,#sideHide,[data-settings],[data-catpick],[data-catcolor],[data-catdel],[data-catadd],#settingsDone,#settingsLogout,#mobSyncRetry,[data-more],#moreDone,[data-themepick],[data-tltoggle],[data-tlmode],[data-tlbucket],#rescheduleBtn,[data-tclear],#projAddBtn,[data-projdel],[data-projaddtask],#rtAddBtn,[data-rttoggle],[data-rtdel],[data-rtday],[data-projopen],#projBack,[data-projcolorpick],[data-projcolor],[data-projdueclear],#projDetailAdd,[data-rtopen],#rtBack,[data-tmpl],[data-applytmpl],#tmplDone,[data-searchm],#dataExport,#memoAddBtn,[data-memodel],[data-memoeditbtn],[data-diaryprev],[data-diarynext],[data-diarytoday],[data-diaryopen],[data-npnew],#npClose,#npBackdrop,#npCard,[data-npback],[data-npcat],[data-nptpl],[data-npstepdel],[data-npaddstep],#npGo,[data-savetpl],[data-projarch],[data-projunarch],[data-deltpl]");
   if(!el) return;
+  if(el.hasAttribute("data-deltpl")){ deleteUserTemplate(el.getAttribute("data-deltpl")); return; }
   if(el.hasAttribute("data-projarch")){ archiveProject(el.getAttribute("data-projarch")); return; }
   if(el.hasAttribute("data-projunarch")){ unarchiveProject(el.getAttribute("data-projunarch")); return; }
   if(el.hasAttribute("data-npnew")){ openNewProject(); return; }
