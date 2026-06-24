@@ -1418,7 +1418,12 @@ function parseQuickInput(raw, defaultCat){
     var md=tk.match(/^(\d{1,2})일$/);
     if(md){ var day=+md[1]; if(day>=1&&day<=31){ r.date=dateFromDay(day); continue; } }
     var mt=tk.match(/^(\d{1,2})시(?:(\d{1,2})분)?$/);
-    if(mt){ var h=+mt[1], mi=mt[2]?+mt[2]:0; if(h>=0&&h<=23&&mi>=0&&mi<=59){ r.time=(h<10?"0":"")+h+":"+(mi<10?"0":"")+mi; continue; } }
+    if(mt){
+      var h=+mt[1], mi=mt[2]?+mt[2]:0;
+      // 'N시' 다음 토큰이 'M분'이면 분으로 합침 (예: "18시 30분")
+      if(mt[2]==null && tokens[ti+1] && /^(\d{1,2})분$/.test(tokens[ti+1])){ mi=+tokens[ti+1].match(/^(\d{1,2})분$/)[1]; ti++; }
+      if(h>=0&&h<=23&&mi>=0&&mi<=59){ r.time=(h<10?"0":"")+h+":"+(mi<10?"0":"")+mi; continue; }
+    }
     textTokens.push(tk);
   }
   r.text=textTokens.join(" ").trim();
