@@ -2248,17 +2248,11 @@ function screenProjects(){
       +'<span class="proj-arch-name" data-projopen="'+p.id+'">'+esc(p.name)+'</span>'
       +'<span class="g-count">'+st.done+'/'+st.total+'</span>'
       +'<button class="mini" data-projunarch="'+p.id+'">되돌리기</button></div>';}).join("")+'</div>':"";
-  // 프로젝트 없음 칼럼
-  var noneItems=projTasks(PROJ_NONE).filter(function(t){return (!state.hideDone||!t.done)&&!t.done;});
-  var noneCol=noneItems.length?'<div class="proj-col" data-group="'+PROJ_NONE+'">'
-    +'<div class="proj-head"><span class="proj-dot" style="background:var(--faint)"></span>'
-    +'<span class="proj-name">프로젝트 없음</span><span class="g-count">'+noneItems.length+'</span></div>'
-    +noneItems.map(function(t,idx){return cardHTML(t,noneItems[idx+1]?noneItems[idx+1].id:"");}).join("")
-    +'</div>':"";
-  var board='<div class="proj-board">'+(cols||"")+noneCol+'</div>';
-  if(!activeProjects.length&&!noneItems.length) board=blob("peek","아직 프로젝트가 없어요.\n위 ‘새 프로젝트 시작하기’를 눌러볼까요?");
+  // 프로젝트 화면은 프로젝트만 보여줌 (일반 할 일은 '할 일' 화면에서)
+  var board='<div class="proj-board">'+(cols||"")+'</div>';
+  if(!activeProjects.length) board=blob("peek","아직 프로젝트가 없어요.\n위 ‘새 프로젝트 시작하기’를 눌러볼까요?");
   return '<div class="screen-title">'+ic("projects")+'프로젝트</div>'+addCol+board+archHTML
-    +(activeProjects.length||noneItems.length?'<p class="foot">제목을 누르면 상세 화면, 카드를 끌면 프로젝트 사이로 이동돼.</p>':"");
+    +(activeProjects.length?'<p class="foot">제목을 누르면 상세 화면, 카드를 끌면 프로젝트 사이로 이동돼.</p>':"");
 }
 function screenProjectDetail(p){
   var st=projStats(p.id);
