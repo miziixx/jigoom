@@ -1,35 +1,24 @@
 import { useStore } from '../store/useStore';
-import type { ViewMode } from '../store/types';
+
+const HINTS: Record<string, string> = {
+  outline:  'Enter: 새 항목(루트) / 줄바꿈(중첩) · Tab: 들여쓰기 · Shift+Tab: 내어쓰기',
+  mindmap:  '더블클릭: 자식 추가 · 드래그: 위치 이동',
+  calendar: '노드를 선택하고 날짜를 지정하면 달력에 표시됩니다',
+};
 
 export function TopBar() {
-  const { viewMode, setViewMode } = useStore();
+  const { viewMode, setSidebarOpen, setSettingsOpen } = useStore();
 
   return (
     <header className="topbar">
-      <div className="topbar-left">
-        <span className="topbar-logo">🗺 mindmap</span>
-      </div>
-      <div className="topbar-toggle">
-        <button
-          className={`toggle-btn ${viewMode === 'outline' ? 'active' : ''}`}
-          onClick={() => setViewMode('outline' as ViewMode)}
-        >
-          아웃라인
-        </button>
-        <button
-          className={`toggle-btn ${viewMode === 'mindmap' ? 'active' : ''}`}
-          onClick={() => setViewMode('mindmap' as ViewMode)}
-        >
-          마인드맵
-        </button>
-      </div>
-      <div className="topbar-right">
-        <span className="topbar-hint">
-          {viewMode === 'outline'
-            ? 'Enter: 새 항목(루트) / 줄바꿈(중첩) · Tab: 들여쓰기 · Shift+Tab: 내어쓰기'
-            : '더블클릭: 자식 추가 · 드래그: 위치 이동'}
-        </span>
-      </div>
+      <button className="topbar-hamburger" onClick={() => setSidebarOpen(true)} aria-label="메뉴">
+        ☰
+      </button>
+      <span className="topbar-logo">🗺 mindmap</span>
+      <span className="topbar-hint">{HINTS[viewMode]}</span>
+      <button className="topbar-settings-btn" onClick={() => setSettingsOpen(true)} aria-label="설정">
+        ⚙
+      </button>
     </header>
   );
 }
