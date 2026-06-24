@@ -1105,6 +1105,18 @@ async function drainInboxQueue(){
     if(res.error||!res.data||!res.data.length) return false;
     res.data.forEach(function(row){
       var v=(row.text||"").trim(); if(!v) return;
+      var spIdx=v.indexOf(' ');
+      if(spIdx>0){
+        var pName=v.substring(0,spIdx);
+        var tText=v.substring(spIdx+1).trim();
+        if(tText){
+          var mp=liveProjects().find(function(p){return p.name===pName;});
+          if(mp){
+            state.tasks.unshift({ id:nid(), text:tText, cat:UNCAT, bucket:"이번주", done:false, date:null, proj:mp.id, order:nextProjOrder(mp.id) });
+            return;
+          }
+        }
+      }
       state.tasks.unshift({ id:nid(), text:v, cat:UNCAT, bucket:"받은함", done:false, date:null });
     });
     var ids=res.data.map(function(r){return r.id;});
