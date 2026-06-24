@@ -190,12 +190,13 @@ button,input{font-family:inherit;}
 .card:last-child{margin-bottom:0;}
 .card.dragging{opacity:.35;}
 .card.is-done{background:#FAF9F6;}
-.card-main{display:flex;align-items:center;gap:9px;padding:11px 12px;}
+.card-main{display:flex;align-items:flex-start;gap:9px;padding:11px 12px;}
+.card-body{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:7px;}
 .grip{font-size:17px;color:var(--faint);cursor:grab;flex-shrink:0;touch-action:none;padding:2px;line-height:1;}
 .grip:active{cursor:grabbing;}
 .round{width:23px;height:23px;border-radius:50%;flex-shrink:0;border:2px solid #E0D8CC;background:#fff;cursor:pointer;font-size:12px;color:#fff;display:flex;align-items:center;justify-content:center;padding:0;}
 .round.done{background:var(--accent);border-color:var(--accent);}
-.c-text{flex:1;font-size:14px;font-weight:600;cursor:pointer;min-width:0;word-break:break-word;overflow-wrap:break-word;}
+.c-text{flex:1 1 60%;font-size:14px;font-weight:600;cursor:pointer;min-width:7em;word-break:break-word;overflow-wrap:break-word;line-height:1.35;}
 .strike{text-decoration:line-through;color:var(--faint);}
 .c-date{font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 8px;border-radius:99px;flex-shrink:0;white-space:nowrap;}
 .decide{border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:5px 11px;border-radius:99px;cursor:pointer;flex-shrink:0;}
@@ -410,9 +411,13 @@ button,input{font-family:inherit;}
 .search-input{width:100%;border:1.5px solid var(--border);background:#fff;border-radius:12px;padding:10px 14px;font-size:14px;outline:none;color:var(--text);margin-bottom:16px;font-family:inherit;}
 .search-input:focus{border-color:var(--accent);}
 @media(max-width:859px){
+  html,body{overflow-x:hidden;max-width:100%;}
   .side{display:none;}
   .main-add,.main-chips{display:none;}
   .main{padding:16px 14px 110px;}
+  .c-proj{max-width:100%;}
+  .controls{flex-wrap:wrap;justify-content:flex-start;}
+  .controls-r{margin-left:auto;}
   .mhead{display:block;margin-bottom:16px;}
   .mhead-top{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
   .mhead-t{font-size:18px;font-weight:900;}
@@ -424,7 +429,6 @@ button,input{font-family:inherit;}
   .board{grid-template-columns:1fr;}
   .tasks-layout.with-tl{grid-template-columns:1fr;}
   .timeline-col{position:static;}
-  .controls{flex-wrap:wrap;}
   .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;height:66px;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:400;}
   .tab-item{flex:1;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;position:relative;}
   .tab-lbl{font-size:10px;font-weight:800;color:var(--mid);}
@@ -1838,8 +1842,10 @@ function cardHTML(t,nextId){
     +'<div class="card-main">'
     +'<span class="grip" data-grip="'+t.id+'" title="끌어서 옮기기">⠿</span>'
     +'<button class="round '+(t.done?"done":"")+'" data-toggle="'+t.id+'">'+(t.done?"✓":"")+"</button>"
+    +'<div class="card-body">'
     +'<span class="c-text '+(t.done?"strike":"")+'" data-edit="'+t.id+'">'+esc(t.text)+"</span>"
     +timePill+datePill+overPill+decide+tag+projBadge(t)
+    +'</div>'
     +'<button class="x" data-remove="'+t.id+'">×</button>'
     +"</div>"+editor+"</div>";
 }
