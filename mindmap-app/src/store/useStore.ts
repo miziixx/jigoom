@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
-import type { MindNode, AppState, ViewMode } from './types';
+import type { MindNode, AppState, ViewMode, ThemeSettings } from './types';
+import { DEFAULT_THEME } from './types';
 
 interface Actions {
   addNode: (parentId: string | null, afterId?: string) => string;
@@ -16,6 +17,12 @@ interface Actions {
   updatePosition: (id: string, x: number, y: number) => void;
   addRef: (fromId: string, toId: string) => void;
   removeRef: (fromId: string, toId: string) => void;
+  setNodeDate: (id: string, date: string | null) => void;
+  setSidebarOpen: (open: boolean) => void;
+  setSettingsOpen: (open: boolean) => void;
+  setTheme: (patch: Partial<ThemeSettings>) => void;
+  resetTheme: () => void;
+  setCalendarMonth: (month: string) => void;
 }
 
 type Store = AppState & Actions;
@@ -28,7 +35,7 @@ function getSiblings(state: AppState, id: string): string[] {
   return parent ? getChildIds(state, node.parentId) : [];
 }
 
-function getChildIds(state: AppState, parentId: string): string[] {
+export function getChildIds(state: Pick<AppState, 'nodes'>, parentId: string): string[] {
   return Object.values(state.nodes)
     .filter(n => n.parentId === parentId)
     .sort((a, b) => a.order - b.order)
@@ -46,6 +53,9 @@ function getMaxOrder(state: AppState, parentId: string | null): number {
     : Object.values(state.nodes).filter(n => n.parentId === parentId);
   return siblings.length > 0 ? Math.max(...siblings.map(n => n.order)) : -1;
 }
+
+const now = new Date();
+const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
 const initialNodes: Record<string, MindNode> = {};
 const rootId1 = uuidv4();
@@ -65,49 +75,40 @@ export const useStore = create<Store>()(
       rootIds: [rootId1, rootId2],
       viewMode: 'outline',
       selectedId: null,
+      sidebarOpen: false,
+      settingsOpen: false,
+      theme: DEFAULT_THEME,
+      calendarMonth: thisMonth,
 
       addNode: (parentId, afterId) => {
         const id = uuidv4();
         const state = get();
         let order: number;
-
         if (afterId) {
           const after = state.nodes[afterId];
           order = after ? after.order + 0.5 : getMaxOrder(state, parentId) + 1;
         } else {
           order = getMaxOrder(state, parentId) + 1;
         }
-
         const parentNode = parentId ? state.nodes[parentId] : null;
         const px = parentNode?.position.x ?? 0;
         const py = parentNode?.position.y ?? 0;
-
         const newNode: MindNode = {
-          id,
-          text: '',
-          parentId,
+          id, text: '', parentId,
           position: { x: px + 200, y: py + Math.random() * 100 },
-          collapsed: false,
-          refs: [],
-          order,
+          collapsed: false, refs: [], order,
         };
-
         set(s => {
           const nodes = { ...s.nodes, [id]: newNode };
-          // normalize orders for siblings
-          const siblingParentId = parentId;
           const siblings = Object.values(nodes)
-            .filter(n => n.parentId === siblingParentId)
+            .filter(n => n.parentId === parentId)
             .sort((a, b) => a.order - b.order);
           siblings.forEach((n, i) => { nodes[n.id] = { ...nodes[n.id], order: i }; });
-
           const rootIds = parentId === null
-            ? Object.values(nodes).filter(n => n.parentId === null).sort((a,b) => a.order - b.order).map(n => n.id)
+            ? Object.values(nodes).filter(n => n.parentId === null).sort((a, b) => a.order - b.order).map(n => n.id)
             : s.rootIds;
-
           return { nodes, rootIds, selectedId: id };
         });
-
         return id;
       },
 
@@ -121,7 +122,6 @@ export const useStore = create<Store>()(
         const toDelete = [id, ...getAllDescendants(s, id)];
         const nodes = { ...s.nodes };
         toDelete.forEach(d => delete nodes[d]);
-        // remove refs pointing to deleted nodes
         Object.values(nodes).forEach(n => {
           nodes[n.id] = { ...n, refs: n.refs.filter(r => !toDelete.includes(r)) };
         });
@@ -148,8 +148,7 @@ export const useStore = create<Store>()(
         const siblings = getSiblings(state, id);
         const idx = siblings.indexOf(id);
         if (idx === 0) return;
-        const newParentId = siblings[idx - 1];
-        get().moveNode(id, newParentId);
+        get().moveNode(id, siblings[idx - 1]);
       },
 
       unindentNode: (id) => {
@@ -165,7 +164,6 @@ export const useStore = create<Store>()(
       })),
 
       setSelected: (id) => set({ selectedId: id }),
-
       setViewMode: (viewMode) => set({ viewMode }),
 
       updatePosition: (id, x, y) => set(s => ({
@@ -183,9 +181,26 @@ export const useStore = create<Store>()(
         if (!node) return {};
         return { nodes: { ...s.nodes, [fromId]: { ...node, refs: node.refs.filter(r => r !== toId) } } };
       }),
+
+      setNodeDate: (id, date) => set(s => {
+        const node = s.nodes[id];
+        if (!node) return {};
+        const updated = { ...node };
+        if (date) updated.date = date;
+        else delete updated.date;
+        return { nodes: { ...s.nodes, [id]: updated } };
+      }),
+
+      setSidebarOpen: (open) => set({ sidebarOpen: open }),
+      setSettingsOpen: (open) => set({ settingsOpen: open }),
+
+      setTheme: (patch) => set(s => ({ theme: { ...s.theme, ...patch } })),
+      resetTheme: () => set({ theme: DEFAULT_THEME }),
+
+      setCalendarMonth: (calendarMonth) => set({ calendarMonth }),
     }),
     { name: 'mindmap-store' }
   )
 );
 
-export { getChildIds, getAllDescendants };
+export { getAllDescendants };
