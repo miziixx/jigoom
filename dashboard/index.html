@@ -1117,7 +1117,7 @@ async function drainInboxQueue(){
           }
           var mc=state.cats.find(function(c){return c.name===name;});
           if(mc||name===UNCAT){
-            state.tasks.unshift({ id:nid(), text:tText, cat:name, bucket:"받은함", done:false, date:null });
+            state.tasks.unshift({ id:nid(), text:tText, cat:name, bucket:"이번주", done:false, date:null });
             return;
           }
         }
