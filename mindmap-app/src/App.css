@@ -53,19 +53,22 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 0 20px;
+  gap: 12px;
+  padding: 0 16px;
   height: 52px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .topbar-logo {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .topbar-toggle {
@@ -74,10 +77,11 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .toggle-btn {
-  padding: 6px 18px;
+  padding: 6px 14px;
   border: none;
   background: transparent;
   color: var(--dim);
@@ -85,6 +89,7 @@ body {
   font-size: 13px;
   font-weight: 500;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 
 .toggle-btn.active {
@@ -94,11 +99,20 @@ body {
 
 .toggle-btn:hover:not(.active) { color: var(--text); }
 
-.topbar-right { margin-left: auto; }
+.topbar-right { margin-left: auto; overflow: hidden; }
 
 .topbar-hint {
   font-size: 11px;
   color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 600px) {
+  .topbar-hint { display: none; }
+  .topbar { gap: 8px; padding: 0 12px; }
+  .toggle-btn { padding: 6px 10px; font-size: 12px; }
 }
 
 /* ===== OUTLINE VIEW ===== */
@@ -397,3 +411,64 @@ body {
 }
 
 .backlink-candidate-btn:hover { background: rgba(124,58,237,0.15); }
+
+/* ===== RESPONSIVE ===== */
+
+/* 모바일 */
+@media (max-width: 600px) {
+  .bottom-panel {
+    height: auto;
+    max-height: 200px;
+  }
+
+  .backlink-panel {
+    gap: 12px;
+    padding: 10px 14px;
+    flex-wrap: wrap;
+  }
+
+  .backlink-section {
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+
+  .backlink-add-ref {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .outline-view {
+    padding: 14px 12px;
+  }
+
+  .outline-input {
+    font-size: 16px; /* iOS 자동 줌 방지 */
+  }
+
+  .mm-add-root-btn {
+    bottom: 16px;
+    right: 12px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+
+/* 태블릿 */
+@media (min-width: 601px) and (max-width: 1024px) {
+  .backlink-panel {
+    gap: 14px;
+    padding: 12px 16px;
+  }
+
+  .backlink-section {
+    min-width: 120px;
+  }
+}
+
+/* 아웃라인 뷰 최대 너비 (PC에서 너무 넓어지지 않게) */
+@media (min-width: 1025px) {
+  .outline-view {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+}
