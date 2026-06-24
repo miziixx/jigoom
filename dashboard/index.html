@@ -1396,6 +1396,10 @@ function deleteCat(idx){
 
 /* ── 프로젝트 ── */
 function projById(id){ return state.projects.filter(function(p){return p.id===id;})[0]||null; }
+// 보관 안 된(살아있는) 프로젝트만 — 요약·캘린더·검색에서 일관되게 사용
+function liveProjects(){ return state.projects.filter(function(p){return !p.archived;}); }
+// 할 일 점 색: 프로젝트 소속이면 프로젝트 색, 아니면 분류 색
+function taskDotColor(t){ if(t.proj){ var p=projById(t.proj); if(p) return p.color; } return catStyle(t.cat).dot; }
 function projTasks(pid){ return state.tasks.filter(function(t){return (t.proj||PROJ_NONE)===pid;}); }
 // 프로젝트 안에서 다음 단계 순서값 (마지막 단계 +1)
 function nextProjOrder(pid){
@@ -1423,14 +1427,8 @@ function addTaskToProject(pid,text){
   state.tasks.unshift({ id:nid(), text:v, cat:state.newCat, bucket:"이번주", done:false, date:null, proj:realPid, order:nextProjOrder(pid) });
   save(); render();
 }
-/* ── 템플릿 ── */
+/* ── 템플릿 (루틴용. 프로젝트는 '새 프로젝트' 마법사가 담당) ── */
 var ALLDAYS=[0,1,2,3,4,5,6], WEEKDAYS=[1,2,3,4,5];
-var PROJECT_TEMPLATES=[
-  { name:"블로그 운영", tasks:["주제·키워드 리서치","글 초안 작성","대표 이미지 준비","발행 & 검수","SNS로 홍보"] },
-  { name:"제품·굿즈 출시", tasks:["컨셉·기획 정리","디자인 시안 만들기","샘플 제작·확인","상세페이지 작성","오픈 준비"] },
-  { name:"SNS 채널 키우기", tasks:["콘텐츠 캘린더 짜기","콘텐츠 제작","썸네일/카드뉴스","예약 업로드","성과 분석"] },
-  { name:"여행 준비", tasks:["일정 짜기","숙소 예약","교통편 예약","짐 싸기 체크","환전·준비물"] }
-];
 var ROUTINE_TEMPLATES=[
   { name:"아침 루틴", items:[{name:"기상 후 물 한 잔",days:ALLDAYS},{name:"가벼운 스트레칭",days:WEEKDAYS},{name:"오늘 할 일 정리",days:WEEKDAYS}] },
   { name:"블로그 글쓰기", seq:true, items:[{name:"주제·키워드 정하기",days:WEEKDAYS},{name:"자료 조사하기",days:WEEKDAYS},{name:"개요(목차) 잡기",days:WEEKDAYS},{name:"초안 쓰기",days:WEEKDAYS},{name:"퇴고·교정하기",days:WEEKDAYS},{name:"발행 & 홍보",days:WEEKDAYS}] },
@@ -1633,19 +1631,6 @@ function npHTML(){
   }
   return '<div class="np-backdrop" id="npBackdrop"><div class="np" id="npCard">'
     +'<button class="np-x" id="npClose" title="닫기">✕</button>'+inner+'</div></div>';
-}
-function applyProjectTemplate(idx){
-  var tpl=PROJECT_TEMPLATES[idx]; if(!tpl) return;
-  var pal=PALETTE[state.projects.length%PALETTE.length];
-  var pid="p"+nid();
-  state.projects.push({ id:pid, name:tpl.name, color:pal.dot });
-  var step=2; // 단계마다 2일 간격으로 마감 자동 배분
-  tpl.tasks.map(function(tx,i){ return { text:(i+1)+". "+tx, date:plusDays((i+1)*step), order:i }; })
-    .reverse().forEach(function(o){
-      state.tasks.unshift({ id:nid(), text:o.text, cat:state.newCat, bucket:bucketForDate(o.date), done:false, date:o.date, proj:pid, order:o.order });
-    });
-  var pp=projById(pid); if(pp) pp.due=plusDays(tpl.tasks.length*step);
-  state.tmpl=null; save(); openProject(pid);
 }
 function applyRoutineTemplate(idx){
   var tpl=ROUTINE_TEMPLATES[idx]; if(!tpl) return;
@@ -1966,12 +1951,12 @@ function screenCalendar(){
   var byDate={};
   state.tasks.forEach(function(t){ if(t.date)(byDate[t.date]=byDate[t.date]||[]).push(t); });
   var dueBy={};
-  state.projects.forEach(function(p){ if(p.due)(dueBy[p.due]=dueBy[p.due]||[]).push(p); });
+  liveProjects().forEach(function(p){ if(p.due)(dueBy[p.due]=dueBy[p.due]||[]).push(p); });
   var grid=cells.map(function(c){
     if(c===null) return '<div class="cal-day blank"></div>';
     var ds=y+"-"+String(m+1).padStart(2,"0")+"-"+String(c).padStart(2,"0");
     var dow=new Date(y,m,c).getDay();
-    var dots=(byDate[ds]||[]).slice(0,4).map(function(t){return'<span class="cdot" style="background:'+catStyle(t.cat).dot+'"></span>';}).join("");
+    var dots=(byDate[ds]||[]).slice(0,4).map(function(t){return'<span class="cdot" style="background:'+taskDotColor(t)+'"></span>';}).join("");
     var flags=(dueBy[ds]||[]).slice(0,3).map(function(p){return'<span class="cal-flag" style="background:'+p.color+'"></span>';}).join("");
     var cls="cal-day"+(ds===TODAY?" today":"")+(ds===state.calSel?" sel":"")+(dow===0?" cal-sun":"");
     return'<button class="'+cls+'" data-calday="'+ds+'"><span class="dnum">'+c+'</span>'+(flags?'<span class="cal-flags">'+flags+'</span>':"")+'<span class="cal-dots">'+dots+"</span></button>";
@@ -2177,9 +2162,10 @@ function screenSummary(){
         return '<div class="p-item"><button class="round '+(d?"done":"")+'" data-rttoggle="'+r.id+'">'+(d?"✓":"")+'</button>'
           +'<span class="p-text '+(d?"strike":"")+'">'+esc(r.name)+'</span></div>';}).join(""))
     +'</div>';
-  // 프로젝트 진행률 위젯
-  var projBlock=state.projects.length?'<div class="sum-block"><div class="sum-block-h">'+ic("projects")+'프로젝트 진행률</div>'
-    +state.projects.map(function(p){var st=projStats(p.id);
+  // 프로젝트 진행률 위젯 (보관된 건 제외)
+  var liveProj=liveProjects();
+  var projBlock=liveProj.length?'<div class="sum-block"><div class="sum-block-h">'+ic("projects")+'프로젝트 진행률</div>'
+    +liveProj.map(function(p){var st=projStats(p.id);
       var dd=p.due?dayDiff(p.due,TODAY):null;
       var dtag=p.due?('<span class="c-date" style="margin-left:auto">'+(dd>0?"D-"+dd:dd===0?"오늘 마감":"D+"+(-dd))+'</span>'):"";
       return '<div style="margin-bottom:11px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">'
@@ -2189,7 +2175,7 @@ function screenSummary(){
         +'<div class="proj-prog"><div class="proj-prog-fill" style="width:'+st.rate+'%;background:'+p.color+'"></div></div></div>';
     }).join("")+'</div>':"";
   // 마감 임박 배너
-  var soon=state.projects.filter(function(p){if(!p.due)return false;var d=dayDiff(p.due,TODAY);return d<=1;});
+  var soon=liveProj.filter(function(p){if(!p.due)return false;var d=dayDiff(p.due,TODAY);return d<=1;});
   var soonBanner=soon.length?'<button class="overdue" data-screen="projects"><span class="overdue-l">📌 마감 임박 프로젝트 '+soon.length+'개</span><span class="overdue-r">보러 가기 →</span></button>':"";
   var actions="";
   if(inboxN>0) actions+='<button class="cleanup" id="cleanupBtn"><span class="cleanup-l">📥 받은함에 '+inboxN+'개 쌓여있어</span><span class="cleanup-r">하나씩 정리하기 →</span></button>';
@@ -2438,21 +2424,16 @@ function moreMenuHTML(){
     +'</div></div>';
 }
 function templatesHTML(){
-  var isProj=state.tmpl==="project";
-  var list=isProj
-    ? PROJECT_TEMPLATES.map(function(tpl,i){
-        return '<button class="sheet-opt" data-applytmpl="'+i+'"><div class="opt-title">'+esc(tpl.name)+'</div>'
-          +'<div class="opt-sub">'+tpl.tasks.length+'단계 · 마감일 자동 배분 · '+esc(tpl.tasks.slice(0,2).join(", "))+'…</div></button>';
-      }).join("")
-    : ROUTINE_TEMPLATES.map(function(tpl,i){
-        return '<button class="sheet-opt" data-applytmpl="'+i+'"><div class="opt-title">'+esc(tpl.name)+(tpl.seq?' <span class="rt-seq">절차</span>':"")+'</div>'
-          +'<div class="opt-sub">'+esc(tpl.items.map(function(x){return x.name;}).join(", "))+'</div></button>';
-      }).join("");
+  // 루틴 전용 시트 (프로젝트는 '새 프로젝트' 마법사가 대신함)
+  var list=ROUTINE_TEMPLATES.map(function(tpl,i){
+    return '<button class="sheet-opt" data-applytmpl="'+i+'"><div class="opt-title">'+esc(tpl.name)+(tpl.seq?' <span class="rt-seq">절차</span>':"")+'</div>'
+      +'<div class="opt-sub">'+esc(tpl.items.map(function(x){return x.name;}).join(", "))+'</div></button>';
+  }).join("");
   return '<div class="backdrop" id="backdrop"><div class="sheet" id="sheet">'
     +'<div class="sheet-grip"></div>'
-    +'<div class="sheet-q">'+(isProj?"프로젝트 템플릿":"추천 루틴")+'</div>'
+    +'<div class="sheet-q">추천 루틴</div>'
     +list
-    +'<div class="cm-hint">'+(isProj?'프로젝트는 단계마다 2일 간격으로 마감이 자동 잡혀요. ':'')+'고르면 바로 추가돼요. 나중에 수정할 수 있어요.</div>'
+    +'<div class="cm-hint">고르면 바로 추가돼요. 나중에 수정할 수 있어요.</div>'
     +'<button class="sheet-skip" id="tmplDone">닫기</button>'
     +'</div></div>';
 }
@@ -2554,7 +2535,7 @@ document.addEventListener("click",function(e){
   if(el.hasAttribute("data-diarytoday")){ state.diaryDate=TODAY; render(); return; }
   if(el.hasAttribute("data-diaryopen")){ state.diaryDate=el.getAttribute("data-diaryopen"); render(); window.scrollTo({top:0,behavior:"smooth"}); return; }
   if(el.hasAttribute("data-searchm")){ closeMore(); var sq=prompt("검색어를 입력해줘"); state.search=sq||""; render(); return; }
-  if(el.hasAttribute("data-applytmpl")){ var ti=+el.getAttribute("data-applytmpl"); if(state.tmpl==="project") applyProjectTemplate(ti); else applyRoutineTemplate(ti); return; }
+  if(el.hasAttribute("data-applytmpl")){ applyRoutineTemplate(+el.getAttribute("data-applytmpl")); return; }
   if(el.hasAttribute("data-projdel")){ var pd=el.getAttribute("data-projdel"); var pp=projById(pd); if(confirm('"'+(pp?pp.name:"")+'" 프로젝트를 지울까?\n안에 든 할 일은 남아있어(프로젝트만 해제돼).')){ deleteProject(pd); } return; }
   if(el.hasAttribute("data-projaddtask")){ var pid=el.getAttribute("data-projaddtask"); var txt=prompt("할 일 내용"); if(txt) addTaskToProject(pid,txt); return; }
   if(el.id==="rtAddBtn"){ var ri=document.getElementById("rtInput"); if(ri){ addRoutine(ri.value); } return; }
