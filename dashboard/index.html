@@ -1109,24 +1109,9 @@ async function drainInboxQueue(){
     if(res.error||!res.data||!res.data.length) return false;
     res.data.forEach(function(row){
       var v=(row.text||"").trim(); if(!v) return;
-      var spIdx=v.indexOf(' ');
-      if(spIdx>0){
-        var name=v.substring(0,spIdx);
-        var tText=v.substring(spIdx+1).trim();
-        if(tText){
-          var mp=liveProjects().find(function(p){return p.name===name;});
-          if(mp){
-            state.tasks.unshift({ id:nid(), text:tText, cat:UNCAT, bucket:"이번주", done:false, date:null, proj:mp.id, order:nextProjOrder(mp.id) });
-            return;
-          }
-          var mc=state.cats.find(function(c){return c.name===name;});
-          if(mc||name===UNCAT){
-            state.tasks.unshift({ id:nid(), text:tText, cat:name, bucket:"이번주", done:false, date:null });
-            return;
-          }
-        }
-      }
-      state.tasks.unshift({ id:nid(), text:v, cat:UNCAT, bucket:"받은함", done:false, date:null });
+      var p=parseQuickInput(v, UNCAT);
+      if(!p.text){ p.text=v; p.bucket="받은함"; }  // 본문이 비면 원문 그대로 받은함으로
+      state.tasks.unshift(taskFromParse(p));
     });
     var ids=res.data.map(function(r){return r.id;});
     await sb.from("inbox_queue").delete().in("id",ids);
@@ -1359,6 +1344,69 @@ function addTask(text,opts){
   var v=(text||"").trim(); if(!v) return;
   var o=opts||{};
   state.tasks.unshift({ id:nid(), text:v, cat:state.newCat, bucket:o.bucket||"받은함", done:false, date:o.date||null });
+  save(); render();
+}
+
+/* ── 빠른 입력 파싱 규칙 ──────────────────────────────────────────
+   29일 데이트       → 날짜 있음        → 일정(달력에 뜸)
+   살것 29일 가위    → 분류 먼저+날짜    → 할일 + 날짜
+   살것 21시 이마트  → 분류 먼저+시간    → 할일 + 시간(오늘)
+   한일 운동         → '한일' 접두       → 완료 기록(작성 시각, 타임라인)
+   * 첫 단어가 프로젝트/분류 이름이면 거기에 배정(기존 위젯 규칙 유지). */
+function nowHM(){ var n=new Date(); return (n.getHours()<10?"0":"")+n.getHours()+":"+(n.getMinutes()<10?"0":"")+n.getMinutes(); }
+function dateFromDay(day){
+  var now=new Date(); now.setHours(0,0,0,0);
+  var d=new Date(now.getFullYear(), now.getMonth(), day);
+  if(d<now) d=new Date(now.getFullYear(), now.getMonth()+1, day); // 이미 지난 날이면 다음 달
+  return ymd(d);
+}
+function parseQuickInput(raw, defaultCat){
+  var r={ text:"", cat:defaultCat||UNCAT, bucket:"받은함", date:null, time:null, done:false, proj:null };
+  var tokens=(raw||"").trim().split(/\s+/).filter(Boolean);
+  if(!tokens.length) return r;
+  // 1) 완료 키워드 ('한일')
+  if(tokens[0]==="한일"){ r.done=true; tokens.shift(); }
+  // 2) 첫 단어가 프로젝트 또는 분류면 거기에 배정
+  var catMatched=false;
+  if(tokens.length){
+    var first=tokens[0];
+    var mp=liveProjects().find(function(p){return p.name===first;});
+    if(mp){ r.proj=mp.id; tokens.shift(); }
+    else{
+      var mc=state.cats.find(function(c){return c.name===first;});
+      if(mc||first===UNCAT){ r.cat=first; catMatched=true; tokens.shift(); }
+    }
+  }
+  // 3) 날짜(N일)·시간(N시[ M분]) 토큰 추출, 나머지는 본문
+  var textTokens=[];
+  tokens.forEach(function(tk){
+    var md=tk.match(/^(\d{1,2})일$/);
+    var mt=tk.match(/^(\d{1,2})시(?:(\d{1,2})분)?$/);
+    if(md){ var day=+md[1]; if(day>=1&&day<=31){ r.date=dateFromDay(day); return; } }
+    if(mt){ var h=+mt[1], mi=mt[2]?+mt[2]:0; if(h>=0&&h<=23&&mi>=0&&mi<=59){ r.time=(h<10?"0":"")+h+":"+(mi<10?"0":"")+mi; return; } }
+    textTokens.push(tk);
+  });
+  r.text=textTokens.join(" ").trim();
+  // 4) 버킷/날짜 결정
+  if(r.done){ r.date=r.date||TODAY; r.time=r.time||nowHM(); r.bucket="오늘"; }
+  else if(r.date){ r.bucket=bucketForDate(r.date); }
+  else if(r.time){ r.date=TODAY; r.bucket="오늘"; }
+  else if(r.proj||catMatched){ r.bucket="이번주"; }
+  else { r.bucket="받은함"; }
+  return r;
+}
+// 파싱 결과 → 실제 할일 객체
+function taskFromParse(p){
+  var t={ id:nid(), text:p.text, cat:p.cat, bucket:p.bucket, done:!!p.done, date:p.date||null };
+  if(p.time) t.time=p.time;
+  if(p.proj){ t.proj=p.proj; t.order=nextProjOrder(p.proj); }
+  return t;
+}
+// 메인 빠른 입력바 → 파싱해서 추가
+function addQuick(raw){
+  var p=parseQuickInput(raw, state.newCat);
+  if(!p.text) return;   // 본문이 비면(예: "29일"만) 추가 안 함
+  state.tasks.unshift(taskFromParse(p));
   save(); render();
 }
 function toggle(id){ state.tasks=state.tasks.map(function(t){return t.id===id?Object.assign({},t,{done:!t.done}):t;}); save(); render(); }
@@ -2585,9 +2633,9 @@ document.addEventListener("click",function(e){
   if(el.id==="sheetSkip"){ closeSheet(); return; }
   if(el.hasAttribute("data-when")){ answerWhen(el.getAttribute("data-when")); return; }
   if(el.hasAttribute("data-acat")){ answerCat(el.getAttribute("data-acat")); return; }
-  if(el.id==="sideAddBtn"){ var si=document.getElementById("sideInput"); addTask(si.value); si.value=""; si.focus(); return; }
-  if(el.id==="mAddBtn"){ var mi=document.getElementById("mInput"); addTask(mi.value); mi.value=""; mi.focus(); return; }
-  if(el.id==="topAddBtn"){ var ti=document.getElementById("topInput"); addTask(ti.value); ti.value=""; ti.focus(); return; }
+  if(el.id==="sideAddBtn"){ var si=document.getElementById("sideInput"); addQuick(si.value); si.value=""; si.focus(); return; }
+  if(el.id==="mAddBtn"){ var mi=document.getElementById("mInput"); addQuick(mi.value); mi.value=""; mi.focus(); return; }
+  if(el.id==="topAddBtn"){ var ti=document.getElementById("topInput"); addQuick(ti.value); ti.value=""; ti.focus(); return; }
   if(el.id==="dayAddBtn"){ var di=document.getElementById("dayInput"); if(di){ addTask(di.value,{date:state.calSel,bucket:(state.calSel===TODAY?"오늘":"이번주")}); } return; }
   if(el.id==="fab"){ var inp=window.matchMedia("(max-width:859px)").matches?document.getElementById("mInput"):document.getElementById("sideInput"); inp.scrollIntoView({behavior:"smooth",block:"center"}); inp.focus(); return; }
   if(el.id==="mHide"||el.id==="sideHide"){ state.hideDone=!state.hideDone; render(); return; }
@@ -2600,9 +2648,9 @@ document.addEventListener("click",function(e){
 /* ══ 키보드 ══ */
 document.addEventListener("keydown",function(e){
   if(e.key!=="Enter") return;
-  if(e.target.id==="sideInput"){ addTask(e.target.value); e.target.value=""; }
-  if(e.target.id==="mInput")   { addTask(e.target.value); e.target.value=""; }
-  if(e.target.id==="topInput") { addTask(e.target.value); e.target.value=""; }
+  if(e.target.id==="sideInput"){ addQuick(e.target.value); e.target.value=""; }
+  if(e.target.id==="mInput")   { addQuick(e.target.value); e.target.value=""; }
+  if(e.target.id==="topInput") { addQuick(e.target.value); e.target.value=""; }
   if(e.target.id==="dayInput") { addTask(e.target.value,{date:state.calSel,bucket:(state.calSel===TODAY?"오늘":"이번주")}); e.target.value=""; }
   if(e.target.id==="projInput") { addProject(e.target.value); }
   if(e.target.id==="rtInput")   { addRoutine(e.target.value); }
