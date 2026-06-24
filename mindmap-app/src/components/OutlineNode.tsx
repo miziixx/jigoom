@@ -24,8 +24,11 @@ export function OutlineNode({ node, depth, allNodes }: Props) {
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      addNode(node.parentId, node.id);
+      if (depth === 0) {
+        e.preventDefault();
+        addNode(node.parentId, node.id);
+      }
+      // depth >= 1: 기본 줄바꿈
     }
     if (e.key === 'Tab') {
       e.preventDefault();

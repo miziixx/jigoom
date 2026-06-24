@@ -26,7 +26,7 @@ export function TopBar() {
       <div className="topbar-right">
         <span className="topbar-hint">
           {viewMode === 'outline'
-            ? 'Enter: 형제 추가 · Tab: 들여쓰기 · Shift+Tab: 내어쓰기'
+            ? 'Enter: 새 항목(루트) / 줄바꿈(중첩) · Tab: 들여쓰기 · Shift+Tab: 내어쓰기'
             : '더블클릭: 자식 추가 · 드래그: 위치 이동'}
         </span>
       </div>
