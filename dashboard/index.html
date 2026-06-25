@@ -181,6 +181,7 @@ button,input{font-family:inherit;}
 .tl-logmark{width:20px;height:20px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;font-weight:900;}
 .tl-block .tl-logmark{width:18px;height:18px;font-size:13px;}
 .tl-log .tl-itext,.tl-log .tl-btext{cursor:default;}
+.build-ver{text-align:center;font-size:11px;font-weight:700;color:var(--faint);margin:12px 0 2px;letter-spacing:.3px;}
 .tl-itext{flex:1;font-size:13px;font-weight:600;min-width:0;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .board{display:grid;gap:14px;grid-template-columns:1fr 1fr;}
 .group{background:#fff;border:1.5px solid #EFE8DC;border-radius:18px;padding:14px;box-shadow:0 1px 4px rgba(120,90,50,.04);transition:border-color .12s,background .12s;}
@@ -1333,6 +1334,23 @@ function toast(msg){
   if(!el){ el=document.createElement("div"); el.id="toast"; el.className="toast"; document.body.appendChild(el); }
   el.textContent=msg; void el.offsetWidth; el.classList.add("on");
   clearTimeout(toast._t); toast._t=setTimeout(function(){ el.classList.remove("on"); }, 2600);
+}
+
+/* ══ 버전 표시 ══ 서비스워커 캐시 이름(dash-vNN)이 곧 '지금 띄운 코드 버전'.
+   화면 버전이 최신보다 낮으면 = 아직 옛 캐시 → 새로고침하면 갱신됨. */
+var _buildVer=null;
+function fillBuild(){
+  function paint(v){ document.querySelectorAll("[data-build]").forEach(function(e){ e.textContent=v?("버전 "+v):"버전 –"; }); }
+  if(_buildVer!=null){ paint(_buildVer); return; }
+  try{
+    if(window.caches && caches.keys){
+      caches.keys().then(function(keys){
+        var v=keys.filter(function(k){return /^dash-v\d+/.test(k);})
+          .sort(function(a,b){return (parseInt(a.replace(/\D/g,""),10)||0)-(parseInt(b.replace(/\D/g,""),10)||0);}).pop();
+        _buildVer=v||""; paint(_buildVer);
+      }).catch(function(){ paint(""); });
+    } else paint("");
+  }catch(e){ paint(""); }
 }
 
 /* ══ 블롭 마스코트 (기획서 §7) — 보라 몸 + 점눈 + 새싹, 표정만 바뀜 ══
@@ -2581,6 +2599,7 @@ function settingsHTML(){
       +'<button class="cm-add" id="dataExport" style="border-style:solid">⬇️ JSON 파일로 내보내기</button>'
       +'<label class="cm-add" style="display:block;text-align:center;margin-top:8px;border-style:solid;cursor:pointer">⬆️ JSON 파일에서 가져오기<input type="file" id="dataImport" accept="application/json,.json" style="display:none"></label>'
       +'<div class="cm-hint">기기에 파일로 저장돼요. 가져오면 현재 데이터를 덮어써요.</div></div>'
+    +'<div class="build-ver" data-build>버전 확인 중…</div>'
     +'<button class="sheet-skip" id="settingsDone">닫기</button>'
     +'</div></div>';
 }
@@ -2596,6 +2615,7 @@ function moreMenuHTML(){
     +'<div class="more-grid">'+items+'</div>'
     +'<button class="more-item" data-searchm style="width:100%;margin-top:9px">'+ic("summary")+'<span>검색</span></button>'
     +'<button class="more-item" data-settings style="width:100%;margin-top:9px">'+ic("gear")+'<span>관리 · 테마</span></button>'
+    +'<div class="build-ver" data-build>버전 확인 중…</div>'
     +'<button class="sheet-skip" id="moreDone">닫기</button>'
     +'</div></div>';
 }
@@ -2616,8 +2636,8 @@ function templatesHTML(){
 function renderSheet(){
   var slot=document.getElementById("sheetSlot");
   if(state.np){ slot.innerHTML=npHTML(); return; }
-  if(state.settings){ slot.innerHTML=settingsHTML(); return; }
-  if(state.moreMenu){ slot.innerHTML=moreMenuHTML(); return; }
+  if(state.settings){ slot.innerHTML=settingsHTML(); fillBuild(); return; }
+  if(state.moreMenu){ slot.innerHTML=moreMenuHTML(); fillBuild(); return; }
   if(state.tmpl){ slot.innerHTML=templatesHTML(); return; }
   var t=sheetTask();
   if(!t){slot.innerHTML="";return;}
