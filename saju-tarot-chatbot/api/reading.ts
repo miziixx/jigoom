@@ -115,8 +115,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(200).json({ reply, userMessage, sajuChart, luckCycles });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "리딩 생성 중 오류가 발생했습니다." });
+    res.status(500).json({ error: `리딩 생성 중 오류: ${describeError(err)}` });
   }
+}
+
+/** Anthropic API 에러를 사용자가 조치할 수 있는 메시지로 변환 */
+function describeError(err: unknown): string {
+  if (err instanceof Anthropic.APIError) {
+    const detail = err.message;
+    if (err.status === 401) return `API 키 인증 실패 (401). ANTHROPIC_API_KEY 값을 확인하세요. — ${detail}`;
+    if (err.status === 400 && detail.includes("credit"))
+      return `Anthropic 크레딧 부족 (400). console.anthropic.com > Billing 에서 충전하세요. — ${detail}`;
+    if (err.status === 404) return `모델을 찾을 수 없음 (404). READING_MODEL 설정을 확인하세요. — ${detail}`;
+    if (err.status === 429) return `요청 한도 초과 (429). 잠시 후 다시 시도하세요. — ${detail}`;
+    if (err.status === 529) return `Anthropic 서버 과부하 (529). 잠시 후 다시 시도하세요.`;
+    return `Anthropic API 오류 (${err.status}): ${detail}`;
+  }
+  return err instanceof Error ? err.message : String(err);
 }
 
 function extractText(response: Anthropic.Messages.Message): string {

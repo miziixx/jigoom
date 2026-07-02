@@ -45,7 +45,10 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "리딩 생성에 실패했습니다.");
+        // 504 = Vercel 함수 시간 초과 (JSON 아님)
+        throw new Error(
+          body.error ?? (res.status === 504 ? "서버 응답 시간 초과(504). 다시 시도해보세요." : `요청 실패 (HTTP ${res.status})`),
+        );
       }
       const data = await res.json();
 
@@ -88,7 +91,9 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "답변 생성에 실패했습니다.");
+        throw new Error(
+          body.error ?? (res.status === 504 ? "서버 응답 시간 초과(504). 다시 시도해보세요." : `요청 실패 (HTTP ${res.status})`),
+        );
       }
       const data = await res.json();
 
