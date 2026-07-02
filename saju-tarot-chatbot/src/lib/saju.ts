@@ -1,5 +1,13 @@
 import { Lunar, Solar } from "lunar-javascript";
-import type { BirthInfo, FiveElementBalance, LuckCycles, SajuChart, SajuPillar } from "../types";
+import type {
+  BirthInfo,
+  FiveElementBalance,
+  LuckCycles,
+  SajuChart,
+  SajuPillar,
+  StrengthAssessment,
+  YongshinCandidates,
+} from "../types";
 
 // 천간/지지 별 오행 매핑 (고정된 전통 배속, 라이브러리 버전에 의존하지 않음)
 const GAN_WUXING: Record<string, keyof FiveElementBalance> = {
@@ -60,23 +68,234 @@ function toHangul(hanja: string): string {
   return [...hanja].map((ch) => HANJA_TO_HANGUL[ch] ?? ch).join("");
 }
 
-// lunar-javascript 의 십성 표기(중국어 간체)를 한국 명리 용어로 변환
-const SHISHEN_TO_KOREAN: Record<string, string> = {
-  比肩: "비견",
-  劫财: "겁재",
-  食神: "식신",
-  伤官: "상관",
-  偏财: "편재",
-  正财: "정재",
-  七杀: "편관(칠살)",
-  正官: "정관",
-  偏印: "편인",
-  正印: "정인",
-  日主: "일주(나 자신)",
+// ── 음양 (천간: 갑병무경임=양 / 지지: 자인진오신술=양) ──────────
+const YANG_GAN = new Set(["갑", "병", "무", "경", "임"]);
+const YANG_ZHI = new Set(["자", "인", "진", "오", "신", "술"]);
+
+// ── 지장간 (여기·중기·정기, 마지막이 정기) ──────────
+const HIDDEN_STEMS: Record<string, string[]> = {
+  자: ["임", "계"],
+  축: ["계", "신", "기"],
+  인: ["무", "병", "갑"],
+  묘: ["갑", "을"],
+  진: ["을", "계", "무"],
+  사: ["무", "경", "병"],
+  오: ["병", "기", "정"],
+  미: ["정", "을", "기"],
+  신: ["무", "임", "경"],
+  유: ["경", "신"],
+  술: ["신", "정", "무"],
+  해: ["무", "갑", "임"],
 };
 
-function shishenToKorean(shishen: string): string {
-  return SHISHEN_TO_KOREAN[shishen] ?? shishen;
+const ELEMENT_KO: Record<keyof FiveElementBalance, string> = {
+  wood: "목",
+  fire: "화",
+  earth: "토",
+  metal: "금",
+  water: "수",
+};
+
+// 오행 상생: 목→화→토→금→수→목
+const GENERATES: Record<keyof FiveElementBalance, keyof FiveElementBalance> = {
+  wood: "fire",
+  fire: "earth",
+  earth: "metal",
+  metal: "water",
+  water: "wood",
+};
+
+// 오행 상극: 목→토, 토→수, 수→화, 화→금, 금→목
+const OVERCOMES: Record<keyof FiveElementBalance, keyof FiveElementBalance> = {
+  wood: "earth",
+  earth: "water",
+  water: "fire",
+  fire: "metal",
+  metal: "wood",
+};
+
+/**
+ * 일간과 대상 천간의 관계로 십성을 판정한다 (전통 규칙).
+ * 오행 관계(비겁/인성/식상/재성/관성) × 음양 동이(편/정)로 결정된다.
+ */
+export function tenGodOf(dayGan: string, targetGan: string): string {
+  const dayEl = GAN_WUXING[dayGan];
+  const targetEl = GAN_WUXING[targetGan];
+  if (!dayEl || !targetEl) return "?";
+  const samePolarity = YANG_GAN.has(dayGan) === YANG_GAN.has(targetGan);
+
+  if (targetEl === dayEl) return samePolarity ? "비견" : "겁재";
+  if (GENERATES[targetEl] === dayEl) return samePolarity ? "편인" : "정인";
+  if (GENERATES[dayEl] === targetEl) return samePolarity ? "식신" : "상관";
+  if (OVERCOMES[dayEl] === targetEl) return samePolarity ? "편재" : "정재";
+  return samePolarity ? "편관" : "정관";
+}
+
+// ── 합충형파해 짝 테이블 ──────────
+const GAN_HE: Record<string, string> = { 갑기: "토", 을경: "금", 병신: "수", 정임: "목", 무계: "화" };
+const ZHI_LIUHE: Record<string, string> = { 자축: "토", 인해: "목", 묘술: "화", 진유: "금", 사신: "수", 오미: "화" };
+const ZHI_CHONG = new Set(["자오", "축미", "인신", "묘유", "진술", "사해"]);
+const ZHI_XING = new Set(["인사", "사신", "인신", "축술", "술미", "축미", "자묘"]);
+const ZHI_SELF_XING = new Set(["진", "오", "유", "해"]);
+const ZHI_PO = new Set(["자유", "축진", "인해", "묘오", "사신", "술미"]);
+const ZHI_HAI = new Set(["자미", "축오", "인사", "묘진", "신해", "유술"]);
+// 삼합 [왕지 포함 3글자, 결과 오행]
+const SANHE: Array<{ group: string[]; wangZhi: string; element: string }> = [
+  { group: ["인", "오", "술"], wangZhi: "오", element: "화" },
+  { group: ["사", "유", "축"], wangZhi: "유", element: "금" },
+  { group: ["신", "자", "진"], wangZhi: "자", element: "수" },
+  { group: ["해", "묘", "미"], wangZhi: "묘", element: "목" },
+];
+const FANGHE: Array<{ group: string[]; element: string }> = [
+  { group: ["인", "묘", "진"], element: "목" },
+  { group: ["사", "오", "미"], element: "화" },
+  { group: ["신", "유", "술"], element: "금" },
+  { group: ["해", "자", "축"], element: "수" },
+];
+
+function pairKey(a: string, b: string): string {
+  // 테이블이 한 방향으로만 정의되어 있어 양방향 모두 확인한다
+  return a + b;
+}
+
+interface PositionedChar {
+  label: string;
+  char: string;
+}
+
+/** 4주(또는 3주)의 천간합·지지 합충형파해를 모두 찾아 사람이 읽을 수 있는 목록으로 반환 */
+function computeInteractions(gans: PositionedChar[], zhis: PositionedChar[]): string[] {
+  const found: string[] = [];
+
+  for (let i = 0; i < gans.length; i++) {
+    for (let j = i + 1; j < gans.length; j++) {
+      const a = gans[i];
+      const b = gans[j];
+      const he = GAN_HE[pairKey(a.char, b.char)] ?? GAN_HE[pairKey(b.char, a.char)];
+      if (he) found.push(`${a.label}-${b.label} ${a.char}${b.char}합(${he})`);
+    }
+  }
+
+  // 테이블에 정의된 정식 명칭 순서(예: 자오충)로 표기하기 위해 매칭된 키를 그대로 쓴다
+  const matchKey = (set: Set<string>, keys: string[]) => keys.find((k) => set.has(k));
+
+  for (let i = 0; i < zhis.length; i++) {
+    for (let j = i + 1; j < zhis.length; j++) {
+      const a = zhis[i];
+      const b = zhis[j];
+      const keys = [pairKey(a.char, b.char), pairKey(b.char, a.char)];
+      const liuheKey = keys.find((k) => ZHI_LIUHE[k] !== undefined);
+      if (liuheKey) found.push(`${a.label}-${b.label} ${liuheKey}합(${ZHI_LIUHE[liuheKey]})`);
+      const chong = matchKey(ZHI_CHONG, keys);
+      if (chong) found.push(`${a.label}-${b.label} ${chong}충`);
+      const xing = matchKey(ZHI_XING, keys);
+      if (xing) found.push(`${a.label}-${b.label} ${xing}형`);
+      if (a.char === b.char && ZHI_SELF_XING.has(a.char))
+        found.push(`${a.label}-${b.label} ${a.char}${a.char} 자형`);
+      const po = matchKey(ZHI_PO, keys);
+      if (po) found.push(`${a.label}-${b.label} ${po}파`);
+      const hai = matchKey(ZHI_HAI, keys);
+      if (hai) found.push(`${a.label}-${b.label} ${hai}해`);
+    }
+  }
+
+  const present = new Set(zhis.map((z) => z.char));
+  for (const { group, wangZhi, element } of SANHE) {
+    const hits = group.filter((g) => present.has(g));
+    if (hits.length === 3) {
+      found.push(`지지 ${group.join("")} 삼합(${element})`);
+    } else if (hits.length === 2 && hits.includes(wangZhi)) {
+      found.push(`지지 ${hits.join("")} 반합(${element})`);
+    }
+  }
+  for (const { group, element } of FANGHE) {
+    if (group.every((g) => present.has(g))) found.push(`지지 ${group.join("")} 방합(${element})`);
+  }
+
+  return found;
+}
+
+// 간이 억부법: 위치별 가중치 (월지가 가장 큼 = 계절의 힘)
+const STRENGTH_WEIGHTS = { 연간: 1, 연지: 1.2, 월간: 1.2, 월지: 2.5, 일지: 1.5, 시간: 1, 시지: 1.2 };
+
+function assessStrength(
+  dayGan: string,
+  gans: PositionedChar[],
+  zhis: PositionedChar[],
+): StrengthAssessment {
+  const dayEl = GAN_WUXING[dayGan];
+  const helpsDay = (el: keyof FiveElementBalance | undefined) =>
+    el !== undefined && (el === dayEl || GENERATES[el] === dayEl);
+
+  let supportScore = 0;
+  let totalScore = 0;
+  const supporters: string[] = [];
+
+  for (const { label, char } of gans) {
+    if (label === "일간") continue;
+    const w = STRENGTH_WEIGHTS[label as keyof typeof STRENGTH_WEIGHTS] ?? 1;
+    totalScore += w;
+    if (helpsDay(GAN_WUXING[char])) {
+      supportScore += w;
+      supporters.push(`${label} ${char}`);
+    }
+  }
+  for (const { label, char } of zhis) {
+    const w = STRENGTH_WEIGHTS[label as keyof typeof STRENGTH_WEIGHTS] ?? 1;
+    totalScore += w;
+    if (helpsDay(ZHI_WUXING[char])) {
+      supportScore += w;
+      supporters.push(`${label} ${char}`);
+    }
+  }
+
+  const ratio = supportScore / totalScore;
+  const label: StrengthAssessment["label"] = ratio >= 0.5 ? "신강" : ratio <= 0.35 ? "신약" : "중화";
+
+  const monthZhi = zhis.find((z) => z.label === "월지");
+  const deLing = monthZhi ? helpsDay(ZHI_WUXING[monthZhi.char]) : false;
+  const detail = [
+    `일간을 돕는 세력(비겁·인성): ${supporters.length > 0 ? supporters.join(", ") : "없음"}`,
+    `월지 ${monthZhi?.char ?? "?"}은(는) 일간을 ${deLing ? "돕는 오행 (득령)" : "돕지 않는 오행 (실령)"}`,
+    `점수 ${supportScore.toFixed(1)}/${totalScore.toFixed(1)} (위치 가중치 기반 간이 판정)`,
+  ].join(" · ");
+
+  return { supportScore, totalScore, label, detail };
+}
+
+function suggestYongshin(dayGan: string, strength: StrengthAssessment, fiveElements: FiveElementBalance): YongshinCandidates {
+  const dayEl = GAN_WUXING[dayGan];
+  const inseong = (Object.keys(GENERATES) as Array<keyof FiveElementBalance>).find((el) => GENERATES[el] === dayEl)!;
+  const sikSang = GENERATES[dayEl];
+  const jaeSeong = OVERCOMES[dayEl];
+  const gwanSeong = (Object.keys(OVERCOMES) as Array<keyof FiveElementBalance>).find((el) => OVERCOMES[el] === dayEl)!;
+
+  const note =
+    "간이 억부법 기준 후보이며, 조후(계절 조화) 등 다른 관법으로는 달라질 수 있는 참고용입니다.";
+
+  if (strength.label === "신약") {
+    return {
+      supportive: [ELEMENT_KO[inseong], ELEMENT_KO[dayEl]],
+      unfavorable: [ELEMENT_KO[gwanSeong], ELEMENT_KO[jaeSeong], ELEMENT_KO[sikSang]],
+      note: `신약 → 일간을 돕는 인성(${ELEMENT_KO[inseong]})·비겁(${ELEMENT_KO[dayEl]})이 용신 후보. ${note}`,
+    };
+  }
+  if (strength.label === "신강") {
+    return {
+      supportive: [ELEMENT_KO[sikSang], ELEMENT_KO[jaeSeong], ELEMENT_KO[gwanSeong]],
+      unfavorable: [ELEMENT_KO[dayEl], ELEMENT_KO[inseong]],
+      note: `신강 → 힘을 덜어내는 식상(${ELEMENT_KO[sikSang]})·재성(${ELEMENT_KO[jaeSeong]})·관성(${ELEMENT_KO[gwanSeong]})이 용신 후보. ${note}`,
+    };
+  }
+
+  const entries = Object.entries(fiveElements) as Array<[keyof FiveElementBalance, number]>;
+  const min = Math.min(...entries.map(([, v]) => v));
+  const lacking = entries.filter(([, v]) => v === min).map(([el]) => ELEMENT_KO[el]);
+  return {
+    supportive: lacking,
+    unfavorable: [],
+    note: `중화에 가까움 → 특정 용신보다 부족한 오행(${lacking.join("·")}) 보완이 우선. ${note}`,
+  };
 }
 
 function toPillar(ganZhiHanja: string): SajuPillar {
@@ -121,11 +340,45 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
     addElement(fiveElements, pillar.zhi, ZHI_WUXING);
   }
 
-  const tenGods = [
-    `연간: ${shishenToKorean(ec.getYearShiShenGan())}`,
-    `월간: ${shishenToKorean(ec.getMonthShiShenGan())}`,
-    `시간: ${hour === null ? "출생시간 모름" : shishenToKorean(ec.getTimeShiShenGan())}`,
+  const dayGan = dayPillar.gan;
+
+  // 위치가 붙은 천간/지지 목록 (시주는 모르면 제외)
+  const gans: PositionedChar[] = [
+    { label: "연간", char: yearPillar.gan },
+    { label: "월간", char: monthPillar.gan },
+    { label: "일간", char: dayGan },
+    ...(timePillar ? [{ label: "시간", char: timePillar.gan }] : []),
   ];
+  const zhis: PositionedChar[] = [
+    { label: "연지", char: yearPillar.zhi },
+    { label: "월지", char: monthPillar.zhi },
+    { label: "일지", char: dayPillar.zhi },
+    ...(timePillar ? [{ label: "시지", char: timePillar.zhi }] : []),
+  ];
+
+  // 천간 십성 (일간 기준, 전통 규칙으로 직접 계산)
+  const tenGods = gans
+    .filter((g) => g.label !== "일간")
+    .map((g) => `${g.label} ${g.char}: ${tenGodOf(dayGan, g.char)}`);
+  if (!timePillar) tenGods.push("시간: 출생시간 모름");
+
+  // 음양 분포
+  let yang = 0;
+  for (const g of gans) if (YANG_GAN.has(g.char)) yang += 1;
+  for (const z of zhis) if (YANG_ZHI.has(z.char)) yang += 1;
+  const totalChars = gans.length + zhis.length;
+
+  // 지장간 + 지지 십성(정기 기준)
+  const hiddenStems = zhis.map((z) => `${z.label} ${z.char}: ${(HIDDEN_STEMS[z.char] ?? []).join("·")}`);
+  const branchTenGods = zhis.map((z) => {
+    const stems = HIDDEN_STEMS[z.char] ?? [];
+    const main = stems[stems.length - 1] ?? "";
+    return `${z.label} ${z.char}(정기 ${main}): ${tenGodOf(dayGan, main)}`;
+  });
+
+  const interactions = computeInteractions(gans, zhis);
+  const strength = assessStrength(dayGan, gans, zhis);
+  const yongshin = suggestYongshin(dayGan, strength, fiveElements);
 
   return {
     year: yearPillar,
@@ -134,7 +387,13 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
     hour: timePillar,
     fiveElements,
     tenGods,
-    dayMasterGan: dayPillar.gan,
+    dayMasterGan: dayGan,
+    yinYang: { yang, yin: totalChars - yang },
+    hiddenStems,
+    branchTenGods,
+    interactions,
+    strength,
+    yongshin,
   };
 }
 

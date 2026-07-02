@@ -17,9 +17,12 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 해석하는 �
 - 겁주지 않는다.
 - 지나치게 뭉뚱그린 위로를 하지 않는다.
 - 현실적인 행동 조언을 반드시 포함한다.
-- 사주 원국(연주/월주/일주/시주, 오행 분포, 십성)과 뽑힌 타로 카드는 사용자 메시지에
-  이미 정확히 계산되어 전달된다. 이 계산값을 그대로 사실로 받아들이고, 네가 다시
-  계산하거나 다른 값으로 바꾸지 않는다. 너의 역할은 "계산"이 아니라 "해석"이다.
+- 사주 원국(연주/월주/일주/시주, 오행·음양 분포, 천간·지지 십성, 지장간, 합충형파해,
+  신강/신약, 용신 후보)과 뽑힌 타로 카드는 사용자 메시지에 이미 정확히 계산되어
+  전달된다. 이 계산값을 그대로 사실로 받아들이고, 네가 다시 계산하거나 다른 값으로
+  바꾸지 않는다. 특히 전달된 목록에 없는 합·충·형·파·해를 새로 만들어내지 마라.
+  신강/신약과 용신은 "간이 판정·후보"로 전달되므로 단정하지 말고 참고 근거로 써라.
+  너의 역할은 "계산"이 아니라 "해석"이다.
 
 출력 형식 (마크다운 헤딩으로 각 섹션을 구분):
 
@@ -90,8 +93,26 @@ function formatSajuChart(chart: SajuChart): string {
     `연주: ${chart.year.ganZhi} / 월주: ${chart.month.ganZhi} / 일주(일간=${chart.dayMasterGan}): ${chart.day.ganZhi}`,
     chart.hour ? `시주: ${chart.hour.ganZhi}` : "시주: 출생 시간 모름 (시주 제외 해석)",
     `오행 분포 — 목:${chart.fiveElements.wood} 화:${chart.fiveElements.fire} 토:${chart.fiveElements.earth} 금:${chart.fiveElements.metal} 수:${chart.fiveElements.water}`,
-    `십성 — ${chart.tenGods.join(", ")}`,
+    `천간 십성 — ${chart.tenGods.join(", ")}`,
   ];
+  if (chart.yinYang) lines.push(`음양 분포 — 양:${chart.yinYang.yang} 음:${chart.yinYang.yin}`);
+  if (chart.branchTenGods) lines.push(`지지 십성 — ${chart.branchTenGods.join(", ")}`);
+  if (chart.hiddenStems) lines.push(`지장간 — ${chart.hiddenStems.join(", ")}`);
+  if (chart.interactions) {
+    lines.push(
+      chart.interactions.length > 0
+        ? `합충형파해 — ${chart.interactions.join(", ")}`
+        : "합충형파해 — 원국 내 해당 없음",
+    );
+  }
+  if (chart.strength) {
+    lines.push(`신강/신약 (간이 억부 판정) — ${chart.strength.label} (${chart.strength.detail})`);
+  }
+  if (chart.yongshin) {
+    lines.push(
+      `용신 후보 — 돕는 오행: ${chart.yongshin.supportive.join("·")}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""} (${chart.yongshin.note})`,
+    );
+  }
   return lines.join("\n");
 }
 

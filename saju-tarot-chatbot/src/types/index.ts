@@ -31,6 +31,25 @@ export interface SajuPillar {
   ganZhi: string;
 }
 
+export interface StrengthAssessment {
+  /** 일간을 돕는 세력 점수 (비겁+인성) */
+  supportScore: number;
+  /** 전체 점수 */
+  totalScore: number;
+  label: "신강" | "중화" | "신약";
+  /** 득령(월지가 일간을 돕는지) 여부 등 판정 근거 */
+  detail: string;
+}
+
+export interface YongshinCandidates {
+  /** 용신/희신 후보 오행 */
+  supportive: string[];
+  /** 기신 후보 오행 */
+  unfavorable: string[];
+  /** 판정 방법과 한계 설명 */
+  note: string;
+}
+
 export interface SajuChart {
   year: SajuPillar;
   month: SajuPillar;
@@ -40,6 +59,16 @@ export interface SajuChart {
   fiveElements: FiveElementBalance;
   tenGods: string[];
   dayMasterGan: string;
+  /** 이하 심화 계산 (구버전 저장 데이터에는 없을 수 있음) */
+  yinYang?: { yang: number; yin: number };
+  /** 기둥별 지장간 (예: "월지 자: 임·계") */
+  hiddenStems?: string[];
+  /** 지지 십성 (지장간 정기 기준) */
+  branchTenGods?: string[];
+  /** 합충형파해 목록 (예: "월지-연지 자오충") */
+  interactions?: string[];
+  strength?: StrengthAssessment;
+  yongshin?: YongshinCandidates;
 }
 
 export interface DaYunInfo {

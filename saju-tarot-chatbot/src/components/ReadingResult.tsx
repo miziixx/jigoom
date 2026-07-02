@@ -35,7 +35,22 @@ export default function ReadingResult({ session }: { session: ReadingSession }) 
                 오행 — 목 {session.sajuChart.fiveElements.wood} · 화 {session.sajuChart.fiveElements.fire} · 토{" "}
                 {session.sajuChart.fiveElements.earth} · 금 {session.sajuChart.fiveElements.metal} · 수{" "}
                 {session.sajuChart.fiveElements.water}
+                {session.sajuChart.yinYang && (
+                  <>
+                    {" "}
+                    · 양 {session.sajuChart.yinYang.yang} / 음 {session.sajuChart.yinYang.yin}
+                  </>
+                )}
               </p>
+              {session.sajuChart.strength && (
+                <p>
+                  신강/신약(간이) — {session.sajuChart.strength.label}
+                  {session.sajuChart.yongshin && <> · 용신 후보: {session.sajuChart.yongshin.supportive.join("·")}</>}
+                </p>
+              )}
+              {session.sajuChart.interactions && session.sajuChart.interactions.length > 0 && (
+                <p>합충형파해 — {session.sajuChart.interactions.join(", ")}</p>
+              )}
             </div>
           )}
           {session.luckCycles && (
