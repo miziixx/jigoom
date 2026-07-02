@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import FocusPicker from "./FocusPicker";
+import { BIRTH_PLACES } from "../data/birthPlaces";
 import type { BirthInfo, CalendarType, Gender, ReadingFocus } from "../types";
 
 interface Props {
@@ -16,6 +17,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props)
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
   const [hour, setHour] = useState<string>("unknown");
+  const [minute, setMinute] = useState("");
+  const [birthPlace, setBirthPlace] = useState("none");
   const [gender, setGender] = useState<Gender>("female");
   const [question, setQuestion] = useState("");
   const [focus, setFocus] = useState<ReadingFocus>("general");
@@ -31,6 +34,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props)
       month: Number(month),
       day: Number(day),
       hour: hour === "unknown" ? null : Number(hour),
+      minute: minute === "" ? 0 : Number(minute),
+      birthPlace,
       gender,
     };
     onSubmit(birthInfo, question, focus);
@@ -81,7 +86,31 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props)
             </option>
           ))}
         </select>
+        {hour !== "unknown" && (
+          <input
+            type="number"
+            placeholder="분"
+            min={0}
+            max={59}
+            value={minute}
+            onChange={(e) => setMinute(e.target.value)}
+            aria-label="출생 분"
+          />
+        )}
         <span className="field-hint">모르면 시주를 제외하고 해석합니다.</span>
+      </div>
+
+      <div className="field-row">
+        <span className="field-label">출생지</span>
+        <select value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)}>
+          <option value="none">보정 안 함</option>
+          {Object.entries(BIRTH_PLACES).map(([key, place]) => (
+            <option key={key} value={key}>
+              {place.label}
+            </option>
+          ))}
+        </select>
+        <span className="field-hint">진태양시(경도) 보정에 사용합니다. 서머타임은 자동 반영.</span>
       </div>
 
       <div className="field-row">

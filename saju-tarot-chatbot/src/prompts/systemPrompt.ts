@@ -77,6 +77,16 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 해석하는 �
 톤: 차분함, 정확함, 밀도 있음, 이해하기 쉬움. 공감은 하되 과장하지 않는다.
 사용자를 어린애 취급하지 않는다. 단호하지만 부드럽게 말한다.
 
+밀도 기준 (전문 상담 수준을 요구한다):
+- 모든 해석 문장은 전달된 원국의 실제 글자를 근거로 인용해라.
+  (좋은 예: "월지 자수가 일간 임수를 돕는 겁재라서..." / 나쁜 예: "당신은 물의 기운이 강해서...")
+- 사주 리딩이라면 다음 재료를 최소 한 번씩은 해석에 활용해라: 일간과 월지(계절)의 관계,
+  십성 배치가 만드는 성격 구조, 지장간이 암시하는 이면, 합충형파해가 만드는 역동,
+  12운성 흐름, 공망, 신강약과 용신 후보, 현재 운과 원국의 상호작용.
+- 각 섹션은 "근거 → 풀이 → 그래서 현실에서 어떻게"의 순서로 쓴다.
+- 뻔한 덕담으로 분량을 채우지 마라. 같은 말을 반복하지 마라.
+- 전문 용어를 쓸 때는 바로 뒤에 괄호로 쉬운 설명을 붙여라. 예: "편관(나를 압박하는 힘)".
+
 첫 턴(새 리딩)에는 위 출력 형식을 전부 따른다. 사용자가 후속 질문을 하는 대화 턴에서는
 전체 형식을 반복하지 말고, 그 질문에 집중해 밀도 있게 답하되 위 원칙과 금지/권장 표현은
 동일하게 지킨다.`;
@@ -113,6 +123,17 @@ function formatSajuChart(chart: SajuChart): string {
       `용신 후보 — 돕는 오행: ${chart.yongshin.supportive.join("·")}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""} (${chart.yongshin.note})`,
     );
   }
+  if (chart.twelveStages) lines.push(`12운성 (일간 기준) — ${chart.twelveStages.join(", ")}`);
+  if (chart.gongmang) lines.push(`공망 — ${chart.gongmang}`);
+  if (chart.seasonNote) lines.push(`조후(계절) — ${chart.seasonNote}`);
+  if (chart.timeCorrection) {
+    if (chart.timeCorrection.applied.length > 0)
+      lines.push(
+        `시각 보정 — ${chart.timeCorrection.applied.join(", ")} → 보정 후 ${chart.timeCorrection.correctedDateTime} 기준으로 계산됨`,
+      );
+    if (chart.timeCorrection.boundaryWarning)
+      lines.push(`⚠ 시주 경계 경고 — ${chart.timeCorrection.boundaryWarning} 해석에서 이 불확실성을 반드시 언급해라.`);
+  }
   return lines.join("\n");
 }
 
@@ -131,12 +152,21 @@ function formatLuckCycles(luck: LuckCycles): string {
   const daYunLines = luck.daYun
     .map((dy) => `${dy.startAge}세~${dy.endAge}세 ${dy.ganZhi} (${dy.startYear}~${dy.endYear})${dy.current ? " ← 현재" : ""}`)
     .join(" / ");
-  return [
+  const lines = [
     `대운 흐름: ${daYunLines}`,
     `현재 대운: ${luck.currentDaYun ?? "대운 시작 전"}`,
     `세운(올해 ${luck.year}년, 입춘 기준): ${luck.yearGanZhi}`,
     `월운(이번 달 ${luck.month}월, 절기 기준): ${luck.monthGanZhi}`,
-  ].join("\n");
+  ];
+  if (luck.dayGanZhi) lines.push(`오늘 일진: ${luck.dayGanZhi}`);
+  if (luck.luckInteractions) {
+    lines.push(
+      luck.luckInteractions.length > 0
+        ? `운과 원국의 상호작용 (계산됨): ${luck.luckInteractions.join(", ")}`
+        : "운과 원국의 상호작용 (계산됨): 현재 대운/세운/월운/일진과 원국 사이 새로 성립하는 합충형파해 없음",
+    );
+  }
+  return lines.join("\n");
 }
 
 // 포커스별로 반드시 다루도록 요구하는 상세 항목 (마스터 프롬프트의 D/E/F 섹션 반영)
@@ -187,9 +217,9 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
   }
 
   if (facts.luckCycles) {
-    parts.push(`[대운/세운/월운 계산 결과]\n${formatLuckCycles(facts.luckCycles)}`);
+    parts.push(`[대운/세운/월운/일진 계산 결과]\n${formatLuckCycles(facts.luckCycles)}`);
     parts.push(
-      "[운 흐름 해석 안내] \"현재 흐름\" 섹션에서 현재 대운·세운·월운이 원국과 어떻게 상호작용하는지 다뤄라. 좋은 시기와 조심할 시기를 구분하되, 단정 대신 \"이런 선택을 하면 좋아지는 시기\"의 형태로 설명해라.",
+      "[운 흐름 해석 안내] \"현재 흐름\" 섹션에서 위에 계산되어 전달된 '운과 원국의 상호작용'을 핵심 근거로 삼아 타이밍을 해석해라. 예를 들어 세운이 원국 월지와 충이면 그 영역(월지가 뜻하는 환경·직장·가정)의 변동 가능성으로 연결해라. 목록에 없는 상호작용을 만들어내지 마라. 좋은 시기와 조심할 시기를 구분하되, 단정 대신 \"이런 선택을 하면 좋아지는 시기\"의 형태로 설명해라.",
     );
   }
 

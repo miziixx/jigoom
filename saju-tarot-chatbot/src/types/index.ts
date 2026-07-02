@@ -14,7 +14,20 @@ export interface BirthInfo {
   day: number;
   /** 0-23, 시간을 모르면 null */
   hour: number | null;
+  /** 0-59, 생략 시 0 */
+  minute?: number;
+  /** 출생지 키 (진태양시 보정용). "none"이면 보정 안 함 */
+  birthPlace?: string;
   gender: Gender;
+}
+
+export interface TimeCorrection {
+  /** 적용된 보정 설명 (예: "서울 경도 보정 -32분, 서머타임 -60분") */
+  applied: string[];
+  /** 보정 후 시각 (예: "1988-07-15 13:28") */
+  correctedDateTime: string;
+  /** 시주 경계(홀수시) 근처 출생 경고 */
+  boundaryWarning: string | null;
 }
 
 export interface FiveElementBalance {
@@ -69,6 +82,14 @@ export interface SajuChart {
   interactions?: string[];
   strength?: StrengthAssessment;
   yongshin?: YongshinCandidates;
+  /** 12운성 (일간 기준 기둥별) */
+  twelveStages?: string[];
+  /** 공망 (일주 순중공망 지지 2개) */
+  gongmang?: string;
+  /** 조후(계절) 관점 노트 */
+  seasonNote?: string;
+  /** 진태양시/서머타임 보정 내역 */
+  timeCorrection?: TimeCorrection;
 }
 
 export interface DaYunInfo {
@@ -88,8 +109,12 @@ export interface LuckCycles {
   yearGanZhi: string;
   /** 이번 달 월운 간지 (절기 기준 월주) */
   monthGanZhi: string;
+  /** 오늘 일진 간지 */
+  dayGanZhi?: string;
   year: number;
   month: number;
+  /** 현재 대운/세운/월운/일진이 원국과 맺는 합충형파해 */
+  luckInteractions?: string[];
 }
 
 export type TarotArcana = "major" | "minor";

@@ -9,8 +9,9 @@ import {
 } from "../src/prompts/systemPrompt";
 import type { BirthInfo, ChatMessage, DrawnTarotCard, ReadingFocus, ReadingType } from "../src/types";
 
-const MODEL = "claude-sonnet-5";
-const MAX_TOKENS = 4096;
+// READING_MODEL 환경변수로 상위 모델 교체 가능 (프리미엄 리딩 등)
+const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
+const MAX_TOKENS = 8192;
 
 interface NewReadingBody {
   type: Exclude<ReadingType, never>;

@@ -5,6 +5,7 @@ import ReadingActions from "../components/ReadingActions";
 import FocusPicker from "../components/FocusPicker";
 import { useReadingStore } from "../store/useReadingStore";
 import { drawCards, SPREAD_LABEL, type SpreadSize } from "../lib/tarot";
+import { BIRTH_PLACES } from "../data/birthPlaces";
 import type { BirthInfo, CalendarType, Gender, ReadingFocus } from "../types";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
@@ -18,6 +19,8 @@ export default function ComboPage() {
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
   const [hour, setHour] = useState<string>("unknown");
+  const [minute, setMinute] = useState("");
+  const [birthPlace, setBirthPlace] = useState("none");
   const [gender, setGender] = useState<Gender>("female");
   const [question, setQuestion] = useState("");
   const [count, setCount] = useState<SpreadSize>(3);
@@ -34,6 +37,8 @@ export default function ComboPage() {
       month: Number(month),
       day: Number(day),
       hour: hour === "unknown" ? null : Number(hour),
+      minute: minute === "" ? 0 : Number(minute),
+      birthPlace,
       gender,
     };
     const tarotCards = drawCards(count);
@@ -76,6 +81,29 @@ export default function ComboPage() {
               {HOURS.map((h) => (
                 <option key={h} value={h}>
                   {h}시
+                </option>
+              ))}
+            </select>
+            {hour !== "unknown" && (
+              <input
+                type="number"
+                placeholder="분"
+                min={0}
+                max={59}
+                value={minute}
+                onChange={(e) => setMinute(e.target.value)}
+                aria-label="출생 분"
+              />
+            )}
+          </div>
+
+          <div className="field-row">
+            <span className="field-label">출생지</span>
+            <select value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)}>
+              <option value="none">보정 안 함</option>
+              {Object.entries(BIRTH_PLACES).map(([key, place]) => (
+                <option key={key} value={key}>
+                  {place.label}
                 </option>
               ))}
             </select>

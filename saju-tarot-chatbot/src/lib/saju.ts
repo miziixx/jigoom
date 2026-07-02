@@ -6,8 +6,134 @@ import type {
   SajuChart,
   SajuPillar,
   StrengthAssessment,
+  TimeCorrection,
   YongshinCandidates,
 } from "../types";
+
+import { BIRTH_PLACES } from "../data/birthPlaces";
+
+// 한국 서머타임 시행 기간 (시계가 1시간 빨랐던 기간 → 사주 계산 시 -60분)
+// 주의: 경계일 출생자는 출생 시각 기준 재확인이 필요할 수 있다
+const DST_PERIODS: Array<[string, string]> = [
+  ["1948-06-01", "1948-09-13"],
+  ["1949-04-03", "1949-09-11"],
+  ["1950-04-01", "1950-09-10"],
+  ["1951-05-06", "1951-09-09"],
+  ["1955-05-05", "1955-09-09"],
+  ["1956-05-20", "1956-09-30"],
+  ["1957-05-05", "1957-09-22"],
+  ["1958-05-04", "1958-09-21"],
+  ["1959-05-03", "1959-09-20"],
+  ["1960-05-01", "1960-09-18"],
+  ["1987-05-10", "1987-10-11"],
+  ["1988-05-08", "1988-10-09"],
+];
+
+// 한국 표준시 기준 경선: 1954-03-21 ~ 1961-08-09 는 동경 127.5도(UTC+8:30)였다
+function standardMeridianFor(dateStr: string): number {
+  return dateStr >= "1954-03-21" && dateStr <= "1961-08-09" ? 127.5 : 135;
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+interface CorrectedBirth {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  correction: TimeCorrection | null;
+}
+
+/**
+ * 출생 시각을 사주 계산용 시각으로 보정한다.
+ * 1. 음력 입력이면 먼저 양력으로 변환
+ * 2. 서머타임 기간이면 -60분 (시계가 실제보다 1시간 빨랐음)
+ * 3. 출생지 경도와 당시 표준시 기준 경선의 차이만큼 보정 (진태양시 근사)
+ * 시간을 모르면 보정 없이 날짜만 정규화한다.
+ */
+export function correctBirthTime(birthInfo: BirthInfo): CorrectedBirth {
+  const { calendarType, year, month, day, hour } = birthInfo;
+  const minute = birthInfo.minute ?? 0;
+
+  // 음력 → 양력 정규화
+  let sy = year;
+  let sm = month;
+  let sd = day;
+  if (calendarType === "lunar") {
+    const solar = Lunar.fromYmdHms(year, month, day, hour ?? 12, minute, 0).getSolar();
+    sy = solar.getYear();
+    sm = solar.getMonth();
+    sd = solar.getDay();
+  }
+
+  if (hour === null) {
+    return { year: sy, month: sm, day: sd, hour: 12, minute: 0, correction: null };
+  }
+
+  const dateStr = `${sy}-${pad2(sm)}-${pad2(sd)}`;
+  const applied: string[] = [];
+  let offsetMinutes = 0;
+
+  if (DST_PERIODS.some(([start, end]) => dateStr >= start && dateStr <= end)) {
+    offsetMinutes -= 60;
+    applied.push("서머타임 -60분");
+  }
+
+  const place = birthInfo.birthPlace && birthInfo.birthPlace !== "none" ? BIRTH_PLACES[birthInfo.birthPlace] : null;
+  if (place) {
+    const meridian = standardMeridianFor(dateStr);
+    const lonOffset = Math.round((place.longitude - meridian) * 4);
+    offsetMinutes += lonOffset;
+    applied.push(
+      `${place.label} 경도 보정 ${lonOffset >= 0 ? "+" : ""}${lonOffset}분${meridian === 127.5 ? " (당시 표준시 UTC+8:30 기준)" : ""}`,
+    );
+  }
+
+  const dt = new Date(sy, sm - 1, sd, hour, minute);
+  dt.setMinutes(dt.getMinutes() + offsetMinutes);
+
+  const corrected = {
+    year: dt.getFullYear(),
+    month: dt.getMonth() + 1,
+    day: dt.getDate(),
+    hour: dt.getHours(),
+    minute: dt.getMinutes(),
+  };
+
+  // 시주 경계(홀수시 정각) 근처 ±15분이면 시주가 바뀔 수 있음을 경고
+  const minutesOfDay = corrected.hour * 60 + corrected.minute;
+  let boundaryWarning: string | null = null;
+  for (let boundary = 1; boundary <= 23; boundary += 2) {
+    const diff = Math.abs(minutesOfDay - boundary * 60);
+    if (Math.min(diff, 1440 - diff) <= 15) {
+      boundaryWarning = `보정 후 시각이 시주 경계(${boundary}시)와 ${Math.min(diff, 1440 - diff)}분 차이라 시주가 달라질 수 있습니다. 출생 시각을 분 단위로 확인해보세요.`;
+      break;
+    }
+  }
+
+  const correction: TimeCorrection | null =
+    applied.length > 0 || boundaryWarning
+      ? {
+          applied,
+          correctedDateTime: `${corrected.year}-${pad2(corrected.month)}-${pad2(corrected.day)} ${pad2(corrected.hour)}:${pad2(corrected.minute)}`,
+          boundaryWarning,
+        }
+      : null;
+
+  return { ...corrected, correction };
+}
+
+/** 보정된 시각으로 Lunar 객체를 만든다 (모든 계산의 공통 진입점) */
+function birthToLunar(birthInfo: BirthInfo): { lunar: Lunar; correction: TimeCorrection | null } {
+  const c = correctBirthTime(birthInfo);
+  return {
+    lunar: Solar.fromYmdHms(c.year, c.month, c.day, c.hour, c.minute, 0).getLunar(),
+    correction: c.correction,
+  };
+}
 
 // 천간/지지 별 오행 매핑 (고정된 전통 배속, 라이브러리 버전에 의존하지 않음)
 const GAN_WUXING: Record<string, keyof FiveElementBalance> = {
@@ -129,6 +255,55 @@ export function tenGodOf(dayGan: string, targetGan: string): string {
   if (GENERATES[dayEl] === targetEl) return samePolarity ? "식신" : "상관";
   if (OVERCOMES[dayEl] === targetEl) return samePolarity ? "편재" : "정재";
   return samePolarity ? "편관" : "정관";
+}
+
+// ── 12운성 (일간 기준: 양간 순행, 음간 역행) ──────────
+const TWELVE_STAGES = ["장생", "목욕", "관대", "건록", "제왕", "쇠", "병", "사", "묘", "절", "태", "양"];
+const BRANCH_ORDER = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
+const GAN_ORDER = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"];
+// 각 일간의 장생 지지
+const CHANGSHENG: Record<string, string> = {
+  갑: "해",
+  병: "인",
+  무: "인",
+  경: "사",
+  임: "신",
+  을: "오",
+  정: "유",
+  기: "유",
+  신: "자",
+  계: "묘",
+};
+
+export function twelveStageOf(dayGan: string, zhi: string): string {
+  const start = BRANCH_ORDER.indexOf(CHANGSHENG[dayGan] ?? "");
+  const target = BRANCH_ORDER.indexOf(zhi);
+  if (start < 0 || target < 0) return "?";
+  const steps = YANG_GAN.has(dayGan) ? (target - start + 12) % 12 : (start - target + 12) % 12;
+  return TWELVE_STAGES[steps];
+}
+
+/** 일주의 순중공망 지지 2개 (60갑자 순 기준) */
+export function gongmangOf(dayGan: string, dayZhi: string): string {
+  const g = GAN_ORDER.indexOf(dayGan);
+  const z = BRANCH_ORDER.indexOf(dayZhi);
+  if (g < 0 || z < 0) return "?";
+  let i = g;
+  while (i % 12 !== z) i += 10; // 60갑자에서 일주의 인덱스 찾기
+  const decadeStart = Math.floor(i / 10) * 10;
+  return BRANCH_ORDER[(decadeStart + 10) % 12] + BRANCH_ORDER[(decadeStart + 11) % 12];
+}
+
+/** 조후(계절 조화) 관점의 간단 노트 — 월지 계절 기준 */
+function seasonNoteOf(monthZhi: string, dayGan: string): string {
+  const dayEl = ELEMENT_KO[GAN_WUXING[dayGan]];
+  if (["해", "자", "축"].includes(monthZhi))
+    return `겨울(${monthZhi}월) 출생 — 한랭한 계절이라 조후상 화(따뜻함)의 역할이 중요. 일간 ${dayGan}(${dayEl}) 기준.`;
+  if (["사", "오", "미"].includes(monthZhi))
+    return `여름(${monthZhi}월) 출생 — 더운 계절이라 조후상 수(식힘)의 역할이 중요. 일간 ${dayGan}(${dayEl}) 기준.`;
+  if (["인", "묘", "진"].includes(monthZhi))
+    return `봄(${monthZhi}월) 출생 — 목 기운이 왕성한 계절. 일간 ${dayGan}(${dayEl}) 기준으로 계절 기운과의 관계를 본다.`;
+  return `가을(${monthZhi}월) 출생 — 금 기운이 왕성한 계절. 일간 ${dayGan}(${dayEl}) 기준으로 계절 기운과의 관계를 본다.`;
 }
 
 // ── 합충형파해 짝 테이블 ──────────
@@ -318,13 +493,8 @@ function addElement(balance: FiveElementBalance, char: string, table: Record<str
  * (연/월/일주는 시각과 무관하므로 정오를 임시값으로 넣어 계산해도 정확하다)
  */
 export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
-  const { calendarType, year, month, day, hour } = birthInfo;
-  const placeholderHour = hour ?? 12;
-
-  const lunar =
-    calendarType === "lunar"
-      ? Lunar.fromYmdHms(year, month, day, placeholderHour, 0, 0)
-      : Solar.fromYmdHms(year, month, day, placeholderHour, 0, 0).getLunar();
+  const { hour } = birthInfo;
+  const { lunar, correction } = birthToLunar(birthInfo);
 
   const ec = lunar.getEightChar();
 
@@ -380,6 +550,11 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
   const strength = assessStrength(dayGan, gans, zhis);
   const yongshin = suggestYongshin(dayGan, strength, fiveElements);
 
+  const twelveStages = zhis.map((z) => `${z.label} ${z.char}: ${twelveStageOf(dayGan, z.char)}`);
+  const gongmangZhis = gongmangOf(dayGan, dayPillar.zhi);
+  const gongmangHits = zhis.filter((z) => gongmangZhis.includes(z.char)).map((z) => `${z.label} ${z.char}`);
+  const gongmang = `${gongmangZhis} 공망${gongmangHits.length > 0 ? ` (원국 내 해당: ${gongmangHits.join(", ")})` : " (원국 내 해당 지지 없음)"}`;
+
   return {
     year: yearPillar,
     month: monthPillar,
@@ -394,6 +569,10 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
     interactions,
     strength,
     yongshin,
+    twelveStages,
+    gongmang,
+    seasonNote: seasonNoteOf(monthPillar.zhi, dayGan),
+    timeCorrection: correction ?? undefined,
   };
 }
 
@@ -403,16 +582,28 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
  * - 세운: 올해의 간지 (입춘 기준)
  * - 월운: 이번 달의 간지 (절기 기준 월주)
  */
+/** 운(대운/세운 등)의 간지 하나가 원국과 새로 맺는 합충형파해를 찾는다 */
+function luckVsNatal(
+  label: string,
+  ganZhi: string,
+  natalGans: PositionedChar[],
+  natalZhis: PositionedChar[],
+): string[] {
+  if (ganZhi.length < 2) return [];
+  const base = new Set(computeInteractions(natalGans, natalZhis));
+  const combined = computeInteractions(
+    [{ label, char: ganZhi[0] }, ...natalGans],
+    [{ label, char: ganZhi[1] }, ...natalZhis],
+  );
+  // 운 글자가 개입해서 "새로 생긴" 관계만 남긴다 (삼합 완성 포함)
+  return combined.filter((s) => !base.has(s)).map((s) => (s.includes(label) ? s : `${label} ${ganZhi} 개입 → ${s}`));
+}
+
 export function computeLuckCycles(birthInfo: BirthInfo, now: Date = new Date()): LuckCycles {
-  const { calendarType, year, month, day, hour } = birthInfo;
-  const placeholderHour = hour ?? 12;
+  const { lunar } = birthToLunar(birthInfo);
+  const ec = lunar.getEightChar();
 
-  const lunar =
-    calendarType === "lunar"
-      ? Lunar.fromYmdHms(year, month, day, placeholderHour, 0, 0)
-      : Solar.fromYmdHms(year, month, day, placeholderHour, 0, 0).getLunar();
-
-  const yun = lunar.getEightChar().getYun(birthInfo.gender === "male" ? 1 : 0);
+  const yun = ec.getYun(birthInfo.gender === "male" ? 1 : 0);
   const nowYear = now.getFullYear();
 
   // 첫 항목은 대운 시작 전 구간이라 간지가 비어 있을 수 있음 → 제외
@@ -430,13 +621,44 @@ export function computeLuckCycles(birthInfo: BirthInfo, now: Date = new Date()):
     }));
 
   const nowLunar = Solar.fromDate(now).getLunar();
+  const currentDaYun = daYun.find((dy) => dy.current)?.ganZhi ?? null;
+  const yearGanZhi = toHangul(nowLunar.getYearInGanZhiByLiChun());
+  const monthGanZhi = toHangul(nowLunar.getMonthInGanZhi());
+  const dayGanZhi = toHangul(nowLunar.getDayInGanZhi());
+
+  // 원국 기둥 (운과의 상호작용 계산용)
+  const yearP = toPillar(ec.getYear());
+  const monthP = toPillar(ec.getMonth());
+  const dayP = toPillar(ec.getDay());
+  const timeP = birthInfo.hour === null ? null : toPillar(ec.getTime());
+  const natalGans: PositionedChar[] = [
+    { label: "연간", char: yearP.gan },
+    { label: "월간", char: monthP.gan },
+    { label: "일간", char: dayP.gan },
+    ...(timeP ? [{ label: "시간", char: timeP.gan }] : []),
+  ];
+  const natalZhis: PositionedChar[] = [
+    { label: "연지", char: yearP.zhi },
+    { label: "월지", char: monthP.zhi },
+    { label: "일지", char: dayP.zhi },
+    ...(timeP ? [{ label: "시지", char: timeP.zhi }] : []),
+  ];
+
+  const luckInteractions = [
+    ...(currentDaYun ? luckVsNatal(`대운 ${currentDaYun}`, currentDaYun, natalGans, natalZhis) : []),
+    ...luckVsNatal(`세운 ${yearGanZhi}`, yearGanZhi, natalGans, natalZhis),
+    ...luckVsNatal(`월운 ${monthGanZhi}`, monthGanZhi, natalGans, natalZhis),
+    ...luckVsNatal(`일진 ${dayGanZhi}`, dayGanZhi, natalGans, natalZhis),
+  ];
 
   return {
     daYun,
-    currentDaYun: daYun.find((dy) => dy.current)?.ganZhi ?? null,
-    yearGanZhi: toHangul(nowLunar.getYearInGanZhiByLiChun()),
-    monthGanZhi: toHangul(nowLunar.getMonthInGanZhi()),
+    currentDaYun,
+    yearGanZhi,
+    monthGanZhi,
+    dayGanZhi,
     year: nowYear,
     month: now.getMonth() + 1,
+    luckInteractions,
   };
 }

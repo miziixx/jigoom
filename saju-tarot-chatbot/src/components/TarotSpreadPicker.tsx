@@ -7,7 +7,7 @@ interface Props {
   loading: boolean;
 }
 
-const SPREAD_SIZES: SpreadSize[] = [1, 3, 5];
+const SPREAD_SIZES: SpreadSize[] = [1, 3, 5, 10];
 
 export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Props) {
   const [question, setQuestion] = useState("");

@@ -468,6 +468,10 @@ label {
   font-size: 0.9rem;
 }
 
+.boundary-warning {
+  color: #ffc46b;
+}
+
 .premium-badge {
   background: var(--accent-strong);
   color: #1a1226;

@@ -51,6 +51,16 @@ export default function ReadingResult({ session }: { session: ReadingSession }) 
               {session.sajuChart.interactions && session.sajuChart.interactions.length > 0 && (
                 <p>합충형파해 — {session.sajuChart.interactions.join(", ")}</p>
               )}
+              {session.sajuChart.gongmang && <p>공망 — {session.sajuChart.gongmang}</p>}
+              {session.sajuChart.timeCorrection && session.sajuChart.timeCorrection.applied.length > 0 && (
+                <p>
+                  시각 보정 — {session.sajuChart.timeCorrection.applied.join(", ")} (보정 후{" "}
+                  {session.sajuChart.timeCorrection.correctedDateTime})
+                </p>
+              )}
+              {session.sajuChart.timeCorrection?.boundaryWarning && (
+                <p className="boundary-warning">⚠ {session.sajuChart.timeCorrection.boundaryWarning}</p>
+              )}
             </div>
           )}
           {session.luckCycles && (
