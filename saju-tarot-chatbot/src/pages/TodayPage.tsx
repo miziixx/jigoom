@@ -1,27 +1,28 @@
-import TarotSpreadPicker from "../components/TarotSpreadPicker";
+import BirthInfoForm from "../components/BirthInfoForm";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
 import ReadingActions from "../components/ReadingActions";
 import FeedbackBar from "../components/FeedbackBar";
 import { useReadingStore } from "../store/useReadingStore";
-import { drawSpread, SPREADS, type SpreadId } from "../lib/tarot";
-import type { ReadingContext } from "../types";
+import type { BirthInfo, ReadingContext, ReadingFocus } from "../types";
 
-export default function TarotPage() {
+export default function TodayPage() {
   const { currentSession, loading, error, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
-  const showResult = currentSession?.type === "tarot";
+  const showResult = currentSession?.type === "today";
 
-  function handleSubmit(question: string, spreadId: SpreadId, context: ReadingContext) {
-    const tarotCards = drawSpread(spreadId);
-    startReading({ type: "tarot", question, context, tarotCards, spreadNote: SPREADS[spreadId].note });
+  function handleSubmit(birthInfo: BirthInfo, question: string, _focus: ReadingFocus, context: ReadingContext) {
+    startReading({ type: "today", question, context, birthInfo });
   }
 
   return (
     <section className="page">
-      <h2 className="page-title">타로 보기</h2>
-      <p className="page-desc">질문을 입력하고 카드를 뽑으면, 카드 조합과 질문 맥락을 근거로 해석해드립니다.</p>
+      <h2 className="page-title">오늘의 흐름</h2>
+      <p className="page-desc">
+        오늘 일진과 이번 달 월운이 내 사주 원국과 맺는 관계를 계산해서, 오늘 하루를 잘 쓰는 법을 짧고 실용적으로
+        알려드립니다.
+      </p>
 
-      {!showResult && <TarotSpreadPicker submitLabel="카드 뽑기" onSubmit={handleSubmit} loading={loading} />}
+      {!showResult && <BirthInfoForm submitLabel="오늘의 흐름 보기" onSubmit={handleSubmit} loading={loading} showFocus={false} />}
       {error && !showResult && <p className="error-text">{error}</p>}
 
       {showResult && currentSession && (

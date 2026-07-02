@@ -521,3 +521,25 @@ label {
     color: #111;
   }
 }
+
+/* ── 피드백 바 · 스프레드 선택 ────────── */
+.feedback-bar h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.feedback-bar .field-row {
+  flex-wrap: wrap;
+}
+
+.spread-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media print {
+  .feedback-bar {
+    display: none !important;
+  }
+}

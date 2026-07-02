@@ -1,22 +1,23 @@
 import { useState, type FormEvent } from "react";
-import { SPREAD_LABEL, type SpreadSize } from "../lib/tarot";
+import ContextPicker from "./ContextPicker";
+import { SPREADS, SPREAD_IDS, type SpreadId } from "../lib/tarot";
+import type { ReadingContext } from "../types";
 
 interface Props {
   submitLabel: string;
-  onSubmit: (question: string, count: SpreadSize) => void;
+  onSubmit: (question: string, spreadId: SpreadId, context: ReadingContext) => void;
   loading: boolean;
 }
 
-const SPREAD_SIZES: SpreadSize[] = [1, 3, 5, 10];
-
 export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Props) {
   const [question, setQuestion] = useState("");
-  const [count, setCount] = useState<SpreadSize>(3);
+  const [spreadId, setSpreadId] = useState<SpreadId>("ppf");
+  const [context, setContext] = useState<ReadingContext>({});
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (loading) return;
-    onSubmit(question, count);
+    onSubmit(question, spreadId, context);
   }
 
   return (
@@ -24,7 +25,11 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
       <div className="field-row field-row--column">
         <span className="field-label">질문</span>
         <textarea
-          placeholder="예: 지금 이 관계, 계속 이어가도 될까요?"
+          placeholder={
+            spreadId === "ab"
+              ? "예: A) 지금 회사에 남기 vs B) 이직하기 — 어느 쪽이 나을까요?"
+              : "예: 지금 이 관계, 계속 이어가도 될까요?"
+          }
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           rows={3}
@@ -32,15 +37,20 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
         />
       </div>
 
-      <div className="field-row">
+      <div className="field-row field-row--column">
         <span className="field-label">스프레드</span>
-        {SPREAD_SIZES.map((size) => (
-          <label key={size}>
-            <input type="radio" name="count" checked={count === size} onChange={() => setCount(size)} />
-            {SPREAD_LABEL[size]}
-          </label>
-        ))}
+        <div className="spread-options">
+          {SPREAD_IDS.map((id) => (
+            <label key={id}>
+              <input type="radio" name="spread" checked={spreadId === id} onChange={() => setSpreadId(id)} />
+              {SPREADS[id].label}
+            </label>
+          ))}
+        </div>
+        {spreadId === "ab" && <span className="field-hint">질문에 선택지 A와 B를 함께 적어주세요.</span>}
       </div>
+
+      <ContextPicker value={context} onChange={setContext} />
 
       <button type="submit" className="btn btn--primary" disabled={loading || !question.trim()}>
         {loading ? "카드를 해석하는 중..." : submitLabel}

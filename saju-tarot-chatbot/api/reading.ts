@@ -7,7 +7,14 @@ import {
   buildReadingUserMessage,
   type CompareReadingInput,
 } from "../src/prompts/systemPrompt.js";
-import type { BirthInfo, ChatMessage, DrawnTarotCard, ReadingFocus, ReadingType } from "../src/types/index.js";
+import type {
+  BirthInfo,
+  ChatMessage,
+  DrawnTarotCard,
+  ReadingContext,
+  ReadingFocus,
+  ReadingType,
+} from "../src/types/index.js";
 
 // READING_MODEL 환경변수로 상위 모델 교체 가능 (프리미엄 리딩 등)
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
@@ -17,8 +24,10 @@ interface NewReadingBody {
   type: Exclude<ReadingType, never>;
   question: string;
   focus?: ReadingFocus;
+  context?: ReadingContext;
   birthInfo?: BirthInfo;
   tarotCards?: DrawnTarotCard[];
+  spreadNote?: string;
 }
 
 interface FollowUpBody {
@@ -81,9 +90,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const { type, question, focus, birthInfo, tarotCards } = body;
+    const { type, question, focus, context, birthInfo, tarotCards, spreadNote } = body;
 
-    if ((type === "saju" || type === "combo") && !birthInfo) {
+    if ((type === "saju" || type === "combo" || type === "today" || type === "flow") && !birthInfo) {
       res.status(400).json({ error: "birthInfo가 필요합니다." });
       return;
     }
@@ -93,15 +102,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
-    const luckCycles = birthInfo ? computeLuckCycles(birthInfo) : undefined;
+    const luckCycles = birthInfo
+      ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow: type === "flow" })
+      : undefined;
     const userMessage = buildReadingUserMessage({
       type,
       question,
       focus,
+      context,
       birthInfo,
       sajuChart,
       luckCycles,
       tarotCards,
+      spreadNote,
     });
 
     const response = await anthropic.messages.create({

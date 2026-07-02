@@ -2,13 +2,18 @@ import { useState, type FormEvent } from "react";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
 import ReadingActions from "../components/ReadingActions";
+import FeedbackBar from "../components/FeedbackBar";
 import FocusPicker from "../components/FocusPicker";
+import ContextPicker from "../components/ContextPicker";
 import { useReadingStore } from "../store/useReadingStore";
-import { drawCards, SPREAD_LABEL, type SpreadSize } from "../lib/tarot";
+import { drawSpread, SPREADS, type SpreadId } from "../lib/tarot";
 import { BIRTH_PLACES } from "../data/birthPlaces";
-import type { BirthInfo, CalendarType, Gender, ReadingFocus } from "../types";
+import type { BirthInfo, CalendarType, Gender, ReadingContext, ReadingFocus } from "../types";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
+
+// 통합 리딩에서 고를 수 있는 스프레드 (긴 배열은 통합 프롬프트가 과해져 제외)
+const COMBO_SPREADS: SpreadId[] = ["one", "ppf", "soa", "five"];
 
 export default function ComboPage() {
   const { currentSession, loading, error, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
@@ -23,8 +28,9 @@ export default function ComboPage() {
   const [birthPlace, setBirthPlace] = useState("none");
   const [gender, setGender] = useState<Gender>("female");
   const [question, setQuestion] = useState("");
-  const [count, setCount] = useState<SpreadSize>(3);
+  const [spreadId, setSpreadId] = useState<SpreadId>("ppf");
   const [focus, setFocus] = useState<ReadingFocus>("general");
+  const [context, setContext] = useState<ReadingContext>({});
 
   const canSubmit = year !== "" && month !== "" && day !== "" && question.trim() !== "" && !loading;
 
@@ -41,8 +47,18 @@ export default function ComboPage() {
       birthPlace,
       gender,
     };
-    const tarotCards = drawCards(count);
-    startReading({ type: "combo", question, focus, birthInfo, tarotCards });
+    const finalContext: ReadingContext =
+      hour === "unknown" ? { ...context, timeAccuracy: "unknown" } : context;
+    const tarotCards = drawSpread(spreadId);
+    startReading({
+      type: "combo",
+      question,
+      focus,
+      context: finalContext,
+      birthInfo,
+      tarotCards,
+      spreadNote: SPREADS[spreadId].note,
+    });
   }
 
   return (
@@ -134,12 +150,14 @@ export default function ComboPage() {
 
           <FocusPicker value={focus} onChange={setFocus} />
 
+          <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
+
           <div className="field-row">
             <span className="field-label">타로 스프레드</span>
-            {([1, 3, 5] as SpreadSize[]).map((size) => (
-              <label key={size}>
-                <input type="radio" name="spread" checked={count === size} onChange={() => setCount(size)} />
-                {SPREAD_LABEL[size]}
+            {COMBO_SPREADS.map((id) => (
+              <label key={id}>
+                <input type="radio" name="spread" checked={spreadId === id} onChange={() => setSpreadId(id)} />
+                {SPREADS[id].label}
               </label>
             ))}
           </div>
@@ -155,6 +173,7 @@ export default function ComboPage() {
         <>
           <ReadingResult session={currentSession} />
           <ReadingActions session={currentSession} />
+          <FeedbackBar session={currentSession} />
           <ChatFollowUp session={currentSession} onSend={sendFollowUp} loading={loading} />
           {error && <p className="error-text">{error}</p>}
           <button className="btn btn--ghost" onClick={clearCurrentSession}>

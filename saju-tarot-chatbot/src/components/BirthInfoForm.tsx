@@ -1,17 +1,20 @@
 import { useState, type FormEvent } from "react";
+import ContextPicker from "./ContextPicker";
 import FocusPicker from "./FocusPicker";
 import { BIRTH_PLACES } from "../data/birthPlaces";
-import type { BirthInfo, CalendarType, Gender, ReadingFocus } from "../types";
+import type { BirthInfo, CalendarType, Gender, ReadingContext, ReadingFocus } from "../types";
 
 interface Props {
   submitLabel: string;
-  onSubmit: (birthInfo: BirthInfo, question: string, focus: ReadingFocus) => void;
+  onSubmit: (birthInfo: BirthInfo, question: string, focus: ReadingFocus, context: ReadingContext) => void;
   loading: boolean;
+  /** 오늘의 흐름 등 포커스 선택이 무의미한 리딩에서는 숨긴다 */
+  showFocus?: boolean;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
-export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props) {
+export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocus = true }: Props) {
   const [calendarType, setCalendarType] = useState<CalendarType>("solar");
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
@@ -22,6 +25,7 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props)
   const [gender, setGender] = useState<Gender>("female");
   const [question, setQuestion] = useState("");
   const [focus, setFocus] = useState<ReadingFocus>("general");
+  const [context, setContext] = useState<ReadingContext>({});
 
   const canSubmit = year !== "" && month !== "" && day !== "" && !loading;
 
@@ -38,7 +42,10 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props)
       birthPlace,
       gender,
     };
-    onSubmit(birthInfo, question, focus);
+    // 출생 시간을 모르면 정확도 응답과 무관하게 "모름"으로 고정한다
+    const finalContext: ReadingContext =
+      hour === "unknown" ? { ...context, timeAccuracy: "unknown" } : context;
+    onSubmit(birthInfo, question, focus, finalContext);
   }
 
   return (
@@ -125,7 +132,9 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props)
         </label>
       </div>
 
-      <FocusPicker value={focus} onChange={setFocus} />
+      {showFocus && <FocusPicker value={focus} onChange={setFocus} />}
+
+      <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
 
       <div className="field-row field-row--column">
         <span className="field-label">궁금한 점 (선택)</span>

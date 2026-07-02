@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import HistoryList from "../components/HistoryList";
 import { useReadingStore } from "../store/useReadingStore";
 
-const PATH_BY_TYPE = { saju: "/saju", tarot: "/tarot", combo: "/combo" } as const;
+const PATH_BY_TYPE = { saju: "/saju", tarot: "/tarot", combo: "/combo", today: "/today", flow: "/flow" } as const;
 
 export default function HistoryPage() {
   const { savedSessions, refreshHistory, removeFromHistory, loadSessionById, toggleFavoriteById } =

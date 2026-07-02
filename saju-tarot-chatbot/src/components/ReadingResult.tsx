@@ -76,6 +76,15 @@ export default function ReadingResult({ session }: { session: ReadingSession }) 
                   .map((dy) => `${dy.startAge}세 ${dy.ganZhi}${dy.current ? "★" : ""}`)
                   .join(" → ")}
               </p>
+              {session.luckCycles.monthlyFlow && session.luckCycles.monthlyFlow.length > 0 && (
+                <p>
+                  올해 월운:{" "}
+                  {session.luckCycles.monthlyFlow
+                    .map((mf) => `${mf.month}월 ${mf.ganZhi}${mf.interactions.length > 0 ? "•" : ""}`)
+                    .join(" · ")}{" "}
+                  (• = 원국과 상호작용 있음)
+                </p>
+              )}
             </div>
           )}
           {session.tarotCards && session.tarotCards.length > 0 && (
