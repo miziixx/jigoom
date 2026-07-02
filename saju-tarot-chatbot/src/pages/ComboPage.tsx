@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
+import FocusPicker from "../components/FocusPicker";
 import { useReadingStore } from "../store/useReadingStore";
-import { drawCards } from "../lib/tarot";
-import type { BirthInfo, CalendarType, Gender } from "../types";
+import { drawCards, SPREAD_LABEL, type SpreadSize } from "../lib/tarot";
+import type { BirthInfo, CalendarType, Gender, ReadingFocus } from "../types";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
@@ -18,7 +19,8 @@ export default function ComboPage() {
   const [hour, setHour] = useState<string>("unknown");
   const [gender, setGender] = useState<Gender>("female");
   const [question, setQuestion] = useState("");
-  const [count, setCount] = useState<1 | 3>(3);
+  const [count, setCount] = useState<SpreadSize>(3);
+  const [focus, setFocus] = useState<ReadingFocus>("general");
 
   const canSubmit = year !== "" && month !== "" && day !== "" && question.trim() !== "" && !loading;
 
@@ -34,7 +36,7 @@ export default function ComboPage() {
       gender,
     };
     const tarotCards = drawCards(count);
-    startReading({ type: "combo", question, birthInfo, tarotCards });
+    startReading({ type: "combo", question, focus, birthInfo, tarotCards });
   }
 
   return (
@@ -101,15 +103,16 @@ export default function ComboPage() {
             />
           </div>
 
+          <FocusPicker value={focus} onChange={setFocus} />
+
           <div className="field-row">
             <span className="field-label">타로 스프레드</span>
-            <label>
-              <input type="radio" checked={count === 1} onChange={() => setCount(1)} />1장
-            </label>
-            <label>
-              <input type="radio" checked={count === 3} onChange={() => setCount(3)} />
-              3장
-            </label>
+            {([1, 3, 5] as SpreadSize[]).map((size) => (
+              <label key={size}>
+                <input type="radio" name="spread" checked={count === size} onChange={() => setCount(size)} />
+                {SPREAD_LABEL[size]}
+              </label>
+            ))}
           </div>
 
           <button type="submit" className="btn btn--primary" disabled={!canSubmit}>

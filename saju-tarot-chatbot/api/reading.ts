@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
-import { computeSajuChart } from "../src/lib/saju";
+import { computeLuckCycles, computeSajuChart } from "../src/lib/saju";
 import { READING_SYSTEM_PROMPT, buildReadingUserMessage } from "../src/prompts/systemPrompt";
-import type { BirthInfo, ChatMessage, DrawnTarotCard, ReadingType } from "../src/types";
+import type { BirthInfo, ChatMessage, DrawnTarotCard, ReadingFocus, ReadingType } from "../src/types";
 
 const MODEL = "claude-sonnet-5";
 const MAX_TOKENS = 4096;
@@ -10,6 +10,7 @@ const MAX_TOKENS = 4096;
 interface NewReadingBody {
   type: Exclude<ReadingType, never>;
   question: string;
+  focus?: ReadingFocus;
   birthInfo?: BirthInfo;
   tarotCards?: DrawnTarotCard[];
 }
@@ -53,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const { type, question, birthInfo, tarotCards } = body;
+    const { type, question, focus, birthInfo, tarotCards } = body;
 
     if ((type === "saju" || type === "combo") && !birthInfo) {
       res.status(400).json({ error: "birthInfo가 필요합니다." });
@@ -65,11 +66,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
+    const luckCycles = birthInfo ? computeLuckCycles(birthInfo) : undefined;
     const userMessage = buildReadingUserMessage({
       type,
       question,
+      focus,
       birthInfo,
       sajuChart,
+      luckCycles,
       tarotCards,
     });
 
@@ -81,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     const reply = extractText(response);
 
-    res.status(200).json({ reply, userMessage, sajuChart });
+    res.status(200).json({ reply, userMessage, sajuChart, luckCycles });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "리딩 생성 중 오류가 발생했습니다." });

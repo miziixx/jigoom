@@ -38,12 +38,30 @@ export default function ReadingResult({ session }: { session: ReadingSession }) 
               </p>
             </div>
           )}
+          {session.luckCycles && (
+            <div className="facts-block">
+              <h4>운 흐름</h4>
+              <p>
+                현재 대운 {session.luckCycles.currentDaYun ?? "시작 전"} · 세운({session.luckCycles.year}년){" "}
+                {session.luckCycles.yearGanZhi} · 월운({session.luckCycles.month}월) {session.luckCycles.monthGanZhi}
+              </p>
+              <p>
+                대운:{" "}
+                {session.luckCycles.daYun
+                  .map((dy) => `${dy.startAge}세 ${dy.ganZhi}${dy.current ? "★" : ""}`)
+                  .join(" → ")}
+              </p>
+            </div>
+          )}
           {session.tarotCards && session.tarotCards.length > 0 && (
             <div className="facts-block">
               <h4>뽑힌 카드</h4>
               <p>
                 {session.tarotCards
-                  .map((c) => `${c.card.name} (${c.reversed ? "역방향" : "정방향"})`)
+                  .map(
+                    (c) =>
+                      `${c.positionLabel ? `[${c.positionLabel}] ` : ""}${c.card.name} (${c.reversed ? "역방향" : "정방향"})`,
+                  )
                   .join(" · ")}
               </p>
             </div>

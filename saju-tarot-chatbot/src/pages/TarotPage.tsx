@@ -2,13 +2,13 @@ import TarotSpreadPicker from "../components/TarotSpreadPicker";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
 import { useReadingStore } from "../store/useReadingStore";
-import { drawCards } from "../lib/tarot";
+import { drawCards, type SpreadSize } from "../lib/tarot";
 
 export default function TarotPage() {
   const { currentSession, loading, error, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
   const showResult = currentSession?.type === "tarot";
 
-  function handleSubmit(question: string, count: 1 | 3) {
+  function handleSubmit(question: string, count: SpreadSize) {
     const tarotCards = drawCards(count);
     startReading({ type: "tarot", question, tarotCards });
   }

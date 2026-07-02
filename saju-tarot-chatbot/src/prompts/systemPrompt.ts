@@ -1,4 +1,4 @@
-import type { BirthInfo, DrawnTarotCard, ReadingType, SajuChart } from "../types";
+import type { BirthInfo, DrawnTarotCard, LuckCycles, ReadingFocus, ReadingType, SajuChart } from "../types";
 
 /**
  * 리딩 엔진 시스템 프롬프트.
@@ -100,16 +100,55 @@ function formatTarotCards(cards: DrawnTarotCard[]): string {
     .map((c) => {
       const orientation = c.reversed ? "역방향" : "정방향";
       const meaning = c.reversed ? c.card.reversedMeaning : c.card.uprightMeaning;
-      return `${c.position}번째 자리: ${c.card.name} (${orientation}) — ${meaning}`;
+      const label = c.positionLabel ? ` [${c.positionLabel}]` : "";
+      return `${c.position}번째 자리${label}: ${c.card.name} (${orientation}) — ${meaning}`;
     })
     .join("\n");
 }
 
+function formatLuckCycles(luck: LuckCycles): string {
+  const daYunLines = luck.daYun
+    .map((dy) => `${dy.startAge}세~${dy.endAge}세 ${dy.ganZhi} (${dy.startYear}~${dy.endYear})${dy.current ? " ← 현재" : ""}`)
+    .join(" / ");
+  return [
+    `대운 흐름: ${daYunLines}`,
+    `현재 대운: ${luck.currentDaYun ?? "대운 시작 전"}`,
+    `세운(올해 ${luck.year}년, 입춘 기준): ${luck.yearGanZhi}`,
+    `월운(이번 달 ${luck.month}월, 절기 기준): ${luck.monthGanZhi}`,
+  ].join("\n");
+}
+
+// 포커스별로 반드시 다루도록 요구하는 상세 항목 (마스터 프롬프트의 D/E/F 섹션 반영)
+const FOCUS_INSTRUCTIONS: Record<Exclude<ReadingFocus, "general">, string> = {
+  career: `[해석 포커스] 직업/돈
+"자세한 풀이"에서 다음을 반드시 구체적으로 다뤄라:
+- 잘 맞는 일의 조건과 피해야 할 업무 환경
+- 돈을 벌기 쉬운 방식과 돈을 대하는 태도
+- 장기적으로 키워야 할 능력
+- 현대 직업 기준의 추천 (콘텐츠, 교육, 기획, 디자인, 개발, 영업 등과의 궁합)
+- 프리랜서/사업/직장 각각의 적합도
+투자 수익이나 사업 성패를 단정하지 마라.`,
+  relationship: `[해석 포커스] 연애/관계
+"자세한 풀이"에서 다음을 반드시 구체적으로 다뤄라:
+- 끌리는 사람 유형과 그 이유
+- 반복되기 쉬운 관계 문제 패턴
+- 안정적인 관계를 위한 조건
+- 피해야 할 관계 패턴
+결혼/이별/재회를 단정적으로 예언하지 마라.`,
+  wellness: `[해석 포커스] 건강/컨디션
+"자세한 풀이"에서 다음을 반드시 생활 관점으로 다뤄라:
+- 수면, 소화, 체력, 감정 기복, 긴장도 등 컨디션이 흔들리기 쉬운 흐름
+- 오행 균형에서 드러나는 취약 지점과 생활 보완법
+의학적 진단이나 질병 예언은 절대 하지 마라. 증상이 있다면 병원 진료를 조심스럽게 권하는 선까지만 말한다.`,
+};
+
 export interface ReadingFacts {
   type: ReadingType;
   question: string;
+  focus?: ReadingFocus;
   birthInfo?: BirthInfo;
   sajuChart?: SajuChart;
+  luckCycles?: LuckCycles;
   tarotCards?: DrawnTarotCard[];
 }
 
@@ -126,9 +165,25 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
     parts.push(`[사주 원국 계산 결과]\n${formatSajuChart(facts.sajuChart)}`);
   }
 
+  if (facts.luckCycles) {
+    parts.push(`[대운/세운/월운 계산 결과]\n${formatLuckCycles(facts.luckCycles)}`);
+    parts.push(
+      "[운 흐름 해석 안내] \"현재 흐름\" 섹션에서 현재 대운·세운·월운이 원국과 어떻게 상호작용하는지 다뤄라. 좋은 시기와 조심할 시기를 구분하되, 단정 대신 \"이런 선택을 하면 좋아지는 시기\"의 형태로 설명해라.",
+    );
+  }
+
+  if (facts.focus && facts.focus !== "general") {
+    parts.push(FOCUS_INSTRUCTIONS[facts.focus]);
+  }
+
   if (facts.tarotCards && facts.tarotCards.length > 0) {
     parts.push(`[타로 스프레드] ${facts.tarotCards.length}장`);
     parts.push(`[뽑힌 카드]\n${formatTarotCards(facts.tarotCards)}`);
+    if (facts.tarotCards.length >= 3) {
+      parts.push(
+        "[카드 조합 해석 안내] 카드를 한 장씩만 따로 풀지 말고, \"해석 근거\"에서 각 자리의 의미와 카드가 만나 어떤 이야기가 되는지, 카드 간 조합(강화/충돌/전환)을 반드시 별도로 짚어라. 메이저 아르카나가 많으면 흐름의 무게가 크다는 점, 같은 슈트가 반복되면 그 영역(완드=일/열정, 컵=감정/관계, 소드=생각/갈등, 펜타클=현실/돈)이 중심이라는 점을 활용해라.",
+      );
+    }
   }
 
   if (facts.type === "combo") {

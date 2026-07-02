@@ -1,14 +1,17 @@
 import { useState, type FormEvent } from "react";
+import { SPREAD_LABEL, type SpreadSize } from "../lib/tarot";
 
 interface Props {
   submitLabel: string;
-  onSubmit: (question: string, count: 1 | 3) => void;
+  onSubmit: (question: string, count: SpreadSize) => void;
   loading: boolean;
 }
 
+const SPREAD_SIZES: SpreadSize[] = [1, 3, 5];
+
 export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Props) {
   const [question, setQuestion] = useState("");
-  const [count, setCount] = useState<1 | 3>(3);
+  const [count, setCount] = useState<SpreadSize>(3);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -31,13 +34,12 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
 
       <div className="field-row">
         <span className="field-label">스프레드</span>
-        <label>
-          <input type="radio" name="count" checked={count === 1} onChange={() => setCount(1)} />1장 (오늘의 카드)
-        </label>
-        <label>
-          <input type="radio" name="count" checked={count === 3} onChange={() => setCount(3)} />
-          3장 (과거·현재·미래)
-        </label>
+        {SPREAD_SIZES.map((size) => (
+          <label key={size}>
+            <input type="radio" name="count" checked={count === size} onChange={() => setCount(size)} />
+            {SPREAD_LABEL[size]}
+          </label>
+        ))}
       </div>
 
       <button type="submit" className="btn btn--primary" disabled={loading || !question.trim()}>

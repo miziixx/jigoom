@@ -1,4 +1,16 @@
 declare module "lunar-javascript" {
+  export class DaYun {
+    getStartAge(): number;
+    getEndAge(): number;
+    getStartYear(): number;
+    getEndYear(): number;
+    getGanZhi(): string;
+  }
+
+  export class Yun {
+    getDaYun(): DaYun[];
+  }
+
   export class EightChar {
     getYear(): string;
     getMonth(): string;
@@ -12,6 +24,8 @@ declare module "lunar-javascript" {
     getMonthShiShenZhi(): string[];
     getDayShiShenZhi(): string[];
     getTimeShiShenZhi(): string[];
+    /** gender: 1=남성, 0=여성 */
+    getYun(gender: number): Yun;
   }
 
   export class Lunar {
@@ -24,6 +38,9 @@ declare module "lunar-javascript" {
       second: number,
     ): Lunar;
     getEightChar(): EightChar;
+    getYearInGanZhi(): string;
+    getYearInGanZhiByLiChun(): string;
+    getMonthInGanZhi(): string;
   }
 
   export class Solar {
@@ -35,6 +52,7 @@ declare module "lunar-javascript" {
       minute: number,
       second: number,
     ): Solar;
+    static fromDate(date: Date): Solar;
     getLunar(): Lunar;
   }
 }

@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { deleteSession, loadSessions, saveSession } from "../lib/storage";
-import type { BirthInfo, DrawnTarotCard, ReadingSession, ReadingType } from "../types";
+import type { BirthInfo, DrawnTarotCard, ReadingFocus, ReadingSession, ReadingType } from "../types";
 
 interface StartReadingParams {
   type: ReadingType;
   question: string;
+  focus?: ReadingFocus;
   birthInfo?: BirthInfo;
   tarotCards?: DrawnTarotCard[];
 }
@@ -33,13 +34,13 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
   error: null,
   savedSessions: [],
 
-  startReading: async ({ type, question, birthInfo, tarotCards }) => {
+  startReading: async ({ type, question, focus, birthInfo, tarotCards }) => {
     set({ loading: true, error: null });
     try {
       const res = await fetch("/api/reading", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, question, birthInfo, tarotCards }),
+        body: JSON.stringify({ type, question, focus, birthInfo, tarotCards }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -52,8 +53,10 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
         type,
         createdAt: new Date().toISOString(),
         question,
+        focus,
         birthInfo,
         sajuChart: data.sajuChart,
+        luckCycles: data.luckCycles,
         tarotCards,
         messages: [
           { role: "user", content: data.userMessage as string },

@@ -2,14 +2,14 @@ import BirthInfoForm from "../components/BirthInfoForm";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
 import { useReadingStore } from "../store/useReadingStore";
-import type { BirthInfo } from "../types";
+import type { BirthInfo, ReadingFocus } from "../types";
 
 export default function SajuPage() {
   const { currentSession, loading, error, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
   const showResult = currentSession?.type === "saju";
 
-  function handleSubmit(birthInfo: BirthInfo, question: string) {
-    startReading({ type: "saju", question, birthInfo });
+  function handleSubmit(birthInfo: BirthInfo, question: string, focus: ReadingFocus) {
+    startReading({ type: "saju", question, focus, birthInfo });
   }
 
   return (

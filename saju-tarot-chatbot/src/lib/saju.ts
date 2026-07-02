@@ -1,5 +1,5 @@
 import { Lunar, Solar } from "lunar-javascript";
-import type { BirthInfo, FiveElementBalance, SajuChart, SajuPillar } from "../types";
+import type { BirthInfo, FiveElementBalance, LuckCycles, SajuChart, SajuPillar } from "../types";
 
 // 천간/지지 별 오행 매핑 (고정된 전통 배속, 라이브러리 버전에 의존하지 않음)
 const GAN_WUXING: Record<string, keyof FiveElementBalance> = {
@@ -135,5 +135,49 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
     fiveElements,
     tenGods,
     dayMasterGan: dayPillar.gan,
+  };
+}
+
+/**
+ * 대운/세운/월운을 계산한다.
+ * - 대운: 만세력 기준 10년 단위 흐름 (성별에 따라 순행/역행이 달라져 gender 필요)
+ * - 세운: 올해의 간지 (입춘 기준)
+ * - 월운: 이번 달의 간지 (절기 기준 월주)
+ */
+export function computeLuckCycles(birthInfo: BirthInfo, now: Date = new Date()): LuckCycles {
+  const { calendarType, year, month, day, hour } = birthInfo;
+  const placeholderHour = hour ?? 12;
+
+  const lunar =
+    calendarType === "lunar"
+      ? Lunar.fromYmdHms(year, month, day, placeholderHour, 0, 0)
+      : Solar.fromYmdHms(year, month, day, placeholderHour, 0, 0).getLunar();
+
+  const yun = lunar.getEightChar().getYun(birthInfo.gender === "male" ? 1 : 0);
+  const nowYear = now.getFullYear();
+
+  // 첫 항목은 대운 시작 전 구간이라 간지가 비어 있을 수 있음 → 제외
+  const daYun = yun
+    .getDaYun()
+    .filter((dy) => dy.getGanZhi() !== "")
+    .slice(0, 8)
+    .map((dy) => ({
+      startAge: dy.getStartAge(),
+      endAge: dy.getEndAge(),
+      startYear: dy.getStartYear(),
+      endYear: dy.getEndYear(),
+      ganZhi: toHangul(dy.getGanZhi()),
+      current: dy.getStartYear() <= nowYear && nowYear <= dy.getEndYear(),
+    }));
+
+  const nowLunar = Solar.fromDate(now).getLunar();
+
+  return {
+    daYun,
+    currentDaYun: daYun.find((dy) => dy.current)?.ganZhi ?? null,
+    yearGanZhi: toHangul(nowLunar.getYearInGanZhiByLiChun()),
+    monthGanZhi: toHangul(nowLunar.getMonthInGanZhi()),
+    year: nowYear,
+    month: now.getMonth() + 1,
   };
 }

@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
-import type { BirthInfo, CalendarType, Gender } from "../types";
+import FocusPicker from "./FocusPicker";
+import type { BirthInfo, CalendarType, Gender, ReadingFocus } from "../types";
 
 interface Props {
   submitLabel: string;
-  onSubmit: (birthInfo: BirthInfo, question: string) => void;
+  onSubmit: (birthInfo: BirthInfo, question: string, focus: ReadingFocus) => void;
   loading: boolean;
 }
 
@@ -17,6 +18,7 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props)
   const [hour, setHour] = useState<string>("unknown");
   const [gender, setGender] = useState<Gender>("female");
   const [question, setQuestion] = useState("");
+  const [focus, setFocus] = useState<ReadingFocus>("general");
 
   const canSubmit = year !== "" && month !== "" && day !== "" && !loading;
 
@@ -31,7 +33,7 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props)
       hour: hour === "unknown" ? null : Number(hour),
       gender,
     };
-    onSubmit(birthInfo, question);
+    onSubmit(birthInfo, question, focus);
   }
 
   return (
@@ -93,6 +95,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading }: Props)
           남성
         </label>
       </div>
+
+      <FocusPicker value={focus} onChange={setFocus} />
 
       <div className="field-row field-row--column">
         <span className="field-label">궁금한 점 (선택)</span>
