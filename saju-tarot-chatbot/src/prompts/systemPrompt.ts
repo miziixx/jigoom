@@ -194,3 +194,38 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
 
   return parts.join("\n\n");
 }
+
+export interface CompareReadingInput {
+  type: ReadingType;
+  createdAt: string;
+  question: string;
+  reply: string;
+}
+
+/** 두 리딩을 비교 분석해달라는 사용자 메시지를 구성한다 */
+export function buildCompareUserMessage(a: CompareReadingInput, b: CompareReadingInput): string {
+  const typeLabel = { saju: "사주", tarot: "타로", combo: "사주+타로 통합" };
+  const format = (label: string, r: CompareReadingInput) =>
+    [
+      `[리딩 ${label}]`,
+      `종류: ${typeLabel[r.type]} / 날짜: ${new Date(r.createdAt).toLocaleDateString("ko-KR")}`,
+      `질문: ${r.question || "(질문 없음)"}`,
+      `내용:\n${r.reply}`,
+    ].join("\n");
+
+  return [
+    "아래 두 개의 지난 리딩을 비교 분석해라. 새 리딩을 만들지 말고, 두 리딩의 내용만 근거로 삼아라.",
+    format("A", a),
+    format("B", b),
+    `출력 형식 (마크다운 헤딩):
+# 두 리딩의 공통 흐름
+반복해서 나타나는 주제, 성향, 조언을 짚어라.
+# 달라진 점
+시점/질문/카드가 다르면서 해석이 어떻게 달라졌는지, 그 이유가 무엇인지 설명해라.
+# 종합 해석
+두 리딩을 함께 놓고 봤을 때 지금 사용자에게 의미 있는 결론을 정리해라. 단정 대신 경향으로 말해라.
+# 지금 취할 행동
+두 리딩의 공통 조언에서 나온, 오늘부터 실행 가능한 행동 2~3가지를 제안해라.
+# 한 줄 결론`,
+  ].join("\n\n");
+}

@@ -1,7 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
 import { computeLuckCycles, computeSajuChart } from "../src/lib/saju";
-import { READING_SYSTEM_PROMPT, buildReadingUserMessage } from "../src/prompts/systemPrompt";
+import {
+  READING_SYSTEM_PROMPT,
+  buildCompareUserMessage,
+  buildReadingUserMessage,
+  type CompareReadingInput,
+} from "../src/prompts/systemPrompt";
 import type { BirthInfo, ChatMessage, DrawnTarotCard, ReadingFocus, ReadingType } from "../src/types";
 
 const MODEL = "claude-sonnet-5";
@@ -20,7 +25,13 @@ interface FollowUpBody {
   history: ChatMessage[];
 }
 
-type RequestBody = NewReadingBody | FollowUpBody;
+interface CompareBody {
+  type: "compare";
+  readingA: CompareReadingInput;
+  readingB: CompareReadingInput;
+}
+
+type RequestBody = NewReadingBody | FollowUpBody | CompareBody;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -51,6 +62,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       const reply = extractText(response);
       res.status(200).json({ reply });
+      return;
+    }
+
+    if (body.type === "compare") {
+      if (!body.readingA?.reply || !body.readingB?.reply) {
+        res.status(400).json({ error: "비교할 두 리딩(readingA, readingB)이 필요합니다." });
+        return;
+      }
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: MAX_TOKENS,
+        system: READING_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: buildCompareUserMessage(body.readingA, body.readingB) }],
+      });
+      res.status(200).json({ reply: extractText(response) });
       return;
     }
 

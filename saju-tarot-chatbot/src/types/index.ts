@@ -91,6 +91,7 @@ export interface ReadingSession {
   type: ReadingType;
   createdAt: string;
   question: string;
+  favorite?: boolean;
   focus?: ReadingFocus;
   birthInfo?: BirthInfo;
   sajuChart?: SajuChart;

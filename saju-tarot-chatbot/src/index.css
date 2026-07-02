@@ -358,3 +358,162 @@ label {
 .empty-state {
   color: var(--text-dim);
 }
+
+.empty-state a {
+  color: var(--accent);
+}
+
+.reading-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.btn--small {
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
+.history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.filter-tab {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.filter-tab--active {
+  background: var(--surface-alt);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.history-item__compare {
+  flex-shrink: 0;
+}
+
+.history-item__star {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .compare-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compare-column h4 {
+  margin: 0 0 4px;
+  color: var(--accent);
+}
+
+.compare-meta {
+  margin: 0 0 8px;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.compare-question {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+}
+
+.compare-summary {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.compare-analysis h3 {
+  margin: 0 0 10px;
+  color: var(--accent);
+}
+
+.compare-back {
+  display: inline-block;
+  text-decoration: none;
+  margin-top: 4px;
+}
+
+.premium-gate p {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+}
+
+.premium-badge {
+  background: var(--accent-strong);
+  color: #1a1226;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+/* PDF 저장(인쇄): 리딩 내용만 밝은 배경으로 출력 */
+@media print {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    background: #fff;
+    color: #111;
+  }
+
+  .app-header,
+  .app-footer,
+  .app-nav,
+  .reading-actions,
+  .chat-followup,
+  .btn,
+  form {
+    display: none !important;
+  }
+
+  .card {
+    background: #fff;
+    border-color: #ccc;
+    break-inside: avoid;
+  }
+
+  .reading-summary h3,
+  .facts-block h4,
+  .landing-card h3 {
+    color: #5b21b6;
+  }
+
+  .reading-body,
+  .facts-block p,
+  .reading-section summary {
+    color: #111;
+  }
+}

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
+import ReadingActions from "../components/ReadingActions";
 import FocusPicker from "../components/FocusPicker";
 import { useReadingStore } from "../store/useReadingStore";
 import { drawCards, SPREAD_LABEL, type SpreadSize } from "../lib/tarot";
@@ -125,6 +126,7 @@ export default function ComboPage() {
       {showResult && currentSession && (
         <>
           <ReadingResult session={currentSession} />
+          <ReadingActions session={currentSession} />
           <ChatFollowUp session={currentSession} onSend={sendFollowUp} loading={loading} />
           {error && <p className="error-text">{error}</p>}
           <button className="btn btn--ghost" onClick={clearCurrentSession}>

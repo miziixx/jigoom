@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { deleteSession, loadSessions, saveSession } from "../lib/storage";
+import { deleteSession, loadSessions, saveSession, toggleFavorite } from "../lib/storage";
 import type { BirthInfo, DrawnTarotCard, ReadingFocus, ReadingSession, ReadingType } from "../types";
 
 interface StartReadingParams {
@@ -22,6 +22,7 @@ interface ReadingStore {
   clearCurrentSession: () => void;
   refreshHistory: () => void;
   removeFromHistory: (id: string) => void;
+  toggleFavoriteById: (id: string) => void;
 }
 
 function newId(): string {
@@ -114,6 +115,15 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
 
   removeFromHistory: (id: string) => {
     deleteSession(id);
+    get().refreshHistory();
+  },
+
+  toggleFavoriteById: (id: string) => {
+    const updated = toggleFavorite(id);
+    const current = get().currentSession;
+    if (updated && current?.id === id) {
+      set({ currentSession: { ...current, favorite: updated.favorite } });
+    }
     get().refreshHistory();
   },
 }));

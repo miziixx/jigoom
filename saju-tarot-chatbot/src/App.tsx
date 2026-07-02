@@ -5,6 +5,7 @@ import SajuPage from "./pages/SajuPage";
 import TarotPage from "./pages/TarotPage";
 import ComboPage from "./pages/ComboPage";
 import HistoryPage from "./pages/HistoryPage";
+import ComparePage from "./pages/ComparePage";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="tarot" element={<TarotPage />} />
           <Route path="combo" element={<ComboPage />} />
           <Route path="history" element={<HistoryPage />} />
+          <Route path="compare" element={<ComparePage />} />
         </Route>
       </Routes>
     </HashRouter>

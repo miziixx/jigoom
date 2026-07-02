@@ -1,6 +1,7 @@
 import TarotSpreadPicker from "../components/TarotSpreadPicker";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
+import ReadingActions from "../components/ReadingActions";
 import { useReadingStore } from "../store/useReadingStore";
 import { drawCards, type SpreadSize } from "../lib/tarot";
 
@@ -24,6 +25,7 @@ export default function TarotPage() {
       {showResult && currentSession && (
         <>
           <ReadingResult session={currentSession} />
+          <ReadingActions session={currentSession} />
           <ChatFollowUp session={currentSession} onSend={sendFollowUp} loading={loading} />
           {error && <p className="error-text">{error}</p>}
           <button className="btn btn--ghost" onClick={clearCurrentSession}>
