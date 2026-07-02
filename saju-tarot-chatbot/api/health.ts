@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { computeSajuChart } from "../src/lib/saju";
+import { computeSajuChart } from "../src/lib/saju.js";
 
 /**
  * 배포 진단용: 함수 런타임 / 사주 계산 모듈 / 환경변수 존재 여부를 확인한다.

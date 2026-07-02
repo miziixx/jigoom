@@ -8,9 +8,9 @@ import type {
   StrengthAssessment,
   TimeCorrection,
   YongshinCandidates,
-} from "../types";
+} from "../types/index.js";
 
-import { BIRTH_PLACES } from "../data/birthPlaces";
+import { BIRTH_PLACES } from "../data/birthPlaces.js";
 
 // 한국 서머타임 시행 기간 (시계가 1시간 빨랐던 기간 → 사주 계산 시 -60분)
 // 주의: 경계일 출생자는 출생 시각 기준 재확인이 필요할 수 있다

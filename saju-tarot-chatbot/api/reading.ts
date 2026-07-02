@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
-import { computeLuckCycles, computeSajuChart } from "../src/lib/saju";
+import { computeLuckCycles, computeSajuChart } from "../src/lib/saju.js";
 import {
   READING_SYSTEM_PROMPT,
   buildCompareUserMessage,
   buildReadingUserMessage,
   type CompareReadingInput,
-} from "../src/prompts/systemPrompt";
-import type { BirthInfo, ChatMessage, DrawnTarotCard, ReadingFocus, ReadingType } from "../src/types";
+} from "../src/prompts/systemPrompt.js";
+import type { BirthInfo, ChatMessage, DrawnTarotCard, ReadingFocus, ReadingType } from "../src/types/index.js";
 
 // READING_MODEL 환경변수로 상위 모델 교체 가능 (프리미엄 리딩 등)
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";

@@ -1,4 +1,4 @@
-import type { BirthInfo, DrawnTarotCard, LuckCycles, ReadingFocus, ReadingType, SajuChart } from "../types";
+import type { BirthInfo, DrawnTarotCard, LuckCycles, ReadingFocus, ReadingType, SajuChart } from "../types/index.js";
 
 /**
  * 리딩 엔진 시스템 프롬프트.
