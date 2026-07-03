@@ -16,6 +16,9 @@ import type {
   ReadingType,
 } from "../src/types/index.js";
 
+// 응답 스트리밍 활성화 (긴 리딩도 첫 토큰부터 바로 전송 → 게이트웨이 504 방지)
+export const config = { supportsResponseStreaming: true };
+
 // READING_MODEL 환경변수로 상위 모델 교체 가능 (프리미엄 리딩 등)
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
 const MAX_TOKENS = 8192;
@@ -43,6 +46,60 @@ interface CompareBody {
 
 type RequestBody = NewReadingBody | FollowUpBody | CompareBody;
 
+/** 클라이언트가 NDJSON 스트리밍을 받을 수 있다고 알렸는지 (구버전 클라이언트는 JSON 일괄 응답 유지) */
+function wantsStream(req: VercelRequest): boolean {
+  return (req.headers.accept ?? "").includes("application/x-ndjson");
+}
+
+/**
+ * Anthropic 스트림을 NDJSON 라인으로 흘려보낸다.
+ * 라인 형식: {"meta":{...}} → {"text":"..."}* → {"done":true} / 실패 시 {"error":"..."}
+ */
+async function streamMessages(
+  res: VercelResponse,
+  anthropic: Anthropic,
+  messages: Anthropic.Messages.MessageParam[],
+  meta?: Record<string, unknown>,
+): Promise<void> {
+  res.status(200);
+  res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  if (meta) res.write(JSON.stringify({ meta }) + "\n");
+
+  try {
+    const stream = anthropic.messages.stream({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      system: READING_SYSTEM_PROMPT,
+      messages,
+    });
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        res.write(JSON.stringify({ text: event.delta.text }) + "\n");
+      }
+    }
+    res.write(JSON.stringify({ done: true }) + "\n");
+  } catch (err) {
+    console.error(err);
+    res.write(JSON.stringify({ error: `리딩 생성 중 오류: ${describeError(err)}` }) + "\n");
+  }
+  res.end();
+}
+
+/** 스트리밍 미지원 클라이언트용 일괄 응답 */
+async function completeMessages(
+  anthropic: Anthropic,
+  messages: Anthropic.Messages.MessageParam[],
+): Promise<string> {
+  const response = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: MAX_TOKENS,
+    system: READING_SYSTEM_PROMPT,
+    messages,
+  });
+  return extractText(response);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST 요청만 지원합니다." });
@@ -57,6 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const body = req.body as RequestBody;
   const anthropic = new Anthropic({ apiKey });
+  const streaming = wantsStream(req);
 
   try {
     if (body.type === "followup") {
@@ -64,14 +122,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.status(400).json({ error: "history가 필요합니다." });
         return;
       }
-      const response = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system: READING_SYSTEM_PROMPT,
-        messages: body.history.map((m) => ({ role: m.role, content: m.content })),
-      });
-      const reply = extractText(response);
-      res.status(200).json({ reply });
+      const messages = body.history.map((m) => ({ role: m.role, content: m.content }));
+      if (streaming) {
+        await streamMessages(res, anthropic, messages);
+      } else {
+        res.status(200).json({ reply: await completeMessages(anthropic, messages) });
+      }
       return;
     }
 
@@ -80,13 +136,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.status(400).json({ error: "비교할 두 리딩(readingA, readingB)이 필요합니다." });
         return;
       }
-      const response = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system: READING_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildCompareUserMessage(body.readingA, body.readingB) }],
-      });
-      res.status(200).json({ reply: extractText(response) });
+      const messages: Anthropic.Messages.MessageParam[] = [
+        { role: "user", content: buildCompareUserMessage(body.readingA, body.readingB) },
+      ];
+      if (streaming) {
+        await streamMessages(res, anthropic, messages);
+      } else {
+        res.status(200).json({ reply: await completeMessages(anthropic, messages) });
+      }
       return;
     }
 
@@ -117,18 +174,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       spreadNote,
     });
 
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: READING_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userMessage }],
-    });
-    const reply = extractText(response);
-
-    res.status(200).json({ reply, userMessage, sajuChart, luckCycles });
+    const messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userMessage }];
+    if (streaming) {
+      await streamMessages(res, anthropic, messages, { userMessage, sajuChart, luckCycles });
+    } else {
+      const reply = await completeMessages(anthropic, messages);
+      res.status(200).json({ reply, userMessage, sajuChart, luckCycles });
+    }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: `리딩 생성 중 오류: ${describeError(err)}` });
+    if (!res.headersSent) {
+      res.status(500).json({ error: `리딩 생성 중 오류: ${describeError(err)}` });
+    } else {
+      res.end();
+    }
   }
 }
 

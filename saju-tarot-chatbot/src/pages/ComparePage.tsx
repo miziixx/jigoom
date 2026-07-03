@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { loadSessions } from "../lib/storage";
 import { isPremium, unlockPremium } from "../lib/premium";
+import { streamReading } from "../lib/readingApi";
 import type { ReadingSession } from "../types";
 
 const TYPE_LABEL: Record<ReadingSession["type"], string> = {
@@ -73,17 +74,11 @@ export default function ComparePage() {
         question: s.question,
         reply: firstReply(s),
       });
-      const res = await fetch("/api/reading", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "compare", readingA: toInput(sessionA), readingB: toInput(sessionB) }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "비교 분석에 실패했습니다.");
-      }
-      const data = await res.json();
-      setAnalysis(data.reply as string);
+      const result = await streamReading(
+        { type: "compare", readingA: toInput(sessionA), readingB: toInput(sessionB) },
+        { onText: (accumulated) => setAnalysis(accumulated) },
+      );
+      setAnalysis(result.reply);
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류");
     } finally {
