@@ -228,6 +228,13 @@ const TONE_INSTRUCTION: Record<NonNullable<ReadingContext["tone"]>, string> = {
   detailed: "아주 자세하게. 각 섹션의 근거 인용과 풀이를 최대한 촘촘하게 써라.",
 };
 
+// 깊이를 따로 고르지 않은 기본 리딩 — 속도 우선(짧고 빠르게)
+const DEFAULT_FAST_INSTRUCTION =
+  "[기본 리딩 — 속도 우선] 사용자가 깊이를 따로 고르지 않았다. 빠르게 보여주는 것이 가장 중요하다. " +
+  "다음 섹션만 이 순서로 출력해라: 첫 점괘 / 분야별 요약 / 지금 내 마음 / 말하지 않은 고민 / 지금 해야 할 선택 / 마지막 점괘. " +
+  "나머지 섹션(겉과 속·반복되는 패턴·돈과 일·관계 속마음·올해 전환점·지금 피해야 할 선택)은 생략한다. " +
+  "각 섹션은 2~4문장으로 간결하게, 전체 공백 포함 1500자 이내로. 첫 점괘부터 군더더기 없이 바로 강하게 시작해라.";
+
 const DEPTH_INSTRUCTION: Record<NonNullable<ReadingContext["depth"]>, string> = {
   light:
     "[가벼운 리딩] 첫 점괘 / 분야별 요약 / 지금 내 마음 / 지금 해야 할 선택 / 마지막 점괘 섹션만 출력해라. 각 섹션은 짧고 밀도 있게.",
@@ -377,6 +384,12 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
     parts.push(
       "[통합 리딩 안내] 타고난 성향과 장기 흐름은 사주 근거로, 지금 질문에 대한 단기 흐름은 카드 근거로 속으로 구분해 해석하되, 둘이 다른 방향이면 그 차이를 쉬운 말로 함께 짚어라. 표면 문장에는 사주 용어를 쓰지 마라.",
     );
+  }
+
+  // 깊이 미선택 + 일반 리딩(saju/combo/tarot)이면 속도 우선 기본 프로필 적용
+  // (today/flow는 자체 섹션 안내가 있으므로 제외)
+  if (!facts.context?.depth && (facts.type === "saju" || facts.type === "combo" || facts.type === "tarot")) {
+    parts.push(DEFAULT_FAST_INSTRUCTION);
   }
 
   return parts.join("\n\n");

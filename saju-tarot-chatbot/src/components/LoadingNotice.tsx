@@ -12,7 +12,7 @@ export default function LoadingNotice({ depth }: { depth?: ReadingContext["depth
   return (
     <div className="loading-notice">
       <span className="loading-notice__spinner" aria-hidden="true" />
-      <span>사주 계산을 마치고 해석을 쓰고 있어요. {depth ? DEPTH_ETA[depth] : "잠시만 기다려주세요."}</span>
+      <span>사주 계산을 마치고 해석을 쓰고 있어요. {depth ? DEPTH_ETA[depth] : "곧 첫 점괘부터 뜨기 시작해요."}</span>
     </div>
   );
 }

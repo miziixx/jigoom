@@ -31,4 +31,22 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(msg).toContain("사주 원국 계산 결과");
     expect(msg).toContain(sajuChart.day.ganZhi);
   });
+
+  it("깊이 미선택이면 속도 우선(짧은) 기본 프로필을 붙인다", () => {
+    expect(msg).toContain("속도 우선");
+    expect(msg).toContain("1500자 이내");
+  });
+
+  it("깊이를 고르면 속도 우선 프로필 대신 해당 깊이를 쓴다", () => {
+    const deep = buildReadingUserMessage({
+      type: "saju",
+      question: "요즘 지쳐요",
+      birthInfo: birth,
+      sajuChart,
+      luckCycles,
+      context: { depth: "expert" },
+    });
+    expect(deep).not.toContain("[기본 리딩 — 속도 우선]");
+    expect(deep).toContain("전문가 리딩");
+  });
 });
