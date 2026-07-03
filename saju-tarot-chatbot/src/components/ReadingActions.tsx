@@ -33,8 +33,8 @@ export default function ReadingActions({ session }: { session: ReadingSession })
       <button className="btn btn--secondary" onClick={() => downloadReadingMarkdown(session)}>
         마크다운 저장
       </button>
-      <button className="btn btn--secondary" onClick={() => downloadShareImage(session)}>
-        이미지로 공유
+      <button className="btn btn--secondary" onClick={() => void downloadShareImage(session)}>
+        이미지 ZIP 저장
       </button>
     </div>
   );

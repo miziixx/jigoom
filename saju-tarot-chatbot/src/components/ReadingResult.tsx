@@ -15,6 +15,7 @@ interface BodyPart {
 const SECTION_META: Record<string, { tag: string; tone: string }> = {
   "타고난 성격과 기질": { tag: "기질", tone: "self" },
   "직업과 돈": { tag: "일과 돈", tone: "work" },
+  "재물 흐름": { tag: "재물", tone: "money" },
   "애정과 관계": { tag: "관계", tone: "love" },
   "건강과 컨디션": { tag: "컨디션", tone: "health" },
   "인생의 큰 흐름": { tag: "큰 흐름", tone: "flow" },

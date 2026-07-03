@@ -12,6 +12,8 @@ import type {
   ReadingType,
 } from "../types";
 
+const MAX_FOLLOW_UP_QUESTIONS = 5;
+
 interface StartReadingParams {
   type: ReadingType;
   question: string;
@@ -112,6 +114,11 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
   sendFollowUp: async (question: string) => {
     const session = get().currentSession;
     if (!session) return;
+    const usedQuestions = session.messages.slice(2).filter((m) => m.role === "user").length;
+    if (usedQuestions >= MAX_FOLLOW_UP_QUESTIONS) {
+      set({ error: "후속 질문은 최대 5개까지 가능합니다. 새 질문은 새 리딩으로 시작해주세요." });
+      return;
+    }
 
     const historyWithQuestion = [...session.messages, { role: "user" as const, content: question }];
     set({ loading: true, error: null, currentSession: { ...session, messages: historyWithQuestion } });
