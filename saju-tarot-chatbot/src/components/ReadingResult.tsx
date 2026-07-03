@@ -12,6 +12,26 @@ interface BodyPart {
   body: string;
 }
 
+const SECTION_META: Record<string, { tag: string; tone: string }> = {
+  "타고난 성격과 기질": { tag: "기질", tone: "self" },
+  "직업과 돈": { tag: "일과 돈", tone: "work" },
+  "애정과 관계": { tag: "관계", tone: "love" },
+  "건강과 컨디션": { tag: "컨디션", tone: "health" },
+  "인생의 큰 흐름": { tag: "큰 흐름", tone: "flow" },
+  "올해의 흐름": { tag: "올해", tone: "year" },
+  "지금 해야 할 것과 피해야 할 것": { tag: "행동", tone: "action" },
+};
+
+const PART_META: Record<string, { label: string; tone: string }> = {
+  "한 줄 결론": { label: "결론", tone: "conclusion" },
+  "쉬운 풀이": { label: "풀이", tone: "plain" },
+  "왜 그렇게 보는지": { label: "근거 번역", tone: "why" },
+  "현실에서 나타나는 모습": { label: "현실 예시", tone: "life" },
+  "조심할 점": { label: "주의", tone: "caution" },
+  "활용 방법 / 보완 방법": { label: "활용", tone: "use" },
+  "오늘 바로 할 수 있는 행동": { label: "바로 실행", tone: "todo" },
+};
+
 function parseSections(markdown: string): Section[] {
   const parts = markdown.split(/^#\s+(.+)$/m).slice(1);
   const sections: Section[] = [];
@@ -126,8 +146,13 @@ function SectionBody({ body, loading }: { body: string; loading?: boolean }) {
           );
         }
         return (
-          <div className="reading-part" key={part.title ?? "intro"}>
-            {part.title && <h4 className="reading-part__title">{part.title}</h4>}
+          <div className={`reading-part${part.title ? ` reading-part--${PART_META[part.title]?.tone ?? "default"}` : ""}`} key={part.title ?? "intro"}>
+            {part.title && (
+              <h4 className="reading-part__title">
+                <span className="reading-part__label">{PART_META[part.title]?.label ?? part.title}</span>
+                <span>{part.title}</span>
+              </h4>
+            )}
             {renderTextBlock(part.body)}
           </div>
         );
@@ -226,8 +251,14 @@ export default function ReadingResult({ session, loading = false }: { session: R
       )}
 
       {bodySections.map((section, i) => (
-        <section key={section.title} className="card reading-section reading-section--open">
-          <h3 className="reading-section__title">{section.title}</h3>
+        <section
+          key={section.title}
+          className={`card reading-section reading-section--open reading-section--${SECTION_META[section.title]?.tone ?? "default"}`}
+        >
+          <div className="reading-section__head">
+            <span className="reading-section__tag">{SECTION_META[section.title]?.tag ?? "풀이"}</span>
+            <h3 className="reading-section__title">{section.title}</h3>
+          </div>
           <SectionBody body={section.body} loading={loading && i === bodySections.length - 1 && !closing} />
         </section>
       ))}

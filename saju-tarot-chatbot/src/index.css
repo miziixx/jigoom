@@ -625,8 +625,68 @@ label {
 }
 
 /* ── 본문 섹션(펼쳐진 카드) ── */
+.reading-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.reading-section::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--accent);
+  opacity: 0.8;
+}
+
+.reading-section--work::before,
+.reading-part--todo .reading-part__label {
+  background: #57d0a4;
+}
+
+.reading-section--love::before,
+.reading-part--life .reading-part__label {
+  background: #ff8fb8;
+}
+
+.reading-section--health::before,
+.reading-part--caution .reading-part__label {
+  background: #ffb27a;
+}
+
+.reading-section--flow::before,
+.reading-section--year::before,
+.reading-part--why .reading-part__label {
+  background: #7fc7ff;
+}
+
+.reading-section--action::before,
+.reading-part--use .reading-part__label {
+  background: #f3d36b;
+}
+
+.reading-section__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.reading-section__tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(201, 164, 255, 0.12);
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .reading-section--open .reading-section__title {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 1rem;
   color: var(--accent);
 }
@@ -639,12 +699,42 @@ label {
 .reading-part {
   display: grid;
   gap: 6px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .reading-part__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   font-size: 0.88rem;
   color: var(--text);
+}
+
+.reading-part__label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #171221;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.reading-part--conclusion {
+  border-color: rgba(201, 164, 255, 0.28);
+  background: rgba(201, 164, 255, 0.08);
+}
+
+.reading-part--todo {
+  border-color: rgba(87, 208, 164, 0.24);
+  background: rgba(87, 208, 164, 0.07);
 }
 
 .reading-bullets {
@@ -799,12 +889,21 @@ label {
 }
 
 .loading-notice {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  gap: 12px;
   color: var(--text-dim);
   font-size: 0.88rem;
   margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.loading-notice__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .loading-notice__spinner {
@@ -815,6 +914,29 @@ label {
   border-top-color: var(--accent);
   animation: loading-spin 0.8s linear infinite;
   flex: 0 0 auto;
+}
+
+.loading-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.loading-step {
+  min-width: 0;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.loading-step--active {
+  border-color: var(--accent);
+  color: var(--text);
+  background: rgba(201, 164, 255, 0.1);
 }
 
 @keyframes loading-spin {
