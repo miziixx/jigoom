@@ -327,20 +327,31 @@ export interface FortuneEvidence {
   };
 }
 
+/** 분야별 카드 한 개 (점수는 FortuneEvidence.categories에서, 문장은 여기서) */
+export interface FortuneCategoryContent {
+  /** 한 줄 요약 */
+  comment: string;
+  /** 이 분야에서 잘 풀리는 점 */
+  good?: string;
+  /** 이 분야에서 주의할 점 */
+  caution?: string;
+}
+
 /** LLM(또는 폴백)이 생성하는 오늘의 운세 문장 묶음 */
 export interface FortuneContent {
+  /** 한 줄 히어로 배지 */
   summary: string;
+  /** 전체 운세 2~3문장 (총운 카드용) */
+  overall: string;
   keywords: string[];
-  good_areas: string[];
-  caution_points: string[];
   do_actions: string[];
   avoid_actions: string[];
   categories: {
-    love: string;
-    work: string;
-    money: string;
-    relationship: string;
-    condition: string;
+    money: FortuneCategoryContent;
+    love: FortuneCategoryContent;
+    career: FortuneCategoryContent;
+    health: FortuneCategoryContent;
+    relationship: FortuneCategoryContent;
   };
   share_text: string;
 }

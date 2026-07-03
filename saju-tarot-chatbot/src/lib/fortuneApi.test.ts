@@ -27,12 +27,17 @@ class MemStorage {
 
 const SAMPLE: FortuneContent = {
   summary: "s",
+  overall: "오늘은 무난한 하루예요.",
   keywords: ["a", "b", "c"],
-  good_areas: ["x", "y"],
-  caution_points: ["p", "q"],
   do_actions: ["1", "2", "3"],
   avoid_actions: ["n1", "n2"],
-  categories: { love: "l", work: "w", money: "m", relationship: "r", condition: "c" },
+  categories: {
+    money: { comment: "m" },
+    love: { comment: "l" },
+    career: { comment: "ca" },
+    health: { comment: "h" },
+    relationship: { comment: "r" },
+  },
   share_text: "share",
 };
 

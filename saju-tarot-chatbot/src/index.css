@@ -703,6 +703,55 @@ label {
   color: var(--text-dim);
 }
 
+.fortune-overall {
+  margin: 10px 0 0;
+  font-size: 0.96rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.fortune-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 560px) {
+  .fortune-category-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fortune-category-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-alt);
+}
+
+.fortune-category-card__comment {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+}
+
+.fortune-badge {
+  margin: 6px 0 0;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.fortune-badge--good {
+  background: rgba(87, 208, 164, 0.14);
+  color: #57d0a4;
+}
+
+.fortune-badge--caution {
+  background: rgba(255, 178, 122, 0.14);
+  color: #ffb27a;
+}
+
 .fortune-two {
   display: grid;
   grid-template-columns: 1fr 1fr;
