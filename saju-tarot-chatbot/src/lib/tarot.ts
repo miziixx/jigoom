@@ -1,7 +1,7 @@
 import { TAROT_DECK } from "../data/tarotDeck";
 import type { DrawnTarotCard } from "../types";
 
-export type SpreadId = "one" | "ppf" | "soa" | "five" | "ab" | "month" | "celtic";
+export type SpreadId = "one" | "ppf" | "soa" | "five" | "ab" | "month" | "relation" | "celtic";
 
 export interface SpreadDefinition {
   id: SpreadId;
@@ -45,6 +45,12 @@ export const SPREADS: Record<SpreadId, SpreadDefinition> = {
     label: "5장 (한 달 흐름)",
     positions: ["이번 달 전체 기조", "1주차", "2주차", "3주차", "4주차"],
     note: "전체 기조 카드를 축으로 주차별 카드를 연결해, 한 달의 리듬(시작-전개-조심할 구간-마무리)으로 해석해라. 주차별로 '이 주에 하면 좋은 것 1가지'를 붙여라.",
+  },
+  relation: {
+    id: "relation",
+    label: "5장 (관계 리딩)",
+    positions: ["나의 마음/태도", "상대의 마음/태도", "관계의 현재 상태", "관계의 장애물/과제", "흐름과 조언"],
+    note: "'상대의 마음' 카드는 확정된 사실이 아니라 카드가 비추는 경향으로 다뤄라. 나와 상대 카드를 대비시켜 온도차와 역학을 짚고, 장애물 카드는 누구의 잘못이 아니라 관계 구조의 과제로 해석해라. 마지막 조언 카드는 관계에서 사용자가 실제로 할 수 있는 행동으로 번역해라. 이별/재회/결혼을 단정하지 마라.",
   },
   celtic: {
     id: "celtic",
