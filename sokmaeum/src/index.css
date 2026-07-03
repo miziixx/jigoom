@@ -1002,3 +1002,164 @@ label {
   padding-left: 12px;
   border-left: 2px solid var(--accent);
 }
+
+/* ─────────────────────────────────────────────
+   마크다운 렌더링 (리딩 본문)
+   ───────────────────────────────────────────── */
+.md {
+  line-height: 1.7;
+  color: var(--text);
+}
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md p { margin: 0.6em 0; }
+.md strong { color: var(--accent); font-weight: 700; }
+.md em { color: var(--text); font-style: italic; }
+.md h1, .md h2, .md h3, .md h4 {
+  margin: 1em 0 0.4em;
+  line-height: 1.4;
+  color: var(--text);
+}
+.md h1 { font-size: 1.15rem; }
+.md h2 { font-size: 1.08rem; }
+.md h3 { font-size: 1rem; color: var(--accent); }
+.md ul, .md ol { margin: 0.5em 0; padding-left: 1.3em; }
+.md li { margin: 0.3em 0; }
+.md blockquote {
+  margin: 0.7em 0;
+  padding: 0.4em 0.9em;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-alt);
+  border-radius: 0 8px 8px 0;
+  color: var(--text-dim);
+}
+.md code {
+  background: var(--surface-alt);
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-size: 0.9em;
+}
+.md hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+.md table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.7em 0;
+  font-size: 0.9rem;
+  display: block;
+  overflow-x: auto;
+}
+.md th, .md td { border: 1px solid var(--border); padding: 6px 9px; text-align: left; }
+.md th { background: var(--surface-alt); color: var(--accent); }
+
+/* ─────────────────────────────────────────────
+   사주 시각화 (기둥/오행/대운)
+   ───────────────────────────────────────────── */
+.facts-line { margin: 8px 0; line-height: 1.6; }
+
+/* 4기둥 카드 */
+.sv-pillars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.sv-pillar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-alt);
+}
+.sv-pillar--day { border-color: var(--accent); }
+.sv-pillar-label { font-size: 0.76rem; color: var(--text-dim); }
+.sv-pillar-me { color: var(--accent); }
+.sv-char {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.sv-char--unknown {
+  width: auto;
+  height: auto;
+  padding: 6px 8px;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-dim);
+  background: transparent;
+}
+
+/* 오행 막대 */
+.sv-elements { margin: 6px 0 4px; }
+.sv-bars { display: flex; flex-direction: column; gap: 6px; }
+.sv-bar-row { display: flex; align-items: center; gap: 8px; }
+.sv-bar-label { width: 18px; font-weight: 700; text-align: center; }
+.sv-bar-track {
+  flex: 1;
+  height: 14px;
+  background: var(--surface-alt);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.sv-bar-fill { height: 100%; border-radius: 7px; min-width: 2px; transition: width 0.4s ease; }
+.sv-bar-count { width: 18px; text-align: right; font-size: 0.85rem; color: var(--text-dim); }
+.sv-yinyang {
+  display: flex;
+  margin-top: 10px;
+  border-radius: 7px;
+  overflow: hidden;
+  font-size: 0.78rem;
+  height: 22px;
+}
+.sv-yy-yang {
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(201,164,255,0.35); color: var(--text); min-width: 40px;
+}
+.sv-yy-yin {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  background: var(--surface-alt); color: var(--text-dim);
+}
+.sv-caption { font-size: 0.8rem; color: var(--text-dim); margin: 8px 0 0; }
+
+/* 대운 타임라인 */
+.sv-luck-now { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.sv-luck-chip {
+  font-size: 0.8rem; color: var(--text-dim);
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px 10px;
+}
+.sv-luck-chip b { color: var(--text); }
+.sv-timeline {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;
+}
+.sv-tl-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 48px;
+}
+.sv-tl-age { font-size: 0.7rem; color: var(--text-dim); }
+.sv-tl-ganzhi {
+  border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 5px 7px; font-weight: 700; font-size: 0.9rem; background: var(--surface-alt);
+}
+.sv-tl-item--now .sv-tl-ganzhi { box-shadow: 0 0 0 2px var(--accent) inset; }
+.sv-tl-star { font-size: 0.66rem; color: var(--accent); font-weight: 700; }
+.sv-month-flow { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.sv-mf {
+  font-size: 0.74rem; color: var(--text-dim);
+  background: var(--surface-alt); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 7px;
+}
+.sv-mf--hit { border-color: var(--accent); color: var(--text); }
+
+.facts-more { margin-top: 8px; }
+.facts-more summary {
+  cursor: pointer; font-size: 0.82rem; color: var(--text-dim);
+}
+.facts-more p { font-size: 0.84rem; color: var(--text-dim); margin: 5px 0; }

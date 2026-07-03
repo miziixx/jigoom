@@ -1,4 +1,8 @@
 import type { ReadingSession } from "../types";
+import Markdown from "./Markdown";
+import FiveElementsChart from "./saju-visual/FiveElementsChart";
+import PillarCards from "./saju-visual/PillarCards";
+import LuckTimeline from "./saju-visual/LuckTimeline";
 
 interface Section {
   title: string;
@@ -18,75 +22,55 @@ export default function ReadingResult({ session }: { session: ReadingSession }) 
   const reply = session.messages.find((m) => m.role === "assistant")?.content ?? "";
   const sections = parseSections(reply);
   const [summary, ...rest] = sections;
+  const chart = session.sajuChart;
+  const luck = session.luckCycles;
 
   return (
     <div className="reading-result">
-      {(session.sajuChart || (session.tarotCards && session.tarotCards.length > 0)) && (
+      {(chart || (session.tarotCards && session.tarotCards.length > 0)) && (
         <div className="card facts-panel">
-          {session.sajuChart && (
+          {chart && (
             <div className="facts-block">
               <h4>사주 원국</h4>
-              <p>
-                연주 {session.sajuChart.year.ganZhi} · 월주 {session.sajuChart.month.ganZhi} · 일주{" "}
-                {session.sajuChart.day.ganZhi}
-                {session.sajuChart.hour ? ` · 시주 ${session.sajuChart.hour.ganZhi}` : " · 시주 모름"}
-              </p>
-              <p>
-                오행 — 목 {session.sajuChart.fiveElements.wood} · 화 {session.sajuChart.fiveElements.fire} · 토{" "}
-                {session.sajuChart.fiveElements.earth} · 금 {session.sajuChart.fiveElements.metal} · 수{" "}
-                {session.sajuChart.fiveElements.water}
-                {session.sajuChart.yinYang && (
-                  <>
-                    {" "}
-                    · 양 {session.sajuChart.yinYang.yang} / 음 {session.sajuChart.yinYang.yin}
-                  </>
+              <PillarCards chart={chart} />
+              <FiveElementsChart chart={chart} />
+              {chart.strength && (
+                <p className="facts-line">
+                  신강/신약(간이) — <b>{chart.strength.label}</b>
+                  {chart.yongshin && <> · 균형을 돕는 기운(용신 후보): {chart.yongshin.supportive.join("·")}</>}
+                </p>
+              )}
+              {chart.interactions && chart.interactions.length > 0 && (
+                <p className="facts-line">글자끼리의 작용(합충형파해) — {chart.interactions.join(", ")}</p>
+              )}
+
+              {/* 세부 계산값은 접기 안에 보조로 */}
+              <details className="facts-more">
+                <summary>계산 세부 보기</summary>
+                {chart.gongmang && <p>공망 — {chart.gongmang}</p>}
+                {chart.hiddenStems && <p>지장간 — {chart.hiddenStems.join(", ")}</p>}
+                {chart.twelveStages && <p>12운성 — {chart.twelveStages.join(", ")}</p>}
+                {chart.seasonNote && <p>조후(계절) — {chart.seasonNote}</p>}
+                {chart.timeCorrection && chart.timeCorrection.applied.length > 0 && (
+                  <p>
+                    시각 보정 — {chart.timeCorrection.applied.join(", ")} (보정 후{" "}
+                    {chart.timeCorrection.correctedDateTime})
+                  </p>
                 )}
-              </p>
-              {session.sajuChart.strength && (
-                <p>
-                  신강/신약(간이) — {session.sajuChart.strength.label}
-                  {session.sajuChart.yongshin && <> · 용신 후보: {session.sajuChart.yongshin.supportive.join("·")}</>}
-                </p>
-              )}
-              {session.sajuChart.interactions && session.sajuChart.interactions.length > 0 && (
-                <p>합충형파해 — {session.sajuChart.interactions.join(", ")}</p>
-              )}
-              {session.sajuChart.gongmang && <p>공망 — {session.sajuChart.gongmang}</p>}
-              {session.sajuChart.timeCorrection && session.sajuChart.timeCorrection.applied.length > 0 && (
-                <p>
-                  시각 보정 — {session.sajuChart.timeCorrection.applied.join(", ")} (보정 후{" "}
-                  {session.sajuChart.timeCorrection.correctedDateTime})
-                </p>
-              )}
-              {session.sajuChart.timeCorrection?.boundaryWarning && (
-                <p className="boundary-warning">⚠ {session.sajuChart.timeCorrection.boundaryWarning}</p>
+              </details>
+              {chart.timeCorrection?.boundaryWarning && (
+                <p className="boundary-warning">⚠ {chart.timeCorrection.boundaryWarning}</p>
               )}
             </div>
           )}
-          {session.luckCycles && (
+
+          {luck && (
             <div className="facts-block">
               <h4>운 흐름</h4>
-              <p>
-                현재 대운 {session.luckCycles.currentDaYun ?? "시작 전"} · 세운({session.luckCycles.year}년){" "}
-                {session.luckCycles.yearGanZhi} · 월운({session.luckCycles.month}월) {session.luckCycles.monthGanZhi}
-              </p>
-              <p>
-                대운:{" "}
-                {session.luckCycles.daYun
-                  .map((dy) => `${dy.startAge}세 ${dy.ganZhi}${dy.current ? "★" : ""}`)
-                  .join(" → ")}
-              </p>
-              {session.luckCycles.monthlyFlow && session.luckCycles.monthlyFlow.length > 0 && (
-                <p>
-                  올해 월운:{" "}
-                  {session.luckCycles.monthlyFlow
-                    .map((mf) => `${mf.month}월 ${mf.ganZhi}${mf.interactions.length > 0 ? "•" : ""}`)
-                    .join(" · ")}{" "}
-                  (• = 원국과 상호작용 있음)
-                </p>
-              )}
+              <LuckTimeline luck={luck} />
             </div>
           )}
+
           {session.tarotCards && session.tarotCards.length > 0 && (
             <div className="facts-block">
               <h4>뽑힌 카드</h4>
@@ -106,14 +90,14 @@ export default function ReadingResult({ session }: { session: ReadingSession }) 
       {summary && (
         <div className="card reading-summary">
           <h3>{summary.title}</h3>
-          <p className="reading-body">{summary.body}</p>
+          <Markdown>{summary.body}</Markdown>
         </div>
       )}
 
       {rest.map((section) => (
-        <details key={section.title} className="card reading-section">
+        <details key={section.title} className="card reading-section" open>
           <summary>{section.title}</summary>
-          <p className="reading-body">{section.body}</p>
+          <Markdown>{section.body}</Markdown>
         </details>
       ))}
     </div>
