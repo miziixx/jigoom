@@ -102,6 +102,24 @@ export default function MysticResultView({ result: r, readingId, hasHour }: Prop
         <p className="mystic-advice">→ {r.relationshipReading.advice}</p>
       </MysticCard>
 
+      {/* G-2. 상대방 관계 리딩 (상대 생년월일 입력 시) */}
+      {r.partnerReading && (
+        <MysticCard
+          title="상대와의 관계 리딩"
+          evidence={r.partnerReading.evidence}
+          readingId={readingId}
+          sectionKey="partnerReading"
+        >
+          <p>👤 상대의 겉모습 — {r.partnerReading.outerImpression}</p>
+          <p>🐢 상대의 진짜 속도 — {r.partnerReading.realPace}</p>
+          <p>👀 상대가 나를 보는 방식 — {r.partnerReading.howTheySeeYou}</p>
+          <p>⚖️ 이 관계의 숨은 권력구도 — {r.partnerReading.powerDynamic}</p>
+          <p>🌫️ 관계가 애매해지는 이유 — {r.partnerReading.ambiguityReason}</p>
+          <p>🕰️ 관계 전환 가능 시기 — {r.partnerReading.transitionTiming}</p>
+          <p className="mystic-advice">→ {r.partnerReading.advice}</p>
+        </MysticCard>
+      )}
+
       {/* H. 올해의 전환점 (타임라인) */}
       <MysticCard title="올해 나를 흔드는 흐름" readingId={readingId} sectionKey="yearlyTurningPoints">
         <div className="mystic-timeline">

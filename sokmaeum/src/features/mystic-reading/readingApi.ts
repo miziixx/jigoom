@@ -14,8 +14,9 @@ function birthSignature(b: BirthInfo): string {
   return [b.calendarType, b.year, b.month, b.day, b.hour ?? "x", b.minute ?? 0, b.birthPlace ?? "none", b.gender].join("-");
 }
 
-function cacheKey(b: BirthInfo, interest: ReadingInterest, ym: string): string {
-  return `${CACHE_PREFIX}${birthSignature(b)}:${interest}:${ym}`;
+function cacheKey(b: BirthInfo, interest: ReadingInterest, ym: string, partner?: BirthInfo): string {
+  const partnerSig = partner ? `:p-${birthSignature(partner)}` : "";
+  return `${CACHE_PREFIX}${birthSignature(b)}:${interest}:${ym}${partnerSig}`;
 }
 
 function readCache(key: string): MysticReadingResult | null {
@@ -39,6 +40,10 @@ export interface GetMysticOptions {
   /** 캐시 무시하고 새로 생성 */
   force?: boolean;
   now?: Date;
+  /** 상대방 생년월일 (관계 리딩 확장) */
+  partner?: BirthInfo;
+  /** 지난 피드백 기반 스타일 힌트 (개인화) */
+  styleHint?: string;
 }
 
 /**
@@ -54,14 +59,18 @@ export async function getMysticReading(
   const now = opts.now ?? new Date();
   const kst = kstDateOf(now);
   const ym = kst.iso.slice(0, 7); // YYYY-MM
-  const key = cacheKey(birthInfo, interest, ym);
+  const key = cacheKey(birthInfo, interest, ym, opts.partner);
 
-  if (!opts.force) {
+  // 스타일 힌트(개인화)가 있으면 캐시를 건너뛰고 새로 생성한다
+  if (!opts.force && !opts.styleHint) {
     const cached = readCache(key);
     if (cached) return cached;
   }
 
-  const evidence = buildMysticEvidence(birthInfo, interest, now);
+  const evidence = buildMysticEvidence(birthInfo, interest, now, {
+    partner: opts.partner,
+    styleHint: opts.styleHint,
+  });
 
   let result: MysticReadingResult;
   try {

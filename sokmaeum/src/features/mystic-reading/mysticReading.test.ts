@@ -101,4 +101,33 @@ describe("buildFallbackReading", () => {
     const love = buildFallbackReading(buildMysticEvidence(BIRTH, "love", NOW));
     expect(money.hiddenConcerns[0].category).not.toBe(love.hiddenConcerns[0].category);
   });
+
+  it("상대방 미입력 시 partnerReading이 없다", () => {
+    const r = buildFallbackReading(buildMysticEvidence(BIRTH, "love", NOW));
+    expect(r.partnerReading).toBeUndefined();
+  });
+});
+
+describe("관계 리딩 (상대방 입력)", () => {
+  const PARTNER: BirthInfo = { ...BIRTH, year: 1990, month: 3, day: 22, hour: 9 };
+
+  it("상대방 입력 시 partner 근거와 partnerReading을 채운다", () => {
+    const ev = buildMysticEvidence(BIRTH, "love", NOW, { partner: PARTNER });
+    expect(ev.partner).toBeDefined();
+    expect(ev.partner!.dayMaster).toBeTruthy();
+    expect(["생함", "생받음", "극함", "극받음", "비화"]).toContain(ev.partner!.elementRelation);
+
+    const r = buildFallbackReading(ev);
+    expect(r.partnerReading).toBeDefined();
+    for (const v of Object.values(r.partnerReading!)) {
+      if (typeof v === "string") expect(v.trim().length).toBeGreaterThan(0);
+    }
+    expect(r.partnerReading!.evidence.length).toBeGreaterThan(0);
+  });
+
+  it("관계 리딩에 단정 금지 표현이 없다", () => {
+    const ev = buildMysticEvidence(BIRTH, "marriage", NOW, { partner: PARTNER });
+    const text = allStrings(buildFallbackReading(ev)).join(" ");
+    for (const bad of FORBIDDEN) expect(text.includes(bad)).toBe(false);
+  });
 });

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { getMysticReading } from "../features/mystic-reading/readingApi";
 import { INTEREST_LABEL } from "../features/mystic-reading/evidenceMapper";
+import { buildMysticStyleHint } from "../features/mystic-reading/sectionFeedback";
 import { mysticResultToText } from "../features/mystic-reading/resultToText";
 import { streamReading } from "../lib/readingApi";
 import { loadSessions, saveSession } from "../lib/storage";
@@ -10,13 +11,14 @@ import type { BirthInfo, ReadingInterest, ReadingSession } from "../types";
 interface MysticStore {
   birthInfo: BirthInfo | null;
   interest: ReadingInterest;
+  partner: BirthInfo | null;
   session: ReadingSession | null;
   loading: boolean;
   error: string | null;
 
   init: () => void;
   setInterest: (interest: ReadingInterest) => void;
-  generate: (birthInfo: BirthInfo, interest: ReadingInterest) => Promise<void>;
+  generate: (birthInfo: BirthInfo, interest: ReadingInterest, partner?: BirthInfo | null) => Promise<void>;
   regenerate: () => Promise<void>;
   sendFollowUp: (question: string) => Promise<void>;
   loadSessionById: (id: string) => void;
@@ -30,6 +32,7 @@ function newId(): string {
 export const useMysticStore = create<MysticStore>((set, get) => ({
   birthInfo: null,
   interest: "all",
+  partner: null,
   session: null,
   loading: false,
   error: null,
@@ -42,11 +45,16 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
 
   setInterest: (interest) => set({ interest }),
 
-  generate: async (birthInfo, interest) => {
+  generate: async (birthInfo, interest, partner) => {
     saveProfile(birthInfo);
-    set({ birthInfo, interest, loading: true, error: null, session: null });
+    const partnerBirth = partner ?? null;
+    set({ birthInfo, interest, partner: partnerBirth, loading: true, error: null, session: null });
     try {
-      const result = await getMysticReading(birthInfo, interest);
+      const styleHint = buildMysticStyleHint() ?? undefined;
+      const result = await getMysticReading(birthInfo, interest, {
+        partner: partnerBirth ?? undefined,
+        styleHint,
+      });
       const readingText = mysticResultToText(result);
       const session: ReadingSession = {
         id: newId(),
@@ -75,11 +83,16 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
   },
 
   regenerate: async () => {
-    const { birthInfo, interest } = get();
+    const { birthInfo, interest, partner } = get();
     if (!birthInfo) return;
     set({ loading: true, error: null });
     try {
-      const result = await getMysticReading(birthInfo, interest, { force: true });
+      const styleHint = buildMysticStyleHint() ?? undefined;
+      const result = await getMysticReading(birthInfo, interest, {
+        force: true,
+        partner: partner ?? undefined,
+        styleHint,
+      });
       const current = get().session;
       const readingText = mysticResultToText(result);
       const contextMsg = {

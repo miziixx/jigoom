@@ -279,6 +279,17 @@ export interface MysticReadingResult {
     misunderstandingPattern: string;
     advice: string;
   };
+  /** 상대방 생년월일을 입력한 경우에만 채워지는 관계 리딩 (단정 금지) */
+  partnerReading?: {
+    outerImpression: string;
+    realPace: string;
+    howTheySeeYou: string;
+    powerDynamic: string;
+    ambiguityReason: string;
+    transitionTiming: string;
+    advice: string;
+    evidence: string[];
+  };
   yearlyTurningPoints: Array<{
     period: string;
     keyword: string;
@@ -333,6 +344,25 @@ export interface MysticEvidence {
   /** 올해 월별 흐름 (period/keyword 후보) */
   monthlyFlow: Array<{ month: number; ganZhi: string; interactions: string[] }>;
   /** 사람이 읽는 근거 문자열 (예: "목 기운 부족", "재성 강함") */
+  notes: string[];
+  /** 상대방 생년월일을 입력한 경우의 관계 비교 근거 */
+  partner?: PartnerEvidence;
+  /** 지난 피드백에서 뽑은 스타일 조정 힌트 (개인화) */
+  styleHint?: string;
+}
+
+/** 상대방과의 관계 비교 근거 (두 사주 원국 대조) */
+export interface PartnerEvidence {
+  dayMaster: string;
+  dayMasterElement: string;
+  /** 내 일간이 상대 일간을 보는 십성 (내가 상대를 대하는 축) */
+  myTenGodToPartner: string;
+  /** 상대 일간이 나를 보는 십성 (상대가 나를 대하는 축) */
+  partnerTenGodToMe: string;
+  /** 오행 관계: 상대가 나를 "생/극/비화" 중 무엇으로 만나는지 */
+  elementRelation: "생함" | "생받음" | "극함" | "극받음" | "비화";
+  /** 두 원국 지지 사이의 합/충 등 관계 요약 */
+  branchHits: string[];
   notes: string[];
 }
 

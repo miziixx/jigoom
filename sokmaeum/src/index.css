@@ -984,3 +984,21 @@ label {
   align-items: center;
   gap: 4px;
 }
+
+/* 상대방 관계 리딩 입력 */
+.mystic-partner-toggle {
+  margin: 4px 0 16px;
+}
+.mystic-partner-toggle > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.mystic-partner-form {
+  margin-top: 10px;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent);
+}

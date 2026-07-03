@@ -122,6 +122,63 @@ function buildTurningPoints(e: MysticEvidence) {
   });
 }
 
+const ELEMENT_REL_TEXT: Record<string, { pace: string; power: string }> = {
+  생함: {
+    pace: "상대는 나에게 힘을 실어주려는 편이지만, 그만큼 나도 모르게 기대게 되기 쉽습니다.",
+    power: "상대가 챙겨주는 구도라, 편안하지만 내가 받는 쪽에 익숙해질 수 있습니다.",
+  },
+  생받음: {
+    pace: "내가 상대를 이끌고 챙기게 되는 흐름이라, 내 에너지가 먼저 쓰이기 쉽습니다.",
+    power: "내가 주도하는 구도라, 상대가 편하게 기댈수록 나는 지칠 수 있습니다.",
+  },
+  극함: {
+    pace: "상대가 나를 자극하고 긴장시키는 편이라, 끌리면서도 부딪히기 쉬운 관계입니다.",
+    power: "상대가 나를 움직이게 만드는 힘이 있어, 팽팽한 긴장이 오래갈 수 있습니다.",
+  },
+  극받음: {
+    pace: "내가 상대를 다잡으려 하기 쉬운 흐름이라, 통제와 배려의 경계가 흐려질 수 있습니다.",
+    power: "내가 주도권을 쥐기 쉬운 구도지만, 밀어붙이면 상대가 조용히 물러설 수 있습니다.",
+  },
+  비화: {
+    pace: "결이 비슷해 편한 만큼, 닮은 약점에서 같이 흔들리기 쉬운 관계입니다.",
+    power: "비슷한 힘이라 대등하지만, 서로 물러서지 않으면 팽팽해질 수 있습니다.",
+  },
+};
+
+function buildPartnerReading(e: MysticEvidence) {
+  const p = e.partner;
+  if (!p) return undefined;
+  const rel = ELEMENT_REL_TEXT[p.elementRelation] ?? ELEMENT_REL_TEXT["비화"];
+  const hasChong = p.branchHits.some((b) => b.includes("충"));
+  const hasHe = p.branchHits.some((b) => b.includes("합"));
+  return {
+    outerImpression:
+      "상대는 처음엔 무던하고 차분해 보이지만, 실제 온도는 조금 더 안쪽에 숨어 있는 편일 수 있습니다.",
+    realPace: rel.pace,
+    howTheySeeYou: `상대는 나를 ${tenGodMeaning(p.partnerTenGodToMe)} 쪽으로 느끼기 쉽습니다.`,
+    powerDynamic: rel.power,
+    ambiguityReason: hasChong
+      ? "두 사람의 리듬이 어긋나는 지점이 있어, 좋다가도 갑자기 거리가 벌어지기 쉬운 흐름입니다."
+      : hasHe
+        ? "잘 맞는 부분이 커서 편한 만큼, 익숙함에 기대다 표현이 줄어 애매해지기 쉽습니다."
+        : "큰 충돌은 적지만 서로 먼저 다가가지 않으면 관계가 미지근하게 머물기 쉽습니다.",
+    transitionTiming:
+      "관계의 온도를 바꾸고 싶다면, 서운함이 쌓이기 전 서로의 기대를 한 번 말로 맞춰보는 시기가 좋습니다.",
+    advice:
+      "상대를 바꾸려 하기보다, 두 사람이 어떤 리듬에서 어긋나는지를 함께 확인하는 편이 관계에 도움이 됩니다.",
+    evidence: p.notes.slice(0, 4),
+  };
+}
+
+// 십성 이름 → 관계에서의 결(간단 번역)
+function tenGodMeaning(name: string): string {
+  if (name.includes("재")) return "챙기고 책임지고 싶은 상대";
+  if (name.includes("관")) return "의지하면서도 조심스러운 상대";
+  if (name.includes("인")) return "기대고 배우고 싶은 상대";
+  if (name.includes("식") || name.includes("상")) return "편하게 풀어놓게 되는 상대";
+  return "대등하게 겨루게 되는 상대";
+}
+
 export function buildFallbackReading(e: MysticEvidence): MysticReadingResult {
   const el = firstEl(e);
   const dom = dominant(e);
@@ -199,6 +256,7 @@ export function buildFallbackReading(e: MysticEvidence): MysticReadingResult {
       misunderstandingPattern: "표현을 아끼다 보니, 상대가 '괜찮은 줄 알았다'고 오해하기 쉽습니다.",
       advice: "말은 부드럽지만 책임은 흐리는 사람과의 거리는 조금 신중히 두는 편이 좋습니다.",
     },
+    partnerReading: buildPartnerReading(e),
     yearlyTurningPoints: buildTurningPoints(e),
     avoidNow: [
       {

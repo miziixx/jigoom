@@ -1,11 +1,20 @@
-import { computeLuckCycles, computeSajuChart, ELEMENT_KO, GAN_WUXING } from "../../lib/saju";
-import { tenGodGroupOf } from "../../lib/fortune";
+import { computeLuckCycles, computeSajuChart, ELEMENT_KO, GAN_WUXING, tenGodOf } from "../../lib/saju";
+import { branchRelationsBetween, tenGodGroupOf } from "../../lib/fortune";
 import type {
   BirthInfo,
   FiveElementBalance,
   MysticEvidence,
+  PartnerEvidence,
   ReadingInterest,
+  SajuChart,
 } from "../../types";
+
+export interface MysticEvidenceOptions {
+  /** 상대방 생년월일 (관계 리딩 확장용) */
+  partner?: BirthInfo;
+  /** 지난 피드백에서 뽑은 스타일 조정 힌트 */
+  styleHint?: string;
+}
 
 /**
  * 속마음 리딩의 "근거 데이터"를 결정론적으로 산출한다.
@@ -24,6 +33,7 @@ export function buildMysticEvidence(
   birthInfo: BirthInfo,
   interest: ReadingInterest,
   now: Date = new Date(),
+  options: MysticEvidenceOptions = {},
 ): MysticEvidence {
   const chart = computeSajuChart(birthInfo);
   const luck = computeLuckCycles(birthInfo, now, { includeMonthlyFlow: true });
@@ -101,6 +111,13 @@ export function buildMysticEvidence(
   // ── 출생시간 ────────────────────────────────
   if (!hasHour) notes.push("출생시간 미입력으로 시주 해석 제외");
 
+  // ── 상대방(관계 리딩 확장) ──────────────────
+  let partner: PartnerEvidence | undefined;
+  if (options.partner) {
+    partner = buildPartnerEvidence(chart, options.partner);
+    notes.push(`상대방 입력됨 (관계 대조: ${partner.elementRelation})`);
+  }
+
   return {
     interest,
     hasHour,
@@ -125,6 +142,62 @@ export function buildMysticEvidence(
       ganZhi: m.ganZhi,
       interactions: m.interactions,
     })),
+    notes,
+    partner,
+    styleHint: options.styleHint,
+  };
+}
+
+// 오행 상생: 목→화→토→금→수→목 / 상극: 목→토, 토→수, 수→화, 화→금, 금→목
+const GENERATES: Record<keyof FiveElementBalance, keyof FiveElementBalance> = {
+  wood: "fire", fire: "earth", earth: "metal", metal: "water", water: "wood",
+};
+const OVERCOMES: Record<keyof FiveElementBalance, keyof FiveElementBalance> = {
+  wood: "earth", earth: "water", water: "fire", fire: "metal", metal: "wood",
+};
+
+/** 내 원국과 상대방 원국을 대조해 관계 근거를 만든다 */
+function buildPartnerEvidence(myChart: SajuChart, partnerBirth: BirthInfo): PartnerEvidence {
+  const pChart = computeSajuChart(partnerBirth);
+  const myGan = myChart.dayMasterGan;
+  const pGan = pChart.dayMasterGan;
+  const myEl = elementOfGan(myGan);
+  const pEl = elementOfGan(pGan);
+
+  let elementRelation: PartnerEvidence["elementRelation"];
+  if (myEl === pEl) elementRelation = "비화";
+  else if (GENERATES[pEl] === myEl) elementRelation = "생함"; // 상대가 나를 생함
+  else if (GENERATES[myEl] === pEl) elementRelation = "생받음"; // 상대는 나에게서 생받음
+  else if (OVERCOMES[pEl] === myEl) elementRelation = "극함"; // 상대가 나를 극함
+  else elementRelation = "극받음";
+
+  // 두 원국 지지 사이의 합/충 등
+  const myZhis = [myChart.year.zhi, myChart.month.zhi, myChart.day.zhi, ...(myChart.hour ? [myChart.hour.zhi] : [])];
+  const pZhis = [pChart.year.zhi, pChart.month.zhi, pChart.day.zhi, ...(pChart.hour ? [pChart.hour.zhi] : [])];
+  const branchHits: string[] = [];
+  for (const mz of myZhis) {
+    for (const pz of pZhis) {
+      const rel = branchRelationsBetween(mz, pz);
+      if (rel.length > 0) branchHits.push(`내 ${mz} ↔ 상대 ${pz}: ${rel.join("·")}`);
+    }
+  }
+
+  const notes: string[] = [
+    `상대 일간: ${pGan} (${ELEMENT_KO[pEl]})`,
+    `오행 관계: 상대가 나를 ${elementRelation}`,
+    `내가 상대를 보는 십성: ${tenGodOf(myGan, pGan)}`,
+    `상대가 나를 보는 십성: ${tenGodOf(pGan, myGan)}`,
+  ];
+  if (branchHits.length > 0) notes.push(`지지 관계: ${branchHits.slice(0, 3).join(" / ")}`);
+  else notes.push("두 사주 지지에 뚜렷한 합충 없음(무난·자극 적음)");
+
+  return {
+    dayMaster: pGan,
+    dayMasterElement: ELEMENT_KO[pEl],
+    myTenGodToPartner: tenGodOf(myGan, pGan),
+    partnerTenGodToMe: tenGodOf(pGan, myGan),
+    elementRelation,
+    branchHits,
     notes,
   };
 }

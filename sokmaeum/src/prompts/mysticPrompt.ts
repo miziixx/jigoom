@@ -39,6 +39,7 @@ export const MYSTIC_SYSTEM_PROMPT = `너는 사주 원국과 대운·세운·월
   "repeatedPatterns": [ { "area": "relationship|work|money|emotion", "pattern": "", "reason": "", "howToBreak": "" } ],
   "workAndMoney": { "moneyAttractionPattern": "", "moneyLeakPattern": "", "suitableWorkEnvironment": "", "unsuitableWorkEnvironment": "", "currentAdvice": "" },
   "relationshipReading": { "expectationPattern": "", "hurtPattern": "", "closingHeartMoment": "", "misunderstandingPattern": "", "advice": "" },
+  "partnerReading": { "outerImpression": "", "realPace": "", "howTheySeeYou": "", "powerDynamic": "", "ambiguityReason": "", "transitionTiming": "", "advice": "", "evidence": [] },
   "yearlyTurningPoints": [ { "period": "", "keyword": "", "opportunity": "", "caution": "", "advice": "" } ],
   "avoidNow": [ { "title": "", "reason": "", "saferAlternative": "" } ],
   "doNow": [ { "title": "", "action": "", "reason": "" } ],
@@ -73,9 +74,27 @@ export function buildMysticUserMessage(e: MysticEvidence): string {
     `강조 고민 우선순위: ${w.emphasizeConcerns.join(" > ")}`,
     "",
     `[사람이 읽는 근거 후보] ${e.notes.join(" / ")}`,
-    "",
-    "위 근거만으로 속마음 심리 리딩 JSON을 작성하라.",
   ];
+
+  if (e.partner) {
+    const p = e.partner;
+    lines.push(
+      "",
+      "[상대방 대조]",
+      `상대 일간: ${p.dayMaster} (${p.dayMasterElement}) / 오행 관계: 상대가 나를 ${p.elementRelation}`,
+      `내가 상대를 보는 십성: ${p.myTenGodToPartner} / 상대가 나를 보는 십성: ${p.partnerTenGodToMe}`,
+      `두 원국 지지 관계: ${p.branchHits.slice(0, 6).join(", ") || "뚜렷한 합충 없음"}`,
+      "→ partnerReading 필드도 반드시 채워라. 단, '반드시 헤어진다/바람난다' 같은 단정은 금지하고 경향성으로만 쓴다.",
+    );
+  } else {
+    lines.push("", "[상대방 대조] 없음 → partnerReading은 생략(빈 값/미포함)한다.");
+  }
+
+  if (e.styleHint) {
+    lines.push("", `[개인화 지시] ${e.styleHint}`);
+  }
+
+  lines.push("", "위 근거만으로 속마음 심리 리딩 JSON을 작성하라.");
   return lines.join("\n");
 }
 

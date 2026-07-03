@@ -10,6 +10,8 @@ export default function MysticPage() {
   const { interest, session, loading, error, init, setInterest, generate, regenerate, sendFollowUp, reset } =
     useMysticStore();
   const [pendingInterest, setPendingInterest] = useState(interest);
+  const [showPartner, setShowPartner] = useState(false);
+  const [partner, setPartner] = useState<BirthInfo | null>(null);
 
   useEffect(() => {
     init();
@@ -17,7 +19,7 @@ export default function MysticPage() {
 
   function handleSubmit(b: BirthInfo) {
     setInterest(pendingInterest);
-    void generate(b, pendingInterest);
+    void generate(b, pendingInterest, partner);
   }
 
   const showForm = !session && !loading;
@@ -35,6 +37,37 @@ export default function MysticPage() {
       {showForm && (
         <>
           <InterestPicker value={pendingInterest} onChange={setPendingInterest} />
+
+          <div className="mystic-partner-toggle">
+            <label>
+              <input
+                type="checkbox"
+                checked={showPartner}
+                onChange={(e) => {
+                  setShowPartner(e.target.checked);
+                  if (!e.target.checked) setPartner(null);
+                }}
+              />
+              상대방도 함께 보기 (관계 속마음 리딩)
+            </label>
+            {showPartner && (
+              <div className="mystic-partner-form">
+                <p className="field-hint">
+                  {partner
+                    ? "상대방 정보가 저장됐어요. 아래 ‘속마음 리딩 보기’를 누르면 관계 리딩이 함께 나옵니다."
+                    : "상대방 생년월일을 입력하고 저장하면, 두 사주를 대조한 관계 리딩이 추가됩니다."}
+                </p>
+                <BirthInfoForm
+                  submitLabel={partner ? "상대방 정보 다시 저장" : "상대방 정보 저장"}
+                  onSubmit={(b) => setPartner(b)}
+                  loading={false}
+                  showFocus={false}
+                />
+                {partner && <p className="field-hint">상대방 입력됨 ✓</p>}
+              </div>
+            )}
+          </div>
+
           <BirthInfoForm submitLabel="속마음 리딩 보기" onSubmit={(b) => handleSubmit(b)} loading={loading} showFocus={false} />
         </>
       )}
