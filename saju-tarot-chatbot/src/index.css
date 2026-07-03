@@ -52,6 +52,7 @@ body {
 .app-nav {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
 }
 
 .nav-link {
@@ -591,4 +592,208 @@ label {
 .feedback-stats__count {
   flex: 0 0 24px;
   text-align: right;
+}
+
+/* ── 오늘의 운세 ────────── */
+.card-title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.fortune-hero__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fortune-date {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+.fortune-ganzhi {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+
+.fortune-summary {
+  margin: 12px 0;
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+.fortune-note {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.gauge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gauge__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.gauge__label {
+  font-size: 0.9rem;
+}
+
+.gauge__score {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.gauge__track {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(128, 128, 128, 0.18);
+  overflow: hidden;
+}
+
+.gauge__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.gauge__fill--high {
+  background: linear-gradient(90deg, #7ee0b8, #43c59e);
+}
+
+.gauge__fill--mid {
+  background: linear-gradient(90deg, #c9a4ff, #a970ff);
+}
+
+.gauge__fill--low {
+  background: linear-gradient(90deg, #ffb27a, #ff8a8a);
+}
+
+.gauge__comment {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.fortune-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 560px) {
+  .fortune-two {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+.fortune-subhead {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+}
+
+.fortune-subhead--good {
+  color: #57d0a4;
+}
+
+.fortune-subhead--caution {
+  color: #ffb27a;
+}
+
+.fortune-ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.lucky-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.lucky-item {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lucky-item__label {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+.lucky-item__value {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.lucky-note {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.fortune-why__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fortune-why__body p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.fortune-why__body strong {
+  color: var(--accent);
+}
+
+.fortune-why__natal {
+  color: var(--text-dim);
+  font-size: 0.82rem !important;
+}
+
+.fortune-disclaimer {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  text-align: center;
 }

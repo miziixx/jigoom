@@ -67,7 +67,19 @@ async function streamMessages(
   res.status(200);
   res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
+  // 프록시(nginx 등)가 응답을 버퍼링하지 않고 즉시 흘려보내도록 한다
+  res.setHeader("X-Accel-Buffering", "no");
   if (meta) res.write(JSON.stringify({ meta }) + "\n");
+
+  // 생성 시작 전(모델 지연)·토큰 사이 유휴 구간에 게이트웨이/모바일이 연결을 끊지
+  // 않도록 주기적으로 하트비트를 보낸다. 클라이언트는 알 수 없는 필드를 무시한다.
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(JSON.stringify({ heartbeat: true }) + "\n");
+    } catch {
+      // 이미 닫힌 연결
+    }
+  }, 10000);
 
   try {
     const stream = anthropic.messages.stream({
@@ -85,6 +97,8 @@ async function streamMessages(
   } catch (err) {
     console.error(err);
     res.write(JSON.stringify({ error: `리딩 생성 중 오류: ${describeError(err)}` }) + "\n");
+  } finally {
+    clearInterval(heartbeat);
   }
   res.end();
 }

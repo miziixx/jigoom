@@ -6,6 +6,9 @@
   "functions": {
     "api/reading.ts": {
       "maxDuration": 300
+    },
+    "api/fortune.ts": {
+      "maxDuration": 60
     }
   }
 }

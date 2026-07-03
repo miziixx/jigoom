@@ -137,7 +137,7 @@ function birthToLunar(birthInfo: BirthInfo): { lunar: Lunar; correction: TimeCor
 }
 
 // 천간/지지 별 오행 매핑 (고정된 전통 배속, 라이브러리 버전에 의존하지 않음)
-const GAN_WUXING: Record<string, keyof FiveElementBalance> = {
+export const GAN_WUXING: Record<string, keyof FiveElementBalance> = {
   갑: "wood",
   을: "wood",
   병: "fire",
@@ -150,7 +150,7 @@ const GAN_WUXING: Record<string, keyof FiveElementBalance> = {
   계: "water",
 };
 
-const ZHI_WUXING: Record<string, keyof FiveElementBalance> = {
+export const ZHI_WUXING: Record<string, keyof FiveElementBalance> = {
   자: "water",
   축: "earth",
   인: "wood",
@@ -191,7 +191,7 @@ const HANJA_TO_HANGUL: Record<string, string> = {
   亥: "해",
 };
 
-function toHangul(hanja: string): string {
+export function toHangul(hanja: string): string {
   return [...hanja].map((ch) => HANJA_TO_HANGUL[ch] ?? ch).join("");
 }
 
@@ -215,7 +215,7 @@ const HIDDEN_STEMS: Record<string, string[]> = {
   해: ["무", "갑", "임"],
 };
 
-const ELEMENT_KO: Record<keyof FiveElementBalance, string> = {
+export const ELEMENT_KO: Record<keyof FiveElementBalance, string> = {
   wood: "목",
   fire: "화",
   earth: "토",
