@@ -145,13 +145,13 @@ export default function CompatibilityPage() {
           <div className="card">
             <h3 className="card-title">근거</h3>
             <p className="reading-body">
-              <b>일간 관계</b> — {result.dayMasterRelation}
+              <b>두 사람의 기질</b> — {result.dayMasterRelation}
             </p>
             <p className="reading-body">
-              <b>지지 인연</b> — {result.branchRelations.length > 0 ? result.branchRelations.join(", ") : "뚜렷한 합충 없음 (무난)"}
+              <b>함께 있을 때 흐름</b> — {result.branchRelations.length > 0 ? result.branchRelations.join(", ") : "크게 부딪히거나 붙는 부분 없이 무난해요"}
             </p>
             <p className="reading-body">
-              <b>오행 보완</b> — {result.elementComplement}
+              <b>서로 채워주는 부분</b> — {result.elementComplement}
             </p>
           </div>
         </div>

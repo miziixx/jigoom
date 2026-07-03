@@ -873,58 +873,62 @@ export function computeLuckCycles(
 
 // ── 궁합 (두 사주 비교) ──────────
 
-/** 두 일간 사이 관계(합/생/극/비화)를 판정한다 */
+/** 두 사람 기질 사이 관계를 판정한다 (표면은 사주 용어 없이 쉬운 말) */
 function dayMasterRelation(ganA: string, ganB: string): { text: string; score: number } {
   const he = GAN_HE[pairKey(ganA, ganB)] ?? GAN_HE[pairKey(ganB, ganA)];
-  if (he) return { text: `두 일간 ${ganA}·${ganB}이(가) 천간합(${he})으로 강하게 끌려요. 서로를 보완하는 인연이에요.`, score: 22 };
+  if (he) return { text: "두 사람은 기질이 자석처럼 서로 끌리고, 부족한 부분을 채워주는 궁합이에요.", score: 22 };
   const elA = GAN_WUXING[ganA];
   const elB = GAN_WUXING[ganB];
-  if (elA === elB) return { text: `두 일간이 같은 오행(${ELEMENT_KO[elA]})이라 비슷한 결로 잘 통해요. 편하지만 경쟁이 될 수도 있어요.`, score: 10 };
-  if (GENERATES[elA] === elB) return { text: `${ganA}(${ELEMENT_KO[elA]})가 ${ganB}(${ELEMENT_KO[elB]})를 살려주는 상생 관계예요. 챙겨주는 흐름이에요.`, score: 16 };
-  if (GENERATES[elB] === elA) return { text: `${ganB}(${ELEMENT_KO[elB]})가 ${ganA}(${ELEMENT_KO[elA]})를 살려주는 상생 관계예요. 도움을 받는 흐름이에요.`, score: 16 };
-  return { text: `두 일간(${ELEMENT_KO[elA]}·${ELEMENT_KO[elB]})이 서로 통제하는 상극 관계라 자극이 있어요. 다름을 인정하면 성장의 궁합이에요.`, score: 4 };
+  if (elA === elB) return { text: "기본 성향이 비슷해 말이 잘 통해요. 편한 대신 은근한 경쟁이 될 수도 있어요.", score: 10 };
+  if (GENERATES[elA] === elB) return { text: "한 사람이 다른 사람을 북돋아 주고 챙겨주는, 힘이 되는 궁합이에요.", score: 16 };
+  if (GENERATES[elB] === elA) return { text: "서로 힘이 되어주며 기대고 기댈 수 있는 궁합이에요.", score: 16 };
+  return { text: "서로 자극을 주고받는 궁합이에요. 부딪히기도 하지만 다름을 인정하면 함께 성장해요.", score: 4 };
 }
 
-/** 두 사람 지지 사이의 합충형파해 (교차쌍만) */
-function crossBranchRelations(zhisA: string[], zhisB: string[]): { good: string[]; bad: string[] } {
-  const good: string[] = [];
-  const bad: string[] = [];
+/** 두 사람 지지 사이의 인연(합충)을 세되, 표시는 사주 용어 없이 쉬운 말로 묶는다 */
+function crossBranchRelations(
+  zhisA: string[],
+  zhisB: string[],
+): { good: string[]; bad: string[]; goodCount: number; badCount: number } {
+  const goodSet = new Set<string>();
+  const badSet = new Set<string>();
+  let goodCount = 0;
+  let badCount = 0;
   for (const a of zhisA) {
     for (const b of zhisB) {
       const keys = [a + b, b + a];
-      const liuhe = keys.find((k) => ZHI_LIUHE[k] !== undefined);
-      if (liuhe) good.push(`${a}·${b} 육합(${ZHI_LIUHE[liuhe]})`);
-      if (keys.some((k) => ZHI_CHONG.has(k))) bad.push(`${a}·${b} 충`);
-      if (keys.some((k) => ZHI_XING.has(k))) bad.push(`${a}·${b} 형`);
-      if (keys.some((k) => ZHI_PO.has(k))) bad.push(`${a}·${b} 파`);
-      if (keys.some((k) => ZHI_HAI.has(k))) bad.push(`${a}·${b} 해`);
+      if (keys.some((k) => ZHI_LIUHE[k] !== undefined)) { goodCount += 1; goodSet.add("서로 잘 맞아 붙는 부분이 있어요"); }
+      if (keys.some((k) => ZHI_CHONG.has(k))) { badCount += 1; badSet.add("가끔 세게 부딪히기 쉬운 부분이 있어요"); }
+      if (keys.some((k) => ZHI_XING.has(k))) { badCount += 1; badSet.add("서로 조율이 필요한 부분이 있어요"); }
+      if (keys.some((k) => ZHI_PO.has(k))) { badCount += 1; badSet.add("계획이 엇갈리기 쉬운 부분이 있어요"); }
+      if (keys.some((k) => ZHI_HAI.has(k))) { badCount += 1; badSet.add("은근히 신경 쓰이는 부분이 있어요"); }
     }
   }
-  // 삼합/반합 (합쳐진 지지 기준)
+  // 여러 면에서 잘 맞물리는 조합(삼합/반합)
   const present = new Set([...zhisA, ...zhisB]);
-  for (const { group, wangZhi, element } of SANHE) {
+  for (const { group, wangZhi } of SANHE) {
     const inA = group.some((g) => zhisA.includes(g));
     const inB = group.some((g) => zhisB.includes(g));
     const hits = group.filter((g) => present.has(g));
-    if (inA && inB && hits.length >= 2 && hits.includes(wangZhi)) good.push(`지지 ${hits.join("")} 삼합/반합(${element})`);
+    if (inA && inB && hits.length >= 2 && hits.includes(wangZhi)) { goodCount += 1; goodSet.add("여러 면에서 손발이 잘 맞아요"); }
   }
-  return { good, bad };
+  return { good: [...goodSet], bad: [...badSet], goodCount, badCount };
 }
 
-/** 두 사람의 오행 상호 보완도 (한쪽이 부족한 걸 상대가 채워주는지) */
+/** 두 사람이 서로 부족한 부분을 채워주는 정도 (표면은 사주 용어 없이) */
 function elementComplement(a: FiveElementBalance, b: FiveElementBalance): { text: string; score: number } {
   const keys = Object.keys(a) as Array<keyof FiveElementBalance>;
   let complement = 0;
-  const filled: string[] = [];
   for (const k of keys) {
-    // A가 부족(0~1)한데 B가 넉넉(2+)하면 보완
-    if (a[k] <= 1 && b[k] >= 2) { complement += 1; filled.push(`${ELEMENT_KO[k]}(상대가 채움)`); }
-    if (b[k] <= 1 && a[k] >= 2) { complement += 1; }
+    // 한쪽이 부족(0~1)한데 다른 쪽이 넉넉(2+)하면 보완
+    if (a[k] <= 1 && b[k] >= 2) complement += 1;
+    if (b[k] <= 1 && a[k] >= 2) complement += 1;
   }
   const score = Math.min(20, complement * 5);
-  const text = complement > 0
-    ? `서로 부족한 오행을 ${complement}가지 방향에서 채워줘요${filled.length ? ` (예: ${filled.slice(0, 2).join(", ")})` : ""}. 함께 있으면 균형이 좋아져요.`
-    : "오행 구성이 비슷해 크게 보완되진 않지만, 결이 맞아 편안한 편이에요.";
+  const text =
+    complement > 0
+      ? `서로 부족한 부분을 ${complement}가지 방향에서 채워줘요. 함께 있으면 균형이 잘 맞아요.`
+      : "기본 성향이 비슷해 크게 보완되진 않지만, 결이 맞아 편안한 편이에요.";
   return { text, score };
 }
 
@@ -943,20 +947,20 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
   const branches = crossBranchRelations(zhisA, zhisB);
   const elements = elementComplement(chartA.fiveElements, chartB.fiveElements);
 
-  const branchScore = Math.max(-14, Math.min(18, branches.good.length * 7 - branches.bad.length * 5));
+  const branchScore = Math.max(-14, Math.min(18, branches.goodCount * 7 - branches.badCount * 5));
   const raw = 55 + dm.score + branchScore + elements.score;
   const score = Math.max(0, Math.min(100, Math.round(raw)));
 
   const breakdown = [
-    { label: "일간 궁합", score: Math.round((dm.score / 22) * 100), note: dm.text },
+    { label: "두 사람의 기질", score: Math.round((dm.score / 22) * 100), note: dm.text },
     {
-      label: "지지 인연(합충)",
+      label: "함께 있을 때 흐름",
       score: Math.max(0, Math.min(100, 50 + branchScore * 3)),
       note:
-        (branches.good.length ? `잘 맞음: ${branches.good.join(", ")}` : "뚜렷한 합은 없음") +
-        (branches.bad.length ? ` / 마찰: ${branches.bad.join(", ")}` : " / 큰 충돌 없음"),
+        (branches.good.length ? `잘 맞음: ${branches.good.join(", ")}` : "뚜렷하게 붙는 부분은 없어요") +
+        (branches.bad.length ? ` / 주의: ${branches.bad.join(", ")}` : " / 큰 충돌은 없어요"),
     },
-    { label: "오행 보완", score: Math.round((elements.score / 20) * 100), note: elements.text },
+    { label: "서로 채워주는 부분", score: Math.round((elements.score / 20) * 100), note: elements.text },
   ];
 
   const summary =
