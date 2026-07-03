@@ -4,6 +4,7 @@ import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
 import ReadingActions from "../components/ReadingActions";
 import FeedbackBar from "../components/FeedbackBar";
+import KeywordCloud from "../components/KeywordCloud";
 import FocusPicker from "../components/FocusPicker";
 import ContextPicker from "../components/ContextPicker";
 import { useReadingStore } from "../store/useReadingStore";
@@ -184,6 +185,7 @@ export default function ComboPage() {
           <ReadingResult session={currentSession} loading={loading} />
           <ReadingActions session={currentSession} />
           <FeedbackBar session={currentSession} />
+          <KeywordCloud session={currentSession} />
           <ChatFollowUp session={currentSession} onSend={sendFollowUp} loading={loading} />
           {error && <p className="error-text">{error}</p>}
           <button className="btn btn--ghost" onClick={clearCurrentSession}>

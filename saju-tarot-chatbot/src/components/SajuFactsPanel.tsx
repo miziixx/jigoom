@@ -24,6 +24,19 @@ const GAN_KO: Record<string, string> = {
   계: "계수",
 };
 
+const GAN_HANJA: Record<string, string> = {
+  갑: "甲",
+  을: "乙",
+  병: "丙",
+  정: "丁",
+  무: "戊",
+  기: "己",
+  경: "庚",
+  신: "辛",
+  임: "壬",
+  계: "癸",
+};
+
 const ZHI_KO: Record<string, string> = {
   자: "쥐",
   축: "소",
@@ -37,6 +50,49 @@ const ZHI_KO: Record<string, string> = {
   유: "닭",
   술: "개",
   해: "돼지",
+};
+
+const ZHI_HANJA: Record<string, string> = {
+  자: "子",
+  축: "丑",
+  인: "寅",
+  묘: "卯",
+  진: "辰",
+  사: "巳",
+  오: "午",
+  미: "未",
+  신: "申",
+  유: "酉",
+  술: "戌",
+  해: "亥",
+};
+
+const STEM_META: Record<string, { element: string; yinYang: string }> = {
+  갑: { element: "목", yinYang: "양" },
+  을: { element: "목", yinYang: "음" },
+  병: { element: "화", yinYang: "양" },
+  정: { element: "화", yinYang: "음" },
+  무: { element: "토", yinYang: "양" },
+  기: { element: "토", yinYang: "음" },
+  경: { element: "금", yinYang: "양" },
+  신: { element: "금", yinYang: "음" },
+  임: { element: "수", yinYang: "양" },
+  계: { element: "수", yinYang: "음" },
+};
+
+const BRANCH_META: Record<string, { element: string; yinYang: string }> = {
+  자: { element: "수", yinYang: "양" },
+  축: { element: "토", yinYang: "음" },
+  인: { element: "목", yinYang: "양" },
+  묘: { element: "목", yinYang: "음" },
+  진: { element: "토", yinYang: "양" },
+  사: { element: "화", yinYang: "음" },
+  오: { element: "화", yinYang: "양" },
+  미: { element: "토", yinYang: "음" },
+  신: { element: "금", yinYang: "양" },
+  유: { element: "금", yinYang: "음" },
+  술: { element: "토", yinYang: "양" },
+  해: { element: "수", yinYang: "음" },
 };
 
 const ELEMENT_GLOSS: Record<keyof FiveElementBalance, string> = {
@@ -56,11 +112,22 @@ const STRENGTH_GLOSS: Record<StrengthAssessment["label"], string> = {
 function PillarBox({ label, pillar }: { label: string; pillar: SajuPillar | null }) {
   const ganKo = pillar ? (GAN_KO[pillar.gan] ?? pillar.gan) : "";
   const zhiKo = pillar ? (ZHI_KO[pillar.zhi] ?? pillar.zhi) : "";
+  const ganHanja = pillar ? (GAN_HANJA[pillar.gan] ?? pillar.gan) : "";
+  const zhiHanja = pillar ? (ZHI_HANJA[pillar.zhi] ?? pillar.zhi) : "";
+  const stem = pillar ? STEM_META[pillar.gan] : null;
+  const branch = pillar ? BRANCH_META[pillar.zhi] : null;
   return (
     <div className="pillar-box">
       <span className="pillar-box__label">{label}</span>
-      <span className="pillar-box__value">{pillar ? pillar.ganZhi : "모름"}</span>
-      {pillar && <span className="pillar-box__ko">{ganKo} · {zhiKo}</span>}
+      <span className="pillar-box__value">{pillar ? `${ganHanja}${zhiHanja}` : "모름"}</span>
+      {pillar && (
+        <>
+          <span className="pillar-box__hangul">{pillar.ganZhi}</span>
+          <span className="pillar-box__ko">
+            {ganKo} {stem?.yinYang}/{stem?.element} · {zhiKo} {branch?.yinYang}/{branch?.element}
+          </span>
+        </>
+      )}
     </div>
   );
 }
@@ -147,6 +214,13 @@ function YearlyTimeline({ yearlyFlow }: { yearlyFlow: YearFlowInfo[] }) {
   );
 }
 
+function monthTone(count: number): { label: string; detail: string } {
+  if (count >= 4) return { label: "흔들림 큼", detail: "원국과 맞물리는 변화 신호가 많은 달" };
+  if (count >= 2) return { label: "변화 있음", detail: "관계·일정·마음 흐름이 움직이기 쉬운 달" };
+  if (count === 1) return { label: "가벼운 자극", detail: "작은 변동이나 조정 신호가 있는 달" };
+  return { label: "잔잔함", detail: "큰 작용이 적어 기본 리듬을 유지하기 좋은 달" };
+}
+
 export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: SajuChart; luckCycles?: LuckCycles }) {
   if (!sajuChart && !luckCycles) return null;
 
@@ -186,6 +260,7 @@ export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: 
                   <span className="sinsal-chip" key={`${s.name}-${s.position}-${i}`} title={s.gloss}>
                     {s.name}
                     <span className="sinsal-chip__pos">{s.position}</span>
+                    <span className="sinsal-chip__gloss">{s.gloss}</span>
                   </span>
                 ))}
               </div>
@@ -295,14 +370,19 @@ export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: 
               <h4 className="saju-facts__subhead">올해 1월~12월 흐름</h4>
               <div className="month-flow-grid">
                 {luckCycles.monthlyFlow.map((mf) => (
-                  <div key={mf.month} className={`month-flow-cell${mf.interactions.length > 0 ? " month-flow-cell--active" : ""}`}>
+                  <div
+                    key={mf.month}
+                    className={`month-flow-cell${mf.interactions.length > 0 ? " month-flow-cell--active" : ""}`}
+                    title={mf.interactions.length > 0 ? mf.interactions.join(", ") : monthTone(0).detail}
+                  >
                     <span className="month-flow-cell__month">{mf.month}월</span>
                     <span className="month-flow-cell__ganzhi">{mf.ganZhi}</span>
-                    <span className="month-flow-cell__note">{mf.interactions.length > 0 ? mf.interactions.length : "평"}</span>
+                    <span className="month-flow-cell__note">{monthTone(mf.interactions.length).label}</span>
+                    <span className="month-flow-cell__detail">{monthTone(mf.interactions.length).detail}</span>
                   </div>
                 ))}
               </div>
-              <p className="saju-facts__hint">숫자 = 원국과 새로 맞물리는 작용 수, 평 = 큰 작용이 적은 달</p>
+              <p className="saju-facts__hint">월별 표시는 원국과 올해 흐름이 얼마나 강하게 맞물리는지를 쉬운 말로 바꾼 것입니다.</p>
             </section>
           )}
         </>
