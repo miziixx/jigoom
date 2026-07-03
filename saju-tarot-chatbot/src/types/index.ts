@@ -200,3 +200,157 @@ export interface ReadingSession {
   tarotCards?: DrawnTarotCard[];
   messages: ChatMessage[];
 }
+
+// ── 오늘의 운세 (결정론적 근거 데이터 + LLM 문장) ──────────
+
+/** 십성 5분류 (비겁/식상/재성/관성/인성) */
+export type TenGodGroup = "비겁" | "식상" | "재성" | "관성" | "인성";
+
+/** 지지 관계 종류 */
+export type BranchRelationKind =
+  | "육합"
+  | "삼합"
+  | "방합"
+  | "충"
+  | "형"
+  | "파"
+  | "해"
+  | "원진";
+
+/** 내 지지 한 자리가 오늘 지지와 맺는 관계 */
+export interface BranchRelationHit {
+  /** 내 지지의 자리 (연지/월지/일지/시지) */
+  position: string;
+  /** 내 지지 글자 */
+  myBranch: string;
+  /** 오늘 일진 지지 글자 */
+  todayBranch: string;
+  /** 성립한 관계들 (없으면 빈 배열) */
+  relations: BranchRelationKind[];
+  /** 자리 가중치 (일지가 가장 큼) */
+  weight: number;
+  /** 대략적 길흉 방향: 합=순(+), 충/형/원진=변동(-), 없음=0 */
+  direction: number;
+  /** 사람이 읽는 설명 */
+  detail: string;
+}
+
+/** 카테고리별 점수 (0~100) */
+export interface FortuneCategoryScores {
+  /** 총운 */
+  overall: number;
+  /** 재물 */
+  money: number;
+  /** 애정 */
+  love: number;
+  /** 직장·학업 */
+  career: number;
+  /** 건강 */
+  health: number;
+  /** 대인관계 */
+  relationship: number;
+}
+
+/** 오늘의 운세 근거 데이터 (룰 기반 엔진이 산출, LLM은 계산하지 않고 문장화만 함) */
+export interface FortuneEvidence {
+  /** 계산 기준 날짜 (Asia/Seoul, YYYY-MM-DD) */
+  date: string;
+  /** 요일 (한글) */
+  weekday: string;
+  /** 오늘 간지 (일진/월운/세운) */
+  ganzhi: {
+    day: string;
+    dayGan: string;
+    dayZhi: string;
+    month: string;
+    year: string;
+  };
+  /** 내 원국 요약 */
+  natal: {
+    dayMaster: string;
+    dayMasterElement: string;
+    pillars: { year: string; month: string; day: string; hour: string | null };
+    strength: StrengthAssessment["label"];
+    fiveElements: FiveElementBalance;
+    /** 용신/희신 후보 오행 (한글) */
+    yongshin: string[];
+    /** 기신 후보 오행 (한글) */
+    gishin: string[];
+    hasHour: boolean;
+  };
+  /** 십성: 내 일간 vs 오늘 일진 천간 */
+  tenGod: {
+    name: string;
+    group: TenGodGroup;
+    /** "오늘 어떤 종류의 일이 들어오는가"의 축 설명 */
+    axis: string;
+  };
+  /** 지지 관계: 내 4개 지지 각각 vs 오늘 지지 */
+  branchRelations: BranchRelationHit[];
+  /** 오행 조력도 (-100~+100) */
+  elementSupport: {
+    /** 오늘 간지의 오행 (천간·지지, 한글) */
+    todayElements: string[];
+    score: number;
+    helpsYongshin: boolean;
+    strengthensGishin: boolean;
+    detail: string;
+  };
+  /** 12운성 (오늘 지지 기준 내 일간의 단계) */
+  twelveStage: {
+    stage: string;
+    /** 에너지 레벨 0~100 */
+    energyLevel: number;
+    detail: string;
+  };
+  /** 신살 (오늘이 내 기준 해당하는지) */
+  sinsal: {
+    cheoneulgwiin: boolean;
+    yeongma: boolean;
+    dohwa: boolean;
+    hwagae: boolean;
+    gongmang: boolean;
+    /** 해당하는 신살의 사람이 읽는 이름 목록 */
+    hits: string[];
+  };
+  /** 카테고리별 점수 (0~100) */
+  categories: FortuneCategoryScores;
+  /** 행운 아이템 */
+  luckyItems: {
+    /** 오늘 길한 오행 (한글) */
+    element: string;
+    colors: string[];
+    direction: string;
+    numbers: number[];
+    /** 합이 되는 시지 → 시간대 */
+    timeSlot: { zhi: string; range: string };
+  };
+}
+
+/** LLM(또는 폴백)이 생성하는 오늘의 운세 문장 묶음 */
+export interface FortuneContent {
+  summary: string;
+  keywords: string[];
+  good_areas: string[];
+  caution_points: string[];
+  do_actions: string[];
+  avoid_actions: string[];
+  categories: {
+    love: string;
+    work: string;
+    money: string;
+    relationship: string;
+    condition: string;
+  };
+  share_text: string;
+}
+
+/** 화면·캐시에서 다루는 오늘의 운세 결과 (근거 + 문장 + 메타) */
+export interface FortuneResult {
+  evidence: FortuneEvidence;
+  content: FortuneContent;
+  /** LLM 생성인지 룰 기반 폴백인지 */
+  source: "llm" | "fallback";
+  /** 생성 시각 (ISO) */
+  createdAt: string;
+}
