@@ -1,13 +1,24 @@
 import { create } from "zustand";
+import { saveFeedback } from "../lib/feedback";
 import { deleteSession, loadSessions, saveSession, toggleFavorite } from "../lib/storage";
-import type { BirthInfo, DrawnTarotCard, ReadingFocus, ReadingSession, ReadingType } from "../types";
+import type {
+  BirthInfo,
+  DrawnTarotCard,
+  FeedbackRating,
+  ReadingContext,
+  ReadingFocus,
+  ReadingSession,
+  ReadingType,
+} from "../types";
 
 interface StartReadingParams {
   type: ReadingType;
   question: string;
   focus?: ReadingFocus;
+  context?: ReadingContext;
   birthInfo?: BirthInfo;
   tarotCards?: DrawnTarotCard[];
+  spreadNote?: string;
 }
 
 interface ReadingStore {
@@ -23,6 +34,7 @@ interface ReadingStore {
   refreshHistory: () => void;
   removeFromHistory: (id: string) => void;
   toggleFavoriteById: (id: string) => void;
+  submitFeedback: (id: string, rating: FeedbackRating, tags: string[]) => void;
 }
 
 function newId(): string {
@@ -35,13 +47,13 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
   error: null,
   savedSessions: [],
 
-  startReading: async ({ type, question, focus, birthInfo, tarotCards }) => {
+  startReading: async ({ type, question, focus, context, birthInfo, tarotCards, spreadNote }) => {
     set({ loading: true, error: null });
     try {
       const res = await fetch("/api/reading", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, question, focus, birthInfo, tarotCards }),
+        body: JSON.stringify({ type, question, focus, context, birthInfo, tarotCards, spreadNote }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -58,6 +70,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
         createdAt: new Date().toISOString(),
         question,
         focus,
+        context,
         birthInfo,
         sajuChart: data.sajuChart,
         luckCycles: data.luckCycles,
@@ -128,6 +141,15 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     const current = get().currentSession;
     if (updated && current?.id === id) {
       set({ currentSession: { ...current, favorite: updated.favorite } });
+    }
+    get().refreshHistory();
+  },
+
+  submitFeedback: (id: string, rating: FeedbackRating, tags: string[]) => {
+    const updated = saveFeedback(id, rating, tags);
+    const current = get().currentSession;
+    if (updated && current?.id === id) {
+      set({ currentSession: { ...current, feedback: updated.feedback } });
     }
     get().refreshHistory();
   },

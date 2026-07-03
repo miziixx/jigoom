@@ -2,15 +2,16 @@ import BirthInfoForm from "../components/BirthInfoForm";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
 import ReadingActions from "../components/ReadingActions";
+import FeedbackBar from "../components/FeedbackBar";
 import { useReadingStore } from "../store/useReadingStore";
-import type { BirthInfo, ReadingFocus } from "../types";
+import type { BirthInfo, ReadingContext, ReadingFocus } from "../types";
 
 export default function SajuPage() {
   const { currentSession, loading, error, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
   const showResult = currentSession?.type === "saju";
 
-  function handleSubmit(birthInfo: BirthInfo, question: string, focus: ReadingFocus) {
-    startReading({ type: "saju", question, focus, birthInfo });
+  function handleSubmit(birthInfo: BirthInfo, question: string, focus: ReadingFocus, context: ReadingContext) {
+    startReading({ type: "saju", question, focus, context, birthInfo });
   }
 
   return (
@@ -25,6 +26,7 @@ export default function SajuPage() {
         <>
           <ReadingResult session={currentSession} />
           <ReadingActions session={currentSession} />
+          <FeedbackBar session={currentSession} />
           <ChatFollowUp session={currentSession} onSend={sendFollowUp} loading={loading} />
           {error && <p className="error-text">{error}</p>}
           <button className="btn btn--ghost" onClick={clearCurrentSession}>

@@ -4,6 +4,8 @@ const TYPE_LABEL: Record<ReadingSession["type"], string> = {
   saju: "사주 리딩",
   tarot: "타로 리딩",
   combo: "사주 + 타로 통합 리딩",
+  today: "오늘의 흐름 리딩",
+  flow: "월간·연간 운 흐름 리딩",
 };
 
 const WIDTH = 1080;

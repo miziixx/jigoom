@@ -1,7 +1,41 @@
-export type ReadingType = "saju" | "tarot" | "combo";
+export type ReadingType = "saju" | "tarot" | "combo" | "today" | "flow";
 
-/** 해석 포커스: 전반 / 직업·돈 / 연애·관계 / 건강·컨디션 */
-export type ReadingFocus = "general" | "career" | "relationship" | "wellness";
+/** 해석 포커스: 전반 / 직업·돈 / 연애·관계 / 건강·컨디션 / 멘탈·감정 / 선택·시기 고민 */
+export type ReadingFocus = "general" | "career" | "relationship" | "wellness" | "mental" | "decision";
+
+// ── 리딩 전 개인화 질문 (입력 정제) ──────────
+
+/** 현재 상황 단계 */
+export type SituationStage = "before" | "ongoing" | "waiting" | "closing";
+
+/** 원하는 답변 톤 */
+export type AnswerTone = "realistic" | "warm" | "blunt" | "detailed";
+
+/** 원하는 해석 깊이 */
+export type AnswerDepth = "light" | "basic" | "advanced" | "expert";
+
+/** 출생 시간 정확도 (신뢰도 계산에 반영) */
+export type BirthTimeAccuracy = "exact" | "half-hour" | "over-hour" | "unknown";
+
+export interface ReadingContext {
+  situation?: SituationStage;
+  tone?: AnswerTone;
+  depth?: AnswerDepth;
+  timeAccuracy?: BirthTimeAccuracy;
+  /** 지난 리딩 피드백에서 뽑은 스타일 조정 요청 (사용자가 반영에 동의했을 때만 채워짐) */
+  styleHint?: string;
+}
+
+// ── 리딩 후 피드백 ──────────
+
+export type FeedbackRating = "accurate" | "partial" | "unsure" | "inaccurate";
+
+export interface ReadingFeedback {
+  rating: FeedbackRating;
+  /** 세부 태그: too-abstract / want-specific / good-advice / hard-to-understand */
+  tags?: string[];
+  createdAt: string;
+}
 
 export type CalendarType = "solar" | "lunar";
 
@@ -101,6 +135,15 @@ export interface DaYunInfo {
   current: boolean;
 }
 
+/** 올해 특정 달의 월운 흐름 (연간 12개월 흐름 계산용) */
+export interface MonthFlowInfo {
+  /** 1~12 (양력 달, 월주는 그 달 중순 절기 기준) */
+  month: number;
+  ganZhi: string;
+  /** 이 달의 월운이 원국과 새로 맺는 합충형파해 */
+  interactions: string[];
+}
+
 export interface LuckCycles {
   daYun: DaYunInfo[];
   /** 현재 대운 간지 (아직 대운 시작 전이면 null) */
@@ -115,6 +158,8 @@ export interface LuckCycles {
   month: number;
   /** 현재 대운/세운/월운/일진이 원국과 맺는 합충형파해 */
   luckInteractions?: string[];
+  /** 올해 1~12월 월운 흐름 (월간/연간 흐름 리딩에서만 계산) */
+  monthlyFlow?: MonthFlowInfo[];
 }
 
 export type TarotArcana = "major" | "minor";
@@ -147,6 +192,8 @@ export interface ReadingSession {
   question: string;
   favorite?: boolean;
   focus?: ReadingFocus;
+  context?: ReadingContext;
+  feedback?: ReadingFeedback;
   birthInfo?: BirthInfo;
   sajuChart?: SajuChart;
   luckCycles?: LuckCycles;

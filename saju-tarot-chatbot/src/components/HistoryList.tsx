@@ -4,6 +4,8 @@ const TYPE_LABEL: Record<ReadingSession["type"], string> = {
   saju: "사주",
   tarot: "타로",
   combo: "사주+타로",
+  today: "오늘의 흐름",
+  flow: "월간·연간 흐름",
 };
 
 interface Props {

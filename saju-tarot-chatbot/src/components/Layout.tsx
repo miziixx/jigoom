@@ -5,6 +5,8 @@ const NAV_ITEMS = [
   { to: "/saju", label: "사주" },
   { to: "/tarot", label: "타로" },
   { to: "/combo", label: "통합" },
+  { to: "/today", label: "오늘" },
+  { to: "/flow", label: "흐름" },
   { to: "/history", label: "기록" },
 ];
 

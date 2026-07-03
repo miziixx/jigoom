@@ -3,6 +3,7 @@ import type {
   BirthInfo,
   FiveElementBalance,
   LuckCycles,
+  MonthFlowInfo,
   SajuChart,
   SajuPillar,
   StrengthAssessment,
@@ -599,7 +600,16 @@ function luckVsNatal(
   return combined.filter((s) => !base.has(s)).map((s) => (s.includes(label) ? s : `${label} ${ganZhi} 개입 → ${s}`));
 }
 
-export function computeLuckCycles(birthInfo: BirthInfo, now: Date = new Date()): LuckCycles {
+export interface LuckCycleOptions {
+  /** 올해 1~12월 월운 흐름까지 계산 (월간/연간 흐름 리딩용) */
+  includeMonthlyFlow?: boolean;
+}
+
+export function computeLuckCycles(
+  birthInfo: BirthInfo,
+  now: Date = new Date(),
+  options: LuckCycleOptions = {},
+): LuckCycles {
   const { lunar } = birthToLunar(birthInfo);
   const ec = lunar.getEightChar();
 
@@ -651,7 +661,23 @@ export function computeLuckCycles(birthInfo: BirthInfo, now: Date = new Date()):
     ...luckVsNatal(`일진 ${dayGanZhi}`, dayGanZhi, natalGans, natalZhis),
   ];
 
+  let monthlyFlow: MonthFlowInfo[] | undefined;
+  if (options.includeMonthlyFlow) {
+    monthlyFlow = [];
+    for (let m = 1; m <= 12; m++) {
+      // 절기 경계(매달 4~8일경)를 피해 15일 정오 기준으로 그 달의 월주를 뽑는다
+      const midLunar = Solar.fromYmdHms(nowYear, m, 15, 12, 0, 0).getLunar();
+      const ganZhi = toHangul(midLunar.getMonthInGanZhi());
+      monthlyFlow.push({
+        month: m,
+        ganZhi,
+        interactions: luckVsNatal(`${m}월 월운 ${ganZhi}`, ganZhi, natalGans, natalZhis),
+      });
+    }
+  }
+
   return {
+    monthlyFlow,
     daYun,
     currentDaYun,
     yearGanZhi,
