@@ -1,0 +1,54 @@
+import { Link } from "react-router-dom";
+
+const OPTIONS = [
+  {
+    to: "/saju",
+    title: "사주 보기",
+    desc: "생년월일시로 사주 원국을 정확히 계산하고, 성향과 오행 흐름을 근거와 함께 풀이합니다.",
+  },
+  {
+    to: "/tarot",
+    title: "타로 보기",
+    desc: "질문을 입력하고 카드를 뽑으면, 카드 조합을 근거로 지금 상황을 밀도 있게 해석합니다.",
+  },
+  {
+    to: "/combo",
+    title: "사주 + 타로 통합",
+    desc: "타고난 장기 흐름(사주)과 지금 이 질문의 단기 흐름(타로)을 함께 짚어드립니다.",
+  },
+  {
+    to: "/today",
+    title: "오늘의 흐름",
+    desc: "오늘 일진이 내 원국과 맺는 관계로, 오늘 하루를 잘 쓰는 법을 짧고 실용적으로 알려드립니다.",
+  },
+  {
+    to: "/fortune",
+    title: "오늘의 운세",
+    desc: "십성·합충·신살·오행 조력을 계산해 카테고리별 점수와 행운 아이템까지, 매일 갱신되는 오늘의 운세를 카드로 정리합니다.",
+  },
+  {
+    to: "/flow",
+    title: "월간·연간 운 흐름",
+    desc: "올해 12개월 월운을 모두 계산해, 시도하기 좋은 시기와 조심할 시기를 흐름으로 읽어드립니다.",
+  },
+];
+
+export default function LandingPage() {
+  return (
+    <section className="page">
+      <h2 className="page-title">무엇을 봐드릴까요?</h2>
+      <p className="page-desc">
+        계산은 실제 만세력 기준으로 정확하게, 해석은 단정 대신 근거와 가능성을 밝혀 전달합니다. "100% 적중"을
+        주장하지 않습니다 — 이 리딩은 자기이해와 판단을 돕는 참고 자료입니다.
+      </p>
+      <div className="landing-grid">
+        {OPTIONS.map((opt) => (
+          <Link key={opt.to} to={opt.to} className="card landing-card">
+            <h3>{opt.title}</h3>
+            <p>{opt.desc}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
