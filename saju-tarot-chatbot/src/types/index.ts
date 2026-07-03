@@ -45,6 +45,8 @@ export type Gender = "female" | "male";
 export type LateNightZiMode = "late" | "early";
 
 export interface BirthInfo {
+  /** 선택 입력: 결과지와 저장 파일에 표시할 이름 */
+  displayName?: string;
   calendarType: CalendarType;
   year: number;
   month: number;

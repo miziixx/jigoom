@@ -11,6 +11,42 @@ const ELEMENT_LABEL: Record<keyof FiveElementBalance, string> = {
 
 const ELEMENT_ORDER: Array<keyof FiveElementBalance> = ["wood", "fire", "earth", "metal", "water"];
 
+const GAN_KO: Record<string, string> = {
+  갑: "갑목",
+  을: "을목",
+  병: "병화",
+  정: "정화",
+  무: "무토",
+  기: "기토",
+  경: "경금",
+  신: "신금",
+  임: "임수",
+  계: "계수",
+};
+
+const ZHI_KO: Record<string, string> = {
+  자: "쥐",
+  축: "소",
+  인: "호랑이",
+  묘: "토끼",
+  진: "용",
+  사: "뱀",
+  오: "말",
+  미: "양",
+  신: "원숭이",
+  유: "닭",
+  술: "개",
+  해: "돼지",
+};
+
+const ELEMENT_GLOSS: Record<keyof FiveElementBalance, string> = {
+  wood: "성장·배움",
+  fire: "표현·활력",
+  earth: "안정·책임",
+  metal: "판단·정리",
+  water: "생각·휴식",
+};
+
 const STRENGTH_GLOSS: Record<StrengthAssessment["label"], string> = {
   신강: "타고난 기운이 스스로 강한 편이에요. 밀어붙이는 힘은 있지만 자기 고집도 셀 수 있어요.",
   중화: "기운이 한쪽으로 치우치지 않고 균형 잡힌 편이에요.",
@@ -18,10 +54,13 @@ const STRENGTH_GLOSS: Record<StrengthAssessment["label"], string> = {
 };
 
 function PillarBox({ label, pillar }: { label: string; pillar: SajuPillar | null }) {
+  const ganKo = pillar ? (GAN_KO[pillar.gan] ?? pillar.gan) : "";
+  const zhiKo = pillar ? (ZHI_KO[pillar.zhi] ?? pillar.zhi) : "";
   return (
     <div className="pillar-box">
       <span className="pillar-box__label">{label}</span>
       <span className="pillar-box__value">{pillar ? pillar.ganZhi : "모름"}</span>
+      {pillar && <span className="pillar-box__ko">{ganKo} · {zhiKo}</span>}
     </div>
   );
 }
@@ -40,6 +79,22 @@ function ElementBars({ fiveElements }: { fiveElements: FiveElementBalance }) {
             />
           </div>
           <span className="element-bar__value">{fiveElements[k]}</span>
+          <span className="element-bar__gloss">{ELEMENT_GLOSS[k]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ElementRadar({ fiveElements }: { fiveElements: FiveElementBalance }) {
+  const max = Math.max(1, ...ELEMENT_ORDER.map((k) => fiveElements[k]));
+  return (
+    <div className="element-radar" aria-label="오행 분포 요약">
+      {ELEMENT_ORDER.map((k) => (
+        <div className={`element-radar__node element-radar__node--${k}`} key={k}>
+          <span className="element-radar__label">{ELEMENT_LABEL[k]}</span>
+          <span className="element-radar__dot" style={{ transform: `scale(${0.75 + (fiveElements[k] / max) * 0.75})` }} />
+          <span className="element-radar__value">{fiveElements[k]}</span>
         </div>
       ))}
     </div>
@@ -138,6 +193,7 @@ export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: 
           )}
 
           <h4 className="saju-facts__subhead">오행 분포</h4>
+          <ElementRadar fiveElements={sajuChart.fiveElements} />
           <ElementBars fiveElements={sajuChart.fiveElements} />
 
           {sajuChart.yinYang && (
@@ -235,17 +291,19 @@ export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: 
           )}
 
           {luckCycles.monthlyFlow && luckCycles.monthlyFlow.length > 0 && (
-            <details className="saju-facts__details">
-              <summary>올해 월별 흐름 자세히 보기</summary>
+            <section className="saju-facts__monthly">
+              <h4 className="saju-facts__subhead">올해 1월~12월 흐름</h4>
               <div className="month-flow-grid">
                 {luckCycles.monthlyFlow.map((mf) => (
                   <div key={mf.month} className={`month-flow-cell${mf.interactions.length > 0 ? " month-flow-cell--active" : ""}`}>
                     <span className="month-flow-cell__month">{mf.month}월</span>
                     <span className="month-flow-cell__ganzhi">{mf.ganZhi}</span>
+                    <span className="month-flow-cell__note">{mf.interactions.length > 0 ? mf.interactions.length : "평"}</span>
                   </div>
                 ))}
               </div>
-            </details>
+              <p className="saju-facts__hint">숫자 = 원국과 새로 맞물리는 작용 수, 평 = 큰 작용이 적은 달</p>
+            </section>
           )}
         </>
       )}

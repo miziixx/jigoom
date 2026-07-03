@@ -21,6 +21,7 @@ export default function ComboPage() {
   const showResult = currentSession?.type === "combo";
 
   const [calendarType, setCalendarType] = useState<CalendarType>("solar");
+  const [displayName, setDisplayName] = useState("");
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
@@ -39,6 +40,7 @@ export default function ComboPage() {
     e.preventDefault();
     if (!canSubmit) return;
     const birthInfo: BirthInfo = {
+      displayName: displayName.trim() || undefined,
       calendarType,
       year: Number(year),
       month: Number(month),
@@ -82,6 +84,12 @@ export default function ComboPage() {
               <input type="radio" checked={calendarType === "lunar"} onChange={() => setCalendarType("lunar")} />
               음력
             </label>
+          </div>
+
+          <div className="field-row">
+            <span className="field-label">이름</span>
+            <input type="text" placeholder="선택" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+            <span className="field-hint">결과지와 저장 파일에만 표시됩니다.</span>
           </div>
 
           <div className="field-row">

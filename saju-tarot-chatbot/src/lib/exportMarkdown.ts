@@ -14,7 +14,8 @@ function formatBirthInfo(session: ReadingSession): string | null {
   const calendar = b.calendarType === "solar" ? "양력" : "음력";
   const hour = b.hour === null ? "시간 모름" : `${b.hour}시${b.minute ? ` ${b.minute}분` : ""}`;
   const gender = b.gender === "female" ? "여성" : "남성";
-  return `${calendar} ${b.year}년 ${b.month}월 ${b.day}일 ${hour} · ${gender}`;
+  const name = b.displayName ? `${b.displayName} · ` : "";
+  return `${name}${calendar} ${b.year}년 ${b.month}월 ${b.day}일 ${hour} · ${gender}`;
 }
 
 function formatSajuChart(session: ReadingSession): string[] {
@@ -25,15 +26,27 @@ function formatSajuChart(session: ReadingSession): string[] {
     `- 오행: 목 ${c.fiveElements.wood} · 화 ${c.fiveElements.fire} · 토 ${c.fiveElements.earth} · 금 ${c.fiveElements.metal} · 수 ${c.fiveElements.water}`,
   ];
   if (c.strength) lines.push(`- 신강/신약(간이): ${c.strength.label}`);
+  if (c.yinYang) lines.push(`- 음양: 양 ${c.yinYang.yang} · 음 ${c.yinYang.yin}`);
+  if (c.yongshin) {
+    lines.push(
+      `- 보완/주의 기운 후보: 보완 ${((c.yongshin.yongshin ?? c.yongshin.supportive).join("·") || "없음")} · 과하면 부담 ${c.yongshin.unfavorable.join("·") || "없음"}`,
+    );
+  }
+  if (c.interactions) lines.push(`- 합충형파해: ${c.interactions.length > 0 ? c.interactions.join(", ") : "원국 내 해당 없음"}`);
   return lines;
 }
 
 function formatLuckCycles(session: ReadingSession): string[] {
   const l = session.luckCycles;
   if (!l) return [];
-  return [
+  const lines = [
     `- 현재 대운: ${l.currentDaYun ?? "시작 전"} · 세운(${l.year}년): ${l.yearGanZhi} · 월운(${l.month}월): ${l.monthGanZhi}`,
   ];
+  if (l.monthlyFlow && l.monthlyFlow.length > 0) {
+    lines.push("- 올해 1월~12월 월운:");
+    lines.push(...l.monthlyFlow.map((m) => `  - ${m.month}월 ${m.ganZhi}: ${m.interactions.length > 0 ? m.interactions.join(", ") : "큰 상호작용 적음"}`));
+  }
+  return lines;
 }
 
 /** 리딩 세션(계산된 사실 + AI 해석 + 후속 대화)을 사람이 읽기 좋은 마크다운 문서로 직렬화한다 */

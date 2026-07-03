@@ -45,7 +45,8 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(msg).toContain("기본 리딩 — 종합");
     expect(msg).toContain("건강과 컨디션");
     expect(msg).toContain("인생의 큰 흐름");
-    expect(msg).toContain("3000자 이내");
+    expect(msg).toContain("3600자 이내");
+    expect(msg).toContain("월별 근거");
   });
 
   it("깊이를 고르면 기본 종합 프로필 대신 해당 깊이를 쓴다", () => {

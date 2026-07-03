@@ -286,6 +286,65 @@ label {
   color: var(--text);
 }
 
+.pillar-box__ko {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.25;
+}
+
+.element-radar {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.element-radar__node {
+  min-width: 0;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+}
+
+.element-radar__label,
+.element-radar__value {
+  display: block;
+  color: var(--text-dim);
+  font-size: 0.74rem;
+}
+
+.element-radar__dot {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 8px auto;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.element-radar__node--wood .element-radar__dot {
+  background: #6fcf7c;
+}
+
+.element-radar__node--fire .element-radar__dot {
+  background: #ff8a6b;
+}
+
+.element-radar__node--earth .element-radar__dot {
+  background: #d8b26a;
+}
+
+.element-radar__node--metal .element-radar__dot {
+  background: #cfd6e0;
+}
+
+.element-radar__node--water .element-radar__dot {
+  background: #6bb6ff;
+}
+
 .element-bars {
   display: flex;
   flex-direction: column;
@@ -294,7 +353,7 @@ label {
 
 .element-bar {
   display: grid;
-  grid-template-columns: 20px 1fr 24px;
+  grid-template-columns: 20px 1fr 24px minmax(70px, auto);
   align-items: center;
   gap: 8px;
 }
@@ -341,6 +400,26 @@ label {
   font-size: 0.8rem;
   color: var(--text-dim);
   text-align: right;
+}
+
+.element-bar__gloss {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .element-radar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .element-bar {
+    grid-template-columns: 20px 1fr 24px;
+  }
+
+  .element-bar__gloss {
+    grid-column: 2 / -1;
+  }
 }
 
 .yinyang-bar__track {
@@ -579,6 +658,20 @@ label {
   border: 1px solid var(--border);
   font-size: 0.76rem;
   color: var(--text-dim);
+}
+
+.month-flow-cell__month,
+.month-flow-cell__ganzhi,
+.month-flow-cell__note {
+  line-height: 1.2;
+}
+
+.month-flow-cell__note {
+  margin-top: 2px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.68rem;
 }
 
 .month-flow-cell--active {

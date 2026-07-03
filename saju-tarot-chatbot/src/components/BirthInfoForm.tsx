@@ -16,6 +16,7 @@ const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocus = true }: Props) {
   const [calendarType, setCalendarType] = useState<CalendarType>("solar");
+  const [displayName, setDisplayName] = useState("");
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
@@ -36,6 +37,7 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
     if (!canSubmit) return;
     const hourNum = hour === "unknown" ? null : Number(hour);
     const birthInfo: BirthInfo = {
+      displayName: displayName.trim() || undefined,
       calendarType,
       year: Number(year),
       month: Number(month),
@@ -79,6 +81,12 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
             </label>
           </span>
         </label>
+      </div>
+
+      <div className="field-row">
+        <span className="field-label">이름</span>
+        <input type="text" placeholder="선택" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+        <span className="field-hint">결과지와 저장 파일에만 표시됩니다.</span>
       </div>
 
       <div className="field-row">

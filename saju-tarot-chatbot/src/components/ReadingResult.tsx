@@ -230,6 +230,8 @@ export default function ReadingResult({ session, loading = false }: { session: R
         </div>
       )}
 
+      {(session.sajuChart || session.luckCycles) && <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} />}
+
       {opening && (
         <div className="card reading-oracle reading-oracle--opening">
           <span className="reading-oracle__tag">첫 점괘</span>
@@ -274,15 +276,6 @@ export default function ReadingResult({ session, loading = false }: { session: R
         </div>
       )}
 
-      {/* 근거(원국·신살·세운) — 사주 용어는 여기에만 둔다. 몰입 리딩 뒤 신뢰 보강용. */}
-      {(session.sajuChart || session.luckCycles) && (
-        <details className="reading-evidence">
-          <summary>이 풀이의 근거가 된 내 사주 보기</summary>
-          <div className="reading-evidence__body">
-            <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} />
-          </div>
-        </details>
-      )}
     </div>
   );
 }

@@ -78,6 +78,7 @@ function parseSections(reply: string): ShareSection[] {
 function buildFactsSection(session: ReadingSession): ShareSection {
   const lines = [`리딩 종류: ${TYPE_LABEL[session.type]}`, `생성일: ${new Date(session.createdAt).toLocaleDateString("ko-KR")}`];
 
+  if (session.birthInfo?.displayName) lines.push(`이름: ${session.birthInfo.displayName}`);
   if (session.question) lines.push(`질문: ${session.question}`);
   if (session.sajuChart) {
     const c = session.sajuChart;
@@ -88,12 +89,32 @@ function buildFactsSection(session: ReadingSession): ShareSection {
     lines.push(`현재 큰 흐름: ${session.luckCycles.currentDaYun}`);
     lines.push(`올해 흐름: ${session.luckCycles.yearGanZhi}`);
   }
+  if (session.luckCycles?.monthlyFlow && session.luckCycles.monthlyFlow.length > 0) {
+    lines.push(`월별 흐름: ${session.luckCycles.monthlyFlow.map((m) => `${m.month}월 ${m.ganZhi}`).join(" · ")}`);
+  }
   if (session.tarotCards && session.tarotCards.length > 0) {
     const cards = session.tarotCards.map((t) => `${t.card.name.split(" (")[0]}${t.reversed ? "(역)" : ""}`).join(" · ");
     lines.push(`카드: ${cards}`);
   }
 
   return { title: "리딩 기본 정보", body: lines.join("\n") };
+}
+
+function buildChatSections(session: ReadingSession): ShareSection[] {
+  const followUps = session.messages.slice(2);
+  if (followUps.length === 0) return [];
+  const sections: ShareSection[] = [];
+  for (let i = 0; i < followUps.length; i += 2) {
+    const question = followUps[i];
+    const answer = followUps[i + 1];
+    if (!question) continue;
+    const round = Math.floor(i / 2) + 1;
+    sections.push({
+      title: `더 물어보기 ${round}`,
+      body: stripMarkdown(`Q. ${question.content}\n\nA. ${answer?.content ?? ""}`),
+    });
+  }
+  return sections;
 }
 
 function chunkLines(lines: string[], size: number): string[][] {
@@ -109,7 +130,7 @@ function buildPages(session: ReadingSession): SharePage[] {
   ctx.font = "30px Pretendard, Apple SD Gothic Neo, sans-serif";
 
   const reply = session.messages.find((m) => m.role === "assistant")?.content ?? "";
-  const sections = [buildFactsSection(session), ...parseSections(reply)];
+  const sections = [buildFactsSection(session), ...parseSections(reply), ...buildChatSections(session)];
 
   return sections.flatMap((section) => {
     const wrapped = wrapText(ctx, section.body, CONTENT_WIDTH);

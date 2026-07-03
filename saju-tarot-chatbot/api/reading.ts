@@ -177,7 +177,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
     const luckCycles = birthInfo
-      ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow: type === "flow" })
+      ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow: type === "saju" || type === "combo" || type === "flow" })
       : undefined;
     const userMessage = buildReadingUserMessage({
       type,
