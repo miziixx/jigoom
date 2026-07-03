@@ -52,6 +52,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     set({ loading: true, error: null });
     // 스트리밍 도중 계속 갱신되는 세션 (meta 도착 시 생성 → 텍스트가 실시간으로 자란다)
     let session: ReadingSession | null = null;
+    let textUpdates = 0;
     try {
       const result = await streamReading(
         { type, question, focus, context, birthInfo, tarotCards, spreadNote },
@@ -82,6 +83,9 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
               messages: [session.messages[0], { role: "assistant", content: accumulated }],
             };
             set({ currentSession: session });
+            // 연결이 끊겨도 부분 결과가 남도록 주기적으로 저장
+            textUpdates += 1;
+            if (textUpdates % 20 === 0) saveSession(session);
           },
         },
       );
