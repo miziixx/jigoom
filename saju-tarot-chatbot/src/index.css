@@ -597,6 +597,66 @@ label {
   font-size: 0.92rem;
 }
 
+/* ── 첫/마지막 점괘 히어로 ── */
+.reading-oracle {
+  border: 1px solid var(--accent);
+  background: linear-gradient(160deg, rgba(201, 164, 255, 0.14), rgba(169, 112, 255, 0.06));
+}
+
+.reading-oracle--closing {
+  background: linear-gradient(160deg, rgba(169, 112, 255, 0.1), rgba(201, 164, 255, 0.04));
+}
+
+.reading-oracle__tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.reading-oracle__text {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.65;
+  font-weight: 600;
+  white-space: pre-wrap;
+}
+
+/* ── 본문 섹션(펼쳐진 카드) ── */
+.reading-section--open .reading-section__title {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+/* ── 근거(원국) — 몰입 리딩 뒤에 접어둔다 ── */
+.reading-evidence {
+  margin-top: 6px;
+}
+
+.reading-evidence > summary {
+  cursor: pointer;
+  font-size: 0.86rem;
+  color: var(--text-dim);
+  padding: 10px 4px;
+  list-style: none;
+}
+
+.reading-evidence > summary::before {
+  content: "▸ ";
+  color: var(--accent);
+}
+
+.reading-evidence[open] > summary::before {
+  content: "▾ ";
+}
+
+.reading-evidence__body {
+  margin-top: 8px;
+}
+
 .reading-section summary {
   cursor: pointer;
   font-weight: 600;
