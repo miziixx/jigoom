@@ -10,8 +10,17 @@ describe("리딩 시스템 프롬프트 규칙", () => {
   it("마크다운 금지 규칙을 담는다", () => {
     expect(READING_SYSTEM_PROMPT).toContain("마크다운 기호를 쓰지 않는다");
   });
-  it("몰입 섹션 구조(첫 점괘~마지막 점괘)를 담는다", () => {
-    for (const s of ["# 첫 점괘", "# 지금 내 마음", "# 말하지 않은 고민", "# 겉과 속", "# 마지막 점괘"]) {
+  it("종합 사주풀이 섹션(성격·직업·애정·건강·대운·세운)을 담는다", () => {
+    for (const s of [
+      "# 첫 점괘",
+      "# 타고난 성격과 기질",
+      "# 직업과 돈",
+      "# 애정과 관계",
+      "# 건강과 컨디션",
+      "# 인생의 큰 흐름",
+      "# 올해의 흐름",
+      "# 마지막 점괘",
+    ]) {
       expect(READING_SYSTEM_PROMPT).toContain(s);
     }
   });
@@ -32,12 +41,14 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(msg).toContain(sajuChart.day.ganZhi);
   });
 
-  it("깊이 미선택이면 속도 우선(짧은) 기본 프로필을 붙인다", () => {
-    expect(msg).toContain("속도 우선");
-    expect(msg).toContain("1500자 이내");
+  it("깊이 미선택이면 종합(모든 섹션)·간결 기본 프로필을 붙인다", () => {
+    expect(msg).toContain("기본 리딩 — 종합");
+    expect(msg).toContain("건강과 컨디션");
+    expect(msg).toContain("인생의 큰 흐름");
+    expect(msg).toContain("3000자 이내");
   });
 
-  it("깊이를 고르면 속도 우선 프로필 대신 해당 깊이를 쓴다", () => {
+  it("깊이를 고르면 기본 종합 프로필 대신 해당 깊이를 쓴다", () => {
     const deep = buildReadingUserMessage({
       type: "saju",
       question: "요즘 지쳐요",
@@ -46,7 +57,7 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
       luckCycles,
       context: { depth: "expert" },
     });
-    expect(deep).not.toContain("[기본 리딩 — 속도 우선]");
+    expect(deep).not.toContain("[기본 리딩 — 종합]");
     expect(deep).toContain("전문가 리딩");
   });
 });
