@@ -21,7 +21,10 @@ export const config = { supportsResponseStreaming: true };
 
 // READING_MODEL 환경변수로 상위 모델 교체 가능 (프리미엄 리딩 등)
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
-const MAX_TOKENS = 8192;
+// 스트리밍: 전문가 리딩이 문장 중간에 잘리지 않도록 여유 있게
+const MAX_TOKENS_STREAM = 16000;
+// 일괄 응답(구버전 클라이언트): 함수 시간 제한 안에서 완성돼야 하므로 보수적으로
+const MAX_TOKENS_COMPLETE = 8192;
 
 interface NewReadingBody {
   type: Exclude<ReadingType, never>;
@@ -69,7 +72,7 @@ async function streamMessages(
   try {
     const stream = anthropic.messages.stream({
       model: MODEL,
-      max_tokens: MAX_TOKENS,
+      max_tokens: MAX_TOKENS_STREAM,
       system: READING_SYSTEM_PROMPT,
       messages,
     });
@@ -93,7 +96,7 @@ async function completeMessages(
 ): Promise<string> {
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: MAX_TOKENS,
+    max_tokens: MAX_TOKENS_COMPLETE,
     system: READING_SYSTEM_PROMPT,
     messages,
   });

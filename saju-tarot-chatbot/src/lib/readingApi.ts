@@ -18,17 +18,51 @@ export interface StreamResult {
   reply: string;
 }
 
+/** 스트림 라인으로 전달된 서버 측 오류 (네트워크 단절과 구분용) */
+class ServerReportedError extends Error {}
+
+/** 긴 생성(전문가 리딩 등) 동안 모바일 화면이 꺼져 연결이 끊기는 것을 막는다 */
+async function acquireWakeLock(): Promise<WakeLockSentinel | null> {
+  try {
+    if ("wakeLock" in navigator) return await navigator.wakeLock.request("screen");
+  } catch {
+    // 배터리 절약 모드 등으로 거부될 수 있음 — 없어도 동작에는 지장 없음
+  }
+  return null;
+}
+
+/** 네트워크 단절(fetch 실패/스트림 중단)을 사용자가 조치할 수 있는 메시지로 변환 */
+function networkError(): Error {
+  return new Error(
+    "네트워크 연결이 끊겼습니다. 긴 리딩은 생성에 1~2분 걸릴 수 있으니, 화면을 켠 채 잠시 기다려주세요. 지금까지 생성된 부분이 있다면 기록에 저장되어 있습니다.",
+  );
+}
+
 /**
  * /api/reading을 NDJSON 스트리밍으로 호출한다.
  * 첫 토큰부터 바로 받아 그리므로 긴 리딩에서도 게이트웨이 타임아웃(504)이 나지 않는다.
  * 서버가 스트리밍을 지원하지 않으면(JSON 응답) 자동으로 일괄 응답을 처리한다.
  */
 export async function streamReading(body: unknown, handlers: StreamHandlers = {}): Promise<StreamResult> {
-  const res = await fetch("/api/reading", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
-    body: JSON.stringify(body),
-  });
+  const wakeLock = await acquireWakeLock();
+  try {
+    return await streamReadingInner(body, handlers);
+  } finally {
+    wakeLock?.release().catch(() => {});
+  }
+}
+
+async function streamReadingInner(body: unknown, handlers: StreamHandlers): Promise<StreamResult> {
+  let res: Response;
+  try {
+    res = await fetch("/api/reading", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw networkError();
+  }
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({} as { error?: string }));
@@ -63,7 +97,7 @@ export async function streamReading(body: unknown, handlers: StreamHandlers = {}
   const handleLine = (line: string) => {
     if (!line.trim()) return;
     const obj = JSON.parse(line) as { meta?: ReadingMeta; text?: string; done?: boolean; error?: string };
-    if (obj.error) throw new Error(obj.error);
+    if (obj.error) throw new ServerReportedError(obj.error);
     if (obj.meta) {
       meta = obj.meta;
       handlers.onMeta?.(obj.meta);
@@ -75,23 +109,27 @@ export async function streamReading(body: unknown, handlers: StreamHandlers = {}
     if (obj.done) done = true;
   };
 
-  for (;;) {
-    const { done: readerDone, value } = await reader.read();
-    if (readerDone) break;
-    buffer += decoder.decode(value, { stream: true });
-    let idx = buffer.indexOf("\n");
-    while (idx >= 0) {
-      handleLine(buffer.slice(0, idx));
-      buffer = buffer.slice(idx + 1);
-      idx = buffer.indexOf("\n");
+  try {
+    for (;;) {
+      const { done: readerDone, value } = await reader.read();
+      if (readerDone) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx = buffer.indexOf("\n");
+      while (idx >= 0) {
+        handleLine(buffer.slice(0, idx));
+        buffer = buffer.slice(idx + 1);
+        idx = buffer.indexOf("\n");
+      }
     }
+    if (buffer.trim()) handleLine(buffer);
+  } catch (err) {
+    // 서버가 보낸 {"error"} 라인은 그대로 올리고, 그 외(스트림 중단/파싱 실패)는 네트워크 안내로
+    if (err instanceof ServerReportedError) throw new Error(err.message);
+    throw networkError();
   }
-  if (buffer.trim()) handleLine(buffer);
 
-  // done 신호 없이 스트림이 끊긴 경우 (함수 시간 초과 등) — 부분 결과라도 살리되 알림
-  if (!done && reply.length === 0) {
-    throw new Error("서버 연결이 끊겼습니다. 다시 시도해보세요.");
-  }
+  // done 신호 없이 스트림이 끝난 경우 (함수 시간 초과 등)
+  if (!done && reply.length === 0) throw networkError();
 
   return { meta, reply };
 }
