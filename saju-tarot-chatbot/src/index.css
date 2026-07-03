@@ -445,6 +445,117 @@ label {
   font-weight: 700;
 }
 
+/* ── 일주 성향 / 격국 / 신살 / 세운 타임라인 ── */
+.ilju-trait {
+  margin: 10px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.gyeokguk-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gyeokguk-box__name {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.92rem;
+}
+
+.gyeokguk-box__gloss {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.sinsal-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sinsal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(201, 164, 255, 0.12);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: help;
+}
+
+.sinsal-chip__pos {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.saju-facts__hint {
+  margin: 8px 0 0;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+
+.yearly-timeline {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.year-pill {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-alt);
+}
+
+.year-pill--active {
+  border-color: var(--accent);
+}
+
+.year-pill--current {
+  background: rgba(201, 164, 255, 0.16);
+  border-color: var(--accent);
+}
+
+.year-pill__year {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.year-pill__ganzhi {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.year-pill__age {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
 .month-flow-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -1196,4 +1307,58 @@ label {
   font-size: 0.78rem;
   color: var(--text-dim);
   text-align: center;
+}
+
+/* ── 궁합 페이지 ── */
+.compat-forms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 640px) {
+  .compat-forms {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mini-birth .field-row {
+  margin-bottom: 10px;
+}
+
+.compat-result {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.compat-score-card {
+  text-align: center;
+}
+
+.compat-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+
+.compat-score__num {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.compat-score__unit {
+  font-size: 1.1rem;
+  color: var(--text-dim);
+}
+
+.compat-summary {
+  margin: 10px 0 0;
+  font-size: 0.96rem;
+  line-height: 1.6;
 }

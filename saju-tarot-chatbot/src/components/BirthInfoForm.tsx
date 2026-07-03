@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import ContextPicker from "./ContextPicker";
 import FocusPicker from "./FocusPicker";
 import { BIRTH_PLACES } from "../data/birthPlaces";
-import type { BirthInfo, CalendarType, Gender, ReadingContext, ReadingFocus } from "../types";
+import type { BirthInfo, CalendarType, Gender, LateNightZiMode, ReadingContext, ReadingFocus } from "../types";
 
 interface Props {
   submitLabel: string;
@@ -21,6 +21,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
   const [day, setDay] = useState("");
   const [hour, setHour] = useState<string>("unknown");
   const [minute, setMinute] = useState("");
+  const [isLeapMonth, setIsLeapMonth] = useState(false);
+  const [lateNightZi, setLateNightZi] = useState<LateNightZiMode>("late");
   const [birthPlace, setBirthPlace] = useState("none");
   const [gender, setGender] = useState<Gender>("female");
   const [question, setQuestion] = useState("");
@@ -32,13 +34,16 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
+    const hourNum = hour === "unknown" ? null : Number(hour);
     const birthInfo: BirthInfo = {
       calendarType,
       year: Number(year),
       month: Number(month),
       day: Number(day),
-      hour: hour === "unknown" ? null : Number(hour),
+      hour: hourNum,
       minute: minute === "" ? 0 : Number(minute),
+      isLeapMonth: calendarType === "lunar" ? isLeapMonth : undefined,
+      lateNightZi: hourNum === 23 ? lateNightZi : undefined,
       birthPlace,
       gender,
     };
@@ -83,6 +88,17 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
         <input type="number" placeholder="일" min={1} max={31} value={day} onChange={(e) => setDay(e.target.value)} required />
       </div>
 
+      {calendarType === "lunar" && (
+        <div className="field-row">
+          <span className="field-label">윤달</span>
+          <label className="checkbox-label">
+            <input type="checkbox" checked={isLeapMonth} onChange={(e) => setIsLeapMonth(e.target.checked)} />
+            이 달은 음력 윤달이에요
+          </label>
+          <span className="field-hint">해당 연도에 윤달이 있을 때만 체크하세요.</span>
+        </div>
+      )}
+
       <div className="field-row">
         <span className="field-label">출생 시간</span>
         <select value={hour} onChange={(e) => setHour(e.target.value)}>
@@ -106,6 +122,17 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
         )}
         <span className="field-hint">모르면 시주를 제외하고 해석합니다.</span>
       </div>
+
+      {hour === "23" && (
+        <div className="field-row">
+          <span className="field-label">자시 처리</span>
+          <select value={lateNightZi} onChange={(e) => setLateNightZi(e.target.value as LateNightZiMode)}>
+            <option value="late">야자시 (당일 일주 유지)</option>
+            <option value="early">조자시 (다음 날 일주로)</option>
+          </select>
+          <span className="field-hint">23~24시 출생은 관법에 따라 일주가 달라질 수 있어요. 보통 야자시(기본).</span>
+        </div>
+      )}
 
       <div className="field-row">
         <span className="field-label">출생지</span>

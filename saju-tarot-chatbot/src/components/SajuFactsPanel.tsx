@@ -1,5 +1,5 @@
 import Gauge from "./Gauge";
-import type { FiveElementBalance, LuckCycles, SajuChart, SajuPillar, StrengthAssessment } from "../types";
+import type { FiveElementBalance, LuckCycles, SajuChart, SajuPillar, StrengthAssessment, YearFlowInfo } from "../types";
 
 const ELEMENT_LABEL: Record<keyof FiveElementBalance, string> = {
   wood: "목",
@@ -74,6 +74,24 @@ function DaYunTimeline({ luckCycles }: { luckCycles: LuckCycles }) {
   );
 }
 
+function YearlyTimeline({ yearlyFlow }: { yearlyFlow: YearFlowInfo[] }) {
+  return (
+    <div className="yearly-timeline">
+      {yearlyFlow.map((y) => (
+        <div
+          key={y.year}
+          className={`year-pill${y.current ? " year-pill--current" : ""}${y.interactions.length > 0 ? " year-pill--active" : ""}`}
+          title={y.interactions.length > 0 ? y.interactions.join(", ") : "원국과 큰 상호작용 없음"}
+        >
+          <span className="year-pill__year">{y.year}</span>
+          <span className="year-pill__ganzhi">{y.ganZhi}</span>
+          <span className="year-pill__age">{y.age}세</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: SajuChart; luckCycles?: LuckCycles }) {
   if (!sajuChart && !luckCycles) return null;
 
@@ -91,6 +109,33 @@ export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: 
             <PillarBox label="시주" pillar={sajuChart.hour} />
           </div>
           <p className="saju-facts__note">일간(나를 뜻하는 글자) {sajuChart.dayMasterGan}</p>
+
+          {sajuChart.iljuTrait && (
+            <p className="ilju-trait">
+              <b>일주 {sajuChart.day.ganZhi}</b> — {sajuChart.iljuTrait}
+            </p>
+          )}
+
+          {sajuChart.gyeokguk && (
+            <div className="gyeokguk-box">
+              <span className="gyeokguk-box__name">{sajuChart.gyeokguk.name}</span>
+              <span className="gyeokguk-box__gloss">{sajuChart.gyeokguk.gloss}</span>
+            </div>
+          )}
+
+          {sajuChart.sinsal && sajuChart.sinsal.length > 0 && (
+            <>
+              <h4 className="saju-facts__subhead">신살</h4>
+              <div className="sinsal-list">
+                {sajuChart.sinsal.map((s, i) => (
+                  <span className="sinsal-chip" key={`${s.name}-${s.position}-${i}`} title={s.gloss}>
+                    {s.name}
+                    <span className="sinsal-chip__pos">{s.position}</span>
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
 
           <h4 className="saju-facts__subhead">오행 분포</h4>
           <ElementBars fiveElements={sajuChart.fiveElements} />
@@ -132,10 +177,12 @@ export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: 
               {sajuChart.seasonNote && <p>조후(계절) — {sajuChart.seasonNote}</p>}
               {sajuChart.yongshin && (
                 <p>
-                  용신 후보 — 돕는 오행: {sajuChart.yongshin.supportive.join("·") || "없음"}
-                  {sajuChart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${sajuChart.yongshin.unfavorable.join("·")}` : ""}
+                  용신 후보 — 용신: {(sajuChart.yongshin.yongshin ?? sajuChart.yongshin.supportive).join("·") || "없음"}
+                  {sajuChart.yongshin.heesin && sajuChart.yongshin.heesin.length > 0 ? ` / 희신: ${sajuChart.yongshin.heesin.join("·")}` : ""}
+                  {sajuChart.yongshin.unfavorable.length > 0 ? ` / 기신: ${sajuChart.yongshin.unfavorable.join("·")}` : ""}
                 </p>
               )}
+              {sajuChart.gyeokguk && <p>격국 — {sajuChart.gyeokguk.name} ({sajuChart.gyeokguk.basis})</p>}
               {sajuChart.timeCorrection && sajuChart.timeCorrection.applied.length > 0 && (
                 <p>
                   시각 보정 — {sajuChart.timeCorrection.applied.join(", ")} (보정 후 {sajuChart.timeCorrection.correctedDateTime})
@@ -169,6 +216,14 @@ export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: 
             </span>
           </div>
           <DaYunTimeline luckCycles={luckCycles} />
+
+          {luckCycles.yearlyFlow && luckCycles.yearlyFlow.length > 0 && (
+            <>
+              <h4 className="saju-facts__subhead">세운 흐름 (앞으로 10년)</h4>
+              <YearlyTimeline yearlyFlow={luckCycles.yearlyFlow} />
+              <p className="saju-facts__hint">칠해진 칸 = 그해 세운이 원국과 합·충 등 상호작용이 있는 해 (마우스를 올리면 내용 표시)</p>
+            </>
+          )}
 
           {luckCycles.luckInteractions && (
             <p className="saju-facts__note">

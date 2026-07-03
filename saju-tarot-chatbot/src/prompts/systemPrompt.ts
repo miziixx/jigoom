@@ -167,13 +167,22 @@ function formatSajuChart(chart: SajuChart): string {
   if (chart.strength) {
     lines.push(`신강/신약 (간이 억부 판정) — ${chart.strength.label} (${chart.strength.detail})`);
   }
+  if (chart.gyeokguk) {
+    lines.push(`격국 (참고용) — ${chart.gyeokguk.name} · 근거: ${chart.gyeokguk.basis}`);
+  }
   if (chart.yongshin) {
+    const yong = (chart.yongshin.yongshin ?? chart.yongshin.supportive).join("·");
+    const hee = chart.yongshin.heesin && chart.yongshin.heesin.length > 0 ? ` / 희신: ${chart.yongshin.heesin.join("·")}` : "";
     lines.push(
-      `용신 후보 — 돕는 오행: ${chart.yongshin.supportive.join("·")}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""} (${chart.yongshin.note})`,
+      `용신 후보 — 용신: ${yong}${hee}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""} (${chart.yongshin.note})`,
     );
   }
   if (chart.twelveStages) lines.push(`12운성 (일간 기준) — ${chart.twelveStages.join(", ")}`);
   if (chart.gongmang) lines.push(`공망 — ${chart.gongmang}`);
+  if (chart.sinsal && chart.sinsal.length > 0) {
+    lines.push(`신살 — ${chart.sinsal.map((s) => `${s.name}(${s.position}: ${s.gloss})`).join(", ")}`);
+  }
+  if (chart.iljuTrait) lines.push(`일주(${chart.day.ganZhi}) 성향 참고 — ${chart.iljuTrait}`);
   if (chart.seasonNote) lines.push(`조후(계절) — ${chart.seasonNote}`);
   if (chart.timeCorrection) {
     if (chart.timeCorrection.applied.length > 0)
@@ -214,6 +223,13 @@ function formatLuckCycles(luck: LuckCycles): string {
         ? `운과 원국의 상호작용 (계산됨): ${luck.luckInteractions.join(", ")}`
         : "운과 원국의 상호작용 (계산됨): 현재 대운/세운/월운/일진과 원국 사이 새로 성립하는 합충형파해 없음",
     );
+  }
+  if (luck.yearlyFlow && luck.yearlyFlow.length > 0) {
+    const yearLines = luck.yearlyFlow.map(
+      (yf) =>
+        `${yf.year}년(${yf.age}세) ${yf.ganZhi}${yf.current ? " ← 올해" : ""}${yf.interactions.length > 0 ? ` — ${yf.interactions.join(", ")}` : " — 원국과 새 상호작용 없음"}`,
+    );
+    lines.push(`앞으로 10년 세운 흐름 (입춘 기준, 계산됨):\n${yearLines.join("\n")}`);
   }
   if (luck.monthlyFlow && luck.monthlyFlow.length > 0) {
     const monthLines = luck.monthlyFlow.map(

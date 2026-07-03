@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: "/today", label: "오늘" },
   { to: "/fortune", label: "운세" },
   { to: "/flow", label: "흐름" },
+  { to: "/compatibility", label: "궁합" },
   { to: "/history", label: "기록" },
 ];
 

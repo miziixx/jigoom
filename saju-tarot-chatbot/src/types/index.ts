@@ -41,6 +41,9 @@ export type CalendarType = "solar" | "lunar";
 
 export type Gender = "female" | "male";
 
+/** 야자시(23:00~24:00) 처리 방식: 당일 일주 유지(야자시) vs 다음날 일주(조자시) */
+export type LateNightZiMode = "late" | "early";
+
 export interface BirthInfo {
   calendarType: CalendarType;
   year: number;
@@ -50,6 +53,10 @@ export interface BirthInfo {
   hour: number | null;
   /** 0-59, 생략 시 0 */
   minute?: number;
+  /** 음력 윤달 여부 (calendarType === "lunar"일 때만 의미 있음) */
+  isLeapMonth?: boolean;
+  /** 23~24시 출생 시 자시 처리 방식. 기본 "late"(야자시=당일 일주 유지) */
+  lateNightZi?: LateNightZiMode;
   /** 출생지 키 (진태양시 보정용). "none"이면 보정 안 함 */
   birthPlace?: string;
   gender: Gender;
@@ -89,12 +96,35 @@ export interface StrengthAssessment {
 }
 
 export interface YongshinCandidates {
-  /** 용신/희신 후보 오행 */
+  /** 용신/희신 후보 오행 (supportive = 용신+희신 합친 목록, 하위호환) */
   supportive: string[];
   /** 기신 후보 오행 */
   unfavorable: string[];
   /** 판정 방법과 한계 설명 */
   note: string;
+  /** 1차 용신 후보 오행 */
+  yongshin?: string[];
+  /** 2차 희신 후보 오행 (용신을 돕는 오행) */
+  heesin?: string[];
+}
+
+/** 신살 한 개 (이름 + 해당 위치 + 쉬운 뜻) */
+export interface SinsalHit {
+  name: string;
+  /** 해당된 위치 (예: "일지 술", "일주") */
+  position: string;
+  /** 쉬운 말 뜻풀이 */
+  gloss: string;
+}
+
+/** 격국 판정 (월지 정기 십성 기준 + 종격 후보) */
+export interface GyeokgukInfo {
+  /** 격국 이름 (예: "편관격", "종재격 후보") */
+  name: string;
+  /** 판정 근거 */
+  basis: string;
+  /** 쉬운 말 설명 */
+  gloss: string;
 }
 
 export interface SajuChart {
@@ -122,6 +152,12 @@ export interface SajuChart {
   gongmang?: string;
   /** 조후(계절) 관점 노트 */
   seasonNote?: string;
+  /** 신살 목록 (도화·역마·화개·천을귀인·양인·백호·괴강·문창 등) */
+  sinsal?: SinsalHit[];
+  /** 60갑자 일주 성향 */
+  iljuTrait?: string;
+  /** 격국 판정 */
+  gyeokguk?: GyeokgukInfo;
   /** 진태양시/서머타임 보정 내역 */
   timeCorrection?: TimeCorrection;
 }
@@ -144,6 +180,19 @@ export interface MonthFlowInfo {
   interactions: string[];
 }
 
+/** 특정 해의 세운 흐름 (다년 세운 타임라인용) */
+export interface YearFlowInfo {
+  /** 연도 (입춘 기준) */
+  year: number;
+  /** 그 해 만 나이 (근사) */
+  age: number;
+  ganZhi: string;
+  /** 이 해 세운이 원국과 새로 맺는 합충형파해 */
+  interactions: string[];
+  /** 현재 해 여부 */
+  current: boolean;
+}
+
 export interface LuckCycles {
   daYun: DaYunInfo[];
   /** 현재 대운 간지 (아직 대운 시작 전이면 null) */
@@ -160,6 +209,24 @@ export interface LuckCycles {
   luckInteractions?: string[];
   /** 올해 1~12월 월운 흐름 (월간/연간 흐름 리딩에서만 계산) */
   monthlyFlow?: MonthFlowInfo[];
+  /** 올해부터 10년치 세운 흐름 */
+  yearlyFlow?: YearFlowInfo[];
+}
+
+/** 두 사람 사주 궁합 계산 결과 */
+export interface CompatibilityResult {
+  /** 종합 점수 0~100 */
+  score: number;
+  /** 일간 관계 설명 (합/충/생/극) */
+  dayMasterRelation: string;
+  /** 두 사람 지지 사이 합충 목록 */
+  branchRelations: string[];
+  /** 오행 상호 보완 설명 */
+  elementComplement: string;
+  /** 종합 한 줄 코멘트 */
+  summary: string;
+  /** 세부 항목별 점수 */
+  breakdown: { label: string; score: number; note: string }[];
 }
 
 export type TarotArcana = "major" | "minor";
