@@ -1,4 +1,5 @@
 import BirthInfoForm from "../components/BirthInfoForm";
+import LoadingNotice from "../components/LoadingNotice";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
 import ReadingActions from "../components/ReadingActions";
@@ -23,11 +24,12 @@ export default function TodayPage() {
       </p>
 
       {!showResult && <BirthInfoForm submitLabel="오늘의 흐름 보기" onSubmit={handleSubmit} loading={loading} showFocus={false} />}
+      {!showResult && loading && <LoadingNotice />}
       {error && !showResult && <p className="error-text">{error}</p>}
 
       {showResult && currentSession && (
         <>
-          <ReadingResult session={currentSession} />
+          <ReadingResult session={currentSession} loading={loading} />
           <ReadingActions session={currentSession} />
           <FeedbackBar session={currentSession} />
           <ChatFollowUp session={currentSession} onSend={sendFollowUp} loading={loading} />

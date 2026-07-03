@@ -239,6 +239,353 @@ label {
   color: var(--text-dim);
 }
 
+/* ── 사주 원국 패널 ────────── */
+.saju-facts__subhead {
+  margin: 16px 0 8px;
+  font-size: 0.88rem;
+  color: var(--accent);
+}
+
+.saju-facts__note {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .pillar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.pillar-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+}
+
+.pillar-box__label {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+.pillar-box__value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.element-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.element-bar {
+  display: grid;
+  grid-template-columns: 20px 1fr 24px;
+  align-items: center;
+  gap: 8px;
+}
+
+.element-bar__label {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.element-bar__track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(128, 128, 128, 0.18);
+  overflow: hidden;
+}
+
+.element-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.element-bar__fill--wood {
+  background: #6fcf7c;
+}
+
+.element-bar__fill--fire {
+  background: #ff8a6b;
+}
+
+.element-bar__fill--earth {
+  background: #d8b26a;
+}
+
+.element-bar__fill--metal {
+  background: #cfd6e0;
+}
+
+.element-bar__fill--water {
+  background: #6bb6ff;
+}
+
+.element-bar__value {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.yinyang-bar__track {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+  background: #2b2540;
+}
+
+.yinyang-bar__yang {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffe08a, #ffcf5c);
+}
+
+.yinyang-bar__labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.saju-facts__details {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.saju-facts__details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+
+.saju-facts__details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.saju-facts__details-body p {
+  margin: 0;
+}
+
+.luck-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.luck-chip {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.luck-chip b {
+  color: var(--text);
+}
+
+.dayun-timeline {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dayun-pill {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+}
+
+.dayun-pill--current {
+  border-color: var(--accent);
+  background: rgba(201, 164, 255, 0.14);
+}
+
+.dayun-pill__age {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.dayun-pill__ganzhi {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* ── 일주 성향 / 격국 / 신살 / 세운 타임라인 ── */
+.ilju-trait {
+  margin: 10px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.gyeokguk-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gyeokguk-box__name {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.92rem;
+}
+
+.gyeokguk-box__gloss {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.sinsal-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sinsal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(201, 164, 255, 0.12);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: help;
+}
+
+.sinsal-chip__pos {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.saju-facts__hint {
+  margin: 8px 0 0;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+
+.yearly-timeline {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.year-pill {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-alt);
+}
+
+.year-pill--active {
+  border-color: var(--accent);
+}
+
+.year-pill--current {
+  background: rgba(201, 164, 255, 0.16);
+  border-color: var(--accent);
+}
+
+.year-pill__year {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.year-pill__ganzhi {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.year-pill__age {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.month-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+@media (max-width: 480px) {
+  .month-flow-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.month-flow-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+.month-flow-cell--active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .reading-summary h3 {
   margin: 0 0 8px;
   color: var(--accent);
@@ -250,6 +597,66 @@ label {
   font-size: 0.92rem;
 }
 
+/* ── 첫/마지막 점괘 히어로 ── */
+.reading-oracle {
+  border: 1px solid var(--accent);
+  background: linear-gradient(160deg, rgba(201, 164, 255, 0.14), rgba(169, 112, 255, 0.06));
+}
+
+.reading-oracle--closing {
+  background: linear-gradient(160deg, rgba(169, 112, 255, 0.1), rgba(201, 164, 255, 0.04));
+}
+
+.reading-oracle__tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.reading-oracle__text {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.65;
+  font-weight: 600;
+  white-space: pre-wrap;
+}
+
+/* ── 본문 섹션(펼쳐진 카드) ── */
+.reading-section--open .reading-section__title {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+/* ── 근거(원국) — 몰입 리딩 뒤에 접어둔다 ── */
+.reading-evidence {
+  margin-top: 6px;
+}
+
+.reading-evidence > summary {
+  cursor: pointer;
+  font-size: 0.86rem;
+  color: var(--text-dim);
+  padding: 10px 4px;
+  list-style: none;
+}
+
+.reading-evidence > summary::before {
+  content: "▸ ";
+  color: var(--accent);
+}
+
+.reading-evidence[open] > summary::before {
+  content: "▾ ";
+}
+
+.reading-evidence__body {
+  margin-top: 8px;
+}
+
 .reading-section summary {
   cursor: pointer;
   font-weight: 600;
@@ -258,6 +665,112 @@ label {
 
 .reading-section[open] summary {
   margin-bottom: 10px;
+}
+
+.reading-section--live {
+  border-color: var(--accent);
+}
+
+.reading-section__live-title {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.reading-typing {
+  display: inline-block;
+  color: var(--accent);
+  animation: reading-blink 1s step-start infinite;
+}
+
+@keyframes reading-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.reading-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .reading-category-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reading-category-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-alt);
+}
+
+.reading-category-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.reading-category-card__label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.reading-category-card__comment {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+
+.reading-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.reading-badge--good {
+  background: rgba(87, 208, 164, 0.16);
+  color: #57d0a4;
+}
+
+.reading-badge--mid {
+  background: rgba(157, 140, 216, 0.16);
+  color: #9d8cd8;
+}
+
+.reading-badge--caution {
+  background: rgba(255, 178, 122, 0.16);
+  color: #ffb27a;
+}
+
+.loading-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  margin-top: 10px;
+}
+
+.loading-notice__spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  animation: loading-spin 0.8s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .chat-followup h4 {
@@ -498,7 +1011,6 @@ label {
   .app-footer,
   .app-nav,
   .reading-actions,
-  .chat-followup,
   .btn,
   form {
     display: none !important;
@@ -512,7 +1024,8 @@ label {
 
   .reading-summary h3,
   .facts-block h4,
-  .landing-card h3 {
+  .landing-card h3,
+  .chat-followup h4 {
     color: #5b21b6;
   }
 
@@ -520,6 +1033,11 @@ label {
   .facts-block p,
   .reading-section summary {
     color: #111;
+  }
+
+  .chat-bubble {
+    color: #111;
+    background: #f2f2f2 !important;
   }
 }
 
@@ -697,10 +1215,63 @@ label {
   background: linear-gradient(90deg, #ffb27a, #ff8a8a);
 }
 
+.gauge__fill--neutral {
+  background: linear-gradient(90deg, #9d8cd8, #7a68c0);
+}
+
 .gauge__comment {
   margin: 6px 0 0;
   font-size: 0.82rem;
   color: var(--text-dim);
+}
+
+.fortune-overall {
+  margin: 10px 0 0;
+  font-size: 0.96rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.fortune-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 560px) {
+  .fortune-category-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fortune-category-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-alt);
+}
+
+.fortune-category-card__comment {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+}
+
+.fortune-badge {
+  margin: 6px 0 0;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.fortune-badge--good {
+  background: rgba(87, 208, 164, 0.14);
+  color: #57d0a4;
+}
+
+.fortune-badge--caution {
+  background: rgba(255, 178, 122, 0.14);
+  color: #ffb27a;
 }
 
 .fortune-two {
@@ -796,4 +1367,58 @@ label {
   font-size: 0.78rem;
   color: var(--text-dim);
   text-align: center;
+}
+
+/* ── 궁합 페이지 ── */
+.compat-forms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 640px) {
+  .compat-forms {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mini-birth .field-row {
+  margin-bottom: 10px;
+}
+
+.compat-result {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.compat-score-card {
+  text-align: center;
+}
+
+.compat-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+
+.compat-score__num {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.compat-score__unit {
+  font-size: 1.1rem;
+  color: var(--text-dim);
+}
+
+.compat-summary {
+  margin: 10px 0 0;
+  font-size: 0.96rem;
+  line-height: 1.6;
 }

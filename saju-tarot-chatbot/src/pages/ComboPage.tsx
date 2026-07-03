@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import LoadingNotice from "../components/LoadingNotice";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
 import ReadingActions from "../components/ReadingActions";
@@ -167,11 +168,12 @@ export default function ComboPage() {
           </button>
         </form>
       )}
+      {!showResult && loading && <LoadingNotice />}
       {error && !showResult && <p className="error-text">{error}</p>}
 
       {showResult && currentSession && (
         <>
-          <ReadingResult session={currentSession} />
+          <ReadingResult session={currentSession} loading={loading} />
           <ReadingActions session={currentSession} />
           <FeedbackBar session={currentSession} />
           <ChatFollowUp session={currentSession} onSend={sendFollowUp} loading={loading} />

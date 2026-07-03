@@ -1,4 +1,5 @@
 import TarotSpreadPicker from "../components/TarotSpreadPicker";
+import LoadingNotice from "../components/LoadingNotice";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
 import ReadingActions from "../components/ReadingActions";
@@ -22,11 +23,12 @@ export default function TarotPage() {
       <p className="page-desc">질문을 입력하고 카드를 뽑으면, 카드 조합과 질문 맥락을 근거로 해석해드립니다.</p>
 
       {!showResult && <TarotSpreadPicker submitLabel="카드 뽑기" onSubmit={handleSubmit} loading={loading} />}
+      {!showResult && loading && <LoadingNotice />}
       {error && !showResult && <p className="error-text">{error}</p>}
 
       {showResult && currentSession && (
         <>
-          <ReadingResult session={currentSession} />
+          <ReadingResult session={currentSession} loading={loading} />
           <ReadingActions session={currentSession} />
           <FeedbackBar session={currentSession} />
           <ChatFollowUp session={currentSession} onSend={sendFollowUp} loading={loading} />

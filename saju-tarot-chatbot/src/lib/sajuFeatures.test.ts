@@ -1,0 +1,112 @@
+import { describe, expect, it } from "vitest";
+import { computeSajuChart, computeLuckCycles, computeCompatibility } from "./saju.js";
+import type { BirthInfo } from "../types/index.js";
+
+const female1990: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
+
+describe("신살 계산", () => {
+  const chart = computeSajuChart(female1990);
+
+  it("일주 임술은 백호·괴강 신살을 함께 가진다", () => {
+    // 임술 일주는 백호대살(임술)이면서 괴강(임술)에 해당
+    const names = chart.sinsal!.map((s) => s.name);
+    expect(names).toContain("백호대살");
+    expect(names).toContain("괴강");
+  });
+
+  it("모든 신살 항목은 이름·위치·뜻을 갖는다", () => {
+    for (const s of chart.sinsal ?? []) {
+      expect(s.name.length).toBeGreaterThan(0);
+      expect(s.position.length).toBeGreaterThan(0);
+      expect(s.gloss.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("천을귀인은 일간 기준 정해진 지지에만 잡힌다", () => {
+    // 갑일간 + 축 지지 → 천을귀인
+    const chart2 = computeSajuChart({ calendarType: "solar", year: 1984, month: 2, day: 5, hour: 2, gender: "male" });
+    // 존재 여부와 무관하게, 천을귀인이 잡혔다면 위치 지지가 축/미 중 하나여야 함
+    const cheoneul = (chart2.sinsal ?? []).filter((s) => s.name === "천을귀인");
+    for (const s of cheoneul) {
+      const dayGan = chart2.dayMasterGan;
+      if (dayGan === "갑" || dayGan === "무" || dayGan === "경") {
+        expect(s.position).toMatch(/[축미]/);
+      }
+    }
+  });
+});
+
+describe("격국·희신", () => {
+  const chart = computeSajuChart(female1990);
+  it("격국이 판정된다", () => {
+    expect(chart.gyeokguk).toBeDefined();
+    expect(chart.gyeokguk!.name.length).toBeGreaterThan(0);
+    expect(chart.gyeokguk!.basis).toContain("월지");
+  });
+  it("신강/신약이면 용신과 희신이 분리된다", () => {
+    const weak = computeSajuChart({ calendarType: "solar", year: 1975, month: 6, day: 15, hour: 12, gender: "female" });
+    if (weak.strength!.label !== "중화") {
+      expect(weak.yongshin!.yongshin!.length).toBeGreaterThan(0);
+      expect(weak.yongshin!.heesin!.length).toBeGreaterThan(0);
+      // 용신과 희신은 겹치지 않아야 함
+      for (const h of weak.yongshin!.heesin!) expect(weak.yongshin!.yongshin!).not.toContain(h);
+    }
+  });
+});
+
+describe("60갑자 일주 성향", () => {
+  it("일주에 맞는 성향 문구가 붙는다", () => {
+    const chart = computeSajuChart(female1990);
+    expect(chart.iljuTrait).toBeDefined();
+    expect(chart.iljuTrait!.length).toBeGreaterThan(5);
+  });
+});
+
+describe("세운 다년", () => {
+  const luck = computeLuckCycles(female1990, new Date("2026-07-03T03:00:00Z"));
+  it("올해부터 10년치 세운을 만든다", () => {
+    expect(luck.yearlyFlow).toHaveLength(10);
+    expect(luck.yearlyFlow![0].year).toBe(2026);
+    expect(luck.yearlyFlow![0].current).toBe(true);
+    expect(luck.yearlyFlow![9].year).toBe(2035);
+  });
+  it("나이가 연도에 따라 증가한다", () => {
+    const ages = luck.yearlyFlow!.map((y) => y.age);
+    for (let i = 1; i < ages.length; i++) expect(ages[i]).toBe(ages[i - 1] + 1);
+  });
+});
+
+describe("윤달·야자시", () => {
+  it("윤달 여부에 따라 다른 원국이 나온다", () => {
+    // 1987년은 음력 윤6월이 있는 해
+    const normal = computeSajuChart({ calendarType: "lunar", year: 1987, month: 6, day: 15, hour: 12, gender: "male" });
+    const leap = computeSajuChart({ calendarType: "lunar", year: 1987, month: 6, day: 15, hour: 12, gender: "male", isLeapMonth: true });
+    expect(normal.month.ganZhi).not.toBe(leap.month.ganZhi);
+  });
+
+  it("23시 출생의 조자시/야자시는 일주가 달라진다", () => {
+    const base = { calendarType: "solar" as const, year: 2000, month: 1, day: 1, hour: 23, minute: 30, gender: "male" as const };
+    const late = computeSajuChart({ ...base, lateNightZi: "late" }); // 당일 일주
+    const early = computeSajuChart({ ...base, lateNightZi: "early" }); // 다음날 일주
+    expect(late.day.ganZhi).not.toBe(early.day.ganZhi);
+  });
+});
+
+describe("궁합 계산", () => {
+  const A = female1990;
+  const B: BirthInfo = { calendarType: "solar", year: 1988, month: 5, day: 5, hour: 14, minute: 0, gender: "male" };
+  const compat = computeCompatibility(A, B);
+
+  it("0~100 점수와 세부 항목을 낸다", () => {
+    expect(compat.score).toBeGreaterThanOrEqual(0);
+    expect(compat.score).toBeLessThanOrEqual(100);
+    expect(compat.breakdown).toHaveLength(3);
+    expect(compat.dayMasterRelation.length).toBeGreaterThan(0);
+    expect(compat.summary.length).toBeGreaterThan(0);
+  });
+
+  it("교환해도 점수가 동일하다 (대칭성)", () => {
+    const swapped = computeCompatibility(B, A);
+    expect(swapped.score).toBe(compat.score);
+  });
+});

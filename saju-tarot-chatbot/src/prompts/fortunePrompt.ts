@@ -13,21 +13,24 @@ export const FORTUNE_SYSTEM_PROMPT = `너는 사주 기반 오늘의 운세를 �
 1. 미래를 단정하지 않고 경향성과 "잘 맞는 행동/부딪히기 쉬운 패턴"으로 표현한다.
 2. 건강/법률/투자/결혼/이직 같은 중대 결정을 운세로 대신 내려주지 않는다.
 3. 공포형·저주형·운명 확정형 표현("반드시", "무조건", "헤어져야 한다")을 금지한다.
-4. 근거 데이터의 십성/합충/신살을 최소 3회 이상 자연스럽게 문장에 녹인다.
-   (예: 충이 있으면 "일정 변동이 생기기 쉬운 날" 식으로 번역)
-5. "이렇게 읽어볼 수 있어요", "오늘 체크할 포인트는" 같은 완곡하고 현실적인 문체를 쓴다.
+4. 사주 전문용어(십성 이름·간지·합충·신살·오행 명칭)를 사용자 문장에 직접 노출하지 않는다.
+   근거는 일상어로 번역해 녹인다 (예: "충" → "일정이 바뀌기 쉬운", "관성" → "책임·평가와 마주하는").
+5. 쉽고 짧은 문장을 쓴다. 중학생도 바로 이해할 수 있는 수준으로 작성한다.
+6. "이렇게 읽어볼 수 있어요", "오늘 체크할 포인트는" 같은 완곡하고 현실적인 문체를 쓴다.
 
 [출력 형식 - JSON으로만 응답]
 {
-  "summary": "한 줄 총평",
-  "keywords": ["키워드1", "키워드2", "키워드3"],
-  "good_areas": ["잘 풀리는 영역 2~3개"],
-  "caution_points": ["주의 포인트 2~3개"],
+  "summary": "한 줄 총평 (쉬운 말, 전문용어 없이)",
+  "overall": "전체 운세를 쉬운 말로 풀어 쓴 2~3문장. 오늘 흐름 + 잘 풀리는 분야 + 살필 분야를 종합",
+  "keywords": ["쉬운 키워드1", "쉬운 키워드2", "쉬운 키워드3"],
   "do_actions": ["추천 행동 3개"],
   "avoid_actions": ["피할 행동 2개"],
   "categories": {
-    "love": "한 줄", "work": "한 줄", "money": "한 줄",
-    "relationship": "한 줄", "condition": "한 줄"
+    "money": { "comment": "한 줄", "good": "잘 풀리는 점 (선택)", "caution": "주의할 점 (선택)" },
+    "love": { "comment": "한 줄", "good": "선택", "caution": "선택" },
+    "career": { "comment": "한 줄", "good": "선택", "caution": "선택" },
+    "health": { "comment": "한 줄", "good": "선택", "caution": "선택" },
+    "relationship": { "comment": "한 줄", "good": "선택", "caution": "선택" }
   },
   "share_text": "친구에게 보내도 자연스러운 3~5줄 복붙용 버전"
 }
@@ -78,7 +81,8 @@ export function buildFortuneUserMessage(evidence: FortuneEvidence): string {
     `행운 아이템: 오행 ${lucky.element} · 색 ${lucky.colors.join("·")} · 방위 ${lucky.direction} · 숫자 ${lucky.numbers.join("·")} · 시간대 ${lucky.timeSlot.zhi}시(${lucky.timeSlot.range})`,
     "",
     "위 [근거 데이터]만 사용해서, 시스템 프롬프트의 JSON 출력 형식에 정확히 맞춰 오늘의 운세를 작성해줘.",
-    "categories의 각 항목(love/work/money/relationship/condition)은 위 카테고리 점수의 높낮이와 근거(십성·합충·신살)를 반영해서 한 줄씩 쓴다.",
+    "categories의 각 항목(money/love/career/health/relationship)은 위 카테고리 점수의 높낮이와 근거(십성·합충·신살)를 반영해서 comment 한 줄을 쓰고,",
+    "점수가 특히 높은 상위 분야에는 good을, 가장 낮은 분야에는 caution을 덧붙인다. 단, 근거의 전문용어는 절대 그대로 노출하지 말고 일상어로 옮긴다.",
   ];
 
   return lines.join("\n");
@@ -88,6 +92,21 @@ export function buildFortuneUserMessage(evidence: FortuneEvidence): string {
 
 function isStringArray(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((x) => typeof x === "string");
+}
+
+const CATEGORY_KEYS = ["money", "love", "career", "health", "relationship"] as const;
+
+/** categories.<key>가 { comment: string, good?: string, caution?: string } 형태인지 검증 */
+function parseCategoryContent(v: unknown): FortuneContent["categories"]["money"] | null {
+  if (typeof v !== "object" || v === null) return null;
+  const o = v as Record<string, unknown>;
+  if (typeof o.comment !== "string") return null;
+  if (o.good !== undefined && typeof o.good !== "string") return null;
+  if (o.caution !== undefined && typeof o.caution !== "string") return null;
+  const out: FortuneContent["categories"]["money"] = { comment: o.comment };
+  if (typeof o.good === "string") out.good = o.good;
+  if (typeof o.caution === "string") out.caution = o.caution;
+  return out;
 }
 
 /**
@@ -117,36 +136,30 @@ export function parseFortuneContent(text: string): FortuneContent | null {
 
   if (
     typeof o.summary !== "string" ||
+    typeof o.overall !== "string" ||
     !isStringArray(o.keywords) ||
-    !isStringArray(o.good_areas) ||
-    !isStringArray(o.caution_points) ||
     !isStringArray(o.do_actions) ||
     !isStringArray(o.avoid_actions) ||
     typeof o.share_text !== "string" ||
-    !cats ||
-    typeof cats.love !== "string" ||
-    typeof cats.work !== "string" ||
-    typeof cats.money !== "string" ||
-    typeof cats.relationship !== "string" ||
-    typeof cats.condition !== "string"
+    !cats
   ) {
     return null;
   }
 
+  const categories: Partial<FortuneContent["categories"]> = {};
+  for (const key of CATEGORY_KEYS) {
+    const parsed = parseCategoryContent(cats[key]);
+    if (!parsed) return null;
+    categories[key] = parsed;
+  }
+
   return {
     summary: o.summary,
+    overall: o.overall,
     keywords: o.keywords,
-    good_areas: o.good_areas,
-    caution_points: o.caution_points,
     do_actions: o.do_actions,
     avoid_actions: o.avoid_actions,
-    categories: {
-      love: cats.love,
-      work: cats.work,
-      money: cats.money,
-      relationship: cats.relationship,
-      condition: cats.condition,
-    },
+    categories: categories as FortuneContent["categories"],
     share_text: o.share_text,
   };
 }

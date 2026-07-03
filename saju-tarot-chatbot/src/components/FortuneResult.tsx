@@ -1,29 +1,20 @@
 import { useState } from "react";
-import type { FortuneResult as FortuneResultType } from "../types";
+import Gauge from "./Gauge";
+import type { FortuneCategoryContent, FortuneResult as FortuneResultType } from "../types";
 
-interface GaugeDef {
+interface CategoryCardDef {
   label: string;
   score: number;
-  comment?: string;
+  content: FortuneCategoryContent;
 }
 
-function band(score: number): "high" | "mid" | "low" {
-  if (score >= 62) return "high";
-  if (score >= 45) return "mid";
-  return "low";
-}
-
-function Gauge({ label, score, comment }: GaugeDef) {
+function CategoryCard({ label, score, content }: CategoryCardDef) {
   return (
-    <div className="gauge">
-      <div className="gauge__head">
-        <span className="gauge__label">{label}</span>
-        <span className="gauge__score">{score}</span>
-      </div>
-      <div className="gauge__track">
-        <span className={`gauge__fill gauge__fill--${band(score)}`} style={{ width: `${score}%` }} />
-      </div>
-      {comment && <p className="gauge__comment">{comment}</p>}
+    <div className="fortune-category-card">
+      <Gauge label={label} score={score} />
+      <p className="fortune-category-card__comment">{content.comment}</p>
+      {content.good && <p className="fortune-badge fortune-badge--good">{content.good}</p>}
+      {content.caution && <p className="fortune-badge fortune-badge--caution">{content.caution}</p>}
     </div>
   );
 }
@@ -32,13 +23,12 @@ export default function FortuneResult({ result }: { result: FortuneResultType })
   const { evidence: e, content, source } = result;
   const [copied, setCopied] = useState(false);
 
-  const gauges: GaugeDef[] = [
-    { label: "총운", score: e.categories.overall },
-    { label: "재물", score: e.categories.money, comment: content.categories.money },
-    { label: "애정", score: e.categories.love, comment: content.categories.love },
-    { label: "직장·학업", score: e.categories.career, comment: content.categories.work },
-    { label: "건강", score: e.categories.health, comment: content.categories.condition },
-    { label: "대인관계", score: e.categories.relationship, comment: content.categories.relationship },
+  const categoryCards: CategoryCardDef[] = [
+    { label: "재물", score: e.categories.money, content: content.categories.money },
+    { label: "애정", score: e.categories.love, content: content.categories.love },
+    { label: "직장·학업", score: e.categories.career, content: content.categories.career },
+    { label: "건강", score: e.categories.health, content: content.categories.health },
+    { label: "대인관계", score: e.categories.relationship, content: content.categories.relationship },
   ];
 
   const activeRelations = e.branchRelations.filter((r) => r.relations.length > 0);
@@ -79,37 +69,24 @@ export default function FortuneResult({ result }: { result: FortuneResultType })
         )}
       </section>
 
-      {/* 2) 카테고리 점수 게이지 */}
+      {/* 2) 전체 운세 */}
       <section className="card">
-        <h3 className="card-title">오늘의 점수</h3>
-        <div className="gauge-list">
-          {gauges.map((g) => (
-            <Gauge key={g.label} {...g} />
+        <h3 className="card-title">오늘의 총운</h3>
+        <Gauge label="총운" score={e.categories.overall} />
+        <p className="fortune-overall">{content.overall}</p>
+      </section>
+
+      {/* 3) 분야별 카드 */}
+      <section className="card">
+        <h3 className="card-title">분야별 운세</h3>
+        <div className="fortune-category-grid">
+          {categoryCards.map((c) => (
+            <CategoryCard key={c.label} {...c} />
           ))}
         </div>
       </section>
 
-      {/* good / caution */}
-      <section className="card fortune-two">
-        <div>
-          <h4 className="fortune-subhead fortune-subhead--good">잘 풀리는 영역</h4>
-          <ul className="fortune-ul">
-            {content.good_areas.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4 className="fortune-subhead fortune-subhead--caution">오늘 체크할 포인트</h4>
-          <ul className="fortune-ul">
-            {content.caution_points.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* 3) 추천 / 피할 행동 */}
+      {/* 4) 추천 / 피할 행동 */}
       <section className="card fortune-two">
         <div>
           <h4 className="fortune-subhead fortune-subhead--good">추천 행동</h4>
@@ -129,7 +106,7 @@ export default function FortuneResult({ result }: { result: FortuneResultType })
         </div>
       </section>
 
-      {/* 4) 행운 아이템 */}
+      {/* 5) 행운 아이템 */}
       <section className="card">
         <h3 className="card-title">오늘의 행운</h3>
         <div className="lucky-grid">
@@ -155,7 +132,7 @@ export default function FortuneResult({ result }: { result: FortuneResultType })
         <p className="lucky-note">기준 오행: {e.luckyItems.element} (용신 후보)</p>
       </section>
 
-      {/* 5) 왜 이런 운세인가요 (근거) */}
+      {/* 6) 왜 이런 운세인가요 (근거) */}
       <details className="card reading-section fortune-why">
         <summary>왜 이런 운세인가요?</summary>
         <div className="fortune-why__body">
@@ -188,7 +165,7 @@ export default function FortuneResult({ result }: { result: FortuneResultType })
         </div>
       </details>
 
-      {/* 6) 공유 */}
+      {/* 7) 공유 */}
       <div className="reading-actions">
         <button className="btn btn--secondary" onClick={copyShare}>
           {copied ? "복사됨 ✓" : "운세 공유하기 (복사)"}
