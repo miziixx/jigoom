@@ -7,6 +7,11 @@ interface Section {
   body: string;
 }
 
+interface BodyPart {
+  title: string | null;
+  body: string;
+}
+
 function parseSections(markdown: string): Section[] {
   const parts = markdown.split(/^#\s+(.+)$/m).slice(1);
   const sections: Section[] = [];
@@ -14,6 +19,19 @@ function parseSections(markdown: string): Section[] {
     sections.push({ title: parts[i].trim(), body: (parts[i + 1] ?? "").trim() });
   }
   return sections.length > 0 ? sections : [{ title: "리딩 결과", body: markdown }];
+}
+
+function parseBodyParts(text: string): BodyPart[] {
+  const parts = text.split(/^\[([^\]]+)\]\s*$/m);
+  if (parts.length <= 1) return [{ title: null, body: text }];
+
+  const result: BodyPart[] = [];
+  const intro = parts[0]?.trim();
+  if (intro) result.push({ title: null, body: intro });
+  for (let i = 1; i < parts.length; i += 2) {
+    result.push({ title: parts[i].trim(), body: (parts[i + 1] ?? "").trim() });
+  }
+  return result.filter((part) => part.body.length > 0);
 }
 
 /**
@@ -28,9 +46,95 @@ function stripMarkdown(text: string): string {
     .replace(/`([^`]+)`/g, "$1") // `코드`
     .replace(/^#{1,6}\s+/gm, "") // 본문 속 소제목
     .replace(/^\s*>\s?/gm, "") // 인용
-    .replace(/^\s*[-*+]\s+/gm, "") // 목록 기호 → 문장만 남김
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function renderTextBlock(text: string) {
+  const blocks: JSX.Element[] = [];
+  const lines = stripMarkdown(text).split("\n");
+  let paragraph: string[] = [];
+  let bullets: string[] = [];
+
+  const flushParagraph = () => {
+    const body = paragraph.join("\n").trim();
+    if (body) {
+      blocks.push(
+        <p className="reading-body" key={`p-${blocks.length}`}>
+          {body}
+        </p>,
+      );
+    }
+    paragraph = [];
+  };
+
+  const flushBullets = () => {
+    if (bullets.length > 0) {
+      blocks.push(
+        <ul className="reading-bullets" key={`ul-${blocks.length}`}>
+          {bullets.map((item, i) => (
+            <li key={i}>{item}</li>
+          ))}
+        </ul>,
+      );
+    }
+    bullets = [];
+  };
+
+  for (const line of lines) {
+    const bullet = line.match(/^\s*[-*+]\s+(.+)$/);
+    if (bullet) {
+      flushParagraph();
+      bullets.push(bullet[1].trim());
+      continue;
+    }
+    if (!line.trim()) {
+      flushParagraph();
+      flushBullets();
+      continue;
+    }
+    flushBullets();
+    paragraph.push(line);
+  }
+  flushParagraph();
+  flushBullets();
+
+  return blocks.length > 0 ? blocks : null;
+}
+
+function SectionBody({ body, loading }: { body: string; loading?: boolean }) {
+  const parts = parseBodyParts(body);
+  if (parts.length === 1 && !parts[0].title) {
+    return (
+      <div className="reading-section__body">
+        {renderTextBlock(parts[0].body)}
+        {loading && <span className="reading-typing"> ▌</span>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="reading-section__body">
+      {parts.map((part) => {
+        const isEvidence = part.title === "전문가 근거 보기";
+        if (isEvidence) {
+          return (
+            <details className="expert-evidence" key={part.title}>
+              <summary>{part.title}</summary>
+              <div className="expert-evidence__body">{renderTextBlock(part.body)}</div>
+            </details>
+          );
+        }
+        return (
+          <div className="reading-part" key={part.title ?? "intro"}>
+            {part.title && <h4 className="reading-part__title">{part.title}</h4>}
+            {renderTextBlock(part.body)}
+          </div>
+        );
+      })}
+      {loading && <span className="reading-typing"> ▌</span>}
+    </div>
+  );
 }
 
 const HERO_OPENING = "첫 점괘";
@@ -124,10 +228,7 @@ export default function ReadingResult({ session, loading = false }: { session: R
       {bodySections.map((section, i) => (
         <section key={section.title} className="card reading-section reading-section--open">
           <h3 className="reading-section__title">{section.title}</h3>
-          <p className="reading-body">
-            {stripMarkdown(section.body)}
-            {loading && i === bodySections.length - 1 && !closing && <span className="reading-typing"> ▌</span>}
-          </p>
+          <SectionBody body={section.body} loading={loading && i === bodySections.length - 1 && !closing} />
         </section>
       ))}
 

@@ -631,6 +631,56 @@ label {
   color: var(--accent);
 }
 
+.reading-section__body {
+  display: grid;
+  gap: 14px;
+}
+
+.reading-part {
+  display: grid;
+  gap: 6px;
+}
+
+.reading-part__title {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.reading-bullets {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.75;
+}
+
+.expert-evidence {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.expert-evidence > summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  font-weight: 700;
+  list-style: none;
+}
+
+.expert-evidence > summary::before {
+  content: "▸ ";
+  color: var(--accent);
+}
+
+.expert-evidence[open] > summary::before {
+  content: "▾ ";
+}
+
+.expert-evidence__body {
+  margin-top: 10px;
+}
+
 /* ── 근거(원국) — 몰입 리딩 뒤에 접어둔다 ── */
 .reading-evidence {
   margin-top: 6px;
