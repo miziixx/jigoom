@@ -1,37 +1,11 @@
 import { useState } from "react";
+import Gauge from "./Gauge";
 import type { FortuneCategoryContent, FortuneResult as FortuneResultType } from "../types";
-
-interface GaugeDef {
-  label: string;
-  score: number;
-  comment?: string;
-}
 
 interface CategoryCardDef {
   label: string;
   score: number;
   content: FortuneCategoryContent;
-}
-
-function band(score: number): "high" | "mid" | "low" {
-  if (score >= 62) return "high";
-  if (score >= 45) return "mid";
-  return "low";
-}
-
-function Gauge({ label, score, comment }: GaugeDef) {
-  return (
-    <div className="gauge">
-      <div className="gauge__head">
-        <span className="gauge__label">{label}</span>
-        <span className="gauge__score">{score}</span>
-      </div>
-      <div className="gauge__track">
-        <span className={`gauge__fill gauge__fill--${band(score)}`} style={{ width: `${score}%` }} />
-      </div>
-      {comment && <p className="gauge__comment">{comment}</p>}
-    </div>
-  );
 }
 
 function CategoryCard({ label, score, content }: CategoryCardDef) {

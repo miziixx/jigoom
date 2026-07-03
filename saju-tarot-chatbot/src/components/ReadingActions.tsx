@@ -1,3 +1,4 @@
+import { downloadReadingMarkdown } from "../lib/exportMarkdown";
 import { downloadShareImage } from "../lib/shareImage";
 import { useReadingStore } from "../store/useReadingStore";
 import type { ReadingSession } from "../types";
@@ -28,6 +29,9 @@ export default function ReadingActions({ session }: { session: ReadingSession })
       </button>
       <button className="btn btn--secondary" onClick={printReading}>
         PDF 저장
+      </button>
+      <button className="btn btn--secondary" onClick={() => downloadReadingMarkdown(session)}>
+        마크다운 저장
       </button>
       <button className="btn btn--secondary" onClick={() => downloadShareImage(session)}>
         이미지로 공유

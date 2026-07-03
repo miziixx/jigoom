@@ -239,6 +239,242 @@ label {
   color: var(--text-dim);
 }
 
+/* ── 사주 원국 패널 ────────── */
+.saju-facts__subhead {
+  margin: 16px 0 8px;
+  font-size: 0.88rem;
+  color: var(--accent);
+}
+
+.saju-facts__note {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .pillar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.pillar-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+}
+
+.pillar-box__label {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+.pillar-box__value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.element-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.element-bar {
+  display: grid;
+  grid-template-columns: 20px 1fr 24px;
+  align-items: center;
+  gap: 8px;
+}
+
+.element-bar__label {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.element-bar__track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(128, 128, 128, 0.18);
+  overflow: hidden;
+}
+
+.element-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.element-bar__fill--wood {
+  background: #6fcf7c;
+}
+
+.element-bar__fill--fire {
+  background: #ff8a6b;
+}
+
+.element-bar__fill--earth {
+  background: #d8b26a;
+}
+
+.element-bar__fill--metal {
+  background: #cfd6e0;
+}
+
+.element-bar__fill--water {
+  background: #6bb6ff;
+}
+
+.element-bar__value {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.yinyang-bar__track {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+  background: #2b2540;
+}
+
+.yinyang-bar__yang {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffe08a, #ffcf5c);
+}
+
+.yinyang-bar__labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.saju-facts__details {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.saju-facts__details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+
+.saju-facts__details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.saju-facts__details-body p {
+  margin: 0;
+}
+
+.luck-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.luck-chip {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.luck-chip b {
+  color: var(--text);
+}
+
+.dayun-timeline {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dayun-pill {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+}
+
+.dayun-pill--current {
+  border-color: var(--accent);
+  background: rgba(201, 164, 255, 0.14);
+}
+
+.dayun-pill__age {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.dayun-pill__ganzhi {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.month-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+@media (max-width: 480px) {
+  .month-flow-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.month-flow-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+.month-flow-cell--active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .reading-summary h3 {
   margin: 0 0 8px;
   color: var(--accent);
@@ -258,6 +494,112 @@ label {
 
 .reading-section[open] summary {
   margin-bottom: 10px;
+}
+
+.reading-section--live {
+  border-color: var(--accent);
+}
+
+.reading-section__live-title {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.reading-typing {
+  display: inline-block;
+  color: var(--accent);
+  animation: reading-blink 1s step-start infinite;
+}
+
+@keyframes reading-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.reading-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .reading-category-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reading-category-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-alt);
+}
+
+.reading-category-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.reading-category-card__label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.reading-category-card__comment {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+
+.reading-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.reading-badge--good {
+  background: rgba(87, 208, 164, 0.16);
+  color: #57d0a4;
+}
+
+.reading-badge--mid {
+  background: rgba(157, 140, 216, 0.16);
+  color: #9d8cd8;
+}
+
+.reading-badge--caution {
+  background: rgba(255, 178, 122, 0.16);
+  color: #ffb27a;
+}
+
+.loading-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  margin-top: 10px;
+}
+
+.loading-notice__spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  animation: loading-spin 0.8s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .chat-followup h4 {
@@ -498,7 +840,6 @@ label {
   .app-footer,
   .app-nav,
   .reading-actions,
-  .chat-followup,
   .btn,
   form {
     display: none !important;
@@ -512,7 +853,8 @@ label {
 
   .reading-summary h3,
   .facts-block h4,
-  .landing-card h3 {
+  .landing-card h3,
+  .chat-followup h4 {
     color: #5b21b6;
   }
 
@@ -520,6 +862,11 @@ label {
   .facts-block p,
   .reading-section summary {
     color: #111;
+  }
+
+  .chat-bubble {
+    color: #111;
+    background: #f2f2f2 !important;
   }
 }
 
@@ -695,6 +1042,10 @@ label {
 
 .gauge__fill--low {
   background: linear-gradient(90deg, #ffb27a, #ff8a8a);
+}
+
+.gauge__fill--neutral {
+  background: linear-gradient(90deg, #9d8cd8, #7a68c0);
 }
 
 .gauge__comment {
