@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { saveFeedback } from "../lib/feedback";
+import { streamReading } from "../lib/readingApi";
 import { deleteSession, loadSessions, saveSession, toggleFavorite } from "../lib/storage";
 import type {
   BirthInfo,
@@ -49,43 +50,58 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
 
   startReading: async ({ type, question, focus, context, birthInfo, tarotCards, spreadNote }) => {
     set({ loading: true, error: null });
+    // 스트리밍 도중 계속 갱신되는 세션 (meta 도착 시 생성 → 텍스트가 실시간으로 자란다)
+    let session: ReadingSession | null = null;
     try {
-      const res = await fetch("/api/reading", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, question, focus, context, birthInfo, tarotCards, spreadNote }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        // 504 = Vercel 함수 시간 초과 (JSON 아님)
-        throw new Error(
-          body.error ?? (res.status === 504 ? "서버 응답 시간 초과(504). 다시 시도해보세요." : `요청 실패 (HTTP ${res.status})`),
-        );
-      }
-      const data = await res.json();
+      const result = await streamReading(
+        { type, question, focus, context, birthInfo, tarotCards, spreadNote },
+        {
+          onMeta: (meta) => {
+            session = {
+              id: newId(),
+              type,
+              createdAt: new Date().toISOString(),
+              question,
+              focus,
+              context,
+              birthInfo,
+              sajuChart: meta.sajuChart,
+              luckCycles: meta.luckCycles,
+              tarotCards,
+              messages: [
+                { role: "user", content: meta.userMessage },
+                { role: "assistant", content: "" },
+              ],
+            };
+            set({ currentSession: session });
+          },
+          onText: (accumulated) => {
+            if (!session) return;
+            session = {
+              ...session,
+              messages: [session.messages[0], { role: "assistant", content: accumulated }],
+            };
+            set({ currentSession: session });
+          },
+        },
+      );
 
-      const session: ReadingSession = {
-        id: newId(),
-        type,
-        createdAt: new Date().toISOString(),
-        question,
-        focus,
-        context,
-        birthInfo,
-        sajuChart: data.sajuChart,
-        luckCycles: data.luckCycles,
-        tarotCards,
-        messages: [
-          { role: "user", content: data.userMessage as string },
-          { role: "assistant", content: data.reply as string },
-        ],
+      // TS는 콜백 안의 할당을 추적하지 못하므로 여기서 타입을 되살린다
+      const built = session as ReadingSession | null;
+      if (!built) throw new Error("서버가 계산 결과를 보내지 않았습니다. 다시 시도해보세요.");
+      const finalSession: ReadingSession = {
+        ...built,
+        messages: [built.messages[0], { role: "assistant", content: result.reply }],
       };
-
-      saveSession(session);
-      set({ currentSession: session, loading: false });
+      saveSession(finalSession);
+      set({ currentSession: finalSession, loading: false });
       get().refreshHistory();
     } catch (err) {
+      // 부분 결과가 있으면 저장해서 살린다
+      const partial = session as ReadingSession | null;
+      if (partial && partial.messages[1]?.content) saveSession(partial);
       set({ loading: false, error: err instanceof Error ? err.message : "알 수 없는 오류" });
+      get().refreshHistory();
     }
   },
 
@@ -97,22 +113,23 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     set({ loading: true, error: null, currentSession: { ...session, messages: historyWithQuestion } });
 
     try {
-      const res = await fetch("/api/reading", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "followup", history: historyWithQuestion }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(
-          body.error ?? (res.status === 504 ? "서버 응답 시간 초과(504). 다시 시도해보세요." : `요청 실패 (HTTP ${res.status})`),
-        );
-      }
-      const data = await res.json();
+      const result = await streamReading(
+        { type: "followup", history: historyWithQuestion },
+        {
+          onText: (accumulated) => {
+            set({
+              currentSession: {
+                ...session,
+                messages: [...historyWithQuestion, { role: "assistant", content: accumulated }],
+              },
+            });
+          },
+        },
+      );
 
       const updatedSession: ReadingSession = {
         ...session,
-        messages: [...historyWithQuestion, { role: "assistant", content: data.reply as string }],
+        messages: [...historyWithQuestion, { role: "assistant", content: result.reply }],
       };
       saveSession(updatedSession);
       set({ currentSession: updatedSession, loading: false });

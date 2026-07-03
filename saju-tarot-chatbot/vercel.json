@@ -5,7 +5,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/reading.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   }
 }
