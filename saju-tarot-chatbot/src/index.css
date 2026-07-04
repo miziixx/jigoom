@@ -327,6 +327,165 @@ label {
   line-height: 1.45;
 }
 
+/* ── 이름 감정 ────────── */
+.naming-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.naming-hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.naming-hero__name {
+  font-size: 1.3rem;
+  color: var(--text);
+}
+
+.naming-hero p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.naming-section-title {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.naming-badge {
+  display: inline-flex;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+}
+
+.naming-badge--good {
+  background: rgba(87, 208, 164, 0.16);
+  color: #8df0c8;
+  border-color: rgba(87, 208, 164, 0.4);
+}
+
+.naming-badge--ok {
+  background: rgba(201, 164, 255, 0.14);
+  color: var(--accent);
+  border-color: rgba(201, 164, 255, 0.35);
+}
+
+.naming-badge--warn {
+  background: rgba(224, 164, 79, 0.16);
+  color: #e6b878;
+  border-color: rgba(224, 164, 79, 0.4);
+}
+
+.naming-syllables {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.naming-syllable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 56px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+}
+
+.naming-syllable b {
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.naming-syllable small {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+
+.naming-relations {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.naming-relations li {
+  font-size: 0.76rem;
+}
+
+.naming-note {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.naming-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.naming-chips span {
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.naming-suri {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.naming-suri li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+
+.naming-suri li b {
+  color: var(--text);
+  min-width: 28px;
+}
+
+.naming-suri li span:last-child {
+  margin-left: auto;
+}
+
+.naming-disclaimer {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-alt);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
 /* ── 타로 근거 패널 ────────── */
 .tarot-facts__hint {
   margin: 0 0 10px;

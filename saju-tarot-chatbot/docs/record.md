@@ -310,6 +310,25 @@
 카드에 오늘 일진 블록·보조 기운 노출), exportMarkdown, index.css(오늘 블록 색상: boost 초록/
 temper 주황/steady 보라). 테스트 `lifestyleGuide.test.ts` 신규(4). 총 140개 통과.
 
+## 이름 감정(작명) 메뉴 추가 — 룰 기반 MVP
+
+작명 기능을 '이름 감정'부터 시작(생성/추천은 한자 DB가 무거워 후속). 기존 사주 엔진 재사용.
+
+- `src/lib/naming.ts` 신규 — 결정론적 계산:
+  - 발음오행: 한글 초성 → 오행(목 ㄱㅋ / 화 ㄴㄷㄹㅌ / 토 ㅇㅎ / 금 ㅅㅈㅊ / 수 ㅁㅂㅍ),
+    인접 음절 상생/상극 흐름 → 순조로움/무난함/다소 부딪힘.
+  - 사주 궁합: buildLifestyleGuide의 보완 기운(basisElement)을 이름 소리가 담는지·상생하는지,
+    기신으로 쏠리는지 → 좋음/보통/주의.
+  - 수리(선택): 한자 획수를 주면 사격(원격·형격·이격·정격) + 81수 길흉 참고 계산.
+  - evaluateName: 위 셋을 종합해 overall(좋음/보통/주의) + headline.
+  - 단정 금지, "나쁜 이름" 표현 금지. 참고 자료 톤.
+- `src/components/NamingResult.tsx`, `src/pages/NamingPage.tsx` 신규. BirthInfoForm 재사용.
+- 라우트 `/naming`, 네비 '이름 감정', 랜딩 카드 추가. `src/index.css` 스타일.
+- 테스트 `src/lib/naming.test.ts` 신규(7). 총 147개 통과. 브라우저로 폼·결과 렌더 확인.
+
+후속 후보: (1) AI 해석 레이어(감정 근거를 문장으로), (2) 이름 생성/추천(인명용 한자 DB),
+(3) 발음오행 학파 옵션(전통 vs 상용).
+
 ## 현재 제품 방향
 
 앱의 핵심 방향은 다음과 같다.

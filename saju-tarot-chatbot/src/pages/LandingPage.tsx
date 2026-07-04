@@ -31,6 +31,11 @@ const OPTIONS = [
     title: "월간·연간 운 흐름",
     desc: "올해 12개월 월운을 모두 계산해, 시도하기 좋은 시기와 조심할 시기를 흐름으로 읽어드립니다.",
   },
+  {
+    to: "/naming",
+    title: "이름 감정",
+    desc: "이름 소리의 기운(발음오행)과 내 사주가 보완하면 좋은 흐름이 얼마나 맞는지, 한자 획수 수리까지 계산해 근거로 보여드립니다.",
+  },
 ];
 
 export default function LandingPage() {

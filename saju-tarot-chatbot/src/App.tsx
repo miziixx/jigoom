@@ -9,6 +9,7 @@ import FlowPage from "./pages/FlowPage";
 import HistoryPage from "./pages/HistoryPage";
 import ComparePage from "./pages/ComparePage";
 import CompatibilityPage from "./pages/CompatibilityPage";
+import NamingPage from "./pages/NamingPage";
 import PrivacyPage from "./pages/PrivacyPage";
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="fortune" element={<FortunePage />} />
           <Route path="flow" element={<FlowPage />} />
           <Route path="compatibility" element={<CompatibilityPage />} />
+          <Route path="naming" element={<NamingPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="compare" element={<ComparePage />} />
           <Route path="privacy" element={<PrivacyPage />} />
