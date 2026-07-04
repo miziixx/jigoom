@@ -43,8 +43,9 @@ export function buildNamingRecommendMessage(brief: NamingBrief, options: NamingR
     "아래 사주 보완 근거에 맞춰, 실제로 쓸 수 있는 구체적인 이름 후보를 지어라.",
     `이름 후보는 정확히 ${wantCount}개, 서로 겹치지 않게 제안한다. 개수를 줄이지 마라.`,
     surname?.trim()
-      ? `성(姓)은 '${surname.trim()}'으로 고정한다. JSON의 name 필드에는 성을 제외한 이름 부분만 ${wantSyllable}글자로 담아라(성은 시스템이 붙인다).`
-      : `성이 지정되지 않았으니 name 필드에는 이름(또는 브랜드·활동명) 부분만 ${wantSyllable}글자 안팎으로 담아라.`,
+      ? `성(姓)은 '${surname.trim()}'으로 고정한다. JSON의 name 필드에는 성을 제외한 이름 부분만 담아라(성은 시스템이 붙인다).`
+      : `성이 지정되지 않았으니 name 필드에는 이름(또는 브랜드·활동명) 부분만 담아라.`,
+    `★ 각 name(이름 부분)은 성을 빼고 정확히 ${wantSyllable}글자여야 한다. 아래 예시가 2글자라도 무시하고 반드시 ${wantSyllable}글자로 지어라.`,
     "",
     "[출력 형식 — 아래 JSON 객체 하나만 출력한다. 다른 텍스트·코드펜스 금지]",
     "{",
@@ -53,11 +54,19 @@ export function buildNamingRecommendMessage(brief: NamingBrief, options: NamingR
     '    { "name": "민준", "hanja": "民俊", "hanjaMeaning": "백성 민, 뛰어날 준", "sound": "ㅁ·ㅈ 소리가 이 사주 보완 기운에 어떻게 맞는지 한 줄", "image": "실제로 불렀을 때의 인상 한 줄" }',
     "  ]",
     "}",
-    "- name: 성을 제외한 이름 부분(한글).",
-    "- hanja/hanjaMeaning: 어울리는 한자 표기와 뜻 1~2자. 확신이 없으면 비워도 된다.",
+    `- name: 성을 제외한 이름 부분(한글), 정확히 ${wantSyllable}글자.`,
+    "- hanja/hanjaMeaning: 어울리는 한자 표기와 뜻. 확신이 없으면 비워도 된다.",
     "- sound: 사용한 초성·발음오행이 보완 기운에 맞는 이유 한 줄.",
     "- image: 부르는 느낌·인상 한 줄.",
     `- candidates 배열 길이는 정확히 ${wantCount}개.`,
+    "",
+    "[소리 배치 규칙 — 반드시 지켜 다양하게]",
+    `- 보완 기운 초성(${brief.recommendedChoseong.join("·")})은 '첫 글자'에만 넣지 마라. 이름의 어느 한 음절(첫·가운데·끝 어디든)에 최소 한 번만 들어가면 충분하다.`,
+    `- 모든 후보가 같은 초성으로 시작하면 안 된다. 시작 소리를 여러 자음으로 최대한 다양하게 흩어라. '${brief.recommendedChoseong[0] ?? "ㄱ"}○○' 꼴만 반복하는 것은 금지.`,
+    brief.cautionChoseong.length
+      ? `- 부담 초성(${brief.cautionChoseong.join("·")})만 피하고, 나머지 자음(ㄴ·ㄷ·ㄹ·ㅅ·ㅈ·ㅊ·ㅌ·ㅇ·ㅎ 등)은 자유롭게 섞어 서로 다른 이름을 만들어라.`
+      : `- 나머지 음절은 다른 자음을 자유롭게 섞어 서로 다른 이름을 만들어라.`,
+    `- 예: 보완 초성이 ${brief.recommendedChoseong[0] ?? "ㄱ"}이라도 '${brief.recommendedChoseong[0] ?? "가"}○'로만 시작하지 말고, 끝 글자나 가운데 음절에 넣거나(○${brief.recommendedChoseong[0] ?? "건"}), 시작음을 바꿔 다양화하라.`,
     "",
     "[작명 조건]",
     `작명 목적: ${modeLabel}`,

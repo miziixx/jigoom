@@ -432,16 +432,36 @@ export interface ScoredRecommendedName {
  * 사주 보완 적합도(비중 큼)와 발음 조화를 결정론적으로 합산한다. AI가 지어낸 점수가 아니다.
  */
 export function namingDisplayScore(ev: NameEvaluation): number {
-  let s = 60;
-  s += ev.fit.level === "좋음" ? 24 : ev.fit.level === "보통" ? 12 : 2;
-  s += ev.sound.harmony === "순조로움" ? 14 : ev.sound.harmony === "무난함" ? 7 : 0;
-  if (ev.fit.suppliesNeeded) s += 4;
-  else if (ev.fit.supportsNeeded) s += 2;
-  if (ev.fit.leansAvoid) s -= 6;
+  let s = 55;
+
+  // 사주 보완 적합도 (비중 큼)
+  if (ev.fit.suppliesNeeded) s += 16;
+  else if (ev.fit.supportsNeeded) s += 9;
+  s += ev.fit.level === "좋음" ? 8 : ev.fit.level === "보통" ? 3 : 0;
+  if (ev.fit.leansAvoid) s -= 12;
+
+  // 소리 흐름: 상생/상극 관계 개수로 세밀하게 (이름마다 음절 조합이 달라 점수가 벌어진다)
+  const rels = ev.sound.relations;
+  const sangsaeng = rels.filter((r) => r.relation === "상생").length;
+  const sanggeuk = rels.filter((r) => r.relation === "상극").length;
+  s += sangsaeng * 5 - sanggeuk * 6;
+
+  // 보완 기운을 담은 음절 수 (한 번 담으면 충분, 과하게 몰리면 가점 줄임)
+  const needCount = ev.sound.syllables.filter((sy) => sy.element === ev.fit.neededElement).length;
+  s += needCount === 1 ? 7 : needCount >= 2 ? 4 : 0;
+
+  // 부담 기운 음절이 섞일수록 감점
+  if (ev.fit.avoidElement) {
+    const avoidCount = ev.sound.syllables.filter((sy) => sy.element === ev.fit.avoidElement).length;
+    s -= avoidCount * 4;
+  }
+
+  // 획수 수리(입력 시)
   if (ev.suri) {
     const lucky = ev.suri.levels.filter((l) => l.level === "길").length;
-    s += lucky >= 3 ? 2 : lucky === 0 ? -3 : 0;
+    s += lucky >= 3 ? 3 : lucky === 0 ? -3 : 0;
   }
+
   return Math.max(40, Math.min(99, s));
 }
 

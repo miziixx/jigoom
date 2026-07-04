@@ -26,8 +26,18 @@ import {
   type SoundElementSchool,
 } from "../lib/naming";
 
-const RECOMMEND_COUNT = 24;
 import type { BirthInfo } from "../types";
+
+const RECOMMEND_COUNT = 24;
+
+// 오행 한 글자(목/화/토/금/수)를 쉬운 말 뜻으로 (칩이 "수"처럼 숫자로 읽히는 혼동 방지)
+const ELEMENT_MEANING: Record<string, string> = {
+  목: "성장·시작",
+  화: "표현·활력",
+  토: "안정·책임",
+  금: "판단·정리",
+  수: "생각·휴식",
+};
 
 type NamingTab = "evaluate" | "recommend";
 
@@ -152,9 +162,9 @@ export default function NamingPage() {
     };
     const recKey = { brief: nextBrief, options };
     try {
-      const cached = forceRegenerate ? null : getCachedResult<string>("naming-recommend-v2", recKey);
+      const cached = forceRegenerate ? null : getCachedResult<string>("naming-recommend-v3", recKey);
       const reply = cached ?? (await generateNameRecommendations(nextBrief, options));
-      setCachedResult("naming-recommend-v2", recKey, reply);
+      setCachedResult("naming-recommend-v3", recKey, reply);
       // AI는 후보만 뽑고, 점수는 사주 차트로 결정론적으로 매긴다.
       const parsed = parseRecommendedNames(reply);
       if (parsed) {
@@ -520,10 +530,18 @@ export default function NamingPage() {
               </div>
               <div className="naming-chips">
                 <span>어울리는 초성 {brief.recommendedChoseong.join(" · ")}</span>
-                <span>
-                  살려주는 {brief.supportingLabel} {brief.supportingChoseong.join(" · ")}
-                </span>
-                {brief.avoidLabel && <span>몰리면 부담 {brief.avoidLabel}</span>}
+                {/* 살려주는 기운은 실제로 도움이 되는 경우(초성이 있을 때)만 표시.
+                    보완 기운과 부담 기운이 겹치는 특수 케이스에선 모순되므로 감춘다. */}
+                {brief.supportingChoseong.length > 0 && (
+                  <span>
+                    함께 살리면 좋은 {brief.supportingLabel} 기운({ELEMENT_MEANING[brief.supportingLabel] ?? "기운"})
+                  </span>
+                )}
+                {brief.avoidLabel && (
+                  <span>
+                    많으면 부담되는 {brief.avoidLabel} 기운({ELEMENT_MEANING[brief.avoidLabel] ?? "기운"})
+                  </span>
+                )}
               </div>
               <p>{brief.note}</p>
             </section>
