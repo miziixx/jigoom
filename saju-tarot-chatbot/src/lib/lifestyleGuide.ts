@@ -1,4 +1,4 @@
-import type { FiveElementBalance, SajuChart } from "../types";
+import type { FiveElementBalance, SajuChart } from "../types/index.js";
 
 // 천간/지지 → 오행 (한글). saju.ts에도 같은 표가 있지만, 여기서 saju.ts를 import하면
 // 무거운 lunar-javascript까지 이 모듈 그래프(및 서버리스 API 번들)에 딸려 들어오므로,

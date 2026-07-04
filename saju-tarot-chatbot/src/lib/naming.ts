@@ -1,5 +1,5 @@
-import type { SajuChart } from "../types";
-import { buildLifestyleGuide, type Element } from "./lifestyleGuide";
+import type { SajuChart } from "../types/index.js";
+import { buildLifestyleGuide, type Element } from "./lifestyleGuide.js";
 
 /**
  * 이름 감정(작명) 룰 기반 엔진.

@@ -4,7 +4,7 @@ import {
   type NameEvaluation,
   type NamingBrief,
   type NamingRecommendOptions,
-} from "../lib/naming";
+} from "../lib/naming.js";
 
 export const NAMING_SYSTEM_PROMPT = [
   "당신은 전통 작명 관점의 계산 결과를 사용자가 이해하기 쉬운 생활 언어로 번역하는 이름 감정 해설가다.",
