@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 
 const NAV_ITEMS = [
   { to: "/", label: "홈", end: true },
@@ -34,7 +34,8 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="app-footer">
-        이 리딩은 자기이해와 판단 보조용입니다. 의학·법률·투자 등 중대한 결정의 근거로 사용하지 마세요.
+        이 리딩은 자기이해와 판단 보조용입니다. 의학·법률·투자 등 중대한 결정의 근거로 사용하지 마세요.{" "}
+        <Link to="/privacy">개인정보 안내</Link>
       </footer>
     </div>
   );

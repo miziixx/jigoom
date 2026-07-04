@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import ContextPicker from "./ContextPicker";
 import FocusPicker from "./FocusPicker";
 import { BIRTH_PLACES } from "../data/birthPlaces";
@@ -185,8 +186,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
       </div>
 
       <p className="privacy-note">
-        입력한 생년월일은 이 기기 안에서만 계산에 쓰이고 저장돼요. 해석을 만들 때는 생년월일 원본이 아니라
-        계산된 사주 결과와 질문만 AI(Anthropic, 미국)로 전송됩니다.
+        생년월일 원본은 해석 문장 생성에 직접 보내지 않고, 계산된 사주 정보와 질문만 사용합니다.{" "}
+        <Link to="/privacy">자세한 개인정보 안내</Link>
       </p>
 
       <button type="submit" className="btn btn--primary" disabled={!canSubmit}>

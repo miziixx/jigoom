@@ -10,6 +10,7 @@ import FlowPage from "./pages/FlowPage";
 import HistoryPage from "./pages/HistoryPage";
 import ComparePage from "./pages/ComparePage";
 import CompatibilityPage from "./pages/CompatibilityPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="compatibility" element={<CompatibilityPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="compare" element={<ComparePage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
         </Route>
       </Routes>
     </HashRouter>

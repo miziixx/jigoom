@@ -2153,3 +2153,52 @@ label {
   font-size: 0.78rem;
   line-height: 1.55;
 }
+
+.privacy-note a,
+.app-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.privacy-section {
+  margin-bottom: 14px;
+}
+
+.privacy-section p {
+  margin: 0 0 10px;
+  color: var(--text-dim);
+  line-height: 1.65;
+}
+
+.privacy-table-wrap {
+  overflow-x: auto;
+}
+
+.privacy-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+  font-size: 0.86rem;
+}
+
+.privacy-table th,
+.privacy-table td {
+  border: 1px solid var(--border);
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.privacy-table th {
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.privacy-table td {
+  color: var(--text-dim);
+}
+
+.privacy-updated {
+  color: var(--text-dim);
+  font-size: 0.86rem;
+}
