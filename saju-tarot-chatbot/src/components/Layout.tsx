@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { to: "/fortune", label: "오늘 운세" },
   { to: "/flow", label: "흐름 캘린더" },
   { to: "/compatibility", label: "궁합" },
-  { to: "/naming", label: "이름 감정" },
+  { to: "/naming", label: "이름 감정·추천" },
   { to: "/history", label: "기록" },
 ];
 
