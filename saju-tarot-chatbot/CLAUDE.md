@@ -2,6 +2,16 @@
 
 This file records the current product direction, implementation choices, and safety rules for the Saju Tarot chatbot project. Future Claude/Codex agents should read this before making changes.
 
+## Startup Must-Read
+
+Every Claude Code/Codex session must start by reading:
+
+1. `CLAUDE.md`
+2. `docs/record.md`
+3. `docs/next_steps.md`
+
+Codex-oriented startup instructions are also mirrored in `AGENTS.md`.
+
 ## Mandatory Agent Routine
 
 Claude Code/Codex agents working on this app must treat this file as the shared project memory. Before making changes, read:
