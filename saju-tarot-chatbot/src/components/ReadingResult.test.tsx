@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import ReadingResult from "./ReadingResult.js";
-import type { ReadingSession } from "../types/index.js";
+import { computeLuckCycles, computeSajuChart } from "../lib/saju.js";
+import type { BirthInfo, ReadingSession } from "../types/index.js";
 
 // 새 몰입 구조 + 마크다운/사주용어가 섞인 모델 응답 (렌더 시 정리되어야 함)
 const REPLY = [
@@ -92,5 +93,18 @@ describe("ReadingResult 견고성", () => {
   it("마크다운 없는 순수 문단도 그대로 렌더된다", () => {
     const html = renderToStaticMarkup(<ReadingResult session={makeSession("# 첫 점괘\n오늘은 무난한 하루예요.")} />);
     expect(html).toContain("오늘은 무난한 하루예요.");
+  });
+
+  it("계산값이 있으면 패턴 지도와 월별 실행 캘린더를 보여준다", () => {
+    const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
+    const session = {
+      ...makeSession("# 첫 점괘\n오늘은 무난한 하루예요."),
+      sajuChart: computeSajuChart(birth),
+      luckCycles: computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"), { includeMonthlyFlow: true }),
+    };
+    const html = renderToStaticMarkup(<ReadingResult session={session} />);
+    expect(html).toContain("내 반복 패턴 지도");
+    expect(html).toContain("월별 실행 캘린더");
+    expect(html).toContain("조정법");
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { READING_SYSTEM_PROMPT, buildReadingUserMessage } from "./systemPrompt.js";
+import { READING_SYSTEM_PROMPT, buildCompareUserMessage, buildReadingUserMessage } from "./systemPrompt.js";
 import { computeSajuChart, computeLuckCycles } from "../lib/saju.js";
 import type { BirthInfo } from "../types/index.js";
 
@@ -95,5 +95,18 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(back).toContain("# 건강과 컨디션");
     expect(back).toContain("첫 점괘");
     expect(back).toContain("절대 쓰지 마라");
+  });
+});
+
+describe("비교 리딩 프롬프트", () => {
+  it("A/B 선택 기준을 정리하도록 요구한다", () => {
+    const msg = buildCompareUserMessage(
+      { type: "saju", createdAt: "2026-07-03T00:00:00.000Z", question: "이직", reply: "A" },
+      { type: "flow", createdAt: "2026-07-04T00:00:00.000Z", question: "유지", reply: "B" },
+    );
+    expect(msg).toContain("A/B 선택 비교 리포트");
+    expect(msg).toContain("# A를 선택할 때 유리한 조건");
+    expect(msg).toContain("# 선택 기준표");
+    expect(msg).toContain("안정성 / 성장 가능성 / 관계 부담 / 돈의 흐름 / 실행 타이밍");
   });
 });

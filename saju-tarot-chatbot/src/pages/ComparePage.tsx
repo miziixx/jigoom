@@ -37,6 +37,25 @@ function ReadingColumn({ label, session }: { label: string; session: ReadingSess
   );
 }
 
+function ChoiceCriteria() {
+  return (
+    <div className="card choice-criteria">
+      <div className="section-heading-row">
+        <h3 className="card-title">선택 비교 기준</h3>
+        <span className="feature-badge">A/B</span>
+      </div>
+      <div className="choice-criteria__grid">
+        <span>안정성</span>
+        <span>성장 가능성</span>
+        <span>관계 부담</span>
+        <span>돈의 흐름</span>
+        <span>실행 타이밍</span>
+        <span>지금 필요한 조건</span>
+      </div>
+    </div>
+  );
+}
+
 export default function ComparePage() {
   const [searchParams] = useSearchParams();
   const [premium, setPremium] = useState(isPremium());
@@ -95,6 +114,8 @@ export default function ComparePage() {
         <ReadingColumn label="A" session={sessionA} />
         <ReadingColumn label="B" session={sessionB} />
       </div>
+
+      <ChoiceCriteria />
 
       {!analysis &&
         (premium ? (
