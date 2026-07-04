@@ -16,7 +16,7 @@ export default function Layout() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <span className="app-title">인사이트 오라클</span>
+        <span className="app-title">속마음 · 내 명식 리포트</span>
         <nav className="app-nav">
           {NAV_ITEMS.map((item) => (
             <NavLink

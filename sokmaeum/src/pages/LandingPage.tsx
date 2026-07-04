@@ -33,9 +33,28 @@ const OPTIONS = [
   },
 ];
 
+const TRUST_BADGES = ["근거 펼치기", "저장 안 함", "100% 적중 주장 안 함"];
+
 export default function LandingPage() {
   return (
     <section className="page">
+      <div className="hero">
+        <h1 className="hero-title">내 사주를 한 번에 이해하는 개인 명식 리포트</h1>
+        <p className="hero-sub">
+          어렵고 흩어진 사주풀이를, 쉬운말·전문가 근거·현실 조언으로 정리해드립니다.
+        </p>
+        <Link to="/mystic" className="hero-cta">
+          내 명식 리포트 받기
+        </Link>
+        <ul className="trust-badges">
+          {TRUST_BADGES.map((b) => (
+            <li key={b} className="trust-badge">
+              {b}
+            </li>
+          ))}
+        </ul>
+      </div>
+
       <h2 className="page-title">무엇을 봐드릴까요?</h2>
       <p className="page-desc">
         계산은 실제 만세력 기준으로 정확하게, 해석은 단정 대신 근거와 가능성을 밝혀 전달합니다. "100% 적중"을

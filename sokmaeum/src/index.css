@@ -127,6 +127,72 @@ body {
   font-size: 0.9rem;
 }
 
+/* ── 첫화면 히어로 (명식 리포트 포지셔닝) ── */
+.hero {
+  text-align: center;
+  padding: 28px 20px 32px;
+  margin-bottom: 28px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    radial-gradient(120% 140% at 50% -10%, rgba(169, 112, 255, 0.22), transparent 60%),
+    var(--surface);
+}
+
+.hero-title {
+  margin: 0 0 12px;
+  font-size: 1.65rem;
+  line-height: 1.35;
+  background: linear-gradient(120deg, var(--text) 30%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-sub {
+  margin: 0 auto 22px;
+  max-width: 30rem;
+  color: var(--text-dim);
+  font-size: 0.98rem;
+}
+
+.hero-cta {
+  display: inline-block;
+  padding: 13px 30px;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: #14101f;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: transform 0.12s, box-shadow 0.15s;
+  box-shadow: 0 8px 24px rgba(169, 112, 255, 0.3);
+}
+
+.hero-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(169, 112, 255, 0.42);
+}
+
+.trust-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trust-badge {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-alt);
+}
+
 .form {
   display: flex;
   flex-direction: column;

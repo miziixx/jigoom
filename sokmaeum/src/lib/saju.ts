@@ -1,17 +1,22 @@
 import { Lunar, Solar } from "lunar-javascript";
 import type {
   BirthInfo,
+  CompatibilityResult,
   FiveElementBalance,
+  GyeokgukInfo,
   LuckCycles,
   MonthFlowInfo,
   SajuChart,
   SajuPillar,
+  SinsalHit,
   StrengthAssessment,
   TimeCorrection,
+  YearFlowInfo,
   YongshinCandidates,
 } from "../types/index.js";
 
 import { BIRTH_PLACES } from "../data/birthPlaces.js";
+import { iljuTraitOf } from "../data/iljuTraits.js";
 
 // 한국 서머타임 시행 기간 (시계가 1시간 빨랐던 기간 → 사주 계산 시 -60분)
 // 주의: 경계일 출생자는 출생 시각 기준 재확인이 필요할 수 있다
@@ -59,12 +64,13 @@ export function correctBirthTime(birthInfo: BirthInfo): CorrectedBirth {
   const { calendarType, year, month, day, hour } = birthInfo;
   const minute = birthInfo.minute ?? 0;
 
-  // 음력 → 양력 정규화
+  // 음력 → 양력 정규화 (윤달이면 lunar-javascript 규약대로 월을 음수로 전달)
   let sy = year;
   let sm = month;
   let sd = day;
   if (calendarType === "lunar") {
-    const solar = Lunar.fromYmdHms(year, month, day, hour ?? 12, minute, 0).getSolar();
+    const lunarMonth = birthInfo.isLeapMonth ? -Math.abs(month) : month;
+    const solar = Lunar.fromYmdHms(year, lunarMonth, day, hour ?? 12, minute, 0).getSolar();
     sy = solar.getYear();
     sm = solar.getMonth();
     sd = solar.getDay();
@@ -134,6 +140,18 @@ function birthToLunar(birthInfo: BirthInfo): { lunar: Lunar; correction: TimeCor
     lunar: Solar.fromYmdHms(c.year, c.month, c.day, c.hour, c.minute, 0).getLunar(),
     correction: c.correction,
   };
+}
+
+/**
+ * 원국 사주(EightChar)를 만든다. 23~24시 출생 시 자시 처리 방식을 반영한다.
+ * - 기본(야자시, lateNightZi !== "early"): 당일 일주 유지 (lunar-javascript 기본 sect 2)
+ * - 조자시(lateNightZi === "early"): 자시부터 다음날 일주 (sect 1)
+ */
+function eightCharOf(lunar: Lunar, birthInfo: BirthInfo) {
+  const ec = lunar.getEightChar();
+  // setSect: 23~24시 자시 처리 유파. 타입 정의에 없어 캐스팅 (런타임 지원 확인됨)
+  if (birthInfo.lateNightZi === "early") (ec as unknown as { setSect(n: number): void }).setSect(1);
+  return ec;
 }
 
 // 천간/지지 별 오행 매핑 (고정된 전통 배속, 라이브러리 버전에 의존하지 않음)
@@ -295,6 +313,91 @@ export function gongmangOf(dayGan: string, dayZhi: string): string {
   return BRANCH_ORDER[(decadeStart + 10) % 12] + BRANCH_ORDER[(decadeStart + 11) % 12];
 }
 
+// ── 신살(神煞) 테이블 ──────────
+// 삼합국별 도화/역마/화개 지지 (기준 지지가 속한 삼합국으로 판정)
+const SANHE_GROUPS: Array<{ group: string[]; dohwa: string; yeongma: string; hwagae: string }> = [
+  { group: ["인", "오", "술"], dohwa: "묘", yeongma: "신", hwagae: "술" },
+  { group: ["신", "자", "진"], dohwa: "유", yeongma: "인", hwagae: "진" },
+  { group: ["사", "유", "축"], dohwa: "오", yeongma: "해", hwagae: "축" },
+  { group: ["해", "묘", "미"], dohwa: "자", yeongma: "사", hwagae: "미" },
+];
+
+// 천을귀인: 일간 기준 귀인 지지
+const CHEONEUL: Record<string, string[]> = {
+  갑: ["축", "미"], 무: ["축", "미"], 경: ["축", "미"],
+  을: ["자", "신"], 기: ["자", "신"],
+  병: ["해", "유"], 정: ["해", "유"],
+  임: ["묘", "사"], 계: ["묘", "사"],
+  신: ["오", "인"],
+};
+
+// 양인: 일간(양간) 기준 겁재의 왕지
+const YANGIN: Record<string, string> = { 갑: "묘", 병: "오", 무: "오", 경: "유", 임: "자" };
+
+// 문창귀인: 일간 기준 식신이 록을 얻는 지지
+const MUNCHANG: Record<string, string> = {
+  갑: "사", 을: "오", 병: "신", 정: "유", 무: "신", 기: "유", 경: "해", 신: "자", 임: "인", 계: "묘",
+};
+
+// 백호대살 / 괴강 (기둥 간지 단위)
+const BAEKHO = new Set(["갑진", "을미", "병술", "정축", "무진", "임술", "계축"]);
+const GOEGANG = new Set(["경진", "경술", "무술", "임진", "임술"]);
+
+/**
+ * 원국 4기둥의 신살을 계산한다.
+ * - 도화/역마/화개: 일지가 속한 삼합국 기준으로 해당 지지가 원국에 있는지
+ * - 천을귀인/양인/문창: 일간 기준 해당 지지가 원국에 있는지
+ * - 백호/괴강: 각 기둥 간지가 해당 목록에 있는지
+ */
+function computeSinsal(
+  dayGan: string,
+  dayZhi: string,
+  gans: PositionedChar[],
+  zhis: PositionedChar[],
+): SinsalHit[] {
+  const hits: SinsalHit[] = [];
+  const zhiAt = (char: string) => zhis.filter((z) => z.char === char).map((z) => `${z.label} ${z.char}`);
+
+  // 도화/역마/화개 (일지 기준 삼합국)
+  const sanhe = SANHE_GROUPS.find((g) => g.group.includes(dayZhi));
+  if (sanhe) {
+    for (const [char, name, gloss] of [
+      [sanhe.dohwa, "도화", "매력·인기·이성운의 기운"],
+      [sanhe.yeongma, "역마", "이동·변화·해외·활동의 기운"],
+      [sanhe.hwagae, "화개", "고독·몰입·예술·종교·연구의 기운"],
+    ] as const) {
+      for (const pos of zhiAt(char)) hits.push({ name, position: pos, gloss });
+    }
+  }
+
+  // 천을귀인
+  for (const char of CHEONEUL[dayGan] ?? []) {
+    for (const pos of zhiAt(char)) hits.push({ name: "천을귀인", position: pos, gloss: "귀인의 도움을 받기 쉬운 최고의 길신" });
+  }
+
+  // 양인
+  const yangin = YANGIN[dayGan];
+  if (yangin) for (const pos of zhiAt(yangin)) hits.push({ name: "양인", position: pos, gloss: "강한 추진력·기세. 과하면 다툼·사고 주의" });
+
+  // 문창귀인
+  const munchang = MUNCHANG[dayGan];
+  if (munchang) for (const pos of zhiAt(munchang)) hits.push({ name: "문창귀인", position: pos, gloss: "총명·학문·시험·글재주의 길신" });
+
+  // 백호 / 괴강 (기둥 간지)
+  const pillars: Array<[string, string, string]> = [];
+  for (let i = 0; i < zhis.length; i++) {
+    const label = zhis[i].label.replace("지", "주");
+    pillars.push([label, gans[i]?.char ?? "", zhis[i].char]);
+  }
+  for (const [label, g, z] of pillars) {
+    const gz = g + z;
+    if (BAEKHO.has(gz)) hits.push({ name: "백호대살", position: `${label} ${gz}`, gloss: "기세가 강해 성취가 크나 급변·건강 관리 필요" });
+    if (GOEGANG.has(gz)) hits.push({ name: "괴강", position: `${label} ${gz}`, gloss: "카리스마·결단력이 강한 리더 기질" });
+  }
+
+  return hits;
+}
+
 /** 조후(계절 조화) 관점의 간단 노트 — 월지 계절 기준 */
 function seasonNoteOf(monthZhi: string, dayGan: string): string {
   const dayEl = ELEMENT_KO[GAN_WUXING[dayGan]];
@@ -450,17 +553,27 @@ function suggestYongshin(dayGan: string, strength: StrengthAssessment, fiveEleme
     "간이 억부법 기준 후보이며, 조후(계절 조화) 등 다른 관법으로는 달라질 수 있는 참고용입니다.";
 
   if (strength.label === "신약") {
+    // 신약 → 인성이 1차 용신, 비겁이 희신(용신을 돕고 일간을 직접 강화)
+    const yongshin = [ELEMENT_KO[inseong]];
+    const heesin = [ELEMENT_KO[dayEl]];
     return {
-      supportive: [ELEMENT_KO[inseong], ELEMENT_KO[dayEl]],
+      supportive: [...yongshin, ...heesin],
+      yongshin,
+      heesin,
       unfavorable: [ELEMENT_KO[gwanSeong], ELEMENT_KO[jaeSeong], ELEMENT_KO[sikSang]],
-      note: `신약 → 일간을 돕는 인성(${ELEMENT_KO[inseong]})·비겁(${ELEMENT_KO[dayEl]})이 용신 후보. ${note}`,
+      note: `신약 → 일간을 돕는 인성(${ELEMENT_KO[inseong]})이 1차 용신, 비겁(${ELEMENT_KO[dayEl]})이 희신 후보. ${note}`,
     };
   }
   if (strength.label === "신강") {
+    // 신강 → 힘을 빼는 관성/식상이 용신, 재성이 희신(관성을 생하고 식상 흐름을 받음)
+    const yongshin = [ELEMENT_KO[gwanSeong], ELEMENT_KO[sikSang]];
+    const heesin = [ELEMENT_KO[jaeSeong]];
     return {
-      supportive: [ELEMENT_KO[sikSang], ELEMENT_KO[jaeSeong], ELEMENT_KO[gwanSeong]],
+      supportive: [...yongshin, ...heesin],
+      yongshin,
+      heesin,
       unfavorable: [ELEMENT_KO[dayEl], ELEMENT_KO[inseong]],
-      note: `신강 → 힘을 덜어내는 식상(${ELEMENT_KO[sikSang]})·재성(${ELEMENT_KO[jaeSeong]})·관성(${ELEMENT_KO[gwanSeong]})이 용신 후보. ${note}`,
+      note: `신강 → 힘을 덜어내는 관성(${ELEMENT_KO[gwanSeong]})·식상(${ELEMENT_KO[sikSang]})이 용신, 재성(${ELEMENT_KO[jaeSeong]})이 희신 후보. ${note}`,
     };
   }
 
@@ -469,8 +582,53 @@ function suggestYongshin(dayGan: string, strength: StrengthAssessment, fiveEleme
   const lacking = entries.filter(([, v]) => v === min).map(([el]) => ELEMENT_KO[el]);
   return {
     supportive: lacking,
+    yongshin: lacking,
+    heesin: [],
     unfavorable: [],
     note: `중화에 가까움 → 특정 용신보다 부족한 오행(${lacking.join("·")}) 보완이 우선. ${note}`,
+  };
+}
+
+// ── 격국(格局) 판정 ──────────
+const GYEOKGUK_BY_TENGOD: Record<string, { name: string; gloss: string }> = {
+  비견: { name: "건록격", gloss: "자립심과 주체성이 강한 구조. 스스로 개척하는 힘이 중심이에요." },
+  겁재: { name: "양인격", gloss: "기세와 추진력이 강한 구조. 큰 힘을 잘 쓰면 성취가 크고, 과하면 마찰을 조심해요." },
+  식신: { name: "식신격", gloss: "표현·생산·먹을 복의 구조. 꾸준히 만들어내는 힘이 재물로 이어져요." },
+  상관: { name: "상관격", gloss: "재능·표현·창의의 구조. 틀을 깨는 감각이 강하지만 말·규칙 관리가 중요해요." },
+  편재: { name: "편재격", gloss: "큰 재물·사업 수완의 구조. 활동 범위가 넓고 기회 포착이 빨라요." },
+  정재: { name: "정재격", gloss: "성실·안정적 재물의 구조. 꾸준히 모으고 관리하는 힘이 강해요." },
+  편관: { name: "편관격(칠살격)", gloss: "책임·압박·도전의 구조. 강한 추진력이 있지만 부담을 잘 다스려야 해요." },
+  정관: { name: "정관격", gloss: "명예·규범·조직의 구조. 반듯하고 신뢰받는 자리에 잘 맞아요." },
+  편인: { name: "편인격", gloss: "직관·전문성·독특한 학문의 구조. 몰입력이 강해요." },
+  정인: { name: "정인격", gloss: "학문·명예·보호의 구조. 배우고 정리하는 힘이 강점이에요." },
+};
+
+function computeGyeokguk(dayGan: string, monthZhi: string, strength: StrengthAssessment): GyeokgukInfo {
+  const stems = HIDDEN_STEMS[monthZhi] ?? [];
+  const main = stems[stems.length - 1] ?? "";
+  const tenGod = tenGodOf(dayGan, main);
+  const base = GYEOKGUK_BY_TENGOD[tenGod] ?? { name: "일반격", gloss: "뚜렷한 격이 잡히지 않는 균형형 구조예요." };
+
+  const ratio = strength.supportScore / strength.totalScore;
+  // 극도로 치우치면 종격 후보로 표시 (참고용)
+  if (ratio <= 0.2) {
+    return {
+      name: `${base.name} · 종격(從格) 후보`,
+      basis: `월지 ${monthZhi}의 정기(${main}) 기준 ${tenGod} + 일간이 매우 약함(지지세력 ${(ratio * 100).toFixed(0)}%)`,
+      gloss: `${base.gloss} 다만 일간이 매우 약해, 강한 세력을 따라가는 종격으로 볼 여지도 있어요(관법에 따라 달라지는 참고용).`,
+    };
+  }
+  if (ratio >= 0.8) {
+    return {
+      name: `${base.name} · 종왕/종강격 후보`,
+      basis: `월지 ${monthZhi}의 정기(${main}) 기준 ${tenGod} + 일간이 매우 강함(지지세력 ${(ratio * 100).toFixed(0)}%)`,
+      gloss: `${base.gloss} 다만 일간이 매우 강해, 그 힘을 그대로 쓰는 종왕/종강격으로 볼 여지도 있어요(참고용).`,
+    };
+  }
+  return {
+    name: base.name,
+    basis: `월지 ${monthZhi}의 정기(${main}) 기준 일간과의 관계 = ${tenGod}`,
+    gloss: base.gloss,
   };
 }
 
@@ -497,7 +655,7 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
   const { hour } = birthInfo;
   const { lunar, correction } = birthToLunar(birthInfo);
 
-  const ec = lunar.getEightChar();
+  const ec = eightCharOf(lunar, birthInfo);
 
   const yearPillar = toPillar(ec.getYear());
   const monthPillar = toPillar(ec.getMonth());
@@ -556,6 +714,10 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
   const gongmangHits = zhis.filter((z) => gongmangZhis.includes(z.char)).map((z) => `${z.label} ${z.char}`);
   const gongmang = `${gongmangZhis} 공망${gongmangHits.length > 0 ? ` (원국 내 해당: ${gongmangHits.join(", ")})` : " (원국 내 해당 지지 없음)"}`;
 
+  const sinsal = computeSinsal(dayGan, dayPillar.zhi, gans, zhis);
+  const gyeokguk = computeGyeokguk(dayGan, monthPillar.zhi, strength);
+  const iljuTrait = iljuTraitOf(dayPillar.ganZhi);
+
   return {
     year: yearPillar,
     month: monthPillar,
@@ -573,6 +735,9 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
     twelveStages,
     gongmang,
     seasonNote: seasonNoteOf(monthPillar.zhi, dayGan),
+    sinsal,
+    iljuTrait,
+    gyeokguk,
     timeCorrection: correction ?? undefined,
   };
 }
@@ -611,7 +776,8 @@ export function computeLuckCycles(
   options: LuckCycleOptions = {},
 ): LuckCycles {
   const { lunar } = birthToLunar(birthInfo);
-  const ec = lunar.getEightChar();
+  const ec = eightCharOf(lunar, birthInfo);
+  const birthSolarYear = lunar.getSolar().getYear();
 
   const yun = ec.getYun(birthInfo.gender === "male" ? 1 : 0);
   const nowYear = now.getFullYear();
@@ -676,8 +842,24 @@ export function computeLuckCycles(
     }
   }
 
+  // 올해부터 10년치 세운 흐름 (입춘 기준, 연중 6/15로 경계 회피)
+  const yearlyFlow: YearFlowInfo[] = [];
+  for (let i = 0; i < 10; i++) {
+    const y = nowYear + i;
+    const yLunar = Solar.fromYmdHms(y, 6, 15, 12, 0, 0).getLunar();
+    const ganZhi = toHangul(yLunar.getYearInGanZhiByLiChun());
+    yearlyFlow.push({
+      year: y,
+      age: y - birthSolarYear,
+      ganZhi,
+      interactions: luckVsNatal(`${y}년 세운 ${ganZhi}`, ganZhi, natalGans, natalZhis),
+      current: y === nowYear,
+    });
+  }
+
   return {
     monthlyFlow,
+    yearlyFlow,
     daYun,
     currentDaYun,
     yearGanZhi,
@@ -686,5 +868,114 @@ export function computeLuckCycles(
     year: nowYear,
     month: now.getMonth() + 1,
     luckInteractions,
+  };
+}
+
+// ── 궁합 (두 사주 비교) ──────────
+
+/** 두 사람 기질 사이 관계를 판정한다 (표면은 사주 용어 없이 쉬운 말) */
+function dayMasterRelation(ganA: string, ganB: string): { text: string; score: number } {
+  const he = GAN_HE[pairKey(ganA, ganB)] ?? GAN_HE[pairKey(ganB, ganA)];
+  if (he) return { text: "두 사람은 기질이 자석처럼 서로 끌리고, 부족한 부분을 채워주는 궁합이에요.", score: 22 };
+  const elA = GAN_WUXING[ganA];
+  const elB = GAN_WUXING[ganB];
+  if (elA === elB) return { text: "기본 성향이 비슷해 말이 잘 통해요. 편한 대신 은근한 경쟁이 될 수도 있어요.", score: 10 };
+  if (GENERATES[elA] === elB) return { text: "한 사람이 다른 사람을 북돋아 주고 챙겨주는, 힘이 되는 궁합이에요.", score: 16 };
+  if (GENERATES[elB] === elA) return { text: "서로 힘이 되어주며 기대고 기댈 수 있는 궁합이에요.", score: 16 };
+  return { text: "서로 자극을 주고받는 궁합이에요. 부딪히기도 하지만 다름을 인정하면 함께 성장해요.", score: 4 };
+}
+
+/** 두 사람 지지 사이의 인연(합충)을 세되, 표시는 사주 용어 없이 쉬운 말로 묶는다 */
+function crossBranchRelations(
+  zhisA: string[],
+  zhisB: string[],
+): { good: string[]; bad: string[]; goodCount: number; badCount: number } {
+  const goodSet = new Set<string>();
+  const badSet = new Set<string>();
+  let goodCount = 0;
+  let badCount = 0;
+  for (const a of zhisA) {
+    for (const b of zhisB) {
+      const keys = [a + b, b + a];
+      if (keys.some((k) => ZHI_LIUHE[k] !== undefined)) { goodCount += 1; goodSet.add("서로 잘 맞아 붙는 부분이 있어요"); }
+      if (keys.some((k) => ZHI_CHONG.has(k))) { badCount += 1; badSet.add("가끔 세게 부딪히기 쉬운 부분이 있어요"); }
+      if (keys.some((k) => ZHI_XING.has(k))) { badCount += 1; badSet.add("서로 조율이 필요한 부분이 있어요"); }
+      if (keys.some((k) => ZHI_PO.has(k))) { badCount += 1; badSet.add("계획이 엇갈리기 쉬운 부분이 있어요"); }
+      if (keys.some((k) => ZHI_HAI.has(k))) { badCount += 1; badSet.add("은근히 신경 쓰이는 부분이 있어요"); }
+    }
+  }
+  // 여러 면에서 잘 맞물리는 조합(삼합/반합)
+  const present = new Set([...zhisA, ...zhisB]);
+  for (const { group, wangZhi } of SANHE) {
+    const inA = group.some((g) => zhisA.includes(g));
+    const inB = group.some((g) => zhisB.includes(g));
+    const hits = group.filter((g) => present.has(g));
+    if (inA && inB && hits.length >= 2 && hits.includes(wangZhi)) { goodCount += 1; goodSet.add("여러 면에서 손발이 잘 맞아요"); }
+  }
+  return { good: [...goodSet], bad: [...badSet], goodCount, badCount };
+}
+
+/** 두 사람이 서로 부족한 부분을 채워주는 정도 (표면은 사주 용어 없이) */
+function elementComplement(a: FiveElementBalance, b: FiveElementBalance): { text: string; score: number } {
+  const keys = Object.keys(a) as Array<keyof FiveElementBalance>;
+  let complement = 0;
+  for (const k of keys) {
+    // 한쪽이 부족(0~1)한데 다른 쪽이 넉넉(2+)하면 보완
+    if (a[k] <= 1 && b[k] >= 2) complement += 1;
+    if (b[k] <= 1 && a[k] >= 2) complement += 1;
+  }
+  const score = Math.min(20, complement * 5);
+  const text =
+    complement > 0
+      ? `서로 부족한 부분을 ${complement}가지 방향에서 채워줘요. 함께 있으면 균형이 잘 맞아요.`
+      : "기본 성향이 비슷해 크게 보완되진 않지만, 결이 맞아 편안한 편이에요.";
+  return { text, score };
+}
+
+/**
+ * 두 사람의 사주 궁합을 계산한다 (결정론적, 참고용).
+ * 일간 관계 + 지지 합충 + 오행 보완을 종합해 0~100 점수로 환산한다.
+ */
+export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): CompatibilityResult {
+  const chartA = computeSajuChart(birthA);
+  const chartB = computeSajuChart(birthB);
+
+  const zhisA = [chartA.year.zhi, chartA.month.zhi, chartA.day.zhi, ...(chartA.hour ? [chartA.hour.zhi] : [])];
+  const zhisB = [chartB.year.zhi, chartB.month.zhi, chartB.day.zhi, ...(chartB.hour ? [chartB.hour.zhi] : [])];
+
+  const dm = dayMasterRelation(chartA.dayMasterGan, chartB.dayMasterGan);
+  const branches = crossBranchRelations(zhisA, zhisB);
+  const elements = elementComplement(chartA.fiveElements, chartB.fiveElements);
+
+  const branchScore = Math.max(-14, Math.min(18, branches.goodCount * 7 - branches.badCount * 5));
+  const raw = 55 + dm.score + branchScore + elements.score;
+  const score = Math.max(0, Math.min(100, Math.round(raw)));
+
+  const breakdown = [
+    { label: "두 사람의 기질", score: Math.round((dm.score / 22) * 100), note: dm.text },
+    {
+      label: "함께 있을 때 흐름",
+      score: Math.max(0, Math.min(100, 50 + branchScore * 3)),
+      note:
+        (branches.good.length ? `잘 맞음: ${branches.good.join(", ")}` : "뚜렷하게 붙는 부분은 없어요") +
+        (branches.bad.length ? ` / 주의: ${branches.bad.join(", ")}` : " / 큰 충돌은 없어요"),
+    },
+    { label: "서로 채워주는 부분", score: Math.round((elements.score / 20) * 100), note: elements.text },
+  ];
+
+  const summary =
+    score >= 75
+      ? "서로 잘 맞고 보완이 되는 좋은 궁합이에요. 다른 점도 성장으로 쓰기 좋아요."
+      : score >= 55
+        ? "무난하게 잘 어울리는 궁합이에요. 몇 가지만 서로 배려하면 편안해요."
+        : "결이 다른 부분이 있는 궁합이에요. 서로의 다름을 이해하려는 노력이 관계를 키워요.";
+
+  return {
+    score,
+    dayMasterRelation: dm.text,
+    branchRelations: [...branches.good, ...branches.bad],
+    elementComplement: elements.text,
+    summary,
+    breakdown,
   };
 }
