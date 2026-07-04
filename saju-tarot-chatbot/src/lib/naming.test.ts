@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeNameSound, compareNames, evaluateName, evaluateSuri } from "./naming.js";
+import { analyzeNameSound, buildNamingBrief, compareNames, evaluateName, evaluateSuri } from "./naming.js";
 import { computeSajuChart } from "./saju.js";
 import type { BirthInfo } from "../types/index.js";
 
@@ -45,6 +45,24 @@ describe("수리 계산", () => {
 
   it("획수가 부족하면 null", () => {
     expect(evaluateSuri([8])).toBeNull();
+  });
+});
+
+describe("이름 추천 브리프", () => {
+  const GENERATES: Record<string, string> = { wood: "fire", fire: "earth", earth: "metal", metal: "water", water: "wood" };
+
+  it("보완 기운과 어울리는 초성·상생 기운을 결정론적으로 정리한다", () => {
+    const brief = buildNamingBrief(chart);
+    expect(["wood", "fire", "earth", "metal", "water"]).toContain(brief.neededElement);
+    expect(brief.recommendedChoseong.length).toBeGreaterThan(0);
+    expect(brief.supportingChoseong.length).toBeGreaterThan(0);
+    // 상생 기운은 보완 기운을 생하는 오행이어야 한다
+    expect(GENERATES[brief.supportingElement]).toBe(brief.neededElement);
+    expect(brief.note).toContain(brief.neededLabel);
+  });
+
+  it("같은 사주에는 같은 브리프를 낸다", () => {
+    expect(buildNamingBrief(chart)).toEqual(buildNamingBrief(chart));
   });
 });
 

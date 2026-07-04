@@ -1,14 +1,22 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
-import { buildNamingUserMessage, NAMING_SYSTEM_PROMPT } from "../src/prompts/namingPrompt.js";
-import type { NameComparison, NameEvaluation } from "../src/lib/naming.js";
+import {
+  buildNamingRecommendMessage,
+  buildNamingUserMessage,
+  NAMING_RECOMMEND_SYSTEM_PROMPT,
+  NAMING_SYSTEM_PROMPT,
+} from "../src/prompts/namingPrompt.js";
+import type { NameComparison, NameEvaluation, NamingBrief, NamingRecommendOptions } from "../src/lib/naming.js";
 
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
 const MAX_TOKENS = 3000;
 
 interface NamingBody {
+  mode?: "evaluate" | "recommend";
   evaluation?: NameEvaluation;
   comparison?: NameComparison | null;
+  brief?: NamingBrief;
+  options?: NamingRecommendOptions;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -23,10 +31,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { evaluation, comparison } = req.body as NamingBody;
-  if (!evaluation?.name || !evaluation.sound || !evaluation.fit) {
-    res.status(400).json({ error: "이름 감정 계산 결과가 필요합니다." });
-    return;
+  const { mode, evaluation, comparison, brief, options } = req.body as NamingBody;
+  const isRecommend = mode === "recommend";
+
+  let system: string;
+  let userMessage: string;
+  if (isRecommend) {
+    if (!brief?.neededElement || !options?.purpose) {
+      res.status(400).json({ error: "이름 추천에 필요한 사주 보완 근거가 없습니다." });
+      return;
+    }
+    system = NAMING_RECOMMEND_SYSTEM_PROMPT;
+    userMessage = buildNamingRecommendMessage(brief, options);
+  } else {
+    if (!evaluation?.name || !evaluation.sound || !evaluation.fit) {
+      res.status(400).json({ error: "이름 감정 계산 결과가 필요합니다." });
+      return;
+    }
+    system = NAMING_SYSTEM_PROMPT;
+    userMessage = buildNamingUserMessage(evaluation, comparison);
   }
 
   try {
@@ -34,8 +57,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: NAMING_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: buildNamingUserMessage(evaluation, comparison) }],
+      system,
+      messages: [{ role: "user", content: userMessage }],
     });
     res.status(200).json({ reply: extractText(response) });
   } catch (err) {

@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { computeSajuChart } from "../lib/saju.js";
-import { compareNames, evaluateName } from "../lib/naming.js";
+import { buildNamingBrief, compareNames, evaluateName } from "../lib/naming.js";
 import type { BirthInfo } from "../types/index.js";
-import { buildNamingUserMessage, NAMING_SYSTEM_PROMPT } from "./namingPrompt.js";
+import {
+  buildNamingRecommendMessage,
+  buildNamingUserMessage,
+  NAMING_RECOMMEND_SYSTEM_PROMPT,
+  NAMING_SYSTEM_PROMPT,
+} from "./namingPrompt.js";
 
 describe("이름 감정 AI 프롬프트", () => {
   const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
@@ -52,5 +57,41 @@ describe("이름 감정 AI 프롬프트", () => {
     expect(msg).toContain("[후보 비교]");
     expect(msg).toContain("1위");
     expect(msg).toContain("2위");
+  });
+});
+
+describe("이름 추천 AI 프롬프트", () => {
+  const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
+  const brief = buildNamingBrief(computeSajuChart(birth));
+
+  it("근거 안에서만 이름을 짓고 단정·한자 확인 규칙을 담는다", () => {
+    expect(NAMING_RECOMMEND_SYSTEM_PROMPT).toContain("근거 안에서만");
+    expect(NAMING_RECOMMEND_SYSTEM_PROMPT).toContain("인명용 한자");
+    expect(NAMING_RECOMMEND_SYSTEM_PROMPT).toContain("공포감");
+  });
+
+  it("성·조건과 사주 보완 근거를 전달하고 생년월일 원본은 담지 않는다", () => {
+    const msg = buildNamingRecommendMessage(brief, {
+      purpose: { mode: "baby", desiredImage: "밝고 단아함" },
+      school: "full-name",
+      surname: "김",
+      gender: "여아",
+      syllableCount: 2,
+      count: 6,
+    });
+    expect(msg).toContain("성(姓)은 '김'");
+    expect(msg).toContain("2글자");
+    expect(msg).toContain("여아");
+    expect(msg).toContain("보완하면 좋은 기운");
+    expect(msg).toContain("전자가족관계등록시스템");
+    expect(msg).not.toContain("1990");
+  });
+
+  it("성이 없으면 이름 부분만 제안하도록 안내한다", () => {
+    const msg = buildNamingRecommendMessage(brief, {
+      purpose: { mode: "brand" },
+      school: "full-name",
+    });
+    expect(msg).toContain("성이 지정되지 않았으니");
   });
 });

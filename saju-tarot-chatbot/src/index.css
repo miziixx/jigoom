@@ -533,6 +533,11 @@ label {
   flex-wrap: wrap;
 }
 
+.naming-tab-toggle {
+  margin: 4px 0 12px;
+  max-width: 320px;
+}
+
 .naming-mode-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

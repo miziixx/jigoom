@@ -238,6 +238,79 @@ export function evaluateSuri(strokes: number[]): SuriResult | null {
   return { won, hyeong, i, jeong, levels, summary };
 }
 
+// 발음오행 → 대표 초성 (이름 추천에서 어울리는 소리를 안내할 때 사용)
+const ELEMENT_CHOSEONG: Record<Element, string[]> = {
+  wood: ["ㄱ", "ㅋ"],
+  fire: ["ㄴ", "ㄷ", "ㄹ", "ㅌ"],
+  earth: ["ㅇ", "ㅎ"],
+  metal: ["ㅅ", "ㅈ", "ㅊ"],
+  water: ["ㅁ", "ㅂ", "ㅍ"],
+};
+
+/** 특정 오행을 상생으로 살려주는(생하는) 오행을 찾는다. 예: 화를 살리는 것은 목. */
+function generatorOf(target: Element): Element {
+  return (Object.keys(GENERATES) as Element[]).find((el) => GENERATES[el] === target) ?? target;
+}
+
+/**
+ * 사주에서 보완하면 좋은 기운을 근거로, 이름에 어울리는 소리(발음오행)의 방향을 결정론적으로 정리한다.
+ * 실제 이름 후보 생성은 상위(AI)에서 이 브리프를 근거로만 하게 한다.
+ */
+export interface NamingBrief {
+  neededElement: Element;
+  neededLabel: string;
+  avoidElement: Element | null;
+  avoidLabel: string | null;
+  /** 보완 기운을 직접 담는 초성 */
+  recommendedChoseong: string[];
+  /** 보완 기운을 상생으로 살려주는 기운과 초성 */
+  supportingElement: Element;
+  supportingLabel: string;
+  supportingChoseong: string[];
+  /** 과하면 부담이 되는(피하면 좋은) 초성 */
+  cautionChoseong: string[];
+  note: string;
+}
+
+export function buildNamingBrief(chart: SajuChart): NamingBrief {
+  const guide = buildLifestyleGuide(chart);
+  const neededElement = guide.basisElement;
+  const avoidElement = guide.avoidElement;
+  const supportingElement = generatorOf(neededElement);
+
+  const neededLabel = ELEMENT_KO[neededElement];
+  const supportingLabel = ELEMENT_KO[supportingElement];
+  const avoidLabel = avoidElement ? ELEMENT_KO[avoidElement] : null;
+
+  const note = `이 사주에는 ${neededLabel} 기운을 보완하면 균형에 도움이 됩니다. 그래서 이름 소리에 ${neededLabel} 기운(${ELEMENT_CHOSEONG[neededElement].join("·")}) 또는 그 기운을 살려주는 ${supportingLabel} 기운(${ELEMENT_CHOSEONG[supportingElement].join("·")})의 초성을 넣으면 잘 어울립니다.${avoidLabel ? ` ${avoidLabel} 기운(${ELEMENT_CHOSEONG[avoidElement!].join("·")})으로만 몰리는 소리는 피하는 편이 좋습니다.` : ""}`;
+
+  return {
+    neededElement,
+    neededLabel,
+    avoidElement,
+    avoidLabel,
+    recommendedChoseong: ELEMENT_CHOSEONG[neededElement],
+    supportingElement,
+    supportingLabel,
+    supportingChoseong: ELEMENT_CHOSEONG[supportingElement],
+    cautionChoseong: avoidElement ? ELEMENT_CHOSEONG[avoidElement] : [],
+    note,
+  };
+}
+
+export interface NamingRecommendOptions {
+  purpose: NamingPurpose;
+  school: SoundElementSchool;
+  /** 성(姓). 아기·개명이면 보통 필수, 예명·브랜드는 생략 가능 */
+  surname?: string;
+  /** 성별 선호: 남아/여아/중성 등 자유 입력 */
+  gender?: string;
+  /** 이름 글자 수 (성 제외), 미지정이면 2 */
+  syllableCount?: number;
+  /** 원하는 이름 후보 개수 */
+  count?: number;
+}
+
 export type NameOverall = "좋음" | "보통" | "주의";
 
 export interface NameEvaluation {

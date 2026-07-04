@@ -528,3 +528,20 @@ saju/lunar를 더 이상 끌어오지 않아 API 번들이 가벼워짐. (150 �
 - 질문에는 먼저 답하기
 - 리포트는 PDF/마크다운/이미지로 저장 가능하게
 - 무료 맛보기로 신뢰를 만들고, 유료 리포트로 깊이를 제공하기
+
+## 이름 감정 메뉴에 이름 추천 탭 추가
+
+이름 감정 페이지(`/naming`)에 `이름 감정 / 이름 추천` 탭 토글을 추가.
+
+- **결정론적 근거**: `lib/naming.ts`의 `buildNamingBrief(chart)`가 사주에서 보완하면 좋은 기운
+  (`buildLifestyleGuide` 기반)과 그에 어울리는 초성(발음오행)·상생 기운·피할 기운을 계산.
+  계산은 여기서 끝내고 실제 이름 후보 생성은 이 브리프 안에서만 AI가 하게 함(프로젝트 철학
+  `calc → evidence → AI` 유지).
+- **AI 추천**: `prompts/namingPrompt.ts`의 `NAMING_RECOMMEND_SYSTEM_PROMPT` /
+  `buildNamingRecommendMessage`. 성·성별·글자수·이미지 조건과 사주 보완 근거를 전달하고
+  한글+한자 뜻 후보를 제안. 단, 인명용 한자·획수·중복·상표는 별도 확인 안내(단정 금지).
+- **API**: `api/naming.ts`가 `mode: "recommend"`를 분기 처리(기존 감정은 `evaluate`).
+- **클라이언트**: `lib/namingApi.ts`의 `generateNameRecommendations`, `pages/NamingPage.tsx`
+  탭/폼/결과 렌더.
+- 테스트: `naming.test.ts`, `namingPrompt.test.ts`에 브리프·추천 프롬프트 케이스 추가
+  (162 테스트 통과, build 성공).
