@@ -70,14 +70,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system,
+      system: [{ type: "text", text: system }],
       messages: [{ role: "user", content: userMessage }],
     });
     const text = extractText(response);
     if (text.trim()) {
       res.status(200).json({ reply: text, source: "llm" });
     } else {
-      res.status(200).json({ reply: withNotice(fallbackReply(), "AI 응답이 비어 기본 리포트로 표시합니다."), source: "fallback" });
+      // 빈 응답 진단: 어떤 모델이 어떤 stop_reason/블록으로 비었는지 노출한다.
+      const blocks = response.content.map((b) => b.type).join(",") || "none";
+      const diag = `AI 응답이 비어 기본 리포트로 표시합니다. (모델 ${MODEL} / stop=${response.stop_reason} / blocks=${blocks})`;
+      res.status(200).json({ reply: withNotice(fallbackReply(), diag), source: "fallback" });
     }
   } catch (err) {
     console.error(err);
