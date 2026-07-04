@@ -5,7 +5,7 @@ import PatternMap from "./PatternMap";
 import ActionCalendar from "./ActionCalendar";
 import EvidenceConfidence from "./EvidenceConfidence";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide";
-import { describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism";
+import TarotFactsPanel from "./TarotFactsPanel";
 import type { ReadingSession } from "../types";
 
 interface Section {
@@ -319,29 +319,7 @@ export default function ReadingResult({ session, loading = false }: { session: R
       {loading && <LoadingNotice depth={session.context?.depth} />}
 
       {session.tarotCards && session.tarotCards.length > 0 && (
-        <div className="card facts-panel">
-          <div className="facts-block">
-            <h4>뽑힌 카드</h4>
-            <div className="tarot-evidence-grid">
-              {session.tarotCards.map((c) => (
-                (() => {
-                  const symbolism = describeTarotSymbolism(c.card);
-                  return (
-                    <article className="tarot-evidence-card" key={`${c.position}-${c.card.id}`}>
-                      <span>{c.positionLabel ?? `${c.position}번째 자리`}</span>
-                      <b>{c.card.name}</b>
-                      <p>{c.reversed ? c.card.reversedMeaning : c.card.uprightMeaning}</p>
-                      <small>
-                        {c.reversed ? "역방향" : "정방향"} · {tarotSuitOf(c.card)} · {symbolism.archetype}
-                      </small>
-                      <em>{symbolism.symbols.slice(0, 4).join(" · ")}</em>
-                    </article>
-                  );
-                })()
-              ))}
-            </div>
-          </div>
-        </div>
+        <TarotFactsPanel cards={session.tarotCards} />
       )}
 
       {(session.sajuChart || session.luckCycles) && (

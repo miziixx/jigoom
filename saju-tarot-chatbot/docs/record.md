@@ -253,6 +253,21 @@
 
 테스트: `src/lib/tarotSymbolism.test.ts` 신규(8개), 프롬프트 배선 테스트 추가. 총 132개 통과.
 
+## 타로 근거 시각화 — TarotFactsPanel
+
+카드→해석 추적성을 높이기 위해, 결과 상단에 있던 인라인 "뽑힌 카드" 그리드를
+전용 컴포넌트 `TarotFactsPanel`로 승격하고 원소/디그니티 근거를 시각화했다.
+
+- `src/components/TarotFactsPanel.tsx` 신규.
+  - 카드별: 자리·정/역방향·슈트·원소(+뜻)·원형·핵심 상징.
+  - 배열 근거 칩: 정/역 비율, 메이저 비율, 원소 분포.
+  - 인접 자리 관계를 강화/약화/중립으로 색 구분해 리스트로 표시(strengthen=accent, weaken=red).
+  - 중심 에너지/빠진 에너지 요약 문구.
+- `src/components/ReadingResult.tsx`: 인라인 블록 제거하고 `<TarotFactsPanel>` 사용.
+  더 이상 쓰지 않는 describeTarotSymbolism·tarotSuitOf import 정리.
+- `src/index.css`: `.tarot-facts__*` 스타일 추가(칩/관계 리스트/에너지 요약, color-mix로 강화·약화 테두리).
+- 테스트: `src/components/TarotFactsPanel.test.tsx` 신규(2). 총 135개 통과.
+
 ## 현재 제품 방향
 
 앱의 핵심 방향은 다음과 같다.
