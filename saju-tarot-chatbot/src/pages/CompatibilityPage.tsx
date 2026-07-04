@@ -57,11 +57,26 @@ function toBirthInfo(p: PersonInput): BirthInfo {
   };
 }
 
-function MiniBirthForm({ title, value, onChange }: { title: string; value: PersonInput; onChange: (p: PersonInput) => void }) {
+function MiniBirthForm({
+  title,
+  subtitle,
+  role,
+  value,
+  onChange,
+}: {
+  title: string;
+  subtitle: string;
+  role: "me" | "partner";
+  value: PersonInput;
+  onChange: (p: PersonInput) => void;
+}) {
   const set = (patch: Partial<PersonInput>) => onChange({ ...value, ...patch });
   return (
-    <div className="card mini-birth">
-      <h3 className="card-title">{title}</h3>
+    <div className={`card mini-birth mini-birth--${role}`}>
+      <div className="mini-birth__head">
+        <span className={`compat-role-badge compat-role-badge--${role}`}>{title}</span>
+        <p>{subtitle}</p>
+      </div>
       <div className="field-row">
         <span className="field-label">달력</span>
         <label>
@@ -190,8 +205,8 @@ export default function CompatibilityPage() {
       </section>
 
       <div className="compat-forms">
-        <MiniBirthForm title="첫 번째 사람" value={personA} onChange={setPersonA} />
-        <MiniBirthForm title="두 번째 사람" value={personB} onChange={setPersonB} />
+        <MiniBirthForm title="나" subtitle="내 생년월일시" role="me" value={personA} onChange={setPersonA} />
+        <MiniBirthForm title="상대" subtitle="상대방 생년월일시" role="partner" value={personB} onChange={setPersonB} />
       </div>
 
       <button className="btn btn--primary" onClick={handleCompute} disabled={!canSubmit}>
@@ -217,9 +232,11 @@ export default function CompatibilityPage() {
 
           {result.people && (
             <div className="compat-people-grid">
-              {result.people.map((p) => (
-                <div className="card compat-person" key={p.label}>
-                  <h3 className="card-title">{p.label}</h3>
+              {result.people.map((p) => {
+                const role = p.label === "나" ? "me" : "partner";
+                return (
+                <div className={`card compat-person compat-person--${role}`} key={p.label}>
+                  <span className={`compat-role-badge compat-role-badge--${role}`}>{p.label}</span>
                   <p className="compat-person__pillars">
                     {p.pillars.year} / {p.pillars.month} / {p.pillars.day}
                     {p.pillars.hour ? ` / ${p.pillars.hour}` : " / 시주 모름"}
@@ -230,7 +247,8 @@ export default function CompatibilityPage() {
                     <span>보완점: {p.weakestElement}</span>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

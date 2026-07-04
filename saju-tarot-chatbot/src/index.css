@@ -2458,6 +2458,55 @@ label {
   margin-bottom: 10px;
 }
 
+.mini-birth--me,
+.compat-person--me {
+  border-color: rgba(127, 199, 255, 0.36);
+}
+
+.mini-birth--partner,
+.compat-person--partner {
+  border-color: rgba(201, 164, 255, 0.4);
+}
+
+.mini-birth__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mini-birth__head p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.compat-role-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.compat-role-badge--me {
+  background: rgba(127, 199, 255, 0.16);
+  color: #7fc7ff;
+  border: 1px solid rgba(127, 199, 255, 0.34);
+}
+
+.compat-role-badge--partner {
+  background: rgba(201, 164, 255, 0.16);
+  color: var(--accent);
+  border: 1px solid rgba(201, 164, 255, 0.38);
+}
+
 .compat-result {
   margin-top: 16px;
   display: flex;
@@ -2572,7 +2621,7 @@ label {
 }
 
 .compat-person__pillars {
-  margin: 0 0 10px;
+  margin: 10px 0;
   color: var(--text);
   font-weight: 700;
 }

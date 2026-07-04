@@ -1483,6 +1483,6 @@ export function computeCompatibility(
     purposeFits: purposes,
     timing,
     expertEvidence,
-    people: [personSummary("첫 번째 사람", chartA), personSummary("두 번째 사람", chartB)],
+    people: [personSummary("나", chartA), personSummary("상대", chartB)],
   };
 }
