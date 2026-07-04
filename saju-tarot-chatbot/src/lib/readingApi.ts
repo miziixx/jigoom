@@ -18,6 +18,17 @@ export interface StreamResult {
   reply: string;
 }
 
+/** 한 번의 스트림 호출 결과 (이어쓰기 판단용 완결 여부 포함) */
+interface StreamChunkResult {
+  meta?: ReadingMeta;
+  reply: string;
+  /** 이 호출이 끝까지 완성됐는가 (done 수신 + stopReason이 max_tokens가 아님) */
+  complete: boolean;
+}
+
+/** 이어쓰기(continue) 최대 횟수 — 무한 루프 방지. 전문가 리딩도 이 안에서 완결된다. */
+const MAX_CONTINUATIONS = 6;
+
 /** 스트림 라인으로 전달된 서버 측 오류 (네트워크 단절과 구분용) */
 class ServerReportedError extends Error {}
 
@@ -49,30 +60,61 @@ function networkError(): NetworkDropError {
 export async function streamReading(body: unknown, handlers: StreamHandlers = {}): Promise<StreamResult> {
   const wakeLock = await acquireWakeLock();
   try {
-    // 아직 아무 텍스트도 받지 못한 채 연결이 끊긴 경우에만 1회 자동 재시도한다.
-    // (첫 토큰 도착 전 유휴 구간에서 프록시/모바일이 연결을 끊는 사례 방어)
-    let receivedAny = false;
-    const wrapped: StreamHandlers = {
-      onMeta: handlers.onMeta,
-      onText: (accumulated) => {
-        receivedAny = true;
-        handlers.onText?.(accumulated);
-      },
-    };
-    try {
-      return await streamReadingInner(body, wrapped);
-    } catch (err) {
-      if (err instanceof NetworkDropError && !receivedAny) {
-        return await streamReadingInner(body, wrapped);
-      }
-      throw err;
+    // 잘린 리딩(토큰 상한/네트워크 절단)을 최종본으로 확정하지 않는다. 완결될 때까지 지금까지
+    // 받은 본문을 continueFrom으로 넘겨 "이어서" 생성하게 한다. UI에는 항상 누적 전문을 보여준다.
+    let fullReply = "";
+    let meta: ReadingMeta | undefined;
+
+    for (let attempt = 0; attempt <= MAX_CONTINUATIONS; attempt++) {
+      const isContinuation = fullReply.length > 0;
+      const callBody = isContinuation
+        ? { ...(body as Record<string, unknown>), continueFrom: fullReply }
+        : body;
+
+      const wrapped: StreamHandlers = {
+        // 메타(계산 결과)는 첫 호출에서만 온다
+        onMeta: isContinuation ? undefined : handlers.onMeta,
+        onText: (accumulated) => handlers.onText?.(fullReply + accumulated),
+      };
+
+      const chunk = await streamChunkWithRetry(callBody, wrapped);
+      if (!isContinuation) meta = chunk.meta;
+      fullReply += chunk.reply;
+
+      // 완결됐거나, 더 이어붙일 게 없으면(이번 호출에서 새 텍스트가 없음) 종료
+      if (chunk.complete || chunk.reply.length === 0) break;
     }
+
+    return { meta, reply: fullReply };
   } finally {
     wakeLock?.release().catch(() => {});
   }
 }
 
-async function streamReadingInner(body: unknown, handlers: StreamHandlers): Promise<StreamResult> {
+/**
+ * 단일 스트림 호출 + 첫 토큰 도착 전 단절 시 1회 재시도.
+ * (첫 토큰 도착 전 유휴 구간에서 프록시/모바일이 연결을 끊는 사례 방어)
+ */
+async function streamChunkWithRetry(body: unknown, handlers: StreamHandlers): Promise<StreamChunkResult> {
+  let receivedAny = false;
+  const wrapped: StreamHandlers = {
+    onMeta: handlers.onMeta,
+    onText: (accumulated) => {
+      receivedAny = true;
+      handlers.onText?.(accumulated);
+    },
+  };
+  try {
+    return await streamReadingInner(body, wrapped);
+  } catch (err) {
+    if (err instanceof NetworkDropError && !receivedAny) {
+      return await streamReadingInner(body, wrapped);
+    }
+    throw err;
+  }
+}
+
+async function streamReadingInner(body: unknown, handlers: StreamHandlers): Promise<StreamChunkResult> {
   let res: Response;
   try {
     res = await fetch("/api/reading", {
@@ -102,7 +144,8 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
       : undefined;
     if (meta) handlers.onMeta?.(meta);
     handlers.onText?.(data.reply);
-    return { meta, reply: data.reply };
+    // 구버전 일괄 JSON 응답은 완결 여부를 알 수 없으므로 완결로 간주(이어쓰기 안 함)
+    return { meta, reply: data.reply, complete: true };
   }
 
   if (!res.body) throw new Error("스트리밍 응답을 읽을 수 없습니다.");
@@ -113,10 +156,17 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
   let reply = "";
   let meta: ReadingMeta | undefined;
   let done = false;
+  let stopReason: string | null = null;
 
   const handleLine = (line: string) => {
     if (!line.trim()) return;
-    const obj = JSON.parse(line) as { meta?: ReadingMeta; text?: string; done?: boolean; error?: string };
+    const obj = JSON.parse(line) as {
+      meta?: ReadingMeta;
+      text?: string;
+      done?: boolean;
+      stopReason?: string | null;
+      error?: string;
+    };
     if (obj.error) throw new ServerReportedError(obj.error);
     if (obj.meta) {
       meta = obj.meta;
@@ -126,7 +176,10 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
       reply += obj.text;
       handlers.onText?.(reply);
     }
-    if (obj.done) done = true;
+    if (obj.done) {
+      done = true;
+      stopReason = obj.stopReason ?? null;
+    }
   };
 
   try {
@@ -148,8 +201,12 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
     throw networkError();
   }
 
-  // done 신호 없이 스트림이 끝난 경우 (함수 시간 초과 등)
+  // done 신호도 없고 받은 텍스트도 없으면 순수 네트워크 단절 → (첫 토큰 전이면) 재시도로 이어진다
   if (!done && reply.length === 0) throw networkError();
 
-  return { meta, reply };
+  // 완결 판정: done을 받았고 stopReason이 max_tokens가 아닐 때만 끝난 것으로 본다.
+  // - done 없이 텍스트만 오다 끊긴 경우(네트워크 절단) → 미완결 → 상위에서 이어쓰기
+  // - stopReason === "max_tokens"(토큰 상한) → 미완결 → 상위에서 이어쓰기
+  const complete = done && stopReason !== "max_tokens";
+  return { meta, reply, complete };
 }

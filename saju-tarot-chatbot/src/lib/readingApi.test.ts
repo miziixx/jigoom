@@ -1,0 +1,117 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { streamReading } from "./readingApi.js";
+
+// NDJSON 라인들을 하나의 스트리밍 응답(Response 유사 객체)으로 만든다
+function ndjsonResponse(lines: string[]): Response {
+  const encoder = new TextEncoder();
+  let i = 0;
+  const body = {
+    getReader() {
+      return {
+        read() {
+          if (i < lines.length) {
+            const chunk = encoder.encode(lines[i] + "\n");
+            i += 1;
+            return Promise.resolve({ done: false, value: chunk });
+          }
+          return Promise.resolve({ done: true, value: undefined });
+        },
+      };
+    },
+  };
+  return {
+    ok: true,
+    status: 200,
+    headers: { get: () => "application/x-ndjson; charset=utf-8" },
+    body,
+  } as unknown as Response;
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("streamReading 이어쓰기(continue)", () => {
+  it("stopReason이 max_tokens면 continueFrom으로 이어서 완결한다", async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const fetchMock = vi.fn((_, init: RequestInit) => {
+      const parsed = JSON.parse(init.body as string) as Record<string, unknown>;
+      calls.push(parsed);
+      if (calls.length === 1) {
+        // 첫 호출: 토큰 상한으로 잘림
+        return Promise.resolve(
+          ndjsonResponse([
+            JSON.stringify({ meta: { userMessage: "u" } }),
+            JSON.stringify({ text: "앞부분" }),
+            JSON.stringify({ done: true, stopReason: "max_tokens" }),
+          ]),
+        );
+      }
+      // 이어쓰기 호출: 정상 완결
+      return Promise.resolve(
+        ndjsonResponse([
+          JSON.stringify({ text: "뒷부분" }),
+          JSON.stringify({ done: true, stopReason: "end_turn" }),
+        ]),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    let lastAccumulated = "";
+    const result = await streamReading(
+      { type: "saju", question: "" },
+      { onText: (acc) => (lastAccumulated = acc) },
+    );
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0].continueFrom).toBeUndefined();
+    expect(calls[1].continueFrom).toBe("앞부분");
+    expect(result.reply).toBe("앞부분뒷부분");
+    expect(lastAccumulated).toBe("앞부분뒷부분");
+    expect(result.meta?.userMessage).toBe("u");
+  });
+
+  it("done 없이 텍스트만 오다 끊겨도(네트워크 절단) 이어서 완결한다", async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const fetchMock = vi.fn((_, init: RequestInit) => {
+      calls.push(JSON.parse(init.body as string));
+      if (calls.length === 1) {
+        // done 라인 없이 종료 → 미완결로 간주해야 한다
+        return Promise.resolve(
+          ndjsonResponse([
+            JSON.stringify({ meta: { userMessage: "u" } }),
+            JSON.stringify({ text: "중간까지" }),
+          ]),
+        );
+      }
+      return Promise.resolve(
+        ndjsonResponse([JSON.stringify({ text: "끝까지" }), JSON.stringify({ done: true, stopReason: "end_turn" })]),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await streamReading({ type: "saju", question: "" });
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1].continueFrom).toBe("중간까지");
+    expect(result.reply).toBe("중간까지끝까지");
+  });
+
+  it("한 번에 완결(end_turn)되면 이어쓰기하지 않는다", async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        ndjsonResponse([
+          JSON.stringify({ meta: { userMessage: "u" } }),
+          JSON.stringify({ text: "완성된 리딩" }),
+          JSON.stringify({ done: true, stopReason: "end_turn" }),
+        ]),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await streamReading({ type: "saju", question: "" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.reply).toBe("완성된 리딩");
+  });
+});

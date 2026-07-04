@@ -88,12 +88,16 @@ async function streamMessages(
       system: READING_SYSTEM_PROMPT,
       messages,
     });
+    // stop_reason이 "max_tokens"면 아직 다 못 쓴 것 → 클라이언트가 이어쓰기(continue)를 요청한다.
+    let stopReason: string | null = null;
     for await (const event of stream) {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
         res.write(JSON.stringify({ text: event.delta.text }) + "\n");
+      } else if (event.type === "message_delta" && event.delta.stop_reason) {
+        stopReason = event.delta.stop_reason;
       }
     }
-    res.write(JSON.stringify({ done: true }) + "\n");
+    res.write(JSON.stringify({ done: true, stopReason }) + "\n");
   } catch (err) {
     console.error(err);
     res.write(JSON.stringify({ error: `리딩 생성 중 오류: ${describeError(err)}` }) + "\n");
@@ -133,13 +137,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const anthropic = new Anthropic({ apiKey });
   const streaming = wantsStream(req);
 
+  // 이어쓰기(continue): 앞선 응답이 토큰 상한/네트워크 절단으로 잘렸을 때, 지금까지 받은 본문을
+  // assistant 프리필로 넣어 그 뒤부터 이어서 생성하게 한다. (Anthropic은 프리필 끝 공백을 허용하지
+  // 않으므로 trimEnd)
+  const continueFromRaw = (req.body as { continueFrom?: unknown }).continueFrom;
+  const continueFrom = typeof continueFromRaw === "string" ? continueFromRaw.trimEnd() : "";
+
   try {
     if (body.type === "followup") {
       if (!body.history || body.history.length === 0) {
         res.status(400).json({ error: "history가 필요합니다." });
         return;
       }
-      const messages = body.history.map((m) => ({ role: m.role, content: m.content }));
+      const messages: Anthropic.Messages.MessageParam[] = body.history.map((m) => ({ role: m.role, content: m.content }));
+      if (continueFrom) messages.push({ role: "assistant", content: continueFrom });
       if (streaming) {
         await streamMessages(res, anthropic, messages);
       } else {
@@ -192,8 +203,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userMessage }];
+    if (continueFrom) messages.push({ role: "assistant", content: continueFrom });
+    // 이어쓰기 호출에는 계산 메타(meta)를 다시 실어 보내지 않는다 (이미 첫 호출에서 전달됨).
+    const meta = continueFrom ? undefined : { userMessage, sajuChart, luckCycles };
     if (streaming) {
-      await streamMessages(res, anthropic, messages, { userMessage, sajuChart, luckCycles });
+      await streamMessages(res, anthropic, messages, meta);
     } else {
       const reply = await completeMessages(anthropic, messages);
       res.status(200).json({ reply, userMessage, sajuChart, luckCycles });
