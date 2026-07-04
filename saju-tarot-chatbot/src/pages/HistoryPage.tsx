@@ -8,7 +8,7 @@ import { useReadingStore } from "../store/useReadingStore";
 const PATH_BY_TYPE = { saju: "/saju", tarot: "/tarot", combo: "/combo", today: "/today", flow: "/flow" } as const;
 
 export default function HistoryPage() {
-  const { savedSessions, refreshHistory, removeFromHistory, loadSessionById, toggleFavoriteById } =
+  const { savedSessions, refreshHistory, removeFromHistory, removeAllHistory, loadSessionById, toggleFavoriteById } =
     useReadingStore();
   const navigate = useNavigate();
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -60,6 +60,9 @@ export default function HistoryPage() {
           onClick={() => navigate(`/compare?a=${compareIds[0]}&b=${compareIds[1]}`)}
         >
           {compareIds.length === 2 ? "선택한 2개 비교하기" : `비교할 리딩 선택 (${compareIds.length}/2)`}
+        </button>
+        <button className="btn btn--ghost btn--small" disabled={savedSessions.length === 0} onClick={removeAllHistory}>
+          전체 기록 삭제
         </button>
       </div>
 

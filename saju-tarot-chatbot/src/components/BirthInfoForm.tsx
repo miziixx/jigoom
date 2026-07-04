@@ -186,7 +186,7 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
       </div>
 
       <p className="privacy-note">
-        생년월일 원본은 해석 문장 생성에 직접 보내지 않고, 계산된 사주 정보와 질문만 사용합니다.{" "}
+        리딩 기록은 자동 저장되지 않습니다. 생년월일 원본은 해석 문장 생성에 직접 보내지 않고, 계산된 사주 정보와 질문만 사용합니다.{" "}
         <Link to="/privacy">자세한 개인정보 안내</Link>
       </p>
 

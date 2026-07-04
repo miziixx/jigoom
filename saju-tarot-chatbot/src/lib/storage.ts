@@ -17,9 +17,17 @@ export function saveSession(session: ReadingSession): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 }
 
+export function isSessionSaved(id: string): boolean {
+  return loadSessions().some((s) => s.id === id);
+}
+
 export function deleteSession(id: string): void {
   const sessions = loadSessions().filter((s) => s.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+}
+
+export function deleteAllSessions(): void {
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 /** 즐겨찾기 토글 후, 바뀐 세션을 반환한다 */

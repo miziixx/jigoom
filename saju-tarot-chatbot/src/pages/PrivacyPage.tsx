@@ -16,7 +16,7 @@ export default function PrivacyPage() {
         <ul className="reading-bullets">
           <li>생년월일시는 브라우저에서 사주 원국을 계산하는 데 사용됩니다.</li>
           <li>AI 해석 요청에는 생년월일 원본 대신 계산된 사주 정보와 사용자가 입력한 질문이 전송됩니다.</li>
-          <li>저장된 리딩과 즐겨찾기, 피드백은 현재 사용 중인 기기의 브라우저 저장소에 저장됩니다.</li>
+          <li>리딩 기록은 자동 저장되지 않으며, 사용자가 저장을 선택한 경우에만 브라우저 저장소에 보관됩니다.</li>
           <li>PDF, 마크다운, 이미지 ZIP 저장은 사용자의 기기에서 생성됩니다.</li>
         </ul>
       </section>
@@ -55,8 +55,8 @@ export default function PrivacyPage() {
               </tr>
               <tr>
                 <td>리딩 결과, 후속 질문, 피드백</td>
-                <td>기록 보기, 비교, 저장, 설명 방식 개선</td>
-                <td>사용자 기기</td>
+                <td>사용자가 저장을 선택한 경우 기록 보기, 비교, 즐겨찾기, 설명 방식 개선</td>
+                <td>사용자가 저장을 선택한 경우 사용자 기기</td>
               </tr>
             </tbody>
           </table>
@@ -78,9 +78,10 @@ export default function PrivacyPage() {
       <section className="card privacy-section">
         <h3 className="card-title">보관과 삭제</h3>
         <ul className="reading-bullets">
-          <li>리딩 기록, 즐겨찾기, 피드백은 브라우저 저장소에 보관됩니다.</li>
-          <li>같은 기기와 같은 브라우저를 사용하는 경우 기록 페이지에서 다시 볼 수 있습니다.</li>
-          <li>기록 페이지에서 개별 리딩을 삭제할 수 있습니다.</li>
+          <li>리딩 결과는 자동 저장되지 않습니다.</li>
+          <li>사용자가 결과 화면에서 저장을 선택한 리딩만 브라우저 저장소에 보관됩니다.</li>
+          <li>같은 기기와 같은 브라우저를 사용하는 경우 저장한 리딩을 기록 페이지에서 다시 볼 수 있습니다.</li>
+          <li>기록 페이지에서 개별 리딩을 삭제하거나 전체 기록을 삭제할 수 있습니다.</li>
           <li>브라우저 데이터 삭제 또는 시크릿 모드 종료 시 저장 기록이 사라질 수 있습니다.</li>
         </ul>
       </section>
@@ -88,8 +89,9 @@ export default function PrivacyPage() {
       <section className="card privacy-section">
         <h3 className="card-title">이용자 권리</h3>
         <p>
-          사용자는 리딩 기록을 삭제하거나, 브라우저 저장소를 삭제해 저장된 정보를 지울 수 있습니다. 현재 앱은 별도 회원
-          가입 없이 동작하므로 서버 계정 기반 조회·수정 기능은 제공하지 않습니다.
+          사용자는 리딩 저장 여부를 선택할 수 있고, 저장한 리딩은 기록 페이지에서 삭제할 수 있습니다. 브라우저 저장소를
+          삭제해 저장된 정보를 지울 수도 있습니다. 현재 앱은 별도 회원 가입 없이 동작하므로 서버 계정 기반 조회·수정
+          기능은 제공하지 않습니다.
         </p>
       </section>
 

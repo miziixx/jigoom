@@ -1488,6 +1488,11 @@ label {
   margin-bottom: 14px;
 }
 
+.reading-actions__hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 .btn--small {
   padding: 8px 14px;
   font-size: 0.85rem;

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { saveFeedback } from "../lib/feedback";
 import { streamReading } from "../lib/readingApi";
 import { computeLuckCycles, computeSajuChart } from "../lib/saju";
-import { deleteSession, loadSessions, saveSession, toggleFavorite } from "../lib/storage";
+import { deleteAllSessions, deleteSession, isSessionSaved, loadSessions, saveSession, toggleFavorite } from "../lib/storage";
 import type {
   BirthInfo,
   DrawnTarotCard,
@@ -33,10 +33,12 @@ interface ReadingStore {
 
   startReading: (params: StartReadingParams) => Promise<void>;
   sendFollowUp: (question: string) => Promise<void>;
+  saveCurrentSession: (session: ReadingSession) => void;
   loadSessionById: (id: string) => void;
   clearCurrentSession: () => void;
   refreshHistory: () => void;
   removeFromHistory: (id: string) => void;
+  removeAllHistory: () => void;
   toggleFavoriteById: (id: string) => void;
   submitFeedback: (id: string, rating: FeedbackRating, tags: string[]) => void;
 }
@@ -58,13 +60,12 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
   startReading: async ({ type, question, focus, context, birthInfo, tarotCards, spreadNote }) => {
     set({ loading: true, error: null });
     // 개인정보 보호: 사주 계산을 여기(브라우저)에서 끝내고, 서버로는 생년월일 원본 대신 계산 결과와
-    // 성별만 보낸다. (생년월일 원본은 이 기기의 로컬 저장소에만 남는다.)
+    // 성별만 보낸다. 리딩 기록은 사용자가 직접 저장할 때만 브라우저 저장소에 남긴다.
     const includeMonthlyFlow = type === "saju" || type === "combo" || type === "flow";
     const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
     const luckCycles = birthInfo ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow }) : undefined;
     // 스트리밍 도중 계속 갱신되는 세션 (meta 도착 시 생성 → 텍스트가 실시간으로 자란다)
     let session: ReadingSession | null = null;
-    let textUpdates = 0;
     try {
       const result = await streamReading(
         { type, question, focus, context, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote },
@@ -95,9 +96,6 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
               messages: [session.messages[0], { role: "assistant", content: accumulated }],
             };
             set({ currentSession: session });
-            // 연결이 끊겨도 부분 결과가 남도록 주기적으로 저장
-            textUpdates += 1;
-            if (textUpdates % 20 === 0) saveSession(session);
           },
         },
       );
@@ -109,15 +107,9 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
         ...built,
         messages: [built.messages[0], { role: "assistant", content: result.reply }],
       };
-      saveSession(finalSession);
       set({ currentSession: finalSession, loading: false });
-      get().refreshHistory();
     } catch (err) {
-      // 부분 결과가 있으면 저장해서 살린다
-      const partial = session as ReadingSession | null;
-      if (partial && partial.messages[1]?.content) saveSession(partial);
       set({ loading: false, error: err instanceof Error ? err.message : "알 수 없는 오류" });
-      get().refreshHistory();
     }
   },
 
@@ -152,12 +144,20 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
         ...session,
         messages: [...historyWithQuestion, { role: "assistant", content: result.reply }],
       };
-      saveSession(updatedSession);
+      if (isSessionSaved(session.id)) {
+        saveSession(updatedSession);
+        get().refreshHistory();
+      }
       set({ currentSession: updatedSession, loading: false });
-      get().refreshHistory();
     } catch (err) {
       set({ loading: false, error: err instanceof Error ? err.message : "알 수 없는 오류" });
     }
+  },
+
+  saveCurrentSession: (session: ReadingSession) => {
+    saveSession(session);
+    set({ currentSession: session });
+    get().refreshHistory();
   },
 
   loadSessionById: (id: string) => {
@@ -172,6 +172,12 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
   removeFromHistory: (id: string) => {
     deleteSession(id);
     get().refreshHistory();
+  },
+
+  removeAllHistory: () => {
+    deleteAllSessions();
+    const current = get().currentSession;
+    set({ savedSessions: [], currentSession: current ? { ...current, favorite: false, feedback: undefined } : null });
   },
 
   toggleFavoriteById: (id: string) => {

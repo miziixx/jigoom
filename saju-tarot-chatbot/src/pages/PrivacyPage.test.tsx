@@ -23,6 +23,12 @@ describe("PrivacyPage", () => {
     expect(html).toContain("생년월일 원본은 AI 문장 생성 요청에 직접 보내지 않도록");
   });
 
+  it("리딩 기록은 사용자가 선택한 경우에만 저장된다고 안내한다", () => {
+    expect(html).toContain("리딩 기록은 자동 저장되지 않으며");
+    expect(html).toContain("사용자가 결과 화면에서 저장을 선택한 리딩만");
+    expect(html).toContain("전체 기록을 삭제할 수 있습니다");
+  });
+
   it("상세 고지에는 현재 외부 AI 제공자를 투명하게 표시한다", () => {
     expect(html).toContain("Anthropic API");
   });
