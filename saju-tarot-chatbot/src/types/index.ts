@@ -246,6 +246,32 @@ export interface CompatibilityResult {
   cautionPoints?: string[];
   /** 현실적인 관계 운영법 */
   actionPlan?: string[];
+  /** 일지(배우자궁/관계 자리) 중심 해석 */
+  partnerPalace?: {
+    title: string;
+    body: string;
+    evidence: string;
+  };
+  /** 서로에게 어떤 역할로 느껴지는지 */
+  roleChemistry?: Array<{
+    title: string;
+    body: string;
+    evidence: string;
+  }>;
+  /** 관계 목적별 적합도 */
+  purposeFits?: Array<{
+    label: string;
+    score: number;
+    comment: string;
+  }>;
+  /** 가까운 시기 흐름 */
+  timing?: Array<{
+    label: string;
+    body: string;
+    evidence: string;
+  }>;
+  /** 전문가 근거 */
+  expertEvidence?: string[];
   /** 두 사람 원국 요약 */
   people?: Array<{
     label: string;

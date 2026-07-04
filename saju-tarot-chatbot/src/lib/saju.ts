@@ -1045,6 +1045,19 @@ const ELEMENT_PLAIN: Record<keyof FiveElementBalance, string> = {
   water: "감정과 생각을 깊게 살피는 힘",
 };
 
+const TEN_GOD_PLAIN: Record<string, string> = {
+  비견: "나와 비슷해서 편하지만, 고집이 부딪힐 수 있는 사람",
+  겁재: "강하게 끌리지만 경쟁심이나 주도권 문제가 생기기 쉬운 사람",
+  식신: "편하게 표현하고 웃을 수 있게 해주는 사람",
+  상관: "답답함을 풀어주지만 말이 날카로워질 수 있는 사람",
+  편재: "현실 감각과 즐거움을 깨워주는 사람",
+  정재: "생활을 안정시키고 신뢰를 쌓기 좋은 사람",
+  편관: "긴장과 자극을 주며 책임감을 끌어내는 사람",
+  정관: "관계의 기준과 약속을 중요하게 만들 사람",
+  편인: "생각을 깊게 만들지만 속마음을 알기 어렵게 느껴질 수 있는 사람",
+  정인: "받아주고 이해해주는 느낌을 주는 사람",
+};
+
 function strongestElement(balance: FiveElementBalance): keyof FiveElementBalance {
   return (Object.keys(balance) as Array<keyof FiveElementBalance>).sort((a, b) => balance[b] - balance[a])[0];
 }
@@ -1070,6 +1083,122 @@ function personSummary(label: string, chart: SajuChart) {
   };
 }
 
+function relationToneFromDayBranches(dayA: string, dayB: string): { title: string; body: string; evidence: string; score: number } {
+  const keys = [dayA + dayB, dayB + dayA];
+  if (keys.some((k) => ZHI_LIUHE[k] !== undefined)) {
+    return {
+      title: "가까워질수록 생활 결이 붙는 관계",
+      body: "처음보다 함께 보내는 시간이 쌓일수록 정이 붙고, 일상 루틴을 맞추기 좋은 흐름입니다.",
+      evidence: `일지 ${dayA}·${dayB} 사이 합 작용`,
+      score: 14,
+    };
+  }
+  if (keys.some((k) => ZHI_CHONG.has(k))) {
+    return {
+      title: "끌림과 흔들림이 같이 오는 관계",
+      body: "서로를 강하게 의식하지만, 가까워질수록 생활 방식이나 감정 반응이 크게 다르게 느껴질 수 있습니다.",
+      evidence: `일지 ${dayA}·${dayB} 사이 충 작용`,
+      score: -10,
+    };
+  }
+  if (keys.some((k) => ZHI_XING.has(k) || ZHI_PO.has(k) || ZHI_HAI.has(k))) {
+    return {
+      title: "사소한 불편함을 쌓아두지 않는 게 중요한 관계",
+      body: "대놓고 크게 싸우기보다 작은 서운함, 말투, 약속 방식에서 긴장이 쌓이기 쉬우니 초반 기준 정리가 중요합니다.",
+      evidence: `일지 ${dayA}·${dayB} 사이 형·파·해 계열 작용`,
+      score: -6,
+    };
+  }
+  return {
+    title: "생활 리듬을 천천히 맞춰가는 관계",
+    body: "강하게 붙거나 부딪히는 신호는 약한 편이라, 서로의 습관을 확인하며 안정감을 만드는 방식이 잘 맞습니다.",
+    evidence: `일지 ${dayA}·${dayB} 사이 강한 합충 신호 없음`,
+    score: 4,
+  };
+}
+
+function roleChemistry(chartA: SajuChart, chartB: SajuChart): CompatibilityResult["roleChemistry"] {
+  const aSeesB = tenGodOf(chartA.dayMasterGan, chartB.dayMasterGan);
+  const bSeesA = tenGodOf(chartB.dayMasterGan, chartA.dayMasterGan);
+  return [
+    {
+      title: "첫 번째 사람이 느끼는 상대",
+      body: TEN_GOD_PLAIN[aSeesB] ?? "상대가 어떤 역할로 다가오는지 계산 근거가 약합니다.",
+      evidence: `첫 번째 일간 ${chartA.dayMasterGan} 기준 상대 일간 ${chartB.dayMasterGan} = ${aSeesB}`,
+    },
+    {
+      title: "두 번째 사람이 느끼는 상대",
+      body: TEN_GOD_PLAIN[bSeesA] ?? "상대가 어떤 역할로 다가오는지 계산 근거가 약합니다.",
+      evidence: `두 번째 일간 ${chartB.dayMasterGan} 기준 상대 일간 ${chartA.dayMasterGan} = ${bSeesA}`,
+    },
+  ];
+}
+
+function purposeFits(score: number, branchScore: number, elementScore: number, palaceScore: number): CompatibilityResult["purposeFits"] {
+  const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+  return [
+    {
+      label: "연애",
+      score: clamp(score + palaceScore * 1.4),
+      comment: palaceScore >= 0 ? "감정이 붙는 속도와 일상 친밀감을 만들기 좋습니다." : "끌림은 있어도 감정 반응 속도를 맞추는 연습이 필요합니다.",
+    },
+    {
+      label: "결혼·동거",
+      score: clamp(55 + elementScore * 1.6 + branchScore * 2 + palaceScore),
+      comment: "생활 습관, 돈 쓰는 방식, 가족과의 거리 기준을 먼저 맞출수록 안정됩니다.",
+    },
+    {
+      label: "일·사업",
+      score: clamp(50 + elementScore * 1.8 + Math.max(0, branchScore) * 2),
+      comment: "서로의 강점을 역할로 나누면 좋고, 책임 범위는 문서나 일정으로 분명히 하는 편이 좋습니다.",
+    },
+    {
+      label: "친구·동료",
+      score: clamp(55 + branchScore * 2.2 + Math.min(12, elementScore)),
+      comment: "같이 움직일 때 편한 부분과 피로한 부분을 구분하면 오래 가기 쉽습니다.",
+    },
+  ];
+}
+
+function compatibilityTiming(birthA: BirthInfo, birthB: BirthInfo, chartA: SajuChart, chartB: SajuChart): CompatibilityResult["timing"] {
+  const now = new Date();
+  const luckA = computeLuckCycles(birthA, now);
+  const luckB = computeLuckCycles(birthB, now);
+  const currentHits = [
+    ...(luckA.luckInteractions ?? []).slice(0, 2).map((s) => `첫 번째 ${s}`),
+    ...(luckB.luckInteractions ?? []).slice(0, 2).map((s) => `두 번째 ${s}`),
+  ];
+  const yearA = luckA.yearlyFlow?.find((y) => y.current) ?? luckA.yearlyFlow?.[0];
+  const yearB = luckB.yearlyFlow?.find((y) => y.current) ?? luckB.yearlyFlow?.[0];
+  const aCurrentDaYun = luckA.currentDaYun ? `첫 번째 현재 큰 흐름 ${luckA.currentDaYun}` : "첫 번째는 대운 시작 전 구간";
+  const bCurrentDaYun = luckB.currentDaYun ? `두 번째 현재 큰 흐름 ${luckB.currentDaYun}` : "두 번째는 대운 시작 전 구간";
+
+  return [
+    {
+      label: "지금 관계 분위기",
+      body:
+        currentHits.length > 0
+          ? "올해와 이번 달 흐름에서 두 사람 모두 관계나 생활 리듬을 조정할 신호가 있습니다. 감정적으로 바로 결론 내리기보다 약속과 역할을 다시 맞추는 편이 좋습니다."
+          : "현재 운 흐름에서 큰 흔들림 신호는 강하지 않습니다. 관계를 급하게 몰아가기보다 안정적으로 확인하는 흐름이 좋습니다.",
+      evidence: currentHits.length > 0 ? currentHits.join(", ") : `${aCurrentDaYun}, ${bCurrentDaYun}`,
+    },
+    {
+      label: `${luckA.year}년 관계 체크포인트`,
+      body:
+        (yearA?.interactions.length ?? 0) + (yearB?.interactions.length ?? 0) > 0
+          ? "올해는 두 사람 모두 각자의 변화 신호가 있어, 관계 자체보다 개인 일정과 컨디션이 관계에 영향을 주기 쉽습니다."
+          : "올해는 관계를 크게 흔드는 신호보다 기본 리듬을 유지하는 쪽이 중요합니다.",
+      evidence: [
+        yearA ? `첫 번째 ${yearA.year}년 ${yearA.ganZhi}: ${yearA.interactions.slice(0, 2).join(", ") || "강한 상호작용 적음"}` : "",
+        yearB ? `두 번째 ${yearB.year}년 ${yearB.ganZhi}: ${yearB.interactions.slice(0, 2).join(", ") || "강한 상호작용 적음"}` : "",
+        `일주 ${chartA.day.ganZhi}·${chartB.day.ganZhi}`,
+      ]
+        .filter(Boolean)
+        .join(" / "),
+    },
+  ];
+}
+
 /**
  * 두 사람의 사주 궁합을 계산한다 (결정론적, 참고용).
  * 일간 관계 + 지지 합충 + 오행 보완을 종합해 0~100 점수로 환산한다.
@@ -1084,13 +1213,16 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
   const dm = dayMasterRelation(chartA.dayMasterGan, chartB.dayMasterGan);
   const branches = crossBranchRelations(zhisA, zhisB);
   const elements = elementComplement(chartA.fiveElements, chartB.fiveElements);
+  const palace = relationToneFromDayBranches(chartA.day.zhi, chartB.day.zhi);
+  const roles = roleChemistry(chartA, chartB);
 
   const branchScore = Math.max(-14, Math.min(18, branches.goodCount * 7 - branches.badCount * 5));
-  const raw = 55 + dm.score + branchScore + elements.score;
+  const raw = 55 + dm.score + branchScore + elements.score + palace.score;
   const score = Math.max(0, Math.min(100, Math.round(raw)));
 
   const breakdown = [
     { label: "두 사람의 기질", score: Math.round((dm.score / 22) * 100), note: dm.text },
+    { label: "연애·생활 자리", score: Math.max(0, Math.min(100, 55 + palace.score * 3)), note: palace.body },
     {
       label: "함께 있을 때 흐름",
       score: Math.max(0, Math.min(100, 50 + branchScore * 3)),
@@ -1136,9 +1268,19 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
     },
     {
       title: "오래 가는 방법",
-      body: elements.text,
-      action: "서로가 잘하는 역할을 나누고, 부족한 쪽을 비난보다 보완으로 다루세요.",
+      body: palace.body,
+      action: "서로가 편해지는 생활 기준을 초반에 맞추고, 감정이 올라올 때는 잠시 속도를 늦추세요.",
     },
+  ];
+  const purposes = purposeFits(score, branchScore, elements.score, palace.score);
+  const timing = compatibilityTiming(birthA, birthB, chartA, chartB);
+  const expertEvidence = [
+    `일간 관계: ${chartA.dayMasterGan}·${chartB.dayMasterGan} / ${dm.text}`,
+    `일지 관계: ${chartA.day.zhi}·${chartB.day.zhi} / ${palace.evidence}`,
+    `상대 십성: ${roles?.map((r) => r.evidence).join(" / ")}`,
+    `전체 지지 상호작용: ${[...branches.good, ...branches.bad].join(", ") || "강한 합충형파해 신호 적음"}`,
+    `오행 보완: ${elements.text}`,
+    `현재 시기 흐름: ${timing?.map((t) => t.evidence).join(" / ")}`,
   ];
 
   return {
@@ -1151,6 +1293,11 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
     highlights,
     cautionPoints,
     actionPlan,
+    partnerPalace: { title: palace.title, body: palace.body, evidence: palace.evidence },
+    roleChemistry: roles,
+    purposeFits: purposes,
+    timing,
+    expertEvidence,
     people: [personSummary("첫 번째 사람", chartA), personSummary("두 번째 사람", chartB)],
   };
 }

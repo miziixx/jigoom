@@ -171,6 +171,39 @@ export default function CompatibilityPage() {
             </section>
           )}
 
+          {result.partnerPalace && (
+            <section className="card compat-feature-card">
+              <span className="compat-score-card__eyebrow">연애·생활 자리</span>
+              <h3 className="card-title">{result.partnerPalace.title}</h3>
+              <p className="reading-body">{result.partnerPalace.body}</p>
+            </section>
+          )}
+
+          {result.roleChemistry && (
+            <section className="card">
+              <h3 className="card-title">서로에게 어떤 사람으로 느껴지는지</h3>
+              <div className="compat-advice-grid">
+                {result.roleChemistry.map((role) => (
+                  <article className="compat-highlight" key={role.title}>
+                    <span>{role.title}</span>
+                    <p>{role.body}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {result.purposeFits && (
+            <section className="card">
+              <h3 className="card-title">관계 목적별 궁합</h3>
+              <div className="gauge-list">
+                {result.purposeFits.map((fit) => (
+                  <Gauge key={fit.label} label={fit.label} score={fit.score} comment={fit.comment} />
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="card">
             <h3 className="card-title">세부 흐름</h3>
             <div className="gauge-list">
@@ -191,7 +224,27 @@ export default function CompatibilityPage() {
             <p className="reading-body">
               <b>서로 채워주는 부분</b> — {result.elementComplement}
             </p>
+            {result.partnerPalace && (
+              <p className="reading-body">
+                <b>관계 자리</b> — {result.partnerPalace.evidence}
+              </p>
+            )}
           </div>
+
+          {result.timing && (
+            <section className="card">
+              <h3 className="card-title">시기 흐름</h3>
+              <div className="compat-advice-grid">
+                {result.timing.map((t) => (
+                  <article className="compat-highlight" key={t.label}>
+                    <span>{t.label}</span>
+                    <p>{t.body}</p>
+                    <b>{t.evidence}</b>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
 
           {(result.cautionPoints || result.actionPlan) && (
             <div className="compat-advice-grid">
@@ -216,6 +269,17 @@ export default function CompatibilityPage() {
                 </section>
               )}
             </div>
+          )}
+
+          {result.expertEvidence && (
+            <details className="card evidence-details">
+              <summary>전문가 근거 보기</summary>
+              <ul className="compat-list">
+                {result.expertEvidence.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </details>
           )}
         </div>
       )}

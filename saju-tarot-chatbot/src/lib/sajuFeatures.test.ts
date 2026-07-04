@@ -129,9 +129,13 @@ describe("궁합 계산", () => {
   it("0~100 점수와 세부 항목을 낸다", () => {
     expect(compat.score).toBeGreaterThanOrEqual(0);
     expect(compat.score).toBeLessThanOrEqual(100);
-    expect(compat.breakdown).toHaveLength(3);
+    expect(compat.breakdown.length).toBeGreaterThanOrEqual(4);
     expect(compat.dayMasterRelation.length).toBeGreaterThan(0);
     expect(compat.summary.length).toBeGreaterThan(0);
+    expect(compat.partnerPalace?.body.length).toBeGreaterThan(0);
+    expect(compat.roleChemistry).toHaveLength(2);
+    expect(compat.purposeFits).toHaveLength(4);
+    expect(compat.timing).toHaveLength(2);
   });
 
   it("교환해도 점수가 동일하다 (대칭성)", () => {
@@ -148,6 +152,10 @@ describe("궁합 계산", () => {
       elementComplement: compat.elementComplement,
       summary: compat.summary,
       breakdown: compat.breakdown,
+      partnerPalace: compat.partnerPalace?.body,
+      roleChemistry: compat.roleChemistry?.map((r) => r.body),
+      purposeFits: compat.purposeFits,
+      timing: compat.timing?.map((t) => t.body),
     });
     for (const w of JARGON) expect(surface, `궁합에 용어 노출: ${w}`).not.toContain(w);
   });

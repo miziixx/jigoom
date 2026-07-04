@@ -2259,6 +2259,11 @@ label {
   line-height: 1.6;
 }
 
+.compat-feature-card {
+  border-color: rgba(201, 164, 255, 0.42);
+  background: linear-gradient(180deg, rgba(201, 164, 255, 0.1), var(--surface));
+}
+
 .compat-people-grid,
 .compat-advice-grid {
   display: grid;
@@ -2331,6 +2336,16 @@ label {
 
 .compat-list li + li {
   margin-top: 8px;
+}
+
+.evidence-details summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.evidence-details .compat-list {
+  margin-top: 12px;
 }
 
 /* ── 즉시 요약 (계산 기반, AI 리딩 전에 바로 보이는 카드) ── */
