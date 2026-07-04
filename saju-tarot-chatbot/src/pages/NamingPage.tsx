@@ -8,19 +8,26 @@ import { downloadNamingMarkdown } from "../lib/exportNaming";
 import {
   compareNames,
   evaluateName,
+  NAMING_MODE_LABEL,
   SOUND_ELEMENT_SCHOOL_LABEL,
   type NameCandidateInput,
   type NameComparison,
   type NameEvaluation,
+  type NamingMode,
+  type NamingPurpose,
   type SoundElementSchool,
 } from "../lib/naming";
 import type { BirthInfo } from "../types";
 
 export default function NamingPage() {
   const [name, setName] = useState("");
+  const [mode, setMode] = useState<NamingMode>("baby");
   const [school, setSchool] = useState<SoundElementSchool>("full-name");
   const [candidateText, setCandidateText] = useState("");
   const [strokesText, setStrokesText] = useState("");
+  const [desiredImage, setDesiredImage] = useState("");
+  const [avoidSounds, setAvoidSounds] = useState("");
+  const [purposeNote, setPurposeNote] = useState("");
   const [result, setResult] = useState<NameEvaluation | null>(null);
   const [comparison, setComparison] = useState<NameComparison | null>(null);
   const [interpretation, setInterpretation] = useState<string | null>(null);
@@ -58,14 +65,20 @@ export default function NamingPage() {
     setInterpretation(null);
     setInterpretationError(null);
     const chart = computeSajuChart(birthInfo);
+    const purpose: NamingPurpose = {
+      mode,
+      desiredImage: desiredImage.trim() || undefined,
+      avoidSounds: avoidSounds.trim() || undefined,
+      purposeNote: purposeNote.trim() || undefined,
+    };
     const nextComparison =
       candidates.length > 0
-        ? compareNames(chart, candidates, school)
+        ? compareNames(chart, candidates, school, purpose)
         : singleName
-          ? compareNames(chart, [{ name: singleName, strokes: parseStrokes(strokesText) }], school)
+          ? compareNames(chart, [{ name: singleName, strokes: parseStrokes(strokesText) }], school, purpose)
           : null;
     const nextResult =
-      nextComparison?.recommended ?? evaluateName(chart, singleName, parseStrokes(strokesText), school);
+      nextComparison?.recommended ?? evaluateName(chart, singleName, parseStrokes(strokesText), school, purpose);
     setComparison(nextComparison && nextComparison.candidates.length > 1 ? nextComparison : null);
     setResult(nextResult);
     setInterpretationLoading(true);
@@ -103,6 +116,27 @@ export default function NamingPage() {
         <>
           <div className="card form">
             <div className="field-row field-row--column">
+              <span className="field-label">작명 목적</span>
+              <div className="naming-mode-grid">
+                {(["baby", "rename", "stage", "brand"] as NamingMode[]).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={mode === key ? "naming-mode-card naming-mode-card--active" : "naming-mode-card"}
+                    onClick={() => setMode(key)}
+                  >
+                    <b>{NAMING_MODE_LABEL[key]}</b>
+                    <span>
+                      {key === "baby" && "출생신고 전 최종 확인이 필요한 이름"}
+                      {key === "rename" && "현재 이름과 다른 이미지가 필요한 경우"}
+                      {key === "stage" && "활동 분야와 기억되기 쉬운 인상"}
+                      {key === "brand" && "상호·브랜드로 부르기 쉬운 이름"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="field-row field-row--column">
               <span className="field-label">발음오행 기준</span>
               <div className="segmented naming-school-toggle">
                 {(["full-name", "given-name"] as SoundElementSchool[]).map((key) => (
@@ -119,6 +153,33 @@ export default function NamingPage() {
               <span className="field-hint">
                 전체 이름 기준은 성까지 포함해 보고, 이름 중심 기준은 성을 고정값으로 두고 이름 부분의 흐름을 더 봅니다.
               </span>
+            </div>
+            <div className="field-row field-row--column">
+              <span className="field-label">원하는 이미지 (선택)</span>
+              <input
+                type="text"
+                placeholder="예: 단아함, 밝음, 지적임, 고급스러움, 단단함"
+                value={desiredImage}
+                onChange={(e) => setDesiredImage(e.target.value)}
+              />
+            </div>
+            <div className="field-row field-row--column">
+              <span className="field-label">피하고 싶은 발음/느낌 (선택)</span>
+              <input
+                type="text"
+                placeholder="예: 너무 무거운 느낌, 특정 초성, 놀림이 쉬운 발음"
+                value={avoidSounds}
+                onChange={(e) => setAvoidSounds(e.target.value)}
+              />
+            </div>
+            <div className="field-row field-row--column">
+              <span className="field-label">목적 메모 (선택)</span>
+              <textarea
+                rows={3}
+                placeholder="예: 아이가 커서도 어색하지 않은 이름, 직업 이미지에 맞는 활동명, 브랜드 검색에 쓰기 쉬운 이름"
+                value={purposeNote}
+                onChange={(e) => setPurposeNote(e.target.value)}
+              />
             </div>
             <div className="field-row field-row--column">
               <span className="field-label">감정할 이름</span>
@@ -153,6 +214,14 @@ export default function NamingPage() {
             </div>
           </div>
           {error && <p className="error-text">{error}</p>}
+          <div className="card naming-legal-note">
+            <b>등록·법적 확인 안내</b>
+            <p>
+              이 기능은 사주 보완, 발음오행, 선택 입력한 획수를 바탕으로 한 참고 리포트입니다. 아기 이름·개명 이름은 실제
+              출생신고 또는 개명 신청 전 전자가족관계등록시스템이나 관할 기관에서 인명용 한자, 이름 글자 수, 동일 이름 등
+              등록 요건을 최종 확인해야 합니다. 예명·상호·브랜드명은 상표, 도메인, SNS 계정, 기존 사용 여부를 별도로 확인하세요.
+            </p>
+          </div>
           <BirthInfoForm submitLabel="이름 감정하기" onSubmit={(b) => handleSubmit(b)} loading={false} showFocus={false} />
         </>
       )}

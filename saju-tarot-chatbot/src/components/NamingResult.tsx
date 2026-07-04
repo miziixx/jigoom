@@ -1,4 +1,4 @@
-import type { NameEvaluation } from "../lib/naming";
+import { NAMING_MODE_LABEL, type NameEvaluation } from "../lib/naming";
 
 const LEVEL_KEY: Record<string, string> = { 좋음: "good", 보통: "ok", 주의: "warn", 순조로움: "good", 무난함: "ok", "다소 부딪힘": "warn", 길: "good", 평: "ok", 흉: "warn" };
 
@@ -27,6 +27,7 @@ export default function NamingResult({
           <span className={levelClass(overall)}>종합 {overall}</span>
         </div>
         <div className="naming-chips naming-chips--compact">
+          {result.purpose && <span>{NAMING_MODE_LABEL[result.purpose.mode]}</span>}
           <span>{result.schoolLabel}</span>
         </div>
         <p>{headline}</p>

@@ -533,6 +533,53 @@ label {
   flex-wrap: wrap;
 }
 
+.naming-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.naming-mode-card {
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--surface-alt);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.naming-mode-card b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.naming-mode-card span {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.naming-mode-card--active {
+  border-color: rgba(201, 164, 255, 0.75);
+  box-shadow: 0 0 0 1px rgba(201, 164, 255, 0.2);
+}
+
+.naming-legal-note b {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--accent);
+}
+
+.naming-legal-note p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
 .naming-actions {
   display: flex;
   gap: 8px;

@@ -1,8 +1,9 @@
-import type { NameEvaluation } from "../lib/naming";
+import { NAMING_MODE_LABEL, type NameEvaluation } from "../lib/naming";
 
 export const NAMING_SYSTEM_PROMPT = [
   "당신은 전통 작명 관점의 계산 결과를 사용자가 이해하기 쉬운 생활 언어로 번역하는 이름 감정 해설가다.",
   "계산 자체를 새로 만들거나, 제공되지 않은 한자 뜻·자원오행·획수를 꾸며내지 않는다.",
+  "법적 등록 가능성, 인명용 한자 해당 여부, 상표권·상호권 가능성을 확정적으로 말하지 않는다.",
   "사용자가 입력한 이름을 나쁜 이름, 불행한 이름, 피해야 할 이름으로 단정하지 않는다.",
   "발음오행, 사주 보완 기운, 수리성명학은 전통 해석 관점의 참고 자료라고 설명한다.",
   "공포감, 운명 단정, 부모에게 죄책감을 주는 표현을 쓰지 않는다.",
@@ -22,11 +23,14 @@ export function buildNamingUserMessage(evaluation: NameEvaluation): string {
   const suriLines = evaluation.suri
     ? evaluation.suri.levels.map((l) => `- ${l.name}: ${l.total}획, ${l.level}`).join("\n")
     : "- 한자 획수 미입력: 수리 판단은 하지 않음";
+  const purpose = evaluation.purpose;
+  const modeLabel = purpose ? NAMING_MODE_LABEL[purpose.mode] : "일반 이름 감정";
 
   return [
     "[요청]",
     "아래 이름 감정 계산 결과만 근거로 사용해, 사용자에게 보여줄 이름 해석 리포트를 작성해라.",
     "계산되지 않은 자원오행, 한자 뜻, 실제 법적 작명 적합성은 말하지 마라.",
+    "등록 가능 여부, 인명용 한자 여부, 상표·상호 사용 가능성은 최종 확인이 필요한 사항으로만 안내해라.",
     "",
     "[출력 구조]",
     "# 한 줄 결론",
@@ -41,6 +45,10 @@ export function buildNamingUserMessage(evaluation: NameEvaluation): string {
     "",
     "[계산 결과]",
     `이름: ${evaluation.name}`,
+    `작명 목적: ${modeLabel}`,
+    `원하는 이미지: ${purpose?.desiredImage?.trim() || "미입력"}`,
+    `피하고 싶은 발음/느낌: ${purpose?.avoidSounds?.trim() || "미입력"}`,
+    `추가 메모: ${purpose?.purposeNote?.trim() || "미입력"}`,
     `발음오행 기준: ${evaluation.schoolLabel}`,
     `종합 판정: ${evaluation.overall}`,
     `헤드라인: ${evaluation.headline}`,
@@ -68,5 +76,7 @@ export function buildNamingUserMessage(evaluation: NameEvaluation): string {
     "",
     "[주의]",
     "이름은 절대적인 길흉 판정이 아니라, 불릴 때의 소리 흐름과 사주 보완 관점의 참고 자료라고 자연스럽게 설명해라.",
+    "아기 이름·개명 이름은 실제 출생신고 또는 개명 신청 전 전자가족관계등록시스템/관할 기관에서 최종 확인이 필요하다고 안내해라.",
+    "예명·활동명·브랜드명은 상표, 도메인, SNS 계정, 기존 사용 여부를 별도로 확인해야 한다고 안내해라.",
   ].join("\n");
 }

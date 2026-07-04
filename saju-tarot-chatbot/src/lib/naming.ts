@@ -38,6 +38,22 @@ export const SOUND_ELEMENT_SCHOOL_LABEL: Record<SoundElementSchool, string> = {
   "given-name": "이름 중심 기준",
 };
 
+export type NamingMode = "baby" | "rename" | "stage" | "brand";
+
+export const NAMING_MODE_LABEL: Record<NamingMode, string> = {
+  baby: "아기 이름",
+  rename: "개명 이름",
+  stage: "예명·활동명",
+  brand: "상호명·브랜드명",
+};
+
+export interface NamingPurpose {
+  mode: NamingMode;
+  desiredImage?: string;
+  avoidSounds?: string;
+  purposeNote?: string;
+}
+
 export type SoundElementRelation = "상생" | "상극" | "같음";
 
 export interface SyllableSound {
@@ -226,6 +242,7 @@ export type NameOverall = "좋음" | "보통" | "주의";
 
 export interface NameEvaluation {
   name: string;
+  purpose?: NamingPurpose;
   school: SoundElementSchool;
   schoolLabel: string;
   sound: NameSoundAnalysis;
@@ -238,7 +255,13 @@ export interface NameEvaluation {
 }
 
 /** 이름 종합 감정: 발음오행 흐름 + 사주 보완 적합도 (+ 있으면 수리). */
-export function evaluateName(chart: SajuChart, name: string, strokes?: number[], school: SoundElementSchool = "full-name"): NameEvaluation {
+export function evaluateName(
+  chart: SajuChart,
+  name: string,
+  strokes?: number[],
+  school: SoundElementSchool = "full-name",
+  purpose?: NamingPurpose,
+): NameEvaluation {
   const sound = analyzeNameSound(name, school);
   const fit = evaluateNameForChart(chart, sound);
   const suri = strokes && strokes.length >= 2 ? evaluateSuri(strokes) : null;
@@ -260,7 +283,7 @@ export function evaluateName(chart: SajuChart, name: string, strokes?: number[],
         ? `균형 면에서 보완하면 좋은 지점이 보이는 이름입니다.`
         : `크게 부딪히지 않는 무난한 이름입니다.`;
 
-  return { name, school, schoolLabel: SOUND_ELEMENT_SCHOOL_LABEL[school], sound, fit, suri, score, overall, headline };
+  return { name, purpose, school, schoolLabel: SOUND_ELEMENT_SCHOOL_LABEL[school], sound, fit, suri, score, overall, headline };
 }
 
 export interface NameCandidateInput {
@@ -274,11 +297,16 @@ export interface NameComparison {
   summary: string;
 }
 
-export function compareNames(chart: SajuChart, candidates: NameCandidateInput[], school: SoundElementSchool = "full-name"): NameComparison {
+export function compareNames(
+  chart: SajuChart,
+  candidates: NameCandidateInput[],
+  school: SoundElementSchool = "full-name",
+  purpose?: NamingPurpose,
+): NameComparison {
   const evaluations = candidates
     .map((candidate) => ({ ...candidate, name: candidate.name.trim() }))
     .filter((candidate) => candidate.name.length > 0)
-    .map((candidate) => evaluateName(chart, candidate.name, candidate.strokes, school));
+    .map((candidate) => evaluateName(chart, candidate.name, candidate.strokes, school, purpose));
 
   if (evaluations.length === 0) {
     throw new Error("비교할 이름이 필요합니다.");

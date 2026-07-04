@@ -59,8 +59,13 @@ describe("이름 종합 감정", () => {
   });
 
   it("획수를 주면 수리도 포함한다", () => {
-    const evaln = evaluateName(chart, "김민준", [8, 9, 6]);
+    const evaln = evaluateName(chart, "김민준", [8, 9, 6], "full-name", {
+      mode: "baby",
+      desiredImage: "단아함",
+    });
     expect(evaln.suri).not.toBeNull();
+    expect(evaln.purpose?.mode).toBe("baby");
+    expect(evaln.purpose?.desiredImage).toBe("단아함");
   });
 
   it("여러 후보를 비교해 추천 후보를 고른다", () => {
@@ -68,10 +73,11 @@ describe("이름 종합 감정", () => {
       { name: "김민준", strokes: [8, 9, 6] },
       { name: "이서아", strokes: [7, 8, 9] },
       { name: "박도윤" },
-    ], "given-name");
+    ], "given-name", { mode: "rename", purposeNote: "직업 이미지 개선" });
     expect(comparison.candidates).toHaveLength(3);
     expect(comparison.recommended).toBe(comparison.candidates[0]);
     expect(comparison.summary).toContain(comparison.recommended.name);
     expect(comparison.recommended.school).toBe("given-name");
+    expect(comparison.recommended.purpose?.mode).toBe("rename");
   });
 });
