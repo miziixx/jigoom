@@ -142,9 +142,9 @@ export default function NamingPage() {
     };
     const recKey = { brief: nextBrief, options };
     try {
-      const cached = forceRegenerate ? null : getCachedResult<string>("naming-recommend", recKey);
+      const cached = forceRegenerate ? null : getCachedResult<string>("naming-recommend-v2", recKey);
       const reply = cached ?? (await generateNameRecommendations(nextBrief, options));
-      setCachedResult("naming-recommend", recKey, reply);
+      setCachedResult("naming-recommend-v2", recKey, reply);
       setRecommendation(reply);
     } catch (err) {
       setRecommendError(err instanceof Error ? err.message : "이름 추천을 불러오지 못했습니다.");
