@@ -282,18 +282,42 @@ export function buildNamingBrief(chart: SajuChart): NamingBrief {
   const supportingLabel = ELEMENT_KO[supportingElement];
   const avoidLabel = avoidElement ? ELEMENT_KO[avoidElement] : null;
 
-  const note = `이 사주에는 ${neededLabel} 기운을 보완하면 균형에 도움이 됩니다. 그래서 이름 소리에 ${neededLabel} 기운(${ELEMENT_CHOSEONG[neededElement].join("·")}) 또는 그 기운을 살려주는 ${supportingLabel} 기운(${ELEMENT_CHOSEONG[supportingElement].join("·")})의 초성을 넣으면 잘 어울립니다.${avoidLabel ? ` ${avoidLabel} 기운(${ELEMENT_CHOSEONG[avoidElement!].join("·")})으로만 몰리는 소리는 피하는 편이 좋습니다.` : ""}`;
+  // 상생 기운(supporting)이 곧 부담 기운(avoid)과 같으면 추천/주의가 모순되므로,
+  // 그 경우엔 상생 초성을 추천에서 빼고 주의로만 남긴다. 보완 기운 자체가 부담과 같은
+  // 비정상 케이스에서는 주의를 비운다.
+  const supportConflict = avoidElement != null && supportingElement === avoidElement;
+  const recommendedChoseong = ELEMENT_CHOSEONG[neededElement];
+  const supportingChoseong = supportConflict ? [] : ELEMENT_CHOSEONG[supportingElement];
+  const cautionChoseong =
+    avoidElement && avoidElement !== neededElement
+      ? ELEMENT_CHOSEONG[avoidElement].filter((c) => !recommendedChoseong.includes(c))
+      : [];
+
+  const parts: string[] = [
+    `이 사주에는 ${neededLabel} 기운을 보완하면 균형에 도움이 됩니다.`,
+  ];
+  if (supportingChoseong.length > 0) {
+    parts.push(
+      `그래서 이름 소리에 ${neededLabel} 기운(${recommendedChoseong.join("·")}) 또는 그 기운을 살려주는 ${supportingLabel} 기운(${supportingChoseong.join("·")})의 초성을 넣으면 잘 어울립니다.`,
+    );
+  } else {
+    parts.push(`그래서 이름 소리에 ${neededLabel} 기운(${recommendedChoseong.join("·")})의 초성을 넣으면 잘 어울립니다.`);
+  }
+  if (cautionChoseong.length > 0) {
+    parts.push(`반대로 ${avoidLabel} 기운(${cautionChoseong.join("·")})으로만 몰리는 소리는 피하는 편이 좋습니다.`);
+  }
+  const note = parts.join(" ");
 
   return {
     neededElement,
     neededLabel,
     avoidElement,
     avoidLabel,
-    recommendedChoseong: ELEMENT_CHOSEONG[neededElement],
+    recommendedChoseong,
     supportingElement,
     supportingLabel,
-    supportingChoseong: ELEMENT_CHOSEONG[supportingElement],
-    cautionChoseong: avoidElement ? ELEMENT_CHOSEONG[avoidElement] : [],
+    supportingChoseong,
+    cautionChoseong,
     note,
   };
 }

@@ -121,7 +121,9 @@ function fallbackRecommend(brief: NamingBrief, options: NamingRecommendOptions):
   lines.push(`# 이름을 이렇게 고르면 좋아요`, brief.note, "");
   lines.push(`# 어울리는 소리 (발음오행)`);
   lines.push(`- 직접 담으면 좋은 초성: ${brief.recommendedChoseong.join(", ")} (${brief.neededLabel} 기운)`);
-  lines.push(`- 살려주는 초성: ${brief.supportingChoseong.join(", ")} (${brief.supportingLabel} 기운)`);
+  if (brief.supportingChoseong.length) {
+    lines.push(`- 살려주는 초성: ${brief.supportingChoseong.join(", ")} (${brief.supportingLabel} 기운)`);
+  }
   if (brief.avoidLabel && brief.cautionChoseong.length) {
     lines.push(`- 너무 몰리지 않게 할 초성: ${brief.cautionChoseong.join(", ")} (${brief.avoidLabel} 기운)`);
   }

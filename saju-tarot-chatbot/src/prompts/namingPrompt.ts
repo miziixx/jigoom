@@ -68,7 +68,9 @@ export function buildNamingRecommendMessage(brief: NamingBrief, options: NamingR
     "[사주 보완 근거 — 이 안에서만 이름을 지어라]",
     `보완하면 좋은 기운: ${brief.neededLabel}`,
     `보완 기운을 직접 담는 초성: ${brief.recommendedChoseong.join(", ")}`,
-    `보완 기운을 상생으로 살려주는 기운: ${brief.supportingLabel} (초성 ${brief.supportingChoseong.join(", ")})`,
+    brief.supportingChoseong.length
+      ? `보완 기운을 상생으로 살려주는 기운: ${brief.supportingLabel} (초성 ${brief.supportingChoseong.join(", ")})`
+      : `상생으로 살려주는 기운은 이 사주에선 부담이 될 수 있어 권하지 않음(직접 담는 초성 위주로).`,
     `과하면 부담이 되어 몰리지 않게 할 기운: ${brief.avoidLabel ?? "특별히 없음"}${brief.cautionChoseong.length ? ` (초성 ${brief.cautionChoseong.join(", ")})` : ""}`,
     `근거 요약: ${brief.note}`,
     "",
