@@ -98,7 +98,17 @@ export function buildMysticEvidence(
   const natalInteractions = chart.interactions ?? [];
   natalInteractions.slice(0, 4).forEach((i) => notes.push(`원국 ${i}`));
   const sinsal: string[] = [];
+  // 신살: 계산된 원국 신살(이름·위치·뜻) 요약
+  for (const s of chart.sinsal ?? []) {
+    sinsal.push(`${s.name}(${s.position}): ${s.gloss}`);
+  }
   if (chart.gongmang) sinsal.push(chart.gongmang);
+  // 대표 신살은 notes에도 실어 해석 근거로 강조 (최대 4개)
+  (chart.sinsal ?? []).slice(0, 4).forEach((s) => notes.push(`신살 ${s.name}(${s.position})`));
+
+  // ── 격국 / 일주 성향 ────────────────────────
+  if (chart.gyeokguk) notes.push(`격국: ${chart.gyeokguk.name} — ${chart.gyeokguk.gloss}`);
+  if (chart.iljuTrait) notes.push(`일주 성향: ${chart.iljuTrait}`);
 
   // ── 현재 운(대운/세운/월운) ──────────────────
   const luckInteractions = luck.luckInteractions ?? [];
