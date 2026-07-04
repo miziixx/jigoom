@@ -3920,3 +3920,135 @@ label {
   max-width: 100%;
   height: auto;
 }
+
+/* ══════════ 타로 요약 히어로 ══════════ */
+.tarot-hero {
+  overflow-wrap: anywhere;
+}
+
+.tarot-hero__headline {
+  margin: 4px 0 12px;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tarot-hero__ratio {
+  margin-bottom: 12px;
+}
+
+.tarot-hero__ratio-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+}
+
+.tarot-hero__ratio-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(168, 159, 196, 0.22);
+  overflow: hidden;
+}
+
+.tarot-hero__ratio-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(201, 164, 255, 0.7), rgba(169, 112, 255, 0.95));
+}
+
+.tarot-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tarot-hero__chip {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.tarot-hero__chip--dominant {
+  border-color: rgba(201, 164, 255, 0.4);
+  color: var(--accent);
+}
+
+.tarot-hero__chip--missing {
+  border-color: rgba(255, 190, 120, 0.35);
+  color: #d9a86a;
+}
+
+.tarot-hero__note {
+  margin: 12px 0 0;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+/* ══════════ 오늘 운세·궁합 모바일 안전 통일 ══════════ */
+.fortune-result,
+.compat-result {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fortune-result img,
+.compat-result img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 게이지 트랙이 좁은 폭을 넘지 않게 */
+.fortune-result .gauge,
+.compat-result .gauge,
+.fortune-category-card,
+.compat-deep-item {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 480px) {
+  /* 넓은 그리드는 좁으면 1열 */
+  .fortune-category-grid,
+  .compat-highlight-grid,
+  .compat-advice-grid,
+  .compat-deep-list {
+    grid-template-columns: 1fr;
+  }
+
+  /* 행운 아이템은 2열 유지하되 자식이 넘치지 않게 */
+  .lucky-grid {
+    gap: 8px;
+  }
+
+  .lucky-item {
+    min-width: 0;
+  }
+
+  .lucky-item__value {
+    overflow-wrap: anywhere;
+  }
+
+  /* 추천/피할 행동 2단은 좁으면 세로 스택 */
+  .fortune-two {
+    grid-template-columns: 1fr;
+  }
+
+  /* 공유 등 액션 버튼 wrap + 터치 타깃 */
+  .fortune-result .reading-actions,
+  .compat-result .reading-actions {
+    flex-wrap: wrap;
+  }
+
+  .fortune-result .reading-actions .btn,
+  .compat-result .reading-actions .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+}

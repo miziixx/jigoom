@@ -616,3 +616,19 @@ saju/lunar를 더 이상 끌어오지 않아 API 번들이 가벼워짐. (150 �
 - 모바일 안전(index.css): 2×2 그리드 auto-fit→좁으면 1열, 넓은 도표 overflow-x:auto, 버튼 wrap+44px,
   overflow-wrap:anywhere, 컨테이너 min-width:0. Playwright 360/390/768px 검증 → 가로 스크롤 없음.
 - 테스트: readingDashboard.test.ts 추가(179 통과), build OK.
+
+## 나머지 메뉴 시각/모바일 통일 (타로 히어로 + fortune·compat 하드닝)
+
+확인 결과 대부분 화면은 이미 시각화돼 있었음: combo·flow는 ReadingResult 공유로 대시보드 자동 적용,
+오늘 운세(FortuneResult)·궁합(CompatibilityPage)은 이미 히어로·게이지·카드·근거접이 구조. → 재구성 대신
+일관성+모바일 통일 패스만 수행.
+
+- 신규 `TarotSummaryHero.tsx`: 타로는 사주 대시보드가 없어, 뽑은 카드의 정/역방향 비율 바 + 중심/빠진
+  에너지 칩 + 방향 비율 기반 한 줄 메시지를 상단 히어로로. 계산은 tarotSymbolism 재사용(새 계산 없음).
+  ReadingResult에서 tarotCards가 있을 때 TarotFactsPanel 위에 렌더.
+- index.css 모바일 하드닝(오늘 운세·궁합): .fortune-result/.compat-result에 min-width:0 +
+  overflow-wrap:anywhere, 이미지 max-width, 게이지 max-width, 480px에서 fortune-category-grid/
+  compat-highlight-grid/compat-advice-grid/compat-deep-list 1열, lucky-item min-width:0, fortune-two 스택,
+  액션 버튼 wrap+44px. 타로 히어로 CSS 추가.
+- 검증: Playwright 360/390/768px로 오늘 운세·궁합·타로 렌더 → 전부 가로 스크롤 0, 게이지/카드/칩 정상.
+  test 179 통과, build OK.

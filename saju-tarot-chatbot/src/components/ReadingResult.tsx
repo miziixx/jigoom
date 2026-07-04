@@ -5,6 +5,7 @@ import PatternMap from "./PatternMap";
 import ActionCalendar from "./ActionCalendar";
 import ActionChecklist from "./ActionChecklist";
 import EvidenceConfidence from "./EvidenceConfidence";
+import TarotSummaryHero from "./TarotSummaryHero";
 import SummaryCardGrid from "./SummaryCardGrid";
 import PersonalitySpectrum from "./PersonalitySpectrum";
 import LifeAreaBars from "./LifeAreaBars";
@@ -367,7 +368,10 @@ export default function ReadingResult({ session, loading = false }: { session: R
       {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
 
       {session.tarotCards && session.tarotCards.length > 0 && (
-        <TarotFactsPanel cards={session.tarotCards} />
+        <>
+          <TarotSummaryHero cards={session.tarotCards} />
+          <TarotFactsPanel cards={session.tarotCards} />
+        </>
       )}
 
       {opening && (
