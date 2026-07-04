@@ -156,6 +156,10 @@ body {
   font-size: 0.78rem;
 }
 
+.field-hint--accent {
+  color: var(--accent);
+}
+
 input[type="number"],
 input[type="text"],
 select,

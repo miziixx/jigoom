@@ -128,7 +128,14 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
             aria-label="출생 분"
           />
         )}
-        <span className="field-hint">모르면 시주를 제외하고 해석합니다.</span>
+        {hour === "unknown" ? (
+          <span className="field-hint field-hint--accent">
+            시간을 알면 성격·연애·시기 해석이 훨씬 정확해집니다. 모르면 시주를 빼고 해석하니, 가능하면
+            주민등록 초본이나 부모님께 한 번 확인해보세요.
+          </span>
+        ) : (
+          <span className="field-hint">분까지 정확할수록 좋아요. 애매하면 정각으로 두어도 됩니다.</span>
+        )}
       </div>
 
       {hour === "23" && (
@@ -152,7 +159,11 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
             </option>
           ))}
         </select>
-        <span className="field-hint">진태양시(경도) 보정에 사용합니다. 서머타임은 자동 반영.</span>
+        <span className={`field-hint${birthPlace === "none" ? " field-hint--accent" : ""}`}>
+          {birthPlace === "none"
+            ? "출생지를 고르면 진태양시(경도) 보정으로 시주 정확도가 올라갑니다. 서머타임은 자동 반영돼요."
+            : "진태양시(경도) 보정에 사용합니다. 서머타임은 자동 반영."}
+        </span>
       </div>
 
       <div className="field-row">
