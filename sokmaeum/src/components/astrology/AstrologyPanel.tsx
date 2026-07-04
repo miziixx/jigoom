@@ -66,6 +66,18 @@ export default function AstrologyPanel({ profile }: { profile: AstrologyProfile 
               <b>태양</b>
               {profile.vedic.sun.sign}
             </span>
+            <span className="astro-chip">
+              <b>라후</b>
+              {profile.vedic.rahu.sign}
+            </span>
+            <span className="astro-chip">
+              <b>케투</b>
+              {profile.vedic.ketu.sign}
+            </span>
+            <span className="astro-chip">
+              <b>다샤</b>
+              {profile.vedic.dasha.currentMahaDasha}
+            </span>
           </div>
         </section>
       </div>
@@ -79,6 +91,11 @@ export default function AstrologyPanel({ profile }: { profile: AstrologyProfile 
         </ul>
         <p>{profile.accuracyNote}</p>
         <p>{profile.vedic.ayanamsa}</p>
+        <p>
+          Vimshottari: 출생 나크샤트라 주재성 {profile.vedic.dasha.birthNakshatraLord}, 현재{" "}
+          {profile.vedic.dasha.currentMahaDasha} 마하다샤 ({profile.vedic.dasha.currentMahaDashaStart}~
+          {profile.vedic.dasha.currentMahaDashaEnd})
+        </p>
       </details>
     </div>
   );

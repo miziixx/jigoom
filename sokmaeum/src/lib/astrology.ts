@@ -6,6 +6,7 @@ import type {
   AstrologyProfile,
   BirthInfo,
   ClassicalPlacement,
+  VedicDashaInfo,
   VedicPlacement,
   ZodiacSign,
 } from "../types";
@@ -87,6 +88,19 @@ const NAKSHATRAS = [
   "우타라 바드라파다",
   "레바티",
 ];
+
+const VIMSHOTTARI_SEQUENCE = ["케투", "금성", "태양", "달", "화성", "라후", "목성", "토성", "수성"];
+const DASHA_YEARS: Record<string, number> = {
+  케투: 7,
+  금성: 20,
+  태양: 6,
+  달: 10,
+  화성: 7,
+  라후: 18,
+  목성: 16,
+  토성: 19,
+  수성: 17,
+};
 
 const DST_PERIODS: Array<[string, string]> = [
   ["1948-06-01", "1948-09-13"],
@@ -260,6 +274,51 @@ function vedicPlacement(body: string, tropicalLongitude: number, date: Date, hou
   };
 }
 
+function julianDay(date: Date): number {
+  return date.getTime() / 86400000 + 2440587.5;
+}
+
+function meanRahuLongitude(date: Date): number {
+  const t = (julianDay(date) - 2451545.0) / 36525;
+  return normalizeDegrees(125.04452 - 1934.136261 * t + 0.0020708 * t * t + (t * t * t) / 450000);
+}
+
+function addYears(date: Date, years: number): Date {
+  return new Date(date.getTime() + years * 365.2425 * 86400000);
+}
+
+function dashaInfo(date: Date, siderealMoonLongitude: number): VedicDashaInfo {
+  const nakSize = 360 / 27;
+  const nakIndex = Math.floor(siderealMoonLongitude / nakSize);
+  const lord = VIMSHOTTARI_SEQUENCE[nakIndex % VIMSHOTTARI_SEQUENCE.length];
+  const lordYears = DASHA_YEARS[lord];
+  const elapsedInNak = siderealMoonLongitude - nakIndex * nakSize;
+  const remainingRatio = 1 - elapsedInNak / nakSize;
+  const balanceAtBirthYears = lordYears * remainingRatio;
+
+  let currentLord = lord;
+  let start = date;
+  let end = addYears(date, balanceAtBirthYears);
+  const now = new Date();
+  let idx = VIMSHOTTARI_SEQUENCE.indexOf(lord);
+  while (end < now) {
+    start = end;
+    idx = (idx + 1) % VIMSHOTTARI_SEQUENCE.length;
+    currentLord = VIMSHOTTARI_SEQUENCE[idx];
+    end = addYears(start, DASHA_YEARS[currentLord]);
+  }
+
+  return {
+    system: "Vimshottari",
+    currentMahaDasha: currentLord,
+    currentMahaDashaStart: start.toISOString().slice(0, 10),
+    currentMahaDashaEnd: end.toISOString().slice(0, 10),
+    birthNakshatraLord: lord,
+    balanceAtBirthYears: Number(balanceAtBirthYears.toFixed(2)),
+    note: "달의 시데리얼 나크샤트라 기준 Vimshottari 마하다샤 근사 계산입니다.",
+  };
+}
+
 function signLine(p: AstrologyPlacement | VedicPlacement): string {
   return `${p.body} ${p.sign} ${formatDegree(p.degree)}`;
 }
@@ -297,6 +356,11 @@ export function computeAstrologyProfile(birthInfo: BirthInfo): AstrologyProfile 
   const vedicSun = vedicPlacement("태양", sunLon, date, wholeSignHouse(sidereal(sunLon, date), ascLon ? sidereal(ascLon, date) : undefined));
   const vedicMoon = vedicPlacement("달", moonLon, date, wholeSignHouse(sidereal(moonLon, date), ascLon ? sidereal(ascLon, date) : undefined));
   const lagna = ascLon !== undefined ? vedicPlacement("라그나", ascLon, date, 1) : undefined;
+  const rahuLon = meanRahuLongitude(date);
+  const ketuLon = normalizeDegrees(rahuLon + 180);
+  const rahu = vedicPlacement("라후", rahuLon, date, wholeSignHouse(sidereal(rahuLon, date), ascLon ? sidereal(ascLon, date) : undefined));
+  const ketu = vedicPlacement("케투", ketuLon, date, wholeSignHouse(sidereal(ketuLon, date), ascLon ? sidereal(ascLon, date) : undefined));
+  const dasha = dashaInfo(date, vedicMoon.absoluteLongitude);
 
   const locationLabel = `${place.label}${place.defaulted ? " 기준(출생지 미선택)" : ""}`;
   const accuracyNote = timeKnown
@@ -342,10 +406,15 @@ export function computeAstrologyProfile(birthInfo: BirthInfo): AstrologyProfile 
       lagna,
       moon: vedicMoon,
       sun: vedicSun,
+      rahu,
+      ketu,
+      dasha,
       summary: [
         lagna ? `라그나 ${lagna.sign}: 삶을 시작하는 방식` : "라그나: 출생시간 필요",
         `달 ${vedicMoon.sign} / ${vedicMoon.nakshatra} ${vedicMoon.pada}파다: 마음의 기본 리듬`,
         `태양 ${vedicSun.sign}: 사회적 방향성`,
+        `라후 ${rahu.sign} / 케투 ${ketu.sign}: 집착과 내려놓음의 축`,
+        `현재 ${dasha.currentMahaDasha} 마하다샤: ${dasha.currentMahaDashaStart}~${dasha.currentMahaDashaEnd}`,
       ],
     },
     notes: [
@@ -354,7 +423,7 @@ export function computeAstrologyProfile(birthInfo: BirthInfo): AstrologyProfile 
         .slice(0, 4)
         .map((p) => `${p.body} ${p.sign} ${p.dignity}`)
         .join(", ")}`,
-      `베딕: ${vedicMoon.nakshatra} ${vedicMoon.pada}파다, ${lagna ? `라그나 ${lagna.sign}` : "라그나 미계산"}`,
+      `베딕: ${vedicMoon.nakshatra} ${vedicMoon.pada}파다, ${lagna ? `라그나 ${lagna.sign}` : "라그나 미계산"}, 라후 ${rahu.sign}, 케투 ${ketu.sign}, ${dasha.currentMahaDasha} 마하다샤`,
       accuracyNote,
     ],
   };

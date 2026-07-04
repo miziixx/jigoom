@@ -462,6 +462,16 @@ export interface VedicPlacement {
   keyword: string;
 }
 
+export interface VedicDashaInfo {
+  system: "Vimshottari";
+  currentMahaDasha: string;
+  currentMahaDashaStart: string;
+  currentMahaDashaEnd: string;
+  birthNakshatraLord: string;
+  balanceAtBirthYears: number;
+  note: string;
+}
+
 export interface AstrologyProfile {
   calculatedAt: string;
   locationLabel: string;
@@ -486,6 +496,9 @@ export interface AstrologyProfile {
     lagna?: VedicPlacement;
     moon: VedicPlacement;
     sun: VedicPlacement;
+    rahu: VedicPlacement;
+    ketu: VedicPlacement;
+    dasha: VedicDashaInfo;
     summary: string[];
   };
   notes: string[];
