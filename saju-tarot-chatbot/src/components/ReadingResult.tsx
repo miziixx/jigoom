@@ -1,5 +1,6 @@
 import LoadingNotice from "./LoadingNotice";
 import SajuFactsPanel from "./SajuFactsPanel";
+import InstantSummary from "./InstantSummary";
 import type { ReadingSession } from "../types";
 
 interface Section {
@@ -231,6 +232,8 @@ export default function ReadingResult({ session, loading = false }: { session: R
       )}
 
       {(session.sajuChart || session.luckCycles) && <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} />}
+
+      {session.sajuChart && <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />}
 
       {opening && (
         <div className="card reading-oracle reading-oracle--opening">

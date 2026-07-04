@@ -1798,3 +1798,59 @@ label {
   font-size: 0.96rem;
   line-height: 1.6;
 }
+
+/* ── 즉시 요약 (계산 기반, AI 리딩 전에 바로 보이는 카드) ── */
+.instant-summary {
+  border: 1px solid var(--accent-strong);
+}
+
+.instant-summary__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.instant-summary__badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: rgba(201, 164, 255, 0.08);
+}
+
+.instant-summary__note {
+  margin: 8px 0 12px;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+
+.instant-summary__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.instant-summary__item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--surface-alt);
+}
+
+.instant-summary__label {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.instant-summary__text {
+  display: block;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
