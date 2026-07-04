@@ -1467,6 +1467,20 @@ label {
   font-weight: 700;
 }
 
+.dayun-pill__phase {
+  font-size: 0.68rem;
+  color: var(--accent);
+  background: rgba(201, 164, 255, 0.12);
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-top: 2px;
+}
+
+.dayun-pill--current .dayun-pill__phase {
+  color: var(--text);
+  background: rgba(201, 164, 255, 0.28);
+}
+
 /* ── 일주 성향 / 격국 / 신살 / 세운 타임라인 ── */
 .ilju-trait {
   margin: 10px 0 0;

@@ -237,15 +237,34 @@ function LifestyleGuidePanel({ sajuChart }: { sajuChart: SajuChart }) {
   );
 }
 
+// 대운 천간 오행 → 그 시기의 기운을 쉬운 말 한 단어로 (가독성용)
+const ELEMENT_PHASE_WORD: Record<string, string> = {
+  목: "성장기",
+  화: "표현기",
+  토: "안정기",
+  금: "정리기",
+  수: "사색기",
+};
+
+function dayunPhase(ganZhi: string): string | null {
+  const gan = ganZhi?.[0];
+  const el = gan ? STEM_META[gan]?.element : null;
+  return el ? (ELEMENT_PHASE_WORD[el] ?? null) : null;
+}
+
 function DaYunTimeline({ luckCycles }: { luckCycles: LuckCycles }) {
   return (
     <div className="dayun-timeline">
-      {luckCycles.daYun.map((dy) => (
-        <div key={`${dy.startAge}-${dy.ganZhi}`} className={`dayun-pill${dy.current ? " dayun-pill--current" : ""}`}>
-          <span className="dayun-pill__age">{dy.startAge}세~</span>
-          <span className="dayun-pill__ganzhi">{dy.ganZhi}</span>
-        </div>
-      ))}
+      {luckCycles.daYun.map((dy) => {
+        const phase = dayunPhase(dy.ganZhi);
+        return (
+          <div key={`${dy.startAge}-${dy.ganZhi}`} className={`dayun-pill${dy.current ? " dayun-pill--current" : ""}`}>
+            <span className="dayun-pill__age">{dy.startAge}세~</span>
+            <span className="dayun-pill__ganzhi">{dy.ganZhi}</span>
+            {phase && <span className="dayun-pill__phase">{phase}</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }

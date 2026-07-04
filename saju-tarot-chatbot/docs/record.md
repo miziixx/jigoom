@@ -632,3 +632,15 @@ saju/lunar를 더 이상 끌어오지 않아 API 번들이 가벼워짐. (150 �
   액션 버튼 wrap+44px. 타로 히어로 CSS 추가.
 - 검증: Playwright 360/390/768px로 오늘 운세·궁합·타로 렌더 → 전부 가로 스크롤 0, 게이지/카드/칩 정상.
   test 179 통과, build OK.
+
+## 원국·신살·월별 상단 복구 + 대운 가독성 (사용자 피드백 반영)
+
+이전 커밋에서 SajuFactsPanel(원국·신살·오행·대운/세운·1~12월 흐름)을 하단 접이로 옮긴 게 "없앤 것"처럼
+보인다는 피드백. 사용자는 원국·신살·월별을 맨 위에서 바로 보길 원함(사람들이 그 시각 자료를 좋아함).
+
+- ReadingResult 순서 복구: 하단 접이(reading-evidence-zone) 제거하고 SajuFactsPanel을 다시 상단 노출.
+  PatternMap·ActionCalendar·EvidenceConfidence도 접이 밖으로 꺼내 원래대로 보이게. 요약 대시보드/스펙트럼/
+  인생영역/타로 히어로 등 신규 요소는 유지(아무것도 삭제 안 함).
+- 대운 가독성: DaYunTimeline 각 pill에 천간 오행 기반 기운 라벨(성장기/표현기/안정기/정리기/사색기) 추가.
+- 검증: Playwright 390px — 원국 top(290px)·신살(810)·대운 라벨 8개·1~12월 흐름 전부 상단 노출, 가로 스크롤 0.
+  test 179 통과, build OK.

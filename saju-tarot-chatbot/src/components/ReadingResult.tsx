@@ -356,23 +356,33 @@ export default function ReadingResult({ session, loading = false }: { session: R
     <div className="reading-result">
       {loading && <LoadingNotice depth={session.context?.depth} />}
 
-      {/* 1. 요약 대시보드 (신규) — 첫 화면에서 핵심을 먼저 */}
-      {dashboard && (
-        <SummaryCardGrid conclusion={conclusion} keywords={dashboard.keywords} dashboard={dashboard} />
-      )}
-
-      {session.sajuChart && <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />}
-
-      {/* 2. 한눈에 보는 내 구조 (기질 스펙트럼·인생영역 — 신규) */}
-      {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
-      {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
-
+      {/* 타로 근거 (있을 때) */}
       {session.tarotCards && session.tarotCards.length > 0 && (
         <>
           <TarotSummaryHero cards={session.tarotCards} />
           <TarotFactsPanel cards={session.tarotCards} />
         </>
       )}
+
+      {/* 사주 원국·신살·오행·대운/세운·1~12월 흐름 — 맨 위에 그대로 보이게 (원래대로) */}
+      {(session.sajuChart || session.luckCycles) && (
+        <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} birthInfo={session.birthInfo} />
+      )}
+
+      {/* 요약 대시보드 — 핵심 한 줄 먼저 */}
+      {dashboard && (
+        <SummaryCardGrid conclusion={conclusion} keywords={dashboard.keywords} dashboard={dashboard} />
+      )}
+
+      {session.sajuChart && <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />}
+
+      {/* 한눈에 보는 내 구조 (기질 스펙트럼·인생영역) */}
+      {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
+      {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
+
+      {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
+      {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
+      <EvidenceConfidence session={session} />
 
       {opening && (
         <div className="card reading-oracle reading-oracle--opening">
@@ -432,19 +442,6 @@ export default function ReadingResult({ session, loading = false }: { session: R
       {session.sajuChart && <ActionChecklist sajuChart={session.sajuChart} luckCycles={session.luckCycles} />}
 
       {session.sajuChart && <LifestyleClosingSummary session={session} />}
-
-      {/* 6. 계산 근거·시각 자료 — 삭제 없이 하단 접이 영역으로 이동(모든 항목/수치 그대로) */}
-      {(session.sajuChart || session.luckCycles) && (
-        <details className="reading-evidence-zone">
-          <summary>계산 근거 · 시각 자료 (원국 · 신살 · 오행 · 타임라인 전체)</summary>
-          <div className="reading-evidence-zone__body">
-            <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} birthInfo={session.birthInfo} />
-            {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
-            {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
-            <EvidenceConfidence session={session} />
-          </div>
-        </details>
-      )}
     </div>
   );
 }
