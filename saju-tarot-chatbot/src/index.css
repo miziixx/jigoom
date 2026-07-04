@@ -1858,3 +1858,15 @@ label {
   font-size: 0.9rem;
   line-height: 1.6;
 }
+
+/* ── 개인정보 전송 고지 ── */
+.privacy-note {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}

@@ -22,7 +22,6 @@ export default function ComboPage() {
   const showResult = currentSession?.type === "combo";
 
   const [calendarType, setCalendarType] = useState<CalendarType>("solar");
-  const [displayName, setDisplayName] = useState("");
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
@@ -41,7 +40,6 @@ export default function ComboPage() {
     e.preventDefault();
     if (!canSubmit) return;
     const birthInfo: BirthInfo = {
-      displayName: displayName.trim() || undefined,
       calendarType,
       year: Number(year),
       month: Number(month),
@@ -85,12 +83,6 @@ export default function ComboPage() {
               <input type="radio" checked={calendarType === "lunar"} onChange={() => setCalendarType("lunar")} />
               음력
             </label>
-          </div>
-
-          <div className="field-row">
-            <span className="field-label">이름</span>
-            <input type="text" placeholder="선택" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-            <span className="field-hint">결과지와 저장 파일에만 표시됩니다.</span>
           </div>
 
           <div className="field-row">
@@ -171,6 +163,11 @@ export default function ComboPage() {
               </label>
             ))}
           </div>
+
+          <p className="privacy-note">
+            입력한 생년월일은 이 기기 안에서만 계산에 쓰이고 저장돼요. 해석을 만들 때는 생년월일 원본이 아니라
+            계산된 사주 결과와 질문만 AI(Anthropic, 미국)로 전송됩니다.
+          </p>
 
           <button type="submit" className="btn btn--primary" disabled={!canSubmit}>
             {loading ? "리딩 생성 중..." : "통합 리딩 보기"}

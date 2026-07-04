@@ -1,5 +1,5 @@
 import type {
-  BirthInfo,
+  Gender,
   DrawnTarotCard,
   LuckCycles,
   ReadingContext,
@@ -186,14 +186,6 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 
 첫 턴(새 리딩)에는 위 형식을 따른다. 후속 질문 턴에서는 형식을 반복하지 말고 그 질문에 집중해
 같은 톤·같은 금지 규칙으로 밀도 있게 답한다.`;
-
-function formatBirthInfo(birthInfo: BirthInfo): string {
-  const calendar = birthInfo.calendarType === "solar" ? "양력" : "음력";
-  const hour = birthInfo.hour === null ? "모름" : `${birthInfo.hour}시`;
-  const gender = birthInfo.gender === "female" ? "여성" : "남성";
-  const name = birthInfo.displayName ? `이름: ${birthInfo.displayName}, ` : "";
-  return `${name}${calendar} ${birthInfo.year}년 ${birthInfo.month}월 ${birthInfo.day}일 ${hour}, 성별: ${gender}`;
-}
 
 function formatSajuChart(chart: SajuChart): string {
   const lines = [
@@ -406,7 +398,8 @@ export interface ReadingFacts {
   question: string;
   focus?: ReadingFocus;
   context?: ReadingContext;
-  birthInfo?: BirthInfo;
+  /** 성별만 전달한다. 개인정보 보호를 위해 생년월일 원본은 AI로 보내지 않는다. */
+  gender?: Gender;
   sajuChart?: SajuChart;
   luckCycles?: LuckCycles;
   tarotCards?: DrawnTarotCard[];
@@ -421,8 +414,9 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
   parts.push(`[리딩 종류] ${TYPE_LABEL[facts.type]}`);
   parts.push(`[사용자 질문] ${facts.question || "(특정 질문 없이 전반적인 리딩 요청)"}`);
 
-  if (facts.birthInfo && facts.sajuChart) {
-    parts.push(`[생년월일시] ${formatBirthInfo(facts.birthInfo)}`);
+  if (facts.sajuChart) {
+    // 개인정보 보호: 생년월일 원본은 전달하지 않고, 계산된 원국과 성별만 근거로 넘긴다.
+    if (facts.gender) parts.push(`[기본 정보] 성별: ${facts.gender === "male" ? "남성" : "여성"}`);
     parts.push(`[사주 원국 계산 결과]\n${formatSajuChart(facts.sajuChart)}`);
   }
 

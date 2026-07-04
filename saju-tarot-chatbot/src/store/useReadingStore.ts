@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { saveFeedback } from "../lib/feedback";
 import { streamReading } from "../lib/readingApi";
+import { computeLuckCycles, computeSajuChart } from "../lib/saju";
 import { deleteSession, loadSessions, saveSession, toggleFavorite } from "../lib/storage";
 import type {
   BirthInfo,
@@ -52,12 +53,17 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
 
   startReading: async ({ type, question, focus, context, birthInfo, tarotCards, spreadNote }) => {
     set({ loading: true, error: null });
+    // 개인정보 보호: 사주 계산을 여기(브라우저)에서 끝내고, 서버로는 생년월일 원본 대신 계산 결과와
+    // 성별만 보낸다. (생년월일 원본은 이 기기의 로컬 저장소에만 남는다.)
+    const includeMonthlyFlow = type === "saju" || type === "combo" || type === "flow";
+    const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
+    const luckCycles = birthInfo ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow }) : undefined;
     // 스트리밍 도중 계속 갱신되는 세션 (meta 도착 시 생성 → 텍스트가 실시간으로 자란다)
     let session: ReadingSession | null = null;
     let textUpdates = 0;
     try {
       const result = await streamReading(
-        { type, question, focus, context, birthInfo, tarotCards, spreadNote },
+        { type, question, focus, context, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote },
         {
           onMeta: (meta) => {
             session = {

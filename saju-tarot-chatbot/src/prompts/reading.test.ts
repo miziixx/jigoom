@@ -34,11 +34,18 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
   const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
   const sajuChart = computeSajuChart(birth);
   const luckCycles = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
-  const msg = buildReadingUserMessage({ type: "saju", question: "요즘 지쳐요", birthInfo: birth, sajuChart, luckCycles });
+  const msg = buildReadingUserMessage({ type: "saju", question: "요즘 지쳐요", gender: birth.gender, sajuChart, luckCycles });
 
   it("원국 계산값을 근거 데이터로 전달한다 (LLM이 속으로 참고)", () => {
     expect(msg).toContain("사주 원국 계산 결과");
     expect(msg).toContain(sajuChart.day.ganZhi);
+  });
+
+  it("개인정보 보호: 생년월일 원본은 AI 메시지에 담지 않는다", () => {
+    // 계산 결과와 성별만 전달하고, 생년월일 원본 문자열은 넣지 않는다
+    expect(msg).not.toContain("1990년");
+    expect(msg).not.toContain("생년월일시");
+    expect(msg).toContain("성별");
   });
 
   it("깊이 미선택이면 종합(모든 섹션)·간결 기본 프로필을 붙인다", () => {
@@ -53,7 +60,7 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     const deep = buildReadingUserMessage({
       type: "saju",
       question: "요즘 지쳐요",
-      birthInfo: birth,
+      gender: birth.gender,
       sajuChart,
       luckCycles,
       context: { depth: "expert" },

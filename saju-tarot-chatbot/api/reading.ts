@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
-import { computeLuckCycles, computeSajuChart } from "../src/lib/saju.js";
 import {
   READING_SYSTEM_PROMPT,
   buildCompareUserMessage,
@@ -8,12 +7,14 @@ import {
   type CompareReadingInput,
 } from "../src/prompts/systemPrompt.js";
 import type {
-  BirthInfo,
   ChatMessage,
   DrawnTarotCard,
+  Gender,
+  LuckCycles,
   ReadingContext,
   ReadingFocus,
   ReadingType,
+  SajuChart,
 } from "../src/types/index.js";
 
 // 응답 스트리밍 활성화 (긴 리딩도 첫 토큰부터 바로 전송 → 게이트웨이 504 방지)
@@ -31,7 +32,11 @@ interface NewReadingBody {
   question: string;
   focus?: ReadingFocus;
   context?: ReadingContext;
-  birthInfo?: BirthInfo;
+  // 개인정보 보호: 생년월일 원본(birthInfo)은 서버로 보내지 않는다. 사주 계산은 클라이언트에서
+  // 끝내고, 그 계산 결과와 성별만 전달한다.
+  gender?: Gender;
+  sajuChart?: SajuChart;
+  luckCycles?: LuckCycles;
   tarotCards?: DrawnTarotCard[];
   spreadNote?: string;
 }
@@ -175,10 +180,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const { type, question, focus, context, birthInfo, tarotCards, spreadNote } = body;
+    const { type, question, focus, context, gender, sajuChart, luckCycles, tarotCards, spreadNote } = body;
 
-    if ((type === "saju" || type === "combo" || type === "today" || type === "flow") && !birthInfo) {
-      res.status(400).json({ error: "birthInfo가 필요합니다." });
+    if ((type === "saju" || type === "combo" || type === "today" || type === "flow") && !sajuChart) {
+      res.status(400).json({ error: "sajuChart(계산 결과)가 필요합니다." });
       return;
     }
     if ((type === "tarot" || type === "combo") && (!tarotCards || tarotCards.length === 0)) {
@@ -186,16 +191,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
-    const luckCycles = birthInfo
-      ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow: type === "saju" || type === "combo" || type === "flow" })
-      : undefined;
     const userMessage = buildReadingUserMessage({
       type,
       question,
       focus,
       context,
-      birthInfo,
+      gender,
       sajuChart,
       luckCycles,
       tarotCards,
