@@ -27,34 +27,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // 입력 파싱 (문자열 바디도 안전 처리)
+  let body: NamingBody;
+  try {
+    body = (typeof req.body === "string" ? JSON.parse(req.body) : (req.body ?? {})) as NamingBody;
+  } catch {
+    res.status(400).json({ error: "요청 본문을 해석할 수 없습니다." });
+    return;
+  }
+
+  const { mode, evaluation, comparison, brief, options } = body;
+  const isRecommend = mode === "recommend";
+
+  // 근거 데이터 검증
+  if (isRecommend) {
+    if (!brief?.neededElement || !options?.purpose) {
+      res.status(400).json({ error: "이름 추천에 필요한 사주 보완 근거가 없습니다." });
+      return;
+    }
+  } else if (!evaluation?.name || !evaluation.sound || !evaluation.fit) {
+    res.status(400).json({ error: "이름 감정 계산 결과가 필요합니다." });
+    return;
+  }
+
+  // 룰 기반 폴백: LLM이 실패해도 계산 근거만으로 항상 결과를 돌려준다 (fortune 패턴).
+  const fallbackReply = () =>
+    isRecommend ? fallbackRecommend(brief!, options!) : fallbackEvaluation(evaluation!);
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: "서버에 ANTHROPIC_API_KEY가 설정되어 있지 않습니다." });
+    res.status(200).json({ reply: withNotice(fallbackReply(), "서버에 API 키가 없어 기본 리포트로 표시합니다."), source: "fallback" });
     return;
   }
 
   try {
-    const rawBody = (typeof req.body === "string" ? JSON.parse(req.body) : (req.body ?? {})) as NamingBody;
-    const { mode, evaluation, comparison, brief, options } = rawBody;
-    const isRecommend = mode === "recommend";
-
-    let system: string;
-    let userMessage: string;
-    if (isRecommend) {
-      if (!brief?.neededElement || !options?.purpose) {
-        res.status(400).json({ error: "이름 추천에 필요한 사주 보완 근거가 없습니다." });
-        return;
-      }
-      system = NAMING_RECOMMEND_SYSTEM_PROMPT;
-      userMessage = buildNamingRecommendMessage(brief, options);
-    } else {
-      if (!evaluation?.name || !evaluation.sound || !evaluation.fit) {
-        res.status(400).json({ error: "이름 감정 계산 결과가 필요합니다." });
-        return;
-      }
-      system = NAMING_SYSTEM_PROMPT;
-      userMessage = buildNamingUserMessage(evaluation, comparison);
-    }
+    const system = isRecommend ? NAMING_RECOMMEND_SYSTEM_PROMPT : NAMING_SYSTEM_PROMPT;
+    const userMessage = isRecommend
+      ? buildNamingRecommendMessage(brief!, options!)
+      : buildNamingUserMessage(evaluation!, comparison);
 
     const anthropic = new Anthropic({ apiKey });
     const response = await anthropic.messages.create({
@@ -63,11 +73,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       system,
       messages: [{ role: "user", content: userMessage }],
     });
-    res.status(200).json({ reply: extractText(response) });
+    const text = extractText(response);
+    if (text.trim()) {
+      res.status(200).json({ reply: text, source: "llm" });
+    } else {
+      res.status(200).json({ reply: withNotice(fallbackReply(), "AI 응답이 비어 기본 리포트로 표시합니다."), source: "fallback" });
+    }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: `이름 해석 생성 중 오류: ${describeError(err)}` });
+    // LLM 호출 실패 → 500 대신 룰 기반 폴백으로 정상 응답. 사유는 화면에 함께 표기(진단용).
+    res.status(200).json({
+      reply: withNotice(fallbackReply(), `AI 상세 생성 일시 오류: ${describeError(err)}`),
+      source: "fallback",
+    });
   }
+}
+
+function withNotice(report: string, notice: string): string {
+  return `${report}\n\n──────────\n※ ${notice}`;
+}
+
+/** 이름 감정 룰 기반 리포트 (계산 근거만으로 구성) */
+function fallbackEvaluation(ev: NameEvaluation): string {
+  const lines: string[] = [];
+  lines.push(`# 한 줄 결론`, ev.headline, "");
+  lines.push(`# 소리의 기운 (발음오행)`);
+  for (const s of ev.sound.syllables) lines.push(`- ${s.syllable}: 초성 ${s.choseong} · ${s.elementLabel} 기운`);
+  lines.push(`흐름: ${ev.sound.harmony}. ${ev.sound.note}`, "");
+  lines.push(`# 내 사주와의 궁합`);
+  lines.push(`- 보완하면 좋은 기운: ${ev.fit.neededLabel}${ev.fit.avoidLabel ? ` / 과하면 부담이 되는 기운: ${ev.fit.avoidLabel}` : ""}`);
+  lines.push(`- 적합도: ${ev.fit.level}. ${ev.fit.note}`, "");
+  if (ev.suri) {
+    lines.push(`# 획수 수리 (참고)`);
+    for (const l of ev.suri.levels) lines.push(`- ${l.name}: ${l.total}획 (${l.level})`);
+    lines.push(ev.suri.summary, "");
+  }
+  lines.push(
+    `# 참고`,
+    `이 리포트는 발음오행·사주 보완·수리 계산 근거로 만든 기본 요약입니다. 어떤 이름도 "나쁜 이름"으로 단정하지 않으며, 절대적인 길흉 예언이 아니라 참고 자료입니다.`,
+  );
+  return lines.join("\n");
+}
+
+/** 이름 추천 룰 기반 리포트 (사주 보완 근거 방향 안내) */
+function fallbackRecommend(brief: NamingBrief, options: NamingRecommendOptions): string {
+  const lines: string[] = [];
+  lines.push(`# 이름을 이렇게 고르면 좋아요`, brief.note, "");
+  lines.push(`# 어울리는 소리 (발음오행)`);
+  lines.push(`- 직접 담으면 좋은 초성: ${brief.recommendedChoseong.join(", ")} (${brief.neededLabel} 기운)`);
+  lines.push(`- 살려주는 초성: ${brief.supportingChoseong.join(", ")} (${brief.supportingLabel} 기운)`);
+  if (brief.avoidLabel && brief.cautionChoseong.length) {
+    lines.push(`- 너무 몰리지 않게 할 초성: ${brief.cautionChoseong.join(", ")} (${brief.avoidLabel} 기운)`);
+  }
+  lines.push("");
+  const cond: string[] = [];
+  if (options.surname?.trim()) cond.push(`성 '${options.surname.trim()}'`);
+  cond.push(`이름 ${options.syllableCount ?? 2}글자`);
+  if (options.gender?.trim()) cond.push(options.gender.trim());
+  if (options.purpose.desiredImage?.trim()) cond.push(`이미지 "${options.purpose.desiredImage.trim()}"`);
+  lines.push(`# 조건`, `- ${cond.join(" · ")}`, "");
+  lines.push(
+    `# 참고`,
+    `위 초성(소리) 방향에 맞춰 이름을 지으면 사주 보완에 어울립니다. 한자 뜻까지 포함한 구체적인 이름 후보 자동 추천은 잠시 후 다시 시도하면 제공됩니다. 인명용 한자·획수·등록 요건은 실제 등록 전 별도 확인이 필요합니다.`,
+  );
+  return lines.join("\n");
 }
 
 function extractText(response: Anthropic.Messages.Message): string {
