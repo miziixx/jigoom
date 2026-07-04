@@ -9,6 +9,9 @@
     },
     "api/fortune.ts": {
       "maxDuration": 60
+    },
+    "api/naming.ts": {
+      "maxDuration": 60
     }
   }
 }
