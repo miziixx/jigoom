@@ -31,28 +31,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { mode, evaluation, comparison, brief, options } = req.body as NamingBody;
-  const isRecommend = mode === "recommend";
-
-  let system: string;
-  let userMessage: string;
-  if (isRecommend) {
-    if (!brief?.neededElement || !options?.purpose) {
-      res.status(400).json({ error: "이름 추천에 필요한 사주 보완 근거가 없습니다." });
-      return;
-    }
-    system = NAMING_RECOMMEND_SYSTEM_PROMPT;
-    userMessage = buildNamingRecommendMessage(brief, options);
-  } else {
-    if (!evaluation?.name || !evaluation.sound || !evaluation.fit) {
-      res.status(400).json({ error: "이름 감정 계산 결과가 필요합니다." });
-      return;
-    }
-    system = NAMING_SYSTEM_PROMPT;
-    userMessage = buildNamingUserMessage(evaluation, comparison);
-  }
-
   try {
+    const rawBody = (typeof req.body === "string" ? JSON.parse(req.body) : (req.body ?? {})) as NamingBody;
+    const { mode, evaluation, comparison, brief, options } = rawBody;
+    const isRecommend = mode === "recommend";
+
+    let system: string;
+    let userMessage: string;
+    if (isRecommend) {
+      if (!brief?.neededElement || !options?.purpose) {
+        res.status(400).json({ error: "이름 추천에 필요한 사주 보완 근거가 없습니다." });
+        return;
+      }
+      system = NAMING_RECOMMEND_SYSTEM_PROMPT;
+      userMessage = buildNamingRecommendMessage(brief, options);
+    } else {
+      if (!evaluation?.name || !evaluation.sound || !evaluation.fit) {
+        res.status(400).json({ error: "이름 감정 계산 결과가 필요합니다." });
+        return;
+      }
+      system = NAMING_SYSTEM_PROMPT;
+      userMessage = buildNamingUserMessage(evaluation, comparison);
+    }
+
     const anthropic = new Anthropic({ apiKey });
     const response = await anthropic.messages.create({
       model: MODEL,
