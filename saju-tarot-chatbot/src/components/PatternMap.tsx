@@ -94,7 +94,7 @@ export default function PatternMap({ sajuChart }: { sajuChart?: SajuChart }) {
     <section className="card pattern-map">
       <div className="section-heading-row">
         <h3 className="card-title">내 반복 패턴 지도</h3>
-        <span className="feature-badge">차별화</span>
+        <span className="feature-badge">반복 패턴</span>
       </div>
       <p className="pattern-map__intro">계산된 사주 구조에서 반복되기 쉬운 생활 패턴을 먼저 보여드립니다.</p>
       <div className="pattern-map__grid">

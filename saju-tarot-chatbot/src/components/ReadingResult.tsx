@@ -16,6 +16,12 @@ interface BodyPart {
   body: string;
 }
 
+interface MonthEvidence {
+  month: string;
+  keyword: string;
+  advice: string;
+}
+
 const SECTION_META: Record<string, { tag: string; tone: string }> = {
   "타고난 성격과 기질": { tag: "기질", tone: "self" },
   "직업과 돈": { tag: "일과 돈", tone: "work" },
@@ -127,6 +133,51 @@ function renderTextBlock(text: string) {
   return blocks.length > 0 ? blocks : null;
 }
 
+function parseMonthEvidence(text: string): { intro: string; months: MonthEvidence[] } | null {
+  const clean = stripMarkdown(text);
+  const monthStart = clean.search(/(?:^|\n)\s*(?:\d{1,2}월(?:\([^)]*\))?)\s*[—-]/);
+  if (monthStart < 0) return null;
+
+  const intro = clean.slice(0, monthStart).trim();
+  const monthText = clean.slice(monthStart).trim();
+  const chunks = monthText.split(/\n(?=\s*\d{1,2}월(?:\([^)]*\))?\s*[—-])/);
+  const months = chunks
+    .map((chunk) => {
+      const normalized = chunk.replace(/\s+/g, " ").trim();
+      const match = normalized.match(/^(\d{1,2}월(?:\([^)]*\))?)\s*[—-]\s*키워드:\s*(.+?)(?:\.\s*조언:|\s*조언:)\s*(.+)$/);
+      if (!match) return null;
+      return {
+        month: match[1],
+        keyword: match[2].replace(/[.。]\s*$/, "").trim(),
+        advice: match[3].trim(),
+      };
+    })
+    .filter((item): item is MonthEvidence => Boolean(item));
+
+  return months.length >= 3 ? { intro, months } : null;
+}
+
+function EvidenceTranslation({ body }: { body: string }) {
+  const monthEvidence = parseMonthEvidence(body);
+
+  if (!monthEvidence) return <>{renderTextBlock(body)}</>;
+
+  return (
+    <div className="evidence-translation">
+      {monthEvidence.intro && <div className="evidence-translation__intro">{renderTextBlock(monthEvidence.intro)}</div>}
+      <div className="month-evidence-grid">
+        {monthEvidence.months.map((item) => (
+          <article className="month-evidence-card" key={item.month}>
+            <span className="month-evidence-card__month">{item.month}</span>
+            <b>{item.keyword}</b>
+            <p>{item.advice}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectionBody({ body, loading }: { body: string; loading?: boolean }) {
   const parts = parseBodyParts(body);
   if (parts.length === 1 && !parts[0].title) {
@@ -158,7 +209,7 @@ function SectionBody({ body, loading }: { body: string; loading?: boolean }) {
                 <span>{part.title}</span>
               </h4>
             )}
-            {renderTextBlock(part.body)}
+            {part.title === "왜 그렇게 보는지" ? <EvidenceTranslation body={part.body} /> : renderTextBlock(part.body)}
           </div>
         );
       })}

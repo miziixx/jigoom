@@ -4,7 +4,7 @@ import { buildReadingMarkdown } from "./exportMarkdown.js";
 import type { BirthInfo, ReadingSession } from "../types/index.js";
 
 describe("buildReadingMarkdown", () => {
-  it("차별화 리포트 섹션을 저장 파일에 포함한다", () => {
+  it("반복 패턴 리포트 섹션을 저장 파일에 포함한다", () => {
     const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
     const session: ReadingSession = {
       id: "md1",

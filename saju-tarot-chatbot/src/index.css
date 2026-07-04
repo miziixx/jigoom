@@ -1132,6 +1132,70 @@ label {
   background: rgba(87, 208, 164, 0.07);
 }
 
+.reading-part--why {
+  border-color: rgba(127, 199, 255, 0.24);
+  background: linear-gradient(180deg, rgba(127, 199, 255, 0.08), rgba(255, 255, 255, 0.025));
+}
+
+.evidence-translation {
+  display: grid;
+  gap: 12px;
+}
+
+.evidence-translation__intro {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(127, 199, 255, 0.08);
+}
+
+.month-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .month-evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .month-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.month-evidence-card {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-height: 142px;
+  padding: 12px;
+  border: 1px solid rgba(127, 199, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(12, 18, 32, 0.28);
+}
+
+.month-evidence-card__month {
+  color: #7fc7ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.month-evidence-card b {
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.month-evidence-card p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
 .reading-bullets {
   margin: 0;
   padding-left: 20px;
