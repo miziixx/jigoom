@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: FORTUNE_SYSTEM_PROMPT,
+      system: [{ type: "text", text: FORTUNE_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [
         { role: "user", content: buildFortuneUserMessage(evidence) },
         // JSON으로 시작하도록 프리필 → 파싱 안정성 향상

@@ -85,7 +85,7 @@ async function streamMessages(
     const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS_STREAM,
-      system: READING_SYSTEM_PROMPT,
+      system: [{ type: "text", text: READING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages,
     });
     // stop_reason이 "max_tokens"면 아직 다 못 쓴 것 → 클라이언트가 이어쓰기(continue)를 요청한다.
