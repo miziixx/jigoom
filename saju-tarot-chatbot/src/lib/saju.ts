@@ -1374,6 +1374,113 @@ function compatibilityTiming(birthA: BirthInfo, birthB: BirthInfo, chartA: SajuC
   ];
 }
 
+function compatibilityRepairReport(
+  score: number,
+  branches: ReturnType<typeof crossBranchRelations>,
+  elements: ReturnType<typeof elementComplement>,
+  palace: ReturnType<typeof relationToneFromDayBranches>,
+  context: (typeof RELATION_CONTEXT)[CompatibilityRelationType],
+): CompatibilityResult["repairReport"] {
+  const level: NonNullable<CompatibilityResult["repairReport"]>["level"] =
+    score < 55 || branches.badCount > branches.goodCount ? "repairFirst" : score < 75 || branches.badCount > 0 ? "needsCare" : "smooth";
+  const hasBranchFriction = branches.badCount > 0;
+  const weakComplement = elements.score < 10;
+  const palaceFriction = palace.score < 0;
+
+  const headline =
+    level === "repairFirst"
+      ? "좋고 나쁨보다 먼저, 부딪히는 방식을 정리해야 오래 갑니다"
+      : level === "needsCare"
+        ? "맞는 부분은 살리고, 반복되는 불편함은 규칙으로 줄이면 좋아집니다"
+        : "잘 맞는 흐름을 당연하게 두지 말고 생활 습관으로 고정하면 더 안정됩니다";
+
+  const intro =
+    level === "repairFirst"
+      ? `${context.label}로 볼 때 두 사람은 끌림이나 필요가 있어도 반응 속도, 생활 기준, 책임 범위에서 피로가 생기기 쉽습니다. 이 관계는 마음만 확인하기보다 "어떤 상황에서 서로가 힘들어지는지"를 먼저 알아야 합니다.`
+      : level === "needsCare"
+        ? `${context.label}로 볼 때 기본적으로 이어질 수 있는 힘은 있습니다. 다만 편해진 뒤에 말투, 기대치, 일정, 돈, 거리감 같은 현실 문제가 쌓이면 좋은 흐름이 흐려질 수 있습니다.`
+        : `${context.label}로 볼 때 서로에게 안정감을 주는 부분이 있습니다. 이 장점은 저절로 유지되기보다 고마움 표현, 약속 방식, 쉬는 리듬을 계속 맞출 때 오래 갑니다.`;
+
+  const whyItHappens = [
+    hasBranchFriction
+      ? "함께 있을 때 잘 맞는 장면도 있지만, 피곤하거나 급한 상황에서는 서로의 방식이 세게 다르게 느껴질 수 있습니다."
+      : "강하게 부딪히는 신호는 약한 편이라, 큰 싸움보다 표현 부족이나 익숙함에서 생기는 무심함을 조심하면 좋습니다.",
+    weakComplement
+      ? "서로가 부족한 부분을 자동으로 채워주는 힘은 강하지 않습니다. 그래서 상대에게 기대기보다 각자의 생활 리듬을 먼저 안정시키는 편이 좋습니다."
+      : "서로 다른 강점이 있어 역할을 나누면 보완이 됩니다. 다만 도움을 주는 방식이 상대에게 간섭처럼 느껴지지 않게 말투를 조절해야 합니다.",
+    palaceFriction
+      ? "가까워질수록 사소한 습관, 연락 속도, 약속 기준에서 예민해질 수 있습니다. 감정보다 생활 방식 조율이 먼저입니다."
+      : "일상에서 정이 붙거나 익숙해지는 힘이 있습니다. 편해진 뒤에도 표현과 확인을 줄이지 않는 것이 중요합니다.",
+  ];
+
+  const conflictCycle = [
+    {
+      step: "1단계. 기대가 말로 정리되지 않음",
+      body: "한쪽은 당연하다고 생각한 기준을 상대도 알고 있을 거라 여기고, 다른 쪽은 갑자기 요구받는 느낌을 받을 수 있습니다.",
+      repair: "원하는 것을 성격 평가가 아니라 행동 기준으로 말하세요. 예: '왜 그래?'보다 '약속 변경은 최소 하루 전에 말해줘'가 좋습니다.",
+    },
+    {
+      step: "2단계. 작은 불편함이 쌓임",
+      body: "바로 말하면 싸울까 봐 넘기다가, 나중에는 작은 말투에도 크게 반응하기 쉽습니다.",
+      repair: "불편함을 10점 만점 중 4점일 때 말하세요. 8점이 된 뒤에는 대화가 해결보다 방어로 흐르기 쉽습니다.",
+    },
+    {
+      step: "3단계. 결론부터 내림",
+      body: "상대의 행동을 '나를 무시한다', '책임감이 없다'처럼 사람 자체의 문제로 해석하면 갈등이 커집니다.",
+      repair: "의도 단정 전에 사실, 영향, 요청을 나눠 말하세요. '어제 답이 늦어서 불안했어. 바쁠 때는 짧게라도 알려줘'처럼요.",
+    },
+    {
+      step: "4단계. 회복 없이 넘어감",
+      body: "싸움이 끝난 뒤에도 다시 맞추는 과정이 없으면 같은 문제가 반복됩니다.",
+      repair: "대화 마지막에 다음 행동 하나만 정하세요. 거창한 약속보다 '다음 주까지 이것만 해보기'가 관계를 더 안정시킵니다.",
+    },
+  ];
+
+  const byPerson = {
+    me: [
+      "내가 불편한 지점을 참다가 한 번에 터뜨리는지, 바로 확인해보는지 먼저 살피세요.",
+      "상대가 바뀌어야 한다는 말보다 내가 원하는 행동을 한 문장으로 정리해 말하는 편이 좋습니다.",
+      "상대의 느린 반응이나 다른 표현 방식을 애정 부족으로 바로 해석하지 않는 연습이 필요합니다.",
+    ],
+    partner: [
+      "상대는 내 기준을 이미 알고 있을 거라고 넘기지 말고, 일정·연락·돈·역할 기준을 구체적으로 확인해주는 편이 좋습니다.",
+      "방어적으로 설명하기보다 먼저 '그렇게 느낄 수 있겠다'고 받아주면 갈등이 훨씬 빨리 내려갑니다.",
+      "좋은 의도로 한 조언도 타이밍이 맞지 않으면 간섭처럼 들릴 수 있으니, 먼저 필요한지 물어보는 방식이 좋습니다.",
+    ],
+    together: [
+      context.action,
+      "싸움 규칙을 하나 정하세요. 밤늦게 결론내리지 않기, 돈 문제는 문자로 남기기, 가족 문제는 감정이 가라앉은 뒤 말하기처럼 구체적일수록 좋습니다.",
+      "좋았던 점과 고칠 점을 같은 자리에서 섞지 말고 따로 말하세요. 칭찬은 칭찬대로, 조율은 조율대로 분리해야 덜 방어적입니다.",
+    ],
+  };
+
+  const scripts = [
+    "“내가 원하는 건 네가 틀렸다는 말이 아니라, 다음에는 이렇게 맞춰보자는 거야.”",
+    "“지금 바로 결론내리면 서로 세게 말할 것 같아서, 오늘은 여기까지 정리하고 내일 다시 얘기하자.”",
+    "“나는 이 부분에서 서운했어. 네 의도는 다를 수 있으니까, 어떻게 생각했는지 먼저 듣고 싶어.”",
+    "“앞으로 같은 일이 생기면 누가, 언제, 어디까지 할지 정해두자.”",
+  ];
+
+  const avoid = [
+    "상대의 행동 하나를 보고 관계 전체를 단정하기",
+    "답답하다는 이유로 연락, 돈, 가족, 일 문제를 한꺼번에 꺼내기",
+    "사과를 받자마자 바로 예전 일을 다시 꺼내기",
+    "좋은 의도였다는 말만 반복하고 상대가 받은 영향을 확인하지 않기",
+  ];
+
+  const sevenDayPlan = [
+    { day: "1일차", action: "최근 반복된 갈등 하나만 고르고, 사실·내 감정·원하는 행동을 각각 한 줄로 적어보세요." },
+    { day: "2일차", action: "서로 편한 연락 빈도, 만나는 주기, 혼자 쉬는 시간을 숫자로 맞춰보세요." },
+    { day: "3일차", action: "돈, 일정, 가족, 일 중 가장 예민한 주제 하나를 골라 최소 기준을 정하세요." },
+    { day: "4일차", action: "상대가 잘해준 행동 1가지를 구체적으로 말하세요. '고마워'보다 어떤 행동이 좋았는지까지 말하는 게 좋습니다." },
+    { day: "5일차", action: "불편한 점 하나를 비난 없이 요청문으로 바꿔 말해보세요." },
+    { day: "6일차", action: "같이 있으면 편한 활동과 피곤한 활동을 나눠 적고, 무리한 활동은 줄이세요." },
+    { day: "7일차", action: "일주일 동안 도움이 된 규칙 하나만 남기고, 지키기 어려운 규칙은 더 작게 줄이세요." },
+  ];
+
+  return { level, headline, intro, whyItHappens, conflictCycle, byPerson, scripts, avoid, sevenDayPlan };
+}
+
 /**
  * 두 사람의 사주 궁합을 계산한다 (결정론적, 참고용).
  * 일간 관계 + 지지 합충 + 오행 보완을 종합해 0~100 점수로 환산한다.
@@ -1455,6 +1562,7 @@ export function computeCompatibility(
   ];
   const purposes = purposeFits(score, branchScore, elements.score, palace.score, context);
   const timing = compatibilityTiming(birthA, birthB, chartA, chartB);
+  const repairReport = compatibilityRepairReport(score, branches, elements, palace, context);
   const expertEvidence = [
     `관계 유형: ${context.label}`,
     `일간 관계: ${chartA.dayMasterGan}·${chartB.dayMasterGan} / ${dm.text}`,
@@ -1477,6 +1585,7 @@ export function computeCompatibility(
     highlights,
     cautionPoints,
     actionPlan,
+    repairReport,
     improvementTips: context.improvement,
     partnerPalace: { title: palace.title, body: palace.body, evidence: palace.evidence },
     roleChemistry: roles,

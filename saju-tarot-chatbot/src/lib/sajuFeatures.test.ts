@@ -136,6 +136,11 @@ describe("궁합 계산", () => {
     expect(compat.roleChemistry).toHaveLength(2);
     expect(compat.purposeFits).toHaveLength(4);
     expect(compat.timing).toHaveLength(2);
+    expect(compat.repairReport?.conflictCycle.length).toBeGreaterThanOrEqual(4);
+    expect(compat.repairReport?.byPerson.me.length).toBeGreaterThanOrEqual(3);
+    expect(compat.repairReport?.byPerson.partner.length).toBeGreaterThanOrEqual(3);
+    expect(compat.repairReport?.scripts.length).toBeGreaterThanOrEqual(3);
+    expect(compat.repairReport?.sevenDayPlan).toHaveLength(7);
   });
 
   it("교환해도 점수가 동일하다 (대칭성)", () => {
@@ -154,7 +159,7 @@ describe("궁합 계산", () => {
 
   it("결과 표면 문장에 사주 전문용어가 없다", () => {
     // 단독 '충/형/파/해'는 '균형' 등 일반어와 겹쳐 오탐이므로, 명확한 용어만 검사
-    const JARGON = ["천간합", "육합", "삼합", "반합", "상생", "상극", "비화", "오행", "일간", "십성", "지지 "];
+    const JARGON = ["천간합", "육합", "삼합", "반합", "상생", "상극", "비화", "오행", "일간", "십성", "지지 관계", "지지 사이"];
     const surface = JSON.stringify({
       dayMasterRelation: compat.dayMasterRelation,
       branchRelations: compat.branchRelations,
@@ -165,6 +170,7 @@ describe("궁합 계산", () => {
       roleChemistry: compat.roleChemistry?.map((r) => r.body),
       purposeFits: compat.purposeFits,
       timing: compat.timing?.map((t) => t.body),
+      repairReport: compat.repairReport,
     });
     for (const w of JARGON) expect(surface, `궁합에 용어 노출: ${w}`).not.toContain(w);
   });

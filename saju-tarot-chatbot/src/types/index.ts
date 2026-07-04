@@ -262,6 +262,29 @@ export interface CompatibilityResult {
   actionPlan?: string[];
   /** 선택한 관계 유형에 맞춘 개선 방향 */
   improvementTips?: string[];
+  /** 점수가 낮거나 조율이 필요한 관계를 위한 단계형 보완 리포트 */
+  repairReport?: {
+    level: "smooth" | "needsCare" | "repairFirst";
+    headline: string;
+    intro: string;
+    whyItHappens: string[];
+    conflictCycle: Array<{
+      step: string;
+      body: string;
+      repair: string;
+    }>;
+    byPerson: {
+      me: string[];
+      partner: string[];
+      together: string[];
+    };
+    scripts: string[];
+    avoid: string[];
+    sevenDayPlan: Array<{
+      day: string;
+      action: string;
+    }>;
+  };
   /** 일지(배우자궁/관계 자리) 중심 해석 */
   partnerPalace?: {
     title: string;

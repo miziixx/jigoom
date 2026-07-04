@@ -252,6 +252,97 @@ export default function CompatibilityPage() {
             </div>
           )}
 
+          {result.repairReport && (
+            <section className={`card compat-repair compat-repair--${result.repairReport.level}`}>
+              <span className="compat-score-card__eyebrow">관계 보완 리포트</span>
+              <h3 className="card-title">{result.repairReport.headline}</h3>
+              <p className="reading-body">{result.repairReport.intro}</p>
+
+              <div className="compat-section-block">
+                <h4>왜 이런 흐름이 생기는지</h4>
+                <ul className="compat-list">
+                  {result.repairReport.whyItHappens.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="compat-section-block">
+                <h4>갈등이 커지는 순서와 회복법</h4>
+                <div className="compat-step-grid">
+                  {result.repairReport.conflictCycle.map((step) => (
+                    <article className="compat-step-card" key={step.step}>
+                      <span>{step.step}</span>
+                      <p>{step.body}</p>
+                      <b>{step.repair}</b>
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              <div className="compat-section-block">
+                <h4>나와 상대를 구분해서 맞추는 법</h4>
+                <div className="compat-person-advice">
+                  <article>
+                    <span className="compat-role-badge compat-role-badge--me">나</span>
+                    <ul className="compat-list">
+                      {result.repairReport.byPerson.me.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </article>
+                  <article>
+                    <span className="compat-role-badge compat-role-badge--partner">상대</span>
+                    <ul className="compat-list">
+                      {result.repairReport.byPerson.partner.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </article>
+                  <article>
+                    <span className="compat-role-badge">둘이 같이</span>
+                    <ul className="compat-list">
+                      {result.repairReport.byPerson.together.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </article>
+                </div>
+              </div>
+
+              <div className="compat-section-block">
+                <h4>실제로 이렇게 말해보세요</h4>
+                <div className="compat-script-list">
+                  {result.repairReport.scripts.map((script) => (
+                    <p key={script}>{script}</p>
+                  ))}
+                </div>
+              </div>
+
+              <div className="compat-advice-grid">
+                <section className="compat-inline-panel">
+                  <h4>하지 않는 편이 좋은 반응</h4>
+                  <ul className="compat-list">
+                    {result.repairReport.avoid.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+                <section className="compat-inline-panel">
+                  <h4>7일 조율 플랜</h4>
+                  <ol className="compat-plan-list">
+                    {result.repairReport.sevenDayPlan.map((item) => (
+                      <li key={item.day}>
+                        <b>{item.day}</b>
+                        <span>{item.action}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              </div>
+            </section>
+          )}
+
           {result.highlights && (
             <section className="card">
               <h3 className="card-title">{result.relationLabel ?? "관계"} 핵심 카드</h3>

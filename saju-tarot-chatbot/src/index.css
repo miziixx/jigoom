@@ -3129,6 +3129,126 @@ label {
   font-size: 0.84rem;
 }
 
+.compat-repair {
+  border-color: rgba(127, 199, 255, 0.34);
+  background:
+    linear-gradient(180deg, rgba(127, 199, 255, 0.08), rgba(201, 164, 255, 0.04)),
+    var(--surface);
+}
+
+.compat-repair--repairFirst {
+  border-color: rgba(255, 166, 120, 0.42);
+}
+
+.compat-repair--needsCare {
+  border-color: rgba(201, 164, 255, 0.44);
+}
+
+.compat-section-block {
+  margin-top: 18px;
+}
+
+.compat-section-block h4,
+.compat-inline-panel h4 {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+.compat-step-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .compat-step-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compat-step-card,
+.compat-inline-panel,
+.compat-person-advice article {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.compat-step-card span {
+  color: var(--accent);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.compat-step-card p {
+  margin: 8px 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.compat-step-card b {
+  color: var(--text-dim);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.compat-person-advice {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 860px) {
+  .compat-person-advice {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compat-person-advice .compat-list {
+  margin-top: 12px;
+}
+
+.compat-script-list {
+  display: grid;
+  gap: 8px;
+}
+
+.compat-script-list p {
+  margin: 0;
+  padding: 11px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: rgba(201, 164, 255, 0.08);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.compat-plan-list {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compat-plan-list li {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.compat-plan-list b {
+  color: var(--accent);
+}
+
 .compat-highlight-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
