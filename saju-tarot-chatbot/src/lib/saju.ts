@@ -1253,23 +1253,86 @@ function purposeFits(
       label: a,
       score: clamp(score + palaceScore * 1.4),
       comment: palaceScore >= 0 ? "감정이 붙는 속도와 일상 친밀감을 만들기 좋습니다." : "끌림은 있어도 감정 반응 속도를 맞추는 연습이 필요합니다.",
+      detail:
+        palaceScore >= 0
+          ? "둘이 가까워질 때 어색함보다 익숙함이 먼저 생기기 쉬운 조합입니다. 같이 밥 먹고, 쉬고, 하루 루틴을 공유하는 장면에서 친밀감이 잘 쌓입니다."
+          : "처음 끌림은 있어도 가까워진 뒤에는 말투, 연락 속도, 사소한 생활 습관이 다르게 느껴질 수 있습니다. 감정보다 생활 방식 조율이 먼저입니다.",
+      actions:
+        palaceScore >= 0
+          ? ["같이 반복할 작은 루틴을 하나 정하기", "좋았던 행동을 구체적으로 말해주기", "편해졌다고 표현을 줄이지 않기"]
+          : ["연락 빈도와 답장 기대치를 먼저 맞추기", "서운한 점은 그날 바로 결론내리지 않기", "싸움보다 생활 규칙부터 정리하기"],
     },
     {
       label: b,
       score: clamp(55 + elementScore * 1.6 + branchScore * 2 + palaceScore),
       comment: "생활 습관, 돈 쓰는 방식, 가족과의 거리 기준을 먼저 맞출수록 안정됩니다.",
+      detail: "오래 보는 관계에서는 감정의 세기보다 생활 운영 방식이 더 중요해집니다. 돈을 쓰는 우선순위, 집안일이나 가족 행사에 대한 태도, 각자의 휴식 시간이 맞아야 안정감이 오래 갑니다.",
+      actions: ["돈 쓰는 기준을 월 단위로 맞춰보기", "각자 혼자 쉬는 시간을 침범하지 않기", "가족·집안일·일정 문제는 말보다 메모로 남기기"],
     },
     {
       label: c,
       score: clamp(50 + elementScore * 1.8 + Math.max(0, branchScore) * 2),
       comment: "서로의 강점을 역할로 나누면 좋고, 책임 범위는 문서나 일정으로 분명히 하는 편이 좋습니다.",
+      detail: "함께 무언가를 만들거나 돈과 일이 얽힐 때는 친밀감보다 역할 분담이 핵심입니다. 잘 맞는 부분은 속도를 내지만, 기준이 흐려지면 한쪽이 더 떠안는 느낌이 생길 수 있습니다.",
+      actions: ["각자 맡을 일과 마감일을 적기", "최종 결정권자를 미리 정하기", "고마움과 피드백을 따로 말하기"],
     },
     {
       label: d,
       score: clamp(55 + branchScore * 2.2 + Math.min(12, elementScore)),
       comment: "같이 움직일 때 편한 부분과 피로한 부분을 구분하면 오래 가기 쉽습니다.",
+      detail: "이 관계는 계속 붙어 있는 것보다 어떤 상황에서 편하고 어떤 상황에서 피곤한지 구분할수록 좋아집니다. 여행, 모임, 일, 돈 문제처럼 에너지가 많이 드는 상황에서 차이가 선명하게 드러납니다.",
+      actions: ["둘이 편한 활동과 피곤한 활동을 구분하기", "무리한 약속은 하루 전 다시 확인하기", "같이 움직인 뒤 혼자 회복할 시간 남기기"],
     },
   ];
+}
+
+function compatibilityBreakdownDetails(
+  label: string,
+  score: number,
+  context: (typeof RELATION_CONTEXT)[CompatibilityRelationType],
+): { detail: string; actions: string[] } {
+  if (label === "두 사람의 기질") {
+    return {
+      detail:
+        score >= 70
+          ? `기본 기질에서 서로를 이해하기 쉬운 편입니다. 한쪽이 먼저 챙기거나 힘이 되어주는 흐름이 생기기 쉬워, 관계 초반에는 "말하지 않아도 통한다"는 느낌을 받을 수 있습니다. 다만 편해질수록 역할이 고정되면 한쪽이 더 많이 맞추는 구조가 될 수 있습니다.`
+          : score >= 45
+            ? `기질이 완전히 같지는 않지만, 서로의 방식이 낯설기만 한 조합은 아닙니다. 한 사람은 속도나 판단을 중시하고 다른 사람은 안정감이나 감정을 더 볼 수 있어, 상황마다 누가 주도권을 잡을지 정하는 것이 중요합니다.`
+            : `기본 반응 방식이 꽤 다르게 느껴질 수 있습니다. 한쪽은 바로 해결하고 싶어 하고, 다른 쪽은 시간을 두고 감정을 정리하려 할 수 있어 같은 문제를 두고도 "왜 저렇게 하지?"라는 생각이 생기기 쉽습니다.`,
+      actions: ["상대 반응을 성격 문제로 단정하지 않기", "결정이 필요한 일은 각자 생각할 시간을 정하기", "고마운 행동은 바로 말로 확인하기"],
+    };
+  }
+  if (label === "연애·생활 자리") {
+    return {
+      detail:
+        score >= 70
+          ? `일상 친밀감이 쌓일수록 관계가 편해지는 편입니다. 데이트의 화려함보다 같이 쉬고, 먹고, 반복되는 하루를 공유할 때 안정감이 생기기 쉽습니다.`
+          : score >= 45
+            ? `생활 자리는 무난하지만 자동으로 맞아떨어지는 관계는 아닙니다. 서로가 편한 휴식 방식, 연락 속도, 약속 잡는 기준을 확인해야 관계가 덜 흔들립니다.`
+            : `가까워질수록 사소한 습관 차이가 크게 느껴질 수 있습니다. 애정이 부족해서라기보다 생활 리듬의 결이 달라 피로가 생기는 쪽에 가깝습니다.`,
+      actions: ["연락 빈도와 만나는 주기를 정하기", "쉬는 방식이 다를 수 있음을 인정하기", "서운함은 행동 단위로 말하기"],
+    };
+  }
+  if (label === "함께 있을 때 흐름") {
+    return {
+      detail:
+        score >= 70
+          ? `같이 움직일 때 손발이 잘 맞는 장면이 많습니다. 계획을 세우거나 일을 처리할 때 한쪽이 빈 곳을 채워주기 쉬워, 함께 할수록 효율이 올라갈 수 있습니다.`
+          : score >= 45
+            ? `잘 맞는 부분과 부딪히는 부분이 함께 있습니다. 어떤 날은 호흡이 좋다가도, 피곤하거나 급한 상황에서는 말투와 속도 차이가 갈등으로 이어질 수 있습니다.`
+            : `함께 움직일 때 에너지 소모가 큰 편입니다. 같은 목표가 있어도 접근 방식이 달라 서로가 상대를 답답하게 느끼기 쉽습니다.`,
+      actions: ["중요한 일은 역할을 먼저 나누기", "감정이 올라오면 바로 결론내리지 않기", context.action],
+    };
+  }
+  return {
+    detail:
+      score >= 70
+        ? `서로 부족한 부분을 채워주는 힘이 분명합니다. 한 사람에게 자연스러운 것이 다른 사람에게는 도움이 되는 방식이라, 잘 쓰면 관계가 안정되고 현실적인 성과도 만들기 좋습니다.`
+        : score >= 45
+          ? `서로 보완되는 면은 있지만 자동으로 편해지는 구조는 아닙니다. 도움을 주는 방식과 받는 방식이 다르면 좋은 의도도 간섭처럼 느껴질 수 있습니다.`
+          : `서로 채워주는 힘보다 각자 부족한 부분이 동시에 드러날 수 있습니다. 관계를 좋게 만들려면 상대에게 기대기보다 각자의 생활 리듬을 먼저 안정시키는 것이 필요합니다.`,
+    actions: ["상대가 잘하는 영역을 역할로 인정하기", "도움이 필요한 부분을 구체적으로 요청하기", "부족한 부분을 비난보다 시스템으로 보완하기"],
+  };
 }
 
 function compatibilityTiming(birthA: BirthInfo, birthB: BirthInfo, chartA: SajuChart, chartB: SajuChart): CompatibilityResult["timing"] {
@@ -1337,7 +1400,7 @@ export function computeCompatibility(
   const raw = 55 + dm.score + branchScore + elements.score + palace.score;
   const score = Math.max(0, Math.min(100, Math.round(raw)));
 
-  const breakdown = [
+  const baseBreakdown = [
     { label: "두 사람의 기질", score: Math.round((dm.score / 22) * 100), note: dm.text },
     { label: "연애·생활 자리", score: Math.max(0, Math.min(100, 55 + palace.score * 3)), note: palace.body },
     {
@@ -1349,6 +1412,7 @@ export function computeCompatibility(
     },
     { label: "서로 채워주는 부분", score: Math.round((elements.score / 20) * 100), note: elements.text },
   ];
+  const breakdown = baseBreakdown.map((item) => ({ ...item, ...compatibilityBreakdownDetails(item.label, item.score, context) }));
 
   const summary =
     score >= 75

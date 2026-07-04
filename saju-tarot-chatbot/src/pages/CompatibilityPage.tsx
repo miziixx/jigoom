@@ -274,9 +274,19 @@ export default function CompatibilityPage() {
           {result.purposeFits && (
             <section className="card">
               <h3 className="card-title">관계 목적별 궁합</h3>
-              <div className="gauge-list">
+              <div className="compat-deep-list">
                 {result.purposeFits.map((fit) => (
-                  <Gauge key={fit.label} label={fit.label} score={fit.score} comment={fit.comment} />
+                  <article className="compat-deep-item" key={fit.label}>
+                    <Gauge label={fit.label} score={fit.score} comment={fit.comment} />
+                    {fit.detail && <p>{fit.detail}</p>}
+                    {fit.actions && (
+                      <ul className="compat-list">
+                        {fit.actions.map((action) => (
+                          <li key={action}>{action}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </article>
                 ))}
               </div>
             </section>
@@ -284,9 +294,19 @@ export default function CompatibilityPage() {
 
           <div className="card">
             <h3 className="card-title">세부 흐름</h3>
-            <div className="gauge-list">
+            <div className="compat-deep-list">
               {result.breakdown.map((b) => (
-                <Gauge key={b.label} label={b.label} score={b.score} comment={b.note} />
+                <article className="compat-deep-item" key={b.label}>
+                  <Gauge label={b.label} score={b.score} comment={b.note} />
+                  {b.detail && <p>{b.detail}</p>}
+                  {b.actions && (
+                    <ul className="compat-list">
+                      {b.actions.map((action) => (
+                        <li key={action}>{action}</li>
+                      ))}
+                    </ul>
+                  )}
+                </article>
               ))}
             </div>
           </div>

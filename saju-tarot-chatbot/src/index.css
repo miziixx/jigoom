@@ -2620,6 +2620,29 @@ label {
   font-size: 0.82rem;
 }
 
+.compat-deep-list {
+  display: grid;
+  gap: 14px;
+}
+
+.compat-deep-item {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.compat-deep-item > p {
+  margin: 10px 0 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.75;
+}
+
+.compat-deep-item .compat-list {
+  margin-top: 10px;
+}
+
 .compat-list {
   margin: 0;
   padding-left: 18px;
