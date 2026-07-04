@@ -4,6 +4,7 @@ import { computeCompatibility } from "../lib/saju";
 import type { BirthInfo, CalendarType, CompatibilityRelationType, CompatibilityResult, Gender } from "../types";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
+const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
 
 const RELATION_OPTIONS: Array<{ value: CompatibilityRelationType; label: string }> = [
   { value: "romantic", label: "연인·배우자" },
@@ -22,6 +23,7 @@ interface PersonInput {
   month: string;
   day: string;
   hour: string;
+  minute: string;
   isLeapMonth: boolean;
   gender: Gender;
 }
@@ -32,6 +34,7 @@ const EMPTY: PersonInput = {
   month: "",
   day: "",
   hour: "unknown",
+  minute: "0",
   isLeapMonth: false,
   gender: "female",
 };
@@ -43,7 +46,7 @@ function toBirthInfo(p: PersonInput): BirthInfo {
     month: Number(p.month),
     day: Number(p.day),
     hour: p.hour === "unknown" ? null : Number(p.hour),
-    minute: 0,
+    minute: p.hour === "unknown" ? 0 : Number(p.minute),
     isLeapMonth: p.calendarType === "lunar" ? p.isLeapMonth : undefined,
     gender: p.gender,
   };
@@ -79,11 +82,23 @@ function MiniBirthForm({ title, value, onChange }: { title: string; value: Perso
       )}
       <div className="field-row">
         <span className="field-label">출생 시간</span>
-        <select value={value.hour} onChange={(e) => set({ hour: e.target.value })}>
+        <select value={value.hour} onChange={(e) => set({ hour: e.target.value, minute: e.target.value === "unknown" ? "0" : value.minute })}>
           <option value="unknown">모름</option>
           {HOURS.map((h) => (
             <option key={h} value={h}>
               {h}시
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="출생 분"
+          value={value.minute}
+          onChange={(e) => set({ minute: e.target.value })}
+          disabled={value.hour === "unknown"}
+        >
+          {MINUTES.map((m) => (
+            <option key={m} value={m}>
+              {String(m).padStart(2, "0")}분
             </option>
           ))}
         </select>
@@ -127,18 +142,16 @@ export default function CompatibilityPage() {
 
       <section className="card compat-relation-picker">
         <h3 className="card-title">어떤 관계로 볼까요?</h3>
-        <div className="compat-relation-options">
-          {RELATION_OPTIONS.map((option) => (
-            <button
-              className={`chip-button ${relationType === option.value ? "chip-button--active" : ""}`}
-              key={option.value}
-              type="button"
-              onClick={() => setRelationType(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <label className="compat-relation-select">
+          <span>관계 유형</span>
+          <select value={relationType} onChange={(e) => setRelationType(e.target.value as CompatibilityRelationType)}>
+            {RELATION_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </section>
 
       <div className="compat-forms">

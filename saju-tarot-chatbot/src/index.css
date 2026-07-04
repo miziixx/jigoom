@@ -2469,10 +2469,20 @@ label {
   margin-bottom: 14px;
 }
 
-.compat-relation-options {
-  display: flex;
-  flex-wrap: wrap;
+.compat-relation-select {
+  display: grid;
   gap: 8px;
+  max-width: 360px;
+}
+
+.compat-relation-select span {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.compat-relation-select select {
+  width: 100%;
 }
 
 .chip-button {
