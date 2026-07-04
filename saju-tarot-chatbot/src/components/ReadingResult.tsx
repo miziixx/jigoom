@@ -3,6 +3,7 @@ import SajuFactsPanel from "./SajuFactsPanel";
 import InstantSummary from "./InstantSummary";
 import PatternMap from "./PatternMap";
 import ActionCalendar from "./ActionCalendar";
+import EvidenceConfidence from "./EvidenceConfidence";
 import type { ReadingSession } from "../types";
 
 interface Section {
@@ -234,6 +235,8 @@ export default function ReadingResult({ session, loading = false }: { session: R
       )}
 
       {(session.sajuChart || session.luckCycles) && <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} />}
+
+      <EvidenceConfidence session={session} />
 
       {session.sajuChart && <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />}
 

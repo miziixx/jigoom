@@ -103,6 +103,7 @@ describe("ReadingResult 견고성", () => {
       luckCycles: computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"), { includeMonthlyFlow: true }),
     };
     const html = renderToStaticMarkup(<ReadingResult session={session} />);
+    expect(html).toContain("근거 신뢰도");
     expect(html).toContain("내 반복 패턴 지도");
     expect(html).toContain("월별 실행 캘린더");
     expect(html).toContain("조정법");

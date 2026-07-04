@@ -1,4 +1,5 @@
 import type { ReadingSession } from "../types";
+import type { FiveElementBalance, SajuChart } from "../types";
 
 const TYPE_LABEL: Record<ReadingSession["type"], string> = {
   saju: "사주 리딩",
@@ -49,6 +50,41 @@ function formatLuckCycles(session: ReadingSession): string[] {
   return lines;
 }
 
+const ELEMENT_LABEL: Record<keyof FiveElementBalance, string> = {
+  wood: "성장·시작·배움",
+  fire: "표현·활력·추진력",
+  earth: "안정·책임·현실감",
+  metal: "판단·기준·결단",
+  water: "생각·감정·휴식",
+};
+
+function topElement(chart: SajuChart): keyof FiveElementBalance | null {
+  const entries = Object.entries(chart.fiveElements) as [keyof FiveElementBalance, number][];
+  const top = entries.sort((a, b) => b[1] - a[1])[0];
+  return top?.[1] > 0 ? top[0] : null;
+}
+
+function formatInsightExtras(session: ReadingSession): string[] {
+  const lines: string[] = [];
+  if (session.sajuChart) {
+    const top = topElement(session.sajuChart);
+    lines.push("## 내 반복 패턴 지도");
+    if (top) lines.push(`- 두드러진 결: ${ELEMENT_LABEL[top]}`);
+    if (session.sajuChart.strength) lines.push(`- 힘의 쓰임: ${session.sajuChart.strength.label}`);
+    lines.push("- 읽는 법: 좋고 나쁨보다 반복되는 생활 패턴과 조정법을 확인하세요.");
+  }
+  if (session.luckCycles?.monthlyFlow && session.luckCycles.monthlyFlow.length > 0) {
+    lines.push("## 월별 실행 캘린더");
+    lines.push(
+      ...session.luckCycles.monthlyFlow.map((m) => {
+        const label = m.interactions.length >= 3 ? "조정 집중" : m.interactions.length >= 2 ? "변화 활용" : "기본기 정리";
+        return `- ${m.month}월: ${label} · ${m.interactions.length > 0 ? m.interactions.join(", ") : "큰 상호작용 적음"}`;
+      }),
+    );
+  }
+  return lines;
+}
+
 /** 리딩 세션(계산된 사실 + AI 해석 + 후속 대화)을 사람이 읽기 좋은 마크다운 문서로 직렬화한다 */
 export function buildReadingMarkdown(session: ReadingSession): string {
   const parts: string[] = [];
@@ -66,6 +102,9 @@ export function buildReadingMarkdown(session: ReadingSession): string {
     );
   }
   if (factLines.length > 0) parts.push(["## 계산된 사실", ...factLines].join("\n"));
+
+  const insightExtras = formatInsightExtras(session);
+  if (insightExtras.length > 0) parts.push(insightExtras.join("\n"));
 
   const reply = session.messages.find((m) => m.role === "assistant")?.content ?? "";
   if (reply.trim()) parts.push(reply.trim());

@@ -827,6 +827,33 @@ label {
   line-height: 1.45;
 }
 
+.evidence-confidence__meter {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin: 8px 0 10px;
+}
+
+.evidence-confidence__meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7cd5ff, #c9a4ff);
+}
+
+.evidence-confidence p {
+  margin: 0;
+  color: var(--text-dim);
+  line-height: 1.55;
+  font-size: 0.88rem;
+}
+
+.evidence-confidence__note {
+  margin-top: 8px !important;
+  color: #ffc46b !important;
+}
+
 .sinsal-chip__gloss {
   display: block;
   margin-top: 4px;
@@ -1636,6 +1663,43 @@ label {
 .feedback-stats__count {
   flex: 0 0 24px;
   text-align: right;
+}
+
+.history-insight-map__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .history-insight-map__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.history-insight-map__grid div {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.history-insight-map__grid b {
+  display: block;
+  color: var(--accent);
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+
+.history-insight-map__grid span {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.history-insight-map__keywords {
+  margin: 12px 0 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
 }
 
 /* ── 오늘의 운세 ────────── */

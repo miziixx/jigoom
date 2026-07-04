@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HistoryList from "../components/HistoryList";
 import FeedbackStats from "../components/FeedbackStats";
+import HistoryInsightMap from "../components/HistoryInsightMap";
 import { useReadingStore } from "../store/useReadingStore";
 
 const PATH_BY_TYPE = { saju: "/saju", tarot: "/tarot", combo: "/combo", today: "/today", flow: "/flow" } as const;
@@ -33,6 +34,8 @@ export default function HistoryPage() {
   return (
     <section className="page">
       <h2 className="page-title">지난 리딩 기록</h2>
+
+      <HistoryInsightMap sessions={savedSessions} />
 
       <FeedbackStats sessions={savedSessions} />
 
