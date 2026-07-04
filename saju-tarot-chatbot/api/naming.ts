@@ -9,9 +9,9 @@ import {
 import type { NameComparison, NameEvaluation, NamingBrief, NamingRecommendOptions } from "../src/lib/naming.js";
 
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
-// 비스트리밍 응답이라 생성 시간이 곧 응답 지연이다. 서버리스 제한시간 안에 확실히
-// 끝나도록 토큰을 절제한다(검증된 fortune=1500 수준).
-const MAX_TOKENS = 1800;
+// 이름 리포트/추천은 후보·근거가 있어 분량이 있다. 함수 maxDuration(120초) 안에서
+// 끝까지 생성되도록 넉넉히 잡는다.
+const MAX_TOKENS = 3000;
 
 interface NamingBody {
   mode?: "evaluate" | "recommend";
@@ -75,7 +75,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     const text = extractText(response);
     if (text.trim()) {
-      res.status(200).json({ reply: text, source: "llm" });
+      // 길이 제한(max_tokens)에 걸려 잘렸으면 사용자에게 짧게 알린다.
+      const reply =
+        response.stop_reason === "max_tokens"
+          ? `${text}\n\n(※ 길이 제한으로 일부 생략되었어요. '다시 추천받기'로 새로 받을 수 있어요.)`
+          : text;
+      res.status(200).json({ reply, source: "llm" });
     } else {
       // 빈 응답 진단: 어떤 모델이 어떤 stop_reason/블록으로 비었는지 노출한다.
       const blocks = response.content.map((b) => b.type).join(",") || "none";
