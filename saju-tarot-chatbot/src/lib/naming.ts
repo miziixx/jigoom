@@ -217,6 +217,8 @@ export interface NameEvaluation {
   sound: NameSoundAnalysis;
   fit: NameSajuFit;
   suri: SuriResult | null;
+  /** 후보 이름 비교용 내부 점수. 길흉 단정이 아니라 정렬 기준이다. */
+  score: number;
   overall: NameOverall;
   headline: string;
 }
@@ -244,5 +246,42 @@ export function evaluateName(chart: SajuChart, name: string, strokes?: number[])
         ? `균형 면에서 보완하면 좋은 지점이 보이는 이름입니다.`
         : `크게 부딪히지 않는 무난한 이름입니다.`;
 
-  return { name, sound, fit, suri, overall, headline };
+  return { name, sound, fit, suri, score, overall, headline };
+}
+
+export interface NameCandidateInput {
+  name: string;
+  strokes?: number[];
+}
+
+export interface NameComparison {
+  candidates: NameEvaluation[];
+  recommended: NameEvaluation;
+  summary: string;
+}
+
+export function compareNames(chart: SajuChart, candidates: NameCandidateInput[]): NameComparison {
+  const evaluations = candidates
+    .map((candidate) => ({ ...candidate, name: candidate.name.trim() }))
+    .filter((candidate) => candidate.name.length > 0)
+    .map((candidate) => evaluateName(chart, candidate.name, candidate.strokes));
+
+  if (evaluations.length === 0) {
+    throw new Error("비교할 이름이 필요합니다.");
+  }
+
+  const sorted = [...evaluations].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const levelRank: Record<NameOverall, number> = { 좋음: 3, 보통: 2, 주의: 1 };
+    if (levelRank[b.overall] !== levelRank[a.overall]) return levelRank[b.overall] - levelRank[a.overall];
+    return a.name.localeCompare(b.name, "ko");
+  });
+  const recommended = sorted[0];
+  const topTies = sorted.filter((candidate) => candidate.score === recommended.score);
+  const summary =
+    topTies.length > 1
+      ? `${topTies.map((candidate) => candidate.name).join(", ")} 후보가 비슷하게 앞서 있습니다. 이름의 느낌과 실제로 부르기 편한지도 함께 보세요.`
+      : `${recommended.name} 후보가 계산상 가장 균형 있게 나왔습니다. 단, 이름 선택은 소리·뜻·가족의 선호까지 함께 보는 편이 좋습니다.`;
+
+  return { candidates: sorted, recommended, summary };
 }

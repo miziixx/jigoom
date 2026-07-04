@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeNameSound, evaluateName, evaluateSuri } from "./naming.js";
+import { analyzeNameSound, compareNames, evaluateName, evaluateSuri } from "./naming.js";
 import { computeSajuChart } from "./saju.js";
 import type { BirthInfo } from "../types/index.js";
 
@@ -54,5 +54,16 @@ describe("이름 종합 감정", () => {
   it("획수를 주면 수리도 포함한다", () => {
     const evaln = evaluateName(chart, "김민준", [8, 9, 6]);
     expect(evaln.suri).not.toBeNull();
+  });
+
+  it("여러 후보를 비교해 추천 후보를 고른다", () => {
+    const comparison = compareNames(chart, [
+      { name: "김민준", strokes: [8, 9, 6] },
+      { name: "이서아", strokes: [7, 8, 9] },
+      { name: "박도윤" },
+    ]);
+    expect(comparison.candidates).toHaveLength(3);
+    expect(comparison.recommended).toBe(comparison.candidates[0]);
+    expect(comparison.summary).toContain(comparison.recommended.name);
   });
 });

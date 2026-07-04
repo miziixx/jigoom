@@ -501,6 +501,88 @@ label {
   line-height: 1.75;
 }
 
+.naming-comparison__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.naming-comparison__head p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.naming-comparison__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.naming-candidate {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-alt);
+}
+
+.naming-candidate--best {
+  border-color: rgba(87, 208, 164, 0.55);
+  box-shadow: 0 0 0 1px rgba(87, 208, 164, 0.16);
+}
+
+.naming-candidate__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.naming-candidate__top b {
+  color: var(--text);
+}
+
+.naming-candidate p {
+  margin: 0 0 10px;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.naming-candidate dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.naming-candidate dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.78rem;
+}
+
+.naming-candidate dt {
+  color: var(--text-dim);
+}
+
+.naming-candidate dd {
+  margin: 0;
+  color: var(--text);
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .naming-comparison__head {
+    flex-direction: column;
+  }
+}
+
 /* ── 타로 근거 패널 ────────── */
 .tarot-facts__hint {
   margin: 0 0 10px;
