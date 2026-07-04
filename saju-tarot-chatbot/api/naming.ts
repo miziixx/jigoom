@@ -1,13 +1,14 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
 import { buildNamingUserMessage, NAMING_SYSTEM_PROMPT } from "../src/prompts/namingPrompt.js";
-import type { NameEvaluation } from "../src/lib/naming.js";
+import type { NameComparison, NameEvaluation } from "../src/lib/naming.js";
 
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
 const MAX_TOKENS = 3000;
 
 interface NamingBody {
   evaluation?: NameEvaluation;
+  comparison?: NameComparison | null;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -22,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { evaluation } = req.body as NamingBody;
+  const { evaluation, comparison } = req.body as NamingBody;
   if (!evaluation?.name || !evaluation.sound || !evaluation.fit) {
     res.status(400).json({ error: "이름 감정 계산 결과가 필요합니다." });
     return;
@@ -34,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       model: MODEL,
       max_tokens: MAX_TOKENS,
       system: NAMING_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: buildNamingUserMessage(evaluation) }],
+      messages: [{ role: "user", content: buildNamingUserMessage(evaluation, comparison) }],
     });
     res.status(200).json({ reply: extractText(response) });
   } catch (err) {

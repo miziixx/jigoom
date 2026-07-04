@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeSajuChart } from "../lib/saju.js";
-import { evaluateName } from "../lib/naming.js";
+import { compareNames, evaluateName } from "../lib/naming.js";
 import type { BirthInfo } from "../types/index.js";
 import { buildNamingUserMessage, NAMING_SYSTEM_PROMPT } from "./namingPrompt.js";
 
@@ -38,5 +38,19 @@ describe("이름 감정 AI 프롬프트", () => {
     expect(msg).toContain("등록 가능 여부");
     expect(msg).toContain("최종 확인");
     expect(msg).toContain("전자가족관계등록시스템");
+  });
+
+  it("후보가 여러 개면 후보 비교 종합평 근거를 함께 전달한다", () => {
+    const comparison = compareNames(
+      computeSajuChart(birth),
+      [{ name: "김민준" }, { name: "이서아" }, { name: "박도윤" }],
+      "given-name",
+      { mode: "baby" },
+    );
+    const msg = buildNamingUserMessage(comparison.recommended, comparison);
+    expect(msg).toContain("# 후보 비교 종합평");
+    expect(msg).toContain("[후보 비교]");
+    expect(msg).toContain("1위");
+    expect(msg).toContain("2위");
   });
 });

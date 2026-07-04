@@ -1,4 +1,4 @@
-import { NAMING_MODE_LABEL, type NameEvaluation } from "../lib/naming";
+import { NAMING_MODE_LABEL, type NameComparison, type NameEvaluation } from "../lib/naming";
 
 export const NAMING_SYSTEM_PROMPT = [
   "당신은 전통 작명 관점의 계산 결과를 사용자가 이해하기 쉬운 생활 언어로 번역하는 이름 감정 해설가다.",
@@ -12,7 +12,7 @@ export const NAMING_SYSTEM_PROMPT = [
   "마크다운 표는 쓰지 않는다. 제목과 bullet은 사용할 수 있다.",
 ].join("\n");
 
-export function buildNamingUserMessage(evaluation: NameEvaluation): string {
+export function buildNamingUserMessage(evaluation: NameEvaluation, comparison?: NameComparison | null): string {
   const soundLines = evaluation.sound.syllables
     .map((s) => `- ${s.syllable}: 초성 ${s.choseong}, 발음오행 ${s.elementLabel}`)
     .join("\n");
@@ -23,6 +23,15 @@ export function buildNamingUserMessage(evaluation: NameEvaluation): string {
   const suriLines = evaluation.suri
     ? evaluation.suri.levels.map((l) => `- ${l.name}: ${l.total}획, ${l.level}`).join("\n")
     : "- 한자 획수 미입력: 수리 판단은 하지 않음";
+  const comparisonLines =
+    comparison && comparison.candidates.length > 1
+      ? comparison.candidates
+          .map(
+            (candidate, index) =>
+              `- ${index + 1}위 ${candidate.name}: 종합 ${candidate.overall}, 소리 ${candidate.sound.harmony}, 사주 보완 ${candidate.fit.level}, 보완 기운 ${candidate.fit.neededLabel}, 획수 ${candidate.suri ? candidate.suri.summary : "미입력"}`,
+          )
+          .join("\n")
+      : "- 후보 비교 없음";
   const purpose = evaluation.purpose;
   const modeLabel = purpose ? NAMING_MODE_LABEL[purpose.mode] : "일반 이름 감정";
 
@@ -38,6 +47,7 @@ export function buildNamingUserMessage(evaluation: NameEvaluation): string {
     "# 현실에서 느껴지는 인상",
     "# 보완하면 더 좋아지는 점",
     "# 이름을 쓸 때의 팁",
+    comparison && comparison.candidates.length > 1 ? "# 후보 비교 종합평" : "",
     "# 전문가 근거 보기",
     "",
     "[분량]",
@@ -52,6 +62,10 @@ export function buildNamingUserMessage(evaluation: NameEvaluation): string {
     `발음오행 기준: ${evaluation.schoolLabel}`,
     `종합 판정: ${evaluation.overall}`,
     `헤드라인: ${evaluation.headline}`,
+    "",
+    "[후보 비교]",
+    comparison?.summary ?? "후보 비교 없음",
+    comparisonLines,
     "",
     "[소리의 기운]",
     soundLines,

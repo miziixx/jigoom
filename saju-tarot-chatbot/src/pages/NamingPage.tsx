@@ -5,6 +5,7 @@ import NamingResult from "../components/NamingResult";
 import { computeSajuChart } from "../lib/saju";
 import { generateNamingInterpretation } from "../lib/namingApi";
 import { downloadNamingMarkdown } from "../lib/exportNaming";
+import { downloadNamingImages } from "../lib/shareNamingImage";
 import {
   compareNames,
   evaluateName,
@@ -88,7 +89,7 @@ export default function NamingPage() {
     setResult(nextResult);
     setInterpretationLoading(true);
     try {
-      setInterpretation(await generateNamingInterpretation(nextResult));
+      setInterpretation(await generateNamingInterpretation(nextResult, nextComparison));
     } catch (err) {
       setInterpretationError(err instanceof Error ? err.message : "이름 해석을 불러오지 못했습니다.");
     } finally {
@@ -257,6 +258,12 @@ export default function NamingPage() {
               onClick={() => downloadNamingMarkdown({ result, comparison, interpretation })}
             >
               마크다운 저장
+            </button>
+            <button
+              className="btn btn--secondary"
+              onClick={() => void downloadNamingImages({ result, comparison, interpretation })}
+            >
+              이미지 ZIP 저장
             </button>
             <button className="btn btn--ghost" onClick={reset}>
               다른 이름 감정하기

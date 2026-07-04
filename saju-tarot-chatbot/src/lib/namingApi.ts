@@ -1,11 +1,11 @@
-import type { NameEvaluation } from "./naming";
+import type { NameComparison, NameEvaluation } from "./naming";
 import { serverErrorText } from "./readingApi";
 
-export async function generateNamingInterpretation(evaluation: NameEvaluation): Promise<string> {
+export async function generateNamingInterpretation(evaluation: NameEvaluation, comparison?: NameComparison | null): Promise<string> {
   const res = await fetch("/api/naming", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ evaluation }),
+    body: JSON.stringify({ evaluation, comparison }),
   });
 
   if (!res.ok) {
