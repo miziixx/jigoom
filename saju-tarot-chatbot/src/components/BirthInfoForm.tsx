@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ContextPicker from "./ContextPicker";
 import FocusPicker from "./FocusPicker";
 import { BIRTH_PLACES } from "../data/birthPlaces";
+import { clearProfile, loadProfile, saveProfile } from "../lib/profile";
 import type { BirthInfo, CalendarType, Gender, LateNightZiMode, ReadingContext, ReadingFocus } from "../types";
 
 interface Props {
@@ -16,16 +17,18 @@ interface Props {
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocus = true }: Props) {
-  const [calendarType, setCalendarType] = useState<CalendarType>("solar");
-  const [year, setYear] = useState("");
-  const [month, setMonth] = useState("");
-  const [day, setDay] = useState("");
-  const [hour, setHour] = useState<string>("unknown");
-  const [minute, setMinute] = useState("");
-  const [isLeapMonth, setIsLeapMonth] = useState(false);
-  const [lateNightZi, setLateNightZi] = useState<LateNightZiMode>("late");
-  const [birthPlace, setBirthPlace] = useState("none");
-  const [gender, setGender] = useState<Gender>("female");
+  const [savedBirth] = useState(() => loadProfile());
+  const [calendarType, setCalendarType] = useState<CalendarType>(savedBirth?.calendarType ?? "solar");
+  const [year, setYear] = useState(savedBirth ? String(savedBirth.year) : "");
+  const [month, setMonth] = useState(savedBirth ? String(savedBirth.month) : "");
+  const [day, setDay] = useState(savedBirth ? String(savedBirth.day) : "");
+  const [hour, setHour] = useState<string>(savedBirth?.hour === null || savedBirth?.hour === undefined ? "unknown" : String(savedBirth.hour));
+  const [minute, setMinute] = useState(savedBirth?.minute ? String(savedBirth.minute) : "");
+  const [isLeapMonth, setIsLeapMonth] = useState(Boolean(savedBirth?.isLeapMonth));
+  const [lateNightZi, setLateNightZi] = useState<LateNightZiMode>(savedBirth?.lateNightZi ?? "late");
+  const [birthPlace, setBirthPlace] = useState(savedBirth?.birthPlace ?? "none");
+  const [saveBirthChart, setSaveBirthChart] = useState(Boolean(savedBirth));
+  const [gender, setGender] = useState<Gender>(savedBirth?.gender ?? "female");
   const [question, setQuestion] = useState("");
   const [focus, setFocus] = useState<ReadingFocus>("general");
   const [context, setContext] = useState<ReadingContext>({});
@@ -48,6 +51,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
       birthPlace,
       gender,
     };
+    if (saveBirthChart) saveProfile(birthInfo);
+    else if (savedBirth) clearProfile();
     // 출생 시간을 모르면 정확도 응답과 무관하게 "모름"으로 고정한다
     const finalContext: ReadingContext =
       hour === "unknown" ? { ...context, timeAccuracy: "unknown" } : context;
@@ -159,6 +164,16 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
           {birthPlace === "none"
             ? "출생지를 고르면 표준시·경도 차이를 반영해 시주 경계 판단이 더 정확해집니다. 1987~1988년 한국 서머타임은 자동 반영돼요."
             : "표준시·경도 차이를 반영합니다. 1987~1988년 한국 서머타임은 자동 반영돼요."}
+        </span>
+      </div>
+
+      <div className="field-row field-row--column save-chart-setting">
+        <label className="checkbox-label">
+          <input type="checkbox" checked={saveBirthChart} onChange={(e) => setSaveBirthChart(e.target.checked)} />
+          이 사주 원국을 이 기기에 저장하기
+        </label>
+        <span className="field-hint">
+          저장하면 오늘 운세와 다음 사주 조회에서 다시 입력하지 않고 쓸 수 있어요. 서버가 아니라 이 브라우저에만 저장됩니다.
         </span>
       </div>
 
