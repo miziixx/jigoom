@@ -345,6 +345,13 @@ label {
   color: var(--text-dim);
 }
 
+.chat-followup__intro {
+  margin: -4px 0 12px;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
 .chat-thread {
   display: flex;
   flex-direction: column;
@@ -371,6 +378,28 @@ label {
   background: var(--surface-alt);
 }
 
+.chat-suggestion-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chat-suggestion {
+  border: 1px solid rgba(201, 164, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(201, 164, 255, 0.09);
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.chat-suggestion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .chat-input-row {
   display: flex;
   gap: 8px;
@@ -378,6 +407,14 @@ label {
 
 .chat-input-row input {
   flex: 1;
+}
+
+.chat-followup__hint,
+.chat-followup__limit {
+  margin: 10px 0 0;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  line-height: 1.5;
 }
 
 .history-list {

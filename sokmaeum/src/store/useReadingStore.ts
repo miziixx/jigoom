@@ -12,6 +12,8 @@ import type {
   ReadingType,
 } from "../types";
 
+const MAX_FOLLOW_UP_QUESTIONS = 5;
+
 interface StartReadingParams {
   type: ReadingType;
   question: string;
@@ -40,6 +42,10 @@ interface ReadingStore {
 
 function newId(): string {
   return crypto.randomUUID();
+}
+
+function followUpModeFor(question: string): "concise" | "deep" {
+  return /자세히|깊게|상세|구체적으로|길게/.test(question) ? "deep" : "concise";
 }
 
 export const useReadingStore = create<ReadingStore>((set, get) => ({
@@ -112,13 +118,18 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
   sendFollowUp: async (question: string) => {
     const session = get().currentSession;
     if (!session) return;
+    const usedQuestions = session.messages.slice(2).filter((m) => m.role === "user").length;
+    if (usedQuestions >= MAX_FOLLOW_UP_QUESTIONS) {
+      set({ error: "후속 질문은 최대 5개까지 가능합니다. 새 질문은 새 리딩으로 시작해주세요." });
+      return;
+    }
 
     const historyWithQuestion = [...session.messages, { role: "user" as const, content: question }];
     set({ loading: true, error: null, currentSession: { ...session, messages: historyWithQuestion } });
 
     try {
       const result = await streamReading(
-        { type: "followup", history: historyWithQuestion },
+        { type: "followup", history: historyWithQuestion, followUpMode: followUpModeFor(question) },
         {
           onText: (accumulated) => {
             set({
