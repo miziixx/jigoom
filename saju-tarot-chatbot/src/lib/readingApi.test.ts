@@ -1,5 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { streamReading } from "./readingApi.js";
+import { serverErrorText, streamReading } from "./readingApi.js";
+
+describe("serverErrorText — 서버 오류를 읽을 수 있는 문자열로", () => {
+  it("문자열은 그대로 쓴다", () => {
+    expect(serverErrorText("크레딧 부족", "기본")).toBe("크레딧 부족");
+  });
+  it("객체는 [object Object]로 만들지 않고 message/error를 꺼낸다", () => {
+    expect(serverErrorText({ message: "인증 실패" }, "기본")).toBe("인증 실패");
+    expect(serverErrorText({ error: "429 초과" }, "기본")).toBe("429 초과");
+  });
+  it("풀 수 없는 객체는 JSON으로, 빈 값은 fallback", () => {
+    expect(serverErrorText({ code: 500 }, "기본")).toContain("500");
+    expect(serverErrorText({}, "기본")).toBe("기본");
+    expect(serverErrorText(undefined, "기본")).toBe("기본");
+  });
+});
 
 // NDJSON 라인들을 하나의 스트리밍 응답(Response 유사 객체)으로 만든다
 function ndjsonResponse(lines: string[]): Response {

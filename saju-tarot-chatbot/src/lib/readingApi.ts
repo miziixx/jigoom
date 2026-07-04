@@ -39,6 +39,27 @@ type FanOutBody = Record<string, unknown> & {
 /** 스트림 라인으로 전달된 서버 측 오류 (네트워크 단절과 구분용) */
 class ServerReportedError extends Error {}
 
+/**
+ * 서버/프록시가 보낸 error 값을 사람이 읽을 수 있는 문자열로 만든다.
+ * error가 문자열이 아니라 객체({message}, {error}, 기타)로 오면 그대로 Error에 넣었을 때
+ * "[object Object]"가 되어버리므로, 여기서 안전하게 풀어낸다.
+ */
+export function serverErrorText(value: unknown, fallback: string): string {
+  if (typeof value === "string" && value.trim()) return value;
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if (typeof obj.message === "string" && obj.message.trim()) return obj.message;
+    if (typeof obj.error === "string" && obj.error.trim()) return obj.error;
+    try {
+      const json = JSON.stringify(value);
+      if (json && json !== "{}") return json;
+    } catch {
+      // 순환 참조 등 직렬화 실패 시 fallback
+    }
+  }
+  return fallback;
+}
+
 /** 긴 생성(전문가 리딩 등) 동안 모바일 화면이 꺼져 연결이 끊기는 것을 막는다 */
 async function acquireWakeLock(): Promise<WakeLockSentinel | null> {
   try {
@@ -206,11 +227,10 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
   }
 
   if (!res.ok) {
-    const errBody = await res.json().catch(() => ({} as { error?: string }));
-    throw new Error(
-      errBody.error ??
-        (res.status === 504 ? "서버 응답 시간 초과(504). 다시 시도해보세요." : `요청 실패 (HTTP ${res.status})`),
-    );
+    const errBody = (await res.json().catch(() => ({}))) as { error?: unknown };
+    const fallback =
+      res.status === 504 ? "서버 응답 시간 초과(504). 다시 시도해보세요." : `요청 실패 (HTTP ${res.status})`;
+    throw new Error(serverErrorText(errBody.error ?? errBody, fallback));
   }
 
   const contentType = res.headers.get("Content-Type") ?? "";
@@ -244,9 +264,9 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
       text?: string;
       done?: boolean;
       stopReason?: string | null;
-      error?: string;
+      error?: unknown;
     };
-    if (obj.error) throw new ServerReportedError(obj.error);
+    if (obj.error) throw new ServerReportedError(serverErrorText(obj.error, "서버가 오류를 반환했습니다."));
     if (obj.meta) {
       meta = obj.meta;
       handlers.onMeta?.(obj.meta);

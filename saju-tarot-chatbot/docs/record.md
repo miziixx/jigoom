@@ -329,6 +329,18 @@ temper 주황/steady 보라). 테스트 `lifestyleGuide.test.ts` 신규(4). 총 
 후속 후보: (1) AI 해석 레이어(감정 근거를 문장으로), (2) 이름 생성/추천(인명용 한자 DB),
 (3) 발음오행 학파 옵션(전통 vs 상용).
 
+## 챗봇 오류가 '[object Object]'로 뜨는 문제 수정
+
+후속 챗봇에서 오류가 `[object Object]`로 표시됨. 원인: 서버/프록시가 error를 문자열이
+아닌 객체로 반환할 때 `new Error(객체)`가 message를 "[object Object]"로 만들어 실제 원인을
+가림. (`src/lib/readingApi.ts`)
+
+- `serverErrorText(value, fallback)` 헬퍼 추가: 문자열이면 그대로, 객체면 message/error를
+  꺼내고, 안 되면 JSON.stringify, 빈 값이면 fallback.
+- 비정상 응답(!res.ok)과 스트림 error 라인 두 곳에서 이 헬퍼로 메시지를 뽑도록 변경.
+- 이제 "[object Object]" 대신 실제 원인(예: 크레딧 부족·API 키·429·HTTP 상태)이 노출되어
+  진단 가능. 테스트 3개 추가.
+
 ## 현재 제품 방향
 
 앱의 핵심 방향은 다음과 같다.
