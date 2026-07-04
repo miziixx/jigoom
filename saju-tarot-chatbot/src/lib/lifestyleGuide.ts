@@ -1,5 +1,19 @@
 import type { FiveElementBalance, SajuChart } from "../types";
-import { GAN_WUXING, ZHI_WUXING } from "./saju";
+
+// 천간/지지 → 오행 (한글). saju.ts에도 같은 표가 있지만, 여기서 saju.ts를 import하면
+// 무거운 lunar-javascript까지 이 모듈 그래프(및 서버리스 API 번들)에 딸려 들어오므로,
+// 계산이 아닌 이 작은 상수 표는 독립적으로 둔다.
+const GAN_WUXING: Record<string, keyof FiveElementBalance> = {
+  갑: "wood", 을: "wood",
+  병: "fire", 정: "fire",
+  무: "earth", 기: "earth",
+  경: "metal", 신: "metal",
+  임: "water", 계: "water",
+};
+const ZHI_WUXING: Record<string, keyof FiveElementBalance> = {
+  자: "water", 축: "earth", 인: "wood", 묘: "wood", 진: "earth", 사: "fire",
+  오: "fire", 미: "earth", 신: "metal", 유: "metal", 술: "earth", 해: "water",
+};
 
 export type Element = keyof FiveElementBalance;
 

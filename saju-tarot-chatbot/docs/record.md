@@ -341,6 +341,21 @@ temper 주황/steady 보라). 테스트 `lifestyleGuide.test.ts` 신규(4). 총 
 - 이제 "[object Object]" 대신 실제 원인(예: 크레딧 부족·API 키·429·HTTP 상태)이 노출되어
   진단 가능. 테스트 3개 추가.
 
+## 리딩 서버 함수 크래시(A server error has occurred) 수정
+
+증상: 리딩 API가 Vercel FUNCTION_INVOCATION_FAILED("A server error has occurred")로 실패.
+원인 추정: 생활 처방 개인화(249f90a)에서 `lifestyleGuide.ts`가 `./saju`를 import하면서,
+API 함수 그래프(`api/reading.ts → systemPrompt → lifestyleGuide → saju`)에 무거운
+`lunar-javascript`가 새로 딸려 들어옴. API는 원래 사주 계산을 하지 않는데(계산은 브라우저),
+불필요한 무거운 의존성이 서버 번들에 유입됨.
+
+수정: `lifestyleGuide.ts`에서 `./saju` import 제거하고, 필요한 작은 상수 표
+(GAN_WUXING/ZHI_WUXING 한글 오행 매핑)만 인라인. 이로써 systemPrompt→lifestyleGuide 그래프가
+saju/lunar를 더 이상 끌어오지 않아 API 번들이 가벼워짐. (150 테스트 통과)
+
+교훈: `src/prompts/systemPrompt.ts`는 API 서버 함수가 import하므로, 여기서 도달하는 모듈은
+브라우저 전용 무거운 계산 라이브러리를 끌어오면 안 된다.
+
 ## 현재 제품 방향
 
 앱의 핵심 방향은 다음과 같다.
