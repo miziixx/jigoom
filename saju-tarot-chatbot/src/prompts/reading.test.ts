@@ -127,6 +127,27 @@ describe("타로 리딩 프롬프트", () => {
   });
 });
 
+describe("오늘/흐름 리딩은 종합 생애 섹션을 강요하지 않는다", () => {
+  const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
+  const sajuChart = computeSajuChart(birth);
+  const luckCycles = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
+
+  it("오늘 리딩은 집중 섹션만 쓰고 생애 섹션은 배제한다", () => {
+    const msg = buildReadingUserMessage({ type: "today", question: "오늘 어때요?", gender: birth.gender, sajuChart, luckCycles });
+    expect(msg).toContain("오늘의 흐름 안내");
+    expect(msg).toContain("종합 생애 섹션은 절대 쓰지 마라");
+    expect(msg).not.toContain("기본 리딩 — 종합");
+  });
+
+  it("흐름 리딩은 시기 섹션에 집중하고 생애 섹션은 배제한다", () => {
+    const msg = buildReadingUserMessage({ type: "flow", question: "올해 어때요?", gender: birth.gender, sajuChart, luckCycles });
+    expect(msg).toContain("월간/연간 흐름 안내");
+    expect(msg).toContain("종합 생애 섹션은 이 리딩에서 쓰지 마라");
+    expect(msg).toContain("1월부터 12월까지");
+    expect(msg).not.toContain("기본 리딩 — 종합");
+  });
+});
+
 describe("비교 리딩 프롬프트", () => {
   it("A/B 선택 기준을 정리하도록 요구한다", () => {
     const msg = buildCompareUserMessage(
