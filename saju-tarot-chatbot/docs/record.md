@@ -598,3 +598,21 @@ saju/lunar를 더 이상 끌어오지 않아 API 번들이 가벼워짐. (150 �
 - 테스트: `naming.test.ts`에 파싱/채점/정렬 검증 추가(173 통과), build OK.
 - 남은 과제(유료화): 무료/유료 게이팅(무료 3개·유료 전체), "피해야 할 이름" 전용 섹션,
   인명용 한자 DB 실검증.
+
+## 결과 화면 시각 대시보드 (카드·그래프로 가독성)
+
+사용자 요청: 글만 긴 결과가 안 읽힌다 → 카드·도표·그래프를 얹어 가독성 강화. 단 기존 내용/항목은
+하나도 줄이지 않는 순수 추가(additive) + 순서 재배치.
+
+- 신규 룰 `src/lib/readingDashboard.ts`(무 API, 결정론): `buildReadingDashboard(chart, luck)` →
+  강점/주의점 3개씩, 키워드 칩, 기질 스펙트럼 4축(직관↔분석/즉흥↔신중/표현↔내면/관계↔독립),
+  인생영역 6개 상대 막대(성향/일/재물/관계/멘탈/흐름). 오행 분포·십성·신강신약에서 도출.
+  점수는 "상대 경향+라벨"이며 절대 진단 아님(CLAUDE.md 준수). 막대·축마다 한 줄 해석.
+- 신규 컴포넌트: SummaryCardGrid(요약 히어로), PersonalitySpectrum, LifeAreaBars,
+  ActionChecklist(오늘/이번주/피할 패턴 체크박스).
+- ReadingResult.tsx 순서 재배치(내용 삭제 없음): 요약 대시보드 → 바로 보는 요약 → 스펙트럼/인생영역 →
+  타로 → 상세 해석 섹션 전부 → 실행 체크리스트 → 생활 정리 → 하단 접이(details) "계산 근거·시각 자료"로
+  SajuFactsPanel(원국·신살·타임라인·계산값 전부)+PatternMap+EvidenceConfidence 이동.
+- 모바일 안전(index.css): 2×2 그리드 auto-fit→좁으면 1열, 넓은 도표 overflow-x:auto, 버튼 wrap+44px,
+  overflow-wrap:anywhere, 컨테이너 min-width:0. Playwright 360/390/768px 검증 → 가로 스크롤 없음.
+- 테스트: readingDashboard.test.ts 추가(179 통과), build OK.

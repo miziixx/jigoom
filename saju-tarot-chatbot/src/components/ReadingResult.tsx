@@ -3,8 +3,13 @@ import SajuFactsPanel from "./SajuFactsPanel";
 import InstantSummary from "./InstantSummary";
 import PatternMap from "./PatternMap";
 import ActionCalendar from "./ActionCalendar";
+import ActionChecklist from "./ActionChecklist";
 import EvidenceConfidence from "./EvidenceConfidence";
+import SummaryCardGrid from "./SummaryCardGrid";
+import PersonalitySpectrum from "./PersonalitySpectrum";
+import LifeAreaBars from "./LifeAreaBars";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide";
+import { buildReadingDashboard } from "../lib/readingDashboard";
 import TarotFactsPanel from "./TarotFactsPanel";
 import type { ReadingSession } from "../types";
 
@@ -220,6 +225,22 @@ function SectionBody({ body, loading }: { body: string; loading?: boolean }) {
   );
 }
 
+/** 요약 히어로에 쓸 "한 줄 결론"을 추출한다. 질문 핵심 → 첫 점괘 순으로, [한 줄 결론] 파트가
+ * 있으면 그 첫 문장, 없으면 본문 첫 문장을 쓴다. */
+function extractConclusion(candidates: Array<Section | undefined>): string | null {
+  for (const section of candidates) {
+    if (!section) continue;
+    const parts = parseBodyParts(section.body);
+    const conclusionPart = parts.find((p) => p.title === "한 줄 결론");
+    const source = conclusionPart?.body ?? parts.find((p) => !p.title)?.body ?? section.body;
+    const clean = stripMarkdown(source).trim();
+    if (!clean) continue;
+    const firstSentence = clean.split(/(?<=[.!?。])\s+|\n/)[0]?.trim();
+    if (firstSentence && firstSentence.length >= 6) return firstSentence;
+  }
+  return null;
+}
+
 const HERO_OPENING = "첫 점괘";
 const HERO_CLOSING = "마지막 점괘";
 const CATEGORY_SECTION_TITLE = "분야별 요약";
@@ -327,25 +348,27 @@ export default function ReadingResult({ session, loading = false }: { session: R
     (s) => s !== opening && s !== closing && s !== questionCore && s.title !== CATEGORY_SECTION_TITLE,
   );
 
+  const dashboard = buildReadingDashboard(session.sajuChart, session.luckCycles);
+  const conclusion = extractConclusion([questionCore, opening]);
+
   return (
     <div className="reading-result">
       {loading && <LoadingNotice depth={session.context?.depth} />}
 
-      {session.tarotCards && session.tarotCards.length > 0 && (
-        <TarotFactsPanel cards={session.tarotCards} />
+      {/* 1. 요약 대시보드 (신규) — 첫 화면에서 핵심을 먼저 */}
+      {dashboard && (
+        <SummaryCardGrid conclusion={conclusion} keywords={dashboard.keywords} dashboard={dashboard} />
       )}
-
-      {(session.sajuChart || session.luckCycles) && (
-        <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} birthInfo={session.birthInfo} />
-      )}
-
-      <EvidenceConfidence session={session} />
 
       {session.sajuChart && <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />}
 
-      {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
+      {/* 2. 한눈에 보는 내 구조 (기질 스펙트럼·인생영역 — 신규) */}
+      {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
+      {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
 
-      {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
+      {session.tarotCards && session.tarotCards.length > 0 && (
+        <TarotFactsPanel cards={session.tarotCards} />
+      )}
 
       {opening && (
         <div className="card reading-oracle reading-oracle--opening">
@@ -401,8 +424,23 @@ export default function ReadingResult({ session, loading = false }: { session: R
         </div>
       )}
 
+      {/* 5. 실행 가이드 (체크리스트 신규 + 기존 생활 정리) */}
+      {session.sajuChart && <ActionChecklist sajuChart={session.sajuChart} luckCycles={session.luckCycles} />}
+
       {session.sajuChart && <LifestyleClosingSummary session={session} />}
 
+      {/* 6. 계산 근거·시각 자료 — 삭제 없이 하단 접이 영역으로 이동(모든 항목/수치 그대로) */}
+      {(session.sajuChart || session.luckCycles) && (
+        <details className="reading-evidence-zone">
+          <summary>계산 근거 · 시각 자료 (원국 · 신살 · 오행 · 타임라인 전체)</summary>
+          <div className="reading-evidence-zone__body">
+            <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} birthInfo={session.birthInfo} />
+            {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
+            {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
+            <EvidenceConfidence session={session} />
+          </div>
+        </details>
+      )}
     </div>
   );
 }

@@ -3532,3 +3532,391 @@ label {
   color: var(--text-dim);
   font-size: 0.86rem;
 }
+
+/* ══════════ 결과 요약 대시보드 (신규 시각 요소) ══════════ */
+
+/* 공통: 긴 한자/단어가 카드를 밀지 않도록 */
+.summary-hero,
+.spectrum,
+.life-areas,
+.action-checklist {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ── 요약 히어로 ── */
+.summary-hero__conclusion {
+  border-left: 3px solid var(--accent);
+  padding: 4px 0 4px 12px;
+  margin-bottom: 12px;
+}
+
+.summary-hero__tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.summary-hero__conclusion p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.summary-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.summary-hero__chip {
+  background: rgba(201, 164, 255, 0.14);
+  color: var(--accent);
+  border: 1px solid rgba(201, 164, 255, 0.3);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.summary-hero__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.summary-tile {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  padding: 12px;
+}
+
+.summary-tile b {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.summary-tile ul {
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-tile li,
+.summary-tile p {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.summary-tile--strength {
+  border-color: rgba(87, 208, 164, 0.4);
+}
+
+.summary-tile--caution {
+  border-color: rgba(255, 190, 120, 0.4);
+}
+
+.summary-tile--now {
+  border-color: rgba(201, 164, 255, 0.4);
+}
+
+.summary-hero__note {
+  margin: 12px 0 0;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+
+/* ── 기질 스펙트럼 ── */
+.spectrum__intro,
+.life-areas__intro {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.spectrum__list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.spectrum__row {
+  min-width: 0;
+}
+
+.spectrum__labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.82rem;
+  margin-bottom: 6px;
+}
+
+.spectrum__side {
+  color: var(--text-dim);
+}
+
+.spectrum__side--active {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.spectrum__track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(201, 164, 255, 0.25), rgba(87, 208, 164, 0.25));
+}
+
+.spectrum__dot {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  border: 2px solid var(--surface);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(201, 164, 255, 0.5);
+}
+
+.spectrum__note {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+/* ── 인생영역 막대 ── */
+.life-areas__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.life-area {
+  min-width: 0;
+}
+
+.life-area__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.life-area__label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.life-area__tone {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.life-area__tone--high {
+  background: rgba(87, 208, 164, 0.18);
+  color: #57d0a4;
+}
+
+.life-area__tone--mid {
+  background: rgba(201, 164, 255, 0.16);
+  color: var(--accent);
+}
+
+.life-area__tone--low {
+  background: rgba(168, 159, 196, 0.18);
+  color: var(--text-dim);
+}
+
+.life-area__track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  overflow: hidden;
+}
+
+.life-area__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.life-area__fill--high {
+  background: linear-gradient(90deg, rgba(87, 208, 164, 0.7), rgba(87, 208, 164, 0.95));
+}
+
+.life-area__fill--mid {
+  background: linear-gradient(90deg, rgba(201, 164, 255, 0.6), rgba(169, 112, 255, 0.9));
+}
+
+.life-area__fill--low {
+  background: linear-gradient(90deg, rgba(168, 159, 196, 0.4), rgba(168, 159, 196, 0.7));
+}
+
+.life-area__note {
+  margin: 5px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+/* ── 실행 체크리스트 ── */
+.action-checklist__intro {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.action-checklist__groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.action-checklist__group {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+  padding: 12px;
+}
+
+.action-checklist__group-title {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.action-checklist__group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-checklist__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text);
+  cursor: pointer;
+  min-height: 24px;
+}
+
+.action-checklist__item input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: var(--accent-strong);
+}
+
+.action-checklist__item--done span {
+  text-decoration: line-through;
+  color: var(--text-dim);
+}
+
+/* ── 하단 근거·시각 자료 접이 영역 ── */
+.reading-evidence-zone {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 4px 14px;
+  overflow-wrap: anywhere;
+}
+
+.reading-evidence-zone > summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  list-style: none;
+}
+
+.reading-evidence-zone > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reading-evidence-zone > summary::before {
+  content: "▸ ";
+  color: var(--accent);
+}
+
+.reading-evidence-zone[open] > summary::before {
+  content: "▾ ";
+}
+
+.reading-evidence-zone__body {
+  padding-bottom: 8px;
+}
+
+/* ══════════ 모바일 안전(좁은 폭에서 안 깨지게) ══════════ */
+@media (max-width: 480px) {
+  .summary-hero__grid,
+  .action-checklist__groups {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-hero__conclusion p {
+    font-size: 1rem;
+  }
+
+  .reading-evidence-zone {
+    padding: 4px 10px;
+  }
+
+  /* 원국·타임라인 등 넓은 도표가 본문을 밀지 않게 가로 스크롤 허용 */
+  .pillar-grid,
+  .dayun-timeline,
+  .yearly-timeline,
+  .month-flow-grid,
+  .element-radar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 액션 버튼은 좁으면 줄바꿈 + 전폭 */
+  .reading-actions,
+  .naming-actions {
+    flex-wrap: wrap;
+  }
+
+  .reading-actions .btn,
+  .naming-actions .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+}
+
+/* 전역: 결과 컨테이너 가로 오버플로 방지 */
+.reading-result {
+  min-width: 0;
+}
+
+.reading-result img {
+  max-width: 100%;
+  height: auto;
+}
