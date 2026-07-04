@@ -14,6 +14,35 @@ describe("신살 계산", () => {
     expect(names).toContain("괴강");
   });
 
+  it("십이신살을 일지 삼합국 기준으로 계산한다 (임술=화1990국)", () => {
+    // 원국 경오 무자 임술 갑진 — 일지 술(인오술 火局): 오=장성살, 자=재살, 술=화개살, 진=월살
+    const map = new Map((chart.sinsal ?? []).map((s) => [`${s.name}|${s.position}`, true]));
+    expect(map.has("장성살|연지 오")).toBe(true);
+    expect(map.has("재살|월지 자")).toBe(true);
+    expect(map.has("화개살|일지 술")).toBe(true);
+    expect(map.has("월살|시지 진")).toBe(true);
+  });
+
+  it("원진·귀문 지지쌍과 년살(도화)을 계산한다 (을축 임오 을유 계미)", () => {
+    const c = computeSajuChart({ calendarType: "solar", year: 1985, month: 6, day: 15, hour: 14, minute: 0, gender: "female" });
+    const names = (c.sinsal ?? []).map((s) => s.name);
+    // 일지 유(사유축 金局): 오=년살(도화), 유=장성살, 축=화개살
+    expect(names).toContain("년살");
+    expect(names).toContain("장성살");
+    // 연지 축–월지 오가 함께 있어 원진·귀문 성립
+    expect(names).toContain("원진살");
+    expect(names).toContain("귀문관살");
+  });
+
+  it("모든 신살 이름은 알려진 신살 집합 안에 있다", () => {
+    const KNOWN = new Set([
+      "겁살", "재살", "천살", "지살", "년살", "월살", "망신살", "장성살", "반안살", "역마살", "육해살", "화개살",
+      "천을귀인", "천덕귀인", "월덕귀인", "양인", "문창귀인", "학당귀인", "금여", "암록", "홍염살",
+      "백호대살", "괴강", "원진살", "귀문관살", "고신살", "과숙살",
+    ]);
+    for (const s of chart.sinsal ?? []) expect(KNOWN.has(s.name)).toBe(true);
+  });
+
   it("모든 신살 항목은 이름·위치·뜻을 갖는다", () => {
     for (const s of chart.sinsal ?? []) {
       expect(s.name.length).toBeGreaterThan(0);

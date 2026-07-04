@@ -314,13 +314,22 @@ export function gongmangOf(dayGan: string, dayZhi: string): string {
 }
 
 // ── 신살(神煞) 테이블 ──────────
-// 삼합국별 도화/역마/화개 지지 (기준 지지가 속한 삼합국으로 판정)
-const SANHE_GROUPS: Array<{ group: string[]; dohwa: string; yeongma: string; hwagae: string }> = [
-  { group: ["인", "오", "술"], dohwa: "묘", yeongma: "신", hwagae: "술" },
-  { group: ["신", "자", "진"], dohwa: "유", yeongma: "인", hwagae: "진" },
-  { group: ["사", "유", "축"], dohwa: "오", yeongma: "해", hwagae: "축" },
-  { group: ["해", "묘", "미"], dohwa: "자", yeongma: "사", hwagae: "미" },
-];
+// 지지가 속한 삼합국의 대표 오행 (십이신살·월덕 판정용)
+const SANHE_ELEMENT: Record<string, "water" | "fire" | "metal" | "wood"> = {
+  신: "water", 자: "water", 진: "water",
+  인: "fire", 오: "fire", 술: "fire",
+  사: "metal", 유: "metal", 축: "metal",
+  해: "wood", 묘: "wood", 미: "wood",
+};
+
+// 십이신살: 기준 지지(일지)가 속한 삼합국별로 12지지 각각에 배정된다.
+// (년살=도화, 역마살, 화개살, 지살 등 12개를 모두 포함)
+const SIBI_SINSAL: Record<"water" | "fire" | "metal" | "wood", Record<string, string>> = {
+  water: { 사: "겁살", 오: "재살", 미: "천살", 신: "지살", 유: "년살", 술: "월살", 해: "망신살", 자: "장성살", 축: "반안살", 인: "역마살", 묘: "육해살", 진: "화개살" },
+  fire: { 해: "겁살", 자: "재살", 축: "천살", 인: "지살", 묘: "년살", 진: "월살", 사: "망신살", 오: "장성살", 미: "반안살", 신: "역마살", 유: "육해살", 술: "화개살" },
+  metal: { 인: "겁살", 묘: "재살", 진: "천살", 사: "지살", 오: "년살", 미: "월살", 신: "망신살", 유: "장성살", 술: "반안살", 해: "역마살", 자: "육해살", 축: "화개살" },
+  wood: { 신: "겁살", 유: "재살", 술: "천살", 해: "지살", 자: "년살", 축: "월살", 인: "망신살", 묘: "장성살", 진: "반안살", 사: "역마살", 오: "육해살", 미: "화개살" },
+};
 
 // 천을귀인: 일간 기준 귀인 지지
 const CHEONEUL: Record<string, string[]> = {
@@ -339,60 +348,146 @@ const MUNCHANG: Record<string, string> = {
   갑: "사", 을: "오", 병: "신", 정: "유", 무: "신", 기: "유", 경: "해", 신: "자", 임: "인", 계: "묘",
 };
 
+// 학당귀인(일간 장생지) / 금여 / 암록 / 홍염살 — 모두 일간 기준 지지
+const HAKDANG: Record<string, string> = { 갑: "해", 을: "오", 병: "인", 정: "유", 무: "인", 기: "유", 경: "사", 신: "자", 임: "신", 계: "묘" };
+const GEUMYEO: Record<string, string> = { 갑: "진", 을: "사", 병: "미", 정: "신", 무: "미", 기: "신", 경: "술", 신: "해", 임: "축", 계: "인" };
+const AMROK: Record<string, string> = { 갑: "해", 을: "술", 병: "신", 정: "미", 무: "신", 기: "미", 경: "사", 신: "진", 임: "인", 계: "축" };
+const HONGYEOM: Record<string, string> = { 갑: "오", 을: "오", 병: "인", 정: "미", 무: "진", 기: "진", 경: "술", 신: "유", 임: "자", 계: "신" };
+
+// 천덕귀인: 월지 기준. 값이 천간(gan)일 수도, 지지(zhi)일 수도 있어 구분해 둔다.
+const CHEONDEOK: Record<string, { gan?: string; zhi?: string }> = {
+  자: { zhi: "사" }, 축: { gan: "경" }, 인: { gan: "정" }, 묘: { zhi: "신" }, 진: { gan: "임" }, 사: { gan: "신" },
+  오: { zhi: "해" }, 미: { gan: "갑" }, 신: { gan: "계" }, 유: { zhi: "인" }, 술: { gan: "병" }, 해: { gan: "을" },
+};
+// 월덕귀인: 월지 삼합국 오행 기준 천간
+const WOLDEOK: Record<"water" | "fire" | "metal" | "wood", string> = { water: "임", fire: "병", metal: "경", wood: "갑" };
+
+// 지지쌍 신살 (원국 안에 두 지지가 함께 있으면 성립)
+const WONJIN_PAIRS: Array<[string, string]> = [["자", "미"], ["축", "오"], ["인", "유"], ["묘", "신"], ["진", "해"], ["사", "술"]];
+const GWIMUN_PAIRS: Array<[string, string]> = [["자", "유"], ["축", "오"], ["인", "미"], ["묘", "신"], ["진", "해"], ["사", "술"]];
+
+// 고신살/과숙살: 년지 방합 그룹 기준 지지
+const YEAR_BANGHAP: Array<{ group: string[]; goshin: string; gwasuk: string }> = [
+  { group: ["해", "자", "축"], goshin: "인", gwasuk: "술" },
+  { group: ["인", "묘", "진"], goshin: "사", gwasuk: "축" },
+  { group: ["사", "오", "미"], goshin: "신", gwasuk: "진" },
+  { group: ["신", "유", "술"], goshin: "해", gwasuk: "미" },
+];
+
 // 백호대살 / 괴강 (기둥 간지 단위)
 const BAEKHO = new Set(["갑진", "을미", "병술", "정축", "무진", "임술", "계축"]);
 const GOEGANG = new Set(["경진", "경술", "무술", "임진", "임술"]);
 
+const SINSAL_GLOSS: Record<string, string> = {
+  겁살: "예기치 못한 손실·강제·빼앗김의 기운. 큰 변동을 조심",
+  재살: "관재·구속·시비(수옥)의 기운. 법적 문제·다툼 주의",
+  천살: "불가항력의 변수·자만을 경계하게 하는 기운",
+  지살: "이동·변동·타향·활동의 기운",
+  년살: "매력·인기·이성운의 기운 (도화)",
+  월살: "메마름·정체·소모가 생기기 쉬운 기운 (고초)",
+  망신살: "실수·구설·체면 손상이 드러나기 쉬운 기운",
+  장성살: "권위·리더십·중심에 서는 기운",
+  반안살: "안정·승진·후원으로 자리 잡는 길한 기운",
+  역마살: "이동·변화·해외·활동의 기운",
+  육해살: "은근한 방해·소모·건강 주의의 기운",
+  화개살: "고독·몰입·예술·종교·연구의 기운",
+  천을귀인: "귀인의 도움을 받기 쉬운 최고의 길신",
+  천덕귀인: "하늘의 덕으로 위기에 도움을 받는 길신",
+  월덕귀인: "달의 덕으로 인덕·보호를 받는 길신",
+  양인: "강한 추진력·기세. 과하면 다툼·사고 주의",
+  문창귀인: "총명·학문·시험·글재주의 길신",
+  학당귀인: "학문·가르침·총명함의 길신",
+  금여: "온화한 성품·배우자복·안락함의 길성",
+  암록: "드러나지 않게 돕는 복록·위기 때의 귀인",
+  홍염살: "매력·끼·이성에게 인기가 많은 기운 (도화 계열)",
+  백호대살: "기세가 강해 성취가 크나 급변·건강 관리 필요",
+  괴강: "카리스마·결단력이 강한 리더 기질",
+  원진살: "이유 없이 껄끄럽고 미워지기 쉬운 감정의 기운",
+  귀문관살: "예민·직관·집착·신경과민이 강해지는 기운",
+  고신살: "배우자·인연이 외로워지기 쉬운 기운 (홀로)",
+  과숙살: "배우자·인연이 외로워지기 쉬운 기운 (홀로)",
+};
+
 /**
- * 원국 4기둥의 신살을 계산한다.
- * - 도화/역마/화개: 일지가 속한 삼합국 기준으로 해당 지지가 원국에 있는지
- * - 천을귀인/양인/문창: 일간 기준 해당 지지가 원국에 있는지
- * - 백호/괴강: 각 기둥 간지가 해당 목록에 있는지
+ * 원국 4기둥의 신살을 폭넓게 계산한다.
+ * - 십이신살(겁살·재살·천살·지살·년살·월살·망신·장성·반안·역마·육해·화개): 일지 삼합국 기준
+ * - 일간 기준 지지: 천을귀인·양인·문창·학당·금여·암록·홍염
+ * - 월지 기준: 천덕귀인·월덕귀인
+ * - 지지쌍: 원진·귀문관
+ * - 년지 기준: 고신·과숙
+ * - 기둥 간지: 백호·괴강
+ * 기준(관법)에 따라 신살 판정은 달라질 수 있어 참고용으로 제공한다.
  */
 function computeSinsal(
   dayGan: string,
   dayZhi: string,
+  monthZhi: string,
+  yearZhi: string,
   gans: PositionedChar[],
   zhis: PositionedChar[],
 ): SinsalHit[] {
   const hits: SinsalHit[] = [];
-  const zhiAt = (char: string) => zhis.filter((z) => z.char === char).map((z) => `${z.label} ${z.char}`);
+  const glossOf = (name: string) => SINSAL_GLOSS[name] ?? "";
+  const pushZhi = (name: string, char: string) => {
+    for (const z of zhis) if (z.char === char) hits.push({ name, position: `${z.label} ${z.char}`, gloss: glossOf(name) });
+  };
+  const pushGan = (name: string, char: string) => {
+    for (const g of gans) if (g.char === char) hits.push({ name, position: `${g.label} ${g.char}`, gloss: glossOf(name) });
+  };
 
-  // 도화/역마/화개 (일지 기준 삼합국)
-  const sanhe = SANHE_GROUPS.find((g) => g.group.includes(dayZhi));
-  if (sanhe) {
-    for (const [char, name, gloss] of [
-      [sanhe.dohwa, "도화", "매력·인기·이성운의 기운"],
-      [sanhe.yeongma, "역마", "이동·변화·해외·활동의 기운"],
-      [sanhe.hwagae, "화개", "고독·몰입·예술·종교·연구의 기운"],
-    ] as const) {
-      for (const pos of zhiAt(char)) hits.push({ name, position: pos, gloss });
+  // 십이신살 (일지 삼합국 기준)
+  const dayEl = SANHE_ELEMENT[dayZhi];
+  if (dayEl) {
+    const map = SIBI_SINSAL[dayEl];
+    for (const z of zhis) {
+      const name = map[z.char];
+      if (name) hits.push({ name, position: `${z.label} ${z.char}`, gloss: glossOf(name) });
     }
   }
 
-  // 천을귀인
-  for (const char of CHEONEUL[dayGan] ?? []) {
-    for (const pos of zhiAt(char)) hits.push({ name: "천을귀인", position: pos, gloss: "귀인의 도움을 받기 쉬운 최고의 길신" });
+  // 일간 기준 길신/흉살 (지지)
+  for (const char of CHEONEUL[dayGan] ?? []) pushZhi("천을귀인", char);
+  if (YANGIN[dayGan]) pushZhi("양인", YANGIN[dayGan]);
+  if (MUNCHANG[dayGan]) pushZhi("문창귀인", MUNCHANG[dayGan]);
+  if (HAKDANG[dayGan]) pushZhi("학당귀인", HAKDANG[dayGan]);
+  if (GEUMYEO[dayGan]) pushZhi("금여", GEUMYEO[dayGan]);
+  if (AMROK[dayGan]) pushZhi("암록", AMROK[dayGan]);
+  if (HONGYEOM[dayGan]) pushZhi("홍염살", HONGYEOM[dayGan]);
+
+  // 월지 기준 천덕/월덕귀인
+  const cd = CHEONDEOK[monthZhi];
+  if (cd?.zhi) pushZhi("천덕귀인", cd.zhi);
+  if (cd?.gan) pushGan("천덕귀인", cd.gan);
+  const monthEl = SANHE_ELEMENT[monthZhi];
+  if (monthEl) pushGan("월덕귀인", WOLDEOK[monthEl]);
+
+  // 지지쌍 (원진·귀문) — 원국 내 두 지지가 함께 있으면
+  const branchSet = new Set(zhis.map((z) => z.char));
+  const pairHits = (pairs: Array<[string, string]>, name: string) => {
+    for (const [a, b] of pairs) {
+      if (branchSet.has(a) && branchSet.has(b)) {
+        const posA = zhis.find((z) => z.char === a)!;
+        const posB = zhis.find((z) => z.char === b)!;
+        hits.push({ name, position: `${posA.label} ${a}–${posB.label} ${b}`, gloss: glossOf(name) });
+      }
+    }
+  };
+  pairHits(WONJIN_PAIRS, "원진살");
+  pairHits(GWIMUN_PAIRS, "귀문관살");
+
+  // 년지 기준 고신/과숙
+  const banghap = YEAR_BANGHAP.find((g) => g.group.includes(yearZhi));
+  if (banghap) {
+    pushZhi("고신살", banghap.goshin);
+    pushZhi("과숙살", banghap.gwasuk);
   }
-
-  // 양인
-  const yangin = YANGIN[dayGan];
-  if (yangin) for (const pos of zhiAt(yangin)) hits.push({ name: "양인", position: pos, gloss: "강한 추진력·기세. 과하면 다툼·사고 주의" });
-
-  // 문창귀인
-  const munchang = MUNCHANG[dayGan];
-  if (munchang) for (const pos of zhiAt(munchang)) hits.push({ name: "문창귀인", position: pos, gloss: "총명·학문·시험·글재주의 길신" });
 
   // 백호 / 괴강 (기둥 간지)
-  const pillars: Array<[string, string, string]> = [];
   for (let i = 0; i < zhis.length; i++) {
     const label = zhis[i].label.replace("지", "주");
-    pillars.push([label, gans[i]?.char ?? "", zhis[i].char]);
-  }
-  for (const [label, g, z] of pillars) {
-    const gz = g + z;
-    if (BAEKHO.has(gz)) hits.push({ name: "백호대살", position: `${label} ${gz}`, gloss: "기세가 강해 성취가 크나 급변·건강 관리 필요" });
-    if (GOEGANG.has(gz)) hits.push({ name: "괴강", position: `${label} ${gz}`, gloss: "카리스마·결단력이 강한 리더 기질" });
+    const gz = (gans[i]?.char ?? "") + zhis[i].char;
+    if (BAEKHO.has(gz)) hits.push({ name: "백호대살", position: `${label} ${gz}`, gloss: glossOf("백호대살") });
+    if (GOEGANG.has(gz)) hits.push({ name: "괴강", position: `${label} ${gz}`, gloss: glossOf("괴강") });
   }
 
   return hits;
@@ -714,7 +809,7 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
   const gongmangHits = zhis.filter((z) => gongmangZhis.includes(z.char)).map((z) => `${z.label} ${z.char}`);
   const gongmang = `${gongmangZhis} 공망${gongmangHits.length > 0 ? ` (원국 내 해당: ${gongmangHits.join(", ")})` : " (원국 내 해당 지지 없음)"}`;
 
-  const sinsal = computeSinsal(dayGan, dayPillar.zhi, gans, zhis);
+  const sinsal = computeSinsal(dayGan, dayPillar.zhi, monthPillar.zhi, yearPillar.zhi, gans, zhis);
   const gyeokguk = computeGyeokguk(dayGan, monthPillar.zhi, strength);
   const iljuTrait = iljuTraitOf(dayPillar.ganZhi);
 

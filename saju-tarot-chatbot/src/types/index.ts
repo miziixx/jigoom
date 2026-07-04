@@ -154,7 +154,7 @@ export interface SajuChart {
   gongmang?: string;
   /** 조후(계절) 관점 노트 */
   seasonNote?: string;
-  /** 신살 목록 (도화·역마·화개·천을귀인·양인·백호·괴강·문창 등) */
+  /** 신살 목록 (십이신살 전체 + 천을·천덕·월덕·문창·학당·금여·암록·양인·홍염·백호·괴강·원진·귀문·고신·과숙 등) */
   sinsal?: SinsalHit[];
   /** 60갑자 일주 성향 */
   iljuTrait?: string;
