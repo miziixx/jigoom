@@ -266,6 +266,7 @@ export interface ReadingSession {
   feedback?: ReadingFeedback;
   birthInfo?: BirthInfo;
   sajuChart?: SajuChart;
+  astrologyProfile?: AstrologyProfile;
   luckCycles?: LuckCycles;
   tarotCards?: DrawnTarotCard[];
   messages: ChatMessage[];
@@ -405,6 +406,8 @@ export interface MysticEvidence {
   natalInteractions: string[];
   /** 신살/공망 요약 */
   sinsal: string[];
+  /** 현대·고전·베딕 점성술 요약 */
+  astrology?: AstrologyProfile;
   /** 현재 대운/세운/월운 간지 */
   currentDaYun: string | null;
   yearGanZhi: string;
@@ -419,6 +422,73 @@ export interface MysticEvidence {
   partner?: PartnerEvidence;
   /** 지난 피드백에서 뽑은 스타일 조정 힌트 (개인화) */
   styleHint?: string;
+}
+
+export type ZodiacSign =
+  | "양자리"
+  | "황소자리"
+  | "쌍둥이자리"
+  | "게자리"
+  | "사자자리"
+  | "처녀자리"
+  | "천칭자리"
+  | "전갈자리"
+  | "사수자리"
+  | "염소자리"
+  | "물병자리"
+  | "물고기자리";
+
+export interface AstrologyPlacement {
+  body: string;
+  sign: ZodiacSign;
+  degree: number;
+  absoluteLongitude: number;
+  house?: number;
+  keyword: string;
+}
+
+export interface ClassicalPlacement extends AstrologyPlacement {
+  dignity: "도미사일" | "엑잘테이션" | "디트리먼트" | "폴" | "페레그린";
+  ruler: string;
+}
+
+export interface VedicPlacement {
+  body: string;
+  sign: ZodiacSign;
+  degree: number;
+  absoluteLongitude: number;
+  nakshatra?: string;
+  pada?: number;
+  keyword: string;
+}
+
+export interface AstrologyProfile {
+  calculatedAt: string;
+  locationLabel: string;
+  timeKnown: boolean;
+  accuracyNote: string;
+  modern: {
+    sun: AstrologyPlacement;
+    moon: AstrologyPlacement;
+    ascendant?: AstrologyPlacement;
+    venus: AstrologyPlacement;
+    mars: AstrologyPlacement;
+    summary: string[];
+  };
+  classical: {
+    sect: "day" | "night" | "unknown";
+    ascendant?: AstrologyPlacement;
+    placements: ClassicalPlacement[];
+    summary: string[];
+  };
+  vedic: {
+    ayanamsa: string;
+    lagna?: VedicPlacement;
+    moon: VedicPlacement;
+    sun: VedicPlacement;
+    summary: string[];
+  };
+  notes: string[];
 }
 
 /** 상대방과의 관계 비교 근거 (두 사주 원국 대조) */

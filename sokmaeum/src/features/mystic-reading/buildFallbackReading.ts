@@ -39,6 +39,13 @@ function evOf(e: MysticEvidence, extra: string[] = []): string[] {
   return merged.length > 0 ? merged : ["사주 원국 기준 해석"];
 }
 
+function astrologyTone(e: MysticEvidence): string {
+  const sun = e.astrology?.modern.sun;
+  const moon = e.astrology?.modern.moon;
+  if (!sun || !moon) return "";
+  return `점성술로는 태양 ${sun.sign}, 달 ${moon.sign} 흐름이 함께 보여 삶의 방향과 감정 습관을 같이 확인합니다.`;
+}
+
 const CONCERN_TEXT: Record<ConcernCategory, { title: string; description: string; why: string }> = {
   work: {
     title: "지금 하는 일이 맞는 방향인지에 대한 의심",
@@ -195,7 +202,7 @@ export function buildFallbackReading(e: MysticEvidence): MysticReadingResult {
           ? "지금은 더 밀어붙이는 시기가 아니라, 나를 갉아먹는 것을 하나씩 덜어내야 다음 흐름이 들어오는 때에 가깝습니다."
           : "당신은 쉬고 싶은 게 아니라, 방향이 또렷하지 않아 힘이 흩어지고 있는 상태에 가깝습니다.",
       intensity: e.strength === "신약" ? "high" : "medium",
-      evidence: evOf(e, [`${dom} 강함`, `일간 세력: ${e.strength}`]),
+      evidence: evOf(e, [`${dom} 강함`, `일간 세력: ${e.strength}`, astrologyTone(e)]),
     },
     currentState: {
       summary: `요즘은 ${domTrait}이 강하게 올라오는 시기라, ${domTired}.`,
@@ -206,7 +213,7 @@ export function buildFallbackReading(e: MysticEvidence): MysticReadingResult {
         ? `${weak} 기운이 약한 편이라, 그 부분을 억지로 채우려 할 때 에너지가 가장 많이 샙니다.`
         : "확신이 흔들리는 지점마다 에너지가 조금씩 새어 나갑니다.",
       advice: "지금은 더 밀어붙이기보다, 에너지가 새는 곳을 줄이는 것이 먼저입니다.",
-      evidence: evOf(e, e.hasHour ? [] : hourNote),
+      evidence: evOf(e, e.hasHour ? [astrologyTone(e)] : [...hourNote, astrologyTone(e)]),
     },
     hiddenConcerns: pickConcerns(e),
     outerInnerSelf: {

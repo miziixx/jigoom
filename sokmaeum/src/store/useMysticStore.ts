@@ -3,6 +3,7 @@ import { getMysticReading } from "../features/mystic-reading/readingApi";
 import { INTEREST_LABEL } from "../features/mystic-reading/evidenceMapper";
 import { buildMysticStyleHint } from "../features/mystic-reading/sectionFeedback";
 import { mysticResultToText } from "../features/mystic-reading/resultToText";
+import { computeAstrologyProfile } from "../lib/astrology";
 import { computeSajuChart } from "../lib/saju";
 import { streamReading } from "../lib/readingApi";
 import { loadSessions, saveSession } from "../lib/storage";
@@ -63,6 +64,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
         styleHint,
       });
       const sajuChart = computeSajuChart(birthInfo);
+      const astrologyProfile = computeAstrologyProfile(birthInfo);
       const readingText = mysticResultToText(result);
       const session: ReadingSession = {
         id: newId(),
@@ -72,6 +74,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
         focus: "general",
         birthInfo,
         sajuChart,
+        astrologyProfile,
         mysticResult: result,
         messages: [
           {
@@ -104,6 +107,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
       });
       const current = get().session;
       const sajuChart = computeSajuChart(birthInfo);
+      const astrologyProfile = computeAstrologyProfile(birthInfo);
       const readingText = mysticResultToText(result);
       const contextMsg = {
         role: "user" as const,
@@ -113,6 +117,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
         ? {
             ...current,
             sajuChart,
+            astrologyProfile,
             mysticResult: result,
             messages: [contextMsg, current.messages[1] ?? { role: "assistant", content: result.openingOracle.sentence }],
           }
@@ -123,6 +128,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
             question: "속마음 리딩",
             birthInfo,
             sajuChart,
+            astrologyProfile,
             mysticResult: result,
             messages: [contextMsg, { role: "assistant", content: result.openingOracle.sentence }],
           };

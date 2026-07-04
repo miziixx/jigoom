@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AstrologyPanel from "../components/astrology/AstrologyPanel";
 import BirthInfoForm from "../components/BirthInfoForm";
 import ChatFollowUp from "../components/ChatFollowUp";
 import FiveElementsChart from "../components/saju-visual/FiveElementsChart";
@@ -89,6 +90,12 @@ export default function MysticPage() {
                 <FiveElementsChart chart={session.sajuChart} />
                 <SinsalBadges chart={session.sajuChart} />
               </div>
+            </div>
+          )}
+
+          {session.astrologyProfile && (
+            <div className="card facts-panel mystic-facts-panel">
+              <AstrologyPanel profile={session.astrologyProfile} />
             </div>
           )}
 

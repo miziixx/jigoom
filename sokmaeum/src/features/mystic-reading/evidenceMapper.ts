@@ -1,4 +1,5 @@
 import { computeLuckCycles, computeSajuChart, ELEMENT_KO, GAN_WUXING, tenGodOf } from "../../lib/saju";
+import { computeAstrologyProfile } from "../../lib/astrology";
 import { branchRelationsBetween, tenGodGroupOf } from "../../lib/fortune";
 import type {
   BirthInfo,
@@ -37,6 +38,7 @@ export function buildMysticEvidence(
 ): MysticEvidence {
   const chart = computeSajuChart(birthInfo);
   const luck = computeLuckCycles(birthInfo, now, { includeMonthlyFlow: true });
+  const astrology = computeAstrologyProfile(birthInfo);
 
   const hasHour = birthInfo.hour !== null;
   const notes: string[] = [];
@@ -129,6 +131,7 @@ export function buildMysticEvidence(
 
   // ── 관심사 반영 ─────────────────────────────
   notes.push(`현재 관심사: ${INTEREST_LABEL[interest]}`);
+  astrology.notes.slice(0, 3).forEach((note) => notes.push(`점성술 ${note}`));
 
   // ── 출생시간 ────────────────────────────────
   if (!hasHour) notes.push("출생시간 미입력으로 시주 해석 제외");
@@ -155,6 +158,7 @@ export function buildMysticEvidence(
     gishin,
     natalInteractions,
     sinsal,
+    astrology,
     currentDaYun: luck.currentDaYun,
     yearGanZhi: luck.yearGanZhi,
     monthGanZhi: luck.monthGanZhi,
