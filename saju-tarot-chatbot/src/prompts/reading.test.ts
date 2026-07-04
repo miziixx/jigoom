@@ -10,6 +10,10 @@ describe("리딩 시스템 프롬프트 규칙", () => {
   it("마크다운 금지 규칙을 담는다", () => {
     expect(READING_SYSTEM_PROMPT).toContain("마크다운 기호를 쓰지 않는다");
   });
+  it("나이는 숫자로 표기하라는 규칙을 담는다", () => {
+    expect(READING_SYSTEM_PROMPT).toContain("40세");
+    expect(READING_SYSTEM_PROMPT).toContain("한글 나이 표현을 쓰지 말고");
+  });
   it("종합 사주풀이 섹션(성격·직업·애정·건강·대운·세운)을 담는다", () => {
     for (const s of [
       "# 첫 점괘",

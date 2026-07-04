@@ -2209,6 +2209,33 @@ label {
   gap: 14px;
 }
 
+.compat-relation-picker {
+  margin-bottom: 14px;
+}
+
+.compat-relation-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip-button {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-alt);
+  color: var(--text-dim);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chip-button--active {
+  border-color: var(--accent);
+  background: rgba(201, 164, 255, 0.16);
+  color: var(--text);
+}
+
 .compat-score-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

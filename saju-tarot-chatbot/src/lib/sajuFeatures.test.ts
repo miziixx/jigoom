@@ -143,6 +143,15 @@ describe("궁합 계산", () => {
     expect(swapped.score).toBe(compat.score);
   });
 
+  it("관계 유형별 궁합 문맥을 바꿀 수 있다", () => {
+    const family = computeCompatibility(A, B, "parentChild");
+    const work = computeCompatibility(A, B, "bossEmployee");
+    const rival = computeCompatibility(A, B, "rival");
+    expect(family.relationLabel).toBe("부모와 자식");
+    expect(work.purposeFits?.map((p) => p.label)).toContain("지시·보고");
+    expect(rival.improvementTips?.join(" ")).toContain("사실");
+  });
+
   it("결과 표면 문장에 사주 전문용어가 없다", () => {
     // 단독 '충/형/파/해'는 '균형' 등 일반어와 겹쳐 오탐이므로, 명확한 용어만 검사
     const JARGON = ["천간합", "육합", "삼합", "반합", "상생", "상극", "비화", "오행", "일간", "십성", "지지 "];

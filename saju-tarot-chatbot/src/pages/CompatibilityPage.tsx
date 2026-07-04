@@ -1,9 +1,20 @@
 import { useState } from "react";
 import Gauge from "../components/Gauge";
 import { computeCompatibility } from "../lib/saju";
-import type { BirthInfo, CalendarType, CompatibilityResult, Gender } from "../types";
+import type { BirthInfo, CalendarType, CompatibilityRelationType, CompatibilityResult, Gender } from "../types";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
+
+const RELATION_OPTIONS: Array<{ value: CompatibilityRelationType; label: string }> = [
+  { value: "romantic", label: "연인·배우자" },
+  { value: "parentChild", label: "부모·자식" },
+  { value: "siblings", label: "형제·자매" },
+  { value: "family", label: "가족" },
+  { value: "bossEmployee", label: "사장·직원" },
+  { value: "coworker", label: "동료·동업자" },
+  { value: "friend", label: "친구" },
+  { value: "rival", label: "앙숙·불편한 사람" },
+];
 
 interface PersonInput {
   calendarType: CalendarType;
@@ -93,6 +104,7 @@ function MiniBirthForm({ title, value, onChange }: { title: string; value: Perso
 export default function CompatibilityPage() {
   const [personA, setPersonA] = useState<PersonInput>({ ...EMPTY });
   const [personB, setPersonB] = useState<PersonInput>({ ...EMPTY, gender: "male" });
+  const [relationType, setRelationType] = useState<CompatibilityRelationType>("romantic");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,7 +114,7 @@ export default function CompatibilityPage() {
   function handleCompute() {
     setError(null);
     try {
-      setResult(computeCompatibility(toBirthInfo(personA), toBirthInfo(personB)));
+      setResult(computeCompatibility(toBirthInfo(personA), toBirthInfo(personB), relationType));
     } catch {
       setError("궁합 계산에 실패했어요. 생년월일을 다시 확인해 주세요.");
     }
@@ -112,6 +124,22 @@ export default function CompatibilityPage() {
     <section className="page">
       <h2 className="page-title">궁합 보기</h2>
       <p className="page-desc">두 사람의 사주 원국을 계산해 일간 관계·지지 인연(합충)·오행 보완을 종합한 궁합 점수를 보여드려요. (참고용)</p>
+
+      <section className="card compat-relation-picker">
+        <h3 className="card-title">어떤 관계로 볼까요?</h3>
+        <div className="compat-relation-options">
+          {RELATION_OPTIONS.map((option) => (
+            <button
+              className={`chip-button ${relationType === option.value ? "chip-button--active" : ""}`}
+              key={option.value}
+              type="button"
+              onClick={() => setRelationType(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       <div className="compat-forms">
         <MiniBirthForm title="첫 번째 사람" value={personA} onChange={setPersonA} />
@@ -127,8 +155,10 @@ export default function CompatibilityPage() {
         <div className="compat-result">
           <div className="card compat-score-card">
             <div>
-              <span className="compat-score-card__eyebrow">관계 종합</span>
-              <h3 className="compat-score-card__title">{result.score >= 75 ? "끌림과 보완이 강한 관계" : result.score >= 55 ? "맞는 부분과 조율할 부분이 함께 있는 관계" : "속도와 기준을 맞춰야 하는 관계"}</h3>
+              <span className="compat-score-card__eyebrow">{result.relationLabel ?? "관계"} 종합</span>
+              <h3 className="compat-score-card__title">
+                {result.score >= 75 ? "잘 맞는 흐름이 강한 관계" : result.score >= 55 ? "맞는 부분과 조율할 부분이 함께 있는 관계" : "거리와 기준을 맞춰야 하는 관계"}
+              </h3>
               <p className="compat-summary">{result.summary}</p>
             </div>
             <div className="compat-score">
@@ -158,7 +188,7 @@ export default function CompatibilityPage() {
 
           {result.highlights && (
             <section className="card">
-              <h3 className="card-title">관계 핵심 카드</h3>
+              <h3 className="card-title">{result.relationLabel ?? "관계"} 핵심 카드</h3>
               <div className="compat-highlight-grid">
                 {result.highlights.map((h) => (
                   <article className="compat-highlight" key={h.title}>
@@ -173,7 +203,7 @@ export default function CompatibilityPage() {
 
           {result.partnerPalace && (
             <section className="card compat-feature-card">
-              <span className="compat-score-card__eyebrow">연애·생활 자리</span>
+              <span className="compat-score-card__eyebrow">{result.relationLabel ?? "관계"} 자리</span>
               <h3 className="card-title">{result.partnerPalace.title}</h3>
               <p className="reading-body">{result.partnerPalace.body}</p>
             </section>
@@ -181,7 +211,7 @@ export default function CompatibilityPage() {
 
           {result.roleChemistry && (
             <section className="card">
-              <h3 className="card-title">서로에게 어떤 사람으로 느껴지는지</h3>
+              <h3 className="card-title">서로에게 어떤 존재로 느껴지는지</h3>
               <div className="compat-advice-grid">
                 {result.roleChemistry.map((role) => (
                   <article className="compat-highlight" key={role.title}>
@@ -269,6 +299,17 @@ export default function CompatibilityPage() {
                 </section>
               )}
             </div>
+          )}
+
+          {result.improvementTips && (
+            <section className="card compat-feature-card">
+              <h3 className="card-title">개선할 수 있는 방향</h3>
+              <ul className="compat-list">
+                {result.improvementTips.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
           )}
 
           {result.expertEvidence && (

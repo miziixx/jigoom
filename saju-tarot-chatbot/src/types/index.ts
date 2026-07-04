@@ -226,8 +226,22 @@ export interface LuckCycles {
   yearlyFlow?: YearFlowInfo[];
 }
 
+export type CompatibilityRelationType =
+  | "romantic"
+  | "parentChild"
+  | "siblings"
+  | "family"
+  | "bossEmployee"
+  | "coworker"
+  | "friend"
+  | "rival";
+
 /** 두 사람 사주 궁합 계산 결과 */
 export interface CompatibilityResult {
+  /** 선택한 관계 유형 */
+  relationType?: CompatibilityRelationType;
+  /** 관계 유형 라벨 */
+  relationLabel?: string;
   /** 종합 점수 0~100 */
   score: number;
   /** 일간 관계 설명 (합/충/생/극) */
@@ -246,6 +260,8 @@ export interface CompatibilityResult {
   cautionPoints?: string[];
   /** 현실적인 관계 운영법 */
   actionPlan?: string[];
+  /** 선택한 관계 유형에 맞춘 개선 방향 */
+  improvementTips?: string[];
   /** 일지(배우자궁/관계 자리) 중심 해석 */
   partnerPalace?: {
     title: string;

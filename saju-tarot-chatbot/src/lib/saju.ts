@@ -2,6 +2,7 @@ import { Lunar, Solar } from "lunar-javascript";
 import type {
   BirthInfo,
   CompatibilityResult,
+  CompatibilityRelationType,
   FiveElementBalance,
   GyeokgukInfo,
   LuckCycles,
@@ -1058,6 +1059,110 @@ const TEN_GOD_PLAIN: Record<string, string> = {
   정인: "받아주고 이해해주는 느낌을 주는 사람",
 };
 
+const RELATION_CONTEXT: Record<
+  CompatibilityRelationType,
+  {
+    label: string;
+    scoreTitle: [string, string, string];
+    coreTitle: string;
+    palaceLabel: string;
+    roleTitle: string;
+    purposeLabels: [string, string, string, string];
+    caution: string;
+    action: string;
+    improvement: string[];
+  }
+> = {
+  romantic: {
+    label: "연인·썸·배우자",
+    scoreTitle: ["끌림과 보완이 강한 관계", "맞는 부분과 조율할 부분이 함께 있는 관계", "속도와 기준을 맞춰야 하는 관계"],
+    coreTitle: "관계 핵심 카드",
+    palaceLabel: "연애·생활 자리",
+    roleTitle: "서로에게 어떤 사람으로 느껴지는지",
+    purposeLabels: ["연애", "결혼·동거", "일·사업", "친구·동료"],
+    caution: "잘 맞는다고 느낄수록 상대가 알아서 이해해줄 거라 넘기지 않는 것이 좋습니다.",
+    action: "둘 다 편한 방식만 고집하기보다 연락 빈도, 돈 쓰는 방식, 쉬는 방식의 최소 기준을 정해두세요.",
+    improvement: ["연락 빈도와 서운함을 말하는 방식을 정해두기", "돈·시간·가족 문제는 감정이 커지기 전에 기준 합의하기", "좋았던 점을 당연하게 넘기지 않고 말로 확인하기"],
+  },
+  parentChild: {
+    label: "부모와 자식",
+    scoreTitle: ["돌봄과 독립을 함께 만들 수 있는 관계", "기대와 자율성 조율이 필요한 관계", "통제와 반발을 줄이는 기준이 필요한 관계"],
+    coreTitle: "양육·독립 핵심 카드",
+    palaceLabel: "생활·정서 자리",
+    roleTitle: "서로에게 어떤 가족으로 느껴지는지",
+    purposeLabels: ["정서적 안정", "생활 규칙", "진로·학업 대화", "독립성"],
+    caution: "좋은 뜻으로 한 말도 통제나 평가처럼 들릴 수 있으니, 지시보다 선택지를 주는 방식이 좋습니다.",
+    action: "기대하는 행동을 추상적으로 말하지 말고, 시간·범위·선택권을 함께 정해 주세요.",
+    improvement: ["혼내기 전에 원하는 행동을 한 문장으로 말하기", "진로·학업·돈 문제는 선택지 2~3개로 대화하기", "각자의 방·시간·휴식 경계를 존중하기"],
+  },
+  siblings: {
+    label: "형제·자매·남매",
+    scoreTitle: ["비슷함을 협력으로 쓰기 좋은 관계", "비교와 역할 고정만 조심하면 좋은 관계", "경쟁심과 거리 조절이 필요한 관계"],
+    coreTitle: "형제 관계 핵심 카드",
+    palaceLabel: "가족 내 생활 자리",
+    roleTitle: "서로에게 어떤 형제자매로 느껴지는지",
+    purposeLabels: ["정서적 친밀감", "현실 협력", "가족 문제 대응", "거리 조절"],
+    caution: "가족 안에서 맡아온 역할이 굳어지면 작은 말도 비교나 서운함으로 들리기 쉽습니다.",
+    action: "부탁할 일과 거절할 일을 분리하고, 부모님·돈·돌봄 문제는 역할을 문서처럼 나누는 편이 좋습니다.",
+    improvement: ["비교하는 말 줄이기", "가족 행사·돌봄·돈 문제는 역할표로 나누기", "친해도 사생활 경계는 따로 인정하기"],
+  },
+  family: {
+    label: "가족 관계",
+    scoreTitle: ["서로를 받쳐줄 수 있는 가족 흐름", "정과 부담이 함께 있는 가족 흐름", "역할과 거리 기준이 필요한 가족 흐름"],
+    coreTitle: "가족 관계 핵심 카드",
+    palaceLabel: "가정 내 생활 자리",
+    roleTitle: "서로에게 어떤 가족으로 느껴지는지",
+    purposeLabels: ["정서적 지지", "생활 협력", "갈등 회복", "거리 조절"],
+    caution: "가족이라는 이유로 모든 감정과 책임을 당연하게 넘기면 피로가 쌓일 수 있습니다.",
+    action: "도와줄 수 있는 범위와 어려운 범위를 미리 말해두면 관계가 더 오래 안정됩니다.",
+    improvement: ["책임 범위를 말로 정하기", "감정이 큰 날에는 결론보다 휴식 먼저 두기", "고마움과 불편함을 따로 표현하기"],
+  },
+  bossEmployee: {
+    label: "사장·직원",
+    scoreTitle: ["역할을 나누면 성과가 나는 업무 관계", "기준과 보고 방식 조율이 필요한 업무 관계", "권한·책임선을 분명히 해야 하는 업무 관계"],
+    coreTitle: "업무 관계 핵심 카드",
+    palaceLabel: "업무·책임 자리",
+    roleTitle: "서로에게 어떤 업무 파트너로 느껴지는지",
+    purposeLabels: ["지시·보고", "성과 창출", "책임 분담", "갈등 관리"],
+    caution: "말하지 않아도 알겠지라는 기대가 커지면 지시와 결과물의 기준이 어긋나기 쉽습니다.",
+    action: "업무 요청은 마감, 결과물 형태, 우선순위를 함께 적어두는 편이 안정적입니다.",
+    improvement: ["업무 지시는 결과물 예시까지 남기기", "보고 주기와 결정권자를 정하기", "피드백은 성격이 아니라 행동 기준으로 말하기"],
+  },
+  coworker: {
+    label: "동료·동업자",
+    scoreTitle: ["역할 분담이 잘 맞는 협업 관계", "방식 차이를 조율하면 좋은 협업 관계", "책임과 이익 기준을 먼저 정해야 하는 관계"],
+    coreTitle: "협업 핵심 카드",
+    palaceLabel: "협업·역할 자리",
+    roleTitle: "서로에게 어떤 협업자로 느껴지는지",
+    purposeLabels: ["협업 속도", "역할 분담", "돈·성과 기준", "갈등 복구"],
+    caution: "친하거나 잘 맞아도 돈, 일정, 책임 범위가 흐려지면 관계가 쉽게 피곤해질 수 있습니다.",
+    action: "시작 전에 역할, 마감, 비용, 최종 결정권을 짧게라도 기록해두세요.",
+    improvement: ["일정과 돈 기준을 먼저 적기", "각자 잘하는 일을 맡고 검수 기준을 공유하기", "불만은 회의록처럼 사실 중심으로 남기기"],
+  },
+  friend: {
+    label: "친구",
+    scoreTitle: ["편하게 오래 갈 수 있는 친구 관계", "좋지만 거리 조절이 필요한 친구 관계", "기대치 차이를 줄여야 하는 친구 관계"],
+    coreTitle: "친구 관계 핵심 카드",
+    palaceLabel: "친밀감·거리 자리",
+    roleTitle: "서로에게 어떤 친구로 느껴지는지",
+    purposeLabels: ["정서적 편안함", "놀이·취미", "현실 도움", "거리 조절"],
+    caution: "친하다는 이유로 연락, 돈, 부탁의 기준이 흐려지면 서운함이 쌓일 수 있습니다.",
+    action: "부탁과 거절을 가볍게 말할 수 있는 관계인지 확인하고, 돈 문제는 작아도 분명히 하는 편이 좋습니다.",
+    improvement: ["연락 텀을 개인 성향으로 인정하기", "돈 빌리기·부탁은 기준을 분명히 하기", "서운함은 쌓기보다 작은 말로 빨리 풀기"],
+  },
+  rival: {
+    label: "앙숙·불편한 사람",
+    scoreTitle: ["자극을 성장으로 바꿀 수 있는 관계", "거리와 규칙이 필요한 불편한 관계", "최소 충돌 운영이 중요한 관계"],
+    coreTitle: "불편한 관계 핵심 카드",
+    palaceLabel: "충돌·거리 자리",
+    roleTitle: "서로에게 어떤 자극으로 느껴지는지",
+    purposeLabels: ["충돌 가능성", "거리 조절", "업무상 공존", "감정 소모 관리"],
+    caution: "상대를 바꾸려는 방향으로 가면 감정 소모가 커질 수 있으니, 접점과 규칙을 줄이는 편이 현실적입니다.",
+    action: "필요한 대화는 짧게, 기록이 남는 방식으로, 결정 기준을 사실 중심으로 두세요.",
+    improvement: ["감정 대화보다 사실·기한·역할만 남기기", "불필요한 사적 접점 줄이기", "반응하기 전 하루 뒤 다시 판단하기"],
+  },
+};
+
 function strongestElement(balance: FiveElementBalance): keyof FiveElementBalance {
   return (Object.keys(balance) as Array<keyof FiveElementBalance>).sort((a, b) => balance[b] - balance[a])[0];
 }
@@ -1134,26 +1239,33 @@ function roleChemistry(chartA: SajuChart, chartB: SajuChart): CompatibilityResul
   ];
 }
 
-function purposeFits(score: number, branchScore: number, elementScore: number, palaceScore: number): CompatibilityResult["purposeFits"] {
+function purposeFits(
+  score: number,
+  branchScore: number,
+  elementScore: number,
+  palaceScore: number,
+  context: (typeof RELATION_CONTEXT)[CompatibilityRelationType],
+): CompatibilityResult["purposeFits"] {
   const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+  const [a, b, c, d] = context.purposeLabels;
   return [
     {
-      label: "연애",
+      label: a,
       score: clamp(score + palaceScore * 1.4),
       comment: palaceScore >= 0 ? "감정이 붙는 속도와 일상 친밀감을 만들기 좋습니다." : "끌림은 있어도 감정 반응 속도를 맞추는 연습이 필요합니다.",
     },
     {
-      label: "결혼·동거",
+      label: b,
       score: clamp(55 + elementScore * 1.6 + branchScore * 2 + palaceScore),
       comment: "생활 습관, 돈 쓰는 방식, 가족과의 거리 기준을 먼저 맞출수록 안정됩니다.",
     },
     {
-      label: "일·사업",
+      label: c,
       score: clamp(50 + elementScore * 1.8 + Math.max(0, branchScore) * 2),
       comment: "서로의 강점을 역할로 나누면 좋고, 책임 범위는 문서나 일정으로 분명히 하는 편이 좋습니다.",
     },
     {
-      label: "친구·동료",
+      label: d,
       score: clamp(55 + branchScore * 2.2 + Math.min(12, elementScore)),
       comment: "같이 움직일 때 편한 부분과 피로한 부분을 구분하면 오래 가기 쉽습니다.",
     },
@@ -1203,7 +1315,12 @@ function compatibilityTiming(birthA: BirthInfo, birthB: BirthInfo, chartA: SajuC
  * 두 사람의 사주 궁합을 계산한다 (결정론적, 참고용).
  * 일간 관계 + 지지 합충 + 오행 보완을 종합해 0~100 점수로 환산한다.
  */
-export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): CompatibilityResult {
+export function computeCompatibility(
+  birthA: BirthInfo,
+  birthB: BirthInfo,
+  relationType: CompatibilityRelationType = "romantic",
+): CompatibilityResult {
+  const context = RELATION_CONTEXT[relationType] ?? RELATION_CONTEXT.romantic;
   const chartA = computeSajuChart(birthA);
   const chartB = computeSajuChart(birthB);
 
@@ -1235,10 +1352,10 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
 
   const summary =
     score >= 75
-      ? "서로 잘 맞고 보완이 되는 좋은 궁합이에요. 다른 점도 성장으로 쓰기 좋아요."
+      ? `${context.label}로 볼 때 서로 잘 맞고 보완이 되는 흐름입니다. 다른 점도 성장으로 쓰기 좋습니다.`
       : score >= 55
-        ? "무난하게 잘 어울리는 궁합이에요. 몇 가지만 서로 배려하면 편안해요."
-        : "결이 다른 부분이 있는 궁합이에요. 서로의 다름을 이해하려는 노력이 관계를 키워요.";
+        ? `${context.label}로 볼 때 무난하게 맞는 부분이 있습니다. 몇 가지 기준만 조율하면 관계가 더 편안해집니다.`
+        : `${context.label}로 볼 때 결이 다른 부분이 있습니다. 서로의 다름을 이해하고 접점의 기준을 정하는 노력이 필요합니다.`;
 
   const cautionPoints = [
     ...(branches.bad.length > 0
@@ -1246,13 +1363,13 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
       : ["큰 충돌 신호는 약한 편이지만, 익숙해질수록 표현이 줄어들 수 있습니다."]),
     score < 55
       ? "속도와 기대치가 다를 수 있으니 약속, 연락, 돈 문제는 처음부터 기준을 맞추는 편이 좋습니다."
-      : "잘 맞는다고 느낄수록 상대가 알아서 이해해줄 거라 넘기지 않는 것이 좋습니다.",
+      : context.caution,
   ];
 
   const actionPlan = [
     "서운한 점은 바로 판정하지 말고, 구체적인 상황과 원하는 행동을 한 문장으로 말해보세요.",
     "중요한 결정은 감정이 올라온 날보다 하루 뒤에 다시 확인하는 편이 안정적입니다.",
-    "둘 다 편한 방식만 고집하기보다 연락 빈도, 돈 쓰는 방식, 쉬는 방식의 최소 기준을 정해두세요.",
+    context.action,
   ];
 
   const highlights = [
@@ -1272,9 +1389,10 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
       action: "서로가 편해지는 생활 기준을 초반에 맞추고, 감정이 올라올 때는 잠시 속도를 늦추세요.",
     },
   ];
-  const purposes = purposeFits(score, branchScore, elements.score, palace.score);
+  const purposes = purposeFits(score, branchScore, elements.score, palace.score, context);
   const timing = compatibilityTiming(birthA, birthB, chartA, chartB);
   const expertEvidence = [
+    `관계 유형: ${context.label}`,
     `일간 관계: ${chartA.dayMasterGan}·${chartB.dayMasterGan} / ${dm.text}`,
     `일지 관계: ${chartA.day.zhi}·${chartB.day.zhi} / ${palace.evidence}`,
     `상대 십성: ${roles?.map((r) => r.evidence).join(" / ")}`,
@@ -1284,6 +1402,8 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
   ];
 
   return {
+    relationType,
+    relationLabel: context.label,
     score,
     dayMasterRelation: dm.text,
     branchRelations: [...branches.good, ...branches.bad],
@@ -1293,6 +1413,7 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
     highlights,
     cautionPoints,
     actionPlan,
+    improvementTips: context.improvement,
     partnerPalace: { title: palace.title, body: palace.body, evidence: palace.evidence },
     roleChemistry: roles,
     purposeFits: purposes,
