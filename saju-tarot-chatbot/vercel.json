@@ -11,7 +11,7 @@
       "maxDuration": 60
     },
     "api/naming.ts": {
-      "maxDuration": 60
+      "maxDuration": 120
     }
   }
 }
