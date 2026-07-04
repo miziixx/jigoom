@@ -1,4 +1,5 @@
 import Gauge from "./Gauge";
+import { buildLifestyleGuide } from "../lib/lifestyleGuide";
 import { computeSajuChart } from "../lib/saju";
 import type { BirthInfo, FiveElementBalance, LuckCycles, SajuChart, SajuPillar, StrengthAssessment, YearFlowInfo } from "../types";
 
@@ -184,6 +185,58 @@ function YinYangBar({ yang, yin }: { yang: number; yin: number }) {
   );
 }
 
+function LifestyleGuidePanel({ sajuChart }: { sajuChart: SajuChart }) {
+  const guide = buildLifestyleGuide(sajuChart);
+  const items = [
+    { label: "고유 색", value: guide.colors.join(" · ") },
+    { label: "고유 숫자", value: guide.numbers.join(" · ") },
+    { label: "맞는 방향", value: guide.directions.join(" · ") },
+    { label: "잘 맞는 장소", value: guide.places.join(" · ") },
+    { label: "자연 키워드", value: guide.nature.join(" · ") },
+    { label: "운동", value: guide.movement.join(" · ") },
+    { label: "건강 체크", value: guide.healthFocus.join(" · ") },
+    { label: "일하는 방식", value: guide.workStyle.join(" · ") },
+    { label: "회복 루틴", value: guide.recovery.join(" · ") },
+  ];
+
+  return (
+    <section className="lifestyle-guide">
+      <div className="lifestyle-guide__head">
+        <div>
+          <h4 className="saju-facts__subhead">내 생활 처방</h4>
+          <p>{guide.basisReason}</p>
+        </div>
+        <span className={`lifestyle-guide__badge lifestyle-guide__badge--${guide.basisElement}`}>{guide.basisLabel}</span>
+      </div>
+      <div className="lifestyle-guide__grid">
+        {items.map((item) => (
+          <div className="lifestyle-guide__item" key={item.label}>
+            <span>{item.label}</span>
+            <b>{item.value}</b>
+          </div>
+        ))}
+      </div>
+      <p className="lifestyle-guide__caution">{guide.caution}</p>
+      <div className="lifestyle-guide__mission">
+        <b>재밌게 바로 해볼 것</b>
+        <ul>
+          {guide.playfulActions.map((action) => (
+            <li key={action}>{action}</li>
+          ))}
+        </ul>
+      </div>
+      <details className="lifestyle-guide__evidence">
+        <summary>추천 기준 보기</summary>
+        <ul>
+          {guide.evidence.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </details>
+    </section>
+  );
+}
+
 function DaYunTimeline({ luckCycles }: { luckCycles: LuckCycles }) {
   return (
     <div className="dayun-timeline">
@@ -333,6 +386,8 @@ export default function SajuFactsPanel({
           <h4 className="saju-facts__subhead">오행 분포</h4>
           <ElementRadar fiveElements={sajuChart.fiveElements} />
           <ElementBars fiveElements={sajuChart.fiveElements} />
+
+          <LifestyleGuidePanel sajuChart={sajuChart} />
 
           {sajuChart.yinYang && (
             <>

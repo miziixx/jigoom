@@ -4,6 +4,7 @@ import InstantSummary from "./InstantSummary";
 import PatternMap from "./PatternMap";
 import ActionCalendar from "./ActionCalendar";
 import EvidenceConfidence from "./EvidenceConfidence";
+import { buildLifestyleGuide } from "../lib/lifestyleGuide";
 import { describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism";
 import type { ReadingSession } from "../types";
 
@@ -258,6 +259,48 @@ function CategorySummaryCard({ item }: { item: CategorySummary }) {
   );
 }
 
+function LifestyleClosingSummary({ session }: { session: ReadingSession }) {
+  if (!session.sajuChart) return null;
+  const guide = buildLifestyleGuide(session.sajuChart);
+  return (
+    <section className="card lifestyle-closing">
+      <span className="lifestyle-closing__tag">오늘 써먹는 내 기운</span>
+      <h3 className="card-title">마지막 생활 정리</h3>
+      <div className="lifestyle-closing__hero">
+        <span className={`lifestyle-guide__badge lifestyle-guide__badge--${guide.basisElement}`}>{guide.basisLabel}</span>
+        <p>{guide.basisReason}</p>
+      </div>
+      <div className="lifestyle-closing__chips">
+        <span>색 {guide.colors.slice(0, 2).join(" · ")}</span>
+        <span>숫자 {guide.numbers.join(" · ")}</span>
+        <span>방향 {guide.directions[0]}</span>
+        <span>장소 {guide.places.slice(0, 2).join(" · ")}</span>
+      </div>
+      <div className="lifestyle-closing__grid">
+        <div>
+          <b>건강 체크</b>
+          <p>{guide.healthFocus.join(" · ")}</p>
+        </div>
+        <div>
+          <b>운동</b>
+          <p>{guide.movement.slice(0, 3).join(" · ")}</p>
+        </div>
+      </div>
+      <div className="lifestyle-closing__actions">
+        <b>바로 실행 3개</b>
+        <ul>
+          {guide.todayActions.map((action) => (
+            <li key={action}>{action}</li>
+          ))}
+        </ul>
+      </div>
+      <p className="lifestyle-closing__note">
+        절대적인 행운 예언이 아니라, 계산된 보완 흐름을 생활에서 써먹기 쉽게 바꾼 가이드입니다.
+      </p>
+    </section>
+  );
+}
+
 export default function ReadingResult({ session, loading = false }: { session: ReadingSession; loading?: boolean }) {
   const reply = session.messages.find((m) => m.role === "assistant")?.content ?? "";
   const sections = parseSections(reply);
@@ -366,6 +409,8 @@ export default function ReadingResult({ session, loading = false }: { session: R
           </p>
         </div>
       )}
+
+      {session.sajuChart && <LifestyleClosingSummary session={session} />}
 
     </div>
   );

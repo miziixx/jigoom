@@ -7,6 +7,7 @@ import type {
   ReadingType,
   SajuChart,
 } from "../types/index.js";
+import { buildLifestyleGuide } from "../lib/lifestyleGuide.js";
 import { describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 
 /**
@@ -61,6 +62,10 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 반드시 성격·기질, 강점·약점, 스트레스 반응, 인간관계, 일하는 방식, 직업운, 재물운,
 연애·관계, 건강·컨디션, 큰 흐름, 올해 흐름, 현실 조언, 오늘 바로 할 행동을 모두 다룬다.
 짧은 모드에서는 분량만 줄이고 항목 자체를 삭제하지 마라.
+색·숫자·방향·장소·운동·회복 루틴 같은 생활 처방은 [근거 데이터]의 개인 생활 처방을 바탕으로만 쓴다.
+이 항목은 미신적 단정이나 절대 행운처럼 말하지 말고, 사용자의 기질을 생활 선택지로 조정하는 방법으로 설명한다.
+예: "물의 흐름이 부족하면 바다 사진을 배경화면으로 쓰고, 잠들기 전 물 한 컵과 걱정 메모 3줄로 생각을 내려놓으세요"처럼
+재밌지만 실제로 따라 하기 쉬운 예를 든다.
 
 [어려운 용어 번역 규칙]
 - 용신 → 보완하면 좋은 기운
@@ -108,7 +113,12 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 구체적인 조정 방법을 '- ' 목록으로 3~5개 쓴다. "좋다"로 끝내지 말고 어떻게 쓰면 좋은지 설명한다.
 
 [오늘 바로 할 수 있는 행동]
-오늘/이번 주/이번 달에 할 수 있는 행동을 '- ' 목록으로 1~3개 쓴다.
+오늘/이번 주/이번 달에 할 수 있는 행동을 '- ' 목록으로 정확히 3개 쓴다.
+뭉뚱그린 말 금지. "운동하세요" 대신 "저녁 8시 전에 15분 걷기", "배경화면을 바다 사진으로 바꾸기"처럼 바로 실행 가능한 예로 쓴다.
+
+건강과 컨디션 섹션에서는 질병명을 단정하지 말고, [근거 데이터]의 건강 체크 포인트를 활용해 머리·눈·간 피로감·소화·허리·하체·호흡 등
+생활 관리 관점의 신체 부위/컨디션 키워드를 3~5개로 짚는다. "간이 나쁘다" 같은 진단 표현은 금지하고,
+"간 피로감처럼 느껴지는 무기력·눈 피로·수면 리듬을 함께 체크하세요"처럼 쓴다.
 
 [전문가 근거 보기]
 이 섹션 해석에 실제로 사용한 전문 근거만 '- ' 목록으로 보관한다. 오행, 십성, 대운, 세운, 월운,
@@ -226,6 +236,10 @@ function formatSajuChart(chart: SajuChart): string {
       `용신 후보 — 용신: ${yong}${hee}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""} (${chart.yongshin.note})`,
     );
   }
+  const lifestyle = buildLifestyleGuide(chart);
+  lines.push(
+    `개인 생활 처방 — 기준 오행: ${lifestyle.basisLabel} (${lifestyle.basisReason}) / 색: ${lifestyle.colors.join("·")} / 숫자: ${lifestyle.numbers.join("·")} / 방향: ${lifestyle.directions.join("·")} / 장소: ${lifestyle.places.join("·")} / 자연: ${lifestyle.nature.join("·")} / 운동: ${lifestyle.movement.join("·")} / 건강 체크 포인트: ${lifestyle.healthFocus.join("·")} / 일하는 방식: ${lifestyle.workStyle.join("·")} / 회복 루틴: ${lifestyle.recovery.join("·")} / 재미 미션: ${lifestyle.playfulActions.join("·")} / 바로 실행 3개: ${lifestyle.todayActions.join("·")} / 주의: ${lifestyle.caution}`,
+  );
   if (chart.twelveStages) lines.push(`12운성 (일간 기준) — ${chart.twelveStages.join(", ")}`);
   if (chart.gongmang) lines.push(`공망 — ${chart.gongmang}`);
   if (chart.sinsal && chart.sinsal.length > 0) {
