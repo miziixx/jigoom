@@ -142,6 +142,15 @@ function birthToLunar(birthInfo: BirthInfo): { lunar: Lunar; correction: TimeCor
   };
 }
 
+function calculationBasisOf(birthInfo: BirthInfo) {
+  const minute = birthInfo.minute ?? 0;
+  return {
+    lateNightZi: birthInfo.hour === 23 ? birthInfo.lateNightZi ?? "late" : undefined,
+    isLateNightZiHour: birthInfo.hour === 23,
+    inputTimeLabel: birthInfo.hour === null ? null : `${pad2(birthInfo.hour)}:${pad2(minute)}`,
+  };
+}
+
 /**
  * 원국 사주(EightChar)를 만든다. 23~24시 출생 시 자시 처리 방식을 반영한다.
  * - 기본(야자시, lateNightZi !== "early"): 당일 일주 유지 (lunar-javascript 기본 sect 2)
@@ -834,6 +843,7 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
     iljuTrait,
     gyeokguk,
     timeCorrection: correction ?? undefined,
+    calculationBasis: calculationBasisOf(birthInfo),
   };
 }
 

@@ -1,5 +1,6 @@
 import Gauge from "./Gauge";
-import type { FiveElementBalance, LuckCycles, SajuChart, SajuPillar, StrengthAssessment, YearFlowInfo } from "../types";
+import { computeSajuChart } from "../lib/saju";
+import type { BirthInfo, FiveElementBalance, LuckCycles, SajuChart, SajuPillar, StrengthAssessment, YearFlowInfo } from "../types";
 
 const ELEMENT_LABEL: Record<keyof FiveElementBalance, string> = {
   wood: "목",
@@ -221,10 +222,32 @@ function monthTone(count: number): { label: string; detail: string } {
   return { label: "잔잔함", detail: "큰 작용이 적어 기본 리듬을 유지하기 좋은 달" };
 }
 
-export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: SajuChart; luckCycles?: LuckCycles }) {
+function pillarLine(chart: SajuChart) {
+  return `${chart.year.ganZhi}/${chart.month.ganZhi}/${chart.day.ganZhi}/${chart.hour?.ganZhi ?? "시주 모름"}`;
+}
+
+function lateNightComparison(birthInfo?: BirthInfo) {
+  if (!birthInfo || birthInfo.hour !== 23) return null;
+  return {
+    late: computeSajuChart({ ...birthInfo, lateNightZi: "late" }),
+    early: computeSajuChart({ ...birthInfo, lateNightZi: "early" }),
+  };
+}
+
+export default function SajuFactsPanel({
+  sajuChart,
+  luckCycles,
+  birthInfo,
+}: {
+  sajuChart?: SajuChart;
+  luckCycles?: LuckCycles;
+  birthInfo?: BirthInfo;
+}) {
   if (!sajuChart && !luckCycles) return null;
 
   const ratio = sajuChart?.strength ? Math.round((sajuChart.strength.supportScore / sajuChart.strength.totalScore) * 100) : null;
+  const ziComparison = lateNightComparison(birthInfo);
+  const ziBasis = sajuChart?.calculationBasis?.lateNightZi;
 
   return (
     <div className="card saju-facts">
@@ -238,6 +261,46 @@ export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: 
             <PillarBox label="시주" pillar={sajuChart.hour} />
           </div>
           <p className="saju-facts__note">일간(나를 뜻하는 글자) {sajuChart.dayMasterGan}</p>
+
+          {(ziBasis || sajuChart.timeCorrection) && (
+            <div className="calculation-basis">
+              {ziBasis && (
+                <p>
+                  <b>23:00 전후 계산 기준</b> — 현재 결과는{" "}
+                  {ziBasis === "late" ? "당일 기준(입력한 날짜의 일주 유지)" : "다음날 기준(23시대부터 다음날 일주 적용)"}입니다.
+                </p>
+              )}
+              {sajuChart.timeCorrection && (
+                <p>
+                  <b>시각 보정</b> —{" "}
+                  {sajuChart.timeCorrection.applied.length > 0 ? sajuChart.timeCorrection.applied.join(", ") : "시주 경계 확인"} ·
+                  보정 후 {sajuChart.timeCorrection.correctedDateTime}
+                </p>
+              )}
+              {sajuChart.timeCorrection?.boundaryWarning && <p>{sajuChart.timeCorrection.boundaryWarning}</p>}
+            </div>
+          )}
+
+          {ziComparison && (
+            <div className="zi-comparison">
+              <h4 className="saju-facts__subhead">23시대 기준 비교</h4>
+              <p className="saju-facts__hint">
+                23:00~23:59 출생은 만세력마다 기준이 다를 수 있어 두 방식을 함께 확인합니다.
+              </p>
+              <div className="zi-comparison__grid">
+                <div className={ziBasis !== "early" ? "zi-comparison__item zi-comparison__item--active" : "zi-comparison__item"}>
+                  <span>당일 기준</span>
+                  <b>{pillarLine(ziComparison.late)}</b>
+                  <small>입력한 날짜의 일주를 유지합니다.</small>
+                </div>
+                <div className={ziBasis === "early" ? "zi-comparison__item zi-comparison__item--active" : "zi-comparison__item"}>
+                  <span>다음날 기준</span>
+                  <b>{pillarLine(ziComparison.early)}</b>
+                  <small>23시대부터 다음날 일주로 봅니다.</small>
+                </div>
+              </div>
+            </div>
+          )}
 
           {sajuChart.iljuTrait && (
             <p className="ilju-trait">
@@ -306,6 +369,14 @@ export default function SajuFactsPanel({ sajuChart, luckCycles }: { sajuChart?: 
               )}
               {sajuChart.gongmang && <p>공망 — {sajuChart.gongmang}</p>}
               {sajuChart.seasonNote && <p>조후(계절) — {sajuChart.seasonNote}</p>}
+              {sajuChart.calculationBasis?.lateNightZi && (
+                <p>
+                  23시대 기준 —{" "}
+                  {sajuChart.calculationBasis.lateNightZi === "late"
+                    ? "당일 기준(입력 날짜 일주 유지)"
+                    : "다음날 기준(23시대부터 다음날 일주)"}
+                </p>
+              )}
               {sajuChart.yongshin && (
                 <p>
                   용신 후보 — 용신: {(sajuChart.yongshin.yongshin ?? sajuChart.yongshin.supportive).join("·") || "없음"}

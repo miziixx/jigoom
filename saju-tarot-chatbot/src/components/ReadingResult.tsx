@@ -285,7 +285,9 @@ export default function ReadingResult({ session, loading = false }: { session: R
         </div>
       )}
 
-      {(session.sajuChart || session.luckCycles) && <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} />}
+      {(session.sajuChart || session.luckCycles) && (
+        <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} birthInfo={session.birthInfo} />
+      )}
 
       <EvidenceConfidence session={session} />
 

@@ -132,13 +132,16 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
       </div>
 
       {hour === "23" && (
-        <div className="field-row">
-          <span className="field-label">자시 처리</span>
+        <div className="field-row field-row--column">
+          <span className="field-label">23:00 전후 기준</span>
           <select value={lateNightZi} onChange={(e) => setLateNightZi(e.target.value as LateNightZiMode)}>
-            <option value="late">야자시 (당일 일주 유지)</option>
-            <option value="early">조자시 (다음 날 일주로)</option>
+            <option value="late">당일 기준 — 23:00~23:59도 입력한 날짜로 봄</option>
+            <option value="early">다음날 기준 — 23:00~23:59부터 다음날로 봄</option>
           </select>
-          <span className="field-hint">23~24시 출생은 관법에 따라 일주가 달라질 수 있어요. 보통 야자시(기본).</span>
+          <span className="field-hint field-hint--accent">
+            23:00~23:59 출생은 만세력 기준에 따라 일주가 달라질 수 있어요. 기본값은 당일 기준이며,
+            결과에서 다음날 기준과의 차이를 함께 보여드립니다.
+          </span>
         </div>
       )}
 
@@ -154,8 +157,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
         </select>
         <span className={`field-hint${birthPlace === "none" ? " field-hint--accent" : ""}`}>
           {birthPlace === "none"
-            ? "출생지를 고르면 진태양시(경도) 보정으로 시주 정확도가 올라갑니다. 서머타임은 자동 반영돼요."
-            : "진태양시(경도) 보정에 사용합니다. 서머타임은 자동 반영."}
+            ? "출생지를 고르면 표준시·경도 차이를 반영해 시주 경계 판단이 더 정확해집니다. 1987~1988년 한국 서머타임은 자동 반영돼요."
+            : "표준시·경도 차이를 반영합니다. 1987~1988년 한국 서머타임은 자동 반영돼요."}
         </span>
       </div>
 

@@ -224,6 +224,15 @@ function formatSajuChart(chart: SajuChart): string {
   }
   if (chart.iljuTrait) lines.push(`일주(${chart.day.ganZhi}) 성향 참고 — ${chart.iljuTrait}`);
   if (chart.seasonNote) lines.push(`조후(계절) — ${chart.seasonNote}`);
+  if (chart.calculationBasis?.lateNightZi) {
+    lines.push(
+      `23시대 출생 기준 — ${
+        chart.calculationBasis.lateNightZi === "late"
+          ? "당일 기준(23:00~23:59도 입력한 날짜의 일주 유지)"
+          : "다음날 기준(23:00~23:59부터 다음날 일주 적용)"
+      }. 이 기준 차이로 일부 만세력과 일주가 다를 수 있으므로, 단정하지 말고 현재 기준을 밝혀라.`,
+    );
+  }
   if (chart.timeCorrection) {
     if (chart.timeCorrection.applied.length > 0)
       lines.push(

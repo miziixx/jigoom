@@ -73,6 +73,15 @@ export interface TimeCorrection {
   boundaryWarning: string | null;
 }
 
+export interface CalculationBasis {
+  /** 23시대 출생의 일주 처리 기준 */
+  lateNightZi?: LateNightZiMode;
+  /** 입력한 시간이 23:00~23:59에 해당하는지 */
+  isLateNightZiHour: boolean;
+  /** 사용자 입력 시각 라벨 */
+  inputTimeLabel: string | null;
+}
+
 export interface FiveElementBalance {
   wood: number;
   fire: number;
@@ -162,6 +171,8 @@ export interface SajuChart {
   gyeokguk?: GyeokgukInfo;
   /** 진태양시/서머타임 보정 내역 */
   timeCorrection?: TimeCorrection;
+  /** 사용자에게 안내할 계산 기준 */
+  calculationBasis?: CalculationBasis;
 }
 
 export interface DaYunInfo {

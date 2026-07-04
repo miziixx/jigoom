@@ -300,6 +300,72 @@ label {
   color: var(--text-dim);
 }
 
+.calculation-basis {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(201, 164, 255, 0.28);
+  border-radius: 8px;
+  background: rgba(201, 164, 255, 0.08);
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+.calculation-basis p {
+  margin: 0;
+}
+
+.calculation-basis p + p {
+  margin-top: 6px;
+}
+
+.calculation-basis b {
+  color: var(--text);
+}
+
+.zi-comparison {
+  margin-top: 12px;
+}
+
+.zi-comparison__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.zi-comparison__item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.zi-comparison__item--active {
+  border-color: var(--accent);
+  background: rgba(201, 164, 255, 0.13);
+}
+
+.zi-comparison__item span,
+.zi-comparison__item small {
+  color: var(--text-dim);
+  font-size: 0.76rem;
+}
+
+.zi-comparison__item b {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+@media (max-width: 520px) {
+  .zi-comparison__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pillar-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
