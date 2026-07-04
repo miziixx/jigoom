@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { READING_SYSTEM_PROMPT, buildCompareUserMessage, buildReadingUserMessage } from "./systemPrompt.js";
 import { computeSajuChart, computeLuckCycles } from "../lib/saju.js";
+import { drawSpread } from "../lib/tarot.js";
 import type { BirthInfo } from "../types/index.js";
 
 describe("리딩 시스템 프롬프트 규칙", () => {
@@ -99,6 +100,30 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(back).toContain("# 건강과 컨디션");
     expect(back).toContain("첫 점괘");
     expect(back).toContain("절대 쓰지 마라");
+  });
+});
+
+describe("타로 리딩 프롬프트", () => {
+  const tarotCards = drawSpread("ppf");
+
+  it("순수 타로는 사주 종합 생애 리딩을 강요하지 않고 질문·카드에 집중한다", () => {
+    const msg = buildReadingUserMessage({ type: "tarot", question: "이 관계 계속해도 될까요?", tarotCards });
+    expect(msg).toContain("타로 리딩 — 질문 집중");
+    expect(msg).toContain("# 카드가 그리는 흐름");
+    expect(msg).not.toContain("기본 리딩 — 종합");
+    // 사주 기반 생애 섹션을 억지로 채우지 말라는 지시를 담는다
+    expect(msg).toContain("억지로 채우지 마라");
+  });
+
+  it("깊이를 골라도 타로는 사주 섹션을 강요하지 않는다", () => {
+    const msg = buildReadingUserMessage({
+      type: "tarot",
+      question: "이직해도 될까요?",
+      tarotCards,
+      context: { depth: "expert" },
+    });
+    expect(msg).toContain("타로 리딩 — 질문 집중");
+    expect(msg).not.toContain("기본 리딩 — 종합");
   });
 });
 
