@@ -559,5 +559,9 @@ saju/lunar를 더 이상 끌어오지 않아 API 번들이 가벼워짐. (150 �
 - **종합 요약 구체화**: 세부 점수 중 가장 강한 축·조율 필요한 축을 요약 문장에서 직접 짚음.
 - **중복 제거**: 항상 보이던 평문 "근거" 카드(게이지 note·일지 형파해 날것 용어 반복) 삭제.
   전문가 근거는 하단 접이식 `전문가 근거 보기`로 일원화.
-- 테스트: `sajuFeatures.test.ts`에 signal·요약 축 검증 추가(164 통과), 기존 용어 노출 검사 유지.
-- "7일 조율 플랜"은 코드/히스토리 어디에도 없어 제거 대상 없음(확인 완료).
+- 테스트: `sajuFeatures.test.ts`에 signal·요약 축 검증 추가, 기존 용어 노출 검사 유지.
+- **7일 조율 플랜 제거**: 다른 세션이 `Deepen compatibility repair report`(origin/main)로 추가한
+  `repairReport.sevenDayPlan`(7일 조율 플랜)을 사용자 요청으로 삭제. 타입·`compatibilityRepairReport`
+  반환·CompatibilityPage 렌더·CSS(`compat-plan-list`)·테스트·문서(CLAUDE.md, next_steps.md) 참조 정리.
+  `관계 보완 리포트`의 나머지(대화 예시·하지 않는 편이 좋은 반응 등)는 유지.
+- 통합: 이 밀도 개선은 origin/main(다른 세션의 궁합 보완 리포트 포함) 위로 리베이스해 함께 반영.

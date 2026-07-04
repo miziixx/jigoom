@@ -1491,17 +1491,7 @@ function compatibilityRepairReport(
     "좋은 의도였다는 말만 반복하고 상대가 받은 영향을 확인하지 않기",
   ];
 
-  const sevenDayPlan = [
-    { day: "1일차", action: "최근 반복된 갈등 하나만 고르고, 사실·내 감정·원하는 행동을 각각 한 줄로 적어보세요." },
-    { day: "2일차", action: "서로 편한 연락 빈도, 만나는 주기, 혼자 쉬는 시간을 숫자로 맞춰보세요." },
-    { day: "3일차", action: "돈, 일정, 가족, 일 중 가장 예민한 주제 하나를 골라 최소 기준을 정하세요." },
-    { day: "4일차", action: "상대가 잘해준 행동 1가지를 구체적으로 말하세요. '고마워'보다 어떤 행동이 좋았는지까지 말하는 게 좋습니다." },
-    { day: "5일차", action: "불편한 점 하나를 비난 없이 요청문으로 바꿔 말해보세요." },
-    { day: "6일차", action: "같이 있으면 편한 활동과 피곤한 활동을 나눠 적고, 무리한 활동은 줄이세요." },
-    { day: "7일차", action: "일주일 동안 도움이 된 규칙 하나만 남기고, 지키기 어려운 규칙은 더 작게 줄이세요." },
-  ];
-
-  return { level, headline, intro, whyItHappens, conflictCycle, byPerson, scripts, avoid, sevenDayPlan };
+  return { level, headline, intro, whyItHappens, conflictCycle, byPerson, scripts, avoid };
 }
 
 /**

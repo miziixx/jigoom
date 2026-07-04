@@ -140,7 +140,6 @@ describe("궁합 계산", () => {
     expect(compat.repairReport?.byPerson.me.length).toBeGreaterThanOrEqual(3);
     expect(compat.repairReport?.byPerson.partner.length).toBeGreaterThanOrEqual(3);
     expect(compat.repairReport?.scripts.length).toBeGreaterThanOrEqual(3);
-    expect(compat.repairReport?.sevenDayPlan).toHaveLength(7);
   });
 
   it("세부 흐름·목적별 궁합에 '이럴 때 드러나요' 신호와 상세를 담는다", () => {

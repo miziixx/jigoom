@@ -238,7 +238,6 @@ The compatibility reading should include:
 - Separate guidance for `나`, `상대`, and `둘이 같이`
 - Real conversation scripts
 - Reactions to avoid
-- 7-day adjustment plan
 - Day-branch/partner-palace analysis
 - How each person experiences the other
 - Role fit by relationship purpose

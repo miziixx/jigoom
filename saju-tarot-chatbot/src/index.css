@@ -3255,28 +3255,6 @@ label {
   line-height: 1.6;
 }
 
-.compat-plan-list {
-  display: grid;
-  gap: 9px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.compat-plan-list li {
-  display: grid;
-  grid-template-columns: 54px minmax(0, 1fr);
-  gap: 8px;
-  align-items: start;
-  color: var(--text-dim);
-  font-size: 0.88rem;
-  line-height: 1.55;
-}
-
-.compat-plan-list b {
-  color: var(--accent);
-}
-
 .compat-highlight-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

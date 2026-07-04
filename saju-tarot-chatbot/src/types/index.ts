@@ -280,10 +280,6 @@ export interface CompatibilityResult {
     };
     scripts: string[];
     avoid: string[];
-    sevenDayPlan: Array<{
-      day: string;
-      action: string;
-    }>;
   };
   /** 일지(배우자궁/관계 자리) 중심 해석 */
   partnerPalace?: {

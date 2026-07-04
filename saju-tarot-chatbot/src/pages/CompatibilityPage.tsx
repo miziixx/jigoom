@@ -319,27 +319,14 @@ export default function CompatibilityPage() {
                 </div>
               </div>
 
-              <div className="compat-advice-grid">
-                <section className="compat-inline-panel">
-                  <h4>하지 않는 편이 좋은 반응</h4>
-                  <ul className="compat-list">
-                    {result.repairReport.avoid.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </section>
-                <section className="compat-inline-panel">
-                  <h4>7일 조율 플랜</h4>
-                  <ol className="compat-plan-list">
-                    {result.repairReport.sevenDayPlan.map((item) => (
-                      <li key={item.day}>
-                        <b>{item.day}</b>
-                        <span>{item.action}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              </div>
+              <section className="compat-inline-panel">
+                <h4>하지 않는 편이 좋은 반응</h4>
+                <ul className="compat-list">
+                  {result.repairReport.avoid.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
             </section>
           )}
 
