@@ -2,6 +2,31 @@
 
 This file records the current product direction, implementation choices, and safety rules for the Saju Tarot chatbot project. Future Claude/Codex agents should read this before making changes.
 
+## Mandatory Agent Routine
+
+Claude Code/Codex agents working on this app must use the validation docs in `docs/validation`.
+
+Before changing saju calculation, luck-cycle calculation, lunar/solar conversion, birth-time handling, or evidence serialization:
+
+- Read `docs/validation/saju-calculation-validation.md`.
+- Keep changes compatible with the calculation validation checklist.
+- Add or update automated tests when the behavior can be verified in code.
+- Do not alter calculation behavior casually for UI or copy changes.
+
+Before changing prompts, reading output structure, follow-up chat behavior, evidence display, or safety language:
+
+- Read `docs/validation/reading-quality-validation.md`.
+- Preserve the "easy language first, expert evidence retained" structure.
+- Check for unsupported claims, fear-based language, deterministic predictions, and high-risk advice.
+- Keep medical, legal, investment, marriage, divorce, resignation, and relocation advice as non-deterministic decision support.
+
+After material changes:
+
+- Run `npm test`.
+- Run `npm run build`.
+- If tests cannot be run, clearly report why.
+- If changes affect GitHub/Vercel deployment, commit intentionally and push `main` only when requested or when the user has clearly asked to publish.
+
 ## Product Direction
 
 The app should not merely shorten saju readings. The target is:
