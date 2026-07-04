@@ -35,6 +35,12 @@ const OPTIONS = [
 
 const TRUST_BADGES = ["근거 펼치기", "저장 안 함", "100% 적중 주장 안 함"];
 
+const SEO_GUIDES = [
+  { to: "/seo/unknown-birth-time", title: "출생시간을 모를 때", desc: "시간 미입력 리딩에서 볼 수 있는 것과 조심할 점" },
+  { to: "/seo/day-master", title: "일간별 성향 읽기", desc: "일간만으로 단정하지 않고 전체 명식을 함께 보는 법" },
+  { to: "/seo/sample-mystic-reading", title: "속마음 리딩 샘플", desc: "사주 근거를 심리 언어로 번역하는 방식" },
+];
+
 export default function LandingPage() {
   return (
     <section className="page">
@@ -65,6 +71,16 @@ export default function LandingPage() {
           <Link key={opt.to} to={opt.to} className="card landing-card">
             <h3>{opt.title}</h3>
             <p>{opt.desc}</p>
+          </Link>
+        ))}
+      </div>
+
+      <h2 className="page-title seo-guide-title">처음 보는 분을 위한 가이드</h2>
+      <div className="seo-guide-grid">
+        {SEO_GUIDES.map((guide) => (
+          <Link key={guide.to} to={guide.to} className="card landing-card seo-guide-card">
+            <h3>{guide.title}</h3>
+            <p>{guide.desc}</p>
           </Link>
         ))}
       </div>

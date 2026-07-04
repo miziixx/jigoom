@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import BirthInfoForm from "../components/BirthInfoForm";
 import ChatFollowUp from "../components/ChatFollowUp";
+import FiveElementsChart from "../components/saju-visual/FiveElementsChart";
+import PillarCards from "../components/saju-visual/PillarCards";
+import SinsalBadges from "../components/saju-visual/SinsalBadges";
 import InterestPicker from "../features/mystic-reading/components/InterestPicker";
 import MysticResultView from "../features/mystic-reading/components/MysticResultView";
+import { isPremium, unlockPremium } from "../lib/premium";
 import { useMysticStore } from "../store/useMysticStore";
 import type { BirthInfo } from "../types";
 
@@ -12,6 +16,7 @@ export default function MysticPage() {
   const [pendingInterest, setPendingInterest] = useState(interest);
   const [showPartner, setShowPartner] = useState(false);
   const [partner, setPartner] = useState<BirthInfo | null>(null);
+  const [premium, setPremium] = useState(isPremium());
 
   useEffect(() => {
     init();
@@ -76,13 +81,47 @@ export default function MysticPage() {
 
       {session?.mysticResult && (
         <>
+          {session.sajuChart && (
+            <div className="card facts-panel mystic-facts-panel">
+              <div className="facts-block">
+                <h4>내 명식 한눈에 보기</h4>
+                <PillarCards chart={session.sajuChart} />
+                <FiveElementsChart chart={session.sajuChart} />
+                <SinsalBadges chart={session.sajuChart} />
+              </div>
+            </div>
+          )}
+
           <MysticResultView
             result={session.mysticResult}
             readingId={session.id}
             hasHour={session.birthInfo?.hour !== null && session.birthInfo?.hour !== undefined}
+            premium={premium}
+            onUnlock={() => {
+              unlockPremium();
+              setPremium(true);
+            }}
           />
 
-          <ChatFollowUp session={session} onSend={(q) => void sendFollowUp(q)} loading={loading} />
+          {premium ? (
+            <ChatFollowUp session={session} onSend={(q) => void sendFollowUp(q)} loading={loading} />
+          ) : (
+            <div className="card premium-gate">
+              <p>
+                <span className="premium-badge">프리미엄</span>
+                이어 묻기 챗봇과 전체 리포트 저장은 프리미엄에서 열립니다.
+              </p>
+              <button
+                className="btn btn--secondary"
+                onClick={() => {
+                  unlockPremium();
+                  setPremium(true);
+                }}
+              >
+                전체 리딩 열기
+              </button>
+            </div>
+          )}
 
           <div className="reading-actions">
             <button className="btn btn--ghost" onClick={() => void regenerate()} disabled={loading}>

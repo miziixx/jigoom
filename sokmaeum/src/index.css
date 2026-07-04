@@ -127,6 +127,19 @@ body {
   font-size: 0.9rem;
 }
 
+.seo-guide-title {
+  margin-top: 28px;
+}
+
+.seo-guide-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.seo-guide-card {
+  margin-bottom: 0;
+}
+
 /* ── 첫화면 히어로 (명식 리포트 포지셔닝) ── */
 .hero {
   text-align: center;
@@ -547,6 +560,24 @@ label {
   font-size: 0.75rem;
   font-weight: 700;
   margin-right: 6px;
+}
+
+.mystic-premium-preview h3 {
+  margin: 10px 0 8px;
+  color: var(--accent);
+}
+
+.mystic-premium-preview p {
+  margin: 0 0 10px;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+}
+
+.mystic-premium-preview ul {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
 }
 
 /* PDF 저장(인쇄): 리딩 내용만 밝은 배경으로 출력 */
@@ -1069,6 +1100,43 @@ label {
   border-left: 2px solid var(--accent);
 }
 
+.mystic-facts-panel {
+  margin-bottom: 0;
+}
+
+.seo-kicker {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.seo-article {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seo-section h3,
+.seo-cta strong {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--accent);
+}
+
+.seo-section p,
+.seo-cta p {
+  margin: 0 0 8px;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+}
+
+.seo-cta .btn {
+  display: inline-flex;
+  text-decoration: none;
+  margin-top: 4px;
+}
+
 /* ─────────────────────────────────────────────
    마크다운 렌더링 (리딩 본문)
    ───────────────────────────────────────────── */
@@ -1193,6 +1261,77 @@ label {
   background: var(--surface-alt); color: var(--text-dim);
 }
 .sv-caption { font-size: 0.8rem; color: var(--text-dim); margin: 8px 0 0; }
+
+.sv-sinsal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.sv-sinsal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.sv-sinsal-badge__cat {
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.sv-sinsal-badge b {
+  white-space: nowrap;
+}
+
+.sv-sinsal-badge small {
+  min-width: 0;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sv-sinsal-badge--길신 {
+  border-color: rgba(87, 208, 164, 0.45);
+}
+
+.sv-sinsal-badge--길신 .sv-sinsal-badge__cat {
+  background: rgba(87, 208, 164, 0.18);
+  color: #7ee0b8;
+}
+
+.sv-sinsal-badge--흉살 {
+  border-color: rgba(255, 138, 138, 0.5);
+}
+
+.sv-sinsal-badge--흉살 .sv-sinsal-badge__cat {
+  background: rgba(255, 138, 138, 0.16);
+  color: #ffaaaa;
+}
+
+.sv-sinsal-badge--특수 {
+  border-color: rgba(201, 204, 214, 0.35);
+}
+
+.sv-sinsal-badge--특수 .sv-sinsal-badge__cat {
+  background: rgba(201, 204, 214, 0.13);
+  color: #d6d8df;
+}
+
+.sv-sinsal-empty {
+  margin-top: 10px !important;
+  color: var(--text-dim);
+}
 
 /* 대운 타임라인 */
 .sv-luck-now { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }

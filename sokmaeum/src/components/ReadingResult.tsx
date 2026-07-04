@@ -3,6 +3,7 @@ import Markdown from "./Markdown";
 import FiveElementsChart from "./saju-visual/FiveElementsChart";
 import PillarCards from "./saju-visual/PillarCards";
 import LuckTimeline from "./saju-visual/LuckTimeline";
+import SinsalBadges from "./saju-visual/SinsalBadges";
 
 interface Section {
   title: string;
@@ -34,6 +35,7 @@ export default function ReadingResult({ session }: { session: ReadingSession }) 
               <h4>사주 원국</h4>
               <PillarCards chart={chart} />
               <FiveElementsChart chart={chart} />
+              <SinsalBadges chart={chart} />
               {chart.strength && (
                 <p className="facts-line">
                   신강/신약(간이) — <b>{chart.strength.label}</b>

@@ -1,4 +1,4 @@
-import { HashRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import LandingPage from "./pages/LandingPage";
 import SajuPage from "./pages/SajuPage";
@@ -10,10 +10,11 @@ import FortunePage from "./pages/FortunePage";
 import FlowPage from "./pages/FlowPage";
 import HistoryPage from "./pages/HistoryPage";
 import ComparePage from "./pages/ComparePage";
+import SeoPage from "./pages/SeoPage";
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<LandingPage />} />
@@ -26,8 +27,9 @@ export default function App() {
           <Route path="flow" element={<FlowPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="compare" element={<ComparePage />} />
+          <Route path="seo/:slug" element={<SeoPage />} />
         </Route>
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 }

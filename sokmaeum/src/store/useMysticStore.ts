@@ -3,6 +3,7 @@ import { getMysticReading } from "../features/mystic-reading/readingApi";
 import { INTEREST_LABEL } from "../features/mystic-reading/evidenceMapper";
 import { buildMysticStyleHint } from "../features/mystic-reading/sectionFeedback";
 import { mysticResultToText } from "../features/mystic-reading/resultToText";
+import { computeSajuChart } from "../lib/saju";
 import { streamReading } from "../lib/readingApi";
 import { loadSessions, saveSession } from "../lib/storage";
 import { resolveSavedBirth, saveProfile } from "../lib/profile";
@@ -55,6 +56,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
         partner: partnerBirth ?? undefined,
         styleHint,
       });
+      const sajuChart = computeSajuChart(birthInfo);
       const readingText = mysticResultToText(result);
       const session: ReadingSession = {
         id: newId(),
@@ -63,6 +65,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
         question: `속마음 리딩 · 관심사: ${INTEREST_LABEL[interest]}`,
         focus: "general",
         birthInfo,
+        sajuChart,
         mysticResult: result,
         messages: [
           {
@@ -94,6 +97,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
         styleHint,
       });
       const current = get().session;
+      const sajuChart = computeSajuChart(birthInfo);
       const readingText = mysticResultToText(result);
       const contextMsg = {
         role: "user" as const,
@@ -102,6 +106,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
       const session: ReadingSession = current
         ? {
             ...current,
+            sajuChart,
             mysticResult: result,
             messages: [contextMsg, current.messages[1] ?? { role: "assistant", content: result.openingOracle.sentence }],
           }
@@ -111,6 +116,7 @@ export const useMysticStore = create<MysticStore>((set, get) => ({
             createdAt: new Date().toISOString(),
             question: "속마음 리딩",
             birthInfo,
+            sajuChart,
             mysticResult: result,
             messages: [contextMsg, { role: "assistant", content: result.openingOracle.sentence }],
           };
