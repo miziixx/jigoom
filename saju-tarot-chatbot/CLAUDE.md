@@ -96,6 +96,7 @@ Key commits already pushed:
 - `374031b` Add relationship contexts to compatibility
 - `d6c35d1` Clarify daily fortune and strengthen tarot readings
 - `ae8c227` Port richer tarot symbolism
+- `6023716` Deepen compatibility repair report
 
 ## Important Files
 
@@ -224,12 +225,20 @@ Compatibility should work beyond romantic relationships. Supported relationship 
 - 사장·직원
 - 동료·동업자
 - 친구
-- 앙숙·불편한 사람
+
+The `앙숙·불편한 사람` option was removed from the user-facing selector because it felt too harsh and made the relationship picker feel crowded.
 
 The compatibility reading should include:
 
 - Relationship summary
 - Each person's saju pattern in plain language
+- A `관계 보완 리포트` near the top of the result
+- Why the relationship pattern happens
+- Conflict escalation steps and repair methods
+- Separate guidance for `나`, `상대`, and `둘이 같이`
+- Real conversation scripts
+- Reactions to avoid
+- 7-day adjustment plan
 - Day-branch/partner-palace analysis
 - How each person experiences the other
 - Role fit by relationship purpose
@@ -239,6 +248,13 @@ The compatibility reading should include:
 - Expert evidence
 
 Do not reduce compatibility to a score. The user disliked the earlier shallow compatibility output.
+
+Important implementation note:
+
+- `computeCompatibility` now returns `repairReport`.
+- The score calculation and saju chart calculation should remain deterministic.
+- The repair report is a rule-based interpretation layer, so it does not add API cost.
+- If compatibility is made deeper later, keep the same direction: practical repair guidance first, expert evidence retained separately.
 
 ### Tarot Symbolism
 
