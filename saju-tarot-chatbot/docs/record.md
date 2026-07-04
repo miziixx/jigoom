@@ -578,3 +578,23 @@ saju/lunar를 더 이상 끌어오지 않아 API 번들이 가벼워짐. (150 �
 - `ReadingActions`에 "🔄 다시 생성" 버튼(원국 있을 때). 이름 추천에도 캐시 + "🔄 다시 생성".
 - 이름 감정 AI 해석도 (평가결과+비교) 기준 캐시.
 - 테스트: `resultCache.test.ts`(169 통과). 이름 API 실제 원인은 ESM 확장자 누락이었고 별도 수정.
+
+## 이름 추천 구조화 (실제 이름 앞세우기 + 점수표/TOP5)
+
+사용자 피드백: 추천 탭이 "방향 설명" 위주로 나오고 실제 이름이 뒤로 밀린다. 유료 상품으로
+가려면 후보 개수·점수표·TOP 심층이 필요하다.
+
+- **역할 분리**: AI는 이름 후보만 뽑고(점수·순위 금지), 점수는 사주 차트로 결정론적으로 계산.
+  `namingPrompt.ts`의 추천 프롬프트를 JSON 출력(`{ direction, candidates:[{name,hanja,hanjaMeaning,sound,image}] }`)
+  으로 변경. `name`은 성 제외 이름 부분, 성은 시스템이 붙임.
+- `naming.ts` 추가: `parseRecommendedNames`(잡음/코드펜스 허용 JSON 파서), `namingDisplayScore`
+  (사주 보완+발음 조화 → 40~99점 환산, AI가 지어낸 점수 아님), `scoreRecommendedNames`
+  (성 결합·`evaluateName` 채점·중복 제거·내림차순 정렬·rank 부여).
+- 후보 개수 6 → 24(`RECOMMEND_COUNT`). `api/naming.ts` `MAX_TOKENS` 3000→4500,
+  추천 응답엔 truncation 안내 문구 미부착(JSON 파싱 보호).
+- `NamingRecommendResult.tsx`: 방향 요약 + 전체 점수표 + TOP5 상세 카드(한자 뜻·소리 근거·인상·적합도).
+  파싱 실패 시 기존 `<pre>` 평문 폴백 유지.
+- 캐시 네임스페이스 `naming-recommend` → `naming-recommend-v2`로 올려 구 형식 무효화.
+- 테스트: `naming.test.ts`에 파싱/채점/정렬 검증 추가(173 통과), build OK.
+- 남은 과제(유료화): 무료/유료 게이팅(무료 3개·유료 전체), "피해야 할 이름" 전용 섹션,
+  인명용 한자 DB 실검증.

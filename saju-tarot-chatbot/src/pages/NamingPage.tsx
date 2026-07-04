@@ -1,6 +1,7 @@
 import { useState } from "react";
 import BirthInfoForm from "../components/BirthInfoForm";
 import NamingComparison from "../components/NamingComparison";
+import NamingRecommendResult from "../components/NamingRecommendResult";
 import NamingResult from "../components/NamingResult";
 import { computeSajuChart } from "../lib/saju";
 import { generateNamingInterpretation, generateNameRecommendations } from "../lib/namingApi";
@@ -11,6 +12,8 @@ import {
   buildNamingBrief,
   compareNames,
   evaluateName,
+  parseRecommendedNames,
+  scoreRecommendedNames,
   NAMING_MODE_LABEL,
   SOUND_ELEMENT_SCHOOL_LABEL,
   type NameCandidateInput,
@@ -19,8 +22,11 @@ import {
   type NamingBrief,
   type NamingMode,
   type NamingPurpose,
+  type ScoredRecommendedName,
   type SoundElementSchool,
 } from "../lib/naming";
+
+const RECOMMEND_COUNT = 24;
 import type { BirthInfo } from "../types";
 
 type NamingTab = "evaluate" | "recommend";
@@ -54,6 +60,8 @@ export default function NamingPage() {
   const [brief, setBrief] = useState<NamingBrief | null>(null);
   const [lastRecommendBirth, setLastRecommendBirth] = useState<BirthInfo | null>(null);
   const [recommendation, setRecommendation] = useState<string | null>(null);
+  const [recommendScored, setRecommendScored] = useState<ScoredRecommendedName[]>([]);
+  const [recommendDirection, setRecommendDirection] = useState<string | null>(null);
   const [recommendLoading, setRecommendLoading] = useState(false);
   const [recommendError, setRecommendError] = useState<string | null>(null);
 
@@ -121,6 +129,8 @@ export default function NamingPage() {
     setError(null);
     setRecommendError(null);
     setRecommendation(null);
+    setRecommendScored([]);
+    setRecommendDirection(null);
     const chart = computeSajuChart(birthInfo);
     const nextBrief = buildNamingBrief(chart);
     const purpose: NamingPurpose = {
@@ -138,13 +148,24 @@ export default function NamingPage() {
       surname: surname.trim() || undefined,
       gender: gender.trim() || undefined,
       syllableCount,
-      count: 6,
+      count: RECOMMEND_COUNT,
     };
     const recKey = { brief: nextBrief, options };
     try {
       const cached = forceRegenerate ? null : getCachedResult<string>("naming-recommend-v2", recKey);
       const reply = cached ?? (await generateNameRecommendations(nextBrief, options));
       setCachedResult("naming-recommend-v2", recKey, reply);
+      // AI는 후보만 뽑고, 점수는 사주 차트로 결정론적으로 매긴다.
+      const parsed = parseRecommendedNames(reply);
+      if (parsed) {
+        setRecommendScored(
+          scoreRecommendedNames(chart, parsed, { surname: surname.trim() || undefined, school, purpose }),
+        );
+        setRecommendDirection(parsed.direction ?? null);
+      } else {
+        setRecommendScored([]);
+        setRecommendDirection(null);
+      }
       setRecommendation(reply);
     } catch (err) {
       setRecommendError(err instanceof Error ? err.message : "이름 추천을 불러오지 못했습니다.");
@@ -166,6 +187,8 @@ export default function NamingPage() {
     setBrief(null);
     setLastRecommendBirth(null);
     setRecommendation(null);
+    setRecommendScored([]);
+    setRecommendDirection(null);
     setRecommendError(null);
     setRecommendLoading(false);
     setError(null);
@@ -505,10 +528,14 @@ export default function NamingPage() {
               <p>{brief.note}</p>
             </section>
           )}
-          <section className="card naming-interpretation">
-            <h4 className="naming-section-title">AI 이름 추천</h4>
-            <pre className="naming-interpretation__text">{recommendation}</pre>
-          </section>
+          {recommendScored.length > 0 ? (
+            <NamingRecommendResult direction={recommendDirection} candidates={recommendScored} topCount={5} />
+          ) : (
+            <section className="card naming-interpretation">
+              <h4 className="naming-section-title">AI 이름 추천</h4>
+              <pre className="naming-interpretation__text">{recommendation}</pre>
+            </section>
+          )}
           <p className="naming-disclaimer">
             추천 이름은 절대적인 길흉 예언이 아니라, 발음오행·사주 보완 관점으로 어울리는 소리를 계산해 제안한 참고 자료입니다.
             한자·획수·인명용 여부와 실제 등록 요건은 반드시 별도로 확인하세요.

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { analyzeNameSound, buildNamingBrief, compareNames, evaluateName, evaluateSuri } from "./naming.js";
+import {
+  analyzeNameSound,
+  buildNamingBrief,
+  compareNames,
+  evaluateName,
+  evaluateSuri,
+  namingDisplayScore,
+  parseRecommendedNames,
+  scoreRecommendedNames,
+} from "./naming.js";
 import { computeSajuChart } from "./saju.js";
 import type { BirthInfo } from "../types/index.js";
 
@@ -97,5 +106,47 @@ describe("이름 종합 감정", () => {
     expect(comparison.summary).toContain(comparison.recommended.name);
     expect(comparison.recommended.school).toBe("given-name");
     expect(comparison.recommended.purpose?.mode).toBe("rename");
+  });
+});
+
+describe("이름 추천 결과 구조화", () => {
+  it("AI JSON 응답에서 후보를 파싱한다 (앞뒤 잡음/코드펜스 허용)", () => {
+    const raw =
+      '설명 문장\n```json\n{ "direction": "밝은 소리 방향", "candidates": [ {"name":"민준","hanja":"民俊","hanjaMeaning":"백성 민, 뛰어날 준","sound":"ㅁ 소리","image":"밝음"}, {"name":"서준"} ] }\n```\n끝';
+    const parsed = parseRecommendedNames(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.direction).toBe("밝은 소리 방향");
+    expect(parsed!.candidates).toHaveLength(2);
+    expect(parsed!.candidates[0].name).toBe("민준");
+    expect(parsed!.candidates[0].hanja).toBe("民俊");
+  });
+
+  it("JSON이 아니면 null을 돌려준다", () => {
+    expect(parseRecommendedNames("# 추천 이름\n1. 민준")).toBeNull();
+  });
+
+  it("후보에 성을 붙여 점수를 매기고 내림차순 정렬한다", () => {
+    const parsed = parseRecommendedNames(
+      '{ "candidates": [ {"name":"민준"}, {"name":"서아"}, {"name":"민준"} ] }',
+    );
+    const scored = scoreRecommendedNames(chart, parsed!, { surname: "김", school: "full-name" });
+    // 중복 이름 제거
+    expect(scored).toHaveLength(2);
+    expect(scored[0].fullName.startsWith("김")).toBe(true);
+    expect(scored[0].rank).toBe(1);
+    // 점수 내림차순
+    expect(scored[0].displayScore).toBeGreaterThanOrEqual(scored[1].displayScore);
+    // 표시 점수는 40~99 범위
+    for (const s of scored) {
+      expect(s.displayScore).toBeGreaterThanOrEqual(40);
+      expect(s.displayScore).toBeLessThanOrEqual(99);
+    }
+  });
+
+  it("적합도가 좋은 이름이 주의 이름보다 점수가 높다", () => {
+    const good = evaluateName(chart, "김강현", undefined, "full-name");
+    const scoreGood = namingDisplayScore(good);
+    expect(scoreGood).toBeGreaterThanOrEqual(40);
+    expect(scoreGood).toBeLessThanOrEqual(99);
   });
 });

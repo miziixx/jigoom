@@ -691,6 +691,71 @@ label {
   }
 }
 
+/* ── 추천 이름 점수표 · TOP 카드 ────────── */
+.naming-scoretable__scroll {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.naming-scoretable__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.naming-scoretable__table th,
+.naming-scoretable__table td {
+  padding: 7px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.naming-scoretable__table th {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.naming-scoretable__table tbody tr:first-child td {
+  background: rgba(87, 208, 164, 0.08);
+}
+
+.naming-score {
+  display: inline-block;
+  min-width: 34px;
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.naming-score--good {
+  background: rgba(87, 208, 164, 0.18);
+  color: #2fae86;
+}
+
+.naming-score--ok {
+  background: rgba(120, 160, 220, 0.16);
+  color: #5a86c4;
+}
+
+.naming-score--warn {
+  background: rgba(220, 170, 90, 0.18);
+  color: #c48a2f;
+}
+
+.naming-candidate__meaning {
+  margin: 0 0 8px !important;
+  color: var(--text) !important;
+  font-weight: 600;
+}
+
+.naming-candidate__note {
+  margin: 6px 0 0 !important;
+  font-size: 0.8rem !important;
+}
+
 /* ── 타로 근거 패널 ────────── */
 .tarot-facts__hint {
   margin: 0 0 10px;

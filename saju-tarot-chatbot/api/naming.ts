@@ -11,7 +11,7 @@ import type { NameComparison, NameEvaluation, NamingBrief, NamingRecommendOption
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
 // 이름 리포트/추천은 후보·근거가 있어 분량이 있다. 함수 maxDuration(120초) 안에서
 // 끝까지 생성되도록 넉넉히 잡는다.
-const MAX_TOKENS = 3000;
+const MAX_TOKENS = 4500;
 
 interface NamingBody {
   mode?: "evaluate" | "recommend";
@@ -75,9 +75,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     const text = extractText(response);
     if (text.trim()) {
-      // 길이 제한(max_tokens)에 걸려 잘렸으면 사용자에게 짧게 알린다.
+      // 추천 응답은 JSON이라 뒤에 안내 문구를 붙이면 파싱이 깨진다 → 원문 그대로 반환.
+      // 감정 응답만 길이 제한(max_tokens) 시 짧게 알린다.
       const reply =
-        response.stop_reason === "max_tokens"
+        !isRecommend && response.stop_reason === "max_tokens"
           ? `${text}\n\n(※ 길이 제한으로 일부 생략되었어요. '다시 추천받기'로 새로 받을 수 있어요.)`
           : text;
       res.status(200).json({ reply, source: "llm" });

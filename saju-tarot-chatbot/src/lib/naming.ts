@@ -394,6 +394,124 @@ export interface NameComparison {
   summary: string;
 }
 
+// ── 이름 추천 결과 구조화 (AI가 후보만 뽑고, 점수는 여기서 결정론적으로 매긴다) ──
+
+/** AI가 JSON으로 돌려주는 이름 후보 1건 (점수는 담지 않는다). */
+export interface RawRecommendedName {
+  /** 성을 제외한 이름 부분 */
+  name: string;
+  hanja?: string;
+  hanjaMeaning?: string;
+  /** 소리(발음오행) 근거 한 줄 */
+  sound?: string;
+  /** 부르는 느낌·인상 한 줄 */
+  image?: string;
+}
+
+export interface RecommendedNamesPayload {
+  direction?: string;
+  candidates: RawRecommendedName[];
+}
+
+/** 점수까지 매겨진 추천 이름 (표·카드 렌더용). */
+export interface ScoredRecommendedName {
+  rank: number;
+  givenName: string;
+  fullName: string;
+  hanja?: string;
+  hanjaMeaning?: string;
+  sound?: string;
+  image?: string;
+  evaluation: NameEvaluation;
+  /** 100점 환산 표시 점수. 길흉 단정이 아니라 정렬·비교용 지표다. */
+  displayScore: number;
+}
+
+/**
+ * 이름 감정 결과를 100점 환산 표시 점수로 바꾼다.
+ * 사주 보완 적합도(비중 큼)와 발음 조화를 결정론적으로 합산한다. AI가 지어낸 점수가 아니다.
+ */
+export function namingDisplayScore(ev: NameEvaluation): number {
+  let s = 60;
+  s += ev.fit.level === "좋음" ? 24 : ev.fit.level === "보통" ? 12 : 2;
+  s += ev.sound.harmony === "순조로움" ? 14 : ev.sound.harmony === "무난함" ? 7 : 0;
+  if (ev.fit.suppliesNeeded) s += 4;
+  else if (ev.fit.supportsNeeded) s += 2;
+  if (ev.fit.leansAvoid) s -= 6;
+  if (ev.suri) {
+    const lucky = ev.suri.levels.filter((l) => l.level === "길").length;
+    s += lucky >= 3 ? 2 : lucky === 0 ? -3 : 0;
+  }
+  return Math.max(40, Math.min(99, s));
+}
+
+/** AI 응답 문자열에서 이름 후보 JSON을 안전하게 뽑아낸다. 실패하면 null. */
+export function parseRecommendedNames(raw: string): RecommendedNamesPayload | null {
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  let obj: unknown;
+  try {
+    obj = JSON.parse(raw.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+  if (!obj || typeof obj !== "object") return null;
+  const record = obj as { direction?: unknown; candidates?: unknown };
+  if (!Array.isArray(record.candidates)) return null;
+  const candidates: RawRecommendedName[] = record.candidates
+    .map((c) => c as Record<string, unknown>)
+    .filter((c) => c && typeof c.name === "string" && (c.name as string).trim().length > 0)
+    .map((c) => ({
+      name: String(c.name).trim(),
+      hanja: typeof c.hanja === "string" && c.hanja.trim() ? c.hanja.trim() : undefined,
+      hanjaMeaning:
+        typeof c.hanjaMeaning === "string" && c.hanjaMeaning.trim() ? c.hanjaMeaning.trim() : undefined,
+      sound: typeof c.sound === "string" && c.sound.trim() ? c.sound.trim() : undefined,
+      image: typeof c.image === "string" && c.image.trim() ? c.image.trim() : undefined,
+    }));
+  if (candidates.length === 0) return null;
+  return {
+    direction: typeof record.direction === "string" && record.direction.trim() ? record.direction.trim() : undefined,
+    candidates,
+  };
+}
+
+/** AI 후보를 사주 차트로 채점·정렬한다. 중복 이름은 제거한다. */
+export function scoreRecommendedNames(
+  chart: SajuChart,
+  payload: RecommendedNamesPayload,
+  options: { surname?: string; school?: SoundElementSchool; purpose?: NamingPurpose },
+): ScoredRecommendedName[] {
+  const surname = options.surname?.trim() ?? "";
+  const seen = new Set<string>();
+  const scored = payload.candidates
+    .filter((c) => {
+      if (seen.has(c.name)) return false;
+      seen.add(c.name);
+      return true;
+    })
+    .map((c) => {
+      const fullName = surname ? `${surname}${c.name}` : c.name;
+      const evaluation = evaluateName(chart, fullName, undefined, options.school ?? "full-name", options.purpose);
+      return {
+        givenName: c.name,
+        fullName,
+        hanja: c.hanja,
+        hanjaMeaning: c.hanjaMeaning,
+        sound: c.sound,
+        image: c.image,
+        evaluation,
+        displayScore: namingDisplayScore(evaluation),
+      };
+    });
+  scored.sort((a, b) => {
+    if (b.displayScore !== a.displayScore) return b.displayScore - a.displayScore;
+    return a.fullName.localeCompare(b.fullName, "ko");
+  });
+  return scored.map((s, index) => ({ ...s, rank: index + 1 }));
+}
+
 export function compareNames(
   chart: SajuChart,
   candidates: NameCandidateInput[],
