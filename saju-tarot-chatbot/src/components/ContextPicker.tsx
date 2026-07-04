@@ -9,11 +9,11 @@ const SITUATIONS: Array<{ value: SituationStage; label: string }> = [
   { value: "closing", label: "정리하는 중" },
 ];
 
-const TONES: Array<{ value: AnswerTone; label: string }> = [
-  { value: "realistic", label: "현실적으로" },
-  { value: "warm", label: "따뜻하게" },
-  { value: "blunt", label: "냉정하게" },
-  { value: "detailed", label: "아주 자세하게" },
+const TONES: Array<{ value: AnswerTone; label: string; desc: string }> = [
+  { value: "realistic", label: "현실적으로", desc: "가능성과 조건을 균형 있게" },
+  { value: "warm", label: "따뜻하게", desc: "부드럽지만 뻔하지 않게" },
+  { value: "blunt", label: "냉정하게", desc: "돌려 말하지 않고 핵심부터" },
+  { value: "detailed", label: "아주 자세하게", desc: "근거와 예시를 촘촘하게" },
 ];
 
 const DEPTHS: Array<{ value: AnswerDepth; label: string }> = [
@@ -59,19 +59,30 @@ export default function ContextPicker({ value, onChange, showTimeAccuracy = fals
         </select>
       </div>
 
-      <div className="field-row">
-        <span className="field-label">답변 톤</span>
-        <select
-          value={value.tone ?? ""}
-          onChange={(e) => onChange({ ...value, tone: (e.target.value || undefined) as AnswerTone | undefined })}
-        >
-          <option value="">선택 안 함</option>
+      <div className="field-row field-row--column">
+        <span className="field-label">풀이 말투</span>
+        <div className="tone-choice-grid">
+          <button
+            type="button"
+            className={!value.tone ? "tone-choice tone-choice--active" : "tone-choice"}
+            onClick={() => onChange({ ...value, tone: undefined })}
+          >
+            <b>기본</b>
+            <span>균형 있게</span>
+          </button>
           {TONES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
+            <button
+              type="button"
+              key={t.value}
+              className={value.tone === t.value ? "tone-choice tone-choice--active" : "tone-choice"}
+              onClick={() => onChange({ ...value, tone: t.value })}
+            >
+              <b>{t.label}</b>
+              <span>{t.desc}</span>
+            </button>
           ))}
-        </select>
+        </div>
+        <span className="field-hint">같은 근거라도 원하는 말투에 맞춰 풀이합니다.</span>
       </div>
 
       <div className="field-row">

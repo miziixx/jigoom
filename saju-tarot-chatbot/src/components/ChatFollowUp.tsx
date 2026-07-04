@@ -2,6 +2,11 @@ import { useState, type FormEvent } from "react";
 import type { ReadingSession } from "../types";
 
 const MAX_FOLLOW_UP_QUESTIONS = 5;
+const DEEP_QUESTION_SUGGESTIONS = [
+  "연애운을 더 깊게 봐줘. 반복되는 관계 패턴과 조심할 상대 유형까지 알려줘.",
+  "금전운을 더 자세히 봐줘. 돈이 들어오는 방식과 새는 패턴, 관리법을 알려줘.",
+  "직업운을 더 깊게 봐줘. 잘 맞는 일의 환경과 지금 준비할 것을 알려줘.",
+];
 
 interface Props {
   session: ReadingSession;
@@ -22,15 +27,39 @@ export default function ChatFollowUp({ session, onSend, loading }: Props) {
     setQuestion("");
   }
 
+  function sendSuggestedQuestion(text: string) {
+    if (loading || reachedLimit) return;
+    onSend(text);
+  }
+
   return (
     <div className="card chat-followup">
       <h4>더 물어보기 ({usedQuestions}/{MAX_FOLLOW_UP_QUESTIONS})</h4>
+      <p className="chat-followup__intro">
+        유료/정밀 리딩에서 본 연애운·금전운·직업운은 여기서 더 깊게 파고들 수 있어요. “자세히”, “깊게”라고
+        물으면 답변이 더 촘촘해집니다.
+      </p>
       {followUpMessages.length > 0 && (
         <div className="chat-thread">
           {followUpMessages.map((m, i) => (
             <div key={i} className={m.role === "user" ? "chat-bubble chat-bubble--user" : "chat-bubble chat-bubble--assistant"}>
               {m.content}
             </div>
+          ))}
+        </div>
+      )}
+      {!reachedLimit && (
+        <div className="chat-suggestion-row" aria-label="깊게 물어보기 예시">
+          {DEEP_QUESTION_SUGGESTIONS.map((text) => (
+            <button
+              type="button"
+              className="chat-suggestion"
+              key={text}
+              onClick={() => sendSuggestedQuestion(text)}
+              disabled={loading}
+            >
+              {text.split(".")[0]}
+            </button>
           ))}
         </div>
       )}
