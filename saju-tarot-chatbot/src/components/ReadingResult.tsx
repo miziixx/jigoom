@@ -178,6 +178,14 @@ function EvidenceTranslation({ body }: { body: string }) {
   );
 }
 
+function tarotCardElement(name: string): string {
+  if (name.includes("완드")) return "일·행동·추진력";
+  if (name.includes("컵")) return "감정·관계·마음";
+  if (name.includes("소드")) return "생각·말·결정";
+  if (name.includes("펜타클")) return "돈·현실·안정";
+  return "큰 전환·심리 과제";
+}
+
 function SectionBody({ body, loading }: { body: string; loading?: boolean }) {
   const parts = parseBodyParts(body);
   if (parts.length === 1 && !parts[0].title) {
@@ -278,11 +286,18 @@ export default function ReadingResult({ session, loading = false }: { session: R
         <div className="card facts-panel">
           <div className="facts-block">
             <h4>뽑힌 카드</h4>
-            <p>
-              {session.tarotCards
-                .map((c) => `${c.positionLabel ? `[${c.positionLabel}] ` : ""}${c.card.name} (${c.reversed ? "역방향" : "정방향"})`)
-                .join(" · ")}
-            </p>
+            <div className="tarot-evidence-grid">
+              {session.tarotCards.map((c) => (
+                <article className="tarot-evidence-card" key={`${c.position}-${c.card.id}`}>
+                  <span>{c.positionLabel ?? `${c.position}번째 자리`}</span>
+                  <b>{c.card.name}</b>
+                  <p>{c.reversed ? c.card.reversedMeaning : c.card.uprightMeaning}</p>
+                  <small>
+                    {c.reversed ? "역방향" : "정방향"} · {tarotCardElement(c.card.name)}
+                  </small>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       )}

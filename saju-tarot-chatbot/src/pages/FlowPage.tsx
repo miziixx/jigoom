@@ -18,13 +18,13 @@ export default function FlowPage() {
 
   return (
     <section className="page">
-      <h2 className="page-title">월간·연간 운 흐름</h2>
+      <h2 className="page-title">흐름 캘린더</h2>
       <p className="page-desc">
-        올해 12개월의 월운을 절기 기준으로 모두 계산해, 시도하기 쉬운 시기와 무리하면 손해가 커지는 시기를 흐름으로
-        읽어드립니다. 대운·세운이라는 큰 배경 위에서 이번 달과 다음 달은 따로 자세히 짚습니다.
+        올해 12개월 흐름을 절기 기준으로 계산해 캘린더처럼 먼저 보여드리고, 시도하기 쉬운 시기와 무리하면 손해가
+        커지는 시기를 자세히 읽어드립니다. 큰 흐름 위에서 이번 달과 다음 달은 따로 깊게 짚습니다.
       </p>
 
-      {!showResult && <BirthInfoForm submitLabel="올해 흐름 보기" onSubmit={handleSubmit} loading={loading} />}
+      {!showResult && <BirthInfoForm submitLabel="흐름 캘린더 보기" onSubmit={handleSubmit} loading={loading} />}
       {!showResult && loading && <LoadingNotice />}
       {error && !showResult && <p className="error-text">{error}</p>}
 

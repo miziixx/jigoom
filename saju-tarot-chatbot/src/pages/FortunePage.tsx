@@ -19,10 +19,10 @@ export default function FortunePage() {
 
   return (
     <section className="page">
-      <h2 className="page-title">오늘의 운세</h2>
+      <h2 className="page-title">오늘 운세</h2>
       <p className="page-desc">
-        내 사주 원국과 오늘 일진의 관계를 룰 기반 엔진이 계산하고, 그 근거로 오늘 하루의 흐름을 카드로 정리해 드려요. 매일
-        자정(KST) 기준으로 갱신됩니다.
+        오늘의 흐름과 운세를 한곳에서 봅니다. 내 사주 원국과 오늘 일진의 관계를 룰 기반 엔진이 계산하고, 그 근거로
+        하루의 기회·주의점·실행 행동을 카드로 정리해 드려요. 매일 자정(KST) 기준으로 갱신됩니다.
       </p>
 
       {loading && !result && <p className="page-desc">오늘의 운세를 불러오는 중…</p>}

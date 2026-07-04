@@ -287,6 +287,39 @@ label {
   color: var(--text-dim);
 }
 
+.tarot-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.tarot-evidence-card {
+  min-height: 132px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-alt);
+}
+
+.tarot-evidence-card span,
+.tarot-evidence-card small {
+  display: block;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.tarot-evidence-card b {
+  display: block;
+  margin: 5px 0;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.tarot-evidence-card p {
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
 /* ── 사주 원국 패널 ────────── */
 .saju-facts__subhead {
   margin: 16px 0 8px;
