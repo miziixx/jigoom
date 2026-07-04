@@ -4,6 +4,15 @@ This file records the current product direction, implementation choices, and saf
 
 ## Mandatory Agent Routine
 
+Claude Code/Codex agents working on this app must treat this file as the shared project memory. Before making changes, read:
+
+- `CLAUDE.md`
+- `docs/record.md`
+- `docs/next_steps.md`
+- Relevant docs under `docs/validation`
+
+When meaningful product, prompt, pricing, privacy, or architecture decisions change, update `docs/record.md` and `docs/next_steps.md` so future Claude Code/Codex sessions continue from the same context.
+
 Claude Code/Codex agents working on this app must use the validation docs in `docs/validation`.
 
 Before changing saju calculation, luck-cycle calculation, lunar/solar conversion, birth-time handling, or evidence serialization:
@@ -44,6 +53,15 @@ The preferred architecture is hybrid:
 3. Keep follow-up chat API-based.
 4. Add validation over AI output so unsupported claims can be caught before display.
 
+Current product strategy:
+
+- Prefer one-time paid reports over a monthly subscription for the first release.
+- Candidate products are `올해 운세 리포트`, `전체 사주 리포트`, `정밀 궁합 리포트`, `사주+타로 질문 리딩`, `월별 리포트`, and `질문 5개 충전`.
+- `올해 운세 리포트` should include 상반기/하반기 and 1월~12월 flow, rather than selling those separately at first.
+- PDF save should be bundled into paid reports, not treated as the main standalone product.
+- Do not chase a 120-page PDF yet. First prove that a 20~40 page report feels useful, polished, and worth paying for.
+- Before charging high prices, validate result quality, PDF quality, user willingness to pay, and whether free/paid differences are obvious.
+
 ## Current Repository State
 
 Repository:
@@ -61,6 +79,13 @@ Key commits already pushed:
 - `1a16929` Add reading image zip export and follow-up limit
 - `fe28b9a` Improve saju charts exports and yearly reading detail
 - `d92697c` Clarify saju chart labels and add keyword cloud
+- `26be761` Remove unsupported Anthropic assistant prefill
+- `6fce368` Clarify late-night birth calculation basis
+- `37580d3` Prioritize question answers and improve compatibility view
+- `a8a8991` Expand compatibility analysis factors
+- `374031b` Add relationship contexts to compatibility
+- `d6c35d1` Clarify daily fortune and strengthen tarot readings
+- `ae8c227` Port richer tarot symbolism
 
 ## Important Files
 
@@ -97,6 +122,7 @@ Input:
 - `src/pages/ComboPage.tsx`
 - `src/pages/FlowPage.tsx`
 - `src/pages/TodayPage.tsx`
+- `src/pages/FortunePage.tsx`
 - `src/pages/TarotPage.tsx`
 
 Tests:
@@ -119,13 +145,14 @@ The app uses Claude through `api/reading.ts`.
 Long saju/combo readings use client-side fan-out:
 
 - `src/lib/readingApi.ts` sends two simultaneous streaming calls for new `saju` and `combo` readings.
-- Front call writes: `# 첫 점괘`, `# 분야별 요약`, `# 타고난 성격과 기질`, `# 직업과 돈`, `# 재물 흐름`, `# 애정과 관계`.
+- Front call writes: `# 첫 점괘`, `# 질문 중심 핵심`, `# 분야별 요약`, `# 타고난 성격과 기질`, `# 직업과 돈`, `# 재물 흐름`, `# 애정과 관계`.
 - Back call writes: `# 건강과 컨디션`, `# 인생의 큰 흐름`, `# 올해의 흐름`, `# 지금 해야 할 것과 피해야 할 것`, `# 마지막 점괘`.
 - The UI combines front/back text in the original section order.
 - Each call still uses the existing continuation logic if it hits `max_tokens` or a stream ends early.
 - `sectionGroup` is only a generation instruction. The stored `userMessage`/follow-up history must not keep the front/back-only directive.
 - Follow-up, compare, today, and flow calls are not fan-out by default.
 - `light` depth is also not fan-out. It is treated as a fast supplement to the API-free instant summary.
+- The Anthropic API call must end with a user message. Do not reintroduce assistant prefill messages for continuation.
 
 ### Follow-up Chat
 
@@ -143,6 +170,7 @@ Both UI and store-level guards exist.
 The prompt expects major readings to use these sections:
 
 - `# 첫 점괘`
+- `# 질문 중심 핵심` when the user entered a question
 - `# 분야별 요약`
 - `# 타고난 성격과 기질`
 - `# 직업과 돈`
@@ -166,6 +194,56 @@ For most sections, the expected internal structure is:
 - `[전문가 근거 보기]`
 
 Expert evidence should be preserved in collapsible/detail areas, not removed.
+
+If the user chose an interest or entered a question, answer that concern early and visibly. The preferred UI is a natural card near the top of the relevant result area, not a buried answer at the bottom.
+
+### Menu Direction
+
+- `오늘` and `운세` are merged as `오늘 운세`.
+- `/today` redirects to `/fortune`.
+- `흐름` is displayed as `흐름 캘린더` so users understand it is calendar-like flow information.
+
+### Compatibility
+
+Compatibility should work beyond romantic relationships. Supported relationship contexts include:
+
+- 연인·배우자
+- 부모·자식
+- 형제·자매
+- 가족
+- 사장·직원
+- 동료·동업자
+- 친구
+- 앙숙·불편한 사람
+
+The compatibility reading should include:
+
+- Relationship summary
+- Each person's saju pattern in plain language
+- Day-branch/partner-palace analysis
+- How each person experiences the other
+- Role fit by relationship purpose
+- Repeated conflict pattern
+- Timing flow
+- Specific improvement strategy
+- Expert evidence
+
+Do not reduce compatibility to a score. The user disliked the earlier shallow compatibility output.
+
+### Tarot Symbolism
+
+Tarot readings use richer symbolism imported from the sokmaeum-style approach:
+
+- `src/lib/tarotSymbolism.ts`
+- Card archetype
+- Symbol keywords
+- Imagery cues
+- Number/stage meaning
+- Suit meaning
+- Relationship application
+- Spread diagnostics such as upright/reversed ratio, major-card ratio, repeated suits, and start-to-last flow axis
+
+When strengthening tarot output, preserve this evidence-rich structure.
 
 ### Yearly Flow
 
