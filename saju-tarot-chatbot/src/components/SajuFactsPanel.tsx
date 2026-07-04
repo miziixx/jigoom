@@ -511,7 +511,8 @@ export default function SajuFactsPanel({
           )}
 
           {luckCycles.monthlyFlow && luckCycles.monthlyFlow.length > 0 && (
-            <section className="saju-facts__monthly">
+            <details className="saju-facts__details saju-facts__monthly">
+              <summary>월별 흐름 계산값 보기</summary>
               <h4 className="saju-facts__subhead">올해 1월~12월 흐름</h4>
               <div className="month-flow-grid">
                 {luckCycles.monthlyFlow.map((mf) => (
@@ -527,8 +528,8 @@ export default function SajuFactsPanel({
                   </div>
                 ))}
               </div>
-              <p className="saju-facts__hint">월별 표시는 원국과 올해 흐름이 얼마나 강하게 맞물리는지를 쉬운 말로 바꾼 것입니다.</p>
-            </section>
+              <p className="saju-facts__hint">월별 표시는 원국과 올해 흐름이 얼마나 강하게 맞물리는지를 쉬운 말로 바꾼 것입니다. 더 읽기 쉬운 해석은 "월별 실행 캘린더"와 "올해의 흐름" 섹션에 있습니다.</p>
+            </details>
           )}
         </>
       )}

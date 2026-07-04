@@ -428,7 +428,15 @@ export default function ReadingResult({ session, loading = false }: { session: R
 
   return (
     <div className="reading-result">
-      {loading && <LoadingNotice depth={session.context?.depth} />}
+      {loading && (
+        <LoadingNotice
+          depth={session.context?.depth}
+          type={session.type}
+          hasQuestion={!!session.question?.trim()}
+          replyText={reply}
+          isInitial={session.messages.length <= 2}
+        />
+      )}
 
       {/* 타로 근거 (있을 때) */}
       {session.tarotCards && session.tarotCards.length > 0 && (
@@ -450,12 +458,6 @@ export default function ReadingResult({ session, loading = false }: { session: R
 
       {session.sajuChart && <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />}
 
-      {/* 한눈에 보는 내 구조 (기질 스펙트럼·인생영역) */}
-      {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
-      {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
-
-      {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
-      {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
       <EvidenceConfidence session={session} />
 
       {opening && (
@@ -488,6 +490,14 @@ export default function ReadingResult({ session, loading = false }: { session: R
           </div>
         </section>
       )}
+      {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
+
+      {/* AI 프로즈가 시작되기 직전, 계산 기반 위젯을 한 번 더 배치해 "위는 위젯 벽 - 아래는 텍스트 벽"이 되지 않게 한다.
+          AI 스트리밍 진행과 무관하게 즉시 보이도록 sajuChart/luckCycles 존재 여부로만 조건을 건다(특정 섹션이
+          스트리밍으로 도착했는지에 의존하면 원래 즉시 뜨던 위젯이 그 섹션이 나올 때까지 늦게 뜨게 된다). */}
+      {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
+      {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
+      {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
 
       {bodySections.map((section, i) => (
         <section
