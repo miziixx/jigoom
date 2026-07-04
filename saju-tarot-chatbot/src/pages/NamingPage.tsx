@@ -19,6 +19,11 @@ import {
 } from "../lib/naming";
 import type { BirthInfo } from "../types";
 
+const OFFICIAL_NAMING_LINKS = {
+  efamilyHanja: "https://efamily.scourt.go.kr/cs/CsBltnWrtList.do?bltnbordId=0000010",
+  easyLawName: "https://www.easylaw.go.kr/CSP/CnpClsMain.laf?ccfNo=2&cciNo=1&cnpClsNo=2&csmSeq=1830",
+};
+
 export default function NamingPage() {
   const [name, setName] = useState("");
   const [mode, setMode] = useState<NamingMode>("baby");
@@ -221,6 +226,14 @@ export default function NamingPage() {
               출생신고 또는 개명 신청 전 전자가족관계등록시스템이나 관할 기관에서 인명용 한자, 이름 글자 수, 동일 이름 등
               등록 요건을 최종 확인해야 합니다. 예명·상호·브랜드명은 상표, 도메인, SNS 계정, 기존 사용 여부를 별도로 확인하세요.
             </p>
+            <div className="naming-legal-links">
+              <a href={OFFICIAL_NAMING_LINKS.efamilyHanja} target="_blank" rel="noreferrer">
+                인명용 한자 조회
+              </a>
+              <a href={OFFICIAL_NAMING_LINKS.easyLawName} target="_blank" rel="noreferrer">
+                자녀 이름 법령 안내
+              </a>
+            </div>
           </div>
           <BirthInfoForm submitLabel="이름 감정하기" onSubmit={(b) => handleSubmit(b)} loading={false} showFocus={false} />
         </>

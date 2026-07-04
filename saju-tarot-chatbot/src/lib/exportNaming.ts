@@ -6,6 +6,9 @@ interface NamingExportInput {
   interpretation?: string | null;
 }
 
+const OFFICIAL_EFAMILY_HANJA_URL = "https://efamily.scourt.go.kr/cs/CsBltnWrtList.do?bltnbordId=0000010";
+const OFFICIAL_EASYLAW_NAME_URL = "https://www.easylaw.go.kr/CSP/CnpClsMain.laf?ccfNo=2&cciNo=1&cnpClsNo=2&csmSeq=1830";
+
 function safeFilenamePart(value: string): string {
   return value.trim().replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "-") || "name";
 }
@@ -75,6 +78,10 @@ export function buildNamingMarkdown({ result, comparison, interpretation }: Nami
     "이름 감정은 절대적인 길흉 예언이 아니라, 발음오행·사주 보완·수리 같은 전통 작명 관점을 계산해 균형을 보여주는 참고 자료입니다. 어떤 이름도 나쁜 이름으로 단정하지 않습니다.",
     "아기 이름·개명 이름은 실제 출생신고 또는 개명 신청 전 전자가족관계등록시스템이나 관할 기관에서 인명용 한자, 이름 글자 수, 동일 이름 등 등록 요건을 최종 확인해야 합니다.",
     "예명·활동명·상호명·브랜드명은 상표, 도메인, SNS 계정, 기존 사용 여부를 별도로 확인해야 합니다.",
+    "",
+    "공식 확인 링크:",
+    `- 인명용 한자 조회: ${OFFICIAL_EFAMILY_HANJA_URL}`,
+    `- 자녀 이름 법령 안내: ${OFFICIAL_EASYLAW_NAME_URL}`,
     "",
   );
 

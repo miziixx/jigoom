@@ -580,6 +580,24 @@ label {
   line-height: 1.6;
 }
 
+.naming-legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.naming-legal-links a {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--surface-alt);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .naming-actions {
   display: flex;
   gap: 8px;

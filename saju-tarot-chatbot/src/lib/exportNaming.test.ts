@@ -25,5 +25,8 @@ describe("이름 감정 저장", () => {
     expect(markdown).toContain("## 후보 이름 비교");
     expect(markdown).toContain("## AI 이름 해석 리포트");
     expect(markdown).toContain("상표, 도메인, SNS 계정");
+    expect(markdown).toContain("인명용 한자 조회");
+    expect(markdown).toContain("efamily.scourt.go.kr");
+    expect(markdown).toContain("easylaw.go.kr");
   });
 });
