@@ -644,3 +644,14 @@ saju/lunar를 더 이상 끌어오지 않아 API 번들이 가벼워짐. (150 �
 - 대운 가독성: DaYunTimeline 각 pill에 천간 오행 기반 기운 라벨(성장기/표현기/안정기/정리기/사색기) 추가.
 - 검증: Playwright 390px — 원국 top(290px)·신살(810)·대운 라벨 8개·1~12월 흐름 전부 상단 노출, 가로 스크롤 0.
   test 179 통과, build OK.
+
+## 월별 풀이 카드화 + 이름추천 잘린 JSON 복구 (사용자 피드백)
+
+- 월별 풀이 가독성: "올해의 흐름 → 쉬운 풀이"의 1~12월이 문단 벽으로 나오던 문제. parseMonthlyFlow로
+  일반화("N월 — 키워드:… 조언:…" 및 "N월, 키워드는 … 한 줄 조언: …" 두 형식 지원), 어느 파트든 월별
+  나열(≥3개, 키워드/조언 구조 有)이면 month-evidence-grid 카드로 렌더. 중간 설명은 body로 보존(내용 안 버림).
+  조언은 라벨+구분선으로 강조. 3열/2열/1열 반응형.
+- 이름추천 raw JSON 노출 버그: 후보 JSON이 max_tokens로 잘리면 parseRecommendedNames가 null →
+  평문 폴백이 잘린 raw JSON을 그대로 노출. parseRecommendedNames를 견고화: 통짜 파싱 실패 시 완성된
+  후보 객체({…"name"…})만 정규식으로 회수하고 direction도 별도 추출 → 잘려도 카드로 렌더. api/naming
+  MAX_TOKENS 4500→8000으로 truncation 자체도 완화. 테스트 추가(180 통과), build OK.

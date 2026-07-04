@@ -150,3 +150,19 @@ describe("이름 추천 결과 구조화", () => {
     expect(scoreGood).toBeLessThanOrEqual(99);
   });
 });
+
+describe("이름 추천 JSON 견고성", () => {
+  it("max_tokens로 잘린 JSON에서도 완성된 후보만 복구한다", () => {
+    const truncated =
+      'AI 이름 추천\n{ "direction": "목 기운 방향", "candidates": [\n' +
+      '{ "name": "가은", "hanja": "嘉恩", "hanjaMeaning": "아름다울 가, 은혜 은", "sound": "ㄱ 소리", "image": "온화" },\n' +
+      '{ "name": "강희", "hanja": "姜熙", "hanjaMeaning": "굳셀 강, 빛날 희", "sound": "ㄱ", "image": "단정" },\n' +
+      '{ "name": "경윤", "han';
+    const parsed = parseRecommendedNames(truncated);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.direction).toBe("목 기운 방향");
+    // 완성된 2개만 복구, 잘린 '경윤'은 제외
+    expect(parsed!.candidates).toHaveLength(2);
+    expect(parsed!.candidates.map((c) => c.name)).toEqual(["가은", "강희"]);
+  });
+})

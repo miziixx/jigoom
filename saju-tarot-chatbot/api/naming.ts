@@ -11,7 +11,7 @@ import type { NameComparison, NameEvaluation, NamingBrief, NamingRecommendOption
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
 // 이름 리포트/추천은 후보·근거가 있어 분량이 있다. 함수 maxDuration(120초) 안에서
 // 끝까지 생성되도록 넉넉히 잡는다.
-const MAX_TOKENS = 4500;
+const MAX_TOKENS = 8000;
 
 interface NamingBody {
   mode?: "evaluate" | "recommend";

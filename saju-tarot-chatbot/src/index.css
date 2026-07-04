@@ -2098,6 +2098,24 @@ label {
   line-height: 1.55;
 }
 
+.month-evidence-card__advice {
+  margin-top: 2px !important;
+  padding-top: 7px;
+  border-top: 1px dashed rgba(127, 199, 255, 0.22);
+  color: var(--text) !important;
+}
+
+.month-evidence-card__advice span {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #7fc7ff;
+  background: rgba(127, 199, 255, 0.14);
+  border-radius: 5px;
+  padding: 1px 6px;
+  margin-right: 4px;
+}
+
 .reading-bullets {
   margin: 0;
   padding-left: 20px;

@@ -445,34 +445,70 @@ export function namingDisplayScore(ev: NameEvaluation): number {
   return Math.max(40, Math.min(99, s));
 }
 
-/** AI 응답 문자열에서 이름 후보 JSON을 안전하게 뽑아낸다. 실패하면 null. */
+function coerceCandidate(c: unknown): RawRecommendedName | null {
+  if (!c || typeof c !== "object") return null;
+  const r = c as Record<string, unknown>;
+  if (typeof r.name !== "string" || !r.name.trim()) return null;
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+  return {
+    name: r.name.trim(),
+    hanja: str(r.hanja),
+    hanjaMeaning: str(r.hanjaMeaning),
+    sound: str(r.sound),
+    image: str(r.image),
+  };
+}
+
+/**
+ * AI 응답 문자열에서 이름 후보 JSON을 뽑아낸다.
+ * 응답이 max_tokens로 잘려 JSON이 미완성이어도, 완성된 후보 객체만이라도 복구한다.
+ * (잘린 raw JSON을 화면에 그대로 노출하지 않기 위한 방어선)
+ */
 export function parseRecommendedNames(raw: string): RecommendedNamesPayload | null {
+  let direction: string | undefined;
+  let rawCandidates: unknown[] = [];
+
+  // 1) 정상 케이스: 통째로 파싱
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-  let obj: unknown;
-  try {
-    obj = JSON.parse(raw.slice(start, end + 1));
-  } catch {
-    return null;
+  if (start >= 0 && end > start) {
+    try {
+      const obj = JSON.parse(raw.slice(start, end + 1)) as { direction?: unknown; candidates?: unknown };
+      if (obj && Array.isArray(obj.candidates)) {
+        rawCandidates = obj.candidates;
+        if (typeof obj.direction === "string") direction = obj.direction;
+      }
+    } catch {
+      // 잘렸을 수 있음 → 아래 복구 로직으로
+    }
   }
-  if (!obj || typeof obj !== "object") return null;
-  const record = obj as { direction?: unknown; candidates?: unknown };
-  if (!Array.isArray(record.candidates)) return null;
-  const candidates: RawRecommendedName[] = record.candidates
-    .map((c) => c as Record<string, unknown>)
-    .filter((c) => c && typeof c.name === "string" && (c.name as string).trim().length > 0)
-    .map((c) => ({
-      name: String(c.name).trim(),
-      hanja: typeof c.hanja === "string" && c.hanja.trim() ? c.hanja.trim() : undefined,
-      hanjaMeaning:
-        typeof c.hanjaMeaning === "string" && c.hanjaMeaning.trim() ? c.hanjaMeaning.trim() : undefined,
-      sound: typeof c.sound === "string" && c.sound.trim() ? c.sound.trim() : undefined,
-      image: typeof c.image === "string" && c.image.trim() ? c.image.trim() : undefined,
-    }));
+
+  // 2) 복구 케이스: 완성된 후보 객체({...})를 하나씩 회수
+  if (rawCandidates.length === 0) {
+    const dm = raw.match(/"direction"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (dm) {
+      try {
+        direction = JSON.parse(`"${dm[1]}"`) as string;
+      } catch {
+        direction = dm[1];
+      }
+    }
+    // "name"을 포함한 평평한 객체만 매칭(중괄호 미포함). 잘린 마지막 객체는 자동 제외됨.
+    const objRe = /\{[^{}]*?"name"\s*:[^{}]*?\}/g;
+    let m: RegExpExecArray | null;
+    while ((m = objRe.exec(raw)) !== null) {
+      try {
+        rawCandidates.push(JSON.parse(m[0]));
+      } catch {
+        /* 개별 객체 파싱 실패는 건너뜀 */
+      }
+    }
+  }
+
+  const candidates = rawCandidates.map(coerceCandidate).filter((c): c is RawRecommendedName => c !== null);
   if (candidates.length === 0) return null;
   return {
-    direction: typeof record.direction === "string" && record.direction.trim() ? record.direction.trim() : undefined,
+    direction: direction && direction.trim() ? direction.trim() : undefined,
     candidates,
   };
 }
