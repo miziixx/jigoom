@@ -32,6 +32,7 @@ interface NewReadingBody {
   question: string;
   focus?: ReadingFocus;
   context?: ReadingContext;
+  sectionGroup?: "front" | "back";
   // 개인정보 보호: 생년월일 원본(birthInfo)은 서버로 보내지 않는다. 사주 계산은 클라이언트에서
   // 끝내고, 그 계산 결과와 성별만 전달한다.
   gender?: Gender;
@@ -180,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const { type, question, focus, context, gender, sajuChart, luckCycles, tarotCards, spreadNote } = body;
+    const { type, question, focus, context, sectionGroup, gender, sajuChart, luckCycles, tarotCards, spreadNote } = body;
 
     if ((type === "saju" || type === "combo" || type === "today" || type === "flow") && !sajuChart) {
       res.status(400).json({ error: "sajuChart(계산 결과)가 필요합니다." });
@@ -191,22 +192,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const userMessage = buildReadingUserMessage({
+    const readingFacts = {
       type,
       question,
       focus,
       context,
+      sectionGroup,
       gender,
       sajuChart,
       luckCycles,
       tarotCards,
       spreadNote,
-    });
+    };
+    const userMessage = buildReadingUserMessage(readingFacts);
+    // 병렬 생성용 sectionGroup 지시는 Claude 호출에만 쓰고, 세션/후속질문 히스토리에는 남기지 않는다.
+    const metaUserMessage = sectionGroup
+      ? buildReadingUserMessage({ ...readingFacts, sectionGroup: undefined })
+      : userMessage;
 
     const messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userMessage }];
     if (continueFrom) messages.push({ role: "assistant", content: continueFrom });
     // 이어쓰기 호출에는 계산 메타(meta)를 다시 실어 보내지 않는다 (이미 첫 호출에서 전달됨).
-    const meta = continueFrom ? undefined : { userMessage, sajuChart, luckCycles };
+    const meta = continueFrom ? undefined : { userMessage: metaUserMessage, sajuChart, luckCycles };
     if (streaming) {
       await streamMessages(res, anthropic, messages, meta);
     } else {

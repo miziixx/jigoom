@@ -29,6 +29,12 @@ interface StreamChunkResult {
 /** 이어쓰기(continue) 최대 횟수 — 무한 루프 방지. 전문가 리딩도 이 안에서 완결된다. */
 const MAX_CONTINUATIONS = 6;
 
+type FanOutBody = Record<string, unknown> & {
+  type?: unknown;
+  continueFrom?: unknown;
+  sectionGroup?: unknown;
+};
+
 /** 스트림 라인으로 전달된 서버 측 오류 (네트워크 단절과 구분용) */
 class ServerReportedError extends Error {}
 
@@ -60,35 +66,105 @@ function networkError(): NetworkDropError {
 export async function streamReading(body: unknown, handlers: StreamHandlers = {}): Promise<StreamResult> {
   const wakeLock = await acquireWakeLock();
   try {
-    // 잘린 리딩(토큰 상한/네트워크 절단)을 최종본으로 확정하지 않는다. 완결될 때까지 지금까지
-    // 받은 본문을 continueFrom으로 넘겨 "이어서" 생성하게 한다. UI에는 항상 누적 전문을 보여준다.
-    let fullReply = "";
-    let meta: ReadingMeta | undefined;
-
-    for (let attempt = 0; attempt <= MAX_CONTINUATIONS; attempt++) {
-      const isContinuation = fullReply.length > 0;
-      const callBody = isContinuation
-        ? { ...(body as Record<string, unknown>), continueFrom: fullReply }
-        : body;
-
-      const wrapped: StreamHandlers = {
-        // 메타(계산 결과)는 첫 호출에서만 온다
-        onMeta: isContinuation ? undefined : handlers.onMeta,
-        onText: (accumulated) => handlers.onText?.(fullReply + accumulated),
-      };
-
-      const chunk = await streamChunkWithRetry(callBody, wrapped);
-      if (!isContinuation) meta = chunk.meta;
-      fullReply += chunk.reply;
-
-      // 완결됐거나, 더 이어붙일 게 없으면(이번 호출에서 새 텍스트가 없음) 종료
-      if (chunk.complete || chunk.reply.length === 0) break;
-    }
-
-    return { meta, reply: fullReply };
+    if (shouldFanOut(body)) return await streamReadingFanOut(body as FanOutBody, handlers);
+    return await streamReadingWithContinuations(body, handlers);
   } finally {
     wakeLock?.release().catch(() => {});
   }
+}
+
+function shouldFanOut(body: unknown): body is FanOutBody {
+  if (!body || typeof body !== "object") return false;
+  const b = body as FanOutBody;
+  return (b.type === "saju" || b.type === "combo") && !b.continueFrom && !b.sectionGroup;
+}
+
+function combineParts(front: string, back: string): string {
+  if (!front) return back;
+  if (!back) return front;
+  return `${front.trimEnd()}\n\n${back.trimStart()}`;
+}
+
+async function streamReadingFanOut(body: FanOutBody, handlers: StreamHandlers): Promise<StreamResult> {
+  let frontReply = "";
+  let backReply = "";
+  let meta: ReadingMeta | undefined;
+  let metaDelivered = false;
+  let pendingText: string | null = null;
+
+  const emitCombined = () => {
+    const combined = combineParts(frontReply, backReply);
+    if (!metaDelivered) {
+      pendingText = combined;
+      return;
+    }
+    handlers.onText?.(combined);
+  };
+
+  const deliverMeta = (nextMeta: ReadingMeta) => {
+    if (metaDelivered) return;
+    meta = nextMeta;
+    metaDelivered = true;
+    handlers.onMeta?.(nextMeta);
+    if (pendingText !== null) {
+      handlers.onText?.(pendingText);
+      pendingText = null;
+    }
+  };
+
+  const front = streamReadingWithContinuations(
+    { ...body, sectionGroup: "front" },
+    {
+      onMeta: deliverMeta,
+      onText: (text) => {
+        frontReply = text;
+        emitCombined();
+      },
+    },
+  );
+  const back = streamReadingWithContinuations(
+    { ...body, sectionGroup: "back" },
+    {
+      onText: (text) => {
+        backReply = text;
+        emitCombined();
+      },
+    },
+  );
+
+  const [frontResult, backResult] = await Promise.all([front, back]);
+  meta = meta ?? frontResult.meta ?? backResult.meta;
+  const reply = combineParts(frontResult.reply, backResult.reply);
+  if (meta && !metaDelivered) handlers.onMeta?.(meta);
+  handlers.onText?.(reply);
+  return { meta, reply };
+}
+
+async function streamReadingWithContinuations(body: unknown, handlers: StreamHandlers = {}): Promise<StreamResult> {
+  // 잘린 리딩(토큰 상한/네트워크 절단)을 최종본으로 확정하지 않는다. 완결될 때까지 지금까지
+  // 받은 본문을 continueFrom으로 넘겨 "이어서" 생성하게 한다. UI에는 항상 누적 전문을 보여준다.
+  let fullReply = "";
+  let meta: ReadingMeta | undefined;
+
+  for (let attempt = 0; attempt <= MAX_CONTINUATIONS; attempt++) {
+    const isContinuation = fullReply.length > 0;
+    const callBody = isContinuation ? { ...(body as Record<string, unknown>), continueFrom: fullReply } : body;
+
+    const wrapped: StreamHandlers = {
+      // 메타(계산 결과)는 첫 호출에서만 온다
+      onMeta: isContinuation ? undefined : handlers.onMeta,
+      onText: (accumulated) => handlers.onText?.(fullReply + accumulated),
+    };
+
+    const chunk = await streamChunkWithRetry(callBody, wrapped);
+    if (!isContinuation) meta = chunk.meta;
+    fullReply += chunk.reply;
+
+    // 완결됐거나, 더 이어붙일 게 없으면(이번 호출에서 새 텍스트가 없음) 종료
+    if (chunk.complete || chunk.reply.length === 0) break;
+  }
+
+  return { meta, reply: fullReply };
 }
 
 /**

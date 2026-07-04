@@ -32,6 +32,55 @@ afterEach(() => {
 });
 
 describe("streamReading 이어쓰기(continue)", () => {
+  it("saju 새 리딩은 앞/뒤 섹션을 병렬 호출해 순서대로 합친다", async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const fetchMock = vi.fn((_, init: RequestInit) => {
+      const parsed = JSON.parse(init.body as string) as Record<string, unknown>;
+      calls.push(parsed);
+      if (parsed.sectionGroup === "front") {
+        return Promise.resolve(
+          ndjsonResponse([
+            JSON.stringify({ meta: { userMessage: "front-user" } }),
+            JSON.stringify({ text: "# 첫 점괘\n앞" }),
+            JSON.stringify({ done: true, stopReason: "end_turn" }),
+          ]),
+        );
+      }
+      return Promise.resolve(
+        ndjsonResponse([
+          JSON.stringify({ meta: { userMessage: "back-user" } }),
+          JSON.stringify({ text: "# 건강과 컨디션\n뒤" }),
+          JSON.stringify({ done: true, stopReason: "end_turn" }),
+        ]),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await streamReading({ type: "saju", question: "전체" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(calls.map((c) => c.sectionGroup).sort()).toEqual(["back", "front"]);
+    expect(result.reply).toBe("# 첫 점괘\n앞\n\n# 건강과 컨디션\n뒤");
+    expect(result.meta?.userMessage).toBe("front-user");
+  });
+
+  it("followup은 병렬 호출하지 않는다", async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        ndjsonResponse([
+          JSON.stringify({ text: "후속 답변" }),
+          JSON.stringify({ done: true, stopReason: "end_turn" }),
+        ]),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await streamReading({ type: "followup", history: [{ role: "user", content: "질문" }] });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.reply).toBe("후속 답변");
+  });
+
   it("stopReason이 max_tokens면 continueFrom으로 이어서 완결한다", async () => {
     const calls: Array<Record<string, unknown>> = [];
     const fetchMock = vi.fn((_, init: RequestInit) => {
@@ -59,7 +108,7 @@ describe("streamReading 이어쓰기(continue)", () => {
 
     let lastAccumulated = "";
     const result = await streamReading(
-      { type: "saju", question: "" },
+      { type: "flow", question: "" },
       { onText: (acc) => (lastAccumulated = acc) },
     );
 
@@ -90,7 +139,7 @@ describe("streamReading 이어쓰기(continue)", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await streamReading({ type: "saju", question: "" });
+    const result = await streamReading({ type: "flow", question: "" });
 
     expect(calls).toHaveLength(2);
     expect(calls[1].continueFrom).toBe("중간까지");
@@ -109,7 +158,7 @@ describe("streamReading 이어쓰기(continue)", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await streamReading({ type: "saju", question: "" });
+    const result = await streamReading({ type: "flow", question: "" });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.reply).toBe("완성된 리딩");

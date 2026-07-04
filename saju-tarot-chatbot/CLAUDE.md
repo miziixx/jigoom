@@ -91,6 +91,16 @@ The app uses Claude through `api/reading.ts`.
 - `ANTHROPIC_API_KEY` must exist in the deployment environment.
 - Responses stream as NDJSON so long readings can appear progressively.
 
+Long saju/combo readings use client-side fan-out:
+
+- `src/lib/readingApi.ts` sends two simultaneous streaming calls for new `saju` and `combo` readings.
+- Front call writes: `# 첫 점괘`, `# 분야별 요약`, `# 타고난 성격과 기질`, `# 직업과 돈`, `# 재물 흐름`, `# 애정과 관계`.
+- Back call writes: `# 건강과 컨디션`, `# 인생의 큰 흐름`, `# 올해의 흐름`, `# 지금 해야 할 것과 피해야 할 것`, `# 마지막 점괘`.
+- The UI combines front/back text in the original section order.
+- Each call still uses the existing continuation logic if it hits `max_tokens` or a stream ends early.
+- `sectionGroup` is only a generation instruction. The stored `userMessage`/follow-up history must not keep the front/back-only directive.
+- Follow-up, compare, today, and flow calls are not fan-out by default.
+
 ### Follow-up Chat
 
 Follow-up chat is limited to 5 user questions per reading.
@@ -382,4 +392,3 @@ Expected:
 ```text
 daily.zia@gmail.com
 ```
-

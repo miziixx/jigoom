@@ -68,4 +68,32 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(deep).not.toContain("[기본 리딩 — 종합]");
     expect(deep).toContain("전문가 리딩");
   });
+
+  it("병렬 생성을 위해 지정 섹션만 쓰라는 지시를 붙일 수 있다", () => {
+    const front = buildReadingUserMessage({
+      type: "saju",
+      question: "전체",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      sectionGroup: "front",
+    });
+    const back = buildReadingUserMessage({
+      type: "saju",
+      question: "전체",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      sectionGroup: "back",
+    });
+
+    expect(front).toContain("병렬 생성 — 앞부분만 작성");
+    expect(front).toContain("# 재물 흐름");
+    expect(front).toContain("건강과 컨디션");
+    expect(front).toContain("절대 쓰지 마라");
+    expect(back).toContain("병렬 생성 — 뒷부분만 작성");
+    expect(back).toContain("# 건강과 컨디션");
+    expect(back).toContain("첫 점괘");
+    expect(back).toContain("절대 쓰지 마라");
+  });
 });

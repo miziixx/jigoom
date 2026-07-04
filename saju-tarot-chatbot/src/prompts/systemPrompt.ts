@@ -398,6 +398,8 @@ export interface ReadingFacts {
   question: string;
   focus?: ReadingFocus;
   context?: ReadingContext;
+  /** 긴 종합 리딩을 병렬 생성할 때 담당할 섹션 묶음 */
+  sectionGroup?: "front" | "back";
   /** 성별만 전달한다. 개인정보 보호를 위해 생년월일 원본은 AI로 보내지 않는다. */
   gender?: Gender;
   sajuChart?: SajuChart;
@@ -470,6 +472,16 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
   // (today/flow는 자체 섹션 안내가 있으므로 제외)
   if (!facts.context?.depth && (facts.type === "saju" || facts.type === "combo" || facts.type === "tarot")) {
     parts.push(DEFAULT_STANDARD_INSTRUCTION);
+  }
+
+  if (facts.sectionGroup === "front") {
+    parts.push(
+      "[병렬 생성 — 앞부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라.\n# 첫 점괘\n# 분야별 요약\n# 타고난 성격과 기질\n# 직업과 돈\n# 재물 흐름\n# 애정과 관계\n다른 섹션(건강과 컨디션, 인생의 큰 흐름, 올해의 흐름, 지금 해야 할 것과 피해야 할 것, 마지막 점괘)은 절대 쓰지 마라.",
+    );
+  } else if (facts.sectionGroup === "back") {
+    parts.push(
+      "[병렬 생성 — 뒷부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라.\n# 건강과 컨디션\n# 인생의 큰 흐름\n# 올해의 흐름\n# 지금 해야 할 것과 피해야 할 것\n# 마지막 점괘\n다른 섹션(첫 점괘, 분야별 요약, 타고난 성격과 기질, 직업과 돈, 재물 흐름, 애정과 관계)은 절대 쓰지 마라.",
+    );
   }
 
   return parts.join("\n\n");
