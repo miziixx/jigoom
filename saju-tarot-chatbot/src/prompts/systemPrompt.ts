@@ -217,7 +217,7 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 첫 턴(새 리딩)에는 위 형식을 따른다. 후속 질문 턴에서는 형식을 반복하지 말고 그 질문에 집중해
 같은 톤·같은 금지 규칙으로 밀도 있게 답한다.`;
 
-function formatSajuChart(chart: SajuChart): string {
+function formatSajuChart(chart: SajuChart, todayGanZhi?: string): string {
   const lines = [
     `연주: ${chart.year.ganZhi} / 월주: ${chart.month.ganZhi} / 일주(일간=${chart.dayMasterGan}): ${chart.day.ganZhi}`,
     chart.hour ? `시주: ${chart.hour.ganZhi}` : "시주: 출생 시간 모름 (시주 제외 해석)",
@@ -247,10 +247,15 @@ function formatSajuChart(chart: SajuChart): string {
       `용신 후보 — 용신: ${yong}${hee}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""} (${chart.yongshin.note})`,
     );
   }
-  const lifestyle = buildLifestyleGuide(chart);
+  const lifestyle = buildLifestyleGuide(chart, { todayGanZhi });
   lines.push(
-    `개인 생활 처방 — 기준 오행: ${lifestyle.basisLabel} (${lifestyle.basisReason}) / 색: ${lifestyle.colors.join("·")} / 숫자: ${lifestyle.numbers.join("·")} / 방향: ${lifestyle.directions.join("·")} / 장소: ${lifestyle.places.join("·")} / 자연: ${lifestyle.nature.join("·")} / 운동: ${lifestyle.movement.join("·")} / 건강 체크 포인트: ${lifestyle.healthFocus.join("·")} / 일하는 방식: ${lifestyle.workStyle.join("·")} / 회복 루틴: ${lifestyle.recovery.join("·")} / 재미 미션: ${lifestyle.playfulActions.join("·")} / 바로 실행 3개: ${lifestyle.todayActions.join("·")} / 주의: ${lifestyle.caution}`,
+    `개인 생활 처방 — 기준 오행: ${lifestyle.basisLabel} (${lifestyle.basisReason})${lifestyle.secondaryLabel ? ` / 보조 오행: ${lifestyle.secondaryLabel}` : ""}${lifestyle.avoidLabel ? ` / 과하면 부담: ${lifestyle.avoidLabel}` : ""} / 색: ${lifestyle.colors.join("·")} / 숫자: ${lifestyle.numbers.join("·")} / 방향: ${lifestyle.directions.join("·")} / 장소: ${lifestyle.places.join("·")} / 자연: ${lifestyle.nature.join("·")} / 운동: ${lifestyle.movement.join("·")} / 건강 체크 포인트: ${lifestyle.healthFocus.join("·")} / 일하는 방식: ${lifestyle.workStyle.join("·")} / 회복 루틴: ${lifestyle.recovery.join("·")} / 재미 미션: ${lifestyle.playfulActions.join("·")} / 바로 실행 3개: ${lifestyle.todayActions.join("·")} / 주의: ${lifestyle.caution}`,
   );
+  if (lifestyle.today) {
+    lines.push(
+      `오늘 기운(일진 반영, 날짜마다 달라짐) — ${lifestyle.today.headline}. ${lifestyle.today.note} 오늘 한 가지: ${lifestyle.today.action}. (이 '오늘 기운'은 개인 보완 기운과 오늘 일진의 상호작용으로 계산된 것이니, 리딩에서 오늘 조언에 자연스럽게 녹여라. 단정적 길흉으로 쓰지 마라.)`,
+    );
+  }
   if (chart.twelveStages) lines.push(`12운성 (일간 기준) — ${chart.twelveStages.join(", ")}`);
   if (chart.gongmang) lines.push(`공망 — ${chart.gongmang}`);
   if (chart.sinsal && chart.sinsal.length > 0) {
@@ -512,7 +517,7 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
   if (facts.sajuChart) {
     // 개인정보 보호: 생년월일 원본은 전달하지 않고, 계산된 원국과 성별만 근거로 넘긴다.
     if (facts.gender) parts.push(`[기본 정보] 성별: ${facts.gender === "male" ? "남성" : "여성"}`);
-    parts.push(`[사주 원국 계산 결과]\n${formatSajuChart(facts.sajuChart)}`);
+    parts.push(`[사주 원국 계산 결과]\n${formatSajuChart(facts.sajuChart, facts.luckCycles?.dayGanZhi)}`);
   }
 
   if (facts.luckCycles) {

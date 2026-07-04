@@ -828,6 +828,62 @@ label {
   margin-bottom: 12px;
 }
 
+.lifestyle-closing__secondary {
+  color: var(--accent);
+}
+
+.lifestyle-today {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  border-left: 3px solid var(--text-dim);
+}
+
+.lifestyle-today--boost {
+  border-left-color: #57d0a4;
+}
+
+.lifestyle-today--temper {
+  border-left-color: #e0a44f;
+}
+
+.lifestyle-today--steady {
+  border-left-color: var(--accent);
+}
+
+.lifestyle-today__badge {
+  display: inline-flex;
+  margin-bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.lifestyle-today b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.lifestyle-today p {
+  margin: 0 0 6px;
+  color: var(--text-dim);
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.lifestyle-today small {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
 .lifestyle-closing__hero p,
 .lifestyle-closing__grid p,
 .lifestyle-closing__note {

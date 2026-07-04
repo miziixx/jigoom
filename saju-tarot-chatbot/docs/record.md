@@ -289,6 +289,27 @@
 
 깊이·근거는 그대로 유지(줄이는 게 아니라 반복만 제거). 테스트 1개 추가, 총 136개 통과.
 
+## '오늘 써먹는 내 기운' 개인화 + 오늘(일진)화
+
+기존 생활 처방(`lifestyleGuide.ts`)은 기준 오행 1개 → 5종 고정 테이블 매칭이라,
+같은 기운이면 같은 문구 + 날짜와 무관(오늘 아님)했다. 두 축으로 강화:
+
+더 개인화:
+- 보조 기운(secondaryElement): 희신 첫 후보 → 없으면 두 번째로 약한 오행.
+- 과하면 부담 기운(avoidElement): 기신 후보 반영, caution 문구에 균형 조언으로 삽입.
+- 신강/신약을 basisReason에 반영("채우기보다 덜어내기" 등).
+- 보조 기운의 대표 색·장소·운동을 기준 기운 목록에 섞어, 같은 기준이라도 사람마다 갈리게.
+
+더 오늘화:
+- `buildLifestyleGuide(chart, { todayGanZhi })` 옵션 추가.
+- 오늘 일진 천간 오행과 내 보완 기운의 상생/상극으로 boost/temper/steady 판정.
+  boost=필요 기운이 살아나는 날, temper=과열·소모 주의, steady=무난. 날짜마다 달라진다.
+- headline/note/오늘 한 가지 행동을 관계에 맞게 생성. 단정적 길흉 금지.
+
+배선: systemPrompt(근거 직렬화에 오늘 기운·보조·부담 추가), ReadingResult('오늘 써먹는 내 기운'
+카드에 오늘 일진 블록·보조 기운 노출), exportMarkdown, index.css(오늘 블록 색상: boost 초록/
+temper 주황/steady 보라). 테스트 `lifestyleGuide.test.ts` 신규(4). 총 140개 통과.
+
 ## 현재 제품 방향
 
 앱의 핵심 방향은 다음과 같다.

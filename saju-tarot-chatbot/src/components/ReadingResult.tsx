@@ -261,15 +261,28 @@ function CategorySummaryCard({ item }: { item: CategorySummary }) {
 
 function LifestyleClosingSummary({ session }: { session: ReadingSession }) {
   if (!session.sajuChart) return null;
-  const guide = buildLifestyleGuide(session.sajuChart);
+  const guide = buildLifestyleGuide(session.sajuChart, { todayGanZhi: session.luckCycles?.dayGanZhi });
   return (
     <section className="card lifestyle-closing">
       <span className="lifestyle-closing__tag">오늘 써먹는 내 기운</span>
       <h3 className="card-title">마지막 생활 정리</h3>
       <div className="lifestyle-closing__hero">
         <span className={`lifestyle-guide__badge lifestyle-guide__badge--${guide.basisElement}`}>{guide.basisLabel}</span>
-        <p>{guide.basisReason}</p>
+        <p>
+          {guide.basisReason}
+          {guide.secondaryLabel && (
+            <span className="lifestyle-closing__secondary"> · 보조 기운 {guide.secondaryLabel}</span>
+          )}
+        </p>
       </div>
+      {guide.today && (
+        <div className={`lifestyle-today lifestyle-today--${guide.today.relation}`}>
+          <span className="lifestyle-today__badge">오늘 일진 {guide.today.label}</span>
+          <b>{guide.today.headline}</b>
+          <p>{guide.today.note}</p>
+          <small>오늘 한 가지 — {guide.today.action}</small>
+        </div>
+      )}
       <div className="lifestyle-closing__chips">
         <span>색 {guide.colors.slice(0, 2).join(" · ")}</span>
         <span>숫자 {guide.numbers.join(" · ")}</span>

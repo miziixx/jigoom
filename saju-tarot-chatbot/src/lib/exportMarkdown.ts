@@ -34,10 +34,11 @@ function formatSajuChart(session: ReadingSession): string[] {
       `- 보완/주의 기운 후보: 보완 ${((c.yongshin.yongshin ?? c.yongshin.supportive).join("·") || "없음")} · 과하면 부담 ${c.yongshin.unfavorable.join("·") || "없음"}`,
     );
   }
-  const guide = buildLifestyleGuide(c);
+  const guide = buildLifestyleGuide(c, { todayGanZhi: session.luckCycles?.dayGanZhi });
   lines.push(
-    `- 생활 처방: 기준 ${guide.basisLabel} · 색 ${guide.colors.join("·")} · 숫자 ${guide.numbers.join("·")} · 방향 ${guide.directions.join("·")}`,
+    `- 생활 처방: 기준 ${guide.basisLabel}${guide.secondaryLabel ? ` · 보조 ${guide.secondaryLabel}` : ""}${guide.avoidLabel ? ` · 과하면 부담 ${guide.avoidLabel}` : ""} · 색 ${guide.colors.join("·")} · 숫자 ${guide.numbers.join("·")} · 방향 ${guide.directions.join("·")}`,
   );
+  if (guide.today) lines.push(`- 오늘 기운(일진 ${guide.today.label}): ${guide.today.headline}`);
   lines.push(`- 맞는 장소/자연: ${guide.places.join("·")} / ${guide.nature.join("·")}`);
   lines.push(`- 운동/회복: ${guide.movement.join("·")} / ${guide.recovery.join("·")}`);
   lines.push(`- 건강 체크 포인트: ${guide.healthFocus.join("·")}`);

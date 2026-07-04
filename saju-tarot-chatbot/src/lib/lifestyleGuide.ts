@@ -1,9 +1,29 @@
 import type { FiveElementBalance, SajuChart } from "../types";
+import { GAN_WUXING, ZHI_WUXING } from "./saju";
+
+export type Element = keyof FiveElementBalance;
+
+/** 오늘 일진 기운이 내 보완 기운과 맺는 관계 */
+export type TodayEnergy = {
+  element: Element;
+  label: string;
+  /** boost: 오늘 기운이 내 필요 기운을 살려줌 / temper: 과해지기 쉬운 기운이 들어옴 / steady: 무난 */
+  relation: "boost" | "temper" | "steady";
+  headline: string;
+  note: string;
+  action: string;
+};
 
 export type LifestyleGuide = {
-  basisElement: keyof FiveElementBalance;
+  basisElement: Element;
   basisLabel: string;
   basisReason: string;
+  /** 보조로 함께 채우면 좋은 기운 (희신 또는 두 번째로 약한 오행) */
+  secondaryElement: Element | null;
+  secondaryLabel: string | null;
+  /** 과해지면 부담이 되는 기운 (기신) */
+  avoidElement: Element | null;
+  avoidLabel: string | null;
   colors: string[];
   numbers: number[];
   directions: string[];
@@ -16,8 +36,15 @@ export type LifestyleGuide = {
   playfulActions: string[];
   todayActions: string[];
   caution: string;
+  /** 오늘 일진 기운을 전달하면 계산되는, 날짜마다 달라지는 오늘 전용 흐름 */
+  today: TodayEnergy | null;
   evidence: string[];
 };
+
+export interface LifestyleOptions {
+  /** 오늘 일진 간지 (예: "갑자"). 주면 today 필드가 채워진다. */
+  todayGanZhi?: string;
+}
 
 const ELEMENT_KO: Record<keyof FiveElementBalance, string> = {
   wood: "목",
@@ -35,10 +62,23 @@ const KO_TO_ELEMENT: Record<string, keyof FiveElementBalance> = {
   수: "water",
 };
 
-const ELEMENT_LIFESTYLE: Record<
-  keyof FiveElementBalance,
-  Omit<LifestyleGuide, "basisElement" | "basisLabel" | "basisReason" | "evidence">
-> = {
+type ElementLifestyle = Pick<
+  LifestyleGuide,
+  | "colors"
+  | "numbers"
+  | "directions"
+  | "places"
+  | "nature"
+  | "movement"
+  | "workStyle"
+  | "recovery"
+  | "healthFocus"
+  | "playfulActions"
+  | "todayActions"
+  | "caution"
+>;
+
+const ELEMENT_LIFESTYLE: Record<keyof FiveElementBalance, ElementLifestyle> = {
   wood: {
     colors: ["초록", "청록", "맑은 하늘색"],
     numbers: [3, 8],
@@ -111,39 +151,142 @@ const ELEMENT_LIFESTYLE: Record<
   },
 };
 
-function primarySupportElement(chart: SajuChart): keyof FiveElementBalance | null {
+// 오행 상생: 목→화→토→금→수→목 / 상극: 목→토, 토→수, 수→화, 화→금, 금→목
+const GENERATES: Record<Element, Element> = { wood: "fire", fire: "earth", earth: "metal", metal: "water", water: "wood" };
+const OVERCOMES: Record<Element, Element> = { wood: "earth", earth: "water", water: "fire", fire: "metal", metal: "wood" };
+
+function primarySupportElement(chart: SajuChart): Element | null {
   const yongshin = chart.yongshin?.yongshin?.[0] ?? chart.yongshin?.supportive?.[0];
   return yongshin ? (KO_TO_ELEMENT[yongshin] ?? null) : null;
 }
 
-function weakestElement(chart: SajuChart): keyof FiveElementBalance {
-  return (Object.keys(chart.fiveElements) as Array<keyof FiveElementBalance>).reduce((weakest, key) =>
-    chart.fiveElements[key] < chart.fiveElements[weakest] ? key : weakest,
-  );
+function sortedByScarcity(chart: SajuChart): Element[] {
+  return (Object.keys(chart.fiveElements) as Element[]).slice().sort((a, b) => chart.fiveElements[a] - chart.fiveElements[b]);
 }
 
-export function buildLifestyleGuide(chart: SajuChart): LifestyleGuide {
+/** 보조 기운: 희신 첫 후보(기준과 다르면) → 없으면 두 번째로 약한 오행 */
+function secondarySupportElement(chart: SajuChart, basis: Element): Element | null {
+  const hee = chart.yongshin?.heesin?.[0];
+  const heeEl = hee ? KO_TO_ELEMENT[hee] : undefined;
+  if (heeEl && heeEl !== basis) return heeEl;
+  const scarce = sortedByScarcity(chart).filter((el) => el !== basis);
+  return scarce[0] ?? null;
+}
+
+function avoidElement(chart: SajuChart): Element | null {
+  const un = chart.yongshin?.unfavorable?.[0];
+  return un ? (KO_TO_ELEMENT[un] ?? null) : null;
+}
+
+/** 일진 간지에서 오늘의 대표 기운(천간 오행)을 뽑는다. */
+function todayElementOf(todayGanZhi: string): Element | null {
+  const gan = todayGanZhi?.[0];
+  if (gan && GAN_WUXING[gan]) return GAN_WUXING[gan];
+  const zhi = todayGanZhi?.[1];
+  return zhi && ZHI_WUXING[zhi] ? ZHI_WUXING[zhi] : null;
+}
+
+function buildToday(basis: Element, avoid: Element | null, todayGanZhi?: string): TodayEnergy | null {
+  if (!todayGanZhi) return null;
+  const element = todayElementOf(todayGanZhi);
+  if (!element) return null;
+  const label = ELEMENT_KO[element];
+  const basisLabel = ELEMENT_KO[basis];
+
+  // 오늘 기운이 내 보완 기운(basis)을 살려주는가(같거나 상생), 누르는가(상극/기신), 무난한가
+  const boosts = element === basis || GENERATES[element] === basis;
+  const tempers = (avoid && element === avoid) || OVERCOMES[element] === basis;
+
+  if (boosts) {
+    return {
+      element,
+      label,
+      relation: "boost",
+      headline: `오늘은 ${label} 기운이 들어와, 채우고 싶던 ${basisLabel} 흐름이 자연스럽게 살아나는 날`,
+      note: `평소보다 ${basisLabel}에 맞는 행동이 수월하게 붙습니다. 미뤄둔 걸 오늘 한 걸음 밀어보기 좋아요.`,
+      action: ELEMENT_LIFESTYLE[basis].todayActions[0],
+    };
+  }
+  if (tempers) {
+    return {
+      element,
+      label,
+      relation: "temper",
+      headline: `오늘은 ${label} 기운이 강하게 들어와, 한쪽으로 쏠리거나 지치기 쉬운 날`,
+      note: `무리해서 밀어붙이기보다, ${basisLabel} 흐름으로 균형을 잡아주면 소모가 줄어듭니다.`,
+      action: ELEMENT_LIFESTYLE[basis].recovery[0] ? `${ELEMENT_LIFESTYLE[basis].recovery[0]}로 한 박자 쉬어가기` : ELEMENT_LIFESTYLE[basis].todayActions[0],
+    };
+  }
+  return {
+    element,
+    label,
+    relation: "steady",
+    headline: `오늘은 ${label} 기운이 무난하게 흐르는, 크게 흔들리지 않는 날`,
+    note: `특별한 변수보다, 평소 ${basisLabel} 루틴을 꾸준히 지키기 좋은 날입니다.`,
+    action: ELEMENT_LIFESTYLE[basis].todayActions[0],
+  };
+}
+
+export function buildLifestyleGuide(chart: SajuChart, options: LifestyleOptions = {}): LifestyleGuide {
   const support = primarySupportElement(chart);
-  const basisElement = support ?? weakestElement(chart);
+  const basisElement = support ?? sortedByScarcity(chart)[0];
   const basisLabel = ELEMENT_KO[basisElement];
   const source = ELEMENT_LIFESTYLE[basisElement];
+  const secondaryElement = secondarySupportElement(chart, basisElement);
+  const secondaryLabel = secondaryElement ? ELEMENT_KO[secondaryElement] : null;
+  const avoid = avoidElement(chart);
+  const avoidLabel = avoid ? ELEMENT_KO[avoid] : null;
+  const strengthLabel = chart.strength?.label;
+
   const yong = chart.yongshin?.yongshin ?? chart.yongshin?.supportive ?? [];
   const hee = chart.yongshin?.heesin ?? [];
   const unfavorable = chart.yongshin?.unfavorable ?? [];
 
+  // 보조 기운의 대표 항목을 섞어, 같은 기준 기운이라도 사람마다 조금씩 달라지게 한다.
+  const secondary = secondaryElement ? ELEMENT_LIFESTYLE[secondaryElement] : null;
+  const colors = secondary ? [...source.colors.slice(0, 2), secondary.colors[0]] : source.colors;
+  const places = secondary ? [...source.places.slice(0, 2), secondary.places[0]] : source.places;
+  const movement = secondary ? [...source.movement.slice(0, 2), secondary.movement[0]] : source.movement;
+
+  const strengthNote = strengthLabel
+    ? strengthLabel.includes("신강")
+      ? " 기운이 강한 편이라, 채우기보다 덜어내고 흘려보내는 쪽이 균형에 맞습니다."
+      : strengthLabel.includes("신약")
+        ? " 기운이 약한 편이라, 무리하지 않게 아껴 쓰며 채우는 리듬이 좋습니다."
+        : ""
+    : "";
+
+  const caution = avoidLabel
+    ? `${source.caution} 특히 ${avoidLabel} 기운이 과해질 때(예: 한쪽으로만 쏠릴 때) 부담이 커지니, 그럴 땐 ${basisLabel}·${secondaryLabel ?? basisLabel} 쪽으로 균형을 잡으세요.`
+    : source.caution;
+
+  const basisReason =
+    (support
+      ? `${basisLabel} 계열은 이 사주에서 보완하면 좋은 흐름으로 계산됩니다.`
+      : `${basisLabel} 계열이 상대적으로 약해 생활에서 의식적으로 채우기 좋은 흐름입니다.`) +
+    (secondaryLabel ? ` 여기에 ${secondaryLabel} 기운을 곁들이면 균형이 더 맞습니다.` : "") +
+    strengthNote;
+
   return {
     basisElement,
     basisLabel,
-    basisReason: support
-      ? `${basisLabel} 계열은 이 사주에서 보완하면 좋은 흐름으로 계산됩니다.`
-      : `${basisLabel} 계열이 상대적으로 약해 생활에서 의식적으로 채우기 좋은 흐름입니다.`,
+    basisReason,
+    secondaryElement,
+    secondaryLabel,
+    avoidElement: avoid,
+    avoidLabel,
     ...source,
+    colors,
+    places,
+    movement,
+    caution,
+    today: buildToday(basisElement, avoid, options.todayGanZhi),
     evidence: [
       `오행 분포: 목 ${chart.fiveElements.wood} · 화 ${chart.fiveElements.fire} · 토 ${chart.fiveElements.earth} · 금 ${chart.fiveElements.metal} · 수 ${chart.fiveElements.water}`,
       yong.length > 0 ? `용신 후보: ${yong.join("·")}` : "",
       hee.length > 0 ? `희신 후보: ${hee.join("·")}` : "",
       unfavorable.length > 0 ? `기신 후보: ${unfavorable.join("·")}` : "",
-      chart.strength ? `신강/신약: ${chart.strength.label}` : "",
+      strengthLabel ? `신강/신약: ${strengthLabel}` : "",
     ].filter(Boolean),
   };
 }
