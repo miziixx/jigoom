@@ -1,10 +1,10 @@
 import { useState } from "react";
 import Gauge from "../components/Gauge";
+import { BIRTH_PLACES } from "../data/birthPlaces";
 import { computeCompatibility } from "../lib/saju";
-import type { BirthInfo, CalendarType, CompatibilityRelationType, CompatibilityResult, Gender } from "../types";
+import type { BirthInfo, CalendarType, CompatibilityRelationType, CompatibilityResult, Gender, LateNightZiMode } from "../types";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
 
 const RELATION_OPTIONS: Array<{ value: CompatibilityRelationType; label: string }> = [
   { value: "romantic", label: "연인·배우자" },
@@ -14,7 +14,6 @@ const RELATION_OPTIONS: Array<{ value: CompatibilityRelationType; label: string 
   { value: "bossEmployee", label: "사장·직원" },
   { value: "coworker", label: "동료·동업자" },
   { value: "friend", label: "친구" },
-  { value: "rival", label: "앙숙·불편한 사람" },
 ];
 
 interface PersonInput {
@@ -24,6 +23,8 @@ interface PersonInput {
   day: string;
   hour: string;
   minute: string;
+  lateNightZi: LateNightZiMode;
+  birthPlace: string;
   isLeapMonth: boolean;
   gender: Gender;
 }
@@ -34,7 +35,9 @@ const EMPTY: PersonInput = {
   month: "",
   day: "",
   hour: "unknown",
-  minute: "0",
+  minute: "",
+  lateNightZi: "late",
+  birthPlace: "none",
   isLeapMonth: false,
   gender: "female",
 };
@@ -46,7 +49,9 @@ function toBirthInfo(p: PersonInput): BirthInfo {
     month: Number(p.month),
     day: Number(p.day),
     hour: p.hour === "unknown" ? null : Number(p.hour),
-    minute: p.hour === "unknown" ? 0 : Number(p.minute),
+    minute: p.hour === "unknown" || p.minute === "" ? 0 : Number(p.minute),
+    lateNightZi: p.hour === "23" ? p.lateNightZi : undefined,
+    birthPlace: p.birthPlace,
     isLeapMonth: p.calendarType === "lunar" ? p.isLeapMonth : undefined,
     gender: p.gender,
   };
@@ -82,7 +87,7 @@ function MiniBirthForm({ title, value, onChange }: { title: string; value: Perso
       )}
       <div className="field-row">
         <span className="field-label">출생 시간</span>
-        <select value={value.hour} onChange={(e) => set({ hour: e.target.value, minute: e.target.value === "unknown" ? "0" : value.minute })}>
+        <select value={value.hour} onChange={(e) => set({ hour: e.target.value, minute: e.target.value === "unknown" ? "" : value.minute })}>
           <option value="unknown">모름</option>
           {HOURS.map((h) => (
             <option key={h} value={h}>
@@ -90,18 +95,48 @@ function MiniBirthForm({ title, value, onChange }: { title: string; value: Perso
             </option>
           ))}
         </select>
-        <select
-          aria-label="출생 분"
-          value={value.minute}
-          onChange={(e) => set({ minute: e.target.value })}
-          disabled={value.hour === "unknown"}
-        >
-          {MINUTES.map((m) => (
-            <option key={m} value={m}>
-              {String(m).padStart(2, "0")}분
+        {value.hour !== "unknown" && (
+          <input
+            type="number"
+            placeholder="분"
+            min={0}
+            max={59}
+            value={value.minute}
+            onChange={(e) => set({ minute: e.target.value })}
+            aria-label="출생 분"
+          />
+        )}
+        {value.hour === "unknown" ? (
+          <span className="field-hint field-hint--accent">시간을 알면 시주까지 비교해 궁합 해석이 더 정확해집니다.</span>
+        ) : (
+          <span className="field-hint">분까지 정확할수록 좋아요. 애매하면 정각으로 두어도 됩니다.</span>
+        )}
+      </div>
+      {value.hour === "23" && (
+        <div className="field-row field-row--column">
+          <span className="field-label">23:00 전후 기준</span>
+          <select value={value.lateNightZi} onChange={(e) => set({ lateNightZi: e.target.value as LateNightZiMode })}>
+            <option value="late">당일 기준 — 23:00~23:59도 입력한 날짜로 봄</option>
+            <option value="early">다음날 기준 — 23:00~23:59부터 다음날로 봄</option>
+          </select>
+          <span className="field-hint field-hint--accent">23시대 출생은 만세력 기준에 따라 일주가 달라질 수 있어요.</span>
+        </div>
+      )}
+      <div className="field-row">
+        <span className="field-label">출생지</span>
+        <select value={value.birthPlace} onChange={(e) => set({ birthPlace: e.target.value })}>
+          <option value="none">보정 안 함</option>
+          {Object.entries(BIRTH_PLACES).map(([key, place]) => (
+            <option key={key} value={key}>
+              {place.label}
             </option>
           ))}
         </select>
+        <span className={`field-hint${value.birthPlace === "none" ? " field-hint--accent" : ""}`}>
+          {value.birthPlace === "none"
+            ? "출생지를 고르면 표준시·경도 차이를 반영해 시주 경계 판단이 더 정확해집니다."
+            : "표준시·경도 차이를 반영합니다."}
+        </span>
       </div>
       <div className="field-row">
         <span className="field-label">성별</span>
