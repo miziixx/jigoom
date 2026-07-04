@@ -306,6 +306,12 @@ export interface TarotCardDefinition {
   arcana: TarotArcana;
   uprightMeaning: string;
   reversedMeaning: string;
+  /** 카드별 고유 상징 키워드. 없으면 카드 번호/슈트/코트로 자동 보강한다. */
+  symbols?: string[];
+  /** 그림 속 단서나 원형적 장면. 없으면 자동 상징 해석기를 사용한다. */
+  imagery?: string;
+  /** 관계 질문에서 특히 어떻게 나타나는지. 없으면 슈트/번호 기반으로 자동 보강한다. */
+  relationshipSymbolism?: string;
 }
 
 export interface DrawnTarotCard {

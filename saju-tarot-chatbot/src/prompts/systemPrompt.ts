@@ -7,6 +7,7 @@ import type {
   ReadingType,
   SajuChart,
 } from "../types/index.js";
+import { describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 
 /**
  * 리딩 엔진 시스템 프롬프트.
@@ -257,38 +258,45 @@ function formatTarotCards(cards: DrawnTarotCard[]): string {
     .map((c) => {
       const orientation = c.reversed ? "역방향" : "정방향";
       const meaning = c.reversed ? c.card.reversedMeaning : c.card.uprightMeaning;
-      const symbolism = tarotSymbolism(c.card.name);
       const label = c.positionLabel ? ` [${c.positionLabel}]` : "";
+      const symbolism = describeTarotSymbolism(c.card);
       return [
-        `${c.position}번째 자리${label}: ${c.card.name} (${orientation})`,
-        `핵심 의미: ${meaning}`,
-        `카드 요소: ${symbolism}`,
-        `해석 지시: 이 카드는 '${c.positionLabel ?? "해당 자리"}'에 놓였으므로, 카드 자체 의미를 이 자리의 역할에 맞춰 현실 상황·감정·행동으로 번역해야 한다.`,
-      ].join(" / ");
+        `${c.position}번째 자리${label}: ${c.card.name} (${orientation}, ${c.card.arcana === "major" ? "메이저" : "마이너"}) — ${meaning}`,
+        `  상징 원형: ${symbolism.archetype}`,
+        `  상징 키워드: ${symbolism.symbols.join(" · ")}`,
+        `  그림 단서: ${symbolism.imagery}`,
+        `  숫자/단계 의미: ${symbolism.numberTone}`,
+        `  슈트 의미: ${symbolism.suitTone}`,
+        `  관계 적용: ${symbolism.relationshipTone}`,
+      ].join("\n");
     })
     .join("\n");
 }
 
-function tarotSymbolism(name: string): string {
-  if (name.includes("완드")) return "완드=일, 행동, 열정, 추진력. 불처럼 빠르게 움직이지만 쉽게 지칠 수 있는 영역.";
-  if (name.includes("컵")) return "컵=감정, 관계, 애착, 마음의 만족. 관계의 온도와 감정 표현을 보는 영역.";
-  if (name.includes("소드")) return "소드=생각, 말, 판단, 갈등, 결정. 머릿속 해석과 소통 방식을 보는 영역.";
-  if (name.includes("펜타클")) return "펜타클=돈, 일상, 몸, 현실 조건, 성과. 실제 자원과 안정성을 보는 영역.";
-  if (name.includes("시종")) return "궁정 카드 시종=처음 배우는 태도, 소식, 미숙하지만 열린 가능성.";
-  if (name.includes("기사")) return "궁정 카드 기사=움직임과 추진 방식. 빠르게 접근하지만 방향 조절이 필요할 수 있음.";
-  if (name.includes("여왕")) return "궁정 카드 여왕=내면의 성숙함, 돌봄, 감정·환경을 다루는 방식.";
-  if (name.includes("왕")) return "궁정 카드 왕=결정권, 통제력, 책임, 외부에 드러나는 운영 방식.";
-  if (/Ace|에이스/.test(name)) return "숫자 1=새 시작, 씨앗, 아직 작지만 선명한 가능성.";
-  if (/Two| 2/.test(name)) return "숫자 2=선택, 균형, 관계의 호흡, 두 방향 사이의 조율.";
-  if (/Three| 3/.test(name)) return "숫자 3=확장, 표현, 협력, 다음 단계로 커지는 흐름.";
-  if (/Four| 4/.test(name)) return "숫자 4=안정, 구조, 유지, 동시에 고착될 수 있는 틀.";
-  if (/Five| 5/.test(name)) return "숫자 5=변동, 갈등, 흔들림, 조정이 필요한 구간.";
-  if (/Six| 6/.test(name)) return "숫자 6=회복, 주고받음, 균형을 다시 찾는 흐름.";
-  if (/Seven| 7/.test(name)) return "숫자 7=선택지, 방어, 전략, 내면 점검이 필요한 단계.";
-  if (/Eight| 8/.test(name)) return "숫자 8=반복, 숙련, 움직임, 패턴이 굳어지는 단계.";
-  if (/Nine| 9/.test(name)) return "숫자 9=완성 직전, 축적, 혼자 감당하는 압박 또는 만족.";
-  if (/Ten|10/.test(name)) return "숫자 10=한 흐름의 완성, 결과, 다음 국면으로 넘어가기 전 정리.";
-  return "메이저 아르카나=질문에서 중요한 전환점, 심리적 과제, 삶의 큰 흐름을 보여주는 카드.";
+function formatTarotDiagnostics(cards: DrawnTarotCard[]): string {
+  const upright = cards.filter((c) => !c.reversed).length;
+  const reversed = cards.length - upright;
+  const major = cards.filter((c) => c.card.arcana === "major").length;
+  const suitCounts = cards.reduce<Record<string, number>>((acc, c) => {
+    const suit = c.card.arcana === "major" ? "메이저" : tarotSuitOf(c.card);
+    acc[suit] = (acc[suit] ?? 0) + 1;
+    return acc;
+  }, {});
+  const repeatedSuits = Object.entries(suitCounts)
+    .filter(([, count]) => count >= 2)
+    .map(([suit, count]) => `${suit} ${count}장`);
+  const first = cards[0];
+  const last = cards[cards.length - 1];
+  return [
+    `정/역 비율: 정방향 ${upright}장 / 역방향 ${reversed}장`,
+    `메이저 비율: ${major}장 / 전체 ${cards.length}장`,
+    `반복 슈트: ${repeatedSuits.join(", ") || "뚜렷한 반복 없음"}`,
+    first && last
+      ? `흐름 축: 시작/핵심 ${first.card.name}(${first.reversed ? "역" : "정"}) → 마지막/조언 ${last.card.name}(${last.reversed ? "역" : "정"})`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function formatLuckCycles(luck: LuckCycles): string {
@@ -497,16 +505,17 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
   if (facts.tarotCards && facts.tarotCards.length > 0) {
     parts.push(`[타로 스프레드] ${facts.tarotCards.length}장`);
     parts.push(`[뽑힌 카드]\n${formatTarotCards(facts.tarotCards)}`);
+    parts.push(`[타로 조합 진단]\n${formatTarotDiagnostics(facts.tarotCards)}`);
     if (facts.spreadNote) {
       parts.push(`[이 배열의 해석 방법] ${facts.spreadNote}`);
     }
     if (facts.tarotCards.length >= 3) {
       parts.push(
-        "[카드 조합 해석 안내] 반드시 뽑힌 모든 카드를 빠짐없이 사용해라. 각 카드마다 자리 의미, 정/역방향, 핵심 의미, 카드 요소(수트·숫자·궁정·메이저 상징)를 속 근거로 삼아 풀이에 반영한다. 카드를 한 장씩만 따로 풀지 말고, 각 자리의 의미와 카드가 만나 어떤 이야기가 되는지, 카드 간 조합(강화/충돌/전환)을 엮어 해석해라. 메이저 아르카나가 많으면 흐름의 무게가 크다는 점, 같은 슈트가 반복되면 그 영역(완드=일/열정, 컵=감정/관계, 소드=생각/갈등, 펜타클=현실/돈)이 중심이라는 점을 활용하되, 표면 문장은 사용자가 바로 이해할 쉬운 말로 옮겨라. 결과에는 카드별로 '현실에서 어떻게 보이는지'와 '사용자가 할 행동'을 반드시 연결해라.",
+        "[카드 조합 해석 안내] 반드시 뽑힌 모든 카드를 빠짐없이 사용해라. 카드를 한 장씩만 따로 풀지 말고, \"왜 그렇게 보는지\"와 \"전문가 근거 보기\"에서 각 자리의 의미와 카드가 만나 어떤 이야기가 되는지, 카드 간 조합(강화/충돌/전환)을 반드시 별도로 짚어라. 위 [타로 조합 진단]의 정/역 비율, 메이저 비율, 반복 슈트, 시작→마지막 흐름 축을 핵심 근거로 사용해라. 각 카드에 제공된 상징 원형, 상징 키워드, 그림 단서, 숫자/단계 의미, 슈트 의미, 관계 적용을 반드시 해석에 반영하되 상징어만 나열하지 말고 질문 맥락의 현실 장면으로 번역해라. 메이저 아르카나가 많으면 흐름의 무게가 크다는 점, 같은 슈트가 반복되면 그 영역(완드=일/열정, 컵=감정/관계, 소드=생각/갈등, 펜타클=현실/돈)이 중심이라는 점을 활용해라. 카드가 서로 반대 방향이면 결론을 하나로 밀지 말고 조건부로 나눠라. 결과에는 카드별로 '현실에서 어떻게 보이는지'와 '사용자가 할 행동'을 반드시 연결해라.",
       );
     } else {
       parts.push(
-        "[카드 해석 안내] 1장 리딩이라도 카드명만 말하지 말고, 자리 의미, 정/역방향, 핵심 의미, 카드 요소를 모두 근거로 삼아 질문에 직접 답해라. 현실에서 확인할 신호와 오늘 할 행동을 붙여라.",
+        "[카드 해석 안내] 1장 리딩이라도 카드명만 말하지 말고, 자리 의미, 정/역방향, 핵심 의미, 상징 원형, 그림 단서, 숫자/단계 의미를 모두 근거로 삼아 질문에 직접 답해라. 현실에서 확인할 신호와 오늘 할 행동을 붙여라.",
       );
     }
   }

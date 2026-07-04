@@ -302,10 +302,17 @@ label {
 }
 
 .tarot-evidence-card span,
-.tarot-evidence-card small {
+.tarot-evidence-card small,
+.tarot-evidence-card em {
   display: block;
   color: var(--text-dim);
   font-size: 0.78rem;
+}
+
+.tarot-evidence-card em {
+  margin-top: 6px;
+  font-style: normal;
+  color: var(--accent);
 }
 
 .tarot-evidence-card b {
