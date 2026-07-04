@@ -540,7 +540,7 @@ label {
 
 .naming-mode-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -548,23 +548,25 @@ label {
   text-align: left;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px;
+  padding: 8px 10px;
   background: var(--surface-alt);
   color: var(--text);
   cursor: pointer;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .naming-mode-card b {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   color: var(--text);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 .naming-mode-card span {
   color: var(--text-dim);
-  font-size: 0.75rem;
-  line-height: 1.35;
+  font-size: 0.7rem;
+  line-height: 1.3;
 }
 
 .naming-mode-card--active {
@@ -4082,5 +4084,49 @@ label {
   .compat-result .reading-actions .btn {
     flex: 1 1 auto;
     min-height: 44px;
+  }
+}
+
+/* ══════════ 카드 그리드 공통 안전(모바일 안 깨짐 + 높이 균일) ══════════ */
+/* 그리드 자식이 내용 때문에 넘치지 않도록 min-width:0, 카드는 같은 행에서 높이 stretch(균일) */
+.summary-hero__grid,
+.naming-mode-grid,
+.action-checklist__groups,
+.naming-comparison__grid,
+.reading-category-grid,
+.pattern-map__grid,
+.compat-highlight-grid,
+.compat-advice-grid,
+.compat-deep-list,
+.fortune-category-grid,
+.month-evidence-grid {
+  align-items: stretch;
+}
+
+.summary-hero__grid > *,
+.naming-mode-grid > *,
+.action-checklist__groups > *,
+.naming-comparison__grid > *,
+.reading-category-grid > *,
+.pattern-map__grid > *,
+.compat-highlight-grid > *,
+.compat-advice-grid > *,
+.compat-deep-list > *,
+.fortune-category-grid > *,
+.month-evidence-grid > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 매우 좁은 화면(≤380px): 작명 목적만 촘촘히 2열 유지, 나머지 넓은 카드 그리드는 1열 */
+@media (max-width: 380px) {
+  .naming-comparison__grid,
+  .pattern-map__grid,
+  .reading-category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .naming-mode-card span {
+    font-size: 0.66rem;
   }
 }
