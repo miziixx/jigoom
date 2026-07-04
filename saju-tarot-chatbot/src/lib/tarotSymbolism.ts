@@ -1,4 +1,4 @@
-import type { TarotCardDefinition } from "../types";
+import type { DrawnTarotCard, TarotCardDefinition } from "../types";
 
 export interface TarotSymbolism {
   archetype: string;
@@ -133,4 +133,110 @@ export function describeTarotSymbolism(card: TarotCardDefinition): TarotSymbolis
     suitTone: SUIT_TONES[suit] ?? "카드의 슈트가 질문의 중심 영역을 보여줍니다.",
     relationshipTone: card.relationshipSymbolism ?? RELATIONSHIP_BY_SUIT[suit] ?? "관계에서 반복되는 반응 방식을 보여줍니다.",
   };
+}
+
+// ── 엘리멘탈 디그니티(원소 조합 규칙) ──────────────────────────
+// 전통 타로에서 인접한 카드는 슈트의 원소로 서로 강화·약화된다.
+// 이 규칙을 계산해 근거로 넘기면, 해석이 "그냥 지어낸 것"이 아니라 규칙 기반임을 보여줄 수 있다.
+
+export type TarotElement = "불" | "물" | "공기" | "흙" | "메이저";
+
+const SUIT_ELEMENT: Record<string, TarotElement> = {
+  완드: "불",
+  컵: "물",
+  소드: "공기",
+  펜타클: "흙",
+  메이저: "메이저",
+};
+
+const ELEMENT_GLOSS: Record<TarotElement, string> = {
+  불: "행동·열정",
+  물: "감정·관계",
+  공기: "생각·판단",
+  흙: "현실·안정",
+  메이저: "큰 주제·전환",
+};
+
+export function tarotElementOf(card: TarotCardDefinition): TarotElement {
+  return SUIT_ELEMENT[tarotSuitOf(card)];
+}
+
+export type DignityRelation = "강화" | "약화" | "중립";
+
+/** 두 원소의 관계. 같은/친한 원소는 강화, 정반대(불-물, 공기-흙)는 약화, 나머지는 중립. */
+export function elementalRelation(a: TarotElement, b: TarotElement): DignityRelation {
+  // 메이저 아르카나는 흐름을 압도하는 강한 카드 — 옆 카드의 주제를 눌러 강화한다고 본다.
+  if (a === "메이저" || b === "메이저") return "강화";
+  if (a === b) return "강화";
+  const isActive = (e: TarotElement) => e === "불" || e === "공기";
+  const isPassive = (e: TarotElement) => e === "물" || e === "흙";
+  if (isActive(a) && isActive(b)) return "강화"; // 불-공기: 둘 다 능동
+  if (isPassive(a) && isPassive(b)) return "강화"; // 물-흙: 둘 다 수용
+  if ((a === "불" && b === "물") || (a === "물" && b === "불")) return "약화";
+  if ((a === "공기" && b === "흙") || (a === "흙" && b === "공기")) return "약화";
+  return "중립"; // 불-흙, 공기-물
+}
+
+/**
+ * 뽑힌 카드 배열의 원소 분포와 인접 카드 간 강화/약화 관계를 계산해
+ * LLM이 근거로 삼을 텍스트로 직렬화한다.
+ */
+export function describeElementalDignities(cards: DrawnTarotCard[]): string {
+  if (cards.length === 0) return "";
+
+  // 원소 분포
+  const counts = new Map<TarotElement, number>();
+  for (const c of cards) {
+    const el = tarotElementOf(c.card);
+    counts.set(el, (counts.get(el) ?? 0) + 1);
+  }
+  const order: TarotElement[] = ["불", "물", "공기", "흙", "메이저"];
+  const present = order.filter((el) => counts.has(el));
+  const distribution = present.map((el) => `${el}(${ELEMENT_GLOSS[el]}) ${counts.get(el)}장`).join(", ");
+
+  const lines = [`원소 분포: ${distribution}`];
+
+  // 인접 자리 원소 관계 (자리 순서 기준)
+  if (cards.length >= 2) {
+    let strengthen = 0;
+    let weaken = 0;
+    const pairs: string[] = [];
+    for (let i = 0; i < cards.length - 1; i++) {
+      const a = cards[i];
+      const b = cards[i + 1];
+      const ea = tarotElementOf(a.card);
+      const eb = tarotElementOf(b.card);
+      const rel = elementalRelation(ea, eb);
+      if (rel === "강화") strengthen += 1;
+      else if (rel === "약화") weaken += 1;
+      const la = a.positionLabel ?? `${a.position}번째`;
+      const lb = b.positionLabel ?? `${b.position}번째`;
+      pairs.push(`${la}(${ea})↔${lb}(${eb}): ${rel}`);
+    }
+    lines.push(`인접 자리 원소 관계: ${pairs.join(" / ")}`);
+
+    if (weaken > strengthen) {
+      lines.push("종합: 인접한 카드끼리 원소 방향이 자주 엇갈린다 → 흐름이 매끄럽지 않고 모순·갈등이 섞인 배열. 결론을 하나로 밀지 말고 조건부로 나눠라.");
+    } else if (strengthen > weaken && strengthen >= 2) {
+      lines.push("종합: 인접한 카드들이 같은 방향으로 힘을 실어준다 → 흐름이 한쪽으로 뚜렷하게 몰리는 배열. 그 방향의 힘과 과열 위험을 함께 짚어라.");
+    } else {
+      lines.push("종합: 강화와 약화가 섞여 있다 → 특정 구간은 힘이 실리고 특정 구간은 어긋나는, 기복 있는 배열.");
+    }
+  }
+
+  // 가장 강한/빠진 원소 = 질문의 중심/약한 영역
+  const nonMajor = present.filter((el) => el !== "메이저");
+  if (nonMajor.length > 0) {
+    const dominant = nonMajor.reduce((a, b) => ((counts.get(b) ?? 0) > (counts.get(a) ?? 0) ? b : a));
+    const dominantCount = counts.get(dominant) ?? 0;
+    if (dominantCount >= 2) {
+      lines.push(`중심 에너지: ${dominant}(${ELEMENT_GLOSS[dominant]})가 가장 많다 → 이 질문의 중심 영역.`);
+    }
+    const missing = (["불", "물", "공기", "흙"] as TarotElement[]).filter((el) => !counts.has(el));
+    if (missing.length > 0 && cards.length >= 3) {
+      lines.push(`빠진 에너지: ${missing.map((el) => `${el}(${ELEMENT_GLOSS[el]})`).join(", ")} → 지금 질문에서 약하거나 놓치기 쉬운 영역.`);
+    }
+  }
+
+  return lines.join("\n");
 }

@@ -115,6 +115,12 @@ describe("타로 리딩 프롬프트", () => {
     expect(msg).toContain("억지로 채우지 마라");
   });
 
+  it("원소 조합(엘리멘탈 디그니티) 근거를 계산해 전달한다", () => {
+    const msg = buildReadingUserMessage({ type: "tarot", question: "이직해도 될까요?", tarotCards });
+    expect(msg).toContain("원소 조합(엘리멘탈 디그니티)");
+    expect(msg).toContain("원소 분포");
+  });
+
   it("깊이를 골라도 타로는 사주 섹션을 강요하지 않는다", () => {
     const msg = buildReadingUserMessage({
       type: "tarot",

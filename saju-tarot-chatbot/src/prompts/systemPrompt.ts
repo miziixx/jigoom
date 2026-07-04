@@ -8,7 +8,7 @@ import type {
   SajuChart,
 } from "../types/index.js";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide.js";
-import { describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
+import { describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 
 /**
  * 리딩 엔진 시스템 프롬프트.
@@ -535,12 +535,13 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
     parts.push(`[타로 스프레드] ${facts.tarotCards.length}장`);
     parts.push(`[뽑힌 카드]\n${formatTarotCards(facts.tarotCards)}`);
     parts.push(`[타로 조합 진단]\n${formatTarotDiagnostics(facts.tarotCards)}`);
+    parts.push(`[원소 조합(엘리멘탈 디그니티) — 계산됨]\n${describeElementalDignities(facts.tarotCards)}`);
     if (facts.spreadNote) {
       parts.push(`[이 배열의 해석 방법] ${facts.spreadNote}`);
     }
     if (facts.tarotCards.length >= 3) {
       parts.push(
-        "[카드 조합 해석 안내] 반드시 뽑힌 모든 카드를 빠짐없이 사용해라. 카드를 한 장씩만 따로 풀지 말고, \"왜 그렇게 보는지\"와 \"전문가 근거 보기\"에서 각 자리의 의미와 카드가 만나 어떤 이야기가 되는지, 카드 간 조합(강화/충돌/전환)을 반드시 별도로 짚어라. 위 [타로 조합 진단]의 정/역 비율, 메이저 비율, 반복 슈트, 시작→마지막 흐름 축을 핵심 근거로 사용해라. 각 카드에 제공된 상징 원형, 상징 키워드, 그림 단서, 숫자/단계 의미, 슈트 의미, 관계 적용을 반드시 해석에 반영하되 상징어만 나열하지 말고 질문 맥락의 현실 장면으로 번역해라. 메이저 아르카나가 많으면 흐름의 무게가 크다는 점, 같은 슈트가 반복되면 그 영역(완드=일/열정, 컵=감정/관계, 소드=생각/갈등, 펜타클=현실/돈)이 중심이라는 점을 활용해라. 카드가 서로 반대 방향이면 결론을 하나로 밀지 말고 조건부로 나눠라. 결과에는 카드별로 '현실에서 어떻게 보이는지'와 '사용자가 할 행동'을 반드시 연결해라.",
+        "[카드 조합 해석 안내] 반드시 뽑힌 모든 카드를 빠짐없이 사용해라. 카드를 한 장씩만 따로 풀지 말고, \"왜 그렇게 보는지\"와 \"전문가 근거 보기\"에서 각 자리의 의미와 카드가 만나 어떤 이야기가 되는지, 카드 간 조합(강화/충돌/전환)을 반드시 별도로 짚어라. 위 [타로 조합 진단]의 정/역 비율, 메이저 비율, 반복 슈트, 시작→마지막 흐름 축을 핵심 근거로 사용해라. 각 카드에 제공된 상징 원형, 상징 키워드, 그림 단서, 숫자/단계 의미, 슈트 의미, 관계 적용을 반드시 해석에 반영하되 상징어만 나열하지 말고 질문 맥락의 현실 장면으로 번역해라. 메이저 아르카나가 많으면 흐름의 무게가 크다는 점, 같은 슈트가 반복되면 그 영역(완드=일/열정, 컵=감정/관계, 소드=생각/갈등, 펜타클=현실/돈)이 중심이라는 점을 활용해라. 카드가 서로 반대 방향이면 결론을 하나로 밀지 말고 조건부로 나눠라. 위 [원소 조합(엘리멘탈 디그니티)]의 계산 결과를 근거로, 인접 카드가 '강화' 관계면 그 구간의 흐름이 한 방향으로 실린다고, '약화' 관계면 그 두 자리 사이에서 힘이 부딪히거나 새어나간다고 해석하고, 원소 분포에서 중심 에너지·빠진 에너지를 질문의 강한 영역/약한 영역으로 연결해라. 이 원소 근거는 '왜 그렇게 보는지'와 '전문가 근거 보기'에서 명시적으로 밝혀라. 결과에는 카드별로 '현실에서 어떻게 보이는지'와 '사용자가 할 행동'을 반드시 연결해라.",
       );
     } else {
       parts.push(
