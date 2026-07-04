@@ -109,7 +109,30 @@ describe("ReadingResult 견고성", () => {
     expect(html).toContain("조정법");
   });
 
-  it("월별 근거 번역은 긴 문단 대신 월별 카드로 정리한다", () => {
+  it("월별 근거 번역은 긴 문단 대신 월별 카드로 정리한다 (고정 포맷)", () => {
+    const reply = [
+      "# 첫 점괘",
+      "올해는 흐름을 정리하는 힘이 중요합니다.",
+      "",
+      "# 올해의 흐름",
+      "[왜 그렇게 보는지]",
+      "올해 들어오는 기운이 관계와 일의 흐름을 함께 건드립니다.",
+      "월별 흐름은 다음과 같습니다.",
+      "1월 | 키워드: 정리와 다짐 | 기회: 새 계획을 세우기 좋은 시기 | 주의: 성급한 결정은 피하기 | 조언: 실행 가능한 계획을 세우세요",
+      "2월 | 키워드: 평온 | 기회: 체력 회복 | 주의: 나태해지기 쉬움 | 조언: 체력과 마음을 채워두세요",
+      "3월 | 키워드: 미묘한 긴장과 화합 | 기회: 관계 회복 | 주의: 오해가 쌓이기 쉬움 | 조언: 대화의 문은 열어두세요",
+    ].join("\n");
+    const html = renderToStaticMarkup(<ReadingResult session={makeSession(reply)} />);
+
+    expect(html).toContain("month-evidence-grid");
+    expect(html).toContain("month-evidence-card");
+    expect(html).toContain("정리와 다짐");
+    expect(html).toContain("새 계획을 세우기 좋은 시기");
+    expect(html).toContain("성급한 결정은 피하기");
+    expect(html).toContain("대화의 문은 열어두세요");
+  });
+
+  it("고정 포맷 이전에 저장된 옛 산문 형식도 월별 카드로 폴백 파싱한다", () => {
     const reply = [
       "# 첫 점괘",
       "올해는 흐름을 정리하는 힘이 중요합니다.",

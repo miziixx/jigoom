@@ -2074,11 +2074,12 @@ label {
   display: grid;
   align-content: start;
   gap: 7px;
-  min-height: 142px;
+  min-height: auto;
   padding: 12px;
   border: 1px solid rgba(127, 199, 255, 0.22);
   border-radius: 8px;
   background: rgba(12, 18, 32, 0.28);
+  overflow-wrap: anywhere;
 }
 
 .month-evidence-card__month {
@@ -2091,6 +2092,7 @@ label {
   color: var(--text);
   font-size: 0.9rem;
   line-height: 1.45;
+  word-break: keep-all;
 }
 
 .month-evidence-card p {
@@ -2098,8 +2100,11 @@ label {
   color: var(--text-dim);
   font-size: 0.82rem;
   line-height: 1.55;
+  word-break: keep-all;
 }
 
+.month-evidence-card__opportunity,
+.month-evidence-card__caution,
 .month-evidence-card__advice {
   margin-top: 2px !important;
   padding-top: 7px;
@@ -2107,15 +2112,31 @@ label {
   color: var(--text) !important;
 }
 
+.month-evidence-card__opportunity span,
+.month-evidence-card__caution span,
 .month-evidence-card__advice span {
   display: inline-block;
   font-size: 0.68rem;
   font-weight: 800;
-  color: #7fc7ff;
-  background: rgba(127, 199, 255, 0.14);
   border-radius: 5px;
   padding: 1px 6px;
   margin-right: 4px;
+  white-space: nowrap;
+}
+
+.month-evidence-card__advice span {
+  color: #7fc7ff;
+  background: rgba(127, 199, 255, 0.14);
+}
+
+.month-evidence-card__opportunity span {
+  color: #57d0a4;
+  background: rgba(87, 208, 164, 0.14);
+}
+
+.month-evidence-card__caution span {
+  color: #ffb27a;
+  background: rgba(255, 178, 122, 0.14);
 }
 
 .reading-bullets {

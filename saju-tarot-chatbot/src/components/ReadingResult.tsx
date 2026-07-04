@@ -27,8 +27,8 @@ interface BodyPart {
 interface MonthEvidence {
   month: string;
   keyword: string;
-  /** 키워드와 조언 사이의 설명 본문(있으면). 내용을 버리지 않기 위해 보존한다. */
-  body?: string;
+  opportunity?: string;
+  caution?: string;
   advice: string;
 }
 
@@ -144,14 +144,47 @@ function renderTextBlock(text: string) {
 }
 
 /**
- * 1~12월(또는 여러 달) 나열 문단을 월별 카드로 파싱한다. 두 형식을 모두 지원한다:
+ * 현재 프롬프트가 요구하는 고정 포맷을 파싱한다: 한 달에 한 줄, "|"로 구분된 4개 필드.
+ *  "N월 | 키워드: X | 기회: Y | 주의: Z | 조언: W"
+ * 스트리밍 도중 마지막 줄이 잘려 있으면(필드가 안 채워지면) 그 줄은 조용히 버린다.
+ */
+function parseStrictMonthlyFlow(text: string): { intro: string; months: MonthEvidence[] } | null {
+  const clean = stripMarkdown(text);
+  const lines = clean.split("\n");
+  const lineRe =
+    /^\s*(\d{1,2}월(?:\([^)]*\))?)\s*\|\s*키워드\s*[:：]\s*([^|]*)\|\s*기회\s*[:：]\s*([^|]*)\|\s*주의\s*[:：]\s*([^|]*)\|\s*조언\s*[:：]\s*(.+?)\s*$/;
+
+  const introLines: string[] = [];
+  const months: MonthEvidence[] = [];
+  let sawMonthLine = false;
+
+  for (const line of lines) {
+    const match = line.match(lineRe);
+    if (match) {
+      sawMonthLine = true;
+      months.push({
+        month: match[1],
+        keyword: match[2].trim(),
+        opportunity: match[3].trim() || undefined,
+        caution: match[4].trim() || undefined,
+        advice: match[5].trim(),
+      });
+      continue;
+    }
+    if (!sawMonthLine) introLines.push(line);
+    // 월 목록이 시작된 뒤 형식에 안 맞는 줄(스트리밍 중 잘린 마지막 줄 등)은 조용히 무시한다.
+  }
+
+  return months.length >= 3 ? { intro: introLines.join("\n").trim(), months } : null;
+}
+
+/**
+ * 과거(고정 포맷 도입 전)에 저장된 리딩과의 호환을 위한 폴백 파서. 두 형식을 지원한다:
  *  - "N월 — 키워드: X. 조언: Y"
  *  - "N월, 키워드는 X. 본문 설명... 한 줄 조언: Y"
- * 키워드/조언 외 중간 설명은 body로 보존해 내용을 버리지 않는다.
  */
-function parseMonthlyFlow(text: string): { intro: string; months: MonthEvidence[] } | null {
+function parseLegacyProseMonthlyFlow(text: string): { intro: string; months: MonthEvidence[] } | null {
   const clean = stripMarkdown(text);
-  // 월 시작 위치(줄 시작에서 "N월")
   const monthStart = clean.search(/(?:^|\n)\s*\d{1,2}월/);
   if (monthStart < 0) return null;
 
@@ -166,7 +199,6 @@ function parseMonthlyFlow(text: string): { intro: string; months: MonthEvidence[
       const month = head[1];
       let rest = head[2];
 
-      // 조언 추출 ("한 줄 조언:" 또는 "조언:")
       let advice = "";
       const adv = rest.match(/(?:한 줄\s*)?조언\s*[:：]\s*(.+)$/);
       if (adv) {
@@ -174,7 +206,6 @@ function parseMonthlyFlow(text: string): { intro: string; months: MonthEvidence[
         rest = rest.slice(0, adv.index).trim();
       }
 
-      // 키워드 추출 ("키워드는 X" / "키워드: X")
       let keyword = "";
       const kw = rest.match(/키워드[는은]?\s*[:：]?\s*([^.。]+)[.。]?/);
       if (kw) {
@@ -183,13 +214,16 @@ function parseMonthlyFlow(text: string): { intro: string; months: MonthEvidence[
       }
 
       const bodyDetail = rest.replace(/^[.。,\s]+/, "").trim();
-      // 키워드나 조언 구조가 있어야 월별 카드로 본다(단순 "N월에는…" 언급은 제외).
       if (!keyword && !advice) return null;
-      return { month, keyword, body: bodyDetail || undefined, advice };
+      return { month, keyword, opportunity: bodyDetail || undefined, advice };
     })
     .filter((item): item is MonthEvidence => Boolean(item));
 
   return months.length >= 3 ? { intro, months } : null;
+}
+
+function parseMonthlyFlow(text: string): { intro: string; months: MonthEvidence[] } | null {
+  return parseStrictMonthlyFlow(text) ?? parseLegacyProseMonthlyFlow(text);
 }
 
 function MonthlyFlowOrText({ body }: { body: string }) {
@@ -204,7 +238,16 @@ function MonthlyFlowOrText({ body }: { body: string }) {
           <article className="month-evidence-card" key={item.month}>
             <span className="month-evidence-card__month">{item.month}</span>
             {item.keyword && <b>{item.keyword}</b>}
-            {item.body && <p className="month-evidence-card__body">{item.body}</p>}
+            {item.opportunity && (
+              <p className="month-evidence-card__opportunity">
+                <span>기회</span> {item.opportunity}
+              </p>
+            )}
+            {item.caution && (
+              <p className="month-evidence-card__caution">
+                <span>주의</span> {item.caution}
+              </p>
+            )}
             {item.advice && (
               <p className="month-evidence-card__advice">
                 <span>조언</span> {item.advice}
