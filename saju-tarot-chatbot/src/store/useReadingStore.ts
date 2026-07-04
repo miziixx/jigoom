@@ -45,6 +45,10 @@ function newId(): string {
   return crypto.randomUUID();
 }
 
+function followUpModeFor(question: string): "concise" | "deep" {
+  return /자세히|깊게|상세|구체적으로|길게/.test(question) ? "deep" : "concise";
+}
+
 export const useReadingStore = create<ReadingStore>((set, get) => ({
   currentSession: null,
   loading: false,
@@ -131,7 +135,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
 
     try {
       const result = await streamReading(
-        { type: "followup", history: historyWithQuestion },
+        { type: "followup", history: historyWithQuestion, followUpMode: followUpModeFor(question) },
         {
           onText: (accumulated) => {
             set({

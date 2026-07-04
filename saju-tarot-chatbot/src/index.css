@@ -1187,6 +1187,7 @@ label {
   flex: 1;
 }
 
+.chat-followup__hint,
 .chat-followup__limit {
   margin: 10px 0 0;
   color: var(--text-dim);

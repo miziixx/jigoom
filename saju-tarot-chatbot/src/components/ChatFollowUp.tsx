@@ -37,7 +37,7 @@ export default function ChatFollowUp({ session, onSend, loading }: Props) {
       <form onSubmit={handleSubmit} className="chat-input-row">
         <input
           type="text"
-          placeholder={reachedLimit ? "후속 질문은 최대 5개까지 가능합니다" : "이 리딩에 대해 더 궁금한 점을 물어보세요"}
+          placeholder={reachedLimit ? "후속 질문은 최대 5개까지 가능합니다" : "궁금한 점을 물어보세요. 먼저 짧게 답해드려요"}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           disabled={loading || reachedLimit}
@@ -46,6 +46,9 @@ export default function ChatFollowUp({ session, onSend, loading }: Props) {
           {loading ? "..." : "보내기"}
         </button>
       </form>
+      {!reachedLimit && (
+        <p className="chat-followup__hint">깊은 분석이 필요하면 질문에 “자세히” 또는 “깊게”라고 함께 적어주세요.</p>
+      )}
       {reachedLimit && <p className="chat-followup__limit">이 리딩의 후속 질문 5개를 모두 사용했습니다. 새 질문은 새 리딩으로 시작해주세요.</p>}
     </div>
   );

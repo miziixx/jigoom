@@ -45,6 +45,7 @@ interface NewReadingBody {
 interface FollowUpBody {
   type: "followup";
   history: ChatMessage[];
+  followUpMode?: "concise" | "deep";
 }
 
 interface CompareBody {
@@ -69,6 +70,7 @@ async function streamMessages(
   anthropic: Anthropic,
   messages: Anthropic.Messages.MessageParam[],
   meta?: Record<string, unknown>,
+  options: { maxTokens?: number } = {},
 ): Promise<void> {
   res.status(200);
   res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
@@ -90,7 +92,7 @@ async function streamMessages(
   try {
     const stream = anthropic.messages.stream({
       model: MODEL,
-      max_tokens: MAX_TOKENS_STREAM,
+      max_tokens: options.maxTokens ?? MAX_TOKENS_STREAM,
       system: [{ type: "text", text: READING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages,
     });
@@ -117,10 +119,11 @@ async function streamMessages(
 async function completeMessages(
   anthropic: Anthropic,
   messages: Anthropic.Messages.MessageParam[],
+  options: { maxTokens?: number } = {},
 ): Promise<string> {
   const response = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: MAX_TOKENS_COMPLETE,
+    max_tokens: options.maxTokens ?? MAX_TOKENS_COMPLETE,
     system: READING_SYSTEM_PROMPT,
     messages,
   });
@@ -155,12 +158,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.status(400).json({ error: "history가 필요합니다." });
         return;
       }
-      const messages: Anthropic.Messages.MessageParam[] = body.history.map((m) => ({ role: m.role, content: m.content }));
+      const mode = body.followUpMode ?? "concise";
+      const history = mode === "concise" ? withConciseFollowUpInstruction(body.history) : body.history;
+      const messages: Anthropic.Messages.MessageParam[] = history.map((m) => ({ role: m.role, content: m.content }));
       if (continueFrom) messages.push({ role: "assistant", content: continueFrom });
       if (streaming) {
-        await streamMessages(res, anthropic, messages);
+        await streamMessages(res, anthropic, messages, undefined, mode === "concise" ? { maxTokens: 2200 } : undefined);
       } else {
-        res.status(200).json({ reply: await completeMessages(anthropic, messages) });
+        res.status(200).json({
+          reply: await completeMessages(anthropic, messages, mode === "concise" ? { maxTokens: 2200 } : undefined),
+        });
       }
       return;
     }
@@ -243,6 +250,32 @@ function describeError(err: unknown): string {
     return `Anthropic API 오류 (${err.status}): ${detail}`;
   }
   return err instanceof Error ? err.message : String(err);
+}
+
+function withConciseFollowUpInstruction(history: ChatMessage[]): ChatMessage[] {
+  const lastUserIndex = history.map((m) => m.role).lastIndexOf("user");
+  if (lastUserIndex < 0) return history;
+  return history.map((m, index) => {
+    if (index !== lastUserIndex) return m;
+    return {
+      ...m,
+      content: [
+        "[후속 질문 답변 방식]",
+        "이번 답변은 전체 리딩을 새로 쓰지 말고, 사용자가 방금 물은 질문에만 직접 답해라.",
+        "분량은 공백 포함 900~1400자 안팎으로 제한한다.",
+        "출력 구조:",
+        "1. 바로 답변 — 핵심 판단을 2~4문장으로 분명히 말한다.",
+        "2. 사주/타로상 근거 — 기존 리딩과 계산 근거에서 확인되는 것만 2~3개로 요약한다.",
+        "3. 현실에서 보이는 모습 — 사용자가 생활에서 알아볼 수 있는 예시 2~3개.",
+        "4. 지금 할 수 있는 행동 — 오늘/이번 주에 할 행동 1~3개.",
+        "5. 더 깊게 볼까요? — 더 깊은 분석이 필요하면 어떤 주제로 물으면 좋은지 한 줄로 안내한다.",
+        "전문 용어는 본문에 그대로 던지지 말고 쉬운 말로 번역하되, 꼭 필요한 용어는 괄호로 짧게만 붙인다.",
+        "결혼·이별·퇴사·투자·질병처럼 위험한 판단은 단정하지 말고 선택 기준으로 답한다.",
+        "",
+        `[사용자 후속 질문] ${m.content}`,
+      ].join("\n"),
+    };
+  });
 }
 
 function extractText(response: Anthropic.Messages.Message): string {

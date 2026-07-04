@@ -65,19 +65,27 @@ describe("streamReading 이어쓰기(continue)", () => {
   });
 
   it("followup은 병렬 호출하지 않는다", async () => {
-    const fetchMock = vi.fn(() =>
-      Promise.resolve(
+    const calls: Array<Record<string, unknown>> = [];
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      if (!init?.body) throw new Error("request body required");
+      calls.push(JSON.parse(init.body as string));
+      return Promise.resolve(
         ndjsonResponse([
           JSON.stringify({ text: "후속 답변" }),
           JSON.stringify({ done: true, stopReason: "end_turn" }),
         ]),
-      ),
-    );
+      );
+    });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await streamReading({ type: "followup", history: [{ role: "user", content: "질문" }] });
+    const result = await streamReading({
+      type: "followup",
+      history: [{ role: "user", content: "질문" }],
+      followUpMode: "concise",
+    });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(calls[0].followUpMode).toBe("concise");
     expect(result.reply).toBe("후속 답변");
   });
 
