@@ -9,7 +9,9 @@ import {
 import type { NameComparison, NameEvaluation, NamingBrief, NamingRecommendOptions } from "../src/lib/naming.js";
 
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
-const MAX_TOKENS = 3000;
+// 비스트리밍 응답이라 생성 시간이 곧 응답 지연이다. 서버리스 제한시간 안에 확실히
+// 끝나도록 토큰을 절제한다(검증된 fortune=1500 수준).
+const MAX_TOKENS = 1800;
 
 interface NamingBody {
   mode?: "evaluate" | "recommend";
