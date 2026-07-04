@@ -100,6 +100,7 @@ Long saju/combo readings use client-side fan-out:
 - Each call still uses the existing continuation logic if it hits `max_tokens` or a stream ends early.
 - `sectionGroup` is only a generation instruction. The stored `userMessage`/follow-up history must not keep the front/back-only directive.
 - Follow-up, compare, today, and flow calls are not fan-out by default.
+- `light` depth is also not fan-out. It is treated as a fast supplement to the API-free instant summary.
 
 ### Follow-up Chat
 
@@ -237,6 +238,7 @@ Image ZIP:
 - Uses `jszip`.
 - Exports multiple PNG cards in a `.zip`.
 - Includes basic reading info, sections, and follow-up chat.
+- `jszip` is dynamically imported only when the user clicks image ZIP export, so it does not bloat the initial app bundle.
 
 PDF:
 
@@ -354,10 +356,10 @@ Recommended next improvement:
    - Let users mark "wrong", "too vague", "hard to understand", "good advice".
    - Use accepted feedback as `styleHint` only when user consents.
 
-5. Consider code-splitting:
-   - Current build warns that JS chunks exceed 500kB.
-   - `jszip` contributes to bundle size.
-   - Dynamic import for ZIP export may reduce initial load.
+5. Continue code-splitting:
+   - Current build may still warn that the main JS chunk exceeds 500kB.
+   - `jszip` has already been moved to a dynamic import in `src/lib/shareImage.ts`.
+   - Further wins may come from splitting tarot data, history/export tools, or heavy result-only UI.
 
 ## Verification Commands
 

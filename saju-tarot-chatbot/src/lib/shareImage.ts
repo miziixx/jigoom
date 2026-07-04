@@ -1,4 +1,3 @@
-import JSZip from "jszip";
 import type { ReadingSession } from "../types";
 
 const TYPE_LABEL: Record<ReadingSession["type"], string> = {
@@ -229,6 +228,7 @@ export async function downloadShareImage(session: ReadingSession): Promise<void>
   const pages = buildPages(session);
   if (pages.length === 0) return;
 
+  const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   for (let i = 0; i < pages.length; i += 1) {
     const canvas = drawPage(session, pages[i], i, pages.length);

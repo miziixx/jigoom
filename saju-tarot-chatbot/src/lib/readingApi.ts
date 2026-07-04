@@ -33,6 +33,7 @@ type FanOutBody = Record<string, unknown> & {
   type?: unknown;
   continueFrom?: unknown;
   sectionGroup?: unknown;
+  context?: unknown;
 };
 
 /** 스트림 라인으로 전달된 서버 측 오류 (네트워크 단절과 구분용) */
@@ -76,6 +77,8 @@ export async function streamReading(body: unknown, handlers: StreamHandlers = {}
 function shouldFanOut(body: unknown): body is FanOutBody {
   if (!body || typeof body !== "object") return false;
   const b = body as FanOutBody;
+  const depth = b.context && typeof b.context === "object" ? (b.context as { depth?: unknown }).depth : undefined;
+  if (depth === "light") return false;
   return (b.type === "saju" || b.type === "combo") && !b.continueFrom && !b.sectionGroup;
 }
 

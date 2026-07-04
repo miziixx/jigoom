@@ -81,6 +81,24 @@ describe("streamReading 이어쓰기(continue)", () => {
     expect(result.reply).toBe("후속 답변");
   });
 
+  it("가벼운 리딩은 즉시 요약 중심이라 병렬 호출하지 않는다", async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        ndjsonResponse([
+          JSON.stringify({ meta: { userMessage: "light-user" } }),
+          JSON.stringify({ text: "가벼운 리딩" }),
+          JSON.stringify({ done: true, stopReason: "end_turn" }),
+        ]),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await streamReading({ type: "saju", question: "전체", context: { depth: "light" } });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.reply).toBe("가벼운 리딩");
+  });
+
   it("stopReason이 max_tokens면 continueFrom으로 이어서 완결한다", async () => {
     const calls: Array<Record<string, unknown>> = [];
     const fetchMock = vi.fn((_, init: RequestInit) => {
