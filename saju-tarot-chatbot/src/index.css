@@ -486,6 +486,21 @@ label {
   line-height: 1.55;
 }
 
+.naming-interpretation {
+  border-color: rgba(87, 208, 164, 0.32);
+}
+
+.naming-interpretation__text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.75;
+}
+
 /* ── 타로 근거 패널 ────────── */
 .tarot-facts__hint {
   margin: 0 0 10px;

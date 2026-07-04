@@ -6,7 +6,17 @@ function levelClass(level: string): string {
   return `naming-badge naming-badge--${LEVEL_KEY[level] ?? "ok"}`;
 }
 
-export default function NamingResult({ result }: { result: NameEvaluation }) {
+export default function NamingResult({
+  result,
+  interpretation,
+  interpretationLoading = false,
+  interpretationError,
+}: {
+  result: NameEvaluation;
+  interpretation?: string | null;
+  interpretationLoading?: boolean;
+  interpretationError?: string | null;
+}) {
   const { name, sound, fit, suri, overall, headline } = result;
 
   return (
@@ -69,6 +79,18 @@ export default function NamingResult({ result }: { result: NameEvaluation }) {
           <p className="naming-note">{suri.summary}</p>
         </section>
       )}
+
+      <section className="card naming-interpretation">
+        <h4 className="naming-section-title">AI 이름 해석 리포트</h4>
+        {interpretationLoading && (
+          <p className="naming-note">계산 근거를 바탕으로 이름의 인상과 보완 포인트를 쉬운 문장으로 풀어쓰는 중입니다.</p>
+        )}
+        {interpretationError && <p className="error-text">{interpretationError}</p>}
+        {interpretation && <pre className="naming-interpretation__text">{interpretation}</pre>}
+        {!interpretationLoading && !interpretation && !interpretationError && (
+          <p className="naming-note">위 계산 결과를 바탕으로 깊은 문장 해석을 불러올 수 있습니다.</p>
+        )}
+      </section>
 
       <p className="naming-disclaimer">
         이름 감정은 절대적인 길흉 예언이 아니라, 발음오행·사주 보완·수리 같은 전통 작명 관점을 계산해 균형을 보여주는

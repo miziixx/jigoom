@@ -2,6 +2,7 @@ import { useState } from "react";
 import BirthInfoForm from "../components/BirthInfoForm";
 import NamingResult from "../components/NamingResult";
 import { computeSajuChart } from "../lib/saju";
+import { generateNamingInterpretation } from "../lib/namingApi";
 import { evaluateName, type NameEvaluation } from "../lib/naming";
 import type { BirthInfo } from "../types";
 
@@ -9,6 +10,9 @@ export default function NamingPage() {
   const [name, setName] = useState("");
   const [strokesText, setStrokesText] = useState("");
   const [result, setResult] = useState<NameEvaluation | null>(null);
+  const [interpretation, setInterpretation] = useState<string | null>(null);
+  const [interpretationLoading, setInterpretationLoading] = useState(false);
+  const [interpretationError, setInterpretationError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function parseStrokes(text: string): number[] | undefined {
@@ -19,19 +23,33 @@ export default function NamingPage() {
     return nums.length >= 2 ? nums : undefined;
   }
 
-  function handleSubmit(birthInfo: BirthInfo) {
+  async function handleSubmit(birthInfo: BirthInfo) {
     const trimmed = name.trim();
     if (!trimmed) {
       setError("감정할 이름을 입력해주세요.");
       return;
     }
     setError(null);
+    setInterpretation(null);
+    setInterpretationError(null);
     const chart = computeSajuChart(birthInfo);
-    setResult(evaluateName(chart, trimmed, parseStrokes(strokesText)));
+    const nextResult = evaluateName(chart, trimmed, parseStrokes(strokesText));
+    setResult(nextResult);
+    setInterpretationLoading(true);
+    try {
+      setInterpretation(await generateNamingInterpretation(nextResult));
+    } catch (err) {
+      setInterpretationError(err instanceof Error ? err.message : "이름 해석을 불러오지 못했습니다.");
+    } finally {
+      setInterpretationLoading(false);
+    }
   }
 
   function reset() {
     setResult(null);
+    setInterpretation(null);
+    setInterpretationError(null);
+    setInterpretationLoading(false);
     setError(null);
   }
 
@@ -73,7 +91,12 @@ export default function NamingPage() {
 
       {result && (
         <>
-          <NamingResult result={result} />
+          <NamingResult
+            result={result}
+            interpretation={interpretation}
+            interpretationLoading={interpretationLoading}
+            interpretationError={interpretationError}
+          />
           <button className="btn btn--ghost" onClick={reset}>
             다른 이름 감정하기
           </button>
