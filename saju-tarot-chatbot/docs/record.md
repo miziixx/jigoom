@@ -565,3 +565,16 @@ saju/lunar를 더 이상 끌어오지 않아 API 번들이 가벼워짐. (150 �
   반환·CompatibilityPage 렌더·CSS(`compat-plan-list`)·테스트·문서(CLAUDE.md, next_steps.md) 참조 정리.
   `관계 보완 리포트`의 나머지(대화 예시·하지 않는 편이 좋은 반응 등)는 유지.
 - 통합: 이 밀도 개선은 origin/main(다른 세션의 궁합 보완 리포트 포함) 위로 리베이스해 함께 반영.
+
+## AI 결과 재사용 캐시 (일관성 + 비용 절감)
+
+사용자 피드백: 같은 원국인데 리딩을 돌릴 때마다 API를 새로 불러 결과가 매번 달라지고
+토큰 비용도 든다. → 입력 기준 결과 캐시를 추가.
+
+- `src/lib/resultCache.ts`: localStorage 기반. 키는 입력 페이로드를 키순서 무관 안정 직렬화 후
+  해시. 날짜 의존 흐름이 오래 고정되지 않도록 키에 기간 버킷(오늘=일, 그 외=월)을 섞음. LRU 정리.
+- 리딩(`useReadingStore.startReading`): 같은 (type+원국+질문+포커스+타로카드+버킷)이면 저장된
+  결과를 재사용(스트리밍/API 생략). `forceRegenerate`와 `regenerateCurrent()` 추가.
+- `ReadingActions`에 "🔄 다시 생성" 버튼(원국 있을 때). 이름 추천에도 캐시 + "🔄 다시 생성".
+- 이름 감정 AI 해석도 (평가결과+비교) 기준 캐시.
+- 테스트: `resultCache.test.ts`(169 통과). 이름 API 실제 원인은 ESM 확장자 누락이었고 별도 수정.

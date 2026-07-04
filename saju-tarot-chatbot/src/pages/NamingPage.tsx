@@ -4,6 +4,7 @@ import NamingComparison from "../components/NamingComparison";
 import NamingResult from "../components/NamingResult";
 import { computeSajuChart } from "../lib/saju";
 import { generateNamingInterpretation, generateNameRecommendations } from "../lib/namingApi";
+import { getCachedResult, setCachedResult } from "../lib/resultCache";
 import { downloadNamingMarkdown } from "../lib/exportNaming";
 import { downloadNamingImages } from "../lib/shareNamingImage";
 import {
@@ -51,6 +52,7 @@ export default function NamingPage() {
   const [gender, setGender] = useState("");
   const [syllableCount, setSyllableCount] = useState(2);
   const [brief, setBrief] = useState<NamingBrief | null>(null);
+  const [lastRecommendBirth, setLastRecommendBirth] = useState<BirthInfo | null>(null);
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [recommendLoading, setRecommendLoading] = useState(false);
   const [recommendError, setRecommendError] = useState<string | null>(null);
@@ -102,8 +104,12 @@ export default function NamingPage() {
     setComparison(nextComparison && nextComparison.candidates.length > 1 ? nextComparison : null);
     setResult(nextResult);
     setInterpretationLoading(true);
+    const evalKey = { ev: nextResult, comparison: nextComparison };
     try {
-      setInterpretation(await generateNamingInterpretation(nextResult, nextComparison));
+      const cached = getCachedResult<string>("naming-evaluate", evalKey);
+      const reply = cached ?? (await generateNamingInterpretation(nextResult, nextComparison));
+      if (!cached) setCachedResult("naming-evaluate", evalKey, reply);
+      setInterpretation(reply);
     } catch (err) {
       setInterpretationError(err instanceof Error ? err.message : "이름 해석을 불러오지 못했습니다.");
     } finally {
@@ -111,7 +117,7 @@ export default function NamingPage() {
     }
   }
 
-  async function handleRecommend(birthInfo: BirthInfo) {
+  async function handleRecommend(birthInfo: BirthInfo, forceRegenerate = false) {
     setError(null);
     setRecommendError(null);
     setRecommendation(null);
@@ -124,18 +130,22 @@ export default function NamingPage() {
       purposeNote: purposeNote.trim() || undefined,
     };
     setBrief(nextBrief);
+    setLastRecommendBirth(birthInfo);
     setRecommendLoading(true);
+    const options = {
+      purpose,
+      school,
+      surname: surname.trim() || undefined,
+      gender: gender.trim() || undefined,
+      syllableCount,
+      count: 6,
+    };
+    const recKey = { brief: nextBrief, options };
     try {
-      setRecommendation(
-        await generateNameRecommendations(nextBrief, {
-          purpose,
-          school,
-          surname: surname.trim() || undefined,
-          gender: gender.trim() || undefined,
-          syllableCount,
-          count: 6,
-        }),
-      );
+      const cached = forceRegenerate ? null : getCachedResult<string>("naming-recommend", recKey);
+      const reply = cached ?? (await generateNameRecommendations(nextBrief, options));
+      setCachedResult("naming-recommend", recKey, reply);
+      setRecommendation(reply);
     } catch (err) {
       setRecommendError(err instanceof Error ? err.message : "이름 추천을 불러오지 못했습니다.");
     } finally {
@@ -154,6 +164,7 @@ export default function NamingPage() {
 
   function resetRecommend() {
     setBrief(null);
+    setLastRecommendBirth(null);
     setRecommendation(null);
     setRecommendError(null);
     setRecommendLoading(false);
@@ -506,8 +517,17 @@ export default function NamingPage() {
             <button className="btn btn--secondary" onClick={printNamingReport}>
               PDF 저장
             </button>
+            {lastRecommendBirth && (
+              <button
+                className="btn btn--secondary"
+                onClick={() => void handleRecommend(lastRecommendBirth, true)}
+                disabled={recommendLoading}
+              >
+                {recommendLoading ? "생성 중..." : "🔄 다시 생성"}
+              </button>
+            )}
             <button className="btn btn--ghost" onClick={resetRecommend}>
-              다시 추천받기
+              새 조건으로
             </button>
           </div>
         </div>

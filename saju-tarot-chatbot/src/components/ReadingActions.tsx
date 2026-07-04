@@ -22,6 +22,8 @@ function printReading() {
 export default function ReadingActions({ session }: { session: ReadingSession }) {
   const toggleFavoriteById = useReadingStore((s) => s.toggleFavoriteById);
   const saveCurrentSession = useReadingStore((s) => s.saveCurrentSession);
+  const regenerateCurrent = useReadingStore((s) => s.regenerateCurrent);
+  const loading = useReadingStore((s) => s.loading);
   const isSaved = useReadingStore((s) => s.savedSessions.some((saved) => saved.id === session.id));
 
   return (
@@ -29,6 +31,11 @@ export default function ReadingActions({ session }: { session: ReadingSession })
       {!isSaved && (
         <button className="btn btn--primary" onClick={() => saveCurrentSession(session)}>
           이 기기에 저장
+        </button>
+      )}
+      {session.birthInfo && (
+        <button className="btn btn--secondary" onClick={() => void regenerateCurrent()} disabled={loading} title="같은 사주로 해석을 새로 생성합니다">
+          {loading ? "생성 중..." : "🔄 다시 생성"}
         </button>
       )}
       {isSaved && (
