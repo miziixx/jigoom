@@ -1391,6 +1391,23 @@ label {
   color: var(--text-dim);
 }
 
+.question-core-card {
+  border-color: rgba(201, 164, 255, 0.5);
+  background: linear-gradient(180deg, rgba(201, 164, 255, 0.12), var(--surface));
+}
+
+.question-core-card__tag {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(201, 164, 255, 0.16);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .reading-badge {
   padding: 3px 10px;
   border-radius: 999px;
@@ -2193,7 +2210,28 @@ label {
 }
 
 .compat-score-card {
-  text-align: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+}
+
+@media (max-width: 560px) {
+  .compat-score-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+}
+
+.compat-score-card__eyebrow {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.compat-score-card__title {
+  margin: 4px 0 0;
+  font-size: 1.2rem;
 }
 
 .compat-score {
@@ -2219,6 +2257,80 @@ label {
   margin: 10px 0 0;
   font-size: 0.96rem;
   line-height: 1.6;
+}
+
+.compat-people-grid,
+.compat-advice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .compat-people-grid,
+  .compat-advice-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compat-person__pillars {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.compat-person__traits {
+  display: grid;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 0.84rem;
+}
+
+.compat-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .compat-highlight-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compat-highlight {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+}
+
+.compat-highlight span {
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.compat-highlight p {
+  margin: 8px 0;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.compat-highlight b {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+.compat-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.compat-list li + li {
+  margin-top: 8px;
 }
 
 /* ── 즉시 요약 (계산 기반, AI 리딩 전에 바로 보이는 카드) ── */

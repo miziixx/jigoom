@@ -240,6 +240,20 @@ export interface CompatibilityResult {
   summary: string;
   /** 세부 항목별 점수 */
   breakdown: { label: string; score: number; note: string }[];
+  /** 화면에서 바로 보여줄 관계 운영 포인트 */
+  highlights?: { title: string; body: string; action: string }[];
+  /** 관계에서 주의할 반복 패턴 */
+  cautionPoints?: string[];
+  /** 현실적인 관계 운영법 */
+  actionPlan?: string[];
+  /** 두 사람 원국 요약 */
+  people?: Array<{
+    label: string;
+    pillars: { year: string; month: string; day: string; hour: string | null };
+    dayMaster: string;
+    strongestElement: string;
+    weakestElement: string;
+  }>;
 }
 
 export type TarotArcana = "major" | "minor";

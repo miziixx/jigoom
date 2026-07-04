@@ -221,6 +221,7 @@ function SectionBody({ body, loading }: { body: string; loading?: boolean }) {
 const HERO_OPENING = "첫 점괘";
 const HERO_CLOSING = "마지막 점괘";
 const CATEGORY_SECTION_TITLE = "분야별 요약";
+const QUESTION_CORE_TITLE = "질문 중심 핵심";
 
 interface CategorySummary {
   label: string;
@@ -263,9 +264,10 @@ export default function ReadingResult({ session, loading = false }: { session: R
 
   const opening = sections.find((s) => s.title === HERO_OPENING) ?? sections[0];
   const closing = sections.find((s) => s.title === HERO_CLOSING);
-  // 본문 카드: 첫/마지막 점괘·분야별 요약을 제외한 나머지
+  const questionCore = sections.find((s) => s.title === QUESTION_CORE_TITLE);
+  // 본문 카드: 첫/마지막 점괘·질문 핵심·분야별 요약을 제외한 나머지
   const bodySections = sections.filter(
-    (s) => s !== opening && s !== closing && s.title !== CATEGORY_SECTION_TITLE,
+    (s) => s !== opening && s !== closing && s !== questionCore && s.title !== CATEGORY_SECTION_TITLE,
   );
 
   return (
@@ -305,6 +307,16 @@ export default function ReadingResult({ session, loading = false }: { session: R
             {loading && bodySections.length === 0 && !closing && <span className="reading-typing"> ▌</span>}
           </p>
         </div>
+      )}
+
+      {questionCore && (
+        <section className="card question-core-card">
+          <span className="question-core-card__tag">
+            {session.question?.trim() ? "내 질문에 대한 먼저 답변" : "선택한 관심사 핵심 보기"}
+          </span>
+          <h3 className="card-title">{session.question?.trim() ? session.question.trim() : "지금 먼저 볼 핵심"}</h3>
+          <SectionBody body={questionCore.body} loading={loading && bodySections.length === 0 && !closing} />
+        </section>
       )}
 
       {categorySummary && (

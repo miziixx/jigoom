@@ -126,15 +126,53 @@ export default function CompatibilityPage() {
       {result && (
         <div className="compat-result">
           <div className="card compat-score-card">
+            <div>
+              <span className="compat-score-card__eyebrow">관계 종합</span>
+              <h3 className="compat-score-card__title">{result.score >= 75 ? "끌림과 보완이 강한 관계" : result.score >= 55 ? "맞는 부분과 조율할 부분이 함께 있는 관계" : "속도와 기준을 맞춰야 하는 관계"}</h3>
+              <p className="compat-summary">{result.summary}</p>
+            </div>
             <div className="compat-score">
               <span className="compat-score__num">{result.score}</span>
               <span className="compat-score__unit">점</span>
             </div>
-            <p className="compat-summary">{result.summary}</p>
           </div>
 
+          {result.people && (
+            <div className="compat-people-grid">
+              {result.people.map((p) => (
+                <div className="card compat-person" key={p.label}>
+                  <h3 className="card-title">{p.label}</h3>
+                  <p className="compat-person__pillars">
+                    {p.pillars.year} / {p.pillars.month} / {p.pillars.day}
+                    {p.pillars.hour ? ` / ${p.pillars.hour}` : " / 시주 모름"}
+                  </p>
+                  <div className="compat-person__traits">
+                    <span>나를 뜻하는 글자 {p.dayMaster}</span>
+                    <span>강한 힘: {p.strongestElement}</span>
+                    <span>보완점: {p.weakestElement}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {result.highlights && (
+            <section className="card">
+              <h3 className="card-title">관계 핵심 카드</h3>
+              <div className="compat-highlight-grid">
+                {result.highlights.map((h) => (
+                  <article className="compat-highlight" key={h.title}>
+                    <span>{h.title}</span>
+                    <p>{h.body}</p>
+                    <b>{h.action}</b>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="card">
-            <h3 className="card-title">세부 궁합</h3>
+            <h3 className="card-title">세부 흐름</h3>
             <div className="gauge-list">
               {result.breakdown.map((b) => (
                 <Gauge key={b.label} label={b.label} score={b.score} comment={b.note} />
@@ -154,6 +192,31 @@ export default function CompatibilityPage() {
               <b>서로 채워주는 부분</b> — {result.elementComplement}
             </p>
           </div>
+
+          {(result.cautionPoints || result.actionPlan) && (
+            <div className="compat-advice-grid">
+              {result.cautionPoints && (
+                <section className="card">
+                  <h3 className="card-title">조심할 반복 패턴</h3>
+                  <ul className="compat-list">
+                    {result.cautionPoints.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {result.actionPlan && (
+                <section className="card">
+                  <h3 className="card-title">오래 가는 운영법</h3>
+                  <ul className="compat-list">
+                    {result.actionPlan.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
+          )}
         </div>
       )}
 

@@ -1037,6 +1037,39 @@ function elementComplement(a: FiveElementBalance, b: FiveElementBalance): { text
   return { text, score };
 }
 
+const ELEMENT_PLAIN: Record<keyof FiveElementBalance, string> = {
+  wood: "시작하고 배우는 힘",
+  fire: "표현하고 가까워지는 힘",
+  earth: "생활을 안정시키는 힘",
+  metal: "기준을 세우고 정리하는 힘",
+  water: "감정과 생각을 깊게 살피는 힘",
+};
+
+function strongestElement(balance: FiveElementBalance): keyof FiveElementBalance {
+  return (Object.keys(balance) as Array<keyof FiveElementBalance>).sort((a, b) => balance[b] - balance[a])[0];
+}
+
+function weakestElement(balance: FiveElementBalance): keyof FiveElementBalance {
+  return (Object.keys(balance) as Array<keyof FiveElementBalance>).sort((a, b) => balance[a] - balance[b])[0];
+}
+
+function personSummary(label: string, chart: SajuChart) {
+  const strong = strongestElement(chart.fiveElements);
+  const weak = weakestElement(chart.fiveElements);
+  return {
+    label,
+    pillars: {
+      year: chart.year.ganZhi,
+      month: chart.month.ganZhi,
+      day: chart.day.ganZhi,
+      hour: chart.hour?.ganZhi ?? null,
+    },
+    dayMaster: chart.dayMasterGan,
+    strongestElement: ELEMENT_PLAIN[strong],
+    weakestElement: ELEMENT_PLAIN[weak],
+  };
+}
+
 /**
  * 두 사람의 사주 궁합을 계산한다 (결정론적, 참고용).
  * 일간 관계 + 지지 합충 + 오행 보완을 종합해 0~100 점수로 환산한다.
@@ -1075,6 +1108,39 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
         ? "무난하게 잘 어울리는 궁합이에요. 몇 가지만 서로 배려하면 편안해요."
         : "결이 다른 부분이 있는 궁합이에요. 서로의 다름을 이해하려는 노력이 관계를 키워요.";
 
+  const cautionPoints = [
+    ...(branches.bad.length > 0
+      ? ["감정이 올라왔을 때 바로 결론을 내리면 서로의 의도를 오해하기 쉽습니다."]
+      : ["큰 충돌 신호는 약한 편이지만, 익숙해질수록 표현이 줄어들 수 있습니다."]),
+    score < 55
+      ? "속도와 기대치가 다를 수 있으니 약속, 연락, 돈 문제는 처음부터 기준을 맞추는 편이 좋습니다."
+      : "잘 맞는다고 느낄수록 상대가 알아서 이해해줄 거라 넘기지 않는 것이 좋습니다.",
+  ];
+
+  const actionPlan = [
+    "서운한 점은 바로 판정하지 말고, 구체적인 상황과 원하는 행동을 한 문장으로 말해보세요.",
+    "중요한 결정은 감정이 올라온 날보다 하루 뒤에 다시 확인하는 편이 안정적입니다.",
+    "둘 다 편한 방식만 고집하기보다 연락 빈도, 돈 쓰는 방식, 쉬는 방식의 최소 기준을 정해두세요.",
+  ];
+
+  const highlights = [
+    {
+      title: "끌리는 지점",
+      body: dm.text,
+      action: "처음 좋았던 부분을 당연하게 여기지 말고 자주 말로 확인해 주세요.",
+    },
+    {
+      title: "부딪히는 지점",
+      body: branches.bad.length > 0 ? branches.bad.join(" ") : "크게 세게 부딪히는 신호는 약한 편입니다.",
+      action: "갈등이 생기면 성격 문제가 아니라 방식 차이로 놓고 조율하는 편이 좋습니다.",
+    },
+    {
+      title: "오래 가는 방법",
+      body: elements.text,
+      action: "서로가 잘하는 역할을 나누고, 부족한 쪽을 비난보다 보완으로 다루세요.",
+    },
+  ];
+
   return {
     score,
     dayMasterRelation: dm.text,
@@ -1082,5 +1148,9 @@ export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): Comp
     elementComplement: elements.text,
     summary,
     breakdown,
+    highlights,
+    cautionPoints,
+    actionPlan,
+    people: [personSummary("첫 번째 사람", chartA), personSummary("두 번째 사람", chartB)],
   };
 }
