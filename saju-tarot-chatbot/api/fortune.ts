@@ -52,14 +52,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       max_tokens: MAX_TOKENS,
       system: [{ type: "text", text: FORTUNE_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [
-        { role: "user", content: buildFortuneUserMessage(evidence) },
-        // JSON으로 시작하도록 프리필 → 파싱 안정성 향상
-        { role: "assistant", content: "{" },
+        {
+          role: "user",
+          content: `${buildFortuneUserMessage(evidence)}\n\n반드시 여는 중괄호로 시작하는 JSON 객체만 반환하세요. 설명 문장이나 코드블록은 쓰지 마세요.`,
+        },
       ],
     });
 
     const text =
-      "{" +
       response.content
         .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
         .map((b) => b.text)

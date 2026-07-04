@@ -56,6 +56,25 @@ interface CompareBody {
 
 type RequestBody = NewReadingBody | FollowUpBody | CompareBody;
 
+function withContinuation(
+  messages: Anthropic.Messages.MessageParam[],
+  continueFrom: string,
+): Anthropic.Messages.MessageParam[] {
+  if (!continueFrom) return messages;
+  const instruction = [
+    "이전 응답이 아래 내용까지 작성된 상태에서 중단되었습니다.",
+    "이미 쓴 내용을 반복하지 말고, 바로 다음 문장부터 자연스럽게 이어서 완성해라.",
+    "",
+    "[이전 응답]",
+    continueFrom,
+  ].join("\n");
+  const last = messages[messages.length - 1];
+  if (last?.role === "user") {
+    return [...messages.slice(0, -1), { role: "user", content: `${last.content}\n\n${instruction}` }];
+  }
+  return [...messages, { role: "user", content: instruction }];
+}
+
 /** 클라이언트가 NDJSON 스트리밍을 받을 수 있다고 알렸는지 (구버전 클라이언트는 JSON 일괄 응답 유지) */
 function wantsStream(req: VercelRequest): boolean {
   return (req.headers.accept ?? "").includes("application/x-ndjson");
@@ -147,8 +166,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const streaming = wantsStream(req);
 
   // 이어쓰기(continue): 앞선 응답이 토큰 상한/네트워크 절단으로 잘렸을 때, 지금까지 받은 본문을
-  // assistant 프리필로 넣어 그 뒤부터 이어서 생성하게 한다. (Anthropic은 프리필 끝 공백을 허용하지
-  // 않으므로 trimEnd)
+  // 사용자 메시지에 합쳐 "반복 없이 이어서" 쓰게 한다. 일부 Claude 모델은 assistant 프리필을
+  // 지원하지 않으므로 대화는 항상 user 메시지로 끝나게 유지한다.
   const continueFromRaw = (req.body as { continueFrom?: unknown }).continueFrom;
   const continueFrom = typeof continueFromRaw === "string" ? continueFromRaw.trimEnd() : "";
 
@@ -160,8 +179,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const mode = body.followUpMode ?? "concise";
       const history = mode === "concise" ? withConciseFollowUpInstruction(body.history) : body.history;
-      const messages: Anthropic.Messages.MessageParam[] = history.map((m) => ({ role: m.role, content: m.content }));
-      if (continueFrom) messages.push({ role: "assistant", content: continueFrom });
+      const messages = withContinuation(
+        history.map((m) => ({ role: m.role, content: m.content })),
+        continueFrom,
+      );
       if (streaming) {
         await streamMessages(res, anthropic, messages, undefined, mode === "concise" ? { maxTokens: 2200 } : undefined);
       } else {
@@ -217,8 +238,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? buildReadingUserMessage({ ...readingFacts, sectionGroup: undefined })
       : userMessage;
 
-    const messages: Anthropic.Messages.MessageParam[] = [{ role: "user", content: userMessage }];
-    if (continueFrom) messages.push({ role: "assistant", content: continueFrom });
+    const messages = withContinuation([{ role: "user", content: userMessage }], continueFrom);
     // 이어쓰기 호출에는 계산 메타(meta)를 다시 실어 보내지 않는다 (이미 첫 호출에서 전달됨).
     const meta = continueFrom ? undefined : { userMessage: metaUserMessage, sajuChart, luckCycles };
     if (streaming) {
