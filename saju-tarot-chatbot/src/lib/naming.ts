@@ -31,6 +31,13 @@ const SOUND_ELEMENT: Record<string, Element> = {
   ㅁ: "water", ㅂ: "water", ㅍ: "water", ㅃ: "water",
 };
 
+export type SoundElementSchool = "full-name" | "given-name";
+
+export const SOUND_ELEMENT_SCHOOL_LABEL: Record<SoundElementSchool, string> = {
+  "full-name": "전체 이름 기준",
+  "given-name": "이름 중심 기준",
+};
+
 export type SoundElementRelation = "상생" | "상극" | "같음";
 
 export interface SyllableSound {
@@ -41,6 +48,8 @@ export interface SyllableSound {
 }
 
 export interface NameSoundAnalysis {
+  school: SoundElementSchool;
+  schoolLabel: string;
   syllables: SyllableSound[];
   /** 인접 음절 사이 관계 */
   relations: { from: string; to: string; relation: SoundElementRelation }[];
@@ -65,8 +74,11 @@ function relationOf(a: Element, b: Element): SoundElementRelation {
 }
 
 /** 이름의 발음오행(초성 오행) 흐름을 분석한다. */
-export function analyzeNameSound(name: string): NameSoundAnalysis {
-  const chars = [...name].filter((ch) => choseongOf(ch) !== null);
+export function analyzeNameSound(name: string, school: SoundElementSchool = "full-name"): NameSoundAnalysis {
+  const allChars = [...name].filter((ch) => choseongOf(ch) !== null);
+  // 일부 작명 관점은 성을 고정값으로 보고 이름 두 글자의 흐름을 더 중시한다.
+  // 성이 포함된 3글자 이상 이름에서만 첫 글자를 제외하고, 2글자 이름은 전체를 본다.
+  const chars = school === "given-name" && allChars.length >= 3 ? allChars.slice(1) : allChars;
   const syllables: SyllableSound[] = chars.map((ch) => {
     const cho = choseongOf(ch)!;
     const element = SOUND_ELEMENT[cho] ?? "earth";
@@ -87,16 +99,16 @@ export function analyzeNameSound(name: string): NameSoundAnalysis {
   let note: string;
   if (sanggeuk === 0 && sangsaeng > 0) {
     harmony = "순조로움";
-    note = "이름을 이루는 소리의 기운이 서로 밀어주는 흐름이라, 부르고 불릴 때 자연스럽게 이어집니다.";
+    note = `${SOUND_ELEMENT_SCHOOL_LABEL[school]}으로 볼 때, 이름을 이루는 소리의 기운이 서로 밀어주는 흐름이라 부르고 불릴 때 자연스럽게 이어집니다.`;
   } else if (sanggeuk > sangsaeng) {
     harmony = "다소 부딪힘";
-    note = "소리의 기운이 몇 군데서 엇갈립니다. 나쁜 이름이라는 뜻은 아니고, 부드러운 애칭이나 소리 배치를 함께 고려하면 균형을 보완할 수 있습니다.";
+    note = `${SOUND_ELEMENT_SCHOOL_LABEL[school]}으로 볼 때, 소리의 기운이 몇 군데서 엇갈립니다. 나쁜 이름이라는 뜻은 아니고, 부드러운 애칭이나 소리 배치를 함께 고려하면 균형을 보완할 수 있습니다.`;
   } else {
     harmony = "무난함";
-    note = "소리의 기운이 크게 부딪히지 않는 무난한 배열입니다.";
+    note = `${SOUND_ELEMENT_SCHOOL_LABEL[school]}으로 볼 때, 소리의 기운이 크게 부딪히지 않는 무난한 배열입니다.`;
   }
 
-  return { syllables, relations, harmony, note };
+  return { school, schoolLabel: SOUND_ELEMENT_SCHOOL_LABEL[school], syllables, relations, harmony, note };
 }
 
 export type SajuFitLevel = "좋음" | "보통" | "주의";
@@ -214,6 +226,8 @@ export type NameOverall = "좋음" | "보통" | "주의";
 
 export interface NameEvaluation {
   name: string;
+  school: SoundElementSchool;
+  schoolLabel: string;
   sound: NameSoundAnalysis;
   fit: NameSajuFit;
   suri: SuriResult | null;
@@ -224,8 +238,8 @@ export interface NameEvaluation {
 }
 
 /** 이름 종합 감정: 발음오행 흐름 + 사주 보완 적합도 (+ 있으면 수리). */
-export function evaluateName(chart: SajuChart, name: string, strokes?: number[]): NameEvaluation {
-  const sound = analyzeNameSound(name);
+export function evaluateName(chart: SajuChart, name: string, strokes?: number[], school: SoundElementSchool = "full-name"): NameEvaluation {
+  const sound = analyzeNameSound(name, school);
   const fit = evaluateNameForChart(chart, sound);
   const suri = strokes && strokes.length >= 2 ? evaluateSuri(strokes) : null;
 
@@ -246,7 +260,7 @@ export function evaluateName(chart: SajuChart, name: string, strokes?: number[])
         ? `균형 면에서 보완하면 좋은 지점이 보이는 이름입니다.`
         : `크게 부딪히지 않는 무난한 이름입니다.`;
 
-  return { name, sound, fit, suri, score, overall, headline };
+  return { name, school, schoolLabel: SOUND_ELEMENT_SCHOOL_LABEL[school], sound, fit, suri, score, overall, headline };
 }
 
 export interface NameCandidateInput {
@@ -260,11 +274,11 @@ export interface NameComparison {
   summary: string;
 }
 
-export function compareNames(chart: SajuChart, candidates: NameCandidateInput[]): NameComparison {
+export function compareNames(chart: SajuChart, candidates: NameCandidateInput[], school: SoundElementSchool = "full-name"): NameComparison {
   const evaluations = candidates
     .map((candidate) => ({ ...candidate, name: candidate.name.trim() }))
     .filter((candidate) => candidate.name.length > 0)
-    .map((candidate) => evaluateName(chart, candidate.name, candidate.strokes));
+    .map((candidate) => evaluateName(chart, candidate.name, candidate.strokes, school));
 
   if (evaluations.length === 0) {
     throw new Error("비교할 이름이 필요합니다.");

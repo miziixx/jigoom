@@ -375,6 +375,29 @@ temper 주황/steady 보라). 테스트 `lifestyleGuide.test.ts` 신규(4). 총 
 - `src/lib/naming.test.ts`
   - 후보 비교 정렬 테스트 추가.
 
+## 작명 발음오행 기준 옵션과 저장 기능 추가
+
+작명 확장 3단계로 발음오행을 보는 기준 선택과 결과 저장 기능을 추가했다.
+
+- 발음오행 기준 옵션:
+  - `전체 이름 기준`: 성과 이름 전체의 초성 흐름을 본다. 기존 기본값이다.
+  - `이름 중심 기준`: 3글자 이상 이름에서 성을 고정값으로 보고 이름 부분의 흐름을 더 본다.
+  - 정답 학파를 단정하지 않고, 사용자가 어떤 기준으로 계산했는지 결과와 저장 파일에 표시한다.
+- `src/lib/naming.ts`
+  - `SoundElementSchool` 추가.
+  - `analyzeNameSound`, `evaluateName`, `compareNames`가 기준 옵션을 받도록 확장.
+  - `NameEvaluation`에 `school`, `schoolLabel` 저장.
+- `src/pages/NamingPage.tsx`
+  - 발음오행 기준 선택 토글 추가.
+  - PDF 저장 버튼 추가. 브라우저 인쇄 기능으로 PDF 저장한다.
+  - 마크다운 저장 버튼 추가.
+- `src/lib/exportNaming.ts` 신규:
+  - 이름 감정 결과, 후보 비교, AI 해석 리포트를 마크다운으로 저장.
+- 테스트:
+  - `src/lib/naming.test.ts`에 이름 중심 기준 테스트 추가.
+  - `src/lib/exportNaming.test.ts` 신규.
+  - `src/prompts/namingPrompt.test.ts`에서 발음오행 기준 전달 확인.
+
 ## 챗봇 오류가 '[object Object]'로 뜨는 문제 수정
 
 후속 챗봇에서 오류가 `[object Object]`로 표시됨. 원인: 서버/프록시가 error를 문자열이

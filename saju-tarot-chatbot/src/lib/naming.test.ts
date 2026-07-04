@@ -26,6 +26,12 @@ describe("발음오행 분석", () => {
     expect(a.syllables).toHaveLength(1);
     expect(a.syllables[0].syllable).toBe("김");
   });
+
+  it("이름 중심 기준은 3글자 이상에서 성을 제외하고 본다", () => {
+    const a = analyzeNameSound("김민준", "given-name");
+    expect(a.schoolLabel).toBe("이름 중심 기준");
+    expect(a.syllables.map((s) => s.syllable)).toEqual(["민", "준"]);
+  });
 });
 
 describe("수리 계산", () => {
@@ -46,6 +52,7 @@ describe("이름 종합 감정", () => {
   it("발음·사주 적합도·종합 판정을 반환한다", () => {
     const evaln = evaluateName(chart, "김민준");
     expect(evaln.sound.syllables.length).toBe(3);
+    expect(evaln.school).toBe("full-name");
     expect(["좋음", "보통", "주의"]).toContain(evaln.fit.level);
     expect(["좋음", "보통", "주의"]).toContain(evaln.overall);
     expect(evaln.headline.length).toBeGreaterThan(5);
@@ -61,9 +68,10 @@ describe("이름 종합 감정", () => {
       { name: "김민준", strokes: [8, 9, 6] },
       { name: "이서아", strokes: [7, 8, 9] },
       { name: "박도윤" },
-    ]);
+    ], "given-name");
     expect(comparison.candidates).toHaveLength(3);
     expect(comparison.recommended).toBe(comparison.candidates[0]);
     expect(comparison.summary).toContain(comparison.recommended.name);
+    expect(comparison.recommended.school).toBe("given-name");
   });
 });

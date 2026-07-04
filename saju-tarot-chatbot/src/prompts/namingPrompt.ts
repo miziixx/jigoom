@@ -41,6 +41,7 @@ export function buildNamingUserMessage(evaluation: NameEvaluation): string {
     "",
     "[계산 결과]",
     `이름: ${evaluation.name}`,
+    `발음오행 기준: ${evaluation.schoolLabel}`,
     `종합 판정: ${evaluation.overall}`,
     `헤드라인: ${evaluation.headline}`,
     "",

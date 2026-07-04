@@ -264,6 +264,34 @@ label {
   border: 1px solid var(--border);
 }
 
+.segmented {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-alt);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.segmented__item {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmented__item--active {
+  background: var(--accent-strong);
+  color: #1a1226;
+}
+
 .error-text {
   color: var(--danger);
   font-size: 0.88rem;
@@ -499,6 +527,16 @@ label {
   font-family: inherit;
   font-size: 0.9rem;
   line-height: 1.75;
+}
+
+.naming-school-toggle {
+  flex-wrap: wrap;
+}
+
+.naming-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .naming-comparison__head {

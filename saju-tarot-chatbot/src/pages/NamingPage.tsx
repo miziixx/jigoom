@@ -4,11 +4,21 @@ import NamingComparison from "../components/NamingComparison";
 import NamingResult from "../components/NamingResult";
 import { computeSajuChart } from "../lib/saju";
 import { generateNamingInterpretation } from "../lib/namingApi";
-import { compareNames, evaluateName, type NameCandidateInput, type NameComparison, type NameEvaluation } from "../lib/naming";
+import { downloadNamingMarkdown } from "../lib/exportNaming";
+import {
+  compareNames,
+  evaluateName,
+  SOUND_ELEMENT_SCHOOL_LABEL,
+  type NameCandidateInput,
+  type NameComparison,
+  type NameEvaluation,
+  type SoundElementSchool,
+} from "../lib/naming";
 import type { BirthInfo } from "../types";
 
 export default function NamingPage() {
   const [name, setName] = useState("");
+  const [school, setSchool] = useState<SoundElementSchool>("full-name");
   const [candidateText, setCandidateText] = useState("");
   const [strokesText, setStrokesText] = useState("");
   const [result, setResult] = useState<NameEvaluation | null>(null);
@@ -50,12 +60,12 @@ export default function NamingPage() {
     const chart = computeSajuChart(birthInfo);
     const nextComparison =
       candidates.length > 0
-        ? compareNames(chart, candidates)
+        ? compareNames(chart, candidates, school)
         : singleName
-          ? compareNames(chart, [{ name: singleName, strokes: parseStrokes(strokesText) }])
+          ? compareNames(chart, [{ name: singleName, strokes: parseStrokes(strokesText) }], school)
           : null;
     const nextResult =
-      nextComparison?.recommended ?? evaluateName(chart, singleName, parseStrokes(strokesText));
+      nextComparison?.recommended ?? evaluateName(chart, singleName, parseStrokes(strokesText), school);
     setComparison(nextComparison && nextComparison.candidates.length > 1 ? nextComparison : null);
     setResult(nextResult);
     setInterpretationLoading(true);
@@ -77,6 +87,10 @@ export default function NamingPage() {
     setError(null);
   }
 
+  function printNamingReport() {
+    window.print();
+  }
+
   return (
     <section className="page">
       <h2 className="page-title">이름 감정</h2>
@@ -88,6 +102,24 @@ export default function NamingPage() {
       {!result && (
         <>
           <div className="card form">
+            <div className="field-row field-row--column">
+              <span className="field-label">발음오행 기준</span>
+              <div className="segmented naming-school-toggle">
+                {(["full-name", "given-name"] as SoundElementSchool[]).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={school === key ? "segmented__item segmented__item--active" : "segmented__item"}
+                    onClick={() => setSchool(key)}
+                  >
+                    {SOUND_ELEMENT_SCHOOL_LABEL[key]}
+                  </button>
+                ))}
+              </div>
+              <span className="field-hint">
+                전체 이름 기준은 성까지 포함해 보고, 이름 중심 기준은 성을 고정값으로 두고 이름 부분의 흐름을 더 봅니다.
+              </span>
+            </div>
             <div className="field-row field-row--column">
               <span className="field-label">감정할 이름</span>
               <input
@@ -134,9 +166,20 @@ export default function NamingPage() {
             interpretationLoading={interpretationLoading}
             interpretationError={interpretationError}
           />
-          <button className="btn btn--ghost" onClick={reset}>
-            다른 이름 감정하기
-          </button>
+          <div className="naming-actions">
+            <button className="btn btn--secondary" onClick={printNamingReport}>
+              PDF 저장
+            </button>
+            <button
+              className="btn btn--secondary"
+              onClick={() => downloadNamingMarkdown({ result, comparison, interpretation })}
+            >
+              마크다운 저장
+            </button>
+            <button className="btn btn--ghost" onClick={reset}>
+              다른 이름 감정하기
+            </button>
+          </div>
         </>
       )}
     </section>

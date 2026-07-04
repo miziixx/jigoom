@@ -26,6 +26,9 @@ export default function NamingResult({
           <b className="naming-hero__name">{name}</b>
           <span className={levelClass(overall)}>종합 {overall}</span>
         </div>
+        <div className="naming-chips naming-chips--compact">
+          <span>{result.schoolLabel}</span>
+        </div>
         <p>{headline}</p>
       </section>
 

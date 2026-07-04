@@ -17,6 +17,7 @@ describe("이름 감정 AI 프롬프트", () => {
   it("계산된 이름 감정 결과만 전달하고 생년월일 원본은 담지 않는다", () => {
     const msg = buildNamingUserMessage(evaluation);
     expect(msg).toContain("이름: 김민준");
+    expect(msg).toContain("발음오행 기준");
     expect(msg).toContain("발음오행");
     expect(msg).toContain("보완하면 좋은 기운");
     expect(msg).toContain("획수 수리");
