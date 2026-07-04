@@ -97,14 +97,26 @@ export function buildMysticEvidence(
   // ── 원국 합충형파해 / 신살 ──────────────────
   const natalInteractions = chart.interactions ?? [];
   natalInteractions.slice(0, 4).forEach((i) => notes.push(`원국 ${i}`));
-  const sinsal: string[] = [];
-  // 신살: 계산된 원국 신살(이름·위치·뜻) 요약
+  // 신살: 같은 신살의 여러 위치를 한 줄로 합치고 길신/흉살/특수로 그룹핑해 정리
+  const sinsalByName = new Map<string, { category: string; gloss: string; positions: string[] }>();
   for (const s of chart.sinsal ?? []) {
-    sinsal.push(`${s.name}(${s.position}): ${s.gloss}`);
+    const cur = sinsalByName.get(s.name);
+    if (cur) cur.positions.push(s.position);
+    else sinsalByName.set(s.name, { category: s.category, gloss: s.gloss, positions: [s.position] });
   }
-  if (chart.gongmang) sinsal.push(chart.gongmang);
-  // 대표 신살은 notes에도 실어 해석 근거로 강조 (최대 4개)
-  (chart.sinsal ?? []).slice(0, 4).forEach((s) => notes.push(`신살 ${s.name}(${s.position})`));
+  const byCategory: Record<string, string[]> = { 길신: [], 흉살: [], 특수: [] };
+  for (const [name, info] of sinsalByName) {
+    byCategory[info.category]?.push(`${name}(${info.positions.join("·")})`);
+  }
+  const sinsal: string[] = [];
+  for (const cat of ["길신", "흉살", "특수"] as const) {
+    if (byCategory[cat].length > 0) sinsal.push(`[${cat}] ${byCategory[cat].join(", ")}`);
+  }
+  if (chart.gongmang) sinsal.push(`[특수] ${chart.gongmang}`);
+  // 대표 신살만 notes에 강조: 길신·흉살 각 최대 2개 (이름 단위, 위치 합침)
+  for (const cat of ["길신", "흉살"] as const) {
+    byCategory[cat].slice(0, 2).forEach((label) => notes.push(`${cat} ${label}`));
+  }
 
   // ── 격국 / 일주 성향 ────────────────────────
   if (chart.gyeokguk) notes.push(`격국: ${chart.gyeokguk.name} — ${chart.gyeokguk.gloss}`);

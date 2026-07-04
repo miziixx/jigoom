@@ -110,12 +110,16 @@ export interface YongshinCandidates {
   heesin?: string[];
 }
 
+export type SinsalCategory = "길신" | "흉살" | "특수";
+
 export interface SinsalHit {
   name: string;
   /** 해당된 위치 (예: "일지 술", "일주") */
   position: string;
   /** 쉬운 말 뜻풀이 */
   gloss: string;
+  /** 길신(도움)·흉살(주의)·특수(양면) 분류 */
+  category: SinsalCategory;
 }
 
 export interface GyeokgukInfo {

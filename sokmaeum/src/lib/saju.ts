@@ -8,6 +8,7 @@ import type {
   MonthFlowInfo,
   SajuChart,
   SajuPillar,
+  SinsalCategory,
   SinsalHit,
   StrengthAssessment,
   TimeCorrection,
@@ -314,6 +315,22 @@ export function gongmangOf(dayGan: string, dayZhi: string): string {
 }
 
 // ── 신살(神煞) 테이블 ──────────
+// 신살 분류: 길신(도움)·흉살(주의)·특수(양면). 미지정은 특수로 처리.
+const SINSAL_CATEGORY: Record<string, SinsalCategory> = {
+  // 길신
+  천을귀인: "길신", 태극귀인: "길신", 문창귀인: "길신", 학당귀인: "길신",
+  천덕귀인: "길신", 월덕귀인: "길신", 금여: "길신", 암록: "길신",
+  장성살: "길신", 반안살: "길신",
+  // 흉살
+  겁살: "흉살", 재살: "흉살", 천살: "흉살", 월살: "흉살", 망신살: "흉살",
+  육해살: "흉살", 양인: "흉살", 비인: "흉살", 급각살: "흉살", 단교관살: "흉살",
+  원진살: "흉살", 귀문관살: "흉살", 고신살: "흉살", 과숙살: "흉살",
+  백호대살: "흉살", 천라: "흉살", 지망: "흉살",
+  // 특수(양면) — 관법·조합에 따라 길흉이 갈림
+  지살: "특수", 역마살: "특수", 년살: "특수", 화개살: "특수",
+  홍염살: "특수", 괴강: "특수",
+};
+
 // 12지 순서 (인덱스 계산용)
 const ZHI_ORDER = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
 
@@ -475,7 +492,7 @@ function computeSinsal(
     const key = `${name}|${position}`;
     if (seen.has(key)) return;
     seen.add(key);
-    hits.push({ name, position, gloss });
+    hits.push({ name, position, gloss, category: SINSAL_CATEGORY[name] ?? "특수" });
   };
 
   // ── 십이신살 (년지·일지 삼합 기준) ──
