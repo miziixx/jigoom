@@ -23,6 +23,7 @@ interface StartReadingParams {
   birthInfo?: BirthInfo;
   tarotCards?: DrawnTarotCard[];
   spreadNote?: string;
+  saveToHistory?: boolean;
 }
 
 interface ReadingStore {
@@ -57,10 +58,10 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
   error: null,
   savedSessions: [],
 
-  startReading: async ({ type, question, focus, context, birthInfo, tarotCards, spreadNote }) => {
+  startReading: async ({ type, question, focus, context, birthInfo, tarotCards, spreadNote, saveToHistory }) => {
     set({ loading: true, error: null });
     // 개인정보 보호: 사주 계산을 여기(브라우저)에서 끝내고, 서버로는 생년월일 원본 대신 계산 결과와
-    // 성별만 보낸다. 리딩 기록은 사용자가 직접 저장할 때만 브라우저 저장소에 남긴다.
+    // 성별만 보낸다. 리딩 기록은 사용자가 직접 저장을 선택한 경우에만 브라우저 저장소에 남긴다.
     const includeMonthlyFlow = type === "saju" || type === "combo" || type === "flow";
     const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
     const luckCycles = birthInfo ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow }) : undefined;
@@ -107,6 +108,10 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
         ...built,
         messages: [built.messages[0], { role: "assistant", content: result.reply }],
       };
+      if (saveToHistory) {
+        saveSession(finalSession);
+        get().refreshHistory();
+      }
       set({ currentSession: finalSession, loading: false });
     } catch (err) {
       set({ loading: false, error: err instanceof Error ? err.message : "알 수 없는 오류" });

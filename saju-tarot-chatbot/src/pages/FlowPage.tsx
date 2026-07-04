@@ -12,8 +12,14 @@ export default function FlowPage() {
   const { currentSession, loading, error, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
   const showResult = currentSession?.type === "flow";
 
-  function handleSubmit(birthInfo: BirthInfo, question: string, focus: ReadingFocus, context: ReadingContext) {
-    startReading({ type: "flow", question, focus, context, birthInfo });
+  function handleSubmit(
+    birthInfo: BirthInfo,
+    question: string,
+    focus: ReadingFocus,
+    context: ReadingContext,
+    options?: { saveToHistory: boolean },
+  ) {
+    startReading({ type: "flow", question, focus, context, birthInfo, saveToHistory: options?.saveToHistory });
   }
 
   return (

@@ -12,8 +12,14 @@ export default function SajuPage() {
   const { currentSession, loading, error, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
   const showResult = currentSession?.type === "saju";
 
-  function handleSubmit(birthInfo: BirthInfo, question: string, focus: ReadingFocus, context: ReadingContext) {
-    startReading({ type: "saju", question, focus, context, birthInfo });
+  function handleSubmit(
+    birthInfo: BirthInfo,
+    question: string,
+    focus: ReadingFocus,
+    context: ReadingContext,
+    options?: { saveToHistory: boolean },
+  ) {
+    startReading({ type: "saju", question, focus, context, birthInfo, saveToHistory: options?.saveToHistory });
   }
 
   return (

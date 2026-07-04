@@ -8,7 +8,13 @@ import type { BirthInfo, CalendarType, Gender, LateNightZiMode, ReadingContext, 
 
 interface Props {
   submitLabel: string;
-  onSubmit: (birthInfo: BirthInfo, question: string, focus: ReadingFocus, context: ReadingContext) => void;
+  onSubmit: (
+    birthInfo: BirthInfo,
+    question: string,
+    focus: ReadingFocus,
+    context: ReadingContext,
+    options?: { saveToHistory: boolean },
+  ) => void;
   loading: boolean;
   /** 오늘의 흐름 등 포커스 선택이 무의미한 리딩에서는 숨긴다 */
   showFocus?: boolean;
@@ -56,7 +62,7 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
     // 출생 시간을 모르면 정확도 응답과 무관하게 "모름"으로 고정한다
     const finalContext: ReadingContext =
       hour === "unknown" ? { ...context, timeAccuracy: "unknown" } : context;
-    onSubmit(birthInfo, question, focus, finalContext);
+    onSubmit(birthInfo, question, focus, finalContext, { saveToHistory: saveBirthChart });
   }
 
   return (
@@ -173,7 +179,7 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
           이 사주 원국을 이 기기에 저장하기
         </label>
         <span className="field-hint">
-          저장하면 오늘 운세와 다음 사주 조회에서 다시 입력하지 않고 쓸 수 있어요. 서버가 아니라 이 브라우저에만 저장됩니다.
+          저장하면 기록 페이지에도 남고, 오늘 운세와 다음 사주 조회에서 다시 입력하지 않고 쓸 수 있어요. 서버가 아니라 이 브라우저에만 저장됩니다.
         </span>
       </div>
 

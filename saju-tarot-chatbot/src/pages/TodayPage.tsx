@@ -12,8 +12,14 @@ export default function TodayPage() {
   const { currentSession, loading, error, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
   const showResult = currentSession?.type === "today";
 
-  function handleSubmit(birthInfo: BirthInfo, question: string, _focus: ReadingFocus, context: ReadingContext) {
-    startReading({ type: "today", question, context, birthInfo });
+  function handleSubmit(
+    birthInfo: BirthInfo,
+    question: string,
+    _focus: ReadingFocus,
+    context: ReadingContext,
+    options?: { saveToHistory: boolean },
+  ) {
+    startReading({ type: "today", question, context, birthInfo, saveToHistory: options?.saveToHistory });
   }
 
   return (
