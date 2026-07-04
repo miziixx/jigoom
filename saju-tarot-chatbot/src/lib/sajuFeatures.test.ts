@@ -143,6 +143,21 @@ describe("궁합 계산", () => {
     expect(compat.repairReport?.sevenDayPlan).toHaveLength(7);
   });
 
+  it("세부 흐름·목적별 궁합에 '이럴 때 드러나요' 신호와 상세를 담는다", () => {
+    for (const b of compat.breakdown) {
+      expect(b.detail && b.detail.length).toBeGreaterThan(0);
+      expect(b.signal && b.signal.length).toBeGreaterThan(0);
+    }
+    for (const fit of compat.purposeFits ?? []) {
+      expect(fit.signal && fit.signal.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("종합 요약이 가장 강한 축을 구체적으로 짚는다", () => {
+    const strongest = [...compat.breakdown].sort((x, y) => y.score - x.score)[0];
+    expect(compat.summary).toContain(strongest.label);
+  });
+
   it("교환해도 점수가 동일하다 (대칭성)", () => {
     const swapped = computeCompatibility(B, A);
     expect(swapped.score).toBe(compat.score);

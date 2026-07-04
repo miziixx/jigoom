@@ -253,7 +253,7 @@ export interface CompatibilityResult {
   /** 종합 한 줄 코멘트 */
   summary: string;
   /** 세부 항목별 점수 */
-  breakdown: { label: string; score: number; note: string; detail?: string; actions?: string[] }[];
+  breakdown: { label: string; score: number; note: string; detail?: string; signal?: string; actions?: string[] }[];
   /** 화면에서 바로 보여줄 관계 운영 포인트 */
   highlights?: { title: string; body: string; action: string }[];
   /** 관계에서 주의할 반복 패턴 */
@@ -303,6 +303,7 @@ export interface CompatibilityResult {
     score: number;
     comment: string;
     detail?: string;
+    signal?: string;
     actions?: string[];
   }>;
   /** 가까운 시기 흐름 */

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Gauge from "../components/Gauge";
+import Gauge, { tierWord } from "../components/Gauge";
 import { BIRTH_PLACES } from "../data/birthPlaces";
 import { computeCompatibility } from "../lib/saju";
 import type { BirthInfo, CalendarType, CompatibilityRelationType, CompatibilityResult, Gender, LateNightZiMode } from "../types";
@@ -386,8 +386,13 @@ export default function CompatibilityPage() {
               <div className="compat-deep-list">
                 {result.purposeFits.map((fit) => (
                   <article className="compat-deep-item" key={fit.label}>
-                    <Gauge label={fit.label} score={fit.score} comment={fit.comment} />
+                    <Gauge label={fit.label} score={fit.score} comment={fit.comment} tierLabel={tierWord(fit.score)} />
                     {fit.detail && <p>{fit.detail}</p>}
+                    {fit.signal && (
+                      <p className="compat-signal">
+                        <b>이럴 때 드러나요</b> {fit.signal}
+                      </p>
+                    )}
                     {fit.actions && (
                       <ul className="compat-list">
                         {fit.actions.map((action) => (
@@ -406,8 +411,13 @@ export default function CompatibilityPage() {
             <div className="compat-deep-list">
               {result.breakdown.map((b) => (
                 <article className="compat-deep-item" key={b.label}>
-                  <Gauge label={b.label} score={b.score} comment={b.note} />
+                  <Gauge label={b.label} score={b.score} comment={b.note} tierLabel={tierWord(b.score)} />
                   {b.detail && <p>{b.detail}</p>}
+                  {b.signal && (
+                    <p className="compat-signal">
+                      <b>이럴 때 드러나요</b> {b.signal}
+                    </p>
+                  )}
                   {b.actions && (
                     <ul className="compat-list">
                       {b.actions.map((action) => (
@@ -418,24 +428,6 @@ export default function CompatibilityPage() {
                 </article>
               ))}
             </div>
-          </div>
-
-          <div className="card">
-            <h3 className="card-title">근거</h3>
-            <p className="reading-body">
-              <b>두 사람의 기질</b> — {result.dayMasterRelation}
-            </p>
-            <p className="reading-body">
-              <b>함께 있을 때 흐름</b> — {result.branchRelations.length > 0 ? result.branchRelations.join(", ") : "크게 부딪히거나 붙는 부분 없이 무난해요"}
-            </p>
-            <p className="reading-body">
-              <b>서로 채워주는 부분</b> — {result.elementComplement}
-            </p>
-            {result.partnerPalace && (
-              <p className="reading-body">
-                <b>관계 자리</b> — {result.partnerPalace.evidence}
-              </p>
-            )}
           </div>
 
           {result.timing && (
