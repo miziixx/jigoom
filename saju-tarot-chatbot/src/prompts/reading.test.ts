@@ -29,6 +29,10 @@ describe("리딩 시스템 프롬프트 규칙", () => {
       expect(READING_SYSTEM_PROMPT).toContain(s);
     }
   });
+  it("섹션 간 내용 중복 방지 규칙을 담는다", () => {
+    expect(READING_SYSTEM_PROMPT).toContain("중복 방지 — 섹션 담당 구분");
+    expect(READING_SYSTEM_PROMPT).toContain("재물 흐름으로 넘겨라");
+  });
   it("안전 규칙(단정·무속 금지)을 유지한다", () => {
     expect(READING_SYSTEM_PROMPT).toContain("반드시/무조건/100%/절대");
     expect(READING_SYSTEM_PROMPT).toContain("무속");
