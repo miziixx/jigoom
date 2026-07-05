@@ -77,6 +77,14 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(msg).toContain("성별");
   });
 
+  it("사건화 근거 블록과 활용 안내를 전달한다 (원국 있는 리딩)", () => {
+    expect(msg).toContain("분야별 사건 신호 — 계산됨");
+    expect(msg).toContain("사건 신호 활용 안내");
+    // 분야 라벨이 근거로 들어간다
+    expect(msg).toContain("직업·일");
+    expect(msg).toContain("건강·컨디션");
+  });
+
   it("깊이 미선택이면 짧지만 완결된 기본 핵심 리딩 프로필을 붙인다", () => {
     expect(msg).toContain("기본 리딩 — 종합");
     expect(msg).toContain("짧지만 완결된 핵심 리포트");

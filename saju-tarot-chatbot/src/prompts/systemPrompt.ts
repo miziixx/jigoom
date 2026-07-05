@@ -8,6 +8,7 @@ import type {
   SajuChart,
 } from "../types/index.js";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide.js";
+import { buildEventForecast } from "../lib/eventEngine.js";
 import { describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 
 /**
@@ -334,6 +335,33 @@ function formatSajuChart(chart: SajuChart, todayGanZhi?: string): string {
   return lines.join("\n");
 }
 
+/**
+ * 사건화 엔진 결과를 프롬프트 근거 블록으로 직렬화한다.
+ * 활성(움직임 신호가 있는) 분야를 먼저 보여주고, 각 분야의 사건 패턴/타이밍/조심 신호/근거를 정리한다.
+ * 표면 문구는 이미 쉬운 말이며, evidence만 전문가 근거용으로 유지한다.
+ */
+function formatEventForecast(chart: SajuChart, luck?: LuckCycles, gender?: Gender): string | null {
+  const forecast = buildEventForecast(chart, luck, gender);
+  if (!forecast) return null;
+
+  const lines: string[] = [forecast.headline];
+  // 활성 분야 먼저, 그다음 나머지
+  const ordered = [
+    ...forecast.activeDomains.map((k) => forecast.domains.find((d) => d.domain === k)!),
+    ...forecast.domains.filter((d) => !forecast.activeDomains.includes(d.domain)),
+  ];
+  for (const d of ordered) {
+    const tier = d.activation === "high" ? "지금 크게 움직임" : d.activation === "mid" ? "변화 신호 있음" : "평이함";
+    const bits = [`■ ${d.label} [${tier}] — ${d.activationNote}`];
+    if (d.patterns.length > 0) bits.push(`  · 나타나기 쉬운 일: ${d.patterns.join(" / ")}`);
+    if (d.timingSignals.length > 0) bits.push(`  · 지금 시기 신호: ${d.timingSignals.join(" / ")}`);
+    if (d.cautions.length > 0) bits.push(`  · 조심 신호: ${d.cautions.join(" / ")}`);
+    if (d.evidence.length > 0) bits.push(`  · (근거) ${d.evidence.join("; ")}`);
+    lines.push(bits.join("\n"));
+  }
+  return lines.join("\n");
+}
+
 function formatTarotCards(cards: DrawnTarotCard[]): string {
   return cards
     .map((c) => {
@@ -604,6 +632,18 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
     parts.push(
       "[운 흐름 해석 안내] '인생의 큰 흐름'은 전달된 대운(10년 단위 큰 흐름)을, '올해의 흐름'은 세운·월운을 속 근거로 삼아 타이밍을 해석해라. 예를 들어 올해 흐름이 자리·환경을 흔드는 신호면 '올해는 직장·가정 환경이 한 번 흔들리기 쉬운 흐름입니다'처럼 쉬운 말로 옮겨라. 목록에 없는 상호작용을 지어내지 마라. 좋은 시기와 조심할 시기를 구분하되, 단정 대신 \"이렇게 하면 좋아지는 시기\"로 설명하고, 사주 용어(대운·세운·충·월지 등)는 표면 문장에 쓰지 마라.",
     );
+  }
+
+  // 사건화 엔진: 원국이 있을 때, 계산된 분야별 사건 신호를 근거로 전달한다.
+  // (성향 나열이 아니라 직업/돈/연애/건강/가족/이사/창업에서 "지금 무엇이 움직이는가"를 규칙으로 연결한다.)
+  if (facts.sajuChart && facts.type !== "tarot") {
+    const forecast = formatEventForecast(facts.sajuChart, facts.luckCycles, facts.gender);
+    if (forecast) {
+      parts.push(`[분야별 사건 신호 — 계산됨]\n${forecast}`);
+      parts.push(
+        "[사건 신호 활용 안내] 위 [분야별 사건 신호]는 원국 십성·궁위와 대운·세운·월운을 규칙으로 계산해 직업/돈/연애/건강/가족/이사/창업 분야에 연결한 것이다. 해당 분야 섹션(직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션 등)을 쓸 때 이 신호를 우선 반영해라. 규칙: (1) '지금 크게 움직임'으로 표시된 분야는 올해/이 시기 흐름에서 먼저, 더 구체적으로 다뤄라. (2) 목록에 없는 사건을 지어내지 마라. 신호가 '평이함'인 분야는 '지금은 크게 흔들리지 않는 시기'로 담담하게 처리해라. (3) '나타나기 쉬운 일'은 단정이 아니라 경향으로, '조심 신호'는 공포가 아니라 점검·대비로 옮겨라. (4) 사주 용어(십성·충·합·궁위 등)는 표면에 쓰지 말고 (근거)는 '전문가 근거 보기'에만 남겨라.",
+      );
+    }
   }
 
   if (facts.focus && facts.focus !== "general") {

@@ -801,3 +801,29 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
   본문 섹션, 4기둥 중복 없음 확인 / 타로 헤드라인 < 접힌 영역 < 카드별 근거), 전체 197 통과, build OK.
   Playwright로 실제 세션(로컬스토리지 시드) 렌더 확인: 원국 4기둥 상단 노출, 접힌 영역 기본
   닫힘→클릭 시 정상 펼침, 목차 클릭 시 해당 본문 섹션만 정확히 열림, 모바일 390px 가로 스크롤 없음.
+
+## 명리 엔진 고도화 1단계 — 사건화 엔진 (직업/돈/연애/건강/가족/이사/창업)
+
+감사 피드백: 기존 계산은 "성향"까지는 잘 번역하지만 "어느 분야에서 지금 어떤 사건이
+움직이는가"를 규칙으로 연결하지 못하고 LLM에 통째로 맡김. → 계산값을 분야별 현실 사건
+신호로 연결하는 규칙 엔진을 추가(사용자 확정 로드맵 1번). 무 API·결정론.
+
+- 신규 `src/lib/eventEngine.ts` (`buildEventForecast(chart, luck, gender)`):
+  - 원국 십성(천간+지지 정기) 파싱 → 그룹(비겁/식상/재성/관성/인성)별 카운트.
+  - 십성 그룹 → 분야 매핑(재성=돈·연애·직업, 관성=직업·연애, 인성=이사·직업·가족,
+    식상=창업·직업·연애, 비겁=돈·창업·가족). 성별 반영(남명 재=이성 / 여명 관=배우자).
+  - 대운·세운·월운 간지의 십성(인라인 tenGodOf) → 해당 분야 "활성" 가중(세운2/대운1.5/월운1).
+  - 원국·운의 합충형파해를 궁위(연/월/일/시)와 연결 → 그 자리가 상징하는 분야 활성(충/삼합 가중↑).
+  - 분야별 활성도 high/mid/low + 쉬운 말 사건 패턴 + 타이밍 신호 + 조심 신호 + 전문가 근거(evidence).
+  - 표면 문구는 전문용어 배제, evidence만 십성·궁위·충합 용어 보존(CLAUDE.md 준수). 단정/공포 금지.
+  - saju.ts를 import하지 않음(lunar가 서버 번들에 딸려오는 것 방지, lifestyleGuide와 같은 원칙).
+    필요한 오행표·지장간 정기·tenGodOf를 인라인.
+- 타입: `src/types/index.ts`에 `LifeDomain`/`EventActivation`/`EventScenario`/`EventForecast` 추가.
+- 프롬프트 배선(`src/prompts/systemPrompt.ts`): `formatEventForecast`로 근거 블록 직렬화,
+  원국 있는 리딩(tarot 제외)에 `[분야별 사건 신호 — 계산됨]` + 활용 안내 추가.
+  안내: 활성 분야 우선·구체화, 목록 밖 사건 창작 금지, 평이 분야는 담담히, 용어는 근거 영역에만.
+- UI: 신규 `EventForecastPanel.tsx` — "지금 움직이는 분야" 카드. 활성(high/mid) 분야 강조 그리드 +
+  전체 분야 접이. ReadingResult 요약 영역(원국 스냅샷 아래)에 원국 있을 때 렌더. index.css 스타일 추가.
+- 다음 단계: 활성도를 activation/benefit/risk 점수로 확장(로드맵 3번), 과거 사건 검증 보정(2번).
+- 테스트: `eventEngine.test.ts`(6), `EventForecastPanel.test.tsx`(3), `reading.test.ts` 배선 1개 추가.
+  전체 217 통과, build OK. API 번들에 lunar 미유입 확인(eventEngine은 타입만 import).

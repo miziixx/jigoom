@@ -349,6 +349,49 @@ export interface CompatibilityResult {
   }>;
 }
 
+// ── 사건화 엔진 (계산값 → 분야별 현실 사건 시나리오, 무 API·결정론) ──────────
+
+/** 사건화 분야 */
+export type LifeDomain =
+  | "career"
+  | "money"
+  | "love"
+  | "health"
+  | "family"
+  | "move"
+  | "startup";
+
+/** 사건 신호의 무게 (지금 시기 얼마나 활성화됐는지) */
+export type EventActivation = "high" | "mid" | "low";
+
+/** 한 분야의 사건 시나리오 */
+export interface EventScenario {
+  domain: LifeDomain;
+  /** 사용자용 분야 라벨 (예: "직업·일") */
+  label: string;
+  /** 지금 대운·세운·월운이 이 분야를 건드리는 정도 */
+  activation: EventActivation;
+  /** 활성 정도를 쉬운 말로 한 줄 (예: "올해 이 분야가 크게 움직이는 흐름") */
+  activationNote: string;
+  /** 이 사주에서 이 분야에 나타나기 쉬운 사건 유형 (원국 기반, 쉬운 말) */
+  patterns: string[];
+  /** 지금 시기(대운·세운·월운)와 연결된 사건 신호. 활성이 낮으면 비어 있을 수 있음 */
+  timingSignals: string[];
+  /** 이 분야에서 조심할 신호 */
+  cautions: string[];
+  /** 전문가 근거 (십성·궁위·충합형파해 등 계산 근거) */
+  evidence: string[];
+}
+
+/** 계산값에서 도출한 분야별 사건 예보 */
+export interface EventForecast {
+  domains: EventScenario[];
+  /** 지금 활성도가 높은 분야 키 (우선 노출용, activation 높은 순) */
+  activeDomains: LifeDomain[];
+  /** 전체를 관통하는 한 줄 요약 (가장 활성화된 분야 중심) */
+  headline: string;
+}
+
 export type TarotArcana = "major" | "minor";
 
 export interface TarotCardDefinition {

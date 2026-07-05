@@ -9,6 +9,7 @@ import TarotSummaryHero from "./TarotSummaryHero";
 import SummaryCardGrid from "./SummaryCardGrid";
 import PersonalitySpectrum from "./PersonalitySpectrum";
 import LifeAreaBars from "./LifeAreaBars";
+import EventForecastPanel from "./EventForecastPanel";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide";
 import { buildReadingDashboard } from "../lib/readingDashboard";
 import TarotFactsPanel from "./TarotFactsPanel";
@@ -545,6 +546,15 @@ export default function ReadingResult({ session, loading = false }: { session: R
       )}
 
       <SajuPillarSnapshot sajuChart={session.sajuChart} />
+
+      {/* 사건화 예보: 원국이 있는 리딩에서 "지금 어느 분야가 움직이는지"를 계산값으로 바로 보여준다. */}
+      {session.sajuChart && (
+        <EventForecastPanel
+          sajuChart={session.sajuChart}
+          luckCycles={session.luckCycles}
+          gender={session.birthInfo?.gender}
+        />
+      )}
 
       {/* 타로 헤드라인은 접지 않는다: 순수 타로 리딩에서 AI 텍스트가 나오기 전 유일한 즉시 요약이다. */}
       {session.type !== "combo" && session.tarotCards && session.tarotCards.length > 0 && (
