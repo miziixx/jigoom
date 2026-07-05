@@ -5671,3 +5671,48 @@ label {
   color: var(--text-dim);
   line-height: 1.5;
 }
+
+/* ── 사건화 3축 점수 (활성/이득/위험) ────────── */
+.event-domain__balance {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.event-domain__balance--opportunity { color: #1f7a4d; background: color-mix(in srgb, #1f7a4d 15%, transparent); }
+.event-domain__balance--caution { color: var(--danger); background: color-mix(in srgb, var(--danger) 13%, transparent); }
+.event-domain__balance--mixed { color: #9a6a1a; background: color-mix(in srgb, #9a6a1a 15%, transparent); }
+.event-domain__balance--calm { color: var(--text-dim); background: color-mix(in srgb, var(--text-dim) 12%, transparent); }
+.event-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+.event-score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.event-score-row__label {
+  flex: 0 0 auto;
+  width: 28px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+.event-score-row__track {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-dim) 14%, transparent);
+  overflow: hidden;
+}
+.event-score-row__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+.event-score--activation { background: var(--accent); }
+.event-score--benefit { background: #2e9c63; }
+.event-score--risk { background: var(--danger); }

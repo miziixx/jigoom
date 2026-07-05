@@ -2,6 +2,7 @@ import type {
   EventActivation,
   EventForecast,
   EventScenario,
+  EventScores,
   Gender,
   LifeDomain,
   LuckCycles,
@@ -33,6 +34,10 @@ const GAN_WUXING: Record<string, Element> = {
   무: "earth", 기: "earth",
   경: "metal", 신: "metal",
   임: "water", 계: "water",
+};
+const ZHI_WUXING: Record<string, Element> = {
+  자: "water", 축: "earth", 인: "wood", 묘: "wood", 진: "earth", 사: "fire",
+  오: "fire", 미: "earth", 신: "metal", 유: "metal", 술: "earth", 해: "water",
 };
 /** 지지 지장간 정기(마지막 원소) — 세운/대운 지지의 십성 판정용 */
 const ZHI_MAIN_STEM: Record<string, string> = {
@@ -180,6 +185,8 @@ interface LuckSignal {
   ganZhi: string;
   stemGroup: TenGodGroup | null;
   branchGroup: TenGodGroup | null;
+  stemEl: Element;
+  branchEl: Element;
 }
 
 function luckSignalOf(scope: LuckSignal["scope"], ganZhi: string | null | undefined, dayGan: string): LuckSignal | null {
@@ -189,7 +196,7 @@ function luckSignalOf(scope: LuckSignal["scope"], ganZhi: string | null | undefi
   const stemGroup = groupOf(tenGodOf(dayGan, gan));
   const mainStem = ZHI_MAIN_STEM[zhi];
   const branchGroup = mainStem ? groupOf(tenGodOf(dayGan, mainStem)) : null;
-  return { scope, ganZhi, stemGroup, branchGroup };
+  return { scope, ganZhi, stemGroup, branchGroup, stemEl: GAN_WUXING[gan], branchEl: ZHI_WUXING[zhi] };
 }
 
 // ── 십성 그룹 → 분야 매핑 ──────────
@@ -286,31 +293,47 @@ function cautionsFor(domain: LifeDomain, chart: SajuChart, counts: Record<TenGod
   return out;
 }
 
-/** 상호작용 + 세운/대운 신호로 분야별 활성도와 타이밍 신호를 만든다 */
+function clamp100(n: number): number {
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+/** 합 계열(결합·기회 성향) / 충형파해(변동·부담 성향) 구분 */
+const BENEFIT_KINDS = new Set<InteractionKind>(["합", "삼합", "반합", "방합"]);
+const RISK_KINDS = new Set<InteractionKind>(["충", "형", "파", "해", "자형"]);
+
+/** 상호작용 + 세운/대운 신호로 분야별 활성도·이득·위험 점수와 타이밍 신호를 만든다 */
 function activationFor(
   domain: LifeDomain,
   interactions: ParsedInteraction[],
   luckSignals: LuckSignal[],
   natalByPosition: Map<PositionLabel, TenGodGroup[]>,
-): { activation: EventActivation; note: string; timing: string[]; evidence: string[] } {
+  yong: Set<Element>,
+  avoid: Set<Element>,
+  counts: Record<TenGodGroup, number>,
+): { activation: EventActivation; scores: EventScores; note: string; timing: string[]; evidence: string[] } {
   const timing: string[] = [];
   const evidence: string[] = [];
   let score = 0;
+  let benefitRaw = 0;
+  let riskRaw = 0;
 
-  // 1) 세운/대운/월운 간지의 십성이 이 분야를 직접 활성화
+  // 1) 세운/대운/월운 간지의 십성이 이 분야를 직접 활성화 + 그 간지 오행의 용신/기신 방향으로 이득/위험 판정
   for (const sig of luckSignals) {
     const groups = [sig.stemGroup, sig.branchGroup].filter(Boolean) as TenGodGroup[];
-    for (const g of groups) {
-      if (GROUP_DOMAINS[g].includes(domain)) {
-        const weight = sig.scope === "세운" ? 2 : sig.scope === "대운" ? 1.5 : 1;
-        score += weight;
-        timing.push(`${sig.scope}(${sig.ganZhi})에 ${domainVerb(domain)} 기운이 들어오는 흐름입니다.`);
-        evidence.push(`${sig.scope} ${sig.ganZhi} → ${g} 계열, ${DOMAIN_LABEL[domain]} 연결`);
+    if (groups.some((g) => GROUP_DOMAINS[g].includes(domain))) {
+      const weight = sig.scope === "세운" ? 2 : sig.scope === "대운" ? 1.5 : 1;
+      score += weight;
+      timing.push(`${sig.scope}(${sig.ganZhi})에 ${domainVerb(domain)} 기운이 들어오는 흐름입니다.`);
+      evidence.push(`${sig.scope} ${sig.ganZhi} → ${groups.join("·")} 계열, ${DOMAIN_LABEL[domain]} 연결`);
+      // 그 운 간지의 오행이 보완 기운(용신)이면 이득 방향, 부담 기운(기신)이면 위험 방향
+      for (const el of [sig.stemEl, sig.branchEl]) {
+        if (yong.has(el)) benefitRaw += weight * 0.6;
+        else if (avoid.has(el)) riskRaw += weight * 0.6;
       }
     }
   }
 
-  // 2) 원국 상호작용(충합형파해)이 이 분야와 연결된 궁위를 흔드는지
+  // 2) 원국·운 상호작용(충합형파해)이 이 분야와 연결된 궁위를 흔드는지 + 합=이득/충형파해=위험 성향
   for (const it of interactions) {
     const domainsHit = new Set<LifeDomain>();
     for (const pos of it.positions) {
@@ -323,21 +346,47 @@ function activationFor(
     if (domainsHit.has(domain)) {
       const weight = it.kind === "충" || it.kind === "삼합" ? 1.5 : 1;
       score += weight;
+      if (BENEFIT_KINDS.has(it.kind)) benefitRaw += weight;
+      else if (RISK_KINDS.has(it.kind)) riskRaw += weight;
       timing.push(`${it.raw.replace(/[()]/g, " ").trim()} — ${KIND_NUANCE[it.kind]}이 이 분야에 닿습니다.`);
       const palace = it.positions.map((p) => POSITION_MEANING[p]).filter(Boolean).join(", ");
       evidence.push(`상호작용 ${it.raw} → ${DOMAIN_LABEL[domain]}${palace ? ` (${palace})` : ""}`);
     }
   }
 
-  const activation: EventActivation = score >= 3 ? "high" : score >= 1.5 ? "mid" : "low";
-  const note =
-    activation === "high"
-      ? "지금 이 분야가 크게 움직이는 흐름입니다."
-      : activation === "mid"
-        ? "이 분야에 변화의 신호가 들어와 있습니다."
-        : "지금은 크게 흔들리지 않는 평이한 흐름입니다.";
+  // 3) 원국 역량: 이 분야를 담당하는 십성이 넉넉하면 잘 다루는 분야(이득 쪽 base), 비어 있으면 취약(위험 쪽 base)
+  const domainGroups = (Object.keys(GROUP_DOMAINS) as TenGodGroup[]).filter((g) => GROUP_DOMAINS[g].includes(domain));
+  const domainCap = domainGroups.reduce((s, g) => s + counts[g], 0);
+  if (domainCap >= 3) benefitRaw += 0.6;
+  else if (domainCap === 0) riskRaw += 0.5;
 
-  return { activation, note, timing: [...new Set(timing)].slice(0, 4), evidence: [...new Set(evidence)].slice(0, 5) };
+  const activation: EventActivation = score >= 3 ? "high" : score >= 1.5 ? "mid" : "low";
+  const activationScore = clamp100(score * 22);
+  const benefit = clamp100(benefitRaw * 22 + (activation !== "low" ? 8 : 0));
+  const risk = clamp100(riskRaw * 22);
+
+  let balance: EventScores["balance"];
+  if (activation === "low") balance = "calm";
+  else if (benefit - risk >= 18) balance = "opportunity";
+  else if (risk - benefit >= 18) balance = "caution";
+  else balance = "mixed";
+
+  const note =
+    activation === "low"
+      ? "지금은 크게 흔들리지 않는 평이한 흐름입니다."
+      : balance === "opportunity"
+        ? "지금 이 분야는 잘 살리면 기회가 되는 흐름입니다."
+        : balance === "caution"
+          ? "지금 이 분야는 부담·변동이 커서 점검이 필요한 흐름입니다."
+          : "지금 이 분야는 기회와 부담이 함께 있어, 어떻게 다루느냐가 중요한 흐름입니다.";
+
+  return {
+    activation,
+    scores: { activation: activationScore, benefit, risk, balance },
+    note,
+    timing: [...new Set(timing)].slice(0, 4),
+    evidence: [...new Set(evidence)].slice(0, 5),
+  };
 }
 
 /** 궁위가 직접 상징하는 분야 (충/합이 그 자리를 흔들 때 사건 연결) */
@@ -391,6 +440,13 @@ export function buildEventForecast(chart?: SajuChart, luck?: LuckCycles, gender?
     .map(parseInteraction)
     .filter((x): x is ParsedInteraction => x !== null);
 
+  // 용신(보완하면 좋은 기운) / 기신(과하면 부담) 오행 집합 — 이득/위험 방향 판정용
+  const koToEl: Record<string, Element> = { 목: "wood", 화: "fire", 토: "earth", 금: "metal", 수: "water" };
+  const toElSet = (arr?: string[]) =>
+    new Set<Element>((arr ?? []).map((k) => koToEl[k]).filter((x): x is Element => Boolean(x)));
+  const yong = toElSet(chart.yongshin?.supportive ?? chart.yongshin?.yongshin);
+  const avoid = toElSet(chart.yongshin?.unfavorable);
+
   // 대운·세운·월운 신호 (luck 없으면 원국만으로)
   const luckSignals: LuckSignal[] = [];
   if (luck) {
@@ -408,16 +464,20 @@ export function buildEventForecast(chart?: SajuChart, luck?: LuckCycles, gender?
   const allTimingInteractions = [...interactions, ...luckInteractions];
 
   const domains: EventScenario[] = DOMAIN_ORDER.map((domain) => {
-    const { activation, note, timing, evidence } = activationFor(
+    const { activation, scores, note, timing, evidence } = activationFor(
       domain,
       allTimingInteractions,
       luckSignals,
       natalByPosition,
+      yong,
+      avoid,
+      counts,
     );
     return {
       domain,
       label: DOMAIN_LABEL[domain],
       activation,
+      scores,
       activationNote: note,
       patterns: natalPatternsFor(domain, counts, gender),
       timingSignals: timing,
@@ -432,11 +492,20 @@ export function buildEventForecast(chart?: SajuChart, luck?: LuckCycles, gender?
     .sort((a, b) => activationRank[b.activation] - activationRank[a.activation])
     .map((d) => d.domain);
 
-  const topLabels = activeDomains.slice(0, 2).map((k) => DOMAIN_LABEL[k]);
-  const headline =
-    topLabels.length > 0
-      ? `지금은 ${topLabels.join("·")} 쪽이 특히 움직이는 시기입니다.`
-      : "지금은 어느 한 분야가 크게 흔들리기보다, 전반적으로 평이한 시기입니다.";
+  const oppLabels = domains.filter((d) => d.scores.balance === "opportunity").map((d) => d.label);
+  const cauLabels = domains.filter((d) => d.scores.balance === "caution").map((d) => d.label);
+  let headline: string;
+  if (oppLabels.length > 0 && cauLabels.length > 0) {
+    headline = `지금은 ${oppLabels.slice(0, 2).join("·")} 쪽은 살리기 좋고, ${cauLabels.slice(0, 2).join("·")} 쪽은 점검이 필요한 시기입니다.`;
+  } else if (oppLabels.length > 0) {
+    headline = `지금은 ${oppLabels.slice(0, 2).join("·")} 쪽을 잘 살리면 기회가 되는 시기입니다.`;
+  } else if (cauLabels.length > 0) {
+    headline = `지금은 ${cauLabels.slice(0, 2).join("·")} 쪽에서 부담·변동을 점검해야 하는 시기입니다.`;
+  } else if (activeDomains.length > 0) {
+    headline = `지금은 ${activeDomains.slice(0, 2).map((k) => DOMAIN_LABEL[k]).join("·")} 쪽이 움직이지만, 기회와 부담이 섞여 있어 다루기 나름인 시기입니다.`;
+  } else {
+    headline = "지금은 어느 한 분야가 크게 흔들리기보다, 전반적으로 평이한 시기입니다.";
+  }
 
   return { domains, activeDomains, headline };
 }

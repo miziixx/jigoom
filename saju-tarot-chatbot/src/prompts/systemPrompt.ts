@@ -351,9 +351,18 @@ function formatEventForecast(chart: SajuChart, luck?: LuckCycles, gender?: Gende
     ...forecast.activeDomains.map((k) => forecast.domains.find((d) => d.domain === k)!),
     ...forecast.domains.filter((d) => !forecast.activeDomains.includes(d.domain)),
   ];
+  const balanceWord: Record<string, string> = {
+    opportunity: "기회형",
+    caution: "주의형",
+    mixed: "혼조형",
+    calm: "평이",
+  };
   for (const d of ordered) {
     const tier = d.activation === "high" ? "지금 크게 움직임" : d.activation === "mid" ? "변화 신호 있음" : "평이함";
-    const bits = [`■ ${d.label} [${tier}] — ${d.activationNote}`];
+    const s = d.scores;
+    const bits = [
+      `■ ${d.label} [${tier} · ${balanceWord[s.balance]}] (활성 ${s.activation}/이득 ${s.benefit}/위험 ${s.risk}) — ${d.activationNote}`,
+    ];
     if (d.patterns.length > 0) bits.push(`  · 나타나기 쉬운 일: ${d.patterns.join(" / ")}`);
     if (d.timingSignals.length > 0) bits.push(`  · 지금 시기 신호: ${d.timingSignals.join(" / ")}`);
     if (d.cautions.length > 0) bits.push(`  · 조심 신호: ${d.cautions.join(" / ")}`);
@@ -656,7 +665,7 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
     if (forecast) {
       parts.push(`[분야별 사건 신호 — 계산됨]\n${forecast}`);
       parts.push(
-        "[사건 신호 활용 안내] 위 [분야별 사건 신호]는 원국 십성·궁위와 대운·세운·월운을 규칙으로 계산해 직업/돈/연애/건강/가족/이사/창업 분야에 연결한 것이다. 해당 분야 섹션(직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션 등)을 쓸 때 이 신호를 우선 반영해라. 규칙: (1) '지금 크게 움직임'으로 표시된 분야는 올해/이 시기 흐름에서 먼저, 더 구체적으로 다뤄라. (2) 목록에 없는 사건을 지어내지 마라. 신호가 '평이함'인 분야는 '지금은 크게 흔들리지 않는 시기'로 담담하게 처리해라. (3) '나타나기 쉬운 일'은 단정이 아니라 경향으로, '조심 신호'는 공포가 아니라 점검·대비로 옮겨라. (4) 사주 용어(십성·충·합·궁위 등)는 표면에 쓰지 말고 (근거)는 '전문가 근거 보기'에만 남겨라.",
+        "[사건 신호 활용 안내] 위 [분야별 사건 신호]는 원국 십성·궁위와 대운·세운·월운을 규칙으로 계산해 직업/돈/연애/건강/가족/이사/창업 분야에 연결한 것이다. 각 분야에는 활성/이득/위험 점수(0~100)와 성격(기회형/주의형/혼조형/평이)이 붙어 있다. 해당 분야 섹션(직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션 등)을 쓸 때 이 신호를 우선 반영해라. 규칙: (1) '지금 크게 움직임'으로 표시된 분야는 올해/이 시기 흐름에서 먼저, 더 구체적으로 다뤄라. (2) '기회형'(이득>위험)은 '지금 살리면 좋은 기회'로, '주의형'(위험>이득)은 '점검·대비가 필요한 시기'로, '혼조형'은 '기회와 부담이 함께 있으니 다루기 나름'으로 톤을 맞춰라. 점수를 그대로 노출하지 말고 말로 옮겨라. (3) 목록에 없는 사건을 지어내지 마라. '평이'는 '지금은 크게 흔들리지 않는 시기'로 담담하게. (4) '나타나기 쉬운 일'은 단정이 아니라 경향으로, '조심 신호'는 공포가 아니라 점검·대비로 옮겨라. (5) 사주 용어(십성·충·합·궁위 등)는 표면에 쓰지 말고 (근거)는 '전문가 근거 보기'에만 남겨라.",
       );
     }
   }

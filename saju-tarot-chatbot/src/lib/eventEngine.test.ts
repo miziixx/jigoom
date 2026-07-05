@@ -22,6 +22,22 @@ describe("사건화 엔진", () => {
       // 모든 분야는 원국 기반 사건 패턴을 최소 하나 이상 갖는다
       expect(scenario.patterns.length).toBeGreaterThan(0);
       expect(["high", "mid", "low"]).toContain(scenario.activation);
+      // 3축 점수는 0~100 범위
+      for (const v of [scenario.scores.activation, scenario.scores.benefit, scenario.scores.risk]) {
+        expect(v).toBeGreaterThanOrEqual(0);
+        expect(v).toBeLessThanOrEqual(100);
+      }
+      expect(["opportunity", "caution", "mixed", "calm"]).toContain(scenario.scores.balance);
+    }
+  });
+
+  it("평이(low) 분야는 balance가 calm, 활성 분야는 활성 점수가 0보다 크다", () => {
+    const chart = computeSajuChart(female1990);
+    const luck = computeLuckCycles(female1990);
+    const forecast = buildEventForecast(chart, luck, female1990.gender)!;
+    for (const d of forecast.domains) {
+      if (d.activation === "low") expect(d.scores.balance).toBe("calm");
+      else expect(d.scores.activation).toBeGreaterThan(0);
     }
   });
 

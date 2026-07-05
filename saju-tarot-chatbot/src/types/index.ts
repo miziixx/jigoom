@@ -414,6 +414,18 @@ export type LifeDomain =
 /** 사건 신호의 무게 (지금 시기 얼마나 활성화됐는지) */
 export type EventActivation = "high" | "mid" | "low";
 
+/** 분야별 3축 점수 (0~100, 절대 진단 아님·상대 경향) */
+export interface EventScores {
+  /** 지금 이 분야가 얼마나 움직이는가 */
+  activation: number;
+  /** 그 움직임이 이득(기회) 방향인 정도 */
+  benefit: number;
+  /** 그 움직임이 부담(위험) 방향인 정도 */
+  risk: number;
+  /** benefit - risk 로 본 성격: 기회형/주의형/혼조형/평이 */
+  balance: "opportunity" | "caution" | "mixed" | "calm";
+}
+
 /** 한 분야의 사건 시나리오 */
 export interface EventScenario {
   domain: LifeDomain;
@@ -421,6 +433,8 @@ export interface EventScenario {
   label: string;
   /** 지금 대운·세운·월운이 이 분야를 건드리는 정도 */
   activation: EventActivation;
+  /** 활성·이득·위험 3축 점수 */
+  scores: EventScores;
   /** 활성 정도를 쉬운 말로 한 줄 (예: "올해 이 분야가 크게 움직이는 흐름") */
   activationNote: string;
   /** 이 사주에서 이 분야에 나타나기 쉬운 사건 유형 (원국 기반, 쉬운 말) */

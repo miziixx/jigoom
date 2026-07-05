@@ -853,3 +853,24 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
 - index.css: 과거 사건 입력행·검증 결과 카드 스타일(모바일 반응형 포함).
 - 테스트: `pastValidation.test.ts`(4), `reading.test.ts` 배선 1개. 전체 222 통과, build OK.
   API 번들에 lunar 미유입 확인.
+
+## 명리 엔진 고도화 3단계 — Activation / Benefit / Risk 점수 체계
+
+로드맵 3번: 사건화 엔진의 활성도(high/mid/low)를 분야별 3축 점수(0~100)로 확장.
+"이 분야가 얼마나 움직이고(activation), 이득 방향인지(benefit), 부담 방향인지(risk)"를 계산.
+
+- 타입: `EventScores { activation, benefit, risk, balance }`, `EventScenario.scores` 추가.
+  balance = opportunity(기회형)/caution(주의형)/mixed(혼조형)/calm(평이).
+- eventEngine `activationFor` 확장:
+  - benefit: 합/삼합/반합/방합 상호작용 + 운 간지 오행이 용신(보완 기운) + 원국에서 그 분야
+    담당 십성이 넉넉할 때(역량) 가산.
+  - risk: 충/형/파/해/자형 상호작용 + 운 간지 오행이 기신(부담 기운) + 그 분야 담당 십성이
+    비었을 때(취약) 가산.
+  - 용신/기신은 chart.yongshin.supportive/unfavorable(한글 오행)을 Element로 변환해 사용.
+  - LuckSignal에 천간/지지 오행(stemEl/branchEl) 추가.
+  - balance는 benefit-risk 차이(±18)로 판정, activation low면 calm.
+- headline: 기회형/주의형 분야를 구분해 "○○는 살리기 좋고, △△는 점검 필요" 식으로 생성.
+- 프롬프트(systemPrompt): 근거 블록에 (활성/이득/위험) 점수와 성격 라벨 노출, 활용 안내에
+  기회형/주의형/혼조형 톤 매칭 규칙 추가(점수 그대로 노출 금지, 말로 옮기기).
+- UI(EventForecastPanel): 활성 분야 카드에 balance 배지 + 활성/이득/위험 3축 미니 막대. index.css 추가.
+- 테스트: eventEngine.test.ts 점수 범위·balance 검증 2건 추가. 전체 223 통과, build OK.

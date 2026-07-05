@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { buildEventForecast } from "../lib/eventEngine";
-import type { EventActivation, LuckCycles, SajuChart, Gender } from "../types";
+import type { EventActivation, EventScores, LuckCycles, SajuChart, Gender } from "../types";
 
 const DOMAIN_ICON: Record<string, string> = {
   career: "💼",
@@ -17,6 +17,34 @@ const ACTIVATION_LABEL: Record<EventActivation, string> = {
   mid: "변화 신호 있음",
   low: "평이함",
 };
+
+const BALANCE_LABEL: Record<EventScores["balance"], string> = {
+  opportunity: "기회형",
+  caution: "주의형",
+  mixed: "혼조형",
+  calm: "평이",
+};
+
+/** 활성/이득/위험 3축 미니 막대 */
+function ScoreBars({ scores }: { scores: EventScores }) {
+  const rows: Array<{ key: string; label: string; value: number; cls: string }> = [
+    { key: "activation", label: "활성", value: scores.activation, cls: "event-score--activation" },
+    { key: "benefit", label: "이득", value: scores.benefit, cls: "event-score--benefit" },
+    { key: "risk", label: "위험", value: scores.risk, cls: "event-score--risk" },
+  ];
+  return (
+    <div className="event-scores">
+      {rows.map((r) => (
+        <div key={r.key} className="event-score-row">
+          <span className="event-score-row__label">{r.label}</span>
+          <span className="event-score-row__track">
+            <span className={`event-score-row__fill ${r.cls}`} style={{ width: `${r.value}%` }} />
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * 사건화 엔진(무 API·결정론) 결과를 "지금 움직이는 분야" 카드로 보여준다.
@@ -55,11 +83,15 @@ export default function EventForecastPanel({
               <div className="event-domain__title">
                 <span className="event-domain__icon">{DOMAIN_ICON[d.domain]}</span>
                 <b>{d.label}</b>
+                <span className={`event-domain__balance event-domain__balance--${d.scores.balance}`}>
+                  {BALANCE_LABEL[d.scores.balance]}
+                </span>
                 <span className={`event-domain__badge event-domain__badge--${d.activation}`}>
                   {ACTIVATION_LABEL[d.activation]}
                 </span>
               </div>
               <p className="event-domain__note">{d.activationNote}</p>
+              <ScoreBars scores={d.scores} />
               {d.timingSignals.length > 0 && (
                 <ul className="event-domain__list">
                   {d.timingSignals.slice(0, 2).map((t, i) => (
