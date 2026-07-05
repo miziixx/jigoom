@@ -39,12 +39,16 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
 
       <div className="field-row field-row--column">
         <span className="field-label">스프레드</span>
-        <div className="spread-options">
+        <div className="spread-choice-grid">
           {SPREAD_IDS.map((id) => (
-            <label key={id}>
-              <input type="radio" name="spread" checked={spreadId === id} onChange={() => setSpreadId(id)} />
+            <button
+              type="button"
+              key={id}
+              className={spreadId === id ? "spread-choice spread-choice--active" : "spread-choice"}
+              onClick={() => setSpreadId(id)}
+            >
               {SPREADS[id].label}
-            </label>
+            </button>
           ))}
         </div>
         {spreadId === "ab" && <span className="field-hint">질문에 선택지 A와 B를 함께 적어주세요.</span>}
