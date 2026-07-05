@@ -18,10 +18,7 @@ const TONES: Array<{ value: AnswerTone; label: string; desc: string }> = [
 ];
 
 const DEPTHS: Array<{ value: AnswerDepth; label: string }> = [
-  { value: "light", label: "가벼운 리딩" },
-  { value: "basic", label: "기본" },
-  { value: "advanced", label: "고급" },
-  { value: "expert", label: "전문가" },
+  { value: "expert", label: "고급" },
 ];
 
 const TIME_ACCURACIES: Array<{ value: BirthTimeAccuracy; label: string }> = [
