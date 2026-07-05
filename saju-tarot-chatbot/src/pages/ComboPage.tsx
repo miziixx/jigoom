@@ -6,8 +6,6 @@ import ChatFollowUp from "../components/ChatFollowUp";
 import ReadingActions from "../components/ReadingActions";
 import FeedbackBar from "../components/FeedbackBar";
 import KeywordCloud from "../components/KeywordCloud";
-import FocusPicker from "../components/FocusPicker";
-import ContextPicker from "../components/ContextPicker";
 import { useReadingStore } from "../store/useReadingStore";
 import { drawSpread, SHUFFLES, SHUFFLE_IDS, SPREADS, type ShuffleId, type SpreadId } from "../lib/tarot";
 import { BIRTH_PLACES } from "../data/birthPlaces";
@@ -15,6 +13,7 @@ import { clearProfile, loadProfile, saveProfile } from "../lib/profile";
 import type { BirthInfo, CalendarType, Gender, LateNightZiMode, ReadingContext, ReadingFocus } from "../types";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
+const DEFAULT_READING_FOCUS: ReadingFocus = "general";
 
 // 통합 리딩에서 고를 수 있는 스프레드 (긴 배열은 통합 프롬프트가 과해져 제외)
 const COMBO_SPREADS: SpreadId[] = ["one", "ppf", "soa", "five"];
@@ -40,8 +39,6 @@ export default function ComboPage() {
   const [shuffleId, setShuffleId] = useState<ShuffleId>("classic");
   const [pickMode, setPickMode] = useState<"auto" | "manual">("auto");
   const [pickedSlots, setPickedSlots] = useState<number[]>([]);
-  const [focus, setFocus] = useState<ReadingFocus>("general");
-  const [context, setContext] = useState<ReadingContext>({});
 
   const neededCards = SPREADS[spreadId].positions.length;
   const canSubmit =
@@ -82,8 +79,7 @@ export default function ComboPage() {
     };
     if (saveBirthChart) saveProfile(birthInfo);
     else if (savedBirth) clearProfile();
-    const finalContext: ReadingContext =
-      hour === "unknown" ? { ...context, timeAccuracy: "unknown" } : context;
+    const finalContext: ReadingContext = hour === "unknown" ? { timeAccuracy: "unknown" } : {};
     const manualSlots = pickMode === "manual" ? pickedSlots : [];
     const tarotCards = drawSpread(spreadId, shuffleId, manualSlots);
     const pickNote = manualSlots.length
@@ -93,7 +89,7 @@ export default function ComboPage() {
     startReading({
       type: "combo",
       question,
-      focus,
+      focus: DEFAULT_READING_FOCUS,
       context: finalContext,
       birthInfo,
       tarotCards,
@@ -272,17 +268,6 @@ export default function ComboPage() {
                 required
               />
             </div>
-
-            <details className="consultation-panel optional-settings-panel">
-              <summary>
-                <span>분야와 말투를 직접 고르고 싶을 때</span>
-                <small>선택하지 않아도 질문 내용을 보고 기본값으로 풀이합니다.</small>
-              </summary>
-
-              <FocusPicker value={focus} onChange={setFocus} />
-
-              <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
-            </details>
           </section>
 
           <section className="form-section">

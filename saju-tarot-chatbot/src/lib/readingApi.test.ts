@@ -47,7 +47,7 @@ afterEach(() => {
 });
 
 describe("streamReading 이어쓰기(continue)", () => {
-  it("saju 새 리딩은 앞/뒤 섹션을 병렬 호출해 순서대로 합친다", async () => {
+  it("고급 saju 새 리딩은 앞/뒤 섹션을 병렬 호출해 순서대로 합친다", async () => {
     const calls: Array<Record<string, unknown>> = [];
     const fetchMock = vi.fn((_, init: RequestInit) => {
       const parsed = JSON.parse(init.body as string) as Record<string, unknown>;
@@ -71,7 +71,7 @@ describe("streamReading 이어쓰기(continue)", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await streamReading({ type: "saju", question: "전체" });
+    const result = await streamReading({ type: "saju", question: "전체", context: { depth: "advanced" } });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(calls.map((c) => c.sectionGroup).sort()).toEqual(["back", "front"]);
@@ -104,22 +104,22 @@ describe("streamReading 이어쓰기(continue)", () => {
     expect(result.reply).toBe("후속 답변");
   });
 
-  it("가벼운 리딩은 즉시 요약 중심이라 병렬 호출하지 않는다", async () => {
+  it("기본 무료 리딩은 짧은 미리보기라 병렬 호출하지 않는다", async () => {
     const fetchMock = vi.fn(() =>
       Promise.resolve(
         ndjsonResponse([
-          JSON.stringify({ meta: { userMessage: "light-user" } }),
-          JSON.stringify({ text: "가벼운 리딩" }),
+          JSON.stringify({ meta: { userMessage: "basic-user" } }),
+          JSON.stringify({ text: "기본 리딩" }),
           JSON.stringify({ done: true, stopReason: "end_turn" }),
         ]),
       ),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await streamReading({ type: "saju", question: "전체", context: { depth: "light" } });
+    const result = await streamReading({ type: "saju", question: "전체" });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.reply).toBe("가벼운 리딩");
+    expect(result.reply).toBe("기본 리딩");
   });
 
   it("stopReason이 max_tokens면 continueFrom으로 이어서 완결한다", async () => {

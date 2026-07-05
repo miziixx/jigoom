@@ -36,6 +36,7 @@ export default function FlowPage() {
           onSubmit={handleSubmit}
           loading={loading}
           showQuestionSection={false}
+          expandOptionalSettings
         />
       )}
       {!showResult && loading && <LoadingNotice />}

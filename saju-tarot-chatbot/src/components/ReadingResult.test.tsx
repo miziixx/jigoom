@@ -67,6 +67,25 @@ describe("ReadingResult 몰입 렌더링", () => {
     expect(html).toContain("reading-section--open");
   });
 
+  it("짧은 라벨이 없는 소제목은 같은 말을 배지와 제목에 중복 표시하지 않는다", () => {
+    const reply = [
+      "# 첫 점괘",
+      "지금은 흐름을 정리할 때입니다.",
+      "",
+      "# 질문 중심 핵심",
+      "[듣기 싫어도 봐야 할 부분]",
+      "지금은 마음만 앞서면 같은 문제가 반복될 수 있어요.",
+      "",
+      "[한 줄 결론]",
+      "결정 전에 조건을 먼저 확인하세요.",
+    ].join("\n");
+    const html = renderToStaticMarkup(<ReadingResult session={makeSession(reply)} />);
+
+    expect(html).toContain("듣기 싫어도 봐야 할 부분");
+    expect(html).not.toContain('<span class="reading-part__label">듣기 싫어도 봐야 할 부분</span>');
+    expect(html).toContain('<span class="reading-part__label">결론</span>');
+  });
+
   it("총평 뒤에 목차를 제공하고 세부 섹션은 접힘 영역으로 렌더된다", () => {
     expect(html).toContain("reading-toc");
     expect(html).toContain("위의 총평을 먼저 읽고");

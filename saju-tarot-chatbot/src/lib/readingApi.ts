@@ -99,7 +99,7 @@ function shouldFanOut(body: unknown): body is FanOutBody {
   if (!body || typeof body !== "object") return false;
   const b = body as FanOutBody;
   const depth = b.context && typeof b.context === "object" ? (b.context as { depth?: unknown }).depth : undefined;
-  if (depth === "light") return false;
+  if (depth !== "advanced" && depth !== "expert") return false;
   return (b.type === "saju" || b.type === "combo") && !b.continueFrom && !b.sectionGroup;
 }
 

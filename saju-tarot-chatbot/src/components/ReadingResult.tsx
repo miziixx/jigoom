@@ -56,6 +56,12 @@ const PART_META: Record<string, { label: string; tone: string }> = {
   "오늘 바로 할 수 있는 행동": { label: "바로 실행", tone: "todo" },
 };
 
+function partDisplayMeta(title: string): { label: string | null; tone: string } {
+  const meta = PART_META[title];
+  if (!meta) return { label: null, tone: "default" };
+  return { label: meta.label === title ? null : meta.label, tone: meta.tone };
+}
+
 function parseSections(markdown: string): Section[] {
   const parts = markdown.split(/^#\s+(.+)$/m).slice(1);
   const sections: Section[] = [];
@@ -278,6 +284,7 @@ function SectionBody({ body, loading }: { body: string; loading?: boolean }) {
     <div className="reading-section__body">
       {parts.map((part) => {
         const isEvidence = part.title === "전문가 근거 보기";
+        const meta = part.title ? partDisplayMeta(part.title) : null;
         if (isEvidence) {
           return (
             <details className="expert-evidence" key={part.title}>
@@ -287,10 +294,10 @@ function SectionBody({ body, loading }: { body: string; loading?: boolean }) {
           );
         }
         return (
-          <div className={`reading-part${part.title ? ` reading-part--${PART_META[part.title]?.tone ?? "default"}` : ""}`} key={part.title ?? "intro"}>
+          <div className={`reading-part${part.title ? ` reading-part--${meta?.tone ?? "default"}` : ""}`} key={part.title ?? "intro"}>
             {part.title && (
               <h4 className="reading-part__title">
-                <span className="reading-part__label">{PART_META[part.title]?.label ?? part.title}</span>
+                {meta?.label && <span className="reading-part__label">{meta.label}</span>}
                 <span>{part.title}</span>
               </h4>
             )}

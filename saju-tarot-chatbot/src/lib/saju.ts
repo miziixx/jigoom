@@ -1163,6 +1163,65 @@ const RELATION_CONTEXT: Record<
   },
 };
 
+function isWorkRelation(context: (typeof RELATION_CONTEXT)[CompatibilityRelationType]) {
+  return context.label.includes("사장") || context.label.includes("업무") || context.label.includes("동료") || context.label.includes("동업");
+}
+
+function relationKind(context: (typeof RELATION_CONTEXT)[CompatibilityRelationType]): "love" | "family" | "work" | "friend" | "rival" {
+  if (isWorkRelation(context)) return "work";
+  if (context.label.includes("가족") || context.label.includes("부모") || context.label.includes("형제")) return "family";
+  if (context.label.includes("친구")) return "friend";
+  if (context.label.includes("불편")) return "rival";
+  return "love";
+}
+
+function relationCopy(context: (typeof RELATION_CONTEXT)[CompatibilityRelationType]) {
+  const kind = relationKind(context);
+  const base = {
+    love: {
+      area: "연락, 표현, 만나는 주기, 돈 쓰는 방식",
+      goodSignal: "편해진 뒤에도 표현과 배려가 줄지 않는지",
+      frictionSignal: "연락 빈도, 표현 방식, 만나는 주기에서 서운함이 반복되는지",
+      action: "서운함은 감정이 커지기 전에 '어떤 행동이 언제' 단위로 말하세요.",
+      script: "“나를 좋아하는지 몰아붙이려는 게 아니라, 우리가 서로 편해지는 방식을 맞춰보고 싶어.”",
+      avoid: "상대의 마음을 한 번의 답장 속도나 말투로 단정하기",
+    },
+    family: {
+      area: "책임 범위, 돌봄, 돈, 가족 행사, 각자의 생활 경계",
+      goodSignal: "가족이라는 이유로 당연하게 떠넘기지 않고 서로의 범위를 확인하는지",
+      frictionSignal: "돈, 돌봄, 가족 행사, 부모님 문제에서 한쪽만 떠안는 느낌이 생기는지",
+      action: "가족이라도 도와줄 수 있는 범위와 어려운 범위를 숫자나 일정으로 말하세요.",
+      script: "“가족이라서 도와주고 싶지만, 내가 할 수 있는 범위는 여기까지야.”",
+      avoid: "가족이니까 알아서 이해해야 한다고 넘기기",
+    },
+    work: {
+      area: "역할, 마감, 보고 방식, 결정권, 피드백 기준",
+      goodSignal: "역할과 마감을 적었을 때 실제 오해가 줄어드는지",
+      frictionSignal: "수정 요청, 보고 타이밍, 우선순위 변경에서 불편함이 커지는지",
+      action: "업무 요청은 마감, 결과물 형태, 우선순위, 결정권자를 함께 적으세요.",
+      script: "“우리 사이가 편해도 일 기준은 따로 정해두자. 역할과 마감만 먼저 맞추면 좋겠어.”",
+      avoid: "일 문제를 친분이나 정으로 덮기",
+    },
+    friend: {
+      area: "연락 텀, 부탁과 거절, 돈 문제, 사생활 거리",
+      goodSignal: "부담스러운 부탁을 거절해도 관계가 크게 흔들리지 않는지",
+      frictionSignal: "연락, 돈, 부탁, 약속 취소에서 서운함이 쌓이는지",
+      action: "친해도 부탁, 돈, 약속 변경은 가볍게라도 기준을 말하세요.",
+      script: "“친해서 더 편하게 말하고 싶어. 나는 이 부탁은 어렵고, 대신 여기까지는 가능해.”",
+      avoid: "친하다는 이유로 돈, 부탁, 연락 기준을 흐리기",
+    },
+    rival: {
+      area: "접점, 대화 범위, 기록, 감정 소모를 줄이는 규칙",
+      goodSignal: "필요한 말만 짧게 하고도 일이 진행되는지",
+      frictionSignal: "사소한 말투나 비교심 때문에 감정 소모가 커지는지",
+      action: "필요한 대화는 짧게, 기록이 남는 방식으로, 사실과 기한 중심으로 정리하세요.",
+      script: "“감정 이야기는 길게 하지 말고, 지금 필요한 사실과 다음 행동만 정리하자.”",
+      avoid: "상대를 설득하거나 바꾸려고 오래 붙잡기",
+    },
+  }[kind];
+  return { kind, ...base };
+}
+
 function strongestElement(balance: FiveElementBalance): keyof FiveElementBalance {
   return (Object.keys(balance) as Array<keyof FiveElementBalance>).sort((a, b) => balance[b] - balance[a])[0];
 }
@@ -1222,19 +1281,19 @@ function relationToneFromDayBranches(dayA: string, dayB: string): { title: strin
   };
 }
 
-function roleChemistry(chartA: SajuChart, chartB: SajuChart): CompatibilityResult["roleChemistry"] {
+function roleChemistry(chartA: SajuChart, chartB: SajuChart, roleLabels = { first: "나", second: "상대" }): CompatibilityResult["roleChemistry"] {
   const aSeesB = tenGodOf(chartA.dayMasterGan, chartB.dayMasterGan);
   const bSeesA = tenGodOf(chartB.dayMasterGan, chartA.dayMasterGan);
   return [
     {
-      title: "첫 번째 사람이 느끼는 상대",
+      title: `${roleLabels.first}가 느끼는 ${roleLabels.second}`,
       body: TEN_GOD_PLAIN[aSeesB] ?? "상대가 어떤 역할로 다가오는지 계산 근거가 약합니다.",
-      evidence: `첫 번째 일간 ${chartA.dayMasterGan} 기준 상대 일간 ${chartB.dayMasterGan} = ${aSeesB}`,
+      evidence: `${roleLabels.first} 일간 ${chartA.dayMasterGan} 기준 ${roleLabels.second} 일간 ${chartB.dayMasterGan} = ${aSeesB}`,
     },
     {
-      title: "두 번째 사람이 느끼는 상대",
+      title: `${roleLabels.second}가 느끼는 ${roleLabels.first}`,
       body: TEN_GOD_PLAIN[bSeesA] ?? "상대가 어떤 역할로 다가오는지 계산 근거가 약합니다.",
-      evidence: `두 번째 일간 ${chartB.dayMasterGan} 기준 상대 일간 ${chartA.dayMasterGan} = ${bSeesA}`,
+      evidence: `${roleLabels.second} 일간 ${chartB.dayMasterGan} 기준 ${roleLabels.first} 일간 ${chartA.dayMasterGan} = ${bSeesA}`,
     },
   ];
 }
@@ -1248,6 +1307,48 @@ function purposeFits(
 ): CompatibilityResult["purposeFits"] {
   const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
   const [a, b, c, d] = context.purposeLabels;
+  if (isWorkRelation(context)) {
+    return [
+      {
+        label: a,
+        score: clamp(score + palaceScore * 1.4),
+        comment: palaceScore >= 0 ? "요청과 보고의 리듬을 맞추면 업무 속도가 안정됩니다." : "지시 의도와 보고 방식이 어긋나기 쉬워 기준을 먼저 맞춰야 합니다.",
+        detail:
+          palaceScore >= 0
+            ? "업무 관계에서는 마음이 맞는지보다 요청을 어떻게 주고받는지가 중요합니다. 이 조합은 기본 리듬이 맞으면 지시를 이해하고 결과물로 옮기는 흐름이 비교적 수월합니다. 다만 말로만 넘기면 서로 다르게 이해할 수 있으니 마감, 결과물 형태, 우선순위를 같이 적어두는 편이 좋습니다."
+            : "업무 리듬이 다르면 한쪽은 급하다고 느끼고, 다른 쪽은 설명이 부족하다고 느끼기 쉽습니다. 사장·직원 관계라면 권한 차이 때문에 작은 오해도 평가나 압박으로 커질 수 있으니, 지시·보고 형식을 먼저 정해야 합니다.",
+        signal: palaceScore >= 0 ? "짧은 지시에도 결과물 방향이 크게 어긋나지 않을 때 강점이 드러나요." : "수정 요청, 마감 변경, 우선순위 변경 때 불편함이 먼저 드러나요.",
+        actions:
+          palaceScore >= 0
+            ? ["업무 요청은 마감·형태·우선순위를 함께 적기", "보고 주기를 정해 불필요한 확인을 줄이기", "좋았던 결과물 기준을 예시로 남기기"]
+            : ["구두 지시 뒤 핵심 조건을 메모로 확인하기", "수정 요청은 한 번에 모아 전달하기", "급한 일과 중요한 일을 구분해 우선순위 표시하기"],
+      },
+      {
+        label: b,
+        score: clamp(55 + elementScore * 1.6 + branchScore * 2 + palaceScore),
+        comment: "성과를 내려면 역할, 결정권, 검수 기준을 분명히 해야 합니다.",
+        detail: "업무 성과는 호감보다 구조에서 나옵니다. 누가 결정하고, 누가 실행하고, 어느 수준이면 완료인지가 선명할수록 이 관계의 장점이 살아납니다. 사장·직원 관계라면 사장은 방향과 기준을, 직원은 진행 상황과 막힌 지점을 빨리 공유하는 방식이 잘 맞습니다.",
+        signal: "일이 바빠질 때 지시가 늘어나는지, 아니면 우선순위가 정리되는지에서 궁합이 드러나요.",
+        actions: ["완료 기준을 예시로 남기기", "결정권자와 검수자를 분리해 적기", "성과 피드백과 성격 평가는 섞지 않기"],
+      },
+      {
+        label: c,
+        score: clamp(50 + elementScore * 1.8 + Math.max(0, branchScore) * 2),
+        comment: "책임 범위가 흐려지면 한쪽이 떠안는 구조가 되기 쉽습니다.",
+        detail: "잘 맞는 업무 관계라도 책임선이 흐리면 금방 피로해집니다. 사장은 기대 수준을 구체적으로 말하고, 직원은 가능한 범위와 필요한 지원을 빨리 알려야 합니다. 서로의 장점은 역할로 인정하되, 빈틈은 선의가 아니라 프로세스로 메우는 쪽이 안정적입니다.",
+        signal: "문제가 생겼을 때 책임 소재보다 다음 조치를 먼저 정할 수 있으면 오래 갑니다.",
+        actions: ["담당자·마감·공유 범위를 한 줄로 적기", "막힌 지점은 숨기지 말고 빨리 보고하기", "추가 업무는 우선순위 재조정 후 받기"],
+      },
+      {
+        label: d,
+        score: clamp(55 + branchScore * 2.2 + Math.min(12, elementScore)),
+        comment: "갈등은 감정보다 기준과 절차로 풀 때 안정됩니다.",
+        detail: "업무 갈등은 대부분 성격 문제가 아니라 기준 차이에서 커집니다. 말투가 거칠게 느껴지거나 피드백이 서운하게 들릴 수 있어도, 무엇을 고치면 되는지 분리하면 관계가 덜 상합니다. 사장·직원 관계일수록 피드백은 공개 지적보다 구체적 수정 기준으로 전달하는 편이 좋습니다.",
+        signal: "수정·지연·실수 상황에서 비난보다 다음 기준이 먼저 나오는지 확인하세요.",
+        actions: ["피드백은 행동·결과물 기준으로 말하기", "감정이 올라오면 바로 평가하지 말고 사실 확인부터 하기", "반복 문제는 개인 탓보다 체크리스트로 막기"],
+      },
+    ];
+  }
   return [
     {
       label: a,
@@ -1298,34 +1399,59 @@ function compatibilityBreakdownDetails(
   score: number,
   context: (typeof RELATION_CONTEXT)[CompatibilityRelationType],
 ): { detail: string; signal: string; actions: string[] } {
+  const workRelation = isWorkRelation(context);
   if (label === "두 사람의 기질") {
     return {
       detail:
-        score >= 70
+        workRelation && score >= 70
+          ? `업무 기질에서 서로의 장단점을 이해하기 쉬운 편입니다. 한쪽이 방향을 잡고 다른 쪽이 실행하거나, 한쪽이 기준을 세우고 다른 쪽이 빈틈을 메우는 식으로 역할을 나누면 성과가 납니다. 다만 편하다고 해서 지시와 보고 기준을 생략하면 나중에 책임선이 흐려질 수 있습니다.`
+          : workRelation && score >= 45
+            ? `업무 방식이 완전히 같지는 않지만 서로 보완할 여지가 있습니다. 한 사람은 속도와 결과를 중시하고, 다른 사람은 안정감이나 절차를 더 볼 수 있어 프로젝트마다 기준을 맞추는 과정이 필요합니다. 방식 차이를 능력 차이로 보지 않는 것이 중요합니다.`
+            : workRelation
+              ? `업무 반응 속도와 판단 기준이 꽤 다르게 느껴질 수 있습니다. 한쪽은 바로 처리하고 싶고, 다른 쪽은 확인과 정리가 필요할 수 있어 같은 일을 두고도 답답함이 생기기 쉽습니다. 이때는 성격 문제가 아니라 업무 처리 방식 차이로 보고 규칙을 세워야 합니다.`
+              : score >= 70
           ? `기본 기질에서 서로를 이해하기 쉬운 편입니다. 한쪽이 먼저 챙기거나 힘이 되어주는 흐름이 생기기 쉬워, 관계 초반에는 "말하지 않아도 통한다"는 느낌을 받을 수 있습니다. 다만 편해질수록 역할이 고정되면 한쪽이 더 많이 맞추는 구조가 될 수 있으니, 잘 맞는 만큼 고마움을 자주 말로 확인하는 편이 좋습니다.`
           : score >= 45
             ? `기질이 완전히 같지는 않지만, 서로의 방식이 낯설기만 한 조합은 아닙니다. 한 사람은 속도나 판단을 중시하고 다른 사람은 안정감이나 감정을 더 볼 수 있어, 상황마다 누가 주도권을 잡을지 정하는 것이 중요합니다. 방식이 다른 것을 우열로 보지 않으면 오히려 서로의 빈 곳을 메워줄 수 있습니다.`
             : `기본 반응 방식이 꽤 다르게 느껴질 수 있습니다. 한쪽은 바로 해결하고 싶어 하고, 다른 쪽은 시간을 두고 감정을 정리하려 할 수 있어 같은 문제를 두고도 "왜 저렇게 하지?"라는 생각이 생기기 쉽습니다. 이건 애정이나 성의의 문제가 아니라 처리 속도의 차이에 가깝습니다.`,
       signal:
-        score >= 70
+        workRelation && score >= 70
+          ? "급한 업무나 결정이 필요할 때 역할이 자연스럽게 나뉘면 강점이 드러나요."
+          : workRelation
+            ? "마감이 촉박하거나 수정이 반복될 때 반응 속도 차이가 오해로 번지기 쉬워요."
+            : score >= 70
           ? "급한 결정이나 힘든 일이 생겼을 때 한쪽이 자연스럽게 리드하며 손발이 맞는 순간에 강점이 드러나요."
           : "결정을 급하게 몰아야 하거나 둘 다 지쳐 있을 때, 반응 속도 차이가 오해로 번지기 쉬워요.",
-      actions: ["상대 반응을 성격 문제로 단정하지 않기", "결정이 필요한 일은 각자 생각할 시간을 먼저 정하기", "고마운 행동은 미루지 말고 그 자리에서 말로 확인하기"],
+      actions: workRelation
+        ? ["업무 반응을 성격 문제가 아니라 처리 방식 차이로 보기", "결정이 필요한 일은 결정권자와 마감부터 정하기", "좋았던 결과물 기준을 말과 예시로 남기기"]
+        : ["상대 반응을 성격 문제로 단정하지 않기", "결정이 필요한 일은 각자 생각할 시간을 먼저 정하기", "고마운 행동은 미루지 말고 그 자리에서 말로 확인하기"],
     };
   }
-  if (label === "연애·생활 자리") {
+  if (label === context.palaceLabel) {
     return {
       detail:
-        score >= 70
+        workRelation && score >= 70
+          ? `업무 자리에서는 요청·보고·피드백의 리듬이 비교적 맞는 편입니다. 방향을 주면 실행으로 옮기거나, 막힌 지점을 공유하는 흐름이 잘 만들어질 수 있습니다. 다만 잘 맞는다고 해서 구두로만 넘기면 기준이 흔들리니 업무 조건은 짧게라도 기록하는 편이 좋습니다.`
+          : workRelation && score >= 45
+            ? `업무 자리는 무난하지만 자동으로 맞아떨어지지는 않습니다. 지시 방식, 보고 빈도, 수정 기준을 확인해야 관계가 덜 흔들립니다. 초반에 "어디까지가 완료인지"를 정해두면 불필요한 피드백 갈등이 줄어듭니다.`
+            : workRelation
+              ? `함께 일할수록 작은 업무 습관 차이가 크게 느껴질 수 있습니다. 업무 속도, 확인 방식, 보고 타이밍이 다르면 한쪽은 압박으로, 다른 쪽은 무책임으로 받아들이기 쉽습니다. 감정보다 프로세스 정리가 먼저입니다.`
+              : score >= 70
           ? `일상 친밀감이 쌓일수록 관계가 편해지는 편입니다. 데이트의 화려함보다 같이 쉬고, 먹고, 반복되는 하루를 공유할 때 안정감이 생기기 쉽습니다. 특별한 이벤트보다 사소한 루틴을 함께 만드는 쪽이 이 관계에는 더 잘 맞습니다.`
           : score >= 45
             ? `생활 자리는 무난하지만 자동으로 맞아떨어지는 관계는 아닙니다. 서로가 편한 휴식 방식, 연락 속도, 약속 잡는 기준을 확인해야 관계가 덜 흔들립니다. 초반에 "이건 이렇게 하자"를 몇 개만 정해두면 불필요한 서운함이 크게 줄어듭니다.`
             : `가까워질수록 사소한 습관 차이가 크게 느껴질 수 있습니다. 애정이 부족해서라기보다 생활 리듬의 결이 달라 피로가 생기는 쪽에 가깝습니다. 큰 사건이 아니라 연락 텀, 약속 잡는 방식, 쉬는 방식 같은 작은 반복에서 긴장이 쌓이기 쉽습니다.`,
       signal:
-        score >= 70
+        workRelation && score >= 70
+          ? "지시를 받은 뒤 결과물 방향이 크게 어긋나지 않을 때 업무 궁합이 드러나요."
+          : workRelation
+            ? "보고 타이밍, 수정 요청, 우선순위 변경에서 차이가 먼저 드러나요."
+            : score >= 70
           ? "함께 보내는 평범한 하루(밥·휴식·이동)가 편안하게 느껴질 때 이 관계의 안정감이 확인돼요."
           : "연락 빈도, 약속 잡는 방식, 쉬는 방식처럼 작고 반복되는 습관에서 차이가 먼저 드러나요.",
-      actions: ["연락 빈도와 만나는 주기를 대략이라도 맞춰두기", "쉬는 방식이 서로 다를 수 있음을 인정하기", "서운함은 감정이 아니라 '어떤 행동이 언제' 단위로 말하기"],
+      actions: workRelation
+        ? ["업무 요청은 마감·결과물 형태·우선순위를 같이 적기", "보고 주기와 긴급 연락 기준을 정하기", "피드백은 감정이 아니라 수정 기준으로 말하기"]
+        : ["연락 빈도와 만나는 주기를 대략이라도 맞춰두기", "쉬는 방식이 서로 다를 수 있음을 인정하기", "서운함은 감정이 아니라 '어떤 행동이 언제' 단위로 말하기"],
     };
   }
   if (label === "함께 있을 때 흐름") {
@@ -1404,6 +1530,7 @@ function compatibilityRepairReport(
   palace: ReturnType<typeof relationToneFromDayBranches>,
   context: (typeof RELATION_CONTEXT)[CompatibilityRelationType],
 ): CompatibilityResult["repairReport"] {
+  const copy = relationCopy(context);
   const level: NonNullable<CompatibilityResult["repairReport"]>["level"] =
     score < 55 || branches.badCount > branches.goodCount ? "repairFirst" : score < 75 || branches.badCount > 0 ? "needsCare" : "smooth";
   const hasBranchFriction = branches.badCount > 0;
@@ -1419,28 +1546,28 @@ function compatibilityRepairReport(
 
   const intro =
     level === "repairFirst"
-      ? `${context.label}로 볼 때 두 사람은 끌림이나 필요가 있어도 반응 속도, 생활 기준, 책임 범위에서 피로가 생기기 쉽습니다. 이 관계는 마음만 확인하기보다 "어떤 상황에서 서로가 힘들어지는지"를 먼저 알아야 합니다.`
+      ? `${context.label}로 볼 때 두 사람은 이어질 이유가 있어도 ${copy.area}에서 피로가 생기기 쉽습니다. 이 관계는 좋고 나쁨보다 "어떤 상황에서 서로가 힘들어지는지"를 먼저 알아야 합니다.`
       : level === "needsCare"
-        ? `${context.label}로 볼 때 기본적으로 이어질 수 있는 힘은 있습니다. 다만 편해진 뒤에 말투, 기대치, 일정, 돈, 거리감 같은 현실 문제가 쌓이면 좋은 흐름이 흐려질 수 있습니다.`
-        : `${context.label}로 볼 때 서로에게 안정감을 주는 부분이 있습니다. 이 장점은 저절로 유지되기보다 고마움 표현, 약속 방식, 쉬는 리듬을 계속 맞출 때 오래 갑니다.`;
+        ? `${context.label}로 볼 때 기본적으로 이어질 수 있는 힘은 있습니다. 다만 편해진 뒤에 ${copy.area}이 흐려지면 좋은 흐름도 쉽게 피곤해질 수 있습니다.`
+        : `${context.label}로 볼 때 서로에게 안정감을 주는 부분이 있습니다. 이 장점은 저절로 유지되기보다 ${copy.area}을 계속 맞출 때 오래 갑니다.`;
 
   const whyItHappens = [
     hasBranchFriction
       ? "함께 있을 때 잘 맞는 장면도 있지만, 피곤하거나 급한 상황에서는 서로의 방식이 세게 다르게 느껴질 수 있습니다."
-      : "강하게 부딪히는 신호는 약한 편이라, 큰 싸움보다 표현 부족이나 익숙함에서 생기는 무심함을 조심하면 좋습니다.",
+      : `강하게 부딪히는 신호는 약한 편이라, 큰 충돌보다 ${copy.area}을 당연하게 넘기는 흐름을 조심하면 좋습니다.`,
     weakComplement
       ? "서로가 부족한 부분을 자동으로 채워주는 힘은 강하지 않습니다. 그래서 상대에게 기대기보다 각자의 생활 리듬을 먼저 안정시키는 편이 좋습니다."
       : "서로 다른 강점이 있어 역할을 나누면 보완이 됩니다. 다만 도움을 주는 방식이 상대에게 간섭처럼 느껴지지 않게 말투를 조절해야 합니다.",
     palaceFriction
-      ? "가까워질수록 사소한 습관, 연락 속도, 약속 기준에서 예민해질 수 있습니다. 감정보다 생활 방식 조율이 먼저입니다."
-      : "일상에서 정이 붙거나 익숙해지는 힘이 있습니다. 편해진 뒤에도 표현과 확인을 줄이지 않는 것이 중요합니다.",
+      ? `${copy.area}에서 사소한 차이가 예민하게 느껴질 수 있습니다. 감정으로 밀기보다 기준을 먼저 맞추는 편이 좋습니다.`
+      : `${copy.area}을 잘 맞추면 관계가 훨씬 안정됩니다. 편해진 뒤에도 확인을 줄이지 않는 것이 중요합니다.`,
   ];
 
   const conflictCycle = [
     {
       step: "1단계. 기대가 말로 정리되지 않음",
-      body: "한쪽은 당연하다고 생각한 기준을 상대도 알고 있을 거라 여기고, 다른 쪽은 갑자기 요구받는 느낌을 받을 수 있습니다.",
-      repair: "원하는 것을 성격 평가가 아니라 행동 기준으로 말하세요. 예: '왜 그래?'보다 '약속 변경은 최소 하루 전에 말해줘'가 좋습니다.",
+      body: `한쪽은 ${copy.area}에 대한 기준을 상대도 알고 있을 거라 여기고, 다른 쪽은 갑자기 요구받는 느낌을 받을 수 있습니다.`,
+      repair: `원하는 것을 성격 평가가 아니라 행동 기준으로 말하세요. ${copy.action}`,
     },
     {
       step: "2단계. 작은 불편함이 쌓임",
@@ -1463,16 +1590,16 @@ function compatibilityRepairReport(
     me: [
       "내가 불편한 지점을 참다가 한 번에 터뜨리는지, 바로 확인해보는지 먼저 살피세요.",
       "상대가 바뀌어야 한다는 말보다 내가 원하는 행동을 한 문장으로 정리해 말하는 편이 좋습니다.",
-      "상대의 느린 반응이나 다른 표현 방식을 애정 부족으로 바로 해석하지 않는 연습이 필요합니다.",
+      `${copy.frictionSignal}를 먼저 구분해야 감정 소모가 줄어듭니다.`,
     ],
     partner: [
-      "상대는 내 기준을 이미 알고 있을 거라고 넘기지 말고, 일정·연락·돈·역할 기준을 구체적으로 확인해주는 편이 좋습니다.",
+      `상대는 내 기준을 이미 알고 있을 거라고 넘기지 말고, ${copy.area}을 구체적으로 확인해주는 편이 좋습니다.`,
       "방어적으로 설명하기보다 먼저 '그렇게 느낄 수 있겠다'고 받아주면 갈등이 훨씬 빨리 내려갑니다.",
       "좋은 의도로 한 조언도 타이밍이 맞지 않으면 간섭처럼 들릴 수 있으니, 먼저 필요한지 물어보는 방식이 좋습니다.",
     ],
     together: [
       context.action,
-      "싸움 규칙을 하나 정하세요. 밤늦게 결론내리지 않기, 돈 문제는 문자로 남기기, 가족 문제는 감정이 가라앉은 뒤 말하기처럼 구체적일수록 좋습니다.",
+      `갈등 규칙을 하나 정하세요. ${copy.area}에서 문제가 생기면 언제, 어떤 방식으로 다시 맞출지 구체적일수록 좋습니다.`,
       "좋았던 점과 고칠 점을 같은 자리에서 섞지 말고 따로 말하세요. 칭찬은 칭찬대로, 조율은 조율대로 분리해야 덜 방어적입니다.",
     ],
   };
@@ -1481,14 +1608,14 @@ function compatibilityRepairReport(
     "“내가 원하는 건 네가 틀렸다는 말이 아니라, 다음에는 이렇게 맞춰보자는 거야.”",
     "“지금 바로 결론내리면 서로 세게 말할 것 같아서, 오늘은 여기까지 정리하고 내일 다시 얘기하자.”",
     "“나는 이 부분에서 서운했어. 네 의도는 다를 수 있으니까, 어떻게 생각했는지 먼저 듣고 싶어.”",
-    "“앞으로 같은 일이 생기면 누가, 언제, 어디까지 할지 정해두자.”",
+    copy.script,
   ];
 
   const avoid = [
     "상대의 행동 하나를 보고 관계 전체를 단정하기",
-    "답답하다는 이유로 연락, 돈, 가족, 일 문제를 한꺼번에 꺼내기",
+    `답답하다는 이유로 ${copy.area} 문제를 한꺼번에 꺼내기`,
     "사과를 받자마자 바로 예전 일을 다시 꺼내기",
-    "좋은 의도였다는 말만 반복하고 상대가 받은 영향을 확인하지 않기",
+    copy.avoid,
   ];
 
   return { level, headline, intro, whyItHappens, conflictCycle, byPerson, scripts, avoid };
@@ -1503,6 +1630,7 @@ function compatibilityQuestionInsight(
 ): CompatibilityResult["questionInsight"] | undefined {
   const clean = question?.trim();
   if (!clean) return undefined;
+  const copy = relationCopy(context);
 
   const compact = clean.replace(/\s+/g, "");
   const isDecision = /계속|이어|정리|끊|그만|헤어|이혼|퇴사|동업|시작|고백|말해|연락|기다|만나|살/.test(compact);
@@ -1513,13 +1641,15 @@ function compatibilityQuestionInsight(
   const asksFamily = /가족|부모|자식|엄마|아빠|형제|자매|남매|집안/.test(compact);
 
   const intent = asksMind
-    ? "상대의 마음을 단정해 달라는 질문이라기보다, 이 관계에서 내가 어떻게 받아들여지고 있는지 확인하고 싶은 질문입니다."
+    ? copy.kind === "love"
+      ? "상대의 마음을 단정해 달라는 질문이라기보다, 이 관계에서 내가 어떻게 받아들여지고 있는지 확인하고 싶은 질문입니다."
+      : `${context.label}에서 상대가 나를 어떻게 받아들이는지보다, 실제로 ${copy.area}이 맞는지 확인하고 싶은 질문입니다.`
     : asksConflict
-      ? "두 사람이 왜 반복해서 불편해지는지, 그리고 어디부터 조율해야 하는지 알고 싶은 질문입니다."
+      ? `두 사람이 왜 반복해서 불편해지는지, 그리고 ${copy.area} 중 어디부터 조율해야 하는지 알고 싶은 질문입니다.`
       : asksTiming
-        ? "지금 움직여도 되는지, 아니면 관계의 속도를 늦춰 확인해야 하는지 묻는 질문입니다."
+        ? `지금 움직여도 되는지, 아니면 ${context.label}의 속도를 늦춰 확인해야 하는지 묻는 질문입니다.`
         : isDecision
-          ? "관계를 계속 밀고 갈지, 거리를 둘지, 기준을 다시 세울지 판단하고 싶은 질문입니다."
+          ? `${context.label}를 계속 이어갈지, 거리를 둘지, 기준을 다시 세울지 판단하고 싶은 질문입니다.`
           : asksWork || context.label.includes("업무") || context.label.includes("직원") || context.label.includes("동업")
             ? "감정보다 역할·책임·성과 기준이 맞는지 확인하고 싶은 질문입니다."
             : asksFamily || context.label.includes("가족") || context.label.includes("부모")
@@ -1529,29 +1659,29 @@ function compatibilityQuestionInsight(
   const hasFriction = branches.badCount > 0 || palace.score < 0 || score < 55;
   const answer =
     score >= 75 && !hasFriction
-      ? `${context.label}로 볼 때 기본 흐름은 좋은 편입니다. 다만 좋다는 말로 끝내기보다, 편해질수록 기준을 생략하지 않는 것이 핵심입니다.`
+      ? `${context.label}로 볼 때 기본 흐름은 좋은 편입니다. 다만 좋다는 말로 끝내기보다, 편해질수록 ${copy.area}을 생략하지 않는 것이 핵심입니다.`
       : score >= 55
-        ? `${context.label}로 볼 때 이어갈 힘은 있지만 자동으로 편해지는 관계는 아닙니다. 지금 질문의 핵심은 좋고 나쁨보다, 어떤 기준을 맞추면 덜 지치는지에 가깝습니다.`
-        : `${context.label}로 볼 때 서로 다른 결이 분명합니다. 관계를 끊어야 한다고 단정할 수는 없지만, 감정으로 밀어붙이기보다 거리·역할·대화 기준을 먼저 정해야 합니다.`;
+        ? `${context.label}로 볼 때 이어갈 힘은 있지만 자동으로 편해지는 관계는 아닙니다. 지금 질문의 핵심은 좋고 나쁨보다, ${copy.area} 중 어떤 기준을 맞추면 덜 지치는지에 가깝습니다.`
+        : `${context.label}로 볼 때 서로 다른 결이 분명합니다. 끊어야 한다고 단정할 수는 없지만, 감정으로 밀어붙이기보다 ${copy.area}의 기준을 먼저 정해야 합니다.`;
 
   const signals = [
     hasFriction
-      ? "피곤하거나 급한 상황에서 말투, 연락, 역할 기준이 쉽게 어긋나는지 보세요."
-      : "큰 사건보다 평소 루틴에서 편안함이 유지되는지 보세요.",
+      ? copy.frictionSignal
+      : copy.goodSignal,
     asksMind
       ? "상대의 말보다 반복 행동을 보세요. 약속을 지키는지, 불편한 대화 뒤 회복하려는 행동이 있는지가 더 중요합니다."
       : "서로가 원하는 것을 말했을 때 방어보다 조율로 이어지는지 확인하세요.",
     asksWork || context.label.includes("업무") || context.label.includes("동업")
       ? "마감, 돈, 결정권, 책임 범위를 적었을 때 오해가 줄어드는지 확인하세요."
-      : "연락, 돈, 가족, 일정처럼 반복되는 문제를 하나씩 분리해서 말할 수 있는지 확인하세요.",
+      : `${copy.area}처럼 반복되는 문제를 하나씩 분리해서 말할 수 있는지 확인하세요.`,
   ];
 
   const actions = [
     "오늘은 이 관계에서 가장 불편한 지점을 하나만 적고, 상대 성격이 아니라 구체적 행동으로 바꿔 써보세요.",
-    context.action,
+    copy.action,
     isDecision
       ? "결정은 바로 내리지 말고, 이번 주 안에 바뀌어야 할 조건 2개와 내가 지킬 조건 1개를 먼저 정하세요."
-      : "이번 주에는 큰 결론보다 작은 약속 하나를 정하고, 실제로 지켜지는지 확인하세요.",
+      : `이번 주에는 큰 결론보다 ${copy.area} 중 하나를 골라 실제로 맞춰보세요.`,
   ];
 
   return { question: clean, intent, answer, signals, actions };
@@ -1583,9 +1713,10 @@ function compatibilitySolutionPlan(
   chartA: SajuChart,
   chartB: SajuChart,
   questionInsight?: CompatibilityResult["questionInsight"],
+  roleLabels = { first: "나", second: "상대" },
 ): CompatibilityResult["solutionPlan"] {
-  const me = personSummary("나", chartA);
-  const partner = personSummary("상대", chartB);
+  const me = personSummary(roleLabels.first, chartA);
+  const partner = personSummary(roleLabels.second, chartB);
   const myWeak = weakestElement(chartA.fiveElements);
   const myStrong = strongestElement(chartA.fiveElements);
   const partnerStrong = strongestElement(chartB.fiveElements);
@@ -1593,9 +1724,11 @@ function compatibilitySolutionPlan(
   const hasQuestion = Boolean(questionInsight?.question);
   const relationshipLabel = context.label;
   const questionText = questionInsight?.question ?? "";
+  const copy = relationCopy(context);
   const asksWork = includesAny(`${questionText}${relationshipLabel}`, ["일", "직장", "회사", "사업", "동업", "업무", "성과", "돈", "직원", "동료"]);
   const asksFamily = includesAny(`${questionText}${relationshipLabel}`, ["가족", "부모", "자식", "엄마", "아빠", "형제", "자매", "남매"]);
   const asksLove = includesAny(`${questionText}${relationshipLabel}`, ["연애", "연인", "배우자", "마음", "고백", "이별", "결혼"]);
+  const asksFriend = copy.kind === "friend" || includesAny(`${questionText}${relationshipLabel}`, ["친구", "지인", "우정"]);
   const seed = [
     chartA.year.ganZhi,
     chartA.month.ganZhi,
@@ -1613,22 +1746,22 @@ function compatibilitySolutionPlan(
   const title = hasQuestion ? "질문 기준으로 보는 관계 맞춤 솔루션" : `${relationshipLabel} 맞춤 솔루션`;
   const problem = hasQuestion
     ? `지금 핵심은 "${questionInsight?.question}"에 대한 답을 바로 단정하는 것이 아니라, 이 관계에서 반복되는 부담과 확인해야 할 조건을 분리하는 것입니다.`
-    : `${relationshipLabel}로 볼 때 핵심은 점수보다 실제 생활에서 편한 접점과 피로한 접점을 나눠보는 것입니다.`;
+    : `${relationshipLabel}로 볼 때 핵심은 점수보다 ${copy.area}에서 편한 접점과 피로한 접점을 나눠보는 것입니다.`;
 
-  const personalContext = `나는 ${me.dayMaster} 기질을 중심으로 ${me.strongestElement}이 강하고, ${me.weakestElement}은 보완하면 좋은 편입니다. 그래서 이 관계에서는 내가 편한 방식만 밀기보다, 약한 부분을 상대에게 어떻게 요청할지 먼저 정리하는 것이 중요합니다.`;
+  const personalContext = `${me.label}는 ${me.dayMaster} 기질을 중심으로 ${me.strongestElement}이 강하고, ${me.weakestElement}은 보완하면 좋은 편입니다. 그래서 이 관계에서는 내 방식만 밀기보다, 약한 부분을 상대에게 어떻게 요청할지 먼저 정리하는 것이 중요합니다.`;
 
   const relationshipContext =
     score >= 75 && !hasFriction
-      ? `상대는 ${partner.dayMaster} 기질을 중심으로 움직이며, 두 사람은 기본 흐름이 꽤 안정적입니다. 다만 편하다는 이유로 연락, 역할, 돈, 가족, 일정 기준을 생략하면 나중에 작은 서운함이 쌓일 수 있습니다.`
+      ? `${partner.label}는 ${partner.dayMaster} 기질을 중심으로 움직이며, 두 사람은 기본 흐름이 꽤 안정적입니다. 다만 편하다는 이유로 ${copy.area}을 생략하면 나중에 작은 불편함이 쌓일 수 있습니다.`
       : score >= 55
-        ? `상대는 ${partner.dayMaster} 기질을 중심으로 움직이며, 두 사람은 맞는 부분과 다른 부분이 함께 있습니다. 좋게 이어가려면 감정 확인보다 역할, 거리, 기대치를 현실적으로 맞추는 과정이 필요합니다.`
-        : `상대는 ${partner.dayMaster} 기질을 중심으로 움직이며, 두 사람은 결이 다른 부분이 선명합니다. 관계를 바로 포기하라는 뜻은 아니지만, 마음만으로 밀기보다 거리와 규칙을 먼저 만들어야 피로가 줄어듭니다.`;
+        ? `${partner.label}는 ${partner.dayMaster} 기질을 중심으로 움직이며, 두 사람은 맞는 부분과 다른 부분이 함께 있습니다. 좋게 이어가려면 감정 확인보다 ${copy.area}을 현실적으로 맞추는 과정이 필요합니다.`
+        : `${partner.label}는 ${partner.dayMaster} 기질을 중심으로 움직이며, 두 사람은 결이 다른 부분이 선명합니다. 관계를 바로 포기하라는 뜻은 아니지만, 마음만으로 밀기보다 ${copy.area}의 규칙을 먼저 만들어야 피로가 줄어듭니다.`;
 
   const priority = hasFriction
-    ? "1순위는 관계를 더 깊게 밀어붙이는 것이 아니라, 부딪히는 장면을 줄이는 운영 규칙을 정하는 것입니다."
+    ? `1순위는 관계를 더 깊게 밀어붙이는 것이 아니라, ${copy.area}에서 부딪히는 장면을 줄이는 운영 규칙을 정하는 것입니다.`
     : elements.score < 10
       ? "1순위는 서로에게 과하게 기대기보다, 각자 부족한 부분을 생활 습관과 역할 분담으로 보완하는 것입니다."
-      : "1순위는 잘 맞는 부분을 당연하게 두지 않고, 반복 가능한 좋은 습관으로 고정하는 것입니다.";
+      : `1순위는 잘 맞는 부분을 당연하게 두지 않고, ${copy.area}을 반복 가능한 좋은 습관으로 고정하는 것입니다.`;
 
   const weakElementActions: Record<keyof FiveElementBalance, string[]> = {
     wood: [
@@ -1680,7 +1813,14 @@ function compatibilitySolutionPlan(
           "정 때문에 바로 떠안기보다 내가 할 몫과 상대가 할 몫을 분리하세요.",
           "오래된 가족 역할에 갇히지 않도록 '이번에는 내가 여기까지만 할게'처럼 범위를 말하세요.",
         ]
-      : asksLove
+      : asksFriend
+        ? [
+            "부탁과 거절 기준을 미리 가볍게 말하세요.",
+            "돈 문제는 금액이 작아도 기한과 방식을 분명히 하세요.",
+            "연락 텀을 애정이나 의리로 재단하지 말고 서로의 생활 리듬으로 인정하세요.",
+            "친해서 괜찮겠지로 넘기지 말고, 불편한 부탁은 바로 작게 말하세요.",
+          ]
+        : asksLove
         ? [
             "연락 빈도, 만나는 주기, 서운함을 말하는 방식을 먼저 맞추세요.",
             "상대 마음을 추측하기보다 반복 행동을 보세요. 약속을 지키는지, 회복하려는 행동이 있는지가 핵심입니다.",
@@ -1716,13 +1856,13 @@ function compatibilitySolutionPlan(
       : "편하다는 이유로 고마움 표현과 확인 질문을 줄이지 않기",
     myStrong === "metal" ? "내 기준이 맞다는 확신만으로 상대의 속도를 재단하지 않기" : "내 방식이 편하다는 이유로 상대의 리듬을 무시하지 않기",
     myStrong === "fire" ? "감정이 올라온 순간에 긴 메시지로 몰아치지 않기" : "말을 아끼다가 상대가 알아서 눈치채길 기다리지 않기",
-    asksWork ? "일 문제를 친분이나 정으로 덮지 않기" : "관계 문제를 한 번의 분위기나 말투만 보고 단정하지 않기",
+    asksWork ? "일 문제를 친분이나 정으로 덮지 않기" : copy.avoid,
   ];
 
   const todayPool = [
     hasQuestion
       ? "내 질문을 '상대가 어떤 사람인가'가 아니라 '내가 확인해야 할 조건은 무엇인가'로 다시 써보세요."
-      : "이 관계에서 편한 장면 1개와 피곤한 장면 1개를 각각 적어보세요.",
+      : `${copy.area}에서 편한 장면 1개와 피곤한 장면 1개를 각각 적어보세요.`,
     "상대에게 바라는 것을 성격 평가가 아니라 행동 요청 한 문장으로 바꿔보세요.",
     context.action,
     ...weakElementActions[myWeak],
@@ -1739,27 +1879,23 @@ function compatibilitySolutionPlan(
       : "상대가 움직임이 빠른 편이라면 결정 전에 확인해야 할 기준을 짧게 정리해 공유하세요.",
     myWeak === "water"
       ? "이번 주에는 중요한 대화 전 메모장에 감정, 사실, 요청을 나눠 적고 시작하세요."
-      : "이번 주에는 관계에서 반복되는 장면 하나를 기록해 다음 대화의 근거로 쓰세요.",
+      : `이번 주에는 ${copy.area}에서 반복되는 장면 하나를 기록해 다음 대화의 근거로 쓰세요.`,
   ];
 
   const scriptPool = [
-    "“내가 지금 확인하고 싶은 건 네 마음을 몰아붙이려는 게 아니라, 우리가 반복해서 힘들어지는 지점을 줄이는 방법이야.”",
+    `“내가 지금 확인하고 싶은 건 너를 몰아붙이려는 게 아니라, ${copy.area}에서 반복해서 힘들어지는 지점을 줄이는 방법이야.”`,
     "“나는 이 부분에서 부담을 느껴. 다음에는 이렇게 해주면 훨씬 편할 것 같아.”",
-    asksWork
-      ? "“우리 사이가 편해도 일 기준은 따로 정해두자. 역할과 마감만 먼저 맞추면 좋겠어.”"
-      : "“지금 바로 결론내리기보다 이번 주에 이 약속 하나가 지켜지는지 보고 다시 얘기하자.”",
+    asksWork ? copy.script : "“지금 바로 결론내리기보다 이번 주에 이 약속 하나가 지켜지는지 보고 다시 얘기하자.”",
     myWeak === "fire"
       ? "“내가 표현이 부족해서 애매하게 보였을 수 있어. 내가 원하는 건 이거야.”"
       : "“감정적으로 말하고 싶지는 않아서, 사실과 요청을 나눠서 말해볼게.”",
     myWeak === "earth"
       ? "“우리 이 문제를 느낌으로 넘기지 말고, 다음부터 어떻게 할지 기준을 하나 정하자.”"
       : "“내가 지금 원하는 건 큰 약속보다 오늘부터 바꿀 수 있는 작은 행동 하나야.”",
-    asksFamily
-      ? "“가족이라서 도와주고 싶지만, 내가 할 수 있는 범위는 여기까지야.”"
-      : "“내가 서운했던 건 네 사람이 싫어서가 아니라, 이 행동이 반복돼서 힘들었던 거야.”",
+    asksFamily || asksFriend ? copy.script : "“내가 서운했던 건 네 사람이 싫어서가 아니라, 이 행동이 반복돼서 힘들었던 거야.”",
     asksLove
       ? "“나를 좋아하는지 단정해달라는 게 아니라, 우리가 서로 편해지는 방식을 맞춰보고 싶어.”"
-      : "“이번에는 누가 맞고 틀렸는지보다 다음에 같은 일이 생기면 어떻게 할지 정하자.”",
+      : `“이번에는 누가 맞고 틀렸는지보다 ${copy.area}에서 다음에 어떻게 할지 정하자.”`,
   ];
 
   const signalPool = [
@@ -1767,7 +1903,7 @@ function compatibilitySolutionPlan(
     "같은 문제가 반복될 때 서로가 책임을 미루기보다 다음 행동을 정하는지",
     hasFriction
       ? "피곤하거나 바쁜 날에도 말투와 약속 기준이 크게 무너지지 않는지"
-      : "편한 관계가 된 뒤에도 표현과 배려가 줄지 않는지",
+      : copy.goodSignal,
     asksWork ? "역할과 마감을 적었을 때 실제 오해가 줄어드는지" : "서운함을 말한 뒤 상대가 행동을 조금이라도 바꾸는지",
     myWeak === "metal" ? "애매한 부탁과 거절을 분명히 했을 때 마음이 덜 소모되는지" : "내가 원하는 것을 말로 꺼냈을 때 관계가 더 편해지는지",
     partnerStrong === "water" ? "상대가 바로 답하지 않아도 시간을 준 뒤 더 깊게 반응하는지" : "상대가 말보다 행동으로 안정감을 보여주는지",
@@ -1802,6 +1938,7 @@ export function computeCompatibility(
   birthB: BirthInfo,
   relationType: CompatibilityRelationType = "romantic",
   question?: string,
+  roleLabels = { first: "나", second: "상대" },
 ): CompatibilityResult {
   const context = RELATION_CONTEXT[relationType] ?? RELATION_CONTEXT.romantic;
   const chartA = computeSajuChart(birthA);
@@ -1814,7 +1951,7 @@ export function computeCompatibility(
   const branches = crossBranchRelations(zhisA, zhisB);
   const elements = elementComplement(chartA.fiveElements, chartB.fiveElements);
   const palace = relationToneFromDayBranches(chartA.day.zhi, chartB.day.zhi);
-  const roles = roleChemistry(chartA, chartB);
+  const roles = roleChemistry(chartA, chartB, roleLabels);
 
   const branchScore = Math.max(-14, Math.min(18, branches.goodCount * 7 - branches.badCount * 5));
   const raw = 55 + dm.score + branchScore + elements.score + palace.score;
@@ -1822,7 +1959,7 @@ export function computeCompatibility(
 
   const baseBreakdown = [
     { label: "두 사람의 기질", score: Math.round((dm.score / 22) * 100), note: dm.text },
-    { label: "연애·생활 자리", score: Math.max(0, Math.min(100, 55 + palace.score * 3)), note: palace.body },
+    { label: context.palaceLabel, score: Math.max(0, Math.min(100, 55 + palace.score * 3)), note: palace.body },
     {
       label: "함께 있을 때 흐름",
       score: Math.max(0, Math.min(100, 50 + branchScore * 3)),
@@ -1865,27 +2002,47 @@ export function computeCompatibility(
   ];
 
   const highlights = [
-    {
-      title: "끌리는 지점",
-      body: dm.text,
-      action: "처음 좋았던 부분을 당연하게 여기지 말고 자주 말로 확인해 주세요.",
-    },
-    {
-      title: "부딪히는 지점",
-      body: branches.bad.length > 0 ? branches.bad.join(" ") : "크게 세게 부딪히는 신호는 약한 편입니다.",
-      action: "갈등이 생기면 성격 문제가 아니라 방식 차이로 놓고 조율하는 편이 좋습니다.",
-    },
-    {
-      title: "오래 가는 방법",
-      body: palace.body,
-      action: "서로가 편해지는 생활 기준을 초반에 맞추고, 감정이 올라올 때는 잠시 속도를 늦추세요.",
-    },
+    ...(isWorkRelation(context)
+      ? [
+          {
+            title: "업무가 맞는 지점",
+            body: dm.text,
+            action: "좋은 성과가 나온 업무 방식은 말로만 넘기지 말고 예시와 기준으로 남겨두세요.",
+          },
+          {
+            title: "어긋나기 쉬운 지점",
+            body: branches.bad.length > 0 ? branches.bad.join(" ") : "강하게 부딪히는 신호는 약하지만, 기준을 생략하면 오해가 생길 수 있습니다.",
+            action: "갈등이 생기면 성격 문제가 아니라 지시·보고·검수 방식 차이로 놓고 조율하세요.",
+          },
+          {
+            title: "함께 일하는 방법",
+            body: palace.body,
+            action: "업무 요청은 마감, 결과물 형태, 우선순위를 같이 적고 피드백은 수정 기준으로 말하세요.",
+          },
+        ]
+      : [
+          {
+            title: "끌리는 지점",
+            body: dm.text,
+            action: "처음 좋았던 부분을 당연하게 여기지 말고 자주 말로 확인해 주세요.",
+          },
+          {
+            title: "부딪히는 지점",
+            body: branches.bad.length > 0 ? branches.bad.join(" ") : "크게 세게 부딪히는 신호는 약한 편입니다.",
+            action: "갈등이 생기면 성격 문제가 아니라 방식 차이로 놓고 조율하는 편이 좋습니다.",
+          },
+          {
+            title: "오래 가는 방법",
+            body: palace.body,
+            action: "서로가 편해지는 생활 기준을 초반에 맞추고, 감정이 올라올 때는 잠시 속도를 늦추세요.",
+          },
+        ]),
   ];
   const purposes = purposeFits(score, branchScore, elements.score, palace.score, context);
   const timing = compatibilityTiming(birthA, birthB, chartA, chartB);
   const repairReport = compatibilityRepairReport(score, branches, elements, palace, context);
   const questionInsight = compatibilityQuestionInsight(question, score, branches, palace, context);
-  const solutionPlan = compatibilitySolutionPlan(score, branches, elements, palace, context, chartA, chartB, questionInsight);
+  const solutionPlan = compatibilitySolutionPlan(score, branches, elements, palace, context, chartA, chartB, questionInsight, roleLabels);
   const expertEvidence = [
     `관계 유형: ${context.label}`,
     `일간 관계: ${chartA.dayMasterGan}·${chartB.dayMasterGan} / ${dm.text}`,
@@ -1917,6 +2074,6 @@ export function computeCompatibility(
     purposeFits: purposes,
     timing,
     expertEvidence,
-    people: [personSummary("나", chartA), personSummary("상대", chartB)],
+    people: [personSummary(roleLabels.first, chartA), personSummary(roleLabels.second, chartB)],
   };
 }

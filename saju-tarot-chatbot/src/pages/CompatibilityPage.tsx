@@ -9,6 +9,7 @@ const HOURS = Array.from({ length: 24 }, (_, h) => h);
 const RELATION_OPTIONS: Array<{ value: CompatibilityRelationType; label: string }> = [
   { value: "romantic", label: "연인·배우자" },
   { value: "family", label: "가족" },
+  { value: "bossEmployee", label: "사장·직원" },
   { value: "coworker", label: "업무·협업" },
   { value: "friend", label: "친구·지인" },
 ];
@@ -83,11 +84,13 @@ function MiniBirthForm({
           <input type="radio" checked={value.calendarType === "lunar"} onChange={() => set({ calendarType: "lunar" })} /> 음력
         </label>
       </div>
-      <div className="field-row">
+      <div className="field-row mini-birth-date-row">
         <span className="field-label">생년월일</span>
-        <input type="number" placeholder="년" value={value.year} onChange={(e) => set({ year: e.target.value })} />
-        <input type="number" placeholder="월" min={1} max={12} value={value.month} onChange={(e) => set({ month: e.target.value })} />
-        <input type="number" placeholder="일" min={1} max={31} value={value.day} onChange={(e) => set({ day: e.target.value })} />
+        <div className="mini-birth-date-inputs">
+          <input type="number" placeholder="년" value={value.year} onChange={(e) => set({ year: e.target.value })} />
+          <input type="number" placeholder="월" min={1} max={12} value={value.month} onChange={(e) => set({ month: e.target.value })} />
+          <input type="number" placeholder="일" min={1} max={31} value={value.day} onChange={(e) => set({ day: e.target.value })} />
+        </div>
       </div>
       {value.calendarType === "lunar" && (
         <div className="field-row">
@@ -167,6 +170,7 @@ export default function CompatibilityPage() {
   const [personA, setPersonA] = useState<PersonInput>({ ...EMPTY });
   const [personB, setPersonB] = useState<PersonInput>({ ...EMPTY, gender: "male" });
   const [relationType, setRelationType] = useState<CompatibilityRelationType>("romantic");
+  const [workRole, setWorkRole] = useState<"meBoss" | "meEmployee">("meBoss");
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -177,11 +181,23 @@ export default function CompatibilityPage() {
   function handleCompute() {
     setError(null);
     try {
-      setResult(computeCompatibility(toBirthInfo(personA), toBirthInfo(personB), relationType, question));
+      const roleLabels =
+        relationType === "bossEmployee"
+          ? workRole === "meBoss"
+            ? { first: "나(사장)", second: "상대(직원)" }
+            : { first: "나(직원)", second: "상대(사장)" }
+          : undefined;
+      setResult(computeCompatibility(toBirthInfo(personA), toBirthInfo(personB), relationType, question, roleLabels));
     } catch {
       setError("궁합 계산에 실패했어요. 생년월일을 다시 확인해 주세요.");
     }
   }
+
+  const meTitle = relationType === "bossEmployee" ? (workRole === "meBoss" ? "나 · 사장" : "나 · 직원") : "나";
+  const partnerTitle = relationType === "bossEmployee" ? (workRole === "meBoss" ? "상대 · 직원" : "상대 · 사장") : "상대";
+  const meSubtitle = relationType === "bossEmployee" ? (workRole === "meBoss" ? "사장/리더 생년월일시" : "직원/실무자 생년월일시") : "내 생년월일시";
+  const partnerSubtitle =
+    relationType === "bossEmployee" ? (workRole === "meBoss" ? "직원/실무자 생년월일시" : "사장/리더 생년월일시") : "상대방 생년월일시";
 
   return (
     <section className="page">
@@ -200,6 +216,16 @@ export default function CompatibilityPage() {
             ))}
           </select>
         </label>
+        {relationType === "bossEmployee" && (
+          <div className="compat-role-switch" aria-label="사장 직원 역할 선택">
+            <button type="button" className={workRole === "meBoss" ? "active" : ""} onClick={() => setWorkRole("meBoss")}>
+              나는 사장 · 상대는 직원
+            </button>
+            <button type="button" className={workRole === "meEmployee" ? "active" : ""} onClick={() => setWorkRole("meEmployee")}>
+              나는 직원 · 상대는 사장
+            </button>
+          </div>
+        )}
         <label className="compat-question-field">
           <span>궁금한 점 (선택)</span>
           <textarea
@@ -212,8 +238,8 @@ export default function CompatibilityPage() {
       </section>
 
       <div className="compat-forms">
-        <MiniBirthForm title="나" subtitle="내 생년월일시" role="me" value={personA} onChange={setPersonA} />
-        <MiniBirthForm title="상대" subtitle="상대방 생년월일시" role="partner" value={personB} onChange={setPersonB} />
+        <MiniBirthForm title={meTitle} subtitle={meSubtitle} role="me" value={personA} onChange={setPersonA} />
+        <MiniBirthForm title={partnerTitle} subtitle={partnerSubtitle} role="partner" value={personB} onChange={setPersonB} />
       </div>
 
       <button className="btn btn--primary" onClick={handleCompute} disabled={!canSubmit}>
@@ -328,7 +354,7 @@ export default function CompatibilityPage() {
           {result.people && (
             <div className="compat-people-grid">
               {result.people.map((p) => {
-                const role = p.label === "나" ? "me" : "partner";
+                const role = p.label.startsWith("나") ? "me" : "partner";
                 return (
                 <div className={`card compat-person compat-person--${role}`} key={p.label}>
                   <span className={`compat-role-badge compat-role-badge--${role}`}>{p.label}</span>

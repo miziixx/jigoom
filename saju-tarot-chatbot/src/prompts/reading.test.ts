@@ -51,6 +51,12 @@ describe("리딩 시스템 프롬프트 규칙", () => {
     expect(READING_SYSTEM_PROMPT).toContain("사용자가 알고 싶은 핵심");
     expect(READING_SYSTEM_PROMPT).toContain("실제 선택 압박");
   });
+
+  it("한 줄 결론은 질문 요약이 아니라 판단형 문장으로 쓰도록 요구한다", () => {
+    expect(READING_SYSTEM_PROMPT).toContain("분석형 문장은 결론이 아니다");
+    expect(READING_SYSTEM_PROMPT).toContain("어떤 선택이 더 안전한지");
+    expect(READING_SYSTEM_PROMPT).toContain("그것을 [한 줄 결론] 자리에 쓰지 않는다");
+  });
 });
 
 describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
@@ -71,12 +77,20 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(msg).toContain("성별");
   });
 
-  it("깊이 미선택이면 종합(모든 섹션)·간결 기본 프로필을 붙인다", () => {
+  it("깊이 미선택이면 짧지만 완결된 기본 핵심 리딩 프로필을 붙인다", () => {
     expect(msg).toContain("기본 리딩 — 종합");
-    expect(msg).toContain("건강과 컨디션");
-    expect(msg).toContain("인생의 큰 흐름");
-    expect(msg).toContain("4200~5200자");
-    expect(msg).toContain("월별 근거");
+    expect(msg).toContain("짧지만 완결된 핵심 리포트");
+    expect(msg).toContain("1200~1800자");
+    expect(msg).toContain("길어도 2200자");
+    expect(msg).toContain("성향 / 직업·돈 / 재물 / 연애·관계 / 건강·컨디션 / 올해 흐름 6개 항목");
+    expect(msg).toContain("각 항목을 1~2줄");
+    expect(msg).toContain("질문 답변은 전체의 약 30%");
+    expect(msg).toContain("기본 사주 핵심은 약 70%");
+    expect(msg).toContain("나머지 기본 6분야를 누락하지 마라");
+    expect(msg).toContain("일부러 숨기거나 끊어낸 느낌");
+    expect(msg).toContain("결제를 유도하려고 비워둔 느낌을 절대 내지 마라");
+    expect(msg).not.toContain("무료 미리보기");
+    expect(msg).not.toContain("맛보기");
   });
 
   it("깊이를 고르면 기본 종합 프로필 대신 해당 깊이를 쓴다", () => {
@@ -86,10 +100,11 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
       gender: birth.gender,
       sajuChart,
       luckCycles,
-      context: { depth: "expert" },
+      context: { depth: "advanced" },
     });
     expect(deep).not.toContain("[기본 리딩 — 종합]");
-    expect(deep).toContain("전문가 리딩");
+    expect(deep).toContain("정밀 확장 리딩");
+    expect(deep).toContain("5000~6500자");
   });
 
   it("병렬 생성을 위해 지정 섹션만 쓰라는 지시를 붙일 수 있다", () => {

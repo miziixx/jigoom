@@ -167,10 +167,26 @@ describe("궁합 계산", () => {
   it("관계 유형별 궁합 문맥을 바꿀 수 있다", () => {
     const family = computeCompatibility(A, B, "parentChild");
     const work = computeCompatibility(A, B, "bossEmployee");
+    const friend = computeCompatibility(A, B, "friend");
     const rival = computeCompatibility(A, B, "rival");
     expect(family.relationLabel).toBe("부모와 자식");
+    expect(JSON.stringify(family.solutionPlan)).toContain("가족");
+    expect(JSON.stringify(family.solutionPlan)).toContain("돌봄");
     expect(work.purposeFits?.map((p) => p.label)).toContain("지시·보고");
+    expect(work.breakdown.map((b) => b.label)).toContain("업무·책임 자리");
+    expect(JSON.stringify(work.purposeFits)).toContain("지시");
+    expect(JSON.stringify(work.purposeFits)).not.toContain("데이트");
+    expect(JSON.stringify(friend.solutionPlan)).toContain("부탁");
+    expect(JSON.stringify(friend.solutionPlan)).toContain("친");
     expect(rival.improvementTips?.join(" ")).toContain("사실");
+  });
+
+  it("사장·직원 궁합은 역할 라벨을 결과에 보존한다", () => {
+    const bossEmployee = computeCompatibility(A, B, "bossEmployee", "사장과 직원으로 잘 맞나요?", { first: "나(사장)", second: "상대(직원)" });
+    expect(bossEmployee.people?.map((p) => p.label)).toEqual(["나(사장)", "상대(직원)"]);
+    expect(bossEmployee.roleChemistry?.[0].title).toContain("나(사장)");
+    expect(bossEmployee.roleChemistry?.[0].title).toContain("상대(직원)");
+    expect(bossEmployee.solutionPlan?.relationshipContext).toContain("상대(직원)");
   });
 
   it("궁합 질문을 넣으면 질문 의도와 현실 행동을 따로 만든다", () => {
