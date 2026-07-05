@@ -321,6 +321,10 @@ const HERO_CLOSING = "마지막 점괘";
 const CATEGORY_SECTION_TITLE = "분야별 요약";
 const QUESTION_CORE_TITLE = "질문 중심 핵심";
 
+function sectionAnchor(title: string): string {
+  return `reading-${title.replace(/\s+/g, "-").replace(/[^\p{L}\p{N}-]/gu, "")}`;
+}
+
 interface CategorySummary {
   label: string;
   rating: "good" | "mid" | "caution";
@@ -352,6 +356,26 @@ function CategorySummaryCard({ item }: { item: CategorySummary }) {
       </div>
       <p className="reading-category-card__comment">{item.comment}</p>
     </div>
+  );
+}
+
+function ReadingTableOfContents({ sections }: { sections: Section[] }) {
+  if (sections.length === 0) return null;
+  return (
+    <nav className="card reading-toc" aria-label="리딩 목차">
+      <div className="reading-toc__head">
+        <span>목차</span>
+        <p>위의 총평을 먼저 읽고, 필요한 부분만 펼쳐서 보세요.</p>
+      </div>
+      <div className="reading-toc__links">
+        {sections.map((section) => (
+          <a href={`#${sectionAnchor(section.title)}`} key={section.title}>
+            <span>{SECTION_META[section.title]?.tag ?? "풀이"}</span>
+            {section.title}
+          </a>
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -438,27 +462,10 @@ export default function ReadingResult({ session, loading = false }: { session: R
         />
       )}
 
-      {/* 타로 근거 (있을 때) */}
-      {session.tarotCards && session.tarotCards.length > 0 && (
-        <>
-          <TarotSummaryHero cards={session.tarotCards} />
-          <TarotFactsPanel cards={session.tarotCards} />
-        </>
-      )}
-
-      {/* 사주 원국·신살·오행·대운/세운·1~12월 흐름 — 맨 위에 그대로 보이게 (원래대로) */}
-      {(session.sajuChart || session.luckCycles) && (
-        <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} birthInfo={session.birthInfo} />
-      )}
-
       {/* 요약 대시보드 — 핵심 한 줄 먼저 */}
       {dashboard && (
         <SummaryCardGrid conclusion={conclusion} keywords={dashboard.keywords} dashboard={dashboard} />
       )}
-
-      {session.sajuChart && <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />}
-
-      <EvidenceConfidence session={session} />
 
       {opening && (
         <div className="card reading-oracle reading-oracle--opening">
@@ -492,6 +499,24 @@ export default function ReadingResult({ session, loading = false }: { session: R
       )}
       {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
 
+      <ReadingTableOfContents sections={bodySections} />
+
+      <EvidenceConfidence session={session} />
+
+      {session.sajuChart && <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />}
+
+      {/* 타로·사주 계산 근거는 총평/목차 뒤로 내려, 처음 진입 시 디테일보다 결론이 먼저 보이게 한다. */}
+      {session.tarotCards && session.tarotCards.length > 0 && (
+        <>
+          <TarotSummaryHero cards={session.tarotCards} />
+          <TarotFactsPanel cards={session.tarotCards} />
+        </>
+      )}
+
+      {(session.sajuChart || session.luckCycles) && (
+        <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} birthInfo={session.birthInfo} />
+      )}
+
       {/* AI 프로즈가 시작되기 직전, 계산 기반 위젯을 한 번 더 배치해 "위는 위젯 벽 - 아래는 텍스트 벽"이 되지 않게 한다.
           AI 스트리밍 진행과 무관하게 즉시 보이도록 sajuChart/luckCycles 존재 여부로만 조건을 건다(특정 섹션이
           스트리밍으로 도착했는지에 의존하면 원래 즉시 뜨던 위젯이 그 섹션이 나올 때까지 늦게 뜨게 된다). */}
@@ -500,16 +525,17 @@ export default function ReadingResult({ session, loading = false }: { session: R
       {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
 
       {bodySections.map((section, i) => (
-        <section
+        <details
           key={section.title}
+          id={sectionAnchor(section.title)}
           className={`card reading-section reading-section--open reading-section--${SECTION_META[section.title]?.tone ?? "default"}`}
         >
-          <div className="reading-section__head">
+          <summary className="reading-section__head">
             <span className="reading-section__tag">{SECTION_META[section.title]?.tag ?? "풀이"}</span>
             <h3 className="reading-section__title">{section.title}</h3>
-          </div>
+          </summary>
           <SectionBody body={section.body} loading={loading && i === bodySections.length - 1 && !closing} />
-        </section>
+        </details>
       ))}
 
       {closing && (

@@ -2073,6 +2073,67 @@ label {
   white-space: pre-wrap;
 }
 
+.reading-toc {
+  display: grid;
+  gap: 14px;
+  border-color: rgba(127, 199, 255, 0.22);
+  background: linear-gradient(180deg, rgba(127, 199, 255, 0.08), rgba(255, 255, 255, 0.025));
+}
+
+.reading-toc__head {
+  display: grid;
+  gap: 4px;
+}
+
+.reading-toc__head span {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.reading-toc__head p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+.reading-toc__links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.reading-toc__links a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.reading-toc__links a span {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: rgba(201, 164, 255, 0.12);
+  font-size: 0.72rem;
+}
+
+@media (max-width: 640px) {
+  .reading-toc__links {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── 본문 섹션(펼쳐진 카드) ── */
 .reading-section {
   position: relative;
@@ -2123,6 +2184,11 @@ label {
   align-items: center;
   gap: 10px;
   margin: 0 0 12px;
+  list-style: none;
+}
+
+.reading-section__head::-webkit-details-marker {
+  display: none;
 }
 
 .reading-section__tag {
@@ -2147,6 +2213,7 @@ label {
 .reading-section__body {
   display: grid;
   gap: 14px;
+  margin-top: 12px;
 }
 
 .reading-part {

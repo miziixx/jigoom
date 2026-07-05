@@ -66,6 +66,13 @@ describe("ReadingResult 몰입 렌더링", () => {
     expect(html).toContain("reading-section--open");
   });
 
+  it("총평 뒤에 목차를 제공하고 세부 섹션은 접힘 영역으로 렌더된다", () => {
+    expect(html).toContain("reading-toc");
+    expect(html).toContain("위의 총평을 먼저 읽고");
+    expect(html).toContain("href=\"#reading-건강과-컨디션\"");
+    expect(html).toContain("<details");
+  });
+
   it("마크다운 기호가 화면 텍스트에서 제거된다", () => {
     // 굵게 기호, 본문 목록 기호, 헤딩 기호가 남지 않아야 함
     expect(html).not.toContain("**");
