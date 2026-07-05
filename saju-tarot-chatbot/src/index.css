@@ -1,12 +1,13 @@
 :root {
   --bg: #f4ead9;
   --surface: #fffaf1;
-  --surface-alt: #efe0c8;
+  --surface-alt: #f2e5cf;
   --border: #dac4a0;
   --text: #2f2518;
   --text-dim: #765f42;
-  --accent: #9b672b;
-  --accent-strong: #7a461f;
+  --accent: #a97638;
+  --accent-strong: #b98246;
+  --accent-soft: #ead6b8;
   --danger: #b84d3d;
 
   color-scheme: light;
@@ -67,8 +68,8 @@ body {
 }
 
 .nav-link--active {
-  background: var(--surface-alt);
-  color: var(--text);
+  background: var(--accent-soft);
+  color: #3a2817;
 }
 
 .app-main {
@@ -305,7 +306,8 @@ body {
 
 .tone-choice--active {
   border-color: var(--accent);
-  background: rgba(214, 160, 82, 0.13);
+  background: #f5e7cf;
+  box-shadow: 0 0 0 1px rgba(169, 118, 56, 0.16);
 }
 
 .consultation-panel {
@@ -368,6 +370,12 @@ textarea {
   line-height: 1.35;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: #9d8d76;
+  opacity: 1;
+}
+
 input[type="number"] {
   width: 80px;
 }
@@ -405,8 +413,10 @@ label {
 }
 
 .btn--primary {
-  background: var(--accent-strong);
-  color: #1a1226;
+  background: linear-gradient(180deg, #c4935c 0%, var(--accent-strong) 100%);
+  color: #fffaf1;
+  border: 1px solid rgba(122, 76, 31, 0.18);
+  box-shadow: 0 8px 18px rgba(122, 76, 31, 0.12);
 }
 
 .btn--secondary {
@@ -445,8 +455,9 @@ label {
 }
 
 .segmented__item--active {
-  background: var(--accent-strong);
-  color: #1a1226;
+  background: var(--accent-soft);
+  color: #3a2817;
+  box-shadow: inset 0 0 0 1px rgba(169, 118, 56, 0.18);
 }
 
 .error-text {
@@ -2746,8 +2757,8 @@ label {
 
 .chat-bubble--user {
   align-self: flex-end;
-  background: var(--accent-strong);
-  color: #1a1226;
+  background: #c4935c;
+  color: #fffaf1;
 }
 
 .chat-bubble--assistant {
@@ -2994,8 +3005,8 @@ label {
 }
 
 .premium-badge {
-  background: var(--accent-strong);
-  color: #1a1226;
+  background: var(--accent-soft);
+  color: #3a2817;
   border-radius: 999px;
   padding: 2px 10px;
   font-size: 0.75rem;
