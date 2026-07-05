@@ -22,66 +22,125 @@ interface LoadingNoticeProps {
 type LoadingGame = "omok" | "yut";
 type Stone = "black" | "white" | null;
 
-const YUT_RESULTS = [
-  { name: "도", move: 1, note: "작게 한 칸. 오늘은 무리보다 시작이 좋아요." },
-  { name: "개", move: 2, note: "두 칸 전진. 흐름이 조금씩 붙고 있어요." },
-  { name: "걸", move: 3, note: "세 칸 전진. 생각보다 빠르게 풀릴 수 있어요." },
-  { name: "윷", move: 4, note: "크게 전진. 한 번 더 던질 기세예요." },
-  { name: "모", move: 5, note: "제일 큰 전진. 지금은 운이 시원하게 붙는 판이에요." },
+const OMOK_SIZE = 5;
+const HUMAN_STONE: Exclude<Stone, null> = "black";
+const COMPUTER_STONE: Exclude<Stone, null> = "white";
+const OMOK_DIRS = [
+  [1, 0],
+  [0, 1],
+  [1, 1],
+  [1, -1],
 ];
 
-function hasLine(board: Stone[], index: number, stone: Stone) {
-  if (!stone) return false;
-  const size = 5;
-  const x = index % size;
-  const y = Math.floor(index / size);
-  const dirs = [
-    [1, 0],
-    [0, 1],
-    [1, 1],
-    [1, -1],
-  ];
+const YUT_RESULTS = [
+  { name: "도", move: 1, note: "작게 한 칸." },
+  { name: "개", move: 2, note: "두 칸 전진." },
+  { name: "걸", move: 3, note: "세 칸 전진." },
+  { name: "윷", move: 4, note: "크게 전진. 한 번 더!" },
+  { name: "모", move: 5, note: "제일 큰 전진!" },
+];
+const YUT_FINISH = 20;
 
-  return dirs.some(([dx, dy]) => {
+function longestLineAt(board: Stone[], index: number, stone: Stone) {
+  if (!stone) return 0;
+  const x = index % OMOK_SIZE;
+  const y = Math.floor(index / OMOK_SIZE);
+  let best = 1;
+  for (const [dx, dy] of OMOK_DIRS) {
     let count = 1;
     for (const sign of [-1, 1]) {
       let nx = x + dx * sign;
       let ny = y + dy * sign;
-      while (nx >= 0 && nx < size && ny >= 0 && ny < size && board[ny * size + nx] === stone) {
+      while (nx >= 0 && nx < OMOK_SIZE && ny >= 0 && ny < OMOK_SIZE && board[ny * OMOK_SIZE + nx] === stone) {
         count += 1;
         nx += dx * sign;
         ny += dy * sign;
       }
     }
-    return count >= 4;
+    if (count > best) best = count;
+  }
+  return best;
+}
+
+/** 즉시 승리 > 상대 승리 저지 > 중앙 선호 + 자기/상대 연결 가능성 순으로 고르는 간단한 오목 AI. */
+function pickComputerMove(board: Stone[]): number {
+  const empties: number[] = [];
+  board.forEach((cell, idx) => {
+    if (!cell) empties.push(idx);
   });
+
+  for (const idx of empties) {
+    const next = [...board];
+    next[idx] = COMPUTER_STONE;
+    if (longestLineAt(next, idx, COMPUTER_STONE) >= 4) return idx;
+  }
+  for (const idx of empties) {
+    const next = [...board];
+    next[idx] = HUMAN_STONE;
+    if (longestLineAt(next, idx, HUMAN_STONE) >= 4) return idx;
+  }
+
+  const center = (OMOK_SIZE - 1) / 2;
+  let bestIdx = empties[0];
+  let bestScore = -Infinity;
+  for (const idx of empties) {
+    const asComputer = [...board];
+    asComputer[idx] = COMPUTER_STONE;
+    const asHuman = [...board];
+    asHuman[idx] = HUMAN_STONE;
+    const x = idx % OMOK_SIZE;
+    const y = Math.floor(idx / OMOK_SIZE);
+    const centerDistance = Math.abs(x - center) + Math.abs(y - center);
+    const score = longestLineAt(asComputer, idx, COMPUTER_STONE) * 2 + longestLineAt(asHuman, idx, HUMAN_STONE) - centerDistance * 0.1;
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = idx;
+    }
+  }
+  return bestIdx;
 }
 
 function OmokMiniGame() {
   const [board, setBoard] = useState<Stone[]>(Array.from({ length: 25 }, () => null));
-  const [turn, setTurn] = useState<Exclude<Stone, null>>("black");
+  const [turn, setTurn] = useState<Exclude<Stone, null>>(HUMAN_STONE);
   const [winner, setWinner] = useState<Exclude<Stone, null> | "draw" | null>(null);
 
   const place = (index: number) => {
-    if (board[index] || winner) return;
+    if (turn !== HUMAN_STONE || board[index] || winner) return;
     const next = [...board];
-    next[index] = turn;
-    const nextWinner = hasLine(next, index, turn) ? turn : next.every(Boolean) ? "draw" : null;
+    next[index] = HUMAN_STONE;
+    const nextWinner = longestLineAt(next, index, HUMAN_STONE) >= 4 ? HUMAN_STONE : next.every(Boolean) ? "draw" : null;
     setBoard(next);
     setWinner(nextWinner);
-    if (!nextWinner) setTurn(turn === "black" ? "white" : "black");
+    if (!nextWinner) setTurn(COMPUTER_STONE);
   };
 
   const reset = () => {
     setBoard(Array.from({ length: 25 }, () => null));
-    setTurn("black");
+    setTurn(HUMAN_STONE);
     setWinner(null);
   };
+
+  useEffect(() => {
+    if (turn !== COMPUTER_STONE || winner) return;
+    const id = window.setTimeout(() => {
+      setBoard((current) => {
+        const index = pickComputerMove(current);
+        const next = [...current];
+        next[index] = COMPUTER_STONE;
+        const nextWinner = longestLineAt(next, index, COMPUTER_STONE) >= 4 ? COMPUTER_STONE : next.every(Boolean) ? "draw" : null;
+        setWinner(nextWinner);
+        setTurn(nextWinner ? COMPUTER_STONE : HUMAN_STONE);
+        return next;
+      });
+    }, 500);
+    return () => window.clearTimeout(id);
+  }, [turn, winner]);
 
   return (
     <div className="loading-game loading-game--omok">
       <div className="loading-game__head">
-        <b>기다리는 동안 미니 오목</b>
+        <b>기다리는 동안 미니 오목 · 나 vs 프로그램</b>
         <button type="button" onClick={reset}>
           새 판
         </button>
@@ -92,6 +151,7 @@ function OmokMiniGame() {
             type="button"
             className={`omok-cell${stone ? ` omok-cell--${stone}` : ""}`}
             onClick={() => place(index)}
+            disabled={turn !== HUMAN_STONE || Boolean(winner)}
             aria-label={`${index + 1}번째 칸`}
             key={index}
           >
@@ -102,38 +162,99 @@ function OmokMiniGame() {
       <p className="loading-game__note">
         {winner === "draw"
           ? "무승부예요. 리딩이 아직이면 한 판 더 가도 좋아요."
-          : winner
-            ? `${winner === "black" ? "흑" : "백"} 승! 리딩도 거의 다 익어가는 중이에요.`
-            : `${turn === "black" ? "흑" : "백"} 차례 · 4개를 먼저 이어보세요.`}
+          : winner === HUMAN_STONE
+            ? "내가 이겼어요! 리딩도 거의 다 익어가는 중이에요."
+            : winner === COMPUTER_STONE
+              ? "프로그램이 이겼어요. 한 판 더 가볼까요?"
+              : turn === HUMAN_STONE
+                ? "내 차례(흑) · 4개를 먼저 이어보세요."
+                : "프로그램이 두는 중..."}
       </p>
     </div>
   );
 }
 
 function YutMiniGame() {
-  const [result, setResult] = useState(YUT_RESULTS[0]);
-  const [throws, setThrows] = useState(0);
+  const [playerPos, setPlayerPos] = useState(0);
+  const [computerPos, setComputerPos] = useState(0);
+  const [turn, setTurn] = useState<"player" | "computer">("player");
+  const [winner, setWinner] = useState<"player" | "computer" | null>(null);
+  const [lastRoll, setLastRoll] = useState<{ who: "player" | "computer"; result: (typeof YUT_RESULTS)[number] } | null>(null);
 
   const roll = () => {
-    const next = YUT_RESULTS[Math.floor(Math.random() * YUT_RESULTS.length)];
-    setResult(next);
-    setThrows((value) => value + 1);
+    if (turn !== "player" || winner) return;
+    const result = YUT_RESULTS[Math.floor(Math.random() * YUT_RESULTS.length)];
+    setLastRoll({ who: "player", result });
+    setPlayerPos((pos) => {
+      const nextPos = Math.min(YUT_FINISH, pos + result.move);
+      if (nextPos >= YUT_FINISH) setWinner("player");
+      else setTurn("computer");
+      return nextPos;
+    });
   };
+
+  const reset = () => {
+    setPlayerPos(0);
+    setComputerPos(0);
+    setTurn("player");
+    setWinner(null);
+    setLastRoll(null);
+  };
+
+  useEffect(() => {
+    if (turn !== "computer" || winner) return;
+    const id = window.setTimeout(() => {
+      const result = YUT_RESULTS[Math.floor(Math.random() * YUT_RESULTS.length)];
+      setLastRoll({ who: "computer", result });
+      setComputerPos((pos) => {
+        const nextPos = Math.min(YUT_FINISH, pos + result.move);
+        if (nextPos >= YUT_FINISH) setWinner("computer");
+        else setTurn("player");
+        return nextPos;
+      });
+    }, 600);
+    return () => window.clearTimeout(id);
+  }, [turn, winner]);
 
   return (
     <div className="loading-game loading-game--yut">
       <div className="loading-game__head">
-        <b>기다리는 동안 윷 던지기</b>
-        <button type="button" onClick={roll}>
-          던지기
+        <b>기다리는 동안 윷놀이 대결 · 나 vs 프로그램</b>
+        <button type="button" onClick={reset}>
+          새 판
         </button>
       </div>
-      <div className="yut-result" aria-live="polite">
-        <span>{result.name}</span>
-        <strong>{result.move}칸</strong>
+      <div className="yut-race">
+        <div className="yut-race__row">
+          <span className="yut-race__label">나</span>
+          <div className="yut-race__track">
+            <div className="yut-race__fill yut-race__fill--player" style={{ width: `${(playerPos / YUT_FINISH) * 100}%` }} />
+          </div>
+          <span className="yut-race__pos">{playerPos}/{YUT_FINISH}</span>
+        </div>
+        <div className="yut-race__row">
+          <span className="yut-race__label">프로그램</span>
+          <div className="yut-race__track">
+            <div className="yut-race__fill yut-race__fill--computer" style={{ width: `${(computerPos / YUT_FINISH) * 100}%` }} />
+          </div>
+          <span className="yut-race__pos">{computerPos}/{YUT_FINISH}</span>
+        </div>
       </div>
+      <div className="yut-result" aria-live="polite">
+        <span>{lastRoll ? lastRoll.result.name : "-"}</span>
+        <strong>{lastRoll ? `${lastRoll.result.move}칸 (${lastRoll.who === "player" ? "나" : "프로그램"})` : "던지기 대기"}</strong>
+      </div>
+      <button type="button" className="loading-game__action" onClick={roll} disabled={turn !== "player" || Boolean(winner)}>
+        던지기
+      </button>
       <p className="loading-game__note">
-        {throws === 0 ? "한 번 던져볼까요? 리딩이 나오는 동안 가볍게 운을 봐요." : result.note}
+        {winner === "player"
+          ? "내가 먼저 도착했어요! 리딩도 거의 다 익어가는 중이에요."
+          : winner === "computer"
+            ? "프로그램이 먼저 도착했어요. 한 판 더 가볼까요?"
+            : turn === "player"
+              ? "내 차례예요 · 던지기를 눌러보세요."
+              : "프로그램이 던지는 중..."}
       </p>
     </div>
   );

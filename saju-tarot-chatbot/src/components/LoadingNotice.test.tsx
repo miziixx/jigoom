@@ -8,6 +8,6 @@ describe("LoadingNotice", () => {
 
     expect(html).toContain("계산은 끝났고");
     expect(html).toContain("loading-game");
-    expect(html).toMatch(/미니 오목|윷 던지기/);
+    expect(html).toMatch(/미니 오목|윷놀이/);
   });
 });

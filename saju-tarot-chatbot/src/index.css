@@ -2652,6 +2652,70 @@ label {
   line-height: 1.55;
 }
 
+.loading-game__action {
+  justify-self: start;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.loading-game__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.yut-race {
+  display: grid;
+  gap: 8px;
+}
+
+.yut-race__row {
+  display: grid;
+  grid-template-columns: 56px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+}
+
+.yut-race__label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.yut-race__track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(126, 86, 42, 0.09);
+  overflow: hidden;
+}
+
+.yut-race__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.yut-race__fill--player {
+  background: var(--accent-strong);
+}
+
+.yut-race__fill--computer {
+  background: rgba(127, 199, 255, 0.9);
+}
+
+.yut-race__pos {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
 .omok-board {
   display: grid;
   grid-template-columns: repeat(5, 34px);
