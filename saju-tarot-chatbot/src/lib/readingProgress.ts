@@ -21,6 +21,9 @@ const BASE_SECTIONS: Record<ReadingType, string[]> = {
   ],
   combo: [
     "첫 점괘",
+    "사주로 보는 장기 흐름",
+    "타로로 보는 현재 흐름",
+    "통합 판단",
     "분야별 요약",
     "타고난 성격과 기질",
     "직업과 돈",

@@ -4,6 +4,7 @@ const NAV_ITEMS = [
   { to: "/", label: "홈", end: true },
   { to: "/saju", label: "사주" },
   { to: "/tarot", label: "타로" },
+  { to: "/tarot-today", label: "오늘 카드" },
   { to: "/combo", label: "통합" },
   { to: "/fortune", label: "오늘 운세" },
   { to: "/flow", label: "흐름 캘린더" },

@@ -38,6 +38,41 @@ const RELATION_MARK: Record<DignityRelation, string> = {
   중립: "→",
 };
 
+function cardVisualLabel(card: DrawnTarotCard["card"]) {
+  if (card.arcana === "major") return "Major";
+  if (card.name.includes("Wands")) return "Wands";
+  if (card.name.includes("Cups")) return "Cups";
+  if (card.name.includes("Swords")) return "Swords";
+  return "Pentacles";
+}
+
+function cardSymbol(card: DrawnTarotCard["card"]) {
+  if (card.arcana === "major") return "✦";
+  if (card.name.includes("Wands")) return "♨";
+  if (card.name.includes("Cups")) return "☽";
+  if (card.name.includes("Swords")) return "◇";
+  return "◉";
+}
+
+function TarotCardVisual({ card, reversed }: { card: DrawnTarotCard["card"]; reversed: boolean }) {
+  const label = cardVisualLabel(card);
+  const name = card.name.replace(/\s*\(.+?\)/, "");
+
+  return (
+    <div className={`tarot-card-visual tarot-card-visual--${label.toLowerCase()}${reversed ? " tarot-card-visual--reversed" : ""}`}>
+      {card.imageUrl ? (
+        <img src={card.imageUrl} alt={card.name} loading="lazy" />
+      ) : (
+        <>
+          <span className="tarot-card-visual__arcana">{label}</span>
+          <b className="tarot-card-visual__symbol">{cardSymbol(card)}</b>
+          <span className="tarot-card-visual__name">{name}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
  * 뽑힌 카드와 각 카드가 이 리딩에서 맡은 근거(자리·방향·슈트·원소·역할)를 눈에 보이게 정리한다.
  * 해석 본문이 어떤 카드에서 나왔는지 사용자가 추적할 수 있게 하는 근거 패널.
@@ -90,6 +125,7 @@ export default function TarotFactsPanel({ cards }: Props) {
             const element = tarotElementOf(c.card);
             return (
               <article className="tarot-evidence-card" key={`${c.position}-${c.card.id}`}>
+                <TarotCardVisual card={c.card} reversed={c.reversed} />
                 <span>{c.positionLabel ?? `${c.position}번째 자리`}</span>
                 <b>{c.card.name}</b>
                 <p>{c.reversed ? c.card.reversedMeaning : c.card.uprightMeaning}</p>

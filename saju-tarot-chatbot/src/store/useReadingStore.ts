@@ -74,6 +74,25 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     const includeMonthlyFlow = type === "saju" || type === "combo" || type === "flow";
     const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
     const luckCycles = birthInfo ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow }) : undefined;
+    const provisionalSession: ReadingSession | null =
+      sajuChart || tarotCards?.length
+        ? {
+            id: newId(),
+            type,
+            createdAt: new Date().toISOString(),
+            question,
+            focus,
+            context,
+            birthInfo,
+            sajuChart,
+            luckCycles,
+            tarotCards,
+            messages: [
+              { role: "user", content: question.trim() || "리딩 요청" },
+              { role: "assistant", content: "" },
+            ],
+          }
+        : null;
 
     // 같은 입력이면 저장된 결과를 재사용해 매번 API를 부르지 않는다(일관성 + 비용 절감).
     // 날짜 의존 흐름이 오래 고정되지 않도록 오늘 흐름은 일 단위, 나머지는 월 단위로 신선도를 둔다.
@@ -116,8 +135,10 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
       }
     }
 
-    // 스트리밍 도중 계속 갱신되는 세션 (meta 도착 시 생성 → 텍스트가 실시간으로 자란다)
-    let session: ReadingSession | null = null;
+    if (provisionalSession) set({ currentSession: provisionalSession });
+
+    // 스트리밍 도중 계속 갱신되는 세션 (계산 결과는 즉시 세션으로 먼저 보여주고, AI 텍스트가 실시간으로 자란다)
+    let session: ReadingSession | null = provisionalSession;
     let metaUserMessage = "";
     try {
       const result = await streamReading(
@@ -126,15 +147,15 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
           onMeta: (meta) => {
             metaUserMessage = meta.userMessage;
             session = {
-              id: newId(),
+              id: session?.id ?? newId(),
               type,
-              createdAt: new Date().toISOString(),
+              createdAt: session?.createdAt ?? new Date().toISOString(),
               question,
               focus,
               context,
               birthInfo,
-              sajuChart: meta.sajuChart,
-              luckCycles: meta.luckCycles,
+              sajuChart: meta.sajuChart ?? sajuChart,
+              luckCycles: meta.luckCycles ?? luckCycles,
               tarotCards,
               messages: [
                 { role: "user", content: meta.userMessage },

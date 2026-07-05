@@ -340,6 +340,8 @@ export interface TarotCardDefinition {
   symbols?: string[];
   /** 그림 속 단서나 원형적 장면. 없으면 자동 상징 해석기를 사용한다. */
   imagery?: string;
+  /** 저작권 확인이 끝난 카드 이미지 경로. 없으면 앱 내 미니 카드 비주얼을 보여준다. */
+  imageUrl?: string;
   /** 관계 질문에서 특히 어떻게 나타나는지. 없으면 슈트/번호 기반으로 자동 보강한다. */
   relationshipSymbolism?: string;
 }

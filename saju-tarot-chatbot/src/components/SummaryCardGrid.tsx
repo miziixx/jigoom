@@ -1,7 +1,7 @@
 import type { ReadingDashboard } from "../lib/readingDashboard";
 
 /**
- * 결과 최상단 요약 히어로. 한 줄 결론 + 강점 + 주의점 + 지금 필요한 행동을 카드 그리드로.
+ * 결과 최상단 요약 히어로. 한 줄 결론 + 강점 + 주의점 + 직업 방향 + 지금 필요한 행동을 카드 그리드로.
  * 첫 화면에서 스크롤 없이 "나에 대한 핵심"을 잡게 하는 게 목적.
  */
 export default function SummaryCardGrid({
@@ -13,7 +13,11 @@ export default function SummaryCardGrid({
   keywords?: string[];
   dashboard: ReadingDashboard;
 }) {
-  const hasCards = dashboard.strengths.length > 0 || dashboard.cautions.length > 0 || dashboard.needNow;
+  const hasCards =
+    dashboard.strengths.length > 0 ||
+    dashboard.cautions.length > 0 ||
+    dashboard.careerDirections.length > 0 ||
+    dashboard.needNow;
   if (!conclusion && !hasCards) return null;
 
   return (
@@ -56,6 +60,16 @@ export default function SummaryCardGrid({
             </ul>
           </article>
         )}
+        {dashboard.careerDirections.length > 0 && (
+          <article className="summary-tile summary-tile--career">
+            <b>잘 맞는 일 방향</b>
+            <ul>
+              {dashboard.careerDirections.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+          </article>
+        )}
         {dashboard.needNow && (
           <article className="summary-tile summary-tile--now">
             <b>지금 필요한 것</b>
@@ -63,7 +77,7 @@ export default function SummaryCardGrid({
           </article>
         )}
       </div>
-      <p className="summary-hero__note">아래에 자세한 해석과 계산 근거가 이어집니다.</p>
+      <p className="summary-hero__note">계산으로 바로 잡은 요약입니다. 아래에서 AI 상세 리딩과 계산 근거가 이어집니다.</p>
     </section>
   );
 }

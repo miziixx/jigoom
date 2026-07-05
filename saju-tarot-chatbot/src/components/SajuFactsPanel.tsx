@@ -413,11 +413,11 @@ export default function SajuFactsPanel({
               <h4 className="saju-facts__subhead">신살</h4>
               <div className="sinsal-list">
                 {sajuChart.sinsal.map((s, i) => (
-                  <span className="sinsal-chip" key={`${s.name}-${s.position}-${i}`} title={s.gloss}>
-                    {s.name}
+                  <div className="sinsal-chip" key={`${s.name}-${s.position}-${i}`} title={s.gloss}>
+                    <span className="sinsal-chip__name">{s.name}</span>
                     <span className="sinsal-chip__pos">{s.position}</span>
                     <span className="sinsal-chip__gloss">{s.gloss}</span>
-                  </span>
+                  </div>
                 ))}
               </div>
             </>

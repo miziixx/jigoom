@@ -33,6 +33,9 @@ interface MonthEvidence {
 }
 
 const SECTION_META: Record<string, { tag: string; tone: string }> = {
+  "사주로 보는 장기 흐름": { tag: "사주", tone: "flow" },
+  "타로로 보는 현재 흐름": { tag: "타로", tone: "tarot" },
+  "통합 판단": { tag: "통합", tone: "action" },
   "타고난 성격과 기질": { tag: "기질", tone: "self" },
   "직업과 돈": { tag: "일과 돈", tone: "work" },
   "재물 흐름": { tag: "재물", tone: "money" },
@@ -415,7 +418,7 @@ function CalculationEvidenceZone({
         {session.sajuChart && (
           <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />
         )}
-        {hasTarot && <TarotFactsPanel cards={session.tarotCards!} />}
+        {session.type !== "combo" && hasTarot && <TarotFactsPanel cards={session.tarotCards!} />}
         {hasSaju && (
           <SajuFactsPanel
             sajuChart={session.sajuChart}
@@ -427,8 +430,21 @@ function CalculationEvidenceZone({
         {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
         {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
         {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
+        {session.sajuChart && <LifestyleClosingSummary session={session} />}
       </div>
     </details>
+  );
+}
+
+function DetailLoadingCard() {
+  return (
+    <section className="card reading-detail-status">
+      <span className="reading-detail-status__tag">AI 상세 리딩</span>
+      <h3 className="card-title">상세 풀이를 쓰고 있어요</h3>
+      <p className="reading-body">
+        위의 빠른 요약은 계산값으로 바로 보여드린 내용입니다. 질문 답변, 분야별 상세 풀이, 월별 흐름은 아래에 도착하는 대로 이어집니다.
+      </p>
+    </section>
   );
 }
 
@@ -489,7 +505,8 @@ function LifestyleClosingSummary({ session }: { session: ReadingSession }) {
 
 export default function ReadingResult({ session, loading = false }: { session: ReadingSession; loading?: boolean }) {
   const reply = session.messages.find((m) => m.role === "assistant")?.content ?? "";
-  const sections = parseSections(reply);
+  const hasReply = reply.trim().length > 0;
+  const sections = hasReply ? parseSections(reply) : [];
   const categorySummary = parseCategorySummary(sections);
 
   const opening = sections.find((s) => s.title === HERO_OPENING) ?? sections[0];
@@ -520,75 +537,95 @@ export default function ReadingResult({ session, loading = false }: { session: R
         <SummaryCardGrid conclusion={conclusion} keywords={dashboard.keywords} dashboard={dashboard} />
       )}
 
-      {/* 타로 헤드라인은 접지 않는다: 순수 타로 리딩(사주 없음)에서 AI 텍스트가 나오기 전 유일한 즉시 요약이다. */}
-      {session.tarotCards && session.tarotCards.length > 0 && <TarotSummaryHero cards={session.tarotCards} />}
-
       <SajuPillarSnapshot sajuChart={session.sajuChart} />
 
-      {opening && (
-        <div className="card reading-oracle reading-oracle--opening">
-          <span className="reading-oracle__tag">첫 점괘</span>
-          <p className="reading-oracle__text">
-            {stripMarkdown(opening.body)}
-            {loading && bodySections.length === 0 && !closing && <span className="reading-typing"> ▌</span>}
-          </p>
-        </div>
+      {/* 타로 헤드라인은 접지 않는다: 순수 타로 리딩에서 AI 텍스트가 나오기 전 유일한 즉시 요약이다. */}
+      {session.type !== "combo" && session.tarotCards && session.tarotCards.length > 0 && (
+        <TarotSummaryHero cards={session.tarotCards} />
       )}
 
-      {questionCore && (
-        <section className="card question-core-card">
-          <span className="question-core-card__tag">
-            {session.question?.trim() ? "내 질문에 대한 먼저 답변" : "선택한 관심사 핵심 보기"}
-          </span>
-          <h3 className="card-title">{session.question?.trim() ? session.question.trim() : "지금 먼저 볼 핵심"}</h3>
-          <SectionBody body={questionCore.body} loading={loading && bodySections.length === 0 && !closing} />
-        </section>
-      )}
-
-      {categorySummary && (
-        <section className="card">
-          <h3 className="card-title">분야별 요약</h3>
-          <div className="reading-category-grid">
-            {categorySummary.map((item) => (
-              <CategorySummaryCard key={item.label} item={item} />
-            ))}
+      {session.type === "combo" && session.tarotCards && session.tarotCards.length > 0 && (
+        <section className="combo-result-layer" aria-label="타로 카드 요약">
+          <div className="reading-layer-heading">
+            <span>타로 카드 흐름</span>
+            <p>사주는 큰 흐름을, 타로는 지금 질문의 가까운 분위기를 보여줍니다. 뽑힌 카드는 아래에서 바로 확인할 수 있어요.</p>
           </div>
+          <TarotSummaryHero cards={session.tarotCards} />
+          <TarotFactsPanel cards={session.tarotCards} />
         </section>
       )}
 
-      <ReadingTableOfContents sections={bodySections} />
+      {!hasReply && loading && <DetailLoadingCard />}
 
-      {/* 계산 위젯(오행·대운·신살·월별 등)은 여기 하나로 모아 기본 닫힘 상태로 둔다 */}
-      <CalculationEvidenceZone session={session} dashboard={dashboard} loading={loading} />
+      {hasReply && (
+        <section className="reading-detail-layer" aria-label="AI 상세 리딩">
+          <div className="reading-layer-heading">
+            <span>AI 상세 리딩</span>
+            <p>빠른 요약에서 잡은 흐름을 질문과 분야별 상황에 맞춰 풀어드립니다.</p>
+          </div>
 
-      {bodySections.map((section, i) => (
-        <details
-          key={section.title}
-          id={sectionAnchor(section.title)}
-          className={`card reading-section reading-section--open reading-section--${SECTION_META[section.title]?.tone ?? "default"}`}
-        >
-          <summary className="reading-section__head">
-            <span className="reading-section__tag">{SECTION_META[section.title]?.tag ?? "풀이"}</span>
-            <h3 className="reading-section__title">{section.title}</h3>
-          </summary>
-          <SectionBody body={section.body} loading={loading && i === bodySections.length - 1 && !closing} />
-        </details>
-      ))}
+          {questionCore && (
+            <section className="card question-core-card">
+              <span className="question-core-card__tag">
+                {session.question?.trim() ? "내 질문에 대한 먼저 답변" : "선택한 관심사 핵심 보기"}
+              </span>
+              <h3 className="card-title">{session.question?.trim() ? session.question.trim() : "지금 먼저 볼 핵심"}</h3>
+              <SectionBody body={questionCore.body} loading={loading && bodySections.length === 0 && !closing} />
+            </section>
+          )}
 
-      {closing && (
-        <div className="card reading-oracle reading-oracle--closing">
-          <span className="reading-oracle__tag">마지막 점괘</span>
-          <p className="reading-oracle__text">
-            {stripMarkdown(closing.body)}
-            {loading && <span className="reading-typing"> ▌</span>}
-          </p>
-        </div>
+          {opening && (
+            <div className="card reading-oracle reading-oracle--opening">
+              <span className="reading-oracle__tag">전체 총평</span>
+              <p className="reading-oracle__text">
+                {stripMarkdown(opening.body)}
+                {loading && bodySections.length === 0 && !closing && <span className="reading-typing"> ▌</span>}
+              </p>
+            </div>
+          )}
+
+          {categorySummary && (
+            <section className="card">
+              <h3 className="card-title">분야별 요약</h3>
+              <div className="reading-category-grid">
+                {categorySummary.map((item) => (
+                  <CategorySummaryCard key={item.label} item={item} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <ReadingTableOfContents sections={bodySections} />
+
+          <CalculationEvidenceZone session={session} dashboard={dashboard} loading={loading} />
+
+          {bodySections.map((section, i) => (
+            <details
+              key={section.title}
+              id={sectionAnchor(section.title)}
+              className={`card reading-section reading-section--open reading-section--${SECTION_META[section.title]?.tone ?? "default"}`}
+            >
+              <summary className="reading-section__head">
+                <span className="reading-section__tag">{SECTION_META[section.title]?.tag ?? "풀이"}</span>
+                <h3 className="reading-section__title">{section.title}</h3>
+              </summary>
+              <SectionBody body={section.body} loading={loading && i === bodySections.length - 1 && !closing} />
+            </details>
+          ))}
+
+          {closing && (
+            <div className="card reading-oracle reading-oracle--closing">
+              <span className="reading-oracle__tag">마지막 정리</span>
+              <p className="reading-oracle__text">
+                {stripMarkdown(closing.body)}
+                {loading && <span className="reading-typing"> ▌</span>}
+              </p>
+            </div>
+          )}
+        </section>
       )}
 
-      {/* 5. 실행 가이드 (체크리스트 신규 + 기존 생활 정리) */}
       {session.sajuChart && <ActionChecklist sajuChart={session.sajuChart} luckCycles={session.luckCycles} />}
-
-      {session.sajuChart && <LifestyleClosingSummary session={session} />}
     </div>
   );
 }

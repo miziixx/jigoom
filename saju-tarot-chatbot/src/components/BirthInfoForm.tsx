@@ -18,11 +18,13 @@ interface Props {
   loading: boolean;
   /** 오늘의 흐름 등 포커스 선택이 무의미한 리딩에서는 숨긴다 */
   showFocus?: boolean;
+  /** 작명처럼 고민 질문 입력이 필요 없는 화면에서는 상담 섹션 전체를 숨긴다 */
+  showQuestionSection?: boolean;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
-export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocus = true }: Props) {
+export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocus = true, showQuestionSection = true }: Props) {
   const [savedBirth] = useState(() => loadProfile());
   const [calendarType, setCalendarType] = useState<CalendarType>(savedBirth?.calendarType ?? "solar");
   const [year, setYear] = useState(savedBirth ? String(savedBirth.year) : "");
@@ -205,29 +207,31 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
         </div>
       </section>
 
-      <section className="form-section">
-        <div className="form-section__head">
-          <span>2</span>
-          <div>
-            <h3>지금 보고 싶은 것</h3>
-            <p>전반 운세를 봐도 되고, 실제 고민을 적으면 판단 기준을 더 먼저 보여드려요.</p>
+      {showQuestionSection && (
+        <section className="form-section">
+          <div className="form-section__head">
+            <span>2</span>
+            <div>
+              <h3>지금 보고 싶은 것</h3>
+              <p>전반 운세를 봐도 되고, 실제 고민을 적으면 판단 기준을 더 먼저 보여드려요.</p>
+            </div>
           </div>
-        </div>
 
-        {showFocus && <FocusPicker value={focus} onChange={setFocus} />}
+          {showFocus && <FocusPicker value={focus} onChange={setFocus} />}
 
-        <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
+          <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
 
-        <div className="field-row field-row--column">
-          <span className="field-label">궁금한 점 (선택)</span>
-          <textarea
-            placeholder="예: 요즘 직장에서 방향을 못 잡겠어요. 어떻게 하면 좋을까요?"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            rows={3}
-          />
-        </div>
-      </section>
+          <div className="field-row field-row--column">
+            <span className="field-label">궁금한 점 (선택)</span>
+            <textarea
+              placeholder="예: 요즘 직장에서 방향을 못 잡겠어요. 어떻게 하면 좋을까요?"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              rows={3}
+            />
+          </div>
+        </section>
+      )}
 
       <p className="privacy-note">
         리딩 기록은 자동 저장되지 않습니다. 생년월일 원본은 해석 문장 생성에 직접 보내지 않고, 계산된 사주 정보와 질문만 사용합니다.{" "}

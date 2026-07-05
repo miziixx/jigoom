@@ -44,6 +44,13 @@ describe("리딩 시스템 프롬프트 규칙", () => {
     expect(READING_SYSTEM_PROMPT).toContain("듣기 싫어도 봐야 할 부분");
     expect(READING_SYSTEM_PROMPT).toContain("흔한 말 감지");
   });
+
+  it("모든 리딩에서 질문 의도를 먼저 파악하도록 요구한다", () => {
+    expect(READING_SYSTEM_PROMPT).toContain("질문 의도 파악");
+    expect(READING_SYSTEM_PROMPT).toContain("질문 뒤의 실제 의도");
+    expect(READING_SYSTEM_PROMPT).toContain("사용자가 알고 싶은 핵심");
+    expect(READING_SYSTEM_PROMPT).toContain("실제 선택 압박");
+  });
 });
 
 describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
@@ -166,6 +173,62 @@ describe("타로 리딩 프롬프트", () => {
     });
     expect(msg).toContain("타로 리딩 — 질문 집중");
     expect(msg).not.toContain("기본 리딩 — 종합");
+  });
+});
+
+describe("통합 리딩 프롬프트", () => {
+  const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
+  const sajuChart = computeSajuChart(birth);
+  const luckCycles = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
+  const tarotCards = drawSpread("ppf");
+
+  it("질문 분야와 무관하게 사주+타로 통합 고정 섹션을 요구한다", () => {
+    const msg = buildReadingUserMessage({
+      type: "combo",
+      question: "이직해도 될까요?",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      tarotCards,
+      context: { concernArea: "일·커리어" },
+    });
+
+    expect(msg).toContain("통합 리딩 고정 구조");
+    expect(msg).toContain("질문이 연애·돈·일·관계·건강·선택·전반 중 무엇이든");
+    expect(msg).toContain("# 사주로 보는 장기 흐름");
+    expect(msg).toContain("# 타로로 보는 현재 흐름");
+    expect(msg).toContain("# 통합 판단");
+    expect(msg).toContain("둘 중 하나만 보고 결론을 내리지 마라");
+  });
+
+  it("질문이 없어도 통합 핵심 섹션을 생략하지 않도록 요구한다", () => {
+    const msg = buildReadingUserMessage({
+      type: "combo",
+      question: "",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      tarotCards,
+    });
+
+    expect(msg).toContain("사용자가 질문을 쓰지 않았더라도 '# 질문 중심 핵심'을 생략하지 말고");
+    expect(msg).toContain("# 첫 점괘\n# 질문 중심 핵심\n# 사주로 보는 장기 흐름");
+  });
+
+  it("병렬 앞부분 생성에서도 통합 섹션 순서를 고정한다", () => {
+    const msg = buildReadingUserMessage({
+      type: "combo",
+      question: "연애운이 궁금해요",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      tarotCards,
+      sectionGroup: "front",
+    });
+
+    expect(msg).toContain("병렬 생성 — 앞부분만 작성");
+    expect(msg).toContain("통합 리딩에서는 질문이 없어도 '# 질문 중심 핵심'을 생략하지 말고");
+    expect(msg).toContain("# 질문 중심 핵심\n# 사주로 보는 장기 흐름\n# 타로로 보는 현재 흐름\n# 통합 판단");
   });
 });
 

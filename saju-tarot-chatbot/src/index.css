@@ -9,6 +9,18 @@
   --accent-strong: #b98246;
   --accent-soft: #ead6b8;
   --danger: #b84d3d;
+  --wood: #7d8d58;
+  --wood-soft: rgba(125, 141, 88, 0.16);
+  --fire: #c76f48;
+  --fire-soft: rgba(199, 111, 72, 0.16);
+  --earth: #c5a05a;
+  --earth-soft: rgba(197, 160, 90, 0.18);
+  --metal: #a69b89;
+  --metal-soft: rgba(166, 155, 137, 0.18);
+  --water: #6f8d86;
+  --water-soft: rgba(111, 141, 134, 0.16);
+  --plum: #8f7475;
+  --plum-soft: rgba(143, 116, 117, 0.16);
 
   color-scheme: light;
   font-family: "Pretendard Variable", Pretendard, -apple-system, sans-serif;
@@ -310,9 +322,9 @@ body {
 
 .consultation-panel {
   padding: 14px;
-  border: 1px solid rgba(127, 199, 255, 0.22);
+  border: 1px solid rgba(111, 141, 134, 0.22);
   border-radius: 12px;
-  background: rgba(127, 199, 255, 0.045);
+  background: rgba(111, 141, 134, 0.045);
 }
 
 .consultation-panel summary {
@@ -520,6 +532,178 @@ label {
   line-height: 1.45;
 }
 
+.tarot-card-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  width: min(100%, 112px);
+  aspect-ratio: 2 / 3;
+  margin: 0 auto 10px;
+  padding: 11px 9px;
+  border: 1px solid rgba(122, 76, 31, 0.2);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 251, 243, 0.86), transparent 42%),
+    linear-gradient(160deg, rgba(234, 214, 184, 0.96), rgba(181, 132, 78, 0.34));
+  box-shadow: 0 10px 22px rgba(122, 76, 31, 0.13);
+  overflow: hidden;
+}
+
+.tarot-card-visual::before,
+.tarot-card-visual::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(122, 76, 31, 0.18);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.tarot-card-visual::after {
+  inset: 13px;
+  border-style: dashed;
+  opacity: 0.58;
+}
+
+.tarot-card-visual img {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.tarot-card-visual__arcana,
+.tarot-card-visual__name {
+  position: relative;
+  z-index: 1;
+  color: #5d4024;
+  font-size: 0.66rem;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.tarot-card-visual__symbol {
+  position: relative;
+  z-index: 1;
+  color: #7a4c1f;
+  font-size: 2.3rem;
+  line-height: 1;
+}
+
+.tarot-card-visual--cups {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 251, 243, 0.86), transparent 42%),
+    linear-gradient(160deg, rgba(218, 232, 226, 0.95), rgba(111, 141, 134, 0.32));
+}
+
+.tarot-card-visual--swords {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 251, 243, 0.86), transparent 42%),
+    linear-gradient(160deg, rgba(235, 229, 217, 0.96), rgba(166, 155, 137, 0.34));
+}
+
+.tarot-card-visual--wands {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 251, 243, 0.86), transparent 42%),
+    linear-gradient(160deg, rgba(242, 218, 199, 0.96), rgba(199, 111, 72, 0.32));
+}
+
+.tarot-card-visual--pentacles {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 251, 243, 0.86), transparent 42%),
+    linear-gradient(160deg, rgba(239, 226, 190, 0.96), rgba(197, 160, 90, 0.36));
+}
+
+.tarot-card-visual--reversed {
+  transform: rotate(180deg);
+}
+
+.tarot-card-visual--today {
+  width: min(100%, 174px);
+  box-shadow: 0 18px 36px rgba(122, 76, 31, 0.16);
+}
+
+.today-tarot-card {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) 1fr;
+  gap: 22px;
+  align-items: center;
+}
+
+.today-tarot-card__visual {
+  display: grid;
+  place-items: center;
+}
+
+.today-tarot-card__body {
+  display: grid;
+  gap: 12px;
+}
+
+.today-tarot-card__body h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(1.55rem, 3vw, 2.35rem);
+  line-height: 1.2;
+}
+
+.today-tarot-card__direction {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.today-tarot-card__meaning {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.06rem;
+  line-height: 1.75;
+}
+
+.today-tarot-card__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.today-tarot-card__grid div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(126, 86, 42, 0.055);
+}
+
+.today-tarot-card__grid b,
+.today-tarot-card__grid span {
+  display: block;
+}
+
+.today-tarot-card__grid b {
+  margin-bottom: 5px;
+  color: var(--text);
+  font-size: 0.86rem;
+}
+
+.today-tarot-card__grid span {
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 720px) {
+  .today-tarot-card {
+    grid-template-columns: 1fr;
+  }
+
+  .today-tarot-card__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── 이름 감정 ────────── */
 .naming-result {
   display: flex;
@@ -562,9 +746,9 @@ label {
 }
 
 .naming-badge--good {
-  background: rgba(87, 208, 164, 0.16);
-  color: #8df0c8;
-  border-color: rgba(87, 208, 164, 0.4);
+  background: rgba(125, 141, 88, 0.16);
+  color: #657848;
+  border-color: rgba(125, 141, 88, 0.4);
 }
 
 .naming-badge--ok {
@@ -575,7 +759,7 @@ label {
 
 .naming-badge--warn {
   background: rgba(224, 164, 79, 0.16);
-  color: #e6b878;
+  color: #a97638;
   border-color: rgba(224, 164, 79, 0.4);
 }
 
@@ -680,7 +864,7 @@ label {
 }
 
 .naming-interpretation {
-  border-color: rgba(87, 208, 164, 0.32);
+  border-color: rgba(125, 141, 88, 0.32);
 }
 
 .naming-interpretation__text {
@@ -805,8 +989,8 @@ label {
 }
 
 .naming-candidate--best {
-  border-color: rgba(87, 208, 164, 0.55);
-  box-shadow: 0 0 0 1px rgba(87, 208, 164, 0.16);
+  border-color: rgba(125, 141, 88, 0.55);
+  box-shadow: 0 0 0 1px rgba(125, 141, 88, 0.16);
 }
 
 .naming-candidate__top {
@@ -884,7 +1068,7 @@ label {
 }
 
 .naming-scoretable__table tbody tr:first-child td {
-  background: rgba(87, 208, 164, 0.08);
+  background: rgba(125, 141, 88, 0.08);
 }
 
 .naming-score {
@@ -898,18 +1082,18 @@ label {
 }
 
 .naming-score--good {
-  background: rgba(87, 208, 164, 0.18);
-  color: #2fae86;
+  background: rgba(125, 141, 88, 0.18);
+  color: #6f7f52;
 }
 
 .naming-score--ok {
-  background: rgba(120, 160, 220, 0.16);
-  color: #5a86c4;
+  background: rgba(111, 141, 134, 0.16);
+  color: #6f8d86;
 }
 
 .naming-score--warn {
   background: rgba(220, 170, 90, 0.18);
-  color: #c48a2f;
+  color: #a97638;
 }
 
 .naming-candidate__meaning {
@@ -987,7 +1171,7 @@ label {
 }
 
 .tarot-facts__relation--weaken {
-  border-color: color-mix(in srgb, #d9534f 40%, var(--border));
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
 }
 
 .tarot-facts__energy {
@@ -1164,23 +1348,23 @@ label {
 }
 
 .element-radar__node--wood .element-radar__dot {
-  background: #6fcf7c;
+  background: var(--wood);
 }
 
 .element-radar__node--fire .element-radar__dot {
-  background: #ff8a6b;
+  background: #c76f48;
 }
 
 .element-radar__node--earth .element-radar__dot {
-  background: #d8b26a;
+  background: var(--earth);
 }
 
 .element-radar__node--metal .element-radar__dot {
-  background: #cfd6e0;
+  background: var(--metal);
 }
 
 .element-radar__node--water .element-radar__dot {
-  background: #6bb6ff;
+  background: var(--water);
 }
 
 .element-bars {
@@ -1215,23 +1399,23 @@ label {
 }
 
 .element-bar__fill--wood {
-  background: #6fcf7c;
+  background: var(--wood);
 }
 
 .element-bar__fill--fire {
-  background: #ff8a6b;
+  background: #c76f48;
 }
 
 .element-bar__fill--earth {
-  background: #d8b26a;
+  background: var(--earth);
 }
 
 .element-bar__fill--metal {
-  background: #cfd6e0;
+  background: var(--metal);
 }
 
 .element-bar__fill--water {
-  background: #6bb6ff;
+  background: var(--water);
 }
 
 .element-bar__value {
@@ -1249,9 +1433,9 @@ label {
 .lifestyle-guide {
   margin-top: 16px;
   padding: 14px;
-  border: 1px solid rgba(127, 199, 255, 0.2);
+  border: 1px solid rgba(111, 141, 134, 0.2);
   border-radius: 8px;
-  background: rgba(127, 199, 255, 0.05);
+  background: linear-gradient(180deg, rgba(111, 141, 134, 0.07), rgba(126, 86, 42, 0.035));
 }
 
 .lifestyle-guide__head {
@@ -1281,29 +1465,29 @@ label {
   width: 44px;
   height: 44px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(122, 76, 31, 0.18);
   color: #10101a;
   font-weight: 900;
 }
 
 .lifestyle-guide__badge--wood {
-  background: #6fcf7c;
+  background: var(--wood);
 }
 
 .lifestyle-guide__badge--fire {
-  background: #ff8a6b;
+  background: #c76f48;
 }
 
 .lifestyle-guide__badge--earth {
-  background: #d8b26a;
+  background: var(--earth);
 }
 
 .lifestyle-guide__badge--metal {
-  background: #cfd6e0;
+  background: var(--metal);
 }
 
 .lifestyle-guide__badge--water {
-  background: #6bb6ff;
+  background: var(--water);
 }
 
 .lifestyle-guide__grid {
@@ -1344,9 +1528,9 @@ label {
 .lifestyle-guide__mission {
   margin-top: 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(87, 208, 164, 0.18);
+  border: 1px solid rgba(125, 141, 88, 0.18);
   border-radius: 8px;
-  background: rgba(87, 208, 164, 0.06);
+  background: rgba(125, 141, 88, 0.06);
 }
 
 .lifestyle-guide__mission b,
@@ -1401,8 +1585,8 @@ label {
 }
 
 .lifestyle-closing {
-  border-color: rgba(87, 208, 164, 0.28);
-  background: rgba(87, 208, 164, 0.05);
+  border-color: rgba(125, 141, 88, 0.28);
+  background: linear-gradient(180deg, rgba(125, 141, 88, 0.08), rgba(214, 160, 82, 0.05));
 }
 
 .lifestyle-closing__tag {
@@ -1411,8 +1595,8 @@ label {
   margin-bottom: 8px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(87, 208, 164, 0.16);
-  color: #8df0c8;
+  background: rgba(125, 141, 88, 0.16);
+  color: #657848;
   font-size: 0.74rem;
   font-weight: 900;
 }
@@ -1438,7 +1622,7 @@ label {
 }
 
 .lifestyle-today--boost {
-  border-left-color: #57d0a4;
+  border-left-color: #7d8d58;
 }
 
 .lifestyle-today--temper {
@@ -1498,7 +1682,7 @@ label {
 
 .lifestyle-closing__chips span {
   padding: 6px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(122, 76, 31, 0.12);
   border-radius: 999px;
   background: rgba(126, 86, 42, 0.065);
   color: var(--text);
@@ -1543,7 +1727,7 @@ label {
 .yinyang-bar__yang {
   display: block;
   height: 100%;
-  background: #ffe08a;
+  background: linear-gradient(90deg, #d5b96f, #c5a05a);
 }
 
 .yinyang-bar__labels {
@@ -1679,30 +1863,41 @@ label {
 }
 
 .sinsal-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
 .sinsal-chip {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  max-width: 220px;
-  padding: 8px 10px;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  padding: 10px 12px;
   border-radius: 8px;
   background: rgba(214, 160, 82, 0.12);
   border: 1px solid var(--border);
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   font-weight: 600;
   cursor: help;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.sinsal-chip__name {
+  color: var(--text);
+  line-height: 1.25;
 }
 
 .sinsal-chip__pos {
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 400;
   color: var(--text-dim);
+  line-height: 1.25;
 }
 
 .saju-facts__hint {
@@ -1965,15 +2160,17 @@ label {
 
 .evidence-confidence__note {
   margin-top: 8px !important;
-  color: #ffc46b !important;
+  color: #c5a05a !important;
 }
 
 .sinsal-chip__gloss {
   display: block;
-  margin-top: 4px;
   color: var(--text-dim);
-  font-size: 0.72rem;
-  line-height: 1.35;
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 .keyword-cloud {
@@ -2011,29 +2208,29 @@ label {
 
 .keyword-bubble--2 {
   font-size: 1.18rem;
-  background: rgba(87, 208, 164, 0.12);
-  border-color: rgba(87, 208, 164, 0.42);
+  background: rgba(125, 141, 88, 0.12);
+  border-color: rgba(125, 141, 88, 0.42);
   animation-delay: -1.2s;
 }
 
 .keyword-bubble--3 {
   font-size: 0.98rem;
-  background: rgba(255, 178, 122, 0.12);
-  border-color: rgba(255, 178, 122, 0.42);
+  background: rgba(199, 111, 72, 0.12);
+  border-color: rgba(199, 111, 72, 0.42);
   animation-delay: -2s;
 }
 
 .keyword-bubble--4 {
   font-size: 1.1rem;
-  background: rgba(127, 199, 255, 0.12);
-  border-color: rgba(127, 199, 255, 0.42);
+  background: rgba(111, 141, 134, 0.12);
+  border-color: rgba(111, 141, 134, 0.42);
   animation-delay: -2.8s;
 }
 
 .keyword-bubble--5 {
   font-size: 0.92rem;
-  background: rgba(255, 143, 184, 0.12);
-  border-color: rgba(255, 143, 184, 0.42);
+  background: rgba(199, 111, 72, 0.12);
+  border-color: rgba(199, 111, 72, 0.42);
   animation-delay: -3.6s;
 }
 
@@ -2093,8 +2290,8 @@ label {
 .reading-toc {
   display: grid;
   gap: 14px;
-  border-color: rgba(127, 199, 255, 0.22);
-  background: rgba(127, 199, 255, 0.05);
+  border-color: rgba(111, 141, 134, 0.22);
+  background: linear-gradient(180deg, rgba(111, 141, 134, 0.08), rgba(126, 86, 42, 0.035));
 }
 
 .reading-toc__head {
@@ -2149,6 +2346,63 @@ label {
   font-size: 0.78rem;
 }
 
+.reading-detail-status,
+.reading-detail-layer,
+.combo-result-layer,
+.calculation-evidence-layer {
+  margin-top: 18px;
+}
+
+.reading-detail-status__tag,
+.reading-layer-heading span {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: #3a2817;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.reading-layer-heading {
+  margin: 24px 0 12px;
+}
+
+.reading-layer-heading p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.calculation-evidence-layer > summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.calculation-evidence-layer > summary small {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.calculation-evidence-layer__body {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.calculation-evidence-layer__body > .card {
+  margin: 0;
+}
+
 @media (max-width: 640px) {
   .reading-toc__links {
     grid-template-columns: 1fr;
@@ -2172,32 +2426,36 @@ label {
 
 .reading-section--work::before,
 .reading-part--todo .reading-part__label {
-  background: #57d0a4;
+  background: #7d8d58;
 }
 
 .reading-section--money::before {
-  background: #f0c15a;
+  background: #c5a05a;
 }
 
 .reading-section--love::before,
 .reading-part--life .reading-part__label {
-  background: #ff8fb8;
+  background: #c76f48;
 }
 
 .reading-section--health::before,
 .reading-part--caution .reading-part__label {
-  background: #ffb27a;
+  background: #c76f48;
 }
 
 .reading-section--flow::before,
 .reading-section--year::before,
 .reading-part--why .reading-part__label {
-  background: #7fc7ff;
+  background: #6f8d86;
+}
+
+.reading-section--tarot::before {
+  background: #8f7475;
 }
 
 .reading-section--action::before,
 .reading-part--use .reading-part__label {
-  background: #f3d36b;
+  background: #c5a05a;
 }
 
 .reading-section__head {
@@ -2274,13 +2532,13 @@ label {
 }
 
 .reading-part--todo {
-  border-color: rgba(87, 208, 164, 0.24);
-  background: rgba(87, 208, 164, 0.07);
+  border-color: rgba(125, 141, 88, 0.24);
+  background: rgba(125, 141, 88, 0.07);
 }
 
 .reading-part--why {
-  border-color: rgba(127, 199, 255, 0.24);
-  background: rgba(127, 199, 255, 0.05);
+  border-color: rgba(111, 141, 134, 0.24);
+  background: linear-gradient(180deg, rgba(111, 141, 134, 0.08), rgba(126, 86, 42, 0.035));
 }
 
 .evidence-translation {
@@ -2291,7 +2549,7 @@ label {
 .evidence-translation__intro {
   padding: 10px 12px;
   border-radius: 8px;
-  background: rgba(127, 199, 255, 0.08);
+  background: rgba(111, 141, 134, 0.08);
 }
 
 .month-evidence-grid {
@@ -2318,14 +2576,14 @@ label {
   gap: 9px;
   min-height: auto;
   padding: 15px;
-  border: 1px solid rgba(127, 199, 255, 0.22);
+  border: 1px solid rgba(111, 141, 134, 0.22);
   border-radius: 8px;
   background: rgba(126, 86, 42, 0.08);
   overflow-wrap: anywhere;
 }
 
 .month-evidence-card__month {
-  color: #7fc7ff;
+  color: #6f8d86;
   font-size: 0.86rem;
   font-weight: 800;
 }
@@ -2350,7 +2608,7 @@ label {
 .month-evidence-card__advice {
   margin-top: 2px !important;
   padding-top: 7px;
-  border-top: 1px dashed rgba(127, 199, 255, 0.22);
+  border-top: 1px dashed rgba(111, 141, 134, 0.22);
   color: var(--text) !important;
 }
 
@@ -2367,18 +2625,18 @@ label {
 }
 
 .month-evidence-card__advice span {
-  color: #7fc7ff;
-  background: rgba(127, 199, 255, 0.14);
+  color: #6f8d86;
+  background: rgba(111, 141, 134, 0.14);
 }
 
 .month-evidence-card__opportunity span {
-  color: #57d0a4;
-  background: rgba(87, 208, 164, 0.14);
+  color: #7d8d58;
+  background: rgba(125, 141, 88, 0.14);
 }
 
 .month-evidence-card__caution span {
-  color: #ffb27a;
-  background: rgba(255, 178, 122, 0.14);
+  color: #c76f48;
+  background: rgba(199, 111, 72, 0.14);
 }
 
 .reading-bullets {
@@ -2537,8 +2795,8 @@ label {
 }
 
 .reading-badge--good {
-  background: rgba(87, 208, 164, 0.16);
-  color: #57d0a4;
+  background: rgba(125, 141, 88, 0.16);
+  color: #7d8d58;
 }
 
 .reading-badge--mid {
@@ -2547,8 +2805,8 @@ label {
 }
 
 .reading-badge--caution {
-  background: rgba(255, 178, 122, 0.16);
-  color: #ffb27a;
+  background: rgba(199, 111, 72, 0.16);
+  color: #c76f48;
 }
 
 .loading-notice {
@@ -2753,7 +3011,7 @@ label {
 
 .omok-cell--black span {
   background: #2f2518;
-  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 2px 4px rgba(122, 76, 31, 0.12);
 }
 
 .omok-cell--white span {
@@ -3065,7 +3323,7 @@ label {
 }
 
 .boundary-warning {
-  color: #ffc46b;
+  color: #c5a05a;
 }
 
 .premium-badge {
@@ -3108,7 +3366,7 @@ label {
   .facts-block h4,
   .landing-card h3,
   .chat-followup h4 {
-    color: #5b21b6;
+    color: #7b5e62;
   }
 
   .reading-body,
@@ -3159,6 +3417,129 @@ label {
   font-weight: 700;
 }
 
+.shuffle-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.shuffle-card {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 251, 243, 0.72);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.shuffle-card:hover {
+  border-color: rgba(169, 118, 56, 0.45);
+  background: rgba(234, 214, 184, 0.38);
+}
+
+.shuffle-card--active {
+  border-color: var(--accent);
+  background: rgba(234, 214, 184, 0.56);
+  box-shadow: 0 0 0 1px rgba(169, 118, 56, 0.16);
+}
+
+.shuffle-card b {
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.shuffle-card span {
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.tarot-pick-toggle {
+  width: fit-content;
+}
+
+.tarot-pick-board {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(169, 118, 56, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 251, 243, 0.54);
+}
+
+.tarot-pick-card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 2 / 3;
+  min-width: 0;
+  border: 1px solid rgba(122, 76, 31, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(122, 76, 31, 0.12), transparent 35%),
+    radial-gradient(circle at 50% 42%, rgba(255, 251, 243, 0.72), transparent 38%),
+    linear-gradient(160deg, rgba(234, 214, 184, 0.95), rgba(169, 118, 56, 0.28));
+  color: #7a4c1f;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(122, 76, 31, 0.1);
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.tarot-pick-card::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(122, 76, 31, 0.17);
+  border-radius: 6px;
+}
+
+.tarot-pick-card span {
+  position: relative;
+  z-index: 1;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.tarot-pick-card:hover {
+  border-color: rgba(169, 118, 56, 0.58);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(122, 76, 31, 0.14);
+}
+
+.tarot-pick-card--picked {
+  border-color: var(--accent);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 251, 243, 0.82), transparent 38%),
+    linear-gradient(160deg, rgba(197, 160, 90, 0.34), rgba(143, 116, 117, 0.22));
+  box-shadow: 0 0 0 2px rgba(169, 118, 56, 0.15);
+}
+
+@media (max-width: 560px) {
+  .tarot-pick-board {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+    padding: 10px;
+  }
+}
+
 @media print {
   .feedback-bar {
     display: none !important;
@@ -3206,7 +3587,7 @@ label {
   display: block;
   height: 100%;
   border-radius: 4px;
-  background: #8b5cf6;
+  background: #8f7475;
 }
 
 .feedback-stats__count {
@@ -3337,18 +3718,18 @@ label {
 }
 
 .gauge__tier--high {
-  color: #34d399;
-  background: rgba(52, 211, 153, 0.14);
+  color: #7d8d58;
+  background: rgba(125, 141, 88, 0.14);
 }
 
 .gauge__tier--mid {
-  color: #a78bfa;
-  background: rgba(167, 139, 250, 0.14);
+  color: #8f7475;
+  background: rgba(143, 116, 117, 0.14);
 }
 
 .gauge__tier--low {
-  color: #fb923c;
-  background: rgba(251, 146, 60, 0.15);
+  color: #c76f48;
+  background: rgba(199, 111, 72, 0.15);
 }
 
 .gauge__track {
@@ -3366,7 +3747,7 @@ label {
 }
 
 .gauge__fill--high {
-  background: #7ee0b8;
+  background: linear-gradient(90deg, #8fa16a, #7d8d58);
 }
 
 .gauge__fill--mid {
@@ -3374,7 +3755,7 @@ label {
 }
 
 .gauge__fill--low {
-  background: #ffb27a;
+  background: linear-gradient(90deg, #c76f48, #b87968);
 }
 
 .gauge__fill--neutral {
@@ -3427,13 +3808,13 @@ label {
 }
 
 .fortune-badge--good {
-  background: rgba(87, 208, 164, 0.14);
-  color: #57d0a4;
+  background: rgba(125, 141, 88, 0.14);
+  color: #7d8d58;
 }
 
 .fortune-badge--caution {
-  background: rgba(255, 178, 122, 0.14);
-  color: #ffb27a;
+  background: rgba(199, 111, 72, 0.14);
+  color: #c76f48;
 }
 
 .fortune-two {
@@ -3455,11 +3836,11 @@ label {
 }
 
 .fortune-subhead--good {
-  color: #57d0a4;
+  color: #7d8d58;
 }
 
 .fortune-subhead--caution {
-  color: #ffb27a;
+  color: #c76f48;
 }
 
 .fortune-ul {
@@ -3551,7 +3932,7 @@ label {
 
 .mini-birth--me,
 .compat-person--me {
-  border-color: rgba(127, 199, 255, 0.36);
+  border-color: rgba(111, 141, 134, 0.36);
 }
 
 .mini-birth--partner,
@@ -3587,9 +3968,9 @@ label {
 }
 
 .compat-role-badge--me {
-  background: rgba(127, 199, 255, 0.16);
-  color: #7fc7ff;
-  border: 1px solid rgba(127, 199, 255, 0.34);
+  background: rgba(111, 141, 134, 0.16);
+  color: #6f8d86;
+  border: 1px solid rgba(111, 141, 134, 0.34);
 }
 
 .compat-role-badge--partner {
@@ -3725,8 +4106,10 @@ label {
 }
 
 .compat-repair {
-  border-color: rgba(127, 199, 255, 0.34);
-  background: rgba(127, 199, 255, 0.05);
+  border-color: rgba(111, 141, 134, 0.34);
+  background:
+    linear-gradient(180deg, rgba(111, 141, 134, 0.08), rgba(214, 160, 82, 0.04)),
+    var(--surface);
 }
 
 .compat-repair--repairFirst {
@@ -3883,15 +4266,15 @@ label {
   margin: 10px 0 0;
   padding: 9px 12px;
   border-radius: 10px;
-  background: rgba(167, 139, 250, 0.1);
-  border-left: 3px solid rgba(167, 139, 250, 0.55);
+  background: rgba(143, 116, 117, 0.1);
+  border-left: 3px solid rgba(143, 116, 117, 0.55);
   color: var(--text);
   font-size: 0.88rem;
   line-height: 1.7;
 }
 
 .compat-signal b {
-  color: #a78bfa;
+  color: #8f7475;
   margin-right: 6px;
 }
 
@@ -4122,11 +4505,15 @@ label {
 }
 
 .summary-tile--strength {
-  border-color: rgba(87, 208, 164, 0.4);
+  border-color: rgba(125, 141, 88, 0.4);
 }
 
 .summary-tile--caution {
   border-color: rgba(255, 190, 120, 0.4);
+}
+
+.summary-tile--career {
+  border-color: rgba(169, 118, 56, 0.45);
 }
 
 .summary-tile--now {
@@ -4178,7 +4565,7 @@ label {
   position: relative;
   height: 6px;
   border-radius: 999px;
-  background: var(--surface-alt);
+  background: linear-gradient(90deg, rgba(214, 160, 82, 0.25), rgba(125, 141, 88, 0.25));
 }
 
 .spectrum__dot {
@@ -4232,8 +4619,8 @@ label {
 }
 
 .life-area__tone--high {
-  background: rgba(87, 208, 164, 0.18);
-  color: #57d0a4;
+  background: rgba(125, 141, 88, 0.18);
+  color: #7d8d58;
 }
 
 .life-area__tone--mid {
@@ -4242,7 +4629,7 @@ label {
 }
 
 .life-area__tone--low {
-  background: rgba(168, 159, 196, 0.18);
+  background: rgba(143, 116, 117, 0.18);
   color: var(--text-dim);
 }
 
@@ -4260,7 +4647,7 @@ label {
 }
 
 .life-area__fill--high {
-  background: rgba(87, 208, 164, 0.9);
+  background: linear-gradient(90deg, rgba(125, 141, 88, 0.7), rgba(125, 141, 88, 0.95));
 }
 
 .life-area__fill--mid {
@@ -4268,7 +4655,7 @@ label {
 }
 
 .life-area__fill--low {
-  background: rgba(168, 159, 196, 0.6);
+  background: linear-gradient(90deg, rgba(143, 116, 117, 0.4), rgba(143, 116, 117, 0.7));
 }
 
 .life-area__note {
@@ -4461,7 +4848,7 @@ label {
 .tarot-hero__ratio-track {
   height: 8px;
   border-radius: 999px;
-  background: rgba(168, 159, 196, 0.22);
+  background: rgba(143, 116, 117, 0.22);
   overflow: hidden;
 }
 
@@ -4494,7 +4881,7 @@ label {
 
 .tarot-hero__chip--missing {
   border-color: rgba(255, 190, 120, 0.35);
-  color: #d9a86a;
+  color: #a97638;
 }
 
 .tarot-hero__note {

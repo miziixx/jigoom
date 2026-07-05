@@ -357,7 +357,13 @@ export default function NamingPage() {
               </a>
             </div>
           </div>
-          <BirthInfoForm submitLabel="이름 감정하기" onSubmit={(b) => handleSubmit(b)} loading={false} showFocus={false} />
+          <BirthInfoForm
+            submitLabel="이름 감정하기"
+            onSubmit={(b) => handleSubmit(b)}
+            loading={false}
+            showFocus={false}
+            showQuestionSection={false}
+          />
         </>
       )}
 
@@ -516,6 +522,7 @@ export default function NamingPage() {
             onSubmit={(b) => handleRecommend(b)}
             loading={recommendLoading}
             showFocus={false}
+            showQuestionSection={false}
           />
         </>
       )}

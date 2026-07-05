@@ -3,6 +3,7 @@ import Layout from "./components/Layout";
 import LandingPage from "./pages/LandingPage";
 import SajuPage from "./pages/SajuPage";
 import TarotPage from "./pages/TarotPage";
+import TarotTodayPage from "./pages/TarotTodayPage";
 import ComboPage from "./pages/ComboPage";
 import FortunePage from "./pages/FortunePage";
 import FlowPage from "./pages/FlowPage";
@@ -20,6 +21,7 @@ export default function App() {
           <Route index element={<LandingPage />} />
           <Route path="saju" element={<SajuPage />} />
           <Route path="tarot" element={<TarotPage />} />
+          <Route path="tarot-today" element={<TarotTodayPage />} />
           <Route path="combo" element={<ComboPage />} />
           <Route path="today" element={<Navigate to="/fortune" replace />} />
           <Route path="fortune" element={<FortunePage />} />

@@ -75,6 +75,7 @@ export interface ReadingDashboard {
   cautions: string[];
   needNow: string | null;
   keywords: string[];
+  careerDirections: string[];
   spectrum: SpectrumAxis[];
   lifeAreas: LifeArea[];
 }
@@ -301,6 +302,22 @@ function buildKeywords(chart: SajuChart, spectrum: SpectrumAxis[]): string[] {
   return [...new Set(chips)].slice(0, 5);
 }
 
+function buildCareerDirections(chart: SajuChart): string[] {
+  const f = elementFractions(chart.fiveElements);
+  const g = countTenGods(chart);
+  const totalGods = Math.max(1, g.비겁 + g.식상 + g.재성 + g.관성 + g.인성);
+  const directions: string[] = [];
+
+  if (g.인성 / totalGods >= 0.22 || f.water >= 0.24) directions.push("공부·분석·상담·기록처럼 깊게 파고드는 일");
+  if (g.식상 / totalGods >= 0.22 || f.fire >= 0.24) directions.push("콘텐츠·기획·교육·표현처럼 밖으로 풀어내는 일");
+  if (g.재성 / totalGods >= 0.18 || f.earth + f.metal >= 0.42) directions.push("운영·관리·재무·영업처럼 결과를 만드는 일");
+  if (g.관성 / totalGods >= 0.18 || chart.strength?.label === "신약") directions.push("조직·제도·전문직처럼 기준과 역할이 분명한 일");
+  if (g.비겁 / totalGods >= 0.2 || chart.strength?.label === "신강") directions.push("독립 프로젝트·리더 역할처럼 주도권이 있는 일");
+
+  if (directions.length === 0) directions.push("한 가지 전문성을 꾸준히 쌓아 신뢰를 만드는 일");
+  return [...new Set(directions)].slice(0, 3);
+}
+
 export function buildReadingDashboard(chart?: SajuChart, luckCycles?: LuckCycles): ReadingDashboard | null {
   if (!chart) return null;
   const { strengths, cautions } = buildStrengthsCautions(chart);
@@ -313,6 +330,7 @@ export function buildReadingDashboard(chart?: SajuChart, luckCycles?: LuckCycles
     cautions,
     needNow,
     keywords: buildKeywords(chart, spectrum),
+    careerDirections: buildCareerDirections(chart),
     spectrum,
     lifeAreas: buildLifeAreas(chart, luckCycles),
   };

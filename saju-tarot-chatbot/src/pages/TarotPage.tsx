@@ -6,16 +6,20 @@ import ReadingActions from "../components/ReadingActions";
 import FeedbackBar from "../components/FeedbackBar";
 import KeywordCloud from "../components/KeywordCloud";
 import { useReadingStore } from "../store/useReadingStore";
-import { drawSpread, SPREADS, type SpreadId } from "../lib/tarot";
+import { drawSpread, SHUFFLES, SPREADS, type ShuffleId, type SpreadId } from "../lib/tarot";
 import type { ReadingContext } from "../types";
 
 export default function TarotPage() {
   const { currentSession, loading, error, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
   const showResult = currentSession?.type === "tarot";
 
-  function handleSubmit(question: string, spreadId: SpreadId, context: ReadingContext) {
-    const tarotCards = drawSpread(spreadId);
-    startReading({ type: "tarot", question, context, tarotCards, spreadNote: SPREADS[spreadId].note });
+  function handleSubmit(question: string, spreadId: SpreadId, shuffleId: ShuffleId, pickedSlots: number[], context: ReadingContext) {
+    const tarotCards = drawSpread(spreadId, shuffleId, pickedSlots);
+    const pickNote = pickedSlots.length
+      ? `직접 고르기: 사용자가 펼쳐진 카드 중 ${pickedSlots.length}장을 고른 순서대로 배치했습니다.`
+      : "";
+    const spreadNote = [SPREADS[spreadId].note, SHUFFLES[shuffleId].note, pickNote].filter(Boolean).join("\n");
+    startReading({ type: "tarot", question, context, tarotCards, spreadNote });
   }
 
   return (
