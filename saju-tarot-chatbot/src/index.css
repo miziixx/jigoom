@@ -2122,7 +2122,7 @@ label {
   gap: 8px;
 }
 
-.reading-toc__links a {
+.reading-toc__link {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2133,11 +2133,14 @@ label {
   color: var(--text);
   background: rgba(126, 86, 42, 0.05);
   text-decoration: none;
+  font: inherit;
   font-size: 1rem;
   font-weight: 800;
+  text-align: left;
+  cursor: pointer;
 }
 
-.reading-toc__links a span {
+.reading-toc__link span {
   flex: 0 0 auto;
   padding: 2px 7px;
   border-radius: 999px;

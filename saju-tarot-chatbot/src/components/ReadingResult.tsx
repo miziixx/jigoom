@@ -361,6 +361,16 @@ function CategorySummaryCard({ item }: { item: CategorySummary }) {
 
 function ReadingTableOfContents({ sections }: { sections: Section[] }) {
   if (sections.length === 0) return null;
+
+  // 이 앱은 HashRouter를 쓰므로 <a href="#..."> 는 페이지 내 스크롤이 아니라 라우터의
+  // 경로 이동으로 해석되어 존재하지 않는 라우트(빈 화면)로 튕긴다. 버튼 + 직접 스크롤로 대체한다.
+  function goTo(title: string) {
+    const el = document.getElementById(sectionAnchor(title));
+    if (!el) return;
+    if (el instanceof HTMLDetailsElement) el.open = true;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <nav className="card reading-toc" aria-label="리딩 목차">
       <div className="reading-toc__head">
@@ -369,10 +379,10 @@ function ReadingTableOfContents({ sections }: { sections: Section[] }) {
       </div>
       <div className="reading-toc__links">
         {sections.map((section) => (
-          <a href={`#${sectionAnchor(section.title)}`} key={section.title}>
+          <button type="button" className="reading-toc__link" key={section.title} onClick={() => goTo(section.title)}>
             <span>{SECTION_META[section.title]?.tag ?? "풀이"}</span>
             {section.title}
-          </a>
+          </button>
         ))}
       </div>
     </nav>
