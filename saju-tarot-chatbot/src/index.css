@@ -4042,6 +4042,63 @@ label {
   line-height: 1.65;
 }
 
+.compat-solution-card {
+  border-color: rgba(111, 141, 134, 0.34);
+  background:
+    linear-gradient(180deg, rgba(111, 141, 134, 0.1), rgba(214, 160, 82, 0.05)),
+    var(--surface);
+}
+
+.compat-solution-card__problem,
+.compat-solution-card__priority {
+  margin: 12px 0 0;
+  color: var(--text);
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.7;
+}
+
+.compat-solution-card__priority {
+  padding: 13px 15px;
+  border: 1px solid rgba(111, 141, 134, 0.22);
+  border-radius: 8px;
+  background: rgba(111, 141, 134, 0.08);
+}
+
+.compat-solution-card__context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+@media (max-width: 680px) {
+  .compat-solution-card__context {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compat-solution-card__context article {
+  padding: 13px 14px;
+  border: 1px solid rgba(126, 86, 42, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 251, 243, 0.54);
+}
+
+.compat-solution-card__context h4 {
+  margin: 0 0 7px;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.compat-solution-card__context p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.65;
+}
+
 .chip-button {
   min-height: 36px;
   padding: 8px 12px;

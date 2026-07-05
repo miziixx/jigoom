@@ -1557,6 +1557,242 @@ function compatibilityQuestionInsight(
   return { question: clean, intent, answer, signals, actions };
 }
 
+function seededPick<T>(items: T[], seed: string, count: number): T[] {
+  const scored = items.map((item, index) => {
+    let hash = 0;
+    const text = `${seed}:${index}:${String(item)}`;
+    for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+    return { item, score: hash };
+  });
+  return scored
+    .sort((a, b) => a.score - b.score)
+    .slice(0, count)
+    .map((x) => x.item);
+}
+
+function includesAny(text: string, words: string[]) {
+  return words.some((word) => text.includes(word));
+}
+
+function compatibilitySolutionPlan(
+  score: number,
+  branches: ReturnType<typeof crossBranchRelations>,
+  elements: ReturnType<typeof elementComplement>,
+  palace: ReturnType<typeof relationToneFromDayBranches>,
+  context: (typeof RELATION_CONTEXT)[CompatibilityRelationType],
+  chartA: SajuChart,
+  chartB: SajuChart,
+  questionInsight?: CompatibilityResult["questionInsight"],
+): CompatibilityResult["solutionPlan"] {
+  const me = personSummary("나", chartA);
+  const partner = personSummary("상대", chartB);
+  const myWeak = weakestElement(chartA.fiveElements);
+  const myStrong = strongestElement(chartA.fiveElements);
+  const partnerStrong = strongestElement(chartB.fiveElements);
+  const hasFriction = score < 55 || branches.badCount > branches.goodCount || palace.score < 0;
+  const hasQuestion = Boolean(questionInsight?.question);
+  const relationshipLabel = context.label;
+  const questionText = questionInsight?.question ?? "";
+  const asksWork = includesAny(`${questionText}${relationshipLabel}`, ["일", "직장", "회사", "사업", "동업", "업무", "성과", "돈", "직원", "동료"]);
+  const asksFamily = includesAny(`${questionText}${relationshipLabel}`, ["가족", "부모", "자식", "엄마", "아빠", "형제", "자매", "남매"]);
+  const asksLove = includesAny(`${questionText}${relationshipLabel}`, ["연애", "연인", "배우자", "마음", "고백", "이별", "결혼"]);
+  const seed = [
+    chartA.year.ganZhi,
+    chartA.month.ganZhi,
+    chartA.day.ganZhi,
+    chartA.hour?.ganZhi ?? "no-hour-a",
+    chartB.year.ganZhi,
+    chartB.month.ganZhi,
+    chartB.day.ganZhi,
+    chartB.hour?.ganZhi ?? "no-hour-b",
+    relationshipLabel,
+    questionText,
+    String(score),
+  ].join("|");
+
+  const title = hasQuestion ? "질문 기준으로 보는 관계 맞춤 솔루션" : `${relationshipLabel} 맞춤 솔루션`;
+  const problem = hasQuestion
+    ? `지금 핵심은 "${questionInsight?.question}"에 대한 답을 바로 단정하는 것이 아니라, 이 관계에서 반복되는 부담과 확인해야 할 조건을 분리하는 것입니다.`
+    : `${relationshipLabel}로 볼 때 핵심은 점수보다 실제 생활에서 편한 접점과 피로한 접점을 나눠보는 것입니다.`;
+
+  const personalContext = `나는 ${me.dayMaster} 기질을 중심으로 ${me.strongestElement}이 강하고, ${me.weakestElement}은 보완하면 좋은 편입니다. 그래서 이 관계에서는 내가 편한 방식만 밀기보다, 약한 부분을 상대에게 어떻게 요청할지 먼저 정리하는 것이 중요합니다.`;
+
+  const relationshipContext =
+    score >= 75 && !hasFriction
+      ? `상대는 ${partner.dayMaster} 기질을 중심으로 움직이며, 두 사람은 기본 흐름이 꽤 안정적입니다. 다만 편하다는 이유로 연락, 역할, 돈, 가족, 일정 기준을 생략하면 나중에 작은 서운함이 쌓일 수 있습니다.`
+      : score >= 55
+        ? `상대는 ${partner.dayMaster} 기질을 중심으로 움직이며, 두 사람은 맞는 부분과 다른 부분이 함께 있습니다. 좋게 이어가려면 감정 확인보다 역할, 거리, 기대치를 현실적으로 맞추는 과정이 필요합니다.`
+        : `상대는 ${partner.dayMaster} 기질을 중심으로 움직이며, 두 사람은 결이 다른 부분이 선명합니다. 관계를 바로 포기하라는 뜻은 아니지만, 마음만으로 밀기보다 거리와 규칙을 먼저 만들어야 피로가 줄어듭니다.`;
+
+  const priority = hasFriction
+    ? "1순위는 관계를 더 깊게 밀어붙이는 것이 아니라, 부딪히는 장면을 줄이는 운영 규칙을 정하는 것입니다."
+    : elements.score < 10
+      ? "1순위는 서로에게 과하게 기대기보다, 각자 부족한 부분을 생활 습관과 역할 분담으로 보완하는 것입니다."
+      : "1순위는 잘 맞는 부분을 당연하게 두지 않고, 반복 가능한 좋은 습관으로 고정하는 것입니다.";
+
+  const weakElementActions: Record<keyof FiveElementBalance, string[]> = {
+    wood: [
+      "막연히 참기보다 새로 시도할 행동을 하나 정하세요. 예: 먼저 연락하기, 대화 시간을 잡기, 역할표를 새로 쓰기.",
+      "관계가 답답하면 큰 결론보다 작은 시작을 만드세요. 예: 20분 산책 대화, 한 가지 부탁만 말하기.",
+      "상대에게 바라는 변화를 말할 때는 '앞으로 이렇게 해보자'처럼 다음 행동으로 표현하세요.",
+    ],
+    fire: [
+      "마음을 숨기기보다 좋은 감정과 불편한 감정을 각각 한 문장씩 표현하세요.",
+      "분위기가 식었다고 느끼면 거창한 이벤트보다 짧은 칭찬, 감사 표현, 안부 확인을 먼저 늘리세요.",
+      "말하지 않아도 알겠지라고 넘기지 말고, 관계에서 따뜻했던 장면을 구체적으로 말해보세요.",
+    ],
+    earth: [
+      "관계가 흔들릴수록 생활 기준을 잡으세요. 예: 연락 시간, 만나는 주기, 돈 쓰는 기준, 역할 분담.",
+      "감정 대화 뒤에는 꼭 실행 기준 하나를 남기세요. 예: '다음에는 약속 변경을 하루 전에 말하기'.",
+      "관계를 오래 보고 싶다면 말보다 반복 가능한 루틴을 만드세요. 예: 주 1회 확인 대화, 월 1회 돈 기준 점검.",
+    ],
+    metal: [
+      "상대가 서운하게 한 일을 한꺼번에 말하지 말고, 가장 중요한 기준 하나만 또렷하게 말하세요.",
+      "거절해야 할 부탁과 받아줄 수 있는 부탁을 구분하세요. 애매하게 넘길수록 나중에 더 피곤해집니다.",
+      "관계가 흐려질 때는 기준을 세우세요. 예: 말투, 약속, 돈, 가족 문제에서 넘지 말아야 할 선.",
+    ],
+    water: [
+      "바로 반응하기 전에 내 감정이 서운함인지 불안인지 피로인지 먼저 적어보세요.",
+      "대화 전 10분 정도 혼자 정리한 뒤 말하세요. 감정이 올라온 상태에서 결론내리면 말이 세질 수 있습니다.",
+      "상대의 말보다 반복 행동을 관찰하세요. 약속을 지키는지, 회복하려는 행동이 있는지가 더 중요합니다.",
+    ],
+  };
+
+  const strongElementActions: Record<keyof FiveElementBalance, string[]> = {
+    wood: ["내가 먼저 방향을 잡는 힘은 장점이지만, 상대에게도 선택지를 2개 이상 주세요."],
+    fire: ["표현력이 강한 편이면 감정을 바로 쏟기보다 핵심 요구를 짧게 말하는 쪽이 더 잘 전달됩니다."],
+    earth: ["책임감이 강한 편이면 혼자 떠안기 전에 상대의 몫을 구체적으로 나눠주세요."],
+    metal: ["기준이 또렷한 편이면 맞고 틀림보다 서로 지킬 최소 기준부터 합의하세요."],
+    water: ["생각이 깊은 편이면 오래 혼자 해석하지 말고 확인 질문을 짧게 던지세요."],
+  };
+
+  const relationActions = asksWork
+    ? [
+        "역할, 마감, 비용, 최종 결정권을 짧은 메모로 남겨보세요.",
+        "감정이 아니라 결과물 기준으로 말하세요. 예: '언제까지 어떤 형태로 받을지'를 먼저 정하기.",
+        "친분과 업무 기준을 분리하세요. 고마움은 따로 말하고, 수정 요청은 문서처럼 남기는 편이 좋습니다.",
+        "돈이나 성과가 얽힌 관계라면 시작 전에 중단 조건과 정산 기준을 정하세요.",
+      ]
+    : asksFamily
+      ? [
+          "가족이라도 도와줄 수 있는 범위와 어려운 범위를 따로 말해두세요.",
+          "부모님·자식·형제 문제는 감정 대화 전에 돈, 시간, 돌봄 범위를 숫자로 정리하세요.",
+          "정 때문에 바로 떠안기보다 내가 할 몫과 상대가 할 몫을 분리하세요.",
+          "오래된 가족 역할에 갇히지 않도록 '이번에는 내가 여기까지만 할게'처럼 범위를 말하세요.",
+        ]
+      : asksLove
+        ? [
+            "연락 빈도, 만나는 주기, 서운함을 말하는 방식을 먼저 맞추세요.",
+            "상대 마음을 추측하기보다 반복 행동을 보세요. 약속을 지키는지, 회복하려는 행동이 있는지가 핵심입니다.",
+            "애정 확인을 몰아붙이기보다 이번 주에 지켜볼 행동 기준 2개를 정하세요.",
+            "좋아하는 마음과 생활 기준은 따로 확인하세요. 마음이 있어도 생활 리듬이 안 맞으면 피로가 쌓입니다.",
+          ]
+        : [
+            "연락, 만남, 돈, 일정 중 가장 자주 부딪히는 항목 하나만 골라 기준을 맞춰보세요.",
+            "관계가 편해도 부탁과 거절의 기준은 흐리지 마세요.",
+            "좋은 관계일수록 사소한 서운함을 너무 오래 묵히지 않는 것이 중요합니다.",
+            "같이 있을 때 편한 활동과 피곤한 활동을 따로 구분해보세요.",
+          ];
+
+  const frictionActions = hasFriction
+    ? [
+        "갈등이 생긴 뒤에는 바로 끝내지 말고, 다음에는 무엇을 다르게 할지 하나만 합의하세요.",
+        "서운함이 10점 중 4점일 때 말하세요. 8점이 된 뒤에는 해결보다 방어가 먼저 나옵니다.",
+        "피곤한 날에는 중요한 결론을 미루고, 사실 확인만 하세요.",
+        "상대의 의도를 단정하기 전에 '내가 이해한 게 맞아?'라고 한 번 확인하세요.",
+      ]
+    : [
+        "좋았던 행동을 구체적으로 말해 관계의 강점을 습관으로 고정하세요.",
+        "편해졌다고 표현을 줄이지 말고, 작은 고마움을 바로 말하세요.",
+        "무난한 흐름일수록 돈, 일정, 가족 문제 같은 현실 기준을 미리 맞춰두세요.",
+        "잘 맞는다고 느끼는 장면을 반복 가능한 루틴으로 만들어두세요.",
+      ];
+
+  const stopPool = [
+    "상대의 행동 하나만 보고 관계 전체를 바로 판단하지 않기",
+    "답답한 마음이 올라온 날에 결론, 이별, 동업 중단, 손절 같은 큰 결정을 바로 내리지 않기",
+    hasFriction
+      ? "서운한 일을 오래 쌓아두다가 한 번에 터뜨리지 않기"
+      : "편하다는 이유로 고마움 표현과 확인 질문을 줄이지 않기",
+    myStrong === "metal" ? "내 기준이 맞다는 확신만으로 상대의 속도를 재단하지 않기" : "내 방식이 편하다는 이유로 상대의 리듬을 무시하지 않기",
+    myStrong === "fire" ? "감정이 올라온 순간에 긴 메시지로 몰아치지 않기" : "말을 아끼다가 상대가 알아서 눈치채길 기다리지 않기",
+    asksWork ? "일 문제를 친분이나 정으로 덮지 않기" : "관계 문제를 한 번의 분위기나 말투만 보고 단정하지 않기",
+  ];
+
+  const todayPool = [
+    hasQuestion
+      ? "내 질문을 '상대가 어떤 사람인가'가 아니라 '내가 확인해야 할 조건은 무엇인가'로 다시 써보세요."
+      : "이 관계에서 편한 장면 1개와 피곤한 장면 1개를 각각 적어보세요.",
+    "상대에게 바라는 것을 성격 평가가 아니라 행동 요청 한 문장으로 바꿔보세요.",
+    context.action,
+    ...weakElementActions[myWeak],
+    ...strongElementActions[myStrong],
+    ...seededPick(relationActions, `${seed}:relation-today`, 2),
+  ];
+
+  const weekPool = [
+    "이번 주에는 큰 결론보다 작은 약속 하나를 정하고 실제로 지켜지는지 확인하세요.",
+    ...relationActions,
+    ...frictionActions,
+    partnerStrong === "earth"
+      ? "상대가 안정감을 중시하는 편이라면 말보다 약속을 지키는 모습으로 신뢰를 쌓으세요."
+      : "상대가 움직임이 빠른 편이라면 결정 전에 확인해야 할 기준을 짧게 정리해 공유하세요.",
+    myWeak === "water"
+      ? "이번 주에는 중요한 대화 전 메모장에 감정, 사실, 요청을 나눠 적고 시작하세요."
+      : "이번 주에는 관계에서 반복되는 장면 하나를 기록해 다음 대화의 근거로 쓰세요.",
+  ];
+
+  const scriptPool = [
+    "“내가 지금 확인하고 싶은 건 네 마음을 몰아붙이려는 게 아니라, 우리가 반복해서 힘들어지는 지점을 줄이는 방법이야.”",
+    "“나는 이 부분에서 부담을 느껴. 다음에는 이렇게 해주면 훨씬 편할 것 같아.”",
+    asksWork
+      ? "“우리 사이가 편해도 일 기준은 따로 정해두자. 역할과 마감만 먼저 맞추면 좋겠어.”"
+      : "“지금 바로 결론내리기보다 이번 주에 이 약속 하나가 지켜지는지 보고 다시 얘기하자.”",
+    myWeak === "fire"
+      ? "“내가 표현이 부족해서 애매하게 보였을 수 있어. 내가 원하는 건 이거야.”"
+      : "“감정적으로 말하고 싶지는 않아서, 사실과 요청을 나눠서 말해볼게.”",
+    myWeak === "earth"
+      ? "“우리 이 문제를 느낌으로 넘기지 말고, 다음부터 어떻게 할지 기준을 하나 정하자.”"
+      : "“내가 지금 원하는 건 큰 약속보다 오늘부터 바꿀 수 있는 작은 행동 하나야.”",
+    asksFamily
+      ? "“가족이라서 도와주고 싶지만, 내가 할 수 있는 범위는 여기까지야.”"
+      : "“내가 서운했던 건 네 사람이 싫어서가 아니라, 이 행동이 반복돼서 힘들었던 거야.”",
+    asksLove
+      ? "“나를 좋아하는지 단정해달라는 게 아니라, 우리가 서로 편해지는 방식을 맞춰보고 싶어.”"
+      : "“이번에는 누가 맞고 틀렸는지보다 다음에 같은 일이 생기면 어떻게 할지 정하자.”",
+  ];
+
+  const signalPool = [
+    "내가 요청을 구체적으로 말했을 때 상대가 방어보다 조율로 반응하는지",
+    "같은 문제가 반복될 때 서로가 책임을 미루기보다 다음 행동을 정하는지",
+    hasFriction
+      ? "피곤하거나 바쁜 날에도 말투와 약속 기준이 크게 무너지지 않는지"
+      : "편한 관계가 된 뒤에도 표현과 배려가 줄지 않는지",
+    asksWork ? "역할과 마감을 적었을 때 실제 오해가 줄어드는지" : "서운함을 말한 뒤 상대가 행동을 조금이라도 바꾸는지",
+    myWeak === "metal" ? "애매한 부탁과 거절을 분명히 했을 때 마음이 덜 소모되는지" : "내가 원하는 것을 말로 꺼냈을 때 관계가 더 편해지는지",
+    partnerStrong === "water" ? "상대가 바로 답하지 않아도 시간을 준 뒤 더 깊게 반응하는지" : "상대가 말보다 행동으로 안정감을 보여주는지",
+  ];
+
+  const stopDoing = seededPick(stopPool, `${seed}:stop`, 3);
+  const todayActions = seededPick(todayPool, `${seed}:today`, 4);
+  const weekActions = seededPick(weekPool, `${seed}:week`, 4);
+  const scripts = seededPick(scriptPool, `${seed}:scripts`, 4);
+  const checkSignals = seededPick(signalPool, `${seed}:signals`, 4);
+
+  return {
+    title,
+    problem,
+    personalContext,
+    relationshipContext,
+    priority,
+    stopDoing,
+    todayActions,
+    weekActions,
+    scripts,
+    checkSignals,
+  };
+}
+
 /**
  * 두 사람의 사주 궁합을 계산한다 (결정론적, 참고용).
  * 일간 관계 + 지지 합충 + 오행 보완을 종합해 0~100 점수로 환산한다.
@@ -1649,6 +1885,7 @@ export function computeCompatibility(
   const timing = compatibilityTiming(birthA, birthB, chartA, chartB);
   const repairReport = compatibilityRepairReport(score, branches, elements, palace, context);
   const questionInsight = compatibilityQuestionInsight(question, score, branches, palace, context);
+  const solutionPlan = compatibilitySolutionPlan(score, branches, elements, palace, context, chartA, chartB, questionInsight);
   const expertEvidence = [
     `관계 유형: ${context.label}`,
     `일간 관계: ${chartA.dayMasterGan}·${chartB.dayMasterGan} / ${dm.text}`,
@@ -1668,6 +1905,7 @@ export function computeCompatibility(
     elementComplement: elements.text,
     summary,
     questionInsight,
+    solutionPlan,
     breakdown,
     highlights,
     cautionPoints,

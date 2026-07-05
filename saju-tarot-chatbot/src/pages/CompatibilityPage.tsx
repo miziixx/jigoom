@@ -264,6 +264,67 @@ export default function CompatibilityPage() {
             </section>
           )}
 
+          {result.solutionPlan && (
+            <section className="card compat-solution-card">
+              <span className="compat-score-card__eyebrow">관계 맞춤 솔루션</span>
+              <h3 className="card-title">{result.solutionPlan.title}</h3>
+              <p className="compat-solution-card__problem">{result.solutionPlan.problem}</p>
+              <div className="compat-solution-card__context">
+                <article>
+                  <h4>나 기준</h4>
+                  <p>{result.solutionPlan.personalContext}</p>
+                </article>
+                <article>
+                  <h4>관계 기준</h4>
+                  <p>{result.solutionPlan.relationshipContext}</p>
+                </article>
+              </div>
+              <p className="compat-solution-card__priority">{result.solutionPlan.priority}</p>
+              <div className="compat-advice-grid">
+                <section className="compat-inline-panel">
+                  <h4>오늘 바로 할 일</h4>
+                  <ul className="compat-list">
+                    {result.solutionPlan.todayActions.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+                <section className="compat-inline-panel">
+                  <h4>이번 주 실험</h4>
+                  <ul className="compat-list">
+                    {result.solutionPlan.weekActions.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+                <section className="compat-inline-panel">
+                  <h4>멈춰야 할 반응</h4>
+                  <ul className="compat-list">
+                    {result.solutionPlan.stopDoing.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+                <section className="compat-inline-panel">
+                  <h4>확인할 현실 신호</h4>
+                  <ul className="compat-list">
+                    {result.solutionPlan.checkSignals.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+              <div className="compat-section-block">
+                <h4>실제로 이렇게 말해보세요</h4>
+                <div className="compat-script-list">
+                  {result.solutionPlan.scripts.map((script) => (
+                    <p key={script}>{script}</p>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
           {result.people && (
             <div className="compat-people-grid">
               {result.people.map((p) => {

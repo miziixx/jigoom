@@ -140,6 +140,8 @@ describe("궁합 계산", () => {
     expect(compat.repairReport?.byPerson.me.length).toBeGreaterThanOrEqual(3);
     expect(compat.repairReport?.byPerson.partner.length).toBeGreaterThanOrEqual(3);
     expect(compat.repairReport?.scripts.length).toBeGreaterThanOrEqual(3);
+    expect(compat.solutionPlan?.todayActions.length).toBeGreaterThanOrEqual(3);
+    expect(compat.solutionPlan?.weekActions.length).toBeGreaterThanOrEqual(3);
   });
 
   it("세부 흐름·목적별 궁합에 '이럴 때 드러나요' 신호와 상세를 담는다", () => {
@@ -178,6 +180,19 @@ describe("궁합 계산", () => {
     expect(withQuestion.questionInsight?.answer.length).toBeGreaterThan(0);
     expect(withQuestion.questionInsight?.signals.length).toBeGreaterThanOrEqual(3);
     expect(withQuestion.questionInsight?.actions.length).toBeGreaterThanOrEqual(3);
+    expect(withQuestion.solutionPlan?.problem).toContain("같이 일");
+    expect(withQuestion.solutionPlan?.personalContext).toContain("나는");
+    expect(withQuestion.solutionPlan?.relationshipContext).toContain("상대");
+    expect(withQuestion.solutionPlan?.scripts.length).toBeGreaterThanOrEqual(3);
+    expect(withQuestion.solutionPlan?.checkSignals.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("관계 맞춤 솔루션은 사주 조합에 따라 달라진다", () => {
+    const anotherA: BirthInfo = { calendarType: "solar", year: 1995, month: 3, day: 18, hour: 22, minute: 15, gender: "female" };
+    const first = computeCompatibility(A, B, "romantic", "이 사람과 계속 만나도 될까요?");
+    const second = computeCompatibility(anotherA, B, "romantic", "이 사람과 계속 만나도 될까요?");
+    expect(second.solutionPlan?.personalContext).not.toBe(first.solutionPlan?.personalContext);
+    expect(second.solutionPlan?.todayActions.join(" ")).not.toBe(first.solutionPlan?.todayActions.join(" "));
   });
 
   it("결과 표면 문장에 사주 전문용어가 없다", () => {
@@ -194,6 +209,7 @@ describe("궁합 계산", () => {
       purposeFits: compat.purposeFits,
       timing: compat.timing?.map((t) => t.body),
       repairReport: compat.repairReport,
+      solutionPlan: compat.solutionPlan,
     });
     for (const w of JARGON) expect(surface, `궁합에 용어 노출: ${w}`).not.toContain(w);
   });

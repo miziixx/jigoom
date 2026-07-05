@@ -268,6 +268,19 @@ export interface CompatibilityResult {
     signals: string[];
     actions: string[];
   };
+  /** 나·상대·질문·관계 유형을 합쳐 만든 실행 중심 맞춤 솔루션 */
+  solutionPlan?: {
+    title: string;
+    problem: string;
+    personalContext: string;
+    relationshipContext: string;
+    priority: string;
+    stopDoing: string[];
+    todayActions: string[];
+    weekActions: string[];
+    scripts: string[];
+    checkSignals: string[];
+  };
   /** 세부 항목별 점수 */
   breakdown: { label: string; score: number; note: string; detail?: string; signal?: string; actions?: string[] }[];
   /** 화면에서 바로 보여줄 관계 운영 포인트 */
