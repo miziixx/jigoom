@@ -768,3 +768,36 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
 - 테스트: `readingProgress.test.ts` 신규(섹션 매칭/조건부 섹션 스킵/괄호 헤더 대응 등 6개),
   전체 187 통과, build OK. Playwright로 위젯 순서(DOM 트리 조회)·`<details>` 기본 닫힘 상태·
   로딩 배너 퍼센트 계산·데스크톱/375px 가로 스크롤 없음을 확인.
+
+## 목차 링크 빈 화면 버그 수정 + 계산 위젯 재접이 (사용자 피드백)
+
+사용자 피드백 두 가지: (1) 리딩 목차를 클릭하면 빈 화면이 뜬다, (2) 사주 리딩 전체에 요소가
+너무 많고 보기 편하지 않다.
+
+- **목차 빈 화면 버그**: 원인은 `HashRouter`. `ReadingTableOfContents`가 `<a href="#reading-...">`를
+  써서, 클릭 시 페이지 내 스크롤이 아니라 `location.hash`가 통째로 바뀌어 라우터가 존재하지 않는
+  경로로 이동 → 매칭되는 Route 없음 → 빈 화면. `<a>`를 `<button>`으로 바꾸고 `document.getElementById`
+  + `el.open = true` + `scrollIntoView`로 직접 처리하도록 수정.
+- **계산 위젯 재정리**: 20곳 이상의 실제 사주 서비스(포스텔러/점신/헬로우봇/마이파이/정관명리 등)를
+  조사한 결과, 대부분 "짧은 요약 먼저 → 계산 상세는 접거나 별도 화면"으로 가고, 모든 걸 한 화면에
+  펼치는 점신의 "운세보고서"는 오히려 반면교사 사례(후기에서 "뻔하다" 지적)였다. 이를 근거로
+  `LifeAreaBars`·`EvidenceConfidence`·`InstantSummary`·`TarotFactsPanel`·`SajuFactsPanel`(원국 4기둥
+  제외)·`PersonalitySpectrum`·`PatternMap`·`ActionCalendar`를 신규 `CalculationEvidenceZone`
+  (`<details className="reading-evidence-zone">`, 기본 닫힘, summary "계산 근거 자세히 보기")
+  하나로 묶어 목차와 AI 본문 섹션 사이에 배치. 데이터는 하나도 삭제하지 않았고 접었을 뿐이다.
+  - **중요 — 위 "원국·신살·월별 상단 복구" 항목 참고**: 이 정확히 같은 종류의 변경(SajuFactsPanel을
+    접어서 내림)을 예전에 시도했다가, "원국이 없어진 것처럼 보인다"는 피드백으로 되돌린 이력이
+    있다. 이번엔 그 이력을 사용자에게 다시 확인시켰고, 절충안으로 **사주 원국 4기둥(연주/월주/
+    일주/시주) 박스만 `SajuPillarSnapshot`(신규, `SajuFactsPanel.tsx`에서 named export)으로 분리해
+    항상 최상단에 노출**하고, 나머지(신살/오행그래프/음양/강도게이지/대운타임라인/세운10년/
+    월별그리드/계산값 상세)만 접힌 영역 안으로 옮겼다. `SajuFactsPanel`에 `showPillars?: boolean
+    = true` prop을 추가해 접힌 영역 안에서는 `showPillars={false}`로 호출, 4기둥 중복 렌더를 막음.
+  - `TarotSummaryHero`(타로 한 줄 헤드라인)는 접지 않고 밖에 유지: 사주 없는 순수 타로 리딩에서
+    AI 텍스트가 나오기 전 유일한 즉시 요약이기 때문. `TarotFactsPanel`(카드별 근거)만 접힌 영역 안.
+  - 변경 후 순서: 요약 대시보드 → (타로 헤드라인) → 원국 4기둥 → 첫 점괘 → 질문 답변 → 분야별
+    요약 → 목차 → [접힌 계산 근거] → AI 본문 섹션(기존처럼 `<details>` 접힘) → 마지막 점괘 →
+    실행 체크리스트 → 생활 정리.
+- 테스트: `ReadingResult.test.tsx`에 순서 검증 테스트 2개 추가(원국 스냅샷 < 목차 < 접힌 영역 <
+  본문 섹션, 4기둥 중복 없음 확인 / 타로 헤드라인 < 접힌 영역 < 카드별 근거), 전체 197 통과, build OK.
+  Playwright로 실제 세션(로컬스토리지 시드) 렌더 확인: 원국 4기둥 상단 노출, 접힌 영역 기본
+  닫힘→클릭 시 정상 펼침, 목차 클릭 시 해당 본문 섹션만 정확히 열림, 모바일 390px 가로 스크롤 없음.

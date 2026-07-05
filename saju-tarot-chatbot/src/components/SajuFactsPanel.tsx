@@ -306,14 +306,42 @@ function lateNightComparison(birthInfo?: BirthInfo) {
   };
 }
 
+function SajuPillarGrid({ sajuChart }: { sajuChart: SajuChart }) {
+  return (
+    <>
+      <h3 className="card-title">내 사주 원국</h3>
+      <div className="pillar-grid">
+        <PillarBox label="연주" pillar={sajuChart.year} />
+        <PillarBox label="월주" pillar={sajuChart.month} />
+        <PillarBox label="일주" pillar={sajuChart.day} />
+        <PillarBox label="시주" pillar={sajuChart.hour} />
+      </div>
+      <p className="saju-facts__note">일간(나를 뜻하는 글자) {sajuChart.dayMasterGan}</p>
+    </>
+  );
+}
+
+/** 계산 근거를 접기 전에도 항상 보이는 사주 원국 4기둥만 담은 스냅샷 카드. */
+export function SajuPillarSnapshot({ sajuChart }: { sajuChart?: SajuChart }) {
+  if (!sajuChart) return null;
+  return (
+    <div className="card saju-facts">
+      <SajuPillarGrid sajuChart={sajuChart} />
+    </div>
+  );
+}
+
 export default function SajuFactsPanel({
   sajuChart,
   luckCycles,
   birthInfo,
+  showPillars = true,
 }: {
   sajuChart?: SajuChart;
   luckCycles?: LuckCycles;
   birthInfo?: BirthInfo;
+  /** 이미 SajuPillarSnapshot으로 4기둥을 보여준 경우 중복 렌더를 막기 위해 false로 넘긴다. */
+  showPillars?: boolean;
 }) {
   if (!sajuChart && !luckCycles) return null;
 
@@ -325,14 +353,7 @@ export default function SajuFactsPanel({
     <div className="card saju-facts">
       {sajuChart && (
         <>
-          <h3 className="card-title">내 사주 원국</h3>
-          <div className="pillar-grid">
-            <PillarBox label="연주" pillar={sajuChart.year} />
-            <PillarBox label="월주" pillar={sajuChart.month} />
-            <PillarBox label="일주" pillar={sajuChart.day} />
-            <PillarBox label="시주" pillar={sajuChart.hour} />
-          </div>
-          <p className="saju-facts__note">일간(나를 뜻하는 글자) {sajuChart.dayMasterGan}</p>
+          {showPillars && <SajuPillarGrid sajuChart={sajuChart} />}
 
           {(ziBasis || sajuChart.timeCorrection) && (
             <div className="calculation-basis">

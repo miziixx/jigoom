@@ -1,5 +1,5 @@
 import LoadingNotice from "./LoadingNotice";
-import SajuFactsPanel from "./SajuFactsPanel";
+import SajuFactsPanel, { SajuPillarSnapshot } from "./SajuFactsPanel";
 import InstantSummary from "./InstantSummary";
 import PatternMap from "./PatternMap";
 import ActionCalendar from "./ActionCalendar";
@@ -389,6 +389,49 @@ function ReadingTableOfContents({ sections }: { sections: Section[] }) {
   );
 }
 
+/** 계산 위젯(오행/대운/신살/월별 등)을 기본 닫힘 상태로 모아, 총평·목차·본문 사이 스크롤을 줄인다. */
+function CalculationEvidenceZone({
+  session,
+  dashboard,
+  loading,
+}: {
+  session: ReadingSession;
+  dashboard: ReturnType<typeof buildReadingDashboard>;
+  loading: boolean;
+}) {
+  const hasSaju = !!(session.sajuChart || session.luckCycles);
+  const hasTarot = !!(session.tarotCards && session.tarotCards.length > 0);
+  if (!dashboard && !hasSaju && !hasTarot) return null;
+
+  return (
+    <details className="reading-evidence-zone">
+      <summary>
+        <span>계산 근거 자세히 보기</span>
+        <p>사주 원국·오행·대운/세운 흐름{hasTarot ? "과 타로 카드 근거" : ""}를 자세히 확인할 수 있어요.</p>
+      </summary>
+      <div className="reading-evidence-zone__body">
+        {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
+        <EvidenceConfidence session={session} />
+        {session.sajuChart && (
+          <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />
+        )}
+        {hasTarot && <TarotFactsPanel cards={session.tarotCards!} />}
+        {hasSaju && (
+          <SajuFactsPanel
+            sajuChart={session.sajuChart}
+            luckCycles={session.luckCycles}
+            birthInfo={session.birthInfo}
+            showPillars={false}
+          />
+        )}
+        {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
+        {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
+        {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
+      </div>
+    </details>
+  );
+}
+
 function LifestyleClosingSummary({ session }: { session: ReadingSession }) {
   if (!session.sajuChart) return null;
   const guide = buildLifestyleGuide(session.sajuChart, { todayGanZhi: session.luckCycles?.dayGanZhi });
@@ -472,10 +515,15 @@ export default function ReadingResult({ session, loading = false }: { session: R
         />
       )}
 
-      {/* 요약 대시보드 — 핵심 한 줄 먼저 */}
+      {/* 한눈에 보기 영역 — 요약, 원국 4기둥, 총평, 질문 답변, 분야 요약, 목차까지만 항상 펼침 */}
       {dashboard && (
         <SummaryCardGrid conclusion={conclusion} keywords={dashboard.keywords} dashboard={dashboard} />
       )}
+
+      {/* 타로 헤드라인은 접지 않는다: 순수 타로 리딩(사주 없음)에서 AI 텍스트가 나오기 전 유일한 즉시 요약이다. */}
+      {session.tarotCards && session.tarotCards.length > 0 && <TarotSummaryHero cards={session.tarotCards} />}
+
+      <SajuPillarSnapshot sajuChart={session.sajuChart} />
 
       {opening && (
         <div className="card reading-oracle reading-oracle--opening">
@@ -507,32 +555,11 @@ export default function ReadingResult({ session, loading = false }: { session: R
           </div>
         </section>
       )}
-      {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
 
       <ReadingTableOfContents sections={bodySections} />
 
-      <EvidenceConfidence session={session} />
-
-      {session.sajuChart && <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />}
-
-      {/* 타로·사주 계산 근거는 총평/목차 뒤로 내려, 처음 진입 시 디테일보다 결론이 먼저 보이게 한다. */}
-      {session.tarotCards && session.tarotCards.length > 0 && (
-        <>
-          <TarotSummaryHero cards={session.tarotCards} />
-          <TarotFactsPanel cards={session.tarotCards} />
-        </>
-      )}
-
-      {(session.sajuChart || session.luckCycles) && (
-        <SajuFactsPanel sajuChart={session.sajuChart} luckCycles={session.luckCycles} birthInfo={session.birthInfo} />
-      )}
-
-      {/* AI 프로즈가 시작되기 직전, 계산 기반 위젯을 한 번 더 배치해 "위는 위젯 벽 - 아래는 텍스트 벽"이 되지 않게 한다.
-          AI 스트리밍 진행과 무관하게 즉시 보이도록 sajuChart/luckCycles 존재 여부로만 조건을 건다(특정 섹션이
-          스트리밍으로 도착했는지에 의존하면 원래 즉시 뜨던 위젯이 그 섹션이 나올 때까지 늦게 뜨게 된다). */}
-      {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
-      {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
-      {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
+      {/* 계산 위젯(오행·대운·신살·월별 등)은 여기 하나로 모아 기본 닫힘 상태로 둔다 */}
+      <CalculationEvidenceZone session={session} dashboard={dashboard} loading={loading} />
 
       {bodySections.map((section, i) => (
         <details

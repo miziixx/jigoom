@@ -4338,12 +4338,13 @@ label {
   color: var(--text-dim);
 }
 
-/* ── 하단 근거·시각 자료 접이 영역 ── */
+/* ── 계산 근거·시각 자료 접이 영역 (목차와 본문 사이) ── */
 .reading-evidence-zone {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
   padding: 4px 14px;
+  margin-bottom: 18px;
   overflow-wrap: anywhere;
 }
 
@@ -4367,6 +4368,17 @@ label {
 
 .reading-evidence-zone[open] > summary::before {
   content: "▾ ";
+}
+
+.reading-evidence-zone > summary span {
+  display: block;
+}
+
+.reading-evidence-zone > summary p {
+  margin: 4px 0 0;
+  font-weight: 400;
+  font-size: 0.82rem;
+  color: var(--text-dim);
 }
 
 .reading-evidence-zone__body {

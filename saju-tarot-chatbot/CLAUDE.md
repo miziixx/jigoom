@@ -340,32 +340,26 @@ Do not write disease predictions or medical conclusions.
 
 ### Saju Facts Panel
 
-`SajuFactsPanel` is shown near the top of the result, before the main AI reading.
+`SajuFactsPanel` (`src/components/SajuFactsPanel.tsx`) is split into two rendering modes so the reading result page doesn't stack every calculation widget open by default:
 
-It includes:
+- `SajuPillarSnapshot` (named export): renders only the four-pillar box (연주/월주/일주/시주, hanja-first with hangul as supporting text) plus the 일간 note. Always rendered in the "quick glance" zone at the top of `ReadingResult`, outside any collapsed area — never hide this specific piece; see history note below.
+- `SajuFactsPanel` (default export) takes a `showPillars?: boolean = true` prop. When rendered inside `ReadingResult`'s collapsed `CalculationEvidenceZone` (`<details className="reading-evidence-zone">`, closed by default, summary "계산 근거 자세히 보기"), it's called with `showPillars={false}` to avoid rendering the pillar box twice. It still contains everything else:
+  - Yin/yang and element labels per pillar
+  - Ilju trait
+  - Gyeokguk box
+  - All available sinsal hits (name, position, gloss)
+  - Five-element visual summary and bars
+  - Yin-yang distribution
+  - Strength gauge
+  - DaYun timeline
+  - 10-year yearly flow if available
+  - 1월~12월 monthly flow if available
+  - Collapsible calculation details
 
-- Saju pillars
-- Hanja pillar display, e.g. `甲子`
-- Hangul ganji as supporting text
-- Yin/yang and element labels per pillar
-- Ilju trait
-- Gyeokguk box
-- All available sinsal hits
-- Sinsal name, position, and gloss
-- Five-element visual summary
-- Five-element bars
-- Yin-yang distribution
-- Strength gauge
-- DaYun timeline
-- 10-year yearly flow if available
-- 1월~12월 monthly flow if available
-- Collapsible calculation details
+Important user corrections:
 
-Important user correction:
-
-- Do not show only Hangul ganji in the main original chart.
-- The main chart should show Hanja prominently.
-- Hangul explanation should be secondary.
+- Do not show only Hangul ganji in the main original chart. The main chart should show Hanja prominently; Hangul explanation should be secondary.
+- **History note (read before touching this again):** an earlier session moved the *entire* `SajuFactsPanel` (including the pillar box) into a collapsed bottom section, and the user pushed back that it felt like content had been removed — they specifically like seeing the pillar chart immediately. That change was reverted (see `docs/record.md`, "원국·신살·월별 상단 복구"). The current split (pillar box always visible via `SajuPillarSnapshot`, everything else collapsed) is a deliberate compromise reached after that history was surfaced to the user again in a later "too many elements on the page" request — see `docs/record.md` for the corresponding entry. Do not re-collapse the pillar box without checking with the user first.
 
 ### Keyword Cloud
 

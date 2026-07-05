@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import ReadingResult from "./ReadingResult.js";
 import { computeLuckCycles, computeSajuChart } from "../lib/saju.js";
-import type { BirthInfo, ReadingSession } from "../types/index.js";
+import { TAROT_DECK } from "../data/tarotDeck.js";
+import type { BirthInfo, DrawnTarotCard, ReadingSession } from "../types/index.js";
 
 // 새 몰입 구조 + 마크다운/사주용어가 섞인 모델 응답 (렌더 시 정리되어야 함)
 const REPLY = [
@@ -115,6 +116,48 @@ describe("ReadingResult 견고성", () => {
     expect(html).toContain("내 반복 패턴 지도");
     expect(html).toContain("월별 실행 캘린더");
     expect(html).toContain("조정법");
+    expect(html).toContain("reading-evidence-zone");
+  });
+
+  it("사주 원국 4기둥은 항상 보이고, 계산 근거 상세는 목차 다음 접힌 영역 안에, 본문보다 앞에 온다", () => {
+    const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
+    const session = {
+      ...makeSession(REPLY),
+      sajuChart: computeSajuChart(birth),
+      luckCycles: computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"), { includeMonthlyFlow: true }),
+    };
+    const html = renderToStaticMarkup(<ReadingResult session={session} />);
+    const pillarIdx = html.indexOf("내 사주 원국");
+    const tocIdx = html.indexOf("reading-toc__link");
+    const evidenceIdx = html.indexOf("reading-evidence-zone");
+    const bodyIdx = html.indexOf('id="reading-');
+
+    expect(pillarIdx).toBeGreaterThan(-1);
+    expect(tocIdx).toBeGreaterThan(-1);
+    expect(evidenceIdx).toBeGreaterThan(-1);
+    expect(bodyIdx).toBeGreaterThan(-1);
+    expect(pillarIdx).toBeLessThan(tocIdx);
+    expect(tocIdx).toBeLessThan(evidenceIdx);
+    expect(evidenceIdx).toBeLessThan(bodyIdx);
+    // 4기둥은 한 번만(스냅샷) 보여야 한다 — 접힌 영역 안의 SajuFactsPanel은 showPillars=false로 중복 렌더하지 않는다
+    expect(html.indexOf("내 사주 원국")).toBe(html.lastIndexOf("내 사주 원국"));
+  });
+
+  it("타로 카드가 있으면 헤드라인은 접힌 영역 밖에, 카드별 근거는 안에 둔다", () => {
+    const cards: DrawnTarotCard[] = [
+      { card: TAROT_DECK.find((c) => c.name.startsWith("The Fool"))!, reversed: false, position: 1, positionLabel: "핵심 메시지" },
+    ];
+    const session = { ...makeSession(REPLY), tarotCards: cards };
+    const html = renderToStaticMarkup(<ReadingResult session={session} />);
+    const heroIdx = html.indexOf("tarot-hero");
+    const evidenceIdx = html.indexOf("reading-evidence-zone");
+    const factsIdx = html.indexOf("tarot-facts");
+
+    expect(heroIdx).toBeGreaterThan(-1);
+    expect(evidenceIdx).toBeGreaterThan(-1);
+    expect(factsIdx).toBeGreaterThan(-1);
+    expect(heroIdx).toBeLessThan(evidenceIdx);
+    expect(evidenceIdx).toBeLessThan(factsIdx);
   });
 
   it("월별 근거 번역은 긴 문단 대신 월별 카드로 정리한다 (고정 포맷)", () => {
