@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
+import { checkSecurity, clampText, MAX_QUESTION_LEN, MAX_CONTEXT_FIELD_LEN } from "./_security.js";
 import {
   READING_SYSTEM_PROMPT,
   buildCompareUserMessage,
@@ -158,6 +159,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // P0: API 남용 방어 (Origin 검증 + 본문 크기 + rate limit).
+  const verdict = await checkSecurity(req);
+  if (!verdict.ok) {
+    for (const [k, v] of Object.entries(verdict.headers ?? {})) res.setHeader(k, v);
+    res.status(verdict.status ?? 403).json({ error: verdict.message });
+    return;
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     res.status(500).json({ error: "서버에 ANTHROPIC_API_KEY가 설정되어 있지 않습니다." });
@@ -223,11 +232,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
+    // 사용자 자유입력은 상한 길이로 절삭한다(과도한 토큰 소모·인젝션 완화). 계산값은 손대지 않는다.
+    const safeContext = context
+      ? {
+          ...context,
+          concernArea: clampText(context.concernArea, MAX_CONTEXT_FIELD_LEN) ?? context.concernArea,
+          optionsText: clampText(context.optionsText, MAX_CONTEXT_FIELD_LEN) ?? context.optionsText,
+          recentContext: clampText(context.recentContext, MAX_CONTEXT_FIELD_LEN) ?? context.recentContext,
+          fearPoint: clampText(context.fearPoint, MAX_CONTEXT_FIELD_LEN) ?? context.fearPoint,
+          styleHint: clampText(context.styleHint, MAX_CONTEXT_FIELD_LEN) ?? context.styleHint,
+        }
+      : context;
+
     const readingFacts = {
       type,
-      question,
+      question: clampText(question, MAX_QUESTION_LEN) ?? question,
       focus,
-      context,
+      context: safeContext,
       sectionGroup,
       gender,
       sajuChart,

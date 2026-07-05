@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
+import { checkSecurity } from "./_security.js";
 import {
   buildNamingRecommendMessage,
   buildNamingUserMessage,
@@ -24,6 +25,14 @@ interface NamingBody {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST 요청만 지원합니다." });
+    return;
+  }
+
+  // P0: API 남용 방어.
+  const verdict = await checkSecurity(req);
+  if (!verdict.ok) {
+    for (const [k, v] of Object.entries(verdict.headers ?? {})) res.setHeader(k, v);
+    res.status(verdict.status ?? 403).json({ error: verdict.message });
     return;
   }
 
