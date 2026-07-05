@@ -37,6 +37,13 @@ describe("리딩 시스템 프롬프트 규칙", () => {
     expect(READING_SYSTEM_PROMPT).toContain("반드시/무조건/100%/절대");
     expect(READING_SYSTEM_PROMPT).toContain("무속");
   });
+
+  it("상담형 판단과 흔한 말 감지 규칙을 담는다", () => {
+    expect(READING_SYSTEM_PROMPT).toContain("상담형 판단 원칙");
+    expect(READING_SYSTEM_PROMPT).toContain("선택지 비교");
+    expect(READING_SYSTEM_PROMPT).toContain("듣기 싫어도 봐야 할 부분");
+    expect(READING_SYSTEM_PROMPT).toContain("흔한 말 감지");
+  });
 });
 
 describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
@@ -104,6 +111,31 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(back).toContain("# 건강과 컨디션");
     expect(back).toContain("첫 점괘");
     expect(back).toContain("절대 쓰지 마라");
+  });
+
+  it("상담형 입력은 선택지·최근 상황·두려운 결과를 메시지에 담는다", () => {
+    const msg = buildReadingUserMessage({
+      type: "saju",
+      question: "회사를 계속 다닐지 퇴사할지 고민돼요",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      context: {
+        concernArea: "일·커리어",
+        optionsText: "A: 지금 회사 유지 / B: 퇴사 후 프리랜서 준비",
+        recentContext: "최근 2개월 동안 업무량이 늘고 사람 문제로 지쳤어요.",
+        fearPoint: "퇴사했다가 돈이 끊길까 봐 걱정돼요.",
+        tone: "action",
+      },
+    });
+
+    expect(msg).toContain("현재 고민 분야: 일·커리어");
+    expect(msg).toContain("고민 중인 선택지: A: 지금 회사 유지 / B: 퇴사 후 프리랜서 준비");
+    expect(msg).toContain("최근 1~3개월 실제 상황: 최근 2개월 동안 업무량이 늘고 사람 문제로 지쳤어요.");
+    expect(msg).toContain("가장 두려운 결과: 퇴사했다가 돈이 끊길까 봐 걱정돼요.");
+    expect(msg).toContain("[선택지 비교]");
+    expect(msg).toContain("[듣기 싫어도 봐야 할 부분]");
+    expect(msg).toContain("오늘 할 일, 이번 주 확인할 신호, 이번 달 조정할 조건");
   });
 });
 

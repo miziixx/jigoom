@@ -13,6 +13,7 @@ const TONES: Array<{ value: AnswerTone; label: string; desc: string }> = [
   { value: "realistic", label: "현실적으로", desc: "가능성과 조건을 균형 있게" },
   { value: "warm", label: "따뜻하게", desc: "부드럽지만 뻔하지 않게" },
   { value: "blunt", label: "냉정하게", desc: "돌려 말하지 않고 핵심부터" },
+  { value: "action", label: "행동계획 중심", desc: "오늘·이번 주 할 일 위주" },
   { value: "detailed", label: "아주 자세하게", desc: "근거와 예시를 촘촘하게" },
 ];
 
@@ -30,6 +31,8 @@ const TIME_ACCURACIES: Array<{ value: BirthTimeAccuracy; label: string }> = [
   { value: "unknown", label: "모름" },
 ];
 
+const CONCERN_AREAS = ["일·커리어", "돈·수입", "연애·관계", "가족", "인간관계", "건강·컨디션", "진로·공부", "사업·브랜드", "마음상태"];
+
 interface Props {
   value: ReadingContext;
   onChange: (context: ReadingContext) => void;
@@ -44,20 +47,71 @@ export default function ContextPicker({ value, onChange, showTimeAccuracy = fals
 
   return (
     <>
-      <div className="field-row">
-        <span className="field-label">현재 상황</span>
-        <select
-          value={value.situation ?? ""}
-          onChange={(e) => onChange({ ...value, situation: (e.target.value || undefined) as SituationStage | undefined })}
-        >
-          <option value="">선택 안 함</option>
-          {SITUATIONS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <details className="consultation-panel">
+        <summary>
+          <span>상담형으로 더 정확히 보기</span>
+          <small>선택지·최근 상황을 적으면 답이 덜 뭉뚱그려져요</small>
+        </summary>
+
+        <div className="consultation-grid">
+          <label className="field-row field-row--column">
+            <span className="field-label">고민 분야</span>
+            <select value={value.concernArea ?? ""} onChange={(e) => onChange({ ...value, concernArea: e.target.value || undefined })}>
+              <option value="">선택 안 함</option>
+              {CONCERN_AREAS.map((area) => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field-row field-row--column">
+            <span className="field-label">현재 상황</span>
+            <select
+              value={value.situation ?? ""}
+              onChange={(e) => onChange({ ...value, situation: (e.target.value || undefined) as SituationStage | undefined })}
+            >
+              <option value="">선택 안 함</option>
+              {SITUATIONS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label className="field-row field-row--column">
+          <span className="field-label">고민 중인 선택지</span>
+          <textarea
+            rows={2}
+            placeholder="예: A. 지금 일 유지 / B. 퇴사 후 새 시작 / C. 회사 다니며 부업 준비"
+            value={value.optionsText ?? ""}
+            onChange={(e) => onChange({ ...value, optionsText: e.target.value || undefined })}
+          />
+        </label>
+
+        <label className="field-row field-row--column">
+          <span className="field-label">최근 1~3개월 실제 상황</span>
+          <textarea
+            rows={2}
+            placeholder="예: 일이 많아졌고, 사람 문제로 지치며, 새 일을 준비할 에너지가 줄었어요."
+            value={value.recentContext ?? ""}
+            onChange={(e) => onChange({ ...value, recentContext: e.target.value || undefined })}
+          />
+        </label>
+
+        <label className="field-row field-row--column">
+          <span className="field-label">가장 두려운 결과</span>
+          <textarea
+            rows={2}
+            placeholder="예: 지금 움직였다가 돈도 잃고 다시 지칠까 봐 걱정돼요."
+            value={value.fearPoint ?? ""}
+            onChange={(e) => onChange({ ...value, fearPoint: e.target.value || undefined })}
+          />
+        </label>
+      </details>
 
       <div className="field-row field-row--column">
         <span className="field-label">풀이 말투</span>

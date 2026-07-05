@@ -72,6 +72,14 @@ Current product strategy:
 - Do not chase a 120-page PDF yet. First prove that a 20~40 page report feels useful, polished, and worth paying for.
 - Before charging high prices, validate result quality, PDF quality, user willingness to pay, and whether free/paid differences are obvious.
 
+Latest UX direction:
+
+- Position the app as a `근거 있는 사주 상담 리포트 + 선택 판단 도구`, not a generic AI fortune generator.
+- Users distrust AI saju when it gives broad lines like "신중하세요" or "변화를 준비하세요" without decision criteria.
+- For serious questions, collect a little more context: concern area, current options, recent 1~3 month reality, and feared outcome.
+- Use those inputs to produce: direct question answer, option comparison, uncomfortable but useful diagnosis, repeated pattern, and concrete action plan.
+- Keep calculation and evidence deterministic. The counseling layer should translate and prioritize evidence, not invent new fate claims.
+
 ## Current Repository State
 
 Repository:
@@ -97,6 +105,7 @@ Key commits already pushed:
 - `d6c35d1` Clarify daily fortune and strengthen tarot readings
 - `ae8c227` Port richer tarot symbolism
 - `6023716` Deepen compatibility repair report
+- 상담형 사주 리포트 UX 1차: 홈/입력 구조 개편, 상담형 입력 필드, 흔한 말 감지 프롬프트 추가
 
 ## Important Files
 
@@ -207,6 +216,30 @@ For most sections, the expected internal structure is:
 Expert evidence should be preserved in collapsible/detail areas, not removed.
 
 If the user chose an interest or entered a question, answer that concern early and visibly. The preferred UI is a natural card near the top of the relevant result area, not a buried answer at the bottom.
+
+### Counseling-Oriented Saju Input
+
+The birth form is organized as:
+
+- `1 기본 정보`: data needed for deterministic chart calculation.
+- `2 지금 보고 싶은 것`: focus, tone, depth, question, and optional counseling context.
+
+`ContextPicker` includes an optional expandable counseling area:
+
+- concern area
+- current situation
+- options being considered
+- recent 1~3 month reality
+- feared outcome
+
+These fields are optional. They do not change saju calculation. They only help the AI answer the user's actual decision more sharply.
+
+Prompt behavior:
+
+- If options are provided, include `[선택지 비교]`.
+- If recent reality or feared outcome is provided, include `[듣기 싫어도 봐야 할 부분]`.
+- Avoid standalone generic advice such as "신중하게 결정하세요", "무리하지 마세요", "변화를 준비하세요".
+- Replace generic advice with concrete criteria: what to check, when to wait, which signal matters, and what action to do today/this week/this month.
 
 ### Menu Direction
 

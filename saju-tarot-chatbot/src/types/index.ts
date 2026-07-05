@@ -9,7 +9,7 @@ export type ReadingFocus = "general" | "career" | "relationship" | "wellness" | 
 export type SituationStage = "before" | "ongoing" | "waiting" | "closing";
 
 /** 원하는 답변 톤 */
-export type AnswerTone = "realistic" | "warm" | "blunt" | "detailed";
+export type AnswerTone = "realistic" | "warm" | "blunt" | "detailed" | "action";
 
 /** 원하는 해석 깊이 */
 export type AnswerDepth = "light" | "basic" | "advanced" | "expert";
@@ -22,6 +22,14 @@ export interface ReadingContext {
   tone?: AnswerTone;
   depth?: AnswerDepth;
   timeAccuracy?: BirthTimeAccuracy;
+  /** 상담형 판단 입력: 현재 고민 분야 */
+  concernArea?: string;
+  /** 상담형 판단 입력: 사용자가 실제로 고민 중인 선택지 */
+  optionsText?: string;
+  /** 상담형 판단 입력: 최근 1~3개월 사이 실제로 있었던 일 */
+  recentContext?: string;
+  /** 상담형 판단 입력: 사용자가 가장 두려워하는 결과 */
+  fearPoint?: string;
   /** 지난 리딩 피드백에서 뽑은 스타일 조정 요청 (사용자가 반영에 동의했을 때만 채워짐) */
   styleHint?: string;
 }

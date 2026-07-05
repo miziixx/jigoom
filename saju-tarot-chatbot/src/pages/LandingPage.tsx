@@ -1,24 +1,32 @@
 import { Link } from "react-router-dom";
 
-const OPTIONS = [
+const PRIMARY_OPTIONS = [
   {
     to: "/saju",
-    title: "사주 보기",
-    desc: "생년월일시로 사주 원국을 정확히 계산하고, 성향과 오행 흐름을 근거와 함께 풀이합니다.",
-  },
-  {
-    to: "/tarot",
-    title: "타로 보기",
-    desc: "질문을 입력하고 카드를 뽑으면, 카드 조합을 근거로 지금 상황을 밀도 있게 해석합니다.",
+    title: "내 사주 정밀 리포트",
+    desc: "원국 구조, 운 흐름, 성향과 생활 조언을 근거 중심으로 정리합니다.",
   },
   {
     to: "/combo",
-    title: "사주 + 타로 통합",
-    desc: "타고난 장기 흐름(사주)과 지금 이 질문의 단기 흐름(타로)을 함께 짚어드립니다.",
+    title: "지금 고민 상담",
+    desc: "사주 장기 흐름과 타로 현재 흐름을 함께 보고 선택 기준을 잡습니다.",
+  },
+  {
+    to: "/compatibility",
+    title: "궁합·관계 분석",
+    desc: "두 사람의 원국을 비교해 맞는 지점, 반복 갈등, 보완 방법을 봅니다.",
+  },
+];
+
+const SECONDARY_OPTIONS = [
+  {
+    to: "/tarot",
+    title: "타로",
+    desc: "질문과 카드 조합으로 지금 상황을 빠르게 확인합니다.",
   },
   {
     to: "/today",
-    title: "오늘의 흐름",
+    title: "오늘 흐름",
     desc: "오늘 일진이 내 원국과 맺는 관계로, 오늘 하루를 잘 쓰는 법을 짧고 실용적으로 알려드립니다.",
   },
   {
@@ -28,7 +36,7 @@ const OPTIONS = [
   },
   {
     to: "/flow",
-    title: "월간·연간 운 흐름",
+    title: "흐름 캘린더",
     desc: "올해 12개월 월운을 모두 계산해, 시도하기 좋은 시기와 조심할 시기를 흐름으로 읽어드립니다.",
   },
   {
@@ -41,13 +49,28 @@ const OPTIONS = [
 export default function LandingPage() {
   return (
     <section className="page">
-      <h2 className="page-title">무엇을 봐드릴까요?</h2>
-      <p className="page-desc">
-        계산은 실제 만세력 기준으로 정확하게, 해석은 단정 대신 근거와 가능성을 밝혀 전달합니다. "100% 적중"을
-        주장하지 않습니다 — 이 리딩은 자기이해와 판단을 돕는 참고 자료입니다.
-      </p>
+      <section className="landing-hero">
+        <span>전통명리 계산 기준 기반</span>
+        <h2>무엇을 판단해드릴까요?</h2>
+        <p>
+          계산은 만세력 기준으로 정밀하게, 해석은 좋은 말보다 근거와 선택 기준을 먼저 보여드립니다. 생년월일 원본을 저장하지 않고,
+          계산된 사주 구조와 질문만으로 리포트를 만듭니다.
+        </p>
+      </section>
+
+      <div className="landing-primary-grid">
+        {PRIMARY_OPTIONS.map((opt) => (
+          <Link key={opt.to} to={opt.to} className="card landing-card landing-card--primary">
+            <h3>{opt.title}</h3>
+            <p>{opt.desc}</p>
+            <b>상담 시작</b>
+          </Link>
+        ))}
+      </div>
+
+      <h3 className="landing-section-title">가볍게 확인하기</h3>
       <div className="landing-grid">
-        {OPTIONS.map((opt) => (
+        {SECONDARY_OPTIONS.map((opt) => (
           <Link key={opt.to} to={opt.to} className="card landing-card">
             <h3>{opt.title}</h3>
             <p>{opt.desc}</p>
