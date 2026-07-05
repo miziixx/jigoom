@@ -45,4 +45,12 @@ describe("생활 처방 개인화", () => {
     // 서로 다른 일진이면 오늘 기운 라벨이 달라질 수 있다 (같은 basis라도 관계가 갈림)
     expect(a.today?.element).not.toBe(b.today?.element);
   });
+
+  it("같은 보완 기운 안에서도 날짜 키에 따라 실행법을 바꾼다", () => {
+    const a = buildLifestyleGuide(chart, { dateKey: "2026-07-05", todayGanZhi: "갑자" });
+    const b = buildLifestyleGuide(chart, { dateKey: "2026-07-06", todayGanZhi: "갑자" });
+    expect(a.todayActions).toHaveLength(3);
+    expect(b.todayActions).toHaveLength(3);
+    expect(a.todayActions.join("|")).not.toBe(b.todayActions.join("|"));
+  });
 });

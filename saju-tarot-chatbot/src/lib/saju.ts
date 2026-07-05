@@ -1494,6 +1494,69 @@ function compatibilityRepairReport(
   return { level, headline, intro, whyItHappens, conflictCycle, byPerson, scripts, avoid };
 }
 
+function compatibilityQuestionInsight(
+  question: string | undefined,
+  score: number,
+  branches: ReturnType<typeof crossBranchRelations>,
+  palace: ReturnType<typeof relationToneFromDayBranches>,
+  context: (typeof RELATION_CONTEXT)[CompatibilityRelationType],
+): CompatibilityResult["questionInsight"] | undefined {
+  const clean = question?.trim();
+  if (!clean) return undefined;
+
+  const compact = clean.replace(/\s+/g, "");
+  const isDecision = /계속|이어|정리|끊|그만|헤어|이혼|퇴사|동업|시작|고백|말해|연락|기다|만나|살/.test(compact);
+  const asksMind = /마음|속마음|생각|좋아|싫어|진심|관심|나를/.test(compact);
+  const asksConflict = /싸|갈등|불편|안맞|안 맞|서운|힘들|지쳐|문제|답답/.test(clean);
+  const asksTiming = /언제|시기|올해|이번|지금|타이밍/.test(compact);
+  const asksWork = /일|직장|회사|사업|동업|돈|성과|보고|상사|직원|동료/.test(compact);
+  const asksFamily = /가족|부모|자식|엄마|아빠|형제|자매|남매|집안/.test(compact);
+
+  const intent = asksMind
+    ? "상대의 마음을 단정해 달라는 질문이라기보다, 이 관계에서 내가 어떻게 받아들여지고 있는지 확인하고 싶은 질문입니다."
+    : asksConflict
+      ? "두 사람이 왜 반복해서 불편해지는지, 그리고 어디부터 조율해야 하는지 알고 싶은 질문입니다."
+      : asksTiming
+        ? "지금 움직여도 되는지, 아니면 관계의 속도를 늦춰 확인해야 하는지 묻는 질문입니다."
+        : isDecision
+          ? "관계를 계속 밀고 갈지, 거리를 둘지, 기준을 다시 세울지 판단하고 싶은 질문입니다."
+          : asksWork || context.label.includes("업무") || context.label.includes("직원") || context.label.includes("동업")
+            ? "감정보다 역할·책임·성과 기준이 맞는지 확인하고 싶은 질문입니다."
+            : asksFamily || context.label.includes("가족") || context.label.includes("부모")
+              ? "정과 책임 사이에서 어디까지 맞춰야 하는지 확인하고 싶은 질문입니다."
+              : "이 관계가 내게 어떤 흐름인지, 편하게 이어가려면 무엇을 봐야 하는지 묻는 질문입니다.";
+
+  const hasFriction = branches.badCount > 0 || palace.score < 0 || score < 55;
+  const answer =
+    score >= 75 && !hasFriction
+      ? `${context.label}로 볼 때 기본 흐름은 좋은 편입니다. 다만 좋다는 말로 끝내기보다, 편해질수록 기준을 생략하지 않는 것이 핵심입니다.`
+      : score >= 55
+        ? `${context.label}로 볼 때 이어갈 힘은 있지만 자동으로 편해지는 관계는 아닙니다. 지금 질문의 핵심은 좋고 나쁨보다, 어떤 기준을 맞추면 덜 지치는지에 가깝습니다.`
+        : `${context.label}로 볼 때 서로 다른 결이 분명합니다. 관계를 끊어야 한다고 단정할 수는 없지만, 감정으로 밀어붙이기보다 거리·역할·대화 기준을 먼저 정해야 합니다.`;
+
+  const signals = [
+    hasFriction
+      ? "피곤하거나 급한 상황에서 말투, 연락, 역할 기준이 쉽게 어긋나는지 보세요."
+      : "큰 사건보다 평소 루틴에서 편안함이 유지되는지 보세요.",
+    asksMind
+      ? "상대의 말보다 반복 행동을 보세요. 약속을 지키는지, 불편한 대화 뒤 회복하려는 행동이 있는지가 더 중요합니다."
+      : "서로가 원하는 것을 말했을 때 방어보다 조율로 이어지는지 확인하세요.",
+    asksWork || context.label.includes("업무") || context.label.includes("동업")
+      ? "마감, 돈, 결정권, 책임 범위를 적었을 때 오해가 줄어드는지 확인하세요."
+      : "연락, 돈, 가족, 일정처럼 반복되는 문제를 하나씩 분리해서 말할 수 있는지 확인하세요.",
+  ];
+
+  const actions = [
+    "오늘은 이 관계에서 가장 불편한 지점을 하나만 적고, 상대 성격이 아니라 구체적 행동으로 바꿔 써보세요.",
+    context.action,
+    isDecision
+      ? "결정은 바로 내리지 말고, 이번 주 안에 바뀌어야 할 조건 2개와 내가 지킬 조건 1개를 먼저 정하세요."
+      : "이번 주에는 큰 결론보다 작은 약속 하나를 정하고, 실제로 지켜지는지 확인하세요.",
+  ];
+
+  return { question: clean, intent, answer, signals, actions };
+}
+
 /**
  * 두 사람의 사주 궁합을 계산한다 (결정론적, 참고용).
  * 일간 관계 + 지지 합충 + 오행 보완을 종합해 0~100 점수로 환산한다.
@@ -1502,6 +1565,7 @@ export function computeCompatibility(
   birthA: BirthInfo,
   birthB: BirthInfo,
   relationType: CompatibilityRelationType = "romantic",
+  question?: string,
 ): CompatibilityResult {
   const context = RELATION_CONTEXT[relationType] ?? RELATION_CONTEXT.romantic;
   const chartA = computeSajuChart(birthA);
@@ -1584,6 +1648,7 @@ export function computeCompatibility(
   const purposes = purposeFits(score, branchScore, elements.score, palace.score, context);
   const timing = compatibilityTiming(birthA, birthB, chartA, chartB);
   const repairReport = compatibilityRepairReport(score, branches, elements, palace, context);
+  const questionInsight = compatibilityQuestionInsight(question, score, branches, palace, context);
   const expertEvidence = [
     `관계 유형: ${context.label}`,
     `일간 관계: ${chartA.dayMasterGan}·${chartB.dayMasterGan} / ${dm.text}`,
@@ -1602,6 +1667,7 @@ export function computeCompatibility(
     branchRelations: [...branches.good, ...branches.bad],
     elementComplement: elements.text,
     summary,
+    questionInsight,
     breakdown,
     highlights,
     cautionPoints,

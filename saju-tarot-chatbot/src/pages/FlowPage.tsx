@@ -30,7 +30,14 @@ export default function FlowPage() {
         커지는 시기를 자세히 읽어드립니다. 큰 흐름 위에서 이번 달과 다음 달은 따로 깊게 짚습니다.
       </p>
 
-      {!showResult && <BirthInfoForm submitLabel="흐름 캘린더 보기" onSubmit={handleSubmit} loading={loading} />}
+      {!showResult && (
+        <BirthInfoForm
+          submitLabel="흐름 캘린더 보기"
+          onSubmit={handleSubmit}
+          loading={loading}
+          showQuestionSection={false}
+        />
+      )}
       {!showResult && loading && <LoadingNotice />}
       {error && !showResult && <p className="error-text">{error}</p>}
 

@@ -39,6 +39,25 @@ export default function SummaryCardGrid({
         </div>
       )}
 
+      <article className="summary-personal-card">
+        <span>내 사용 설명서</span>
+        <h3>{dashboard.personalSignature.title}</h3>
+        <dl>
+          <div>
+            <dt>반복 패턴</dt>
+            <dd>{dashboard.personalSignature.pattern}</dd>
+          </div>
+          <div>
+            <dt>무너지는 지점</dt>
+            <dd>{dashboard.personalSignature.breakdown}</dd>
+          </div>
+          <div>
+            <dt>살아나는 방식</dt>
+            <dd>{dashboard.personalSignature.recovery}</dd>
+          </div>
+        </dl>
+      </article>
+
       <div className="summary-hero__grid">
         {dashboard.strengths.length > 0 && (
           <article className="summary-tile summary-tile--strength">

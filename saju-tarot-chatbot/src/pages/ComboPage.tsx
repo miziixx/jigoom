@@ -206,32 +206,39 @@ export default function ComboPage() {
               </div>
             )}
 
-            <div className="field-row">
-              <span className="field-label">출생지</span>
-              <select value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)}>
-                <option value="none">보정 안 함</option>
-                {Object.entries(BIRTH_PLACES).map(([key, place]) => (
-                  <option key={key} value={key}>
-                    {place.label}
-                  </option>
-                ))}
-              </select>
-              <span className={`field-hint${birthPlace === "none" ? " field-hint--accent" : ""}`}>
-                {birthPlace === "none"
-                  ? "출생지를 고르면 표준시·경도 차이를 반영해 시주 경계 판단이 더 정확해집니다. 1987~1988년 한국 서머타임은 자동 반영돼요."
-                  : "표준시·경도 차이를 반영합니다. 1987~1988년 한국 서머타임은 자동 반영돼요."}
-              </span>
-            </div>
+            <details className="consultation-panel optional-settings-panel">
+              <summary>
+                <span>선택 설정</span>
+                <small>출생지를 알면 더 정밀하고, 몰라도 기본 해석은 가능합니다.</small>
+              </summary>
 
-            <div className="field-row field-row--column save-chart-setting">
-              <label className="checkbox-label">
-                <input type="checkbox" checked={saveBirthChart} onChange={(e) => setSaveBirthChart(e.target.checked)} />
-                이 사주 원국을 이 기기에 저장하기
-              </label>
-              <span className="field-hint">
-                저장하면 기록 페이지에도 남고, 오늘 운세와 다음 사주 조회에서 다시 입력하지 않고 쓸 수 있어요. 서버가 아니라 이 브라우저에만 저장됩니다.
-              </span>
-            </div>
+              <div className="field-row">
+                <span className="field-label">출생지</span>
+                <select value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)}>
+                  <option value="none">보정 안 함</option>
+                  {Object.entries(BIRTH_PLACES).map(([key, place]) => (
+                    <option key={key} value={key}>
+                      {place.label}
+                    </option>
+                  ))}
+                </select>
+                <span className={`field-hint${birthPlace === "none" ? " field-hint--accent" : ""}`}>
+                  {birthPlace === "none"
+                    ? "출생지를 고르면 시주 경계 판단이 더 정밀해집니다. 모르면 비워둬도 기본 해석은 가능합니다."
+                    : "표준시·경도 차이를 반영합니다. 1987~1988년 한국 서머타임은 자동 반영돼요."}
+                </span>
+              </div>
+
+              <div className="field-row field-row--column save-chart-setting">
+                <label className="checkbox-label">
+                  <input type="checkbox" checked={saveBirthChart} onChange={(e) => setSaveBirthChart(e.target.checked)} />
+                  이 사주 원국을 이 기기에 저장하기
+                </label>
+                <span className="field-hint">
+                  저장하면 기록 페이지에도 남고, 오늘 운세와 다음 사주 조회에서 다시 입력하지 않고 쓸 수 있어요. 서버가 아니라 이 브라우저에만 저장됩니다.
+                </span>
+              </div>
+            </details>
 
             <div className="field-row">
               <span className="field-label">성별</span>
@@ -266,9 +273,16 @@ export default function ComboPage() {
               />
             </div>
 
-            <FocusPicker value={focus} onChange={setFocus} />
+            <details className="consultation-panel optional-settings-panel">
+              <summary>
+                <span>분야와 말투를 직접 고르고 싶을 때</span>
+                <small>선택하지 않아도 질문 내용을 보고 기본값으로 풀이합니다.</small>
+              </summary>
 
-            <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
+              <FocusPicker value={focus} onChange={setFocus} />
+
+              <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
+            </details>
           </section>
 
           <section className="form-section">
@@ -280,76 +294,83 @@ export default function ComboPage() {
               </div>
             </div>
 
-            <div className="field-row">
-              <span className="field-label">스프레드</span>
-              {COMBO_SPREADS.map((id) => (
-                <label key={id}>
-                  <input type="radio" name="spread" checked={spreadId === id} onChange={() => changeSpread(id)} />
-                  {SPREADS[id].label}
-                </label>
-              ))}
-            </div>
+            <details className="consultation-panel optional-settings-panel">
+              <summary>
+                <span>카드 뽑기 방식을 직접 정하고 싶을 때</span>
+                <small>그냥 두면 기본 3장 리딩으로 사주와 함께 봅니다.</small>
+              </summary>
 
-            <div className="field-row field-row--column">
-              <span className="field-label">셔플 방식</span>
-              <div className="shuffle-options">
-                {SHUFFLE_IDS.map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    className={shuffleId === id ? "shuffle-card shuffle-card--active" : "shuffle-card"}
-                    onClick={() => setShuffleId(id)}
-                  >
-                    <b>{SHUFFLES[id].label}</b>
-                    <span>{SHUFFLES[id].desc}</span>
-                  </button>
+              <div className="field-row">
+                <span className="field-label">스프레드</span>
+                {COMBO_SPREADS.map((id) => (
+                  <label key={id}>
+                    <input type="radio" name="spread" checked={spreadId === id} onChange={() => changeSpread(id)} />
+                    {SPREADS[id].label}
+                  </label>
                 ))}
               </div>
-            </div>
 
-            <div className="field-row field-row--column">
-              <span className="field-label">카드 선택 방식</span>
-              <div className="segmented tarot-pick-toggle">
-                <button
-                  type="button"
-                  className={pickMode === "auto" ? "segmented__item segmented__item--active" : "segmented__item"}
-                  onClick={() => setPickMode("auto")}
-                >
-                  자동 뽑기
-                </button>
-                <button
-                  type="button"
-                  className={pickMode === "manual" ? "segmented__item segmented__item--active" : "segmented__item"}
-                  onClick={() => setPickMode("manual")}
-                >
-                  직접 고르기
-                </button>
+              <div className="field-row field-row--column">
+                <span className="field-label">셔플 방식</span>
+                <div className="shuffle-options">
+                  {SHUFFLE_IDS.map((id) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={shuffleId === id ? "shuffle-card shuffle-card--active" : "shuffle-card"}
+                      onClick={() => setShuffleId(id)}
+                    >
+                      <b>{SHUFFLES[id].label}</b>
+                      <span>{SHUFFLES[id].desc}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              {pickMode === "manual" && (
-                <>
-                  <div className="tarot-pick-board" aria-label={`카드 ${neededCards}장 선택`}>
-                    {Array.from({ length: 18 }, (_, slot) => {
-                      const order = pickedSlots.indexOf(slot);
-                      const picked = order >= 0;
-                      return (
-                        <button
-                          key={slot}
-                          type="button"
-                          className={picked ? "tarot-pick-card tarot-pick-card--picked" : "tarot-pick-card"}
-                          onClick={() => toggleSlot(slot)}
-                          aria-pressed={picked}
-                        >
-                          <span>{picked ? order + 1 : "✦"}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <span className="field-hint">
-                    {neededCards}장 중 {pickedSlots.length}장을 골랐어요. 고른 순서대로 통합 리딩에 반영됩니다.
-                  </span>
-                </>
-              )}
-            </div>
+
+              <div className="field-row field-row--column">
+                <span className="field-label">카드 선택 방식</span>
+                <div className="segmented tarot-pick-toggle">
+                  <button
+                    type="button"
+                    className={pickMode === "auto" ? "segmented__item segmented__item--active" : "segmented__item"}
+                    onClick={() => setPickMode("auto")}
+                  >
+                    자동 뽑기
+                  </button>
+                  <button
+                    type="button"
+                    className={pickMode === "manual" ? "segmented__item segmented__item--active" : "segmented__item"}
+                    onClick={() => setPickMode("manual")}
+                  >
+                    직접 고르기
+                  </button>
+                </div>
+                {pickMode === "manual" && (
+                  <>
+                    <div className="tarot-pick-board" aria-label={`카드 ${neededCards}장 선택`}>
+                      {Array.from({ length: 18 }, (_, slot) => {
+                        const order = pickedSlots.indexOf(slot);
+                        const picked = order >= 0;
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            className={picked ? "tarot-pick-card tarot-pick-card--picked" : "tarot-pick-card"}
+                            onClick={() => toggleSlot(slot)}
+                            aria-pressed={picked}
+                          >
+                            <span>{picked ? order + 1 : "✦"}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <span className="field-hint">
+                      {neededCards}장 중 {pickedSlots.length}장을 골랐어요. 고른 순서대로 통합 리딩에 반영됩니다.
+                    </span>
+                  </>
+                )}
+              </div>
+            </details>
           </section>
 
           <p className="privacy-note">

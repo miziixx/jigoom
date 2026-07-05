@@ -20,6 +20,9 @@ describe("결과 요약 대시보드 룰", () => {
     expect(d!.cautions.length).toBeLessThanOrEqual(3);
     expect(d!.keywords.length).toBeGreaterThan(0);
     expect(d!.keywords.length).toBeLessThanOrEqual(5);
+    expect(d!.personalSignature.title.length).toBeGreaterThan(0);
+    expect(d!.personalSignature.pattern).toContain("쉽");
+    expect(d!.personalSignature.recovery).toContain("오늘");
   });
 
   it("스펙트럼은 4축, position은 0~100 범위", () => {

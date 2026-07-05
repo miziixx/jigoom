@@ -74,6 +74,12 @@ export interface ReadingDashboard {
   strengths: string[];
   cautions: string[];
   needNow: string | null;
+  personalSignature: {
+    title: string;
+    pattern: string;
+    breakdown: string;
+    recovery: string;
+  };
   keywords: string[];
   careerDirections: string[];
   spectrum: SpectrumAxis[];
@@ -318,6 +324,38 @@ function buildCareerDirections(chart: SajuChart): string[] {
   return [...new Set(directions)].slice(0, 3);
 }
 
+function buildPersonalSignature(chart: SajuChart, guide: ReturnType<typeof buildLifestyleGuide>): ReadingDashboard["personalSignature"] {
+  const sorted = sortedElements(chart.fiveElements);
+  const strongest = sorted[0];
+  const weakest = sorted[sorted.length - 1];
+  const g = countTenGods(chart);
+  const godGroups: Array<[TenGodGroup, string, string]> = [
+    ["관성", "역할과 책임을 먼저 보는 사람", "맡은 일이 많아질수록 내 감정보다 해야 할 일을 먼저 세우기 쉽습니다."],
+    ["인성", "먼저 이해하고 정리하려는 사람", "생각이 많아질수록 바로 움직이기보다 안에서 오래 정리하기 쉽습니다."],
+    ["식상", "표현하고 만들어야 풀리는 사람", "하고 싶은 말이나 아이디어가 막히면 답답함이 몸과 감정으로 쌓이기 쉽습니다."],
+    ["재성", "현실 결과와 효율을 보는 사람", "성과·돈·생활 운영이 흐트러지면 마음의 안정감도 같이 흔들리기 쉽습니다."],
+    ["비겁", "내 기준과 독립성이 중요한 사람", "내 방식이 막히거나 비교가 심해지면 쉽게 예민해질 수 있습니다."],
+  ];
+  const topGod = godGroups.sort((a, b) => g[b[0]] - g[a[0]])[0];
+
+  const strengthText =
+    chart.strength?.label === "신강"
+      ? "스스로 버티는 힘이 강해 도움 요청이 늦어질 수 있습니다."
+      : chart.strength?.label === "신약"
+        ? "환경과 사람의 영향을 크게 받기 쉬워 좋은 리듬을 먼저 만들어야 합니다."
+        : "한쪽으로 크게 밀기보다 균형을 맞출 때 오래 갑니다.";
+
+  return {
+    title: topGod && g[topGod[0]] > 0 ? topGod[1] : `${ELEMENT_CHIP[strongest]} 기질이 먼저 드러나는 사람`,
+    pattern:
+      topGod && g[topGod[0]] > 0
+        ? topGod[2]
+        : `${ELEMENT_STRENGTH[strongest]}이 강점으로 드러나지만, 흐름이 막히면 ${ELEMENT_CAUTION[strongest]}으로 나타나기 쉽습니다.`,
+    breakdown: `${strengthText} 특히 ${ELEMENT_FILL[weakest]}이 약해질 때 일·관계·컨디션에서 같은 불편함이 반복될 수 있습니다.`,
+    recovery: `${guide.basisLabel} 기운을 생활 루틴으로 채우면 회복이 빨라집니다. 오늘은 "${guide.todayActions[0]}"부터 작게 시작하는 편이 좋습니다.`,
+  };
+}
+
 export function buildReadingDashboard(chart?: SajuChart, luckCycles?: LuckCycles): ReadingDashboard | null {
   if (!chart) return null;
   const { strengths, cautions } = buildStrengthsCautions(chart);
@@ -329,6 +367,7 @@ export function buildReadingDashboard(chart?: SajuChart, luckCycles?: LuckCycles
     strengths,
     cautions,
     needNow,
+    personalSignature: buildPersonalSignature(chart, guide),
     keywords: buildKeywords(chart, spectrum),
     careerDirections: buildCareerDirections(chart),
     spectrum,

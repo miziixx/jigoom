@@ -8,12 +8,9 @@ const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 const RELATION_OPTIONS: Array<{ value: CompatibilityRelationType; label: string }> = [
   { value: "romantic", label: "연인·배우자" },
-  { value: "parentChild", label: "부모·자식" },
-  { value: "siblings", label: "형제·자매" },
   { value: "family", label: "가족" },
-  { value: "bossEmployee", label: "사장·직원" },
-  { value: "coworker", label: "동료·동업자" },
-  { value: "friend", label: "친구" },
+  { value: "coworker", label: "업무·협업" },
+  { value: "friend", label: "친구·지인" },
 ];
 
 interface PersonInput {
@@ -149,7 +146,7 @@ function MiniBirthForm({
         </select>
         <span className={`field-hint${value.birthPlace === "none" ? " field-hint--accent" : ""}`}>
           {value.birthPlace === "none"
-            ? "출생지를 고르면 표준시·경도 차이를 반영해 시주 경계 판단이 더 정확해집니다."
+            ? "출생지를 고르면 시주 경계 판단이 더 정밀해집니다. 모르면 비워둬도 기본 비교는 가능합니다."
             : "표준시·경도 차이를 반영합니다."}
         </span>
       </div>
@@ -170,6 +167,7 @@ export default function CompatibilityPage() {
   const [personA, setPersonA] = useState<PersonInput>({ ...EMPTY });
   const [personB, setPersonB] = useState<PersonInput>({ ...EMPTY, gender: "male" });
   const [relationType, setRelationType] = useState<CompatibilityRelationType>("romantic");
+  const [question, setQuestion] = useState("");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -179,7 +177,7 @@ export default function CompatibilityPage() {
   function handleCompute() {
     setError(null);
     try {
-      setResult(computeCompatibility(toBirthInfo(personA), toBirthInfo(personB), relationType));
+      setResult(computeCompatibility(toBirthInfo(personA), toBirthInfo(personB), relationType, question));
     } catch {
       setError("궁합 계산에 실패했어요. 생년월일을 다시 확인해 주세요.");
     }
@@ -201,6 +199,15 @@ export default function CompatibilityPage() {
               </option>
             ))}
           </select>
+        </label>
+        <label className="compat-question-field">
+          <span>궁금한 점 (선택)</span>
+          <textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            rows={3}
+            placeholder="예: 이 사람과 계속 가까이 지내도 될까요? / 같이 일하면 괜찮을까요? / 가족 문제에서 어디까지 맞춰야 할까요?"
+          />
         </label>
       </section>
 
@@ -229,6 +236,33 @@ export default function CompatibilityPage() {
               <span className="compat-score__unit">점</span>
             </div>
           </div>
+
+          {result.questionInsight && (
+            <section className="card compat-question-card">
+              <span className="compat-score-card__eyebrow">질문 의도 먼저 보기</span>
+              <h3 className="card-title">{result.questionInsight.question}</h3>
+              <p className="reading-body">{result.questionInsight.intent}</p>
+              <p className="compat-question-card__answer">{result.questionInsight.answer}</p>
+              <div className="compat-advice-grid">
+                <section className="compat-inline-panel">
+                  <h4>현실에서 확인할 신호</h4>
+                  <ul className="compat-list">
+                    {result.questionInsight.signals.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+                <section className="compat-inline-panel">
+                  <h4>이번 주 행동</h4>
+                  <ul className="compat-list">
+                    {result.questionInsight.actions.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+            </section>
+          )}
 
           {result.people && (
             <div className="compat-people-grid">

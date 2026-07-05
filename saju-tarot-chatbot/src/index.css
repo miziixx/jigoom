@@ -349,6 +349,14 @@ body {
   margin-bottom: 14px;
 }
 
+.optional-settings-panel {
+  width: 100%;
+}
+
+.optional-settings-panel .consultation-panel {
+  background: rgba(255, 252, 245, 0.72);
+}
+
 .consultation-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3097,17 +3105,12 @@ label {
 
 .chat-suggestion {
   border: 1px solid rgba(214, 160, 82, 0.35);
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(214, 160, 82, 0.09);
-  color: var(--text);
-  padding: 7px 10px;
-  font-size: 0.78rem;
-  cursor: pointer;
-}
-
-.chat-suggestion:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  color: var(--text-dim);
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .chat-input-row {
@@ -4006,6 +4009,39 @@ label {
   width: 100%;
 }
 
+.compat-question-field {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.compat-question-field textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+}
+
+.compat-question-card {
+  border-color: rgba(111, 141, 134, 0.28);
+  background:
+    linear-gradient(180deg, rgba(111, 141, 134, 0.08), rgba(214, 160, 82, 0.04)),
+    var(--surface);
+}
+
+.compat-question-card__answer {
+  margin: 12px 0 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(169, 118, 56, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 251, 243, 0.68);
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1.65;
+}
+
 .chip-button {
   min-height: 36px;
   padding: 8px 12px;
@@ -4467,6 +4503,60 @@ label {
   font-weight: 600;
 }
 
+.summary-personal-card {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid rgba(125, 141, 88, 0.32);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(125, 141, 88, 0.11), rgba(214, 160, 82, 0.07)),
+    var(--surface-alt);
+}
+
+.summary-personal-card > span {
+  color: #657848;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.summary-personal-card h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.1rem;
+  line-height: 1.45;
+}
+
+.summary-personal-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.summary-personal-card div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(126, 86, 42, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 252, 245, 0.62);
+}
+
+.summary-personal-card dt {
+  margin-bottom: 5px;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.summary-personal-card dd {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
 .summary-hero__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -4781,6 +4871,10 @@ label {
 
   .summary-hero__conclusion p {
     font-size: 1rem;
+  }
+
+  .summary-personal-card dl {
+    grid-template-columns: 1fr;
   }
 
   .reading-evidence-zone {

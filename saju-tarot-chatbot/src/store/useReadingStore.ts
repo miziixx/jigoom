@@ -61,6 +61,35 @@ function followUpModeFor(question: string): "concise" | "deep" {
   return /자세히|깊게|상세|구체적으로|길게/.test(question) ? "deep" : "concise";
 }
 
+function inferFocusFromQuestion(question: string): ReadingFocus {
+  const text = question.replace(/\s/g, "").toLowerCase();
+  if (!text) return "general";
+  if (/연애|사랑|남친|여친|남자친구|여자친구|썸|재회|이별|결혼|배우자|상대|관계|궁합/.test(text)) return "relationship";
+  if (/직장|회사|이직|퇴사|취업|업무|프로젝트|커리어|사업|창업|브랜드|공부|진로|시험|합격/.test(text)) return "career";
+  if (/돈|금전|재물|수입|월급|연봉|투자|부업|매출|지출|저축|대출/.test(text)) return "career";
+  if (/건강|몸|아프|병원|컨디션|체력|수면|피로|두통|위장|간|눈|피부|허리|목|어깨/.test(text)) return "wellness";
+  if (/마음|불안|우울|멘탈|감정|스트레스|외롭|답답|무기력|자존감/.test(text)) return "mental";
+  if (/선택|결정|해야할까|해도될까|말까|시기|언제|타이밍|유지|그만|시작|기다/.test(text)) return "decision";
+  return "general";
+}
+
+function concernAreaForFocus(focus: ReadingFocus): string | undefined {
+  switch (focus) {
+    case "career":
+      return "일·돈·진로";
+    case "relationship":
+      return "연애·관계";
+    case "wellness":
+      return "건강·컨디션";
+    case "mental":
+      return "마음상태";
+    case "decision":
+      return "선택·시기";
+    default:
+      return undefined;
+  }
+}
+
 export const useReadingStore = create<ReadingStore>((set, get) => ({
   currentSession: null,
   loading: false,
@@ -69,6 +98,13 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
 
   startReading: async ({ type, question, focus, context, birthInfo, tarotCards, spreadNote, saveToHistory, forceRegenerate }) => {
     set({ loading: true, error: null });
+    const cleanQuestion = question.trim();
+    const inferredFocus = focus && focus !== "general" ? focus : inferFocusFromQuestion(cleanQuestion);
+    const inferredConcernArea = concernAreaForFocus(inferredFocus);
+    const effectiveContext: ReadingContext = {
+      ...(context ?? {}),
+      concernArea: context?.concernArea ?? inferredConcernArea,
+    };
     // 개인정보 보호: 사주 계산을 여기(브라우저)에서 끝내고, 서버로는 생년월일 원본 대신 계산 결과와
     // 성별만 보낸다. 리딩 기록은 사용자가 직접 저장을 선택한 경우에만 브라우저 저장소에 남긴다.
     const includeMonthlyFlow = type === "saju" || type === "combo" || type === "flow";
@@ -81,8 +117,8 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
             type,
             createdAt: new Date().toISOString(),
             question,
-            focus,
-            context,
+            focus: inferredFocus,
+            context: effectiveContext,
             birthInfo,
             sajuChart,
             luckCycles,
@@ -98,9 +134,9 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     // 날짜 의존 흐름이 오래 고정되지 않도록 오늘 흐름은 일 단위, 나머지는 월 단위로 신선도를 둔다.
     const cacheKey = {
       type,
-      question: question.trim(),
-      focus: focus ?? null,
-      context: context ?? null,
+      question: cleanQuestion,
+      focus: inferredFocus,
+      context: effectiveContext,
       gender: birthInfo?.gender ?? null,
       sajuChart: sajuChart ?? null,
       tarotCards: tarotCards ?? null,
@@ -115,8 +151,8 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
           type,
           createdAt: new Date().toISOString(),
           question,
-          focus,
-          context,
+          focus: inferredFocus,
+          context: effectiveContext,
           birthInfo,
           sajuChart,
           luckCycles,
@@ -142,7 +178,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     let metaUserMessage = "";
     try {
       const result = await streamReading(
-        { type, question, focus, context, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote },
+        { type, question, focus: inferredFocus, context: effectiveContext, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote },
         {
           onMeta: (meta) => {
             metaUserMessage = meta.userMessage;
@@ -151,8 +187,8 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
               type,
               createdAt: session?.createdAt ?? new Date().toISOString(),
               question,
-              focus,
-              context,
+              focus: inferredFocus,
+              context: effectiveContext,
               birthInfo,
               sajuChart: meta.sajuChart ?? sajuChart,
               luckCycles: meta.luckCycles ?? luckCycles,

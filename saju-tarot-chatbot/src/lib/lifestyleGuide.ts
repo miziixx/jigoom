@@ -58,6 +58,8 @@ export type LifestyleGuide = {
 export interface LifestyleOptions {
   /** 오늘 일진 간지 (예: "갑자"). 주면 today 필드가 채워진다. */
   todayGanZhi?: string;
+  /** 테스트/내보내기에서 같은 결과를 고정하고 싶을 때 쓰는 날짜 키(YYYY-MM-DD). 기본은 오늘 날짜. */
+  dateKey?: string;
 }
 
 const ELEMENT_KO: Record<keyof FiveElementBalance, string> = {
@@ -169,6 +171,34 @@ const ELEMENT_LIFESTYLE: Record<keyof FiveElementBalance, ElementLifestyle> = {
 const GENERATES: Record<Element, Element> = { wood: "fire", fire: "earth", earth: "metal", metal: "water", water: "wood" };
 const OVERCOMES: Record<Element, Element> = { wood: "earth", earth: "water", water: "fire", fire: "metal", metal: "wood" };
 
+function defaultDateKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function hashString(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash);
+}
+
+function unique<T>(items: T[]): T[] {
+  return [...new Set(items)];
+}
+
+function pickDaily<T>(items: T[], seed: string, count: number): T[] {
+  const list = unique(items);
+  if (list.length <= count) return list;
+  const start = hashString(seed) % list.length;
+  const picked: T[] = [];
+  for (let i = 0; picked.length < count && i < list.length * 2; i += 1) {
+    picked.push(list[(start + i) % list.length]);
+  }
+  return picked;
+}
+
 function primarySupportElement(chart: SajuChart): Element | null {
   const yongshin = chart.yongshin?.yongshin?.[0] ?? chart.yongshin?.supportive?.[0];
   return yongshin ? (KO_TO_ELEMENT[yongshin] ?? null) : null;
@@ -200,7 +230,7 @@ function todayElementOf(todayGanZhi: string): Element | null {
   return zhi && ZHI_WUXING[zhi] ? ZHI_WUXING[zhi] : null;
 }
 
-function buildToday(basis: Element, avoid: Element | null, todayGanZhi?: string): TodayEnergy | null {
+function buildToday(basis: Element, avoid: Element | null, todayAction: string, todayGanZhi?: string): TodayEnergy | null {
   if (!todayGanZhi) return null;
   const element = todayElementOf(todayGanZhi);
   if (!element) return null;
@@ -218,7 +248,7 @@ function buildToday(basis: Element, avoid: Element | null, todayGanZhi?: string)
       relation: "boost",
       headline: `오늘은 ${label} 기운이 들어와, 채우고 싶던 ${basisLabel} 흐름이 자연스럽게 살아나는 날`,
       note: `평소보다 ${basisLabel}에 맞는 행동이 수월하게 붙습니다. 미뤄둔 걸 오늘 한 걸음 밀어보기 좋아요.`,
-      action: ELEMENT_LIFESTYLE[basis].todayActions[0],
+      action: todayAction,
     };
   }
   if (tempers) {
@@ -228,7 +258,7 @@ function buildToday(basis: Element, avoid: Element | null, todayGanZhi?: string)
       relation: "temper",
       headline: `오늘은 ${label} 기운이 강하게 들어와, 한쪽으로 쏠리거나 지치기 쉬운 날`,
       note: `무리해서 밀어붙이기보다, ${basisLabel} 흐름으로 균형을 잡아주면 소모가 줄어듭니다.`,
-      action: ELEMENT_LIFESTYLE[basis].recovery[0] ? `${ELEMENT_LIFESTYLE[basis].recovery[0]}로 한 박자 쉬어가기` : ELEMENT_LIFESTYLE[basis].todayActions[0],
+      action: ELEMENT_LIFESTYLE[basis].recovery[0] ? `${ELEMENT_LIFESTYLE[basis].recovery[0]}로 한 박자 쉬어가기` : todayAction,
     };
   }
   return {
@@ -237,7 +267,7 @@ function buildToday(basis: Element, avoid: Element | null, todayGanZhi?: string)
     relation: "steady",
     headline: `오늘은 ${label} 기운이 무난하게 흐르는, 크게 흔들리지 않는 날`,
     note: `특별한 변수보다, 평소 ${basisLabel} 루틴을 꾸준히 지키기 좋은 날입니다.`,
-    action: ELEMENT_LIFESTYLE[basis].todayActions[0],
+    action: todayAction,
   };
 }
 
@@ -261,6 +291,35 @@ export function buildLifestyleGuide(chart: SajuChart, options: LifestyleOptions 
   const colors = secondary ? [...source.colors.slice(0, 2), secondary.colors[0]] : source.colors;
   const places = secondary ? [...source.places.slice(0, 2), secondary.places[0]] : source.places;
   const movement = secondary ? [...source.movement.slice(0, 2), secondary.movement[0]] : source.movement;
+  const seedBase = [
+    options.dateKey ?? defaultDateKey(),
+    options.todayGanZhi ?? "",
+    chart.day.ganZhi,
+    chart.month.ganZhi,
+    basisElement,
+    secondaryElement ?? "",
+    avoid ?? "",
+  ].join("|");
+  const playfulPool = [
+    ...source.playfulActions,
+    ...source.todayActions,
+    ...source.recovery.map((item) => `${item}를 오늘의 작은 루틴으로 넣기`),
+    ...(secondary ? secondary.playfulActions.slice(0, 2) : []),
+  ];
+  const actionPool = [
+    ...source.todayActions,
+    ...source.playfulActions,
+    ...source.workStyle.map((item) => `${item}을 10분만 해보기`),
+    ...(secondary ? secondary.todayActions.slice(0, 2) : []),
+  ];
+  const recoveryPool = [
+    ...source.recovery,
+    ...source.movement.map((item) => `${item}로 몸의 긴장 풀기`),
+    ...(secondary ? secondary.recovery.slice(0, 2) : []),
+  ];
+  const playfulActions = pickDaily(playfulPool, `${seedBase}|play`, 3);
+  const todayActions = pickDaily(actionPool, `${seedBase}|action`, 3);
+  const recovery = pickDaily(recoveryPool, `${seedBase}|recover`, 3);
 
   const strengthNote = strengthLabel
     ? strengthLabel.includes("신강")
@@ -293,8 +352,11 @@ export function buildLifestyleGuide(chart: SajuChart, options: LifestyleOptions 
     colors,
     places,
     movement,
+    recovery,
+    playfulActions,
+    todayActions,
     caution,
-    today: buildToday(basisElement, avoid, options.todayGanZhi),
+    today: buildToday(basisElement, avoid, todayActions[0] ?? source.todayActions[0], options.todayGanZhi),
     evidence: [
       `오행 분포: 목 ${chart.fiveElements.wood} · 화 ${chart.fiveElements.fire} · 토 ${chart.fiveElements.earth} · 금 ${chart.fiveElements.metal} · 수 ${chart.fiveElements.water}`,
       yong.length > 0 ? `용신 후보: ${yong.join("·")}` : "",

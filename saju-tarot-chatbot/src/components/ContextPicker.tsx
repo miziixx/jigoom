@@ -10,11 +10,9 @@ const SITUATIONS: Array<{ value: SituationStage; label: string }> = [
 ];
 
 const TONES: Array<{ value: AnswerTone; label: string; desc: string }> = [
-  { value: "realistic", label: "현실적으로", desc: "가능성과 조건을 균형 있게" },
-  { value: "warm", label: "따뜻하게", desc: "부드럽지만 뻔하지 않게" },
-  { value: "blunt", label: "냉정하게", desc: "돌려 말하지 않고 핵심부터" },
-  { value: "action", label: "행동계획 중심", desc: "오늘·이번 주 할 일 위주" },
-  { value: "detailed", label: "아주 자세하게", desc: "근거와 예시를 촘촘하게" },
+  { value: "realistic", label: "현실적으로", desc: "조건과 가능성 위주" },
+  { value: "warm", label: "부드럽게", desc: "차분하고 덜 날카롭게" },
+  { value: "action", label: "행동 중심", desc: "오늘 할 일 위주" },
 ];
 
 const DEPTHS: Array<{ value: AnswerDepth; label: string }> = [
@@ -43,11 +41,16 @@ export default function ContextPicker({ value, onChange, showTimeAccuracy = fals
   const availableStyleHint = useMemo(() => buildStyleHintFromFeedback(), []);
 
   return (
-    <>
+    <details className="consultation-panel">
+      <summary>
+        <span>상황을 더 넣고 싶을 때</span>
+        <small>선택사항이에요. 그냥 넘어가도 기본값으로 봅니다.</small>
+      </summary>
+
       <details className="consultation-panel">
         <summary>
-          <span>상담형으로 더 정확히 보기</span>
-          <small>선택지·최근 상황을 적으면 답이 덜 뭉뚱그려져요</small>
+          <span>고민을 더 구체적으로 적기</span>
+          <small>선택지나 최근 상황이 있을 때만 열어주세요.</small>
         </summary>
 
         <div className="consultation-grid">
@@ -183,6 +186,6 @@ export default function ContextPicker({ value, onChange, showTimeAccuracy = fals
           </label>
         </div>
       )}
-    </>
+    </details>
   );
 }

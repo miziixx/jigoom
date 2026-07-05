@@ -2,10 +2,10 @@ import { useState, type FormEvent } from "react";
 import type { ReadingSession } from "../types";
 
 const MAX_FOLLOW_UP_QUESTIONS = 5;
-const DEEP_QUESTION_SUGGESTIONS = [
-  "연애운을 더 깊게 봐줘. 반복되는 관계 패턴과 조심할 상대 유형까지 알려줘.",
-  "금전운을 더 자세히 봐줘. 돈이 들어오는 방식과 새는 패턴, 관리법을 알려줘.",
-  "직업운을 더 깊게 봐줘. 잘 맞는 일의 환경과 지금 준비할 것을 알려줘.",
+const FOLLOW_UP_EXAMPLES = [
+  "예: 왜 관계에서 비슷한 패턴이 반복되는지 더 자세히 봐줘.",
+  "예: 돈이 새는 습관과 이번 달 관리법을 구체적으로 알려줘.",
+  "예: 지금 일에서 버틸지 바꿀지 판단 기준을 더 깊게 봐줘.",
 ];
 
 interface Props {
@@ -27,11 +27,6 @@ export default function ChatFollowUp({ session, onSend, loading }: Props) {
     setQuestion("");
   }
 
-  function sendSuggestedQuestion(text: string) {
-    if (loading || reachedLimit) return;
-    onSend(text);
-  }
-
   return (
     <div className="card chat-followup">
       <h4>더 물어보기 ({usedQuestions}/{MAX_FOLLOW_UP_QUESTIONS})</h4>
@@ -50,16 +45,10 @@ export default function ChatFollowUp({ session, onSend, loading }: Props) {
       )}
       {!reachedLimit && (
         <div className="chat-suggestion-row" aria-label="깊게 물어보기 예시">
-          {DEEP_QUESTION_SUGGESTIONS.map((text) => (
-            <button
-              type="button"
-              className="chat-suggestion"
-              key={text}
-              onClick={() => sendSuggestedQuestion(text)}
-              disabled={loading}
-            >
-              {text.split(".")[0]}
-            </button>
+          {FOLLOW_UP_EXAMPLES.map((text) => (
+            <span className="chat-suggestion" key={text}>
+              {text}
+            </span>
           ))}
         </div>
       )}

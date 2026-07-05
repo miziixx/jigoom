@@ -171,6 +171,15 @@ describe("궁합 계산", () => {
     expect(rival.improvementTips?.join(" ")).toContain("사실");
   });
 
+  it("궁합 질문을 넣으면 질문 의도와 현실 행동을 따로 만든다", () => {
+    const withQuestion = computeCompatibility(A, B, "coworker", "이 사람과 같이 일해도 괜찮을까요?");
+    expect(withQuestion.questionInsight?.question).toContain("같이 일");
+    expect(withQuestion.questionInsight?.intent).toContain("역할");
+    expect(withQuestion.questionInsight?.answer.length).toBeGreaterThan(0);
+    expect(withQuestion.questionInsight?.signals.length).toBeGreaterThanOrEqual(3);
+    expect(withQuestion.questionInsight?.actions.length).toBeGreaterThanOrEqual(3);
+  });
+
   it("결과 표면 문장에 사주 전문용어가 없다", () => {
     // 단독 '충/형/파/해'는 '균형' 등 일반어와 겹쳐 오탐이므로, 명확한 용어만 검사
     const JARGON = ["천간합", "육합", "삼합", "반합", "상생", "상극", "비화", "오행", "일간", "십성", "지지 관계", "지지 사이"];

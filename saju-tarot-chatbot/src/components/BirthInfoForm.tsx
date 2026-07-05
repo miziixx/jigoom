@@ -167,32 +167,39 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
           </div>
         )}
 
-        <div className="field-row">
-          <span className="field-label">출생지</span>
-          <select value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)}>
-            <option value="none">보정 안 함</option>
-            {Object.entries(BIRTH_PLACES).map(([key, place]) => (
-              <option key={key} value={key}>
-                {place.label}
-              </option>
-            ))}
-          </select>
-          <span className={`field-hint${birthPlace === "none" ? " field-hint--accent" : ""}`}>
-            {birthPlace === "none"
-              ? "출생지를 고르면 표준시·경도 차이를 반영해 시주 경계 판단이 더 정확해집니다. 1987~1988년 한국 서머타임은 자동 반영돼요."
-              : "표준시·경도 차이를 반영합니다. 1987~1988년 한국 서머타임은 자동 반영돼요."}
-          </span>
-        </div>
+        <details className="consultation-panel optional-settings-panel">
+          <summary>
+            <span>선택 설정</span>
+            <small>출생지를 알면 더 정밀하고, 몰라도 기본 해석은 가능합니다.</small>
+          </summary>
 
-        <div className="field-row field-row--column save-chart-setting">
-          <label className="checkbox-label">
-            <input type="checkbox" checked={saveBirthChart} onChange={(e) => setSaveBirthChart(e.target.checked)} />
-            이 사주 원국을 이 기기에 저장하기
-          </label>
-          <span className="field-hint">
-            저장하면 기록 페이지에도 남고, 오늘 운세와 다음 사주 조회에서 다시 입력하지 않고 쓸 수 있어요. 서버가 아니라 이 브라우저에만 저장됩니다.
-          </span>
-        </div>
+          <div className="field-row">
+            <span className="field-label">출생지</span>
+            <select value={birthPlace} onChange={(e) => setBirthPlace(e.target.value)}>
+              <option value="none">보정 안 함</option>
+              {Object.entries(BIRTH_PLACES).map(([key, place]) => (
+                <option key={key} value={key}>
+                  {place.label}
+                </option>
+              ))}
+            </select>
+            <span className={`field-hint${birthPlace === "none" ? " field-hint--accent" : ""}`}>
+              {birthPlace === "none"
+                ? "출생지를 고르면 시주 경계 판단이 더 정밀해집니다. 모르면 비워둬도 기본 해석은 가능합니다."
+                : "표준시·경도 차이를 반영합니다. 1987~1988년 한국 서머타임은 자동 반영돼요."}
+            </span>
+          </div>
+
+          <div className="field-row field-row--column save-chart-setting">
+            <label className="checkbox-label">
+              <input type="checkbox" checked={saveBirthChart} onChange={(e) => setSaveBirthChart(e.target.checked)} />
+              이 사주 원국을 이 기기에 저장하기
+            </label>
+            <span className="field-hint">
+              저장하면 기록 페이지에도 남고, 오늘 운세와 다음 사주 조회에서 다시 입력하지 않고 쓸 수 있어요. 서버가 아니라 이 브라우저에만 저장됩니다.
+            </span>
+          </div>
+        </details>
 
         <div className="field-row">
           <span className="field-label">성별</span>
@@ -217,10 +224,6 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
             </div>
           </div>
 
-          {showFocus && <FocusPicker value={focus} onChange={setFocus} />}
-
-          <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
-
           <div className="field-row field-row--column">
             <span className="field-label">궁금한 점 (선택)</span>
             <textarea
@@ -230,6 +233,17 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showFocu
               rows={3}
             />
           </div>
+
+          <details className="consultation-panel optional-settings-panel">
+            <summary>
+              <span>분야와 말투를 직접 고르고 싶을 때</span>
+              <small>선택하지 않아도 질문 내용을 보고 기본값으로 풀이합니다.</small>
+            </summary>
+
+            {showFocus && <FocusPicker value={focus} onChange={setFocus} />}
+
+            <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
+          </details>
         </section>
       )}
 

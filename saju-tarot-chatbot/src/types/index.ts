@@ -260,6 +260,14 @@ export interface CompatibilityResult {
   elementComplement: string;
   /** 종합 한 줄 코멘트 */
   summary: string;
+  /** 사용자가 궁금한 점을 적었을 때, 그 질문 의도에 맞춘 관계 해석 */
+  questionInsight?: {
+    question: string;
+    intent: string;
+    answer: string;
+    signals: string[];
+    actions: string[];
+  };
   /** 세부 항목별 점수 */
   breakdown: { label: string; score: number; note: string; detail?: string; signal?: string; actions?: string[] }[];
   /** 화면에서 바로 보여줄 관계 운영 포인트 */
