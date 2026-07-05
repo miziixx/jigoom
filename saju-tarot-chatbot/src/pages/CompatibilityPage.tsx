@@ -282,7 +282,7 @@ export default function CompatibilityPage() {
               <p className="compat-solution-card__priority">{result.solutionPlan.priority}</p>
               <div className="compat-advice-grid">
                 <section className="compat-inline-panel">
-                  <h4>오늘 바로 할 일</h4>
+                  <h4>지금 해볼 것</h4>
                   <ul className="compat-list">
                     {result.solutionPlan.todayActions.map((item) => (
                       <li key={item}>{item}</li>
@@ -290,7 +290,7 @@ export default function CompatibilityPage() {
                   </ul>
                 </section>
                 <section className="compat-inline-panel">
-                  <h4>이번 주 실험</h4>
+                  <h4>잘 맞추기 위해 할 것</h4>
                   <ul className="compat-list">
                     {result.solutionPlan.weekActions.map((item) => (
                       <li key={item}>{item}</li>
@@ -298,7 +298,7 @@ export default function CompatibilityPage() {
                   </ul>
                 </section>
                 <section className="compat-inline-panel">
-                  <h4>멈춰야 할 반응</h4>
+                  <h4>피해야 할 말과 행동</h4>
                   <ul className="compat-list">
                     {result.solutionPlan.stopDoing.map((item) => (
                       <li key={item}>{item}</li>
@@ -306,7 +306,7 @@ export default function CompatibilityPage() {
                   </ul>
                 </section>
                 <section className="compat-inline-panel">
-                  <h4>확인할 현실 신호</h4>
+                  <h4>관계를 볼 때 확인할 점</h4>
                   <ul className="compat-list">
                     {result.solutionPlan.checkSignals.map((item) => (
                       <li key={item}>{item}</li>
@@ -315,7 +315,7 @@ export default function CompatibilityPage() {
                 </section>
               </div>
               <div className="compat-section-block">
-                <h4>실제로 이렇게 말해보세요</h4>
+                <h4>대화 예시</h4>
                 <div className="compat-script-list">
                   {result.solutionPlan.scripts.map((script) => (
                     <p key={script}>{script}</p>
