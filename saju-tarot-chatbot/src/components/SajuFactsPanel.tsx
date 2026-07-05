@@ -472,14 +472,26 @@ export default function SajuFactsPanel({
                     : "다음날 기준(23시대부터 다음날 일주)"}
                 </p>
               )}
+              {sajuChart.rootedness && sajuChart.rootedness.length > 0 && (
+                <p>통근(뿌리) — {sajuChart.rootedness.map((r) => r.note).join(" ")}</p>
+              )}
+              {sajuChart.transparency && <p>투출(드러남) — {sajuChart.transparency.note}</p>}
               {sajuChart.yongshin && (
                 <p>
                   용신 후보 — 용신: {(sajuChart.yongshin.yongshin ?? sajuChart.yongshin.supportive).join("·") || "없음"}
                   {sajuChart.yongshin.heesin && sajuChart.yongshin.heesin.length > 0 ? ` / 희신: ${sajuChart.yongshin.heesin.join("·")}` : ""}
                   {sajuChart.yongshin.unfavorable.length > 0 ? ` / 기신: ${sajuChart.yongshin.unfavorable.join("·")}` : ""}
+                  {sajuChart.yongshin.climatic ? ` / 조후용신: ${sajuChart.yongshin.climatic.element}` : ""}
+                  {sajuChart.yongshin.mediating ? ` / 통관용신: ${sajuChart.yongshin.mediating.element}` : ""}
+                  {sajuChart.yongshin.method ? ` (${sajuChart.yongshin.method})` : ""}
                 </p>
               )}
-              {sajuChart.gyeokguk && <p>격국 — {sajuChart.gyeokguk.name} ({sajuChart.gyeokguk.basis})</p>}
+              {sajuChart.gyeokguk && (
+                <p>
+                  격국 — {sajuChart.gyeokguk.name} ({sajuChart.gyeokguk.basis})
+                  {sajuChart.gyeokguk.status ? ` · 성패: ${sajuChart.gyeokguk.status}` : ""}
+                </p>
+              )}
               {sajuChart.timeCorrection && sajuChart.timeCorrection.applied.length > 0 && (
                 <p>
                   시각 보정 — {sajuChart.timeCorrection.applied.join(", ")} (보정 후 {sajuChart.timeCorrection.correctedDateTime})

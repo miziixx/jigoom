@@ -175,6 +175,47 @@ export interface YongshinCandidates {
   yongshin?: string[];
   /** 2차 희신 후보 오행 (용신을 돕는 오행) */
   heesin?: string[];
+  /** 조후용신 (계절 조화: 겨울생→화, 여름생→수 등). 없으면 null */
+  climatic?: { element: string; note: string } | null;
+  /** 통관용신 (강하게 대립하는 두 오행 사이를 잇는 오행). 없으면 null */
+  mediating?: { element: string; note: string } | null;
+  /** 적용한 관법 요약 (예: "억부 중심 + 조후 보정") */
+  method?: string;
+}
+
+/** 천간 하나의 통근(通根) 판정 — 그 천간 오행이 지지 지장간에 뿌리를 두는지 */
+export interface RootednessHit {
+  /** 천간 */
+  gan: string;
+  /** 천간 위치 (예: "일간") */
+  position: string;
+  /** 통근한 지지들 */
+  roots: Array<{
+    /** 지지 (예: "인") */
+    zhi: string;
+    /** 지지 위치 (예: "월지") */
+    zhiPosition: string;
+    /** 뿌리가 된 지장간 글자 */
+    via: string;
+    /** 지장간 내 위치 강도 */
+    strength: "정기" | "중기" | "여기";
+  }>;
+  /** 뿌리가 하나라도 있는지 */
+  rooted: boolean;
+  /** 쉬운 말 설명 */
+  note: string;
+}
+
+/** 투출(投出) 판정 — 월지 지장간이 천간에 드러났는지 (격국의 뚜렷함 판정) */
+export interface TransparencyInfo {
+  /** 월지 */
+  monthZhi: string;
+  /** 월지 지장간 전체 */
+  hidden: string[];
+  /** 천간에 드러난 지장간들 */
+  revealed: Array<{ stem: string; atPosition: string; tenGod: string }>;
+  /** 쉬운 말 설명 */
+  note: string;
 }
 
 /** 신살 한 개 (이름 + 해당 위치 + 쉬운 뜻) */
@@ -194,6 +235,10 @@ export interface GyeokgukInfo {
   basis: string;
   /** 쉬운 말 설명 */
   gloss: string;
+  /** 성패 경향: 격이 뚜렷한지(성격)·흔들리는지(파격)·불명확한지 */
+  status?: "성격 경향" | "파격 경향" | "불명확";
+  /** 성패 판단 근거 (투출·충 등) */
+  statusReason?: string;
 }
 
 export interface SajuChart {
@@ -215,6 +260,10 @@ export interface SajuChart {
   interactions?: string[];
   strength?: StrengthAssessment;
   yongshin?: YongshinCandidates;
+  /** 통근(通根): 각 천간이 지지 지장간에 뿌리를 두는지 */
+  rootedness?: RootednessHit[];
+  /** 투출(投出): 월지 지장간이 천간에 드러났는지 */
+  transparency?: TransparencyInfo;
   /** 12운성 (일간 기준 기둥별) */
   twelveStages?: string[];
   /** 공망 (일주 순중공망 지지 2개) */

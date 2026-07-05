@@ -9,11 +9,13 @@ import type {
   MonthFlowInfo,
   PastEvent,
   PastEventCalibrationInput,
+  RootednessHit,
   SajuChart,
   SajuPillar,
   SinsalHit,
   StrengthAssessment,
   TimeCorrection,
+  TransparencyInfo,
   YearFlowInfo,
   YongshinCandidates,
 } from "../types/index.js";
@@ -739,6 +741,132 @@ function computeGyeokguk(dayGan: string, monthZhi: string, strength: StrengthAss
   };
 }
 
+// ── 통근(通根)·투출(投出) ──────────
+
+/** 지장간 배열에서 idx 위치의 강도 (마지막=정기, 3개 중 가운데=중기, 그 외=여기) */
+function hiddenStemStrength(stems: string[], idx: number): "정기" | "중기" | "여기" {
+  if (idx === stems.length - 1) return "정기";
+  if (stems.length === 3 && idx === 1) return "중기";
+  return "여기";
+}
+
+/**
+ * 통근(通根): 각 천간이 지지의 지장간에 같은 오행으로 뿌리를 두는지 판정한다.
+ * 정기에 통근하면 강하고, 여기에만 걸치면 약하다. 특히 일간의 통근은 뿌리의 힘을 뜻한다.
+ */
+function computeRootedness(gans: PositionedChar[], zhis: PositionedChar[]): RootednessHit[] {
+  return gans.map(({ label, char }) => {
+    const ganEl = GAN_WUXING[char];
+    const roots: RootednessHit["roots"] = [];
+    for (const z of zhis) {
+      const stems = HIDDEN_STEMS[z.char] ?? [];
+      stems.forEach((stem, idx) => {
+        if (GAN_WUXING[stem] === ganEl) {
+          roots.push({ zhi: z.char, zhiPosition: z.label, via: stem, strength: hiddenStemStrength(stems, idx) });
+        }
+      });
+    }
+    const rooted = roots.length > 0;
+    const isDay = label === "일간";
+    const strongRoot = roots.some((r) => r.strength === "정기");
+    const note = rooted
+      ? `${label} ${char}은(는) ${roots.map((r) => `${r.zhiPosition} ${r.zhi}`).join(", ")}에 뿌리를 둡니다(${strongRoot ? "정기 통근으로 뿌리가 단단함" : "여기·중기 통근으로 뿌리가 약간 있음"}).${isDay ? " 일간이 뿌리를 가져 쉽게 흔들리지 않는 힘이 있습니다." : ""}`
+      : `${label} ${char}은(는) 지지에 뿌리가 없어 떠 있는 기운입니다.${isDay ? " 일간이 뿌리가 약해 환경·주변 흐름의 영향을 크게 받습니다." : ""}`;
+    return { gan: char, position: label, roots, rooted, note };
+  });
+}
+
+/**
+ * 투출(投出): 월지의 지장간이 천간에 드러났는지 판정한다.
+ * 월지 지장간이 천간에 투출하면 그 십성이 격국으로 뚜렷하게 작동한다.
+ */
+function computeTransparency(dayGan: string, monthZhi: string, gans: PositionedChar[]): TransparencyInfo {
+  const hidden = HIDDEN_STEMS[monthZhi] ?? [];
+  const revealed: TransparencyInfo["revealed"] = [];
+  for (const stem of hidden) {
+    const hit = gans.find((g) => g.char === stem);
+    if (hit) revealed.push({ stem, atPosition: hit.label, tenGod: tenGodOf(dayGan, stem) });
+  }
+  const note =
+    revealed.length > 0
+      ? `월지(${monthZhi})의 기운이 ${revealed.map((r) => `${r.atPosition} ${r.stem}(${r.tenGod})`).join(", ")}으로 드러나(투출), 그 성향이 겉으로 뚜렷하게 나타납니다.`
+      : `월지(${monthZhi})의 기운이 천간으로 드러나지 않아(투출 없음), 속에 잠재된 형태로 작동합니다.`;
+  return { monthZhi, hidden, revealed, note };
+}
+
+/** 격국 성패(간이): 월지 정기가 투출하면 뚜렷(성격 경향), 월지가 충 맞으면 흔들림(파격 경향) */
+function assessGyeokgukStatus(
+  monthZhi: string,
+  transparency: TransparencyInfo,
+  interactions: string[],
+): { status: GyeokgukInfo["status"]; statusReason: string } {
+  const mainStem = (HIDDEN_STEMS[monthZhi] ?? []).slice(-1)[0] ?? "";
+  const mainRevealed = transparency.revealed.some((r) => r.stem === mainStem);
+  const monthClashed = interactions.some((s) => s.includes("월지") && s.includes("충"));
+  if (mainRevealed && !monthClashed) {
+    return {
+      status: "성격 경향",
+      statusReason: `월지 정기(${mainStem})가 천간에 투출하고 월지를 크게 흔드는 충이 없어, 격이 뚜렷하게 작동하는 편입니다.`,
+    };
+  }
+  if (monthClashed) {
+    return {
+      status: "파격 경향",
+      statusReason: `월지(${monthZhi})가 충을 맞아 격의 뿌리가 흔들립니다. 격이 한 번 깨졌다 다시 잡히는 굴곡이 있을 수 있습니다(관법에 따라 다름).`,
+    };
+  }
+  return {
+    status: "불명확",
+    statusReason: `월지 정기(${mainStem})가 천간에 드러나지 않아 격의 뚜렷함이 약합니다. 여러 기운이 섞인 혼합형으로 볼 수 있습니다.`,
+  };
+}
+
+// ── 조후·통관 용신 ──────────
+const WINTER_ZHI = new Set(["해", "자", "축"]);
+const SUMMER_ZHI = new Set(["사", "오", "미"]);
+
+/** 조후용신(간이): 겨울생은 따뜻한 화, 여름생은 시원한 수를 조후로 본다. */
+function climaticYongshin(monthZhi: string, dayGan: string): { element: string; note: string } | null {
+  const dayEl = GAN_WUXING[dayGan];
+  if (WINTER_ZHI.has(monthZhi)) {
+    const cold = dayEl === "metal" || dayEl === "water";
+    return {
+      element: "화",
+      note: `겨울(${monthZhi}월) 태생이라 언 기운을 녹이는 따뜻한 화 기운이 조후로 도움이 됩니다.${cold ? " 일간도 차가운 편이라 더욱 그렇습니다." : ""}`,
+    };
+  }
+  if (SUMMER_ZHI.has(monthZhi)) {
+    const hot = dayEl === "fire" || dayEl === "wood";
+    return {
+      element: "수",
+      note: `여름(${monthZhi}월) 태생이라 열기를 식히는 시원한 수 기운이 조후로 도움이 됩니다.${hot ? " 일간도 뜨거운 편이라 더욱 그렇습니다." : ""}`,
+    };
+  }
+  return null;
+}
+
+/** 통관용신(간이): 가장 강한 두 오행이 상극이면 그 사이를 잇는 오행을 통관으로 본다. */
+function mediatingYongshin(five: FiveElementBalance): { element: string; note: string } | null {
+  const entries = (Object.keys(five) as Array<keyof FiveElementBalance>)
+    .map((k) => [k, five[k]] as const)
+    .sort((a, b) => b[1] - a[1]);
+  const [topEl, topN] = entries[0];
+  const [secEl, secN] = entries[1];
+  // 둘 다 충분히 강하고(각 2 이상) 서로 상극일 때만 통관 제시
+  if (topN < 2 || secN < 2) return null;
+  const clashing = OVERCOMES[topEl] === secEl || OVERCOMES[secEl] === topEl;
+  if (!clashing) return null;
+  // topEl과 secEl 사이를 잇는(둘 다 상생 관계) 오행: 극하는 쪽이 생하는 오행
+  const attacker = OVERCOMES[topEl] === secEl ? topEl : secEl;
+  const victim = attacker === topEl ? secEl : topEl;
+  const bridge = GENERATES[attacker]; // attacker가 생하고, 그게 victim을 생하면 통관
+  if (GENERATES[bridge] !== victim) return null;
+  return {
+    element: ELEMENT_KO[bridge],
+    note: `${ELEMENT_KO[topEl]}과 ${ELEMENT_KO[secEl]} 기운이 둘 다 강해 부딪히기 쉬운데, 그 사이를 이어주는 ${ELEMENT_KO[bridge]} 기운이 있으면 충돌이 순환으로 풀립니다(통관).`,
+  };
+}
+
 function toPillar(ganZhiHanja: string): SajuPillar {
   const ganZhi = toHangul(ganZhiHanja);
   return {
@@ -815,6 +943,16 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
   const interactions = computeInteractions(gans, zhis);
   const strength = assessStrength(dayGan, gans, zhis);
   const yongshin = suggestYongshin(dayGan, strength, fiveElements);
+  // 용신 체계 확장: 억부(기존) + 조후(계절) + 통관(대립 오행 잇기)
+  const climatic = climaticYongshin(monthPillar.zhi, dayGan);
+  const mediating = mediatingYongshin(fiveElements);
+  if (climatic) yongshin.climatic = climatic;
+  if (mediating) yongshin.mediating = mediating;
+  yongshin.method = `억부 중심${climatic ? " + 조후 보정" : ""}${mediating ? " + 통관 참고" : ""}`;
+
+  // 통근·투출
+  const rootedness = computeRootedness(gans, zhis);
+  const transparency = computeTransparency(dayGan, monthPillar.zhi, gans);
 
   const twelveStages = zhis.map((z) => `${z.label} ${z.char}: ${twelveStageOf(dayGan, z.char)}`);
   const gongmangZhis = gongmangOf(dayGan, dayPillar.zhi);
@@ -823,6 +961,10 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
 
   const sinsal = computeSinsal(dayGan, dayPillar.zhi, monthPillar.zhi, yearPillar.zhi, gans, zhis);
   const gyeokguk = computeGyeokguk(dayGan, monthPillar.zhi, strength);
+  // 격국 성패(투출·충 기준) 보정
+  const gyeokgukStatus = assessGyeokgukStatus(monthPillar.zhi, transparency, interactions);
+  gyeokguk.status = gyeokgukStatus.status;
+  gyeokguk.statusReason = gyeokgukStatus.statusReason;
   const iljuTrait = iljuTraitOf(dayPillar.ganZhi);
 
   return {
@@ -839,6 +981,8 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
     interactions,
     strength,
     yongshin,
+    rootedness,
+    transparency,
     twelveStages,
     gongmang,
     seasonNote: seasonNoteOf(monthPillar.zhi, dayGan),

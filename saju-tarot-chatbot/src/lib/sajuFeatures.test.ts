@@ -81,6 +81,46 @@ describe("격국·희신", () => {
       for (const h of weak.yongshin!.heesin!) expect(weak.yongshin!.yongshin!).not.toContain(h);
     }
   });
+  it("격국에 성패(성격/파격/불명확) 판정이 붙는다", () => {
+    expect(["성격 경향", "파격 경향", "불명확"]).toContain(chart.gyeokguk!.status);
+    expect(chart.gyeokguk!.statusReason!.length).toBeGreaterThan(0);
+  });
+  it("용신에 관법 요약(method)이 붙고, 여름/겨울생이면 조후용신이 잡힌다", () => {
+    // 1985-06-15은 임오월(여름) → 조후 수
+    const summer = computeSajuChart({ calendarType: "solar", year: 1985, month: 6, day: 15, hour: 14, gender: "female" });
+    expect(summer.yongshin!.method).toContain("억부");
+    expect(summer.yongshin!.climatic).toBeTruthy();
+    expect(summer.yongshin!.climatic!.element).toBe("수");
+    // 겨울생(자월)이면 조후 화
+    const winter = computeSajuChart({ calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, gender: "female" });
+    expect(winter.yongshin!.climatic!.element).toBe("화");
+  });
+});
+
+describe("통근·투출", () => {
+  const chart = computeSajuChart(female1990); // 경오 무자 임술 갑진
+  it("각 천간의 통근을 계산한다", () => {
+    expect(chart.rootedness).toBeDefined();
+    // 일간(임수)에 대한 통근 판정이 존재한다
+    const day = chart.rootedness!.find((r) => r.position === "일간");
+    expect(day).toBeTruthy();
+    expect(day!.gan).toBe("임");
+    // 임수는 자(연지 아래... 실제로는 월지 자)에 정기 통근
+    const hasWaterRoot = day!.roots.some((r) => r.zhi === "자");
+    expect(hasWaterRoot).toBe(true);
+    expect(day!.note.length).toBeGreaterThan(0);
+  });
+  it("뿌리 없는 천간은 rooted=false로 표시된다", () => {
+    for (const r of chart.rootedness!) {
+      expect(r.rooted).toBe(r.roots.length > 0);
+    }
+  });
+  it("월지 지장간의 투출 여부를 계산한다", () => {
+    expect(chart.transparency).toBeDefined();
+    expect(chart.transparency!.monthZhi).toBe("자");
+    expect(chart.transparency!.hidden.length).toBeGreaterThan(0);
+    expect(chart.transparency!.note.length).toBeGreaterThan(0);
+  });
 });
 
 describe("60갑자 일주 성향", () => {

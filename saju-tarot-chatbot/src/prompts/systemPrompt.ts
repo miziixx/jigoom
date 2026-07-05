@@ -290,14 +290,25 @@ function formatSajuChart(chart: SajuChart, todayGanZhi?: string): string {
   if (chart.strength) {
     lines.push(`신강/신약 (간이 억부 판정) — ${chart.strength.label} (${chart.strength.detail})`);
   }
+  // 통근(뿌리)·투출(드러남): 일간·주요 천간의 힘이 실제로 얼마나 단단한지 근거로 전달
+  if (chart.rootedness && chart.rootedness.length > 0) {
+    lines.push(`통근(뿌리) — ${chart.rootedness.map((r) => r.note).join(" ")}`);
+  }
+  if (chart.transparency) {
+    lines.push(`투출(드러남) — ${chart.transparency.note}`);
+  }
   if (chart.gyeokguk) {
-    lines.push(`격국 (참고용) — ${chart.gyeokguk.name} · 근거: ${chart.gyeokguk.basis}`);
+    const status = chart.gyeokguk.status ? ` · 성패: ${chart.gyeokguk.status}(${chart.gyeokguk.statusReason ?? ""})` : "";
+    lines.push(`격국 (참고용) — ${chart.gyeokguk.name} · 근거: ${chart.gyeokguk.basis}${status}`);
   }
   if (chart.yongshin) {
     const yong = (chart.yongshin.yongshin ?? chart.yongshin.supportive).join("·");
     const hee = chart.yongshin.heesin && chart.yongshin.heesin.length > 0 ? ` / 희신: ${chart.yongshin.heesin.join("·")}` : "";
+    const climatic = chart.yongshin.climatic ? ` / 조후용신: ${chart.yongshin.climatic.element}(${chart.yongshin.climatic.note})` : "";
+    const mediating = chart.yongshin.mediating ? ` / 통관용신: ${chart.yongshin.mediating.element}(${chart.yongshin.mediating.note})` : "";
+    const method = chart.yongshin.method ? ` [관법: ${chart.yongshin.method}]` : "";
     lines.push(
-      `용신 후보 — 용신: ${yong}${hee}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""} (${chart.yongshin.note})`,
+      `용신 후보 — 용신: ${yong}${hee}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""}${climatic}${mediating}${method} (${chart.yongshin.note})`,
     );
   }
   const lifestyle = buildLifestyleGuide(chart, { todayGanZhi });

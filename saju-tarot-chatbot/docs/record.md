@@ -874,3 +874,21 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
   기회형/주의형/혼조형 톤 매칭 규칙 추가(점수 그대로 노출 금지, 말로 옮기기).
 - UI(EventForecastPanel): 활성 분야 카드에 balance 배지 + 활성/이득/위험 3축 미니 막대. index.css 추가.
 - 테스트: eventEngine.test.ts 점수 범위·balance 검증 2건 추가. 전체 223 통과, build OK.
+
+## 명리 엔진 고도화 4단계 — 통근·투출·격국 성패·용신 체계 확장
+
+로드맵 4번. 계산 로직을 건드리므로 기존 회귀 테스트 호환을 유지하는 additive 방식으로 구현
+(기존 함수 불변, 새 optional 필드만 추가). saju-calculation-validation.md도 갱신.
+
+- 통근(通根) `computeRootedness`: 각 천간이 지지 지장간에 같은 오행으로 뿌리를 두는지.
+  정기/중기/여기 강도 판정. 특히 일간 통근 여부를 "쉽게 흔들리지 않는 힘" 문구로. → `SajuChart.rootedness`.
+- 투출(投出) `computeTransparency`: 월지 지장간이 천간에 드러났는지 → 격의 뚜렷함. → `SajuChart.transparency`.
+- 격국 성패 `assessGyeokgukStatus`: 월지 정기 투출 + 월지 충 여부로 성격/파격/불명확 판정. →
+  `GyeokgukInfo.status`/`statusReason`.
+- 용신 확장: 기존 억부(suggestYongshin) 유지 + `climaticYongshin`(겨울생→화/여름생→수) +
+  `mediatingYongshin`(최강 두 오행이 상극이면 잇는 오행). → `YongshinCandidates.climatic/mediating/method`.
+- 배선: systemPrompt formatSajuChart에 통근·투출·격국 성패·조후/통관 용신 근거 추가.
+  SajuFactsPanel 계산값 영역에 표시.
+- 타입: `RootednessHit`, `TransparencyInfo`, GyeokgukInfo/YongshinCandidates 필드 확장.
+- 테스트: sajuFeatures.test.ts에 통근·투출·격국 성패·조후용신 검증 5건 추가.
+  기존 회귀 테스트(계산 고정값) 전부 유지. 전체 228 통과, build OK.
