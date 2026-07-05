@@ -41,77 +41,70 @@ export default function ContextPicker({ value, onChange, showTimeAccuracy = fals
   const availableStyleHint = useMemo(() => buildStyleHintFromFeedback(), []);
 
   return (
-    <details className="consultation-panel">
-      <summary>
-        <span>상황을 더 넣고 싶을 때</span>
-        <small>선택사항이에요. 그냥 넘어가도 기본값으로 봅니다.</small>
-      </summary>
+    <div className="context-picker">
+      <div className="context-picker__intro">
+        <b>상황을 더 넣고 싶을 때</b>
+        <span>선택사항이에요. 그냥 넘어가도 질문 내용을 보고 기본값으로 풀이합니다.</span>
+      </div>
 
-      <details className="consultation-panel">
-        <summary>
-          <span>고민을 더 구체적으로 적기</span>
-          <small>선택지나 최근 상황이 있을 때만 열어주세요.</small>
-        </summary>
-
-        <div className="consultation-grid">
-          <label className="field-row field-row--column">
-            <span className="field-label">고민 분야</span>
-            <select value={value.concernArea ?? ""} onChange={(e) => onChange({ ...value, concernArea: e.target.value || undefined })}>
-              <option value="">선택 안 함</option>
-              {CONCERN_AREAS.map((area) => (
-                <option key={area} value={area}>
-                  {area}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field-row field-row--column">
-            <span className="field-label">현재 상황</span>
-            <select
-              value={value.situation ?? ""}
-              onChange={(e) => onChange({ ...value, situation: (e.target.value || undefined) as SituationStage | undefined })}
-            >
-              <option value="">선택 안 함</option>
-              {SITUATIONS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
+      <div className="consultation-grid">
         <label className="field-row field-row--column">
-          <span className="field-label">고민 중인 선택지</span>
-          <textarea
-            rows={2}
-            placeholder="예: A. 지금 일 유지 / B. 퇴사 후 새 시작 / C. 회사 다니며 부업 준비"
-            value={value.optionsText ?? ""}
-            onChange={(e) => onChange({ ...value, optionsText: e.target.value || undefined })}
-          />
+          <span className="field-label">고민 분야</span>
+          <select value={value.concernArea ?? ""} onChange={(e) => onChange({ ...value, concernArea: e.target.value || undefined })}>
+            <option value="">선택 안 함</option>
+            {CONCERN_AREAS.map((area) => (
+              <option key={area} value={area}>
+                {area}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="field-row field-row--column">
-          <span className="field-label">최근 1~3개월 실제 상황</span>
-          <textarea
-            rows={2}
-            placeholder="예: 일이 많아졌고, 사람 문제로 지치며, 새 일을 준비할 에너지가 줄었어요."
-            value={value.recentContext ?? ""}
-            onChange={(e) => onChange({ ...value, recentContext: e.target.value || undefined })}
-          />
+          <span className="field-label">현재 상황</span>
+          <select
+            value={value.situation ?? ""}
+            onChange={(e) => onChange({ ...value, situation: (e.target.value || undefined) as SituationStage | undefined })}
+          >
+            <option value="">선택 안 함</option>
+            {SITUATIONS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
         </label>
+      </div>
 
-        <label className="field-row field-row--column">
-          <span className="field-label">가장 두려운 결과</span>
-          <textarea
-            rows={2}
-            placeholder="예: 지금 움직였다가 돈도 잃고 다시 지칠까 봐 걱정돼요."
-            value={value.fearPoint ?? ""}
-            onChange={(e) => onChange({ ...value, fearPoint: e.target.value || undefined })}
-          />
-        </label>
-      </details>
+      <label className="field-row field-row--column">
+        <span className="field-label">고민 중인 선택지</span>
+        <textarea
+          rows={2}
+          placeholder="예: A. 지금 일 유지 / B. 퇴사 후 새 시작 / C. 회사 다니며 부업 준비"
+          value={value.optionsText ?? ""}
+          onChange={(e) => onChange({ ...value, optionsText: e.target.value || undefined })}
+        />
+      </label>
+
+      <label className="field-row field-row--column">
+        <span className="field-label">최근 1~3개월 실제 상황</span>
+        <textarea
+          rows={2}
+          placeholder="예: 일이 많아졌고, 사람 문제로 지치며, 새 일을 준비할 에너지가 줄었어요."
+          value={value.recentContext ?? ""}
+          onChange={(e) => onChange({ ...value, recentContext: e.target.value || undefined })}
+        />
+      </label>
+
+      <label className="field-row field-row--column">
+        <span className="field-label">가장 두려운 결과</span>
+        <textarea
+          rows={2}
+          placeholder="예: 지금 움직였다가 돈도 잃고 다시 지칠까 봐 걱정돼요."
+          value={value.fearPoint ?? ""}
+          onChange={(e) => onChange({ ...value, fearPoint: e.target.value || undefined })}
+        />
+      </label>
 
       <div className="field-row field-row--column">
         <span className="field-label">풀이 말투</span>
@@ -186,6 +179,6 @@ export default function ContextPicker({ value, onChange, showTimeAccuracy = fals
           </label>
         </div>
       )}
-    </details>
+    </div>
   );
 }

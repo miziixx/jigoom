@@ -18,7 +18,7 @@ describe("ContextPicker", () => {
 
     expect(html).toContain("상황을 더 넣고 싶을 때");
     expect(html).toContain("선택사항이에요");
-    expect(html).toContain("고민을 더 구체적으로 적기");
+    expect(html).toContain("고민 분야");
     expect(html).toContain("고민 중인 선택지");
     expect(html).toContain("최근 1~3개월 실제 상황");
     expect(html).toContain("가장 두려운 결과");

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { TAROT_DECK } from "../data/tarotDeck";
+import { resolveSavedBirth } from "../lib/profile";
 import { describeTarotSymbolism, tarotElementOf, tarotSuitOf } from "../lib/tarotSymbolism";
+import type { BirthInfo } from "../types";
 import type { TarotCardDefinition } from "../types";
 
 function dateKey(date = new Date()) {
@@ -24,6 +26,38 @@ function dailyDraw(seedText: string) {
   const card = TAROT_DECK[seed % TAROT_DECK.length];
   const reversed = ((seed >>> 7) % 100) < 38;
   return { card, reversed };
+}
+
+function birthSeedOf(birth: BirthInfo) {
+  return [
+    birth.calendarType,
+    birth.year,
+    birth.month,
+    birth.day,
+    birth.hour ?? "unknown",
+    birth.minute ?? 0,
+    birth.birthPlace ?? "none",
+    birth.gender,
+  ].join(":");
+}
+
+function anonymousDeviceSeed() {
+  const key = "saju-tarot-chatbot:anonymous-tarot-seed";
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) return saved;
+    const value = `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(key, value);
+    return value;
+  } catch {
+    return "device-fallback";
+  }
+}
+
+function todayPersonalSeed(today: string) {
+  const birth = resolveSavedBirth();
+  const userPart = birth ? `birth:${birthSeedOf(birth)}` : anonymousDeviceSeed();
+  return `insight-oracle-tarot-card:${today}:${userPart}`;
 }
 
 function randomDraw() {
@@ -178,7 +212,7 @@ function TodayCardVisual({ card, reversed }: { card: TarotCardDefinition; revers
 
 export default function TarotTodayPage() {
   const today = dateKey();
-  const stable = useMemo(() => dailyDraw(`insight-oracle-tarot-card:${today}`), [today]);
+  const stable = useMemo(() => dailyDraw(todayPersonalSeed(today)), [today]);
   const [extra, setExtra] = useState<{ card: TarotCardDefinition; reversed: boolean } | null>(null);
   const draw = extra ?? stable;
   const meaning = draw.reversed ? draw.card.reversedMeaning : draw.card.uprightMeaning;
@@ -189,7 +223,7 @@ export default function TarotTodayPage() {
     <section className="page">
       <h2 className="page-title">오늘의 카드</h2>
       <p className="page-desc">
-        오늘 하루의 분위기를 카드 1장으로 가볍게 확인해요. 기본 카드는 날짜 기준으로 하루 동안 고정됩니다.
+        오늘 하루의 분위기를 카드 1장으로 가볍게 확인해요. 기본 카드는 저장된 사주나 이 기기 기준으로 하루 동안 고정됩니다.
       </p>
 
       <section className="card today-tarot-card">

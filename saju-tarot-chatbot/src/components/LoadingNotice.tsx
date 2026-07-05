@@ -19,8 +19,9 @@ interface LoadingNoticeProps {
   isInitial?: boolean;
 }
 
-type LoadingGame = "omok" | "yut";
+type LoadingGame = "omok" | "tetris";
 type Stone = "black" | "white" | null;
+type TetrisCell = string | null;
 
 const OMOK_SIZE = 5;
 const HUMAN_STONE: Exclude<Stone, null> = "black";
@@ -32,14 +33,60 @@ const OMOK_DIRS = [
   [1, -1],
 ];
 
-const YUT_RESULTS = [
-  { name: "도", move: 1, note: "작게 한 칸." },
-  { name: "개", move: 2, note: "두 칸 전진." },
-  { name: "걸", move: 3, note: "세 칸 전진." },
-  { name: "윷", move: 4, note: "크게 전진. 한 번 더!" },
-  { name: "모", move: 5, note: "제일 큰 전진!" },
+const TETRIS_WIDTH = 8;
+const TETRIS_HEIGHT = 12;
+const TETRIS_SHAPES = [
+  {
+    name: "I",
+    color: "cyan",
+    cells: [
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+    ],
+  },
+  {
+    name: "O",
+    color: "gold",
+    cells: [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [1, 1],
+    ],
+  },
+  {
+    name: "T",
+    color: "violet",
+    cells: [
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+    ],
+  },
+  {
+    name: "L",
+    color: "orange",
+    cells: [
+      [0, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+    ],
+  },
+  {
+    name: "S",
+    color: "green",
+    cells: [
+      [1, 0],
+      [2, 0],
+      [0, 1],
+      [1, 1],
+    ],
+  },
 ];
-const YUT_FINISH = 20;
 
 function longestLineAt(board: Stone[], index: number, stone: Stone) {
   if (!stone) return 0;
@@ -174,95 +221,116 @@ function OmokMiniGame() {
   );
 }
 
-function YutMiniGame() {
-  const [playerPos, setPlayerPos] = useState(0);
-  const [computerPos, setComputerPos] = useState(0);
-  const [turn, setTurn] = useState<"player" | "computer">("player");
-  const [winner, setWinner] = useState<"player" | "computer" | null>(null);
-  const [lastRoll, setLastRoll] = useState<{ who: "player" | "computer"; result: (typeof YUT_RESULTS)[number] } | null>(null);
+function rotatePiece(piece: (typeof TETRIS_SHAPES)[number]) {
+  if (piece.name === "O") return piece.cells;
+  return piece.cells.map(([x, y]) => [1 - y, x] as [number, number]);
+}
 
-  const roll = () => {
-    if (turn !== "player" || winner) return;
-    const result = YUT_RESULTS[Math.floor(Math.random() * YUT_RESULTS.length)];
-    setLastRoll({ who: "player", result });
-    setPlayerPos((pos) => {
-      const nextPos = Math.min(YUT_FINISH, pos + result.move);
-      if (nextPos >= YUT_FINISH) setWinner("player");
-      else setTurn("computer");
-      return nextPos;
-    });
+function TetrisMiniGame() {
+  const makePiece = () => {
+    const shape = TETRIS_SHAPES[Math.floor(Math.random() * TETRIS_SHAPES.length)];
+    return { ...shape, x: Math.floor(TETRIS_WIDTH / 2) - 2, y: 0 };
+  };
+  const emptyBoard = () => Array.from({ length: TETRIS_WIDTH * TETRIS_HEIGHT }, () => null as TetrisCell);
+  const [board, setBoard] = useState<TetrisCell[]>(emptyBoard);
+  const [piece, setPiece] = useState(makePiece);
+  const [cleared, setCleared] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+
+  const cellsOf = (p = piece) => p.cells.map(([x, y]) => [p.x + x, p.y + y] as [number, number]);
+  const canPlace = (p: typeof piece, current = board) =>
+    cellsOf(p).every(([x, y]) => x >= 0 && x < TETRIS_WIDTH && y >= 0 && y < TETRIS_HEIGHT && !current[y * TETRIS_WIDTH + x]);
+
+  const lockPiece = (p: typeof piece) => {
+    const next = [...board];
+    for (const [x, y] of cellsOf(p)) next[y * TETRIS_WIDTH + x] = p.color;
+    const rows: TetrisCell[][] = [];
+    let removed = 0;
+    for (let y = 0; y < TETRIS_HEIGHT; y += 1) {
+      const row = next.slice(y * TETRIS_WIDTH, (y + 1) * TETRIS_WIDTH);
+      if (row.every(Boolean)) removed += 1;
+      else rows.push(row);
+    }
+    while (rows.length < TETRIS_HEIGHT) rows.unshift(Array.from({ length: TETRIS_WIDTH }, () => null));
+    const clearedBoard = rows.flat();
+    const nextPiece = makePiece();
+    setBoard(clearedBoard);
+    setCleared((n) => n + removed);
+    setPiece(nextPiece);
+    if (!canPlace(nextPiece, clearedBoard)) setGameOver(true);
+  };
+
+  const move = (dx: number, dy: number) => {
+    if (gameOver) return;
+    const next = { ...piece, x: piece.x + dx, y: piece.y + dy };
+    if (canPlace(next)) setPiece(next);
+    else if (dy > 0) lockPiece(piece);
+  };
+
+  const rotate = () => {
+    if (gameOver) return;
+    const next = { ...piece, cells: rotatePiece(piece) };
+    if (canPlace(next)) setPiece(next);
   };
 
   const reset = () => {
-    setPlayerPos(0);
-    setComputerPos(0);
-    setTurn("player");
-    setWinner(null);
-    setLastRoll(null);
+    setBoard(emptyBoard());
+    setPiece(makePiece());
+    setCleared(0);
+    setGameOver(false);
   };
 
   useEffect(() => {
-    if (turn !== "computer" || winner) return;
-    const id = window.setTimeout(() => {
-      const result = YUT_RESULTS[Math.floor(Math.random() * YUT_RESULTS.length)];
-      setLastRoll({ who: "computer", result });
-      setComputerPos((pos) => {
-        const nextPos = Math.min(YUT_FINISH, pos + result.move);
-        if (nextPos >= YUT_FINISH) setWinner("computer");
-        else setTurn("player");
-        return nextPos;
-      });
-    }, 600);
-    return () => window.clearTimeout(id);
-  }, [turn, winner]);
+    if (gameOver) return;
+    const id = window.setInterval(() => move(0, 1), 800);
+    return () => window.clearInterval(id);
+  });
+
+  const active = new Set(cellsOf().map(([x, y]) => `${x}:${y}`));
 
   return (
-    <div className="loading-game loading-game--yut">
+    <div className="loading-game loading-game--tetris">
       <div className="loading-game__head">
-        <b>기다리는 동안 윷놀이 대결 · 나 vs 프로그램</b>
+        <b>기다리는 동안 미니 테트리스</b>
         <button type="button" onClick={reset}>
           새 판
         </button>
       </div>
-      <div className="yut-race">
-        <div className="yut-race__row">
-          <span className="yut-race__label">나</span>
-          <div className="yut-race__track">
-            <div className="yut-race__fill yut-race__fill--player" style={{ width: `${(playerPos / YUT_FINISH) * 100}%` }} />
-          </div>
-          <span className="yut-race__pos">{playerPos}/{YUT_FINISH}</span>
+      <div className="tetris-wrap">
+        <div className="tetris-board" aria-label="미니 테트리스">
+          {board.map((cell, index) => {
+            const x = index % TETRIS_WIDTH;
+            const y = Math.floor(index / TETRIS_WIDTH);
+            const activeCell = active.has(`${x}:${y}`);
+            const color = activeCell ? piece.color : cell;
+            return <span className={`tetris-cell${color ? ` tetris-cell--${color}` : ""}`} key={index} />;
+          })}
         </div>
-        <div className="yut-race__row">
-          <span className="yut-race__label">프로그램</span>
-          <div className="yut-race__track">
-            <div className="yut-race__fill yut-race__fill--computer" style={{ width: `${(computerPos / YUT_FINISH) * 100}%` }} />
-          </div>
-          <span className="yut-race__pos">{computerPos}/{YUT_FINISH}</span>
+        <div className="tetris-controls">
+          <button type="button" onClick={() => move(-1, 0)} disabled={gameOver}>
+            왼쪽
+          </button>
+          <button type="button" onClick={rotate} disabled={gameOver}>
+            돌리기
+          </button>
+          <button type="button" onClick={() => move(1, 0)} disabled={gameOver}>
+            오른쪽
+          </button>
+          <button type="button" onClick={() => move(0, 1)} disabled={gameOver}>
+            내리기
+          </button>
         </div>
       </div>
-      <div className="yut-result" aria-live="polite">
-        <span>{lastRoll ? lastRoll.result.name : "-"}</span>
-        <strong>{lastRoll ? `${lastRoll.result.move}칸 (${lastRoll.who === "player" ? "나" : "프로그램"})` : "던지기 대기"}</strong>
-      </div>
-      <button type="button" className="loading-game__action" onClick={roll} disabled={turn !== "player" || Boolean(winner)}>
-        던지기
-      </button>
       <p className="loading-game__note">
-        {winner === "player"
-          ? "내가 먼저 도착했어요! 리딩도 거의 다 익어가는 중이에요."
-          : winner === "computer"
-            ? "프로그램이 먼저 도착했어요. 한 판 더 가볼까요?"
-            : turn === "player"
-              ? "내 차례예요 · 던지기를 눌러보세요."
-              : "프로그램이 던지는 중..."}
+        {gameOver ? "블록이 가득 찼어요. 새 판으로 다시 시작해도 좋아요." : `지운 줄 ${cleared}개 · 리딩이 완성되는 동안 가볍게 움직여보세요.`}
       </p>
     </div>
   );
 }
 
 function LoadingMiniGame() {
-  const [game] = useState<LoadingGame>(() => (Math.random() > 0.5 ? "omok" : "yut"));
-  return game === "omok" ? <OmokMiniGame /> : <YutMiniGame />;
+  const [game] = useState<LoadingGame>(() => (Math.random() > 0.5 ? "omok" : "tetris"));
+  return game === "omok" ? <OmokMiniGame /> : <TetrisMiniGame />;
 }
 
 /**
@@ -286,7 +354,7 @@ export default function LoadingNotice({ depth, type, hasQuestion = false, replyT
       <div className="loading-notice__head">
         <span className="loading-notice__spinner" aria-hidden="true" />
         <span>
-          계산은 끝났고, 풀이를 쓰고 있어요. <span className="loading-notice__elapsed">({elapsed}초 경과)</span>
+          <strong>리딩 생성 중이에요.</strong> 계산은 끝났고, 풀이를 쓰고 있어요. <span className="loading-notice__elapsed">({elapsed}초 경과)</span>
         </span>
       </div>
       <p className="loading-notice__note">{depth ? DEPTH_ETA[depth] : "곧 첫 점괘부터 뜨기 시작해요."}</p>

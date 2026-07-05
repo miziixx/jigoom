@@ -357,6 +357,29 @@ body {
   background: rgba(255, 252, 245, 0.72);
 }
 
+.context-picker {
+  display: grid;
+  gap: 12px;
+}
+
+.context-picker__intro {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 2px;
+}
+
+.context-picker__intro b {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.context-picker__intro span {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .consultation-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2833,6 +2856,17 @@ label {
   display: flex;
   align-items: center;
   gap: 10px;
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.loading-notice__head strong {
+  display: inline-block;
+  margin-right: 4px;
+  color: var(--accent-strong);
+  font-size: 1.18rem;
+  font-weight: 900;
 }
 
 .loading-notice__spinner {
@@ -3026,6 +3060,84 @@ label {
   background: #fffaf1;
   border: 1px solid rgba(47, 37, 24, 0.25);
   box-shadow: inset 0 -2px 4px rgba(126, 86, 42, 0.16);
+}
+
+.tetris-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.tetris-board {
+  display: grid;
+  grid-template-columns: repeat(8, 20px);
+  grid-template-rows: repeat(12, 20px);
+  gap: 2px;
+  width: fit-content;
+  padding: 8px;
+  border: 1px solid rgba(126, 86, 42, 0.24);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(47, 37, 24, 0.06), rgba(126, 86, 42, 0.04)),
+    #fffaf1;
+}
+
+.tetris-cell {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: rgba(126, 86, 42, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(126, 86, 42, 0.06);
+}
+
+.tetris-cell--cyan {
+  background: #78b7b0;
+}
+
+.tetris-cell--gold {
+  background: #d6a052;
+}
+
+.tetris-cell--violet {
+  background: #a984c7;
+}
+
+.tetris-cell--orange {
+  background: #c9784a;
+}
+
+.tetris-cell--green {
+  background: #7fa56c;
+}
+
+.tetris-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tetris-controls button {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tetris-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .tetris-wrap {
+    grid-template-columns: 1fr;
+  }
 }
 
 .yut-result {
