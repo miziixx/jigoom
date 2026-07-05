@@ -148,8 +148,11 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(deep).not.toContain("[기본 리딩 — 종합]");
     expect(deep).toContain("상세 계산 근거 — 사주 원국");
     expect(deep).toContain("상세 계산 근거 — 대운/세운/월운/일진");
-    expect(deep).toContain("정밀 확장 리딩");
-    expect(deep).toContain("5000~6500자");
+    expect(deep).toContain("정밀 리포트");
+    expect(deep).toContain("# 반복 패턴 정밀 진단");
+    expect(deep).toContain("# 선택과 시기 판단");
+    expect(deep).toContain("# 3개월 실행 전략");
+    expect(deep).toContain("5600~7200자");
   });
 
   it("병렬 생성을 위해 지정 섹션만 쓰라는 지시를 붙일 수 있다", () => {

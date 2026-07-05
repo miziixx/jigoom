@@ -45,6 +45,9 @@ const SECTION_META: Record<string, { tag: string; tone: string }> = {
   "건강과 컨디션": { tag: "컨디션", tone: "health" },
   "인생의 큰 흐름": { tag: "큰 흐름", tone: "flow" },
   "올해의 흐름": { tag: "올해", tone: "year" },
+  "반복 패턴 정밀 진단": { tag: "정밀", tone: "pattern" },
+  "선택과 시기 판단": { tag: "판단", tone: "decision" },
+  "3개월 실행 전략": { tag: "전략", tone: "strategy" },
   "지금 해야 할 것과 피해야 할 것": { tag: "행동", tone: "action" },
 };
 
