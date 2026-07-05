@@ -10,6 +10,7 @@ import SummaryCardGrid from "./SummaryCardGrid";
 import PersonalitySpectrum from "./PersonalitySpectrum";
 import LifeAreaBars from "./LifeAreaBars";
 import EventForecastPanel from "./EventForecastPanel";
+import PastValidationPanel from "./PastValidationPanel";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide";
 import { buildReadingDashboard } from "../lib/readingDashboard";
 import TarotFactsPanel from "./TarotFactsPanel";
@@ -553,6 +554,15 @@ export default function ReadingResult({ session, loading = false }: { session: R
           sajuChart={session.sajuChart}
           luckCycles={session.luckCycles}
           gender={session.birthInfo?.gender}
+        />
+      )}
+
+      {/* 과거 검증: 사용자가 과거 사건을 입력했으면 그 시기 흐름과의 부합도를 보여준다. */}
+      {session.sajuChart && session.context?.pastEvents && session.context.pastEvents.length > 0 && (
+        <PastValidationPanel
+          birthInfo={session.birthInfo}
+          sajuChart={session.sajuChart}
+          pastEvents={session.context.pastEvents}
         />
       )}
 

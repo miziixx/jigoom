@@ -1,6 +1,18 @@
 import { useMemo } from "react";
 import { buildStyleHintFromFeedback } from "../lib/feedback";
-import type { AnswerDepth, AnswerTone, BirthTimeAccuracy, ReadingContext, SituationStage } from "../types";
+import type { AnswerDepth, AnswerTone, BirthTimeAccuracy, LifeDomain, PastEvent, ReadingContext, SituationStage } from "../types";
+
+const PAST_DOMAIN_OPTIONS: Array<{ value: LifeDomain; label: string }> = [
+  { value: "career", label: "직업·일" },
+  { value: "money", label: "돈·재물" },
+  { value: "love", label: "연애·관계" },
+  { value: "health", label: "건강·컨디션" },
+  { value: "family", label: "가족" },
+  { value: "move", label: "이사·이동" },
+  { value: "startup", label: "창업·독립" },
+];
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 const SITUATIONS: Array<{ value: SituationStage; label: string }> = [
   { value: "before", label: "시작 전 고민" },
@@ -39,6 +51,15 @@ interface Props {
 export default function ContextPicker({ value, onChange, showTimeAccuracy = false }: Props) {
   // 지난 피드백에서 뽑을 수 있는 스타일 조정 힌트 (없으면 체크박스를 숨긴다)
   const availableStyleHint = useMemo(() => buildStyleHintFromFeedback(), []);
+
+  const pastEvents = value.pastEvents ?? [];
+  const updatePastEvents = (next: PastEvent[]) =>
+    onChange({ ...value, pastEvents: next.length > 0 ? next : undefined });
+  const setPastEvent = (index: number, patch: Partial<PastEvent>) =>
+    updatePastEvents(pastEvents.map((ev, i) => (i === index ? { ...ev, ...patch } : ev)));
+  const addPastEvent = () =>
+    updatePastEvents([...pastEvents, { year: CURRENT_YEAR - 1, domain: "career" }]);
+  const removePastEvent = (index: number) => updatePastEvents(pastEvents.filter((_, i) => i !== index));
 
   return (
     <div className="context-picker">
@@ -105,6 +126,53 @@ export default function ContextPicker({ value, onChange, showTimeAccuracy = fals
           onChange={(e) => onChange({ ...value, fearPoint: e.target.value || undefined })}
         />
       </label>
+
+      <div className="field-row field-row--column past-events">
+        <span className="field-label">실제로 있었던 과거 일 (검증용, 선택)</span>
+        <p className="past-events__hint">
+          연도와 분야를 넣으면, 그 시기 사주 흐름과 얼마나 맞는지 계산해서 해석 신뢰도를 조정합니다. 맞은 축은 더 자신 있게,
+          안 맞은 축은 조심스럽게 풀이합니다.
+        </p>
+        {pastEvents.map((ev, i) => (
+          <div className="past-event-row" key={i}>
+            <input
+              type="number"
+              className="past-event-row__year"
+              min={1930}
+              max={CURRENT_YEAR}
+              value={ev.year}
+              aria-label="연도"
+              onChange={(e) => setPastEvent(i, { year: Number(e.target.value) || CURRENT_YEAR })}
+            />
+            <select
+              className="past-event-row__domain"
+              value={ev.domain}
+              aria-label="분야"
+              onChange={(e) => setPastEvent(i, { domain: e.target.value as LifeDomain })}
+            >
+              {PAST_DOMAIN_OPTIONS.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              className="past-event-row__note"
+              placeholder="무슨 일이었는지 (선택)"
+              value={ev.note ?? ""}
+              aria-label="사건 설명"
+              onChange={(e) => setPastEvent(i, { note: e.target.value || undefined })}
+            />
+            <button type="button" className="past-event-row__remove" onClick={() => removePastEvent(i)} aria-label="삭제">
+              ✕
+            </button>
+          </div>
+        ))}
+        <button type="button" className="past-events__add" onClick={addPastEvent}>
+          + 과거 일 추가
+        </button>
+      </div>
 
       <div className="field-row field-row--column">
         <span className="field-label">풀이 말투</span>

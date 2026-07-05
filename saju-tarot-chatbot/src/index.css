@@ -5548,3 +5548,126 @@ label {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── 과거 사건 입력 (검증용) ────────── */
+.past-events__hint {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.past-event-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.past-event-row__year {
+  width: 84px;
+  flex: 0 0 auto;
+}
+.past-event-row__domain {
+  flex: 0 0 auto;
+  min-width: 108px;
+}
+.past-event-row__note {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.past-event-row__remove {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.past-event-row__remove:hover {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+}
+.past-events__add {
+  align-self: flex-start;
+  font-size: 0.82rem;
+  padding: 5px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+.past-events__add:hover {
+  background: var(--accent-soft);
+}
+@media (max-width: 600px) {
+  .past-event-row {
+    flex-wrap: wrap;
+  }
+  .past-event-row__note {
+    flex-basis: 100%;
+    order: 3;
+  }
+}
+
+/* ── 과거 검증 결과 카드 ────────── */
+.past-validation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.past-validation__headline {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.5;
+}
+.past-match {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 14px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.past-match--strong {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface));
+}
+.past-match--weak {
+  border-style: dashed;
+}
+.past-match__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.past-match__badge {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.past-match__badge--strong { color: #fff; background: var(--accent); }
+.past-match__badge--partial { color: var(--accent); background: var(--accent-soft); }
+.past-match__badge--weak { color: var(--text-dim); background: color-mix(in srgb, var(--text-dim) 14%, transparent); }
+.past-match__summary {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.past-validation__disclaimer {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}

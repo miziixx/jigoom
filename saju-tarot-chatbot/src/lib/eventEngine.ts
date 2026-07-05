@@ -48,8 +48,11 @@ const OVERCOMES: Record<Element, Element> = {
   wood: "earth", earth: "water", water: "fire", fire: "metal", metal: "wood",
 };
 
+/** 지지 정기 천간 (외부 재사용: 과거 검증에서 세운 지지 십성 판정) */
+export const ZHI_MAIN_STEM_TABLE: Record<string, string> = ZHI_MAIN_STEM;
+
 /** 일간과 대상 천간의 십성 (saju.ts tenGodOf와 동일 규칙, 인라인) */
-function tenGodOf(dayGan: string, targetGan: string): string {
+export function tenGodOf(dayGan: string, targetGan: string): string {
   const dayEl = GAN_WUXING[dayGan];
   const targetEl = GAN_WUXING[targetGan];
   if (!dayEl || !targetEl) return "?";
@@ -62,7 +65,7 @@ function tenGodOf(dayGan: string, targetGan: string): string {
 }
 
 // ── 십성 그룹 ──────────
-type TenGodGroup = "비겁" | "식상" | "재성" | "관성" | "인성";
+export type TenGodGroup = "비겁" | "식상" | "재성" | "관성" | "인성";
 const TEN_GOD_GROUP: Record<string, TenGodGroup> = {
   비견: "비겁", 겁재: "비겁",
   식신: "식상", 상관: "식상",
@@ -71,7 +74,7 @@ const TEN_GOD_GROUP: Record<string, TenGodGroup> = {
   편인: "인성", 정인: "인성", 인수: "인성",
 };
 
-function groupOf(tenGod: string): TenGodGroup | null {
+export function groupOf(tenGod: string): TenGodGroup | null {
   for (const name of Object.keys(TEN_GOD_GROUP)) {
     if (tenGod.includes(name)) return TEN_GOD_GROUP[name];
   }
@@ -80,7 +83,7 @@ function groupOf(tenGod: string): TenGodGroup | null {
 
 // ── 궁위(위치) 라벨 ──────────
 const POSITION_LABELS = ["연간", "연지", "월간", "월지", "일간", "일지", "시간", "시지"] as const;
-type PositionLabel = (typeof POSITION_LABELS)[number];
+export type PositionLabel = (typeof POSITION_LABELS)[number];
 
 /** 궁위가 상징하는 현실 대상 (충/합이 어디를 흔드는지 해석용) */
 const POSITION_MEANING: Record<PositionLabel, string> = {
@@ -95,7 +98,7 @@ const POSITION_MEANING: Record<PositionLabel, string> = {
 };
 
 // ── 분야 라벨 ──────────
-const DOMAIN_LABEL: Record<LifeDomain, string> = {
+export const DOMAIN_LABEL: Record<LifeDomain, string> = {
   career: "직업·일",
   money: "돈·재물",
   love: "연애·관계",
@@ -191,7 +194,7 @@ function luckSignalOf(scope: LuckSignal["scope"], ganZhi: string | null | undefi
 
 // ── 십성 그룹 → 분야 매핑 ──────────
 /** 십성 그룹이 어떤 분야에 사건으로 나타나기 쉬운지 (성별 의존은 아래에서 별도 처리) */
-const GROUP_DOMAINS: Record<TenGodGroup, LifeDomain[]> = {
+export const GROUP_DOMAINS: Record<TenGodGroup, LifeDomain[]> = {
   비겁: ["money", "startup", "family"],
   식상: ["startup", "career", "love"],
   재성: ["money", "love", "career"],
@@ -338,7 +341,7 @@ function activationFor(
 }
 
 /** 궁위가 직접 상징하는 분야 (충/합이 그 자리를 흔들 때 사건 연결) */
-function positionDomains(pos: PositionLabel): LifeDomain[] {
+export function positionDomains(pos: PositionLabel): LifeDomain[] {
   switch (pos) {
     case "월간":
     case "월지":

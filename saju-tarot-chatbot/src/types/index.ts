@@ -32,6 +32,56 @@ export interface ReadingContext {
   fearPoint?: string;
   /** 지난 리딩 피드백에서 뽑은 스타일 조정 요청 (사용자가 반영에 동의했을 때만 채워짐) */
   styleHint?: string;
+  /** 과거 검증 입력: 실제로 있었던 과거 사건들 (해석 신뢰도 보정용) */
+  pastEvents?: PastEvent[];
+}
+
+// ── 과거 검증 (실제 과거 사건 → 계산 흐름 부합도 → 해석 신뢰도 보정) ──────────
+
+/** 사용자가 입력한 과거 사건 하나 */
+export interface PastEvent {
+  /** 사건이 있었던 연도 (양력) */
+  year: number;
+  /** 사건 분야 (사건화 엔진과 동일한 분야 키) */
+  domain: LifeDomain;
+  /** 사용자가 적은 짧은 설명 (선택) */
+  note?: string;
+}
+
+/** 과거 사건 하나에 대한 계산 데이터 (saju.ts에서 lunar로 계산, 순수 값) */
+export interface PastEventCalibrationInput {
+  year: number;
+  domain: LifeDomain;
+  note?: string;
+  /** 그 해 세운 간지 (입춘 기준) */
+  yearGanZhi: string;
+  /** 그 시기 대운 간지 (없으면 null) */
+  daYunGanZhi: string | null;
+  /** 그 해 세운·대운이 원국과 맺는 합충형파해 (사람이 읽는 문자열) */
+  interactions: string[];
+}
+
+/** 과거 사건 한 건의 부합도 판정 결과 */
+export interface PastEventMatch {
+  year: number;
+  domain: LifeDomain;
+  domainLabel: string;
+  note?: string;
+  /** strong=계산 흐름과 잘 맞음, partial=일부 맞음, weak=계산상 뚜렷한 신호 없음 */
+  level: "strong" | "partial" | "weak";
+  /** 쉬운 말 설명 */
+  summary: string;
+  /** 전문가 근거 (세운/대운 십성·상호작용) */
+  evidence: string[];
+}
+
+/** 과거 검증 종합 결과 */
+export interface PastValidationReport {
+  matches: PastEventMatch[];
+  /** 전체 부합 경향 한 줄 */
+  headline: string;
+  /** 잘 맞은 분야 키 (이 축은 해석에서 더 신뢰) */
+  reliableDomains: LifeDomain[];
 }
 
 // ── 리딩 후 피드백 ──────────

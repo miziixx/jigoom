@@ -827,3 +827,29 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
 - 다음 단계: 활성도를 activation/benefit/risk 점수로 확장(로드맵 3번), 과거 사건 검증 보정(2번).
 - 테스트: `eventEngine.test.ts`(6), `EventForecastPanel.test.tsx`(3), `reading.test.ts` 배선 1개 추가.
   전체 217 통과, build OK. API 번들에 lunar 미유입 확인(eventEngine은 타입만 import).
+
+## 명리 엔진 고도화 2단계 — 과거 검증 기반 리딩 보정
+
+로드맵 2번: 사용자가 실제 과거 사건(예: 2021년 이직)을 입력하면, 그 해 세운·대운 흐름이
+그 분야와 계산상 부합하는지 판정해 이번 리딩의 해석 신뢰도를 보정한다. 무 API·결정론.
+
+- 타입(`src/types/index.ts`): `PastEvent`(연도·분야·메모), `PastEventCalibrationInput`(그 해
+  세운/대운 간지+상호작용), `PastEventMatch`(strong/partial/weak+요약+근거), `PastValidationReport`.
+  `ReadingContext.pastEvents` 추가.
+- 계산층(`src/lib/saju.ts`): `computePastEventCalibrationInputs(birthInfo, events)` —
+  각 사건 연도의 세운 간지(입춘 기준 6/15), 그 시기 대운 간지, 원국과의 상호작용(luckVsNatal 재사용)을
+  순수 데이터로 계산. 계산은 브라우저에서, API로는 결과 값만 전달(계산/보안 원칙).
+- 판정층(`src/lib/pastValidation.ts`, saju.ts 미import): eventEngine의 매핑(GROUP_DOMAINS·groupOf·
+  tenGodOf·ZHI_MAIN_STEM·DOMAIN_LABEL export)을 재사용. 세운/대운 십성이 그 분야에 맞는지 +
+  상호작용 강도로 strong/partial/weak 판정. 표면은 쉬운 말, 근거만 십성·간지 보존. 단정 금지.
+- eventEngine.ts: 재사용 위해 `tenGodOf`/`groupOf`/`GROUP_DOMAINS`/`DOMAIN_LABEL`/`positionDomains`/
+  `ZHI_MAIN_STEM_TABLE`/타입(`TenGodGroup`/`PositionLabel`) export.
+- 프롬프트(`systemPrompt.ts`): `ReadingFacts.pastValidation` 추가, `formatPastValidation` 직렬화,
+  `[과거 사건 검증 — 계산됨]` + 활용 안내(잘 맞은 축 자신 있게, 약한 축 조심스럽게, 과거로 미래 단정 금지).
+- 데이터 흐름: store(`useReadingStore`)에서 birthInfo+pastEvents로 계산해 body에 담아 전송 →
+  api/reading.ts는 통과만(saju.ts 미import). cacheKey에 pastEvents 반영.
+- UI 입력(`ContextPicker`): "실제로 있었던 과거 일(검증용, 선택)" — 연도·분야·메모 행 추가/삭제.
+- 결과 카드(`PastValidationPanel`): 요약 영역에 부합도 배지+설명, 사건화 예보 아래 렌더.
+- index.css: 과거 사건 입력행·검증 결과 카드 스타일(모바일 반응형 포함).
+- 테스트: `pastValidation.test.ts`(4), `reading.test.ts` 배선 1개. 전체 222 통과, build OK.
+  API 번들에 lunar 미유입 확인.

@@ -2,6 +2,7 @@ import type {
   Gender,
   DrawnTarotCard,
   LuckCycles,
+  PastValidationReport,
   ReadingContext,
   ReadingFocus,
   ReadingType,
@@ -362,6 +363,18 @@ function formatEventForecast(chart: SajuChart, luck?: LuckCycles, gender?: Gende
   return lines.join("\n");
 }
 
+/** 과거 검증 결과를 프롬프트 근거 블록으로 직렬화한다. */
+function formatPastValidation(report: PastValidationReport): string {
+  const lines = [report.headline];
+  for (const m of report.matches) {
+    const tier = m.level === "strong" ? "잘 맞음" : m.level === "partial" ? "일부 맞음" : "신호 약함";
+    const note = m.note ? ` "${m.note}"` : "";
+    lines.push(`■ ${m.year}년 ${m.domainLabel}${note} [${tier}] — ${m.summary}`);
+    if (m.evidence.length > 0) lines.push(`  · (근거) ${m.evidence.join("; ")}`);
+  }
+  return lines.join("\n");
+}
+
 function formatTarotCards(cards: DrawnTarotCard[]): string {
   return cards
     .map((c) => {
@@ -612,6 +625,8 @@ export interface ReadingFacts {
   tarotCards?: DrawnTarotCard[];
   /** 타로 스프레드별 해석 방법 안내 (A/B 비교, 한 달 흐름 등) */
   spreadNote?: string;
+  /** 과거 검증 결과 (브라우저에서 계산해 전달). 해석 신뢰도 보정에 사용한다. */
+  pastValidation?: PastValidationReport;
 }
 
 /** 새 리딩을 시작할 때 보낼 사용자 메시지(계산된 사실 + 질문)를 구성한다 */
@@ -644,6 +659,14 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
         "[사건 신호 활용 안내] 위 [분야별 사건 신호]는 원국 십성·궁위와 대운·세운·월운을 규칙으로 계산해 직업/돈/연애/건강/가족/이사/창업 분야에 연결한 것이다. 해당 분야 섹션(직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션 등)을 쓸 때 이 신호를 우선 반영해라. 규칙: (1) '지금 크게 움직임'으로 표시된 분야는 올해/이 시기 흐름에서 먼저, 더 구체적으로 다뤄라. (2) 목록에 없는 사건을 지어내지 마라. 신호가 '평이함'인 분야는 '지금은 크게 흔들리지 않는 시기'로 담담하게 처리해라. (3) '나타나기 쉬운 일'은 단정이 아니라 경향으로, '조심 신호'는 공포가 아니라 점검·대비로 옮겨라. (4) 사주 용어(십성·충·합·궁위 등)는 표면에 쓰지 말고 (근거)는 '전문가 근거 보기'에만 남겨라.",
       );
     }
+  }
+
+  // 과거 검증: 사용자가 실제 과거 사건을 입력했고 브라우저에서 부합도를 계산했으면, 신뢰도 보정 근거로 전달한다.
+  if (facts.pastValidation && facts.pastValidation.matches.length > 0) {
+    parts.push(`[과거 사건 검증 — 계산됨]\n${formatPastValidation(facts.pastValidation)}`);
+    parts.push(
+      "[과거 검증 활용 안내] 위는 사용자가 알려준 실제 과거 사건이 그 시기 계산 흐름과 얼마나 맞는지 판정한 것이다. 규칙: (1) '잘 맞음'으로 나온 분야의 해석은 더 자신 있게, 구체적으로 써라. (2) '신호 약함'으로 나온 분야는 단정을 피하고 '이 부분은 사주 흐름보다 성향·선택·환경의 영향이 컸을 수 있다'는 태도로 조심스럽게 다뤄라. (3) 과거가 맞았다고 미래를 단정하지 마라 — 어디까지나 이 사주에서 어떤 축을 더 믿고 볼지에 대한 보정일 뿐이다. (4) 사용자의 과거 사건 내용을 리딩 안에서 자연스럽게 언급해 '당신의 실제 경험과 맞춰 보면'처럼 연결하되, 사주 용어는 표면에 쓰지 마라.",
+    );
   }
 
   if (facts.focus && facts.focus !== "general") {

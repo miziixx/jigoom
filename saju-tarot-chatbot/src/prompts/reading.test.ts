@@ -85,6 +85,34 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(msg).toContain("건강·컨디션");
   });
 
+  it("과거 검증 결과가 있으면 근거 블록과 활용 안내를 전달한다", () => {
+    const withPast = buildReadingUserMessage({
+      type: "saju",
+      question: "요즘 지쳐요",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      pastValidation: {
+        matches: [
+          {
+            year: 2021,
+            domain: "career",
+            domainLabel: "직업·일",
+            note: "이직",
+            level: "strong",
+            summary: "2021년 직업·일 사건은 그 시기 흐름과 잘 맞습니다.",
+            evidence: ["세운 신축"],
+          },
+        ],
+        headline: "과거 사건들이 계산된 흐름과 대체로 잘 맞습니다.",
+        reliableDomains: ["career"],
+      },
+    });
+    expect(withPast).toContain("과거 사건 검증 — 계산됨");
+    expect(withPast).toContain("과거 검증 활용 안내");
+    expect(withPast).toContain("2021년 직업·일");
+  });
+
   it("깊이 미선택이면 짧지만 완결된 기본 핵심 리딩 프로필을 붙인다", () => {
     expect(msg).toContain("기본 리딩 — 종합");
     expect(msg).toContain("짧지만 완결된 핵심 리포트");

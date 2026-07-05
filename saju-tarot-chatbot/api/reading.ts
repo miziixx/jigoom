@@ -11,6 +11,7 @@ import type {
   DrawnTarotCard,
   Gender,
   LuckCycles,
+  PastValidationReport,
   ReadingContext,
   ReadingFocus,
   ReadingType,
@@ -40,6 +41,8 @@ interface NewReadingBody {
   luckCycles?: LuckCycles;
   tarotCards?: DrawnTarotCard[];
   spreadNote?: string;
+  // 과거 검증 결과. 계산은 클라이언트에서 끝내고 결과 값만 전달한다(서버는 통과만).
+  pastValidation?: PastValidationReport;
 }
 
 interface FollowUpBody {
@@ -209,7 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const { type, question, focus, context, sectionGroup, gender, sajuChart, luckCycles, tarotCards, spreadNote } = body;
+    const { type, question, focus, context, sectionGroup, gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation } = body;
 
     if ((type === "saju" || type === "combo" || type === "today" || type === "flow") && !sajuChart) {
       res.status(400).json({ error: "sajuChart(계산 결과)가 필요합니다." });
@@ -231,6 +234,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       luckCycles,
       tarotCards,
       spreadNote,
+      pastValidation,
     };
     const userMessage = buildReadingUserMessage(readingFacts);
     // 병렬 생성용 sectionGroup 지시는 Claude 호출에만 쓰고, 세션/후속질문 히스토리에는 남기지 않는다.

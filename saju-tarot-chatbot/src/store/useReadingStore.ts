@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { saveFeedback } from "../lib/feedback";
 import { streamReading } from "../lib/readingApi";
 import { getCachedResult, periodBucket, setCachedResult } from "../lib/resultCache";
-import { computeLuckCycles, computeSajuChart } from "../lib/saju";
+import { computeLuckCycles, computePastEventCalibrationInputs, computeSajuChart } from "../lib/saju";
+import { buildPastValidationReport } from "../lib/pastValidation";
 import { deleteAllSessions, deleteSession, isSessionSaved, loadSessions, saveSession, toggleFavorite } from "../lib/storage";
 import type {
   BirthInfo,
@@ -110,6 +111,14 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     const includeMonthlyFlow = type === "saju" || type === "combo" || type === "flow";
     const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
     const luckCycles = birthInfo ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow }) : undefined;
+    // 과거 검증: 사용자가 실제 과거 사건을 입력했으면 그 시기 흐름 부합도를 계산한다(무 API·결정론).
+    const pastValidation =
+      birthInfo && sajuChart && effectiveContext.pastEvents && effectiveContext.pastEvents.length > 0
+        ? buildPastValidationReport(
+            sajuChart.dayMasterGan,
+            computePastEventCalibrationInputs(birthInfo, effectiveContext.pastEvents),
+          ) ?? undefined
+        : undefined;
     const provisionalSession: ReadingSession | null =
       sajuChart || tarotCards?.length
         ? {
@@ -141,6 +150,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
       sajuChart: sajuChart ?? null,
       tarotCards: tarotCards ?? null,
       spreadNote: spreadNote ?? null,
+      pastEvents: effectiveContext.pastEvents ?? null,
       bucket: periodBucket(type === "today" ? "day" : "month"),
     };
     if (!forceRegenerate) {
@@ -178,7 +188,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     let metaUserMessage = "";
     try {
       const result = await streamReading(
-        { type, question, focus: inferredFocus, context: effectiveContext, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote },
+        { type, question, focus: inferredFocus, context: effectiveContext, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation },
         {
           onMeta: (meta) => {
             metaUserMessage = meta.userMessage;

@@ -7,6 +7,8 @@ import type {
   GyeokgukInfo,
   LuckCycles,
   MonthFlowInfo,
+  PastEvent,
+  PastEventCalibrationInput,
   SajuChart,
   SajuPillar,
   SinsalHit,
@@ -874,6 +876,68 @@ function luckVsNatal(
 export interface LuckCycleOptions {
   /** 올해 1~12월 월운 흐름까지 계산 (월간/연간 흐름 리딩용) */
   includeMonthlyFlow?: boolean;
+}
+
+/**
+ * 과거 검증용: 사용자가 입력한 과거 사건들 각각에 대해, 그 해의 세운 간지와
+ * 그 시기 대운 간지, 그리고 그 운이 원국과 맺는 상호작용을 계산해 순수 데이터로 반환한다.
+ * (부합도 판정·문구 생성은 saju.ts를 import하지 않는 pastValidation.ts에서 한다.
+ *  계산은 브라우저에서 실행되고, API로는 결과 값만 전달된다 — 프로젝트 계산/보안 원칙.)
+ */
+export function computePastEventCalibrationInputs(
+  birthInfo: BirthInfo,
+  pastEvents: PastEvent[],
+): PastEventCalibrationInput[] {
+  if (pastEvents.length === 0) return [];
+  const { lunar } = birthToLunar(birthInfo);
+  const ec = eightCharOf(lunar, birthInfo);
+
+  // 원국 기둥 (운과의 상호작용 계산용) — computeLuckCycles와 동일 구성
+  const yearP = toPillar(ec.getYear());
+  const monthP = toPillar(ec.getMonth());
+  const dayP = toPillar(ec.getDay());
+  const timeP = birthInfo.hour === null ? null : toPillar(ec.getTime());
+  const natalGans: PositionedChar[] = [
+    { label: "연간", char: yearP.gan },
+    { label: "월간", char: monthP.gan },
+    { label: "일간", char: dayP.gan },
+    ...(timeP ? [{ label: "시간", char: timeP.gan }] : []),
+  ];
+  const natalZhis: PositionedChar[] = [
+    { label: "연지", char: yearP.zhi },
+    { label: "월지", char: monthP.zhi },
+    { label: "일지", char: dayP.zhi },
+    ...(timeP ? [{ label: "시지", char: timeP.zhi }] : []),
+  ];
+
+  // 대운 목록 (연도로 조회)
+  const yun = ec.getYun(birthInfo.gender === "male" ? 1 : 0);
+  const daYunList = yun
+    .getDaYun()
+    .filter((dy) => dy.getGanZhi() !== "")
+    .map((dy) => ({ startYear: dy.getStartYear(), endYear: dy.getEndYear(), ganZhi: toHangul(dy.getGanZhi()) }));
+
+  return pastEvents.map((ev) => {
+    // 그 해 세운 (입춘 기준, 연중 6/15로 절기 경계 회피)
+    const yLunar = Solar.fromYmdHms(ev.year, 6, 15, 12, 0, 0).getLunar();
+    const yearGanZhi = toHangul(yLunar.getYearInGanZhiByLiChun());
+    const daYun = daYunList.find((d) => d.startYear <= ev.year && ev.year <= d.endYear) ?? null;
+    const daYunGanZhi = daYun?.ganZhi ?? null;
+
+    const interactions = [
+      ...(daYunGanZhi ? luckVsNatal(`대운 ${daYunGanZhi}`, daYunGanZhi, natalGans, natalZhis) : []),
+      ...luckVsNatal(`세운 ${yearGanZhi}`, yearGanZhi, natalGans, natalZhis),
+    ];
+
+    return {
+      year: ev.year,
+      domain: ev.domain,
+      note: ev.note,
+      yearGanZhi,
+      daYunGanZhi,
+      interactions,
+    };
+  });
 }
 
 export function computeLuckCycles(
