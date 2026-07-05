@@ -8,6 +8,10 @@ import type {
   ReadingType,
   SajuChart,
 } from "../types/index.js";
+import { buildCompactEvidence } from "../lib/compactEvidence.js";
+import { buildJudgmentPack } from "../lib/judgmentEngine.js";
+import { formatJudgmentPackForPrompt } from "../lib/judgmentPrompt.js";
+import type { JudgmentPack } from "../lib/judgmentTypes.js";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide.js";
 import { buildEventForecast } from "../lib/eventEngine.js";
 import { describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
@@ -21,6 +25,16 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 목표는 사용자가 "이 사람이 지금 내 속을 다 들여다본 것 같다"고 느낄 만큼, 지금의 마음 상태와
 반복되는 삶의 패턴을 정확히 짚어주는 것이다. 단, 신비주의·공포·무속을 주장하지 않는다.
 모든 해석은 사용자 메시지에 전달된 [근거 데이터]에 반드시 뿌리를 둔다.
+계산과 판단은 이미 프로그램이 끝냈다. 너의 역할은 [JudgmentPack — 계산됨] 또는 [상세 계산 근거]를
+사용자가 이해할 수 있는 상담형 문장으로 바꾸는 것이다. 만세력·오행·십성·용신·운 흐름을 새로
+계산하거나, 전달되지 않은 근거를 추측해 보강하지 않는다.
+
+[근거 사용 방식]
+- [JudgmentPack — 계산됨]이 있으면 그것을 최우선 근거로 삼고, judgments에 없는 새 결론을 만들지 않는다.
+- LLM은 판단자가 아니라 번역자다. judgments[].plainConclusion, evidence, confidence, allowedTone, forbiddenClaims의 경계 안에서만 쓴다.
+- 결론 문장은 반드시 JudgmentPack의 judgment code와 evidence id로 되돌아갈 수 있어야 한다.
+- evidenceIds는 전문가 근거에 짧게 인용하기 위한 내부 근거 번호다. 가벼운 리딩에서는 긴 계산 원문을 펼치지 않는다.
+- [상세 계산 근거]가 있는 고급/전문가 모드에서만 지장간·신살·12운성·월별/10년 흐름 같은 세부 근거를 폭넓게 활용한다.
 
 [표현 규칙 — 가장 중요]
 1. 사주 전문용어를 사용자에게 보이는 문장에 절대 쓰지 않는다.
@@ -499,21 +513,25 @@ const TONE_INSTRUCTION: Record<NonNullable<ReadingContext["tone"]>, string> = {
   detailed: "아주 자세하게. 각 섹션의 풀이를 최대한 촘촘하게 쓰되, 근거는 사주 용어 없이 쉬운 말로만 녹여라.",
 };
 
-// 깊이를 따로 고르지 않은 기본 리딩 — 짧지만 완결된 핵심 리딩.
-// 핵심 정보는 만족스럽게 주되, 정밀 리딩의 상세 분야 풀이/월별/근거 전체를 한 화면에 모두 펼치지 않는다.
+// 깊이를 따로 고르지 않은 기본 리딩 — 평생사주 기본 리포트.
+// "무료 맛보기"가 아니라, 원국을 기준으로 기본 베이스를 충분히 보여주는 기본 리포트다.
 const DEFAULT_STANDARD_INSTRUCTION =
   "[기본 리딩 — 종합] 사용자가 깊이를 따로 고르지 않았다. 이 기본 리딩이 곧 사용자가 처음 받는 결과이니, " +
-  "짧지만 완결된 핵심 리포트처럼 읽히게 하라. 일부러 숨기거나 끊어낸 느낌, 결제를 유도하려고 비워둔 느낌을 절대 내지 마라. 아래 섹션만 이 순서로 쓴다:\n" +
-  "# 첫 점괘\n# 질문 중심 핵심\n# 분야별 요약\n# 타고난 성격과 기질\n# 직업과 돈\n# 올해의 흐름\n# 지금 해야 할 것과 피해야 할 것\n# 마지막 점괘\n" +
+  "평생사주 기본 리포트처럼 충분히 읽히게 하라. 일부러 숨기거나 끊어낸 느낌, 결제를 유도하려고 비워둔 느낌을 절대 내지 마라. " +
+  "AI 문장은 장황하게 늘리지 말고, 계산 기반 핵심을 사용자 언어로 정확히 번역한다. 아래 섹션을 반드시 이 순서로 쓴다:\n" +
+  "# 첫 점괘\n# 질문 중심 핵심\n# 분야별 요약\n# 타고난 성격과 기질\n# 직업과 돈\n# 재물 흐름\n# 애정과 관계\n# 건강과 컨디션\n# 인생의 큰 흐름\n# 올해의 흐름\n# 지금 해야 할 것과 피해야 할 것\n# 마지막 점괘\n" +
   "질문이 있으면 '# 질문 중심 핵심'에서 먼저 답하되, 리딩 전체가 질문 답변만으로 끝나면 안 된다. 질문 답변은 전체의 약 30%, 기본 사주 핵심은 약 70% 비중으로 배분한다. " +
   "질문 분야가 이직·연애·건강·돈처럼 특정되어 있으면 해당 분야의 표현을 조금 더 선명하게 하되, 나머지 기본 6분야를 누락하지 마라. 질문이 없으면 '# 질문 중심 핵심'은 생략해도 된다. " +
   "'# 분야별 요약'에는 반드시 성향 / 직업·돈 / 재물 / 연애·관계 / 건강·컨디션 / 올해 흐름 6개 항목을 모두 넣고, 각 항목을 1~2줄로 쓴다. " +
-  "재물·애정·건강·인생의 큰 흐름은 긴 본문 섹션으로 따로 쓰지 말고 '# 분야별 요약' 안에서 빠진 느낌 없이 핵심만 자연스럽게 정리한다. " +
-  "'# 타고난 성격과 기질'은 핵심 기질, 강점 2개, 조심할 패턴 2개만 쓴다. '# 직업과 돈'은 잘 맞는 일/환경 2~3개와 돈 흐름의 큰 방향만 쓴다. " +
-  "'# 올해의 흐름'은 1월~12월 상세를 쓰지 말고 올해 핵심 키워드 3개와 특히 조심할 시기/움직이면 좋은 시기만 짧게 쓴다. " +
-  "'# 지금 해야 할 것과 피해야 할 것'은 오늘 바로 할 행동 3개를 구체적으로 쓴다. " +
-  "전문가 근거 보기는 사용한 핵심 근거 2~3개만 아주 짧게 남긴다. " +
-  "전체 공백 포함 1200~1800자, 길어도 2200자를 넘기지 마라. 같은 말을 반복해 늘리지 말고 반드시 '마지막 점괘'까지 완결해라.";
+  "'# 타고난 성격과 기질'은 핵심 기질, 강점, 약점, 스트레스 반응, 인간관계, 일할 때 특징을 모두 짚는다. " +
+  "'# 직업과 돈'은 잘 맞는 일의 환경, 피로해지는 환경, 현대 직업 예시 4~6개, 조직형/프리랜서형/전문직형/사업형 적합성을 포함한다. " +
+  "'# 재물 흐름'은 돈이 들어오는 방식, 새는 패턴, 저축·투자·사업 성향, 관리 습관을 포함한다. " +
+  "'# 애정과 관계'는 끌리는 사람, 반복 패턴, 표현 방식, 서운함이 쌓이는 지점, 오래 가는 방법을 포함한다. " +
+  "'# 건강과 컨디션'은 체력 흐름, 스트레스가 몸으로 나타나는 방식, 생활 리듬상 취약점, 건강 체크 포인트를 생활 조언 수준으로 쓴다. 질병 진단처럼 말하지 마라. " +
+  "'# 인생의 큰 흐름'은 현재 대운과 앞으로의 큰 흐름을 쉬운 말로 풀고, '# 올해의 흐름'은 올해 핵심 주제·기회·부담·활용 전략과 1월~12월 한 줄 흐름을 포함한다. " +
+  "'# 지금 해야 할 것과 피해야 할 것'은 오늘 바로 할 행동 3개와 이번 달 조정할 것 2개를 구체적으로 쓴다. " +
+  "전문가 근거 보기는 사용한 핵심 근거를 짧게 보존하되 본문보다 길게 만들지 마라. " +
+  "전체 공백 포함 3600~5200자 정도로 충분히 쓰되, 같은 말을 반복해 늘리지 말고 반드시 '마지막 점괘'까지 완결해라.";
 
 // 사주 원국 없이 뽑힌 카드만으로 보는 순수 타로 리딩.
 // 종합 사주풀이 형식을 그대로 쓰면, 카드로 뒷받침되지 않는 생애 전반·연간 운세까지 채우게 되어
@@ -553,7 +571,7 @@ const DEPTH_INSTRUCTION: Record<NonNullable<ReadingContext["depth"]>, string> = 
   light:
     "[가벼운 리딩] 계산 기반 즉시 요약이 이미 화면에 보이는 전제다. API 응답은 그 요약을 반복하지 말고 핵심 판단과 보완 조언만 빠르게 덧붙여라. 표준 출력 형식은 유지하되 각 주요 섹션은 1문단+행동 1~2개 중심으로 압축한다. 타고난 성격과 기질, 직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션, 인생의 큰 흐름, 올해의 흐름은 모두 포함하되 짧게 쓴다. 올해의 흐름은 1월~12월을 한 줄씩만 쓴다. 전체 공백 포함 1800~2600자.",
   basic:
-    "[기본 리딩] 짧지만 완결된 핵심 리딩이다. 핵심 성향, 강점, 주의 패턴, 잘 맞는 일/환경, 올해 핵심 흐름, 오늘 할 행동을 중심으로 쓴다. 재물·애정·건강·대운·월별 흐름은 필요한 핵심만 자연스럽게 요약하고 긴 상세 섹션은 만들지 않는다. 전체 공백 포함 1200~1800자, 길어도 2200자 이하.",
+    "[기본 리딩] 평생사주 기본 리포트다. 성격·기질, 직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션, 인생의 큰 흐름, 올해의 흐름, 현실 행동을 모두 포함한다. 계산 기반 카드가 화면에 함께 보이므로 AI 문장은 장황하지 않게, 그러나 각 분야의 핵심 베이스는 빠짐없이 쓴다. 올해의 흐름은 1월~12월을 한 줄씩 포함한다. 전체 공백 포함 3600~5200자.",
   advanced:
     "[고급 리딩] 정밀 확장 리딩이다. 표준 출력 형식을 모두 따르고, 성격·기질, 직업, 재물, 애정·관계, 건강·컨디션, 인생의 큰 흐름, 올해 1월~12월 흐름, 질문 맞춤 판단, 반복 패턴, 현실 보완법, 전문가 근거를 모두 깊게 쓴다. 올해의 흐름은 각 월의 기회와 부담을 분리하고, '지금 해야 할 것과 피해야 할 것'에 앞으로 1개월 행동 계획을 더 촘촘히 넣어라. 전체 분량은 공백 포함 5000~6500자로 하되, 반드시 '마지막 점괘'까지 완결해라.",
   expert:
@@ -637,6 +655,13 @@ const TYPE_LABEL: Record<ReadingType, string> = {
   flow: "월간/연간 운 흐름",
 };
 
+function usesCompactEvidence(facts: ReadingFacts): boolean {
+  if (!facts.sajuChart) return false;
+  if (facts.type !== "saju" && facts.type !== "combo") return false;
+  const depth = facts.context?.depth;
+  return depth === "light";
+}
+
 export interface ReadingFacts {
   type: ReadingType;
   question: string;
@@ -655,21 +680,41 @@ export interface ReadingFacts {
   pastValidation?: PastValidationReport;
 }
 
+export function buildReadingJudgmentPack(facts: ReadingFacts): JudgmentPack | null {
+  if (!facts.sajuChart || !usesCompactEvidence(facts)) return null;
+  const compactEvidence = buildCompactEvidence(facts.sajuChart, facts.luckCycles, facts.gender);
+  return buildJudgmentPack({
+    readingType: facts.type,
+    compactEvidence,
+    question: facts.question,
+    context: facts.context,
+  });
+}
+
 /** 새 리딩을 시작할 때 보낼 사용자 메시지(계산된 사실 + 질문)를 구성한다 */
-export function buildReadingUserMessage(facts: ReadingFacts): string {
+export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPack: JudgmentPack | null = buildReadingJudgmentPack(facts)): string {
   const parts: string[] = [];
+  const compactMode = usesCompactEvidence(facts);
 
   parts.push(`[리딩 종류] ${TYPE_LABEL[facts.type]}`);
   parts.push(`[사용자 질문] ${facts.question || "(특정 질문 없이 전반적인 리딩 요청)"}`);
 
-  if (facts.sajuChart) {
+  if (facts.sajuChart && compactMode) {
+    if (facts.gender) parts.push(`[기본 정보] 성별: ${facts.gender === "male" ? "남성" : "여성"}`);
+    if (prebuiltJudgmentPack) {
+      parts.push(`[JudgmentPack — 계산됨]\n${formatJudgmentPackForPrompt(prebuiltJudgmentPack)}`);
+    }
+    parts.push(
+      "[JudgmentPack 활용 안내] 이 기본 리딩에서는 위 JudgmentPack만 사용해 문장화한다. judgments의 code/plainConclusion을 결론의 한계로 삼고, confidence와 counterEvidence가 낮추는 확신을 반드시 반영한다. allowedTone을 벗어난 단정 표현과 forbiddenClaims에 해당하는 문장은 쓰지 마라. evidence id는 전문가 근거 보기에 짧게 남기되, 전체 신살·지장간·12운성·10년 세운·12개월 월운 같은 원자료를 새로 추정하거나 길게 펼치지 마라.",
+    );
+  } else if (facts.sajuChart) {
     // 개인정보 보호: 생년월일 원본은 전달하지 않고, 계산된 원국과 성별만 근거로 넘긴다.
     if (facts.gender) parts.push(`[기본 정보] 성별: ${facts.gender === "male" ? "남성" : "여성"}`);
-    parts.push(`[사주 원국 계산 결과]\n${formatSajuChart(facts.sajuChart, facts.luckCycles?.dayGanZhi)}`);
+    parts.push(`[상세 계산 근거 — 사주 원국]\n${formatSajuChart(facts.sajuChart, facts.luckCycles?.dayGanZhi)}`);
   }
 
-  if (facts.luckCycles) {
-    parts.push(`[대운/세운/월운/일진 계산 결과]\n${formatLuckCycles(facts.luckCycles)}`);
+  if (facts.luckCycles && !compactMode) {
+    parts.push(`[상세 계산 근거 — 대운/세운/월운/일진]\n${formatLuckCycles(facts.luckCycles)}`);
     parts.push(
       "[운 흐름 해석 안내] '인생의 큰 흐름'은 전달된 대운(10년 단위 큰 흐름)을, '올해의 흐름'은 세운·월운을 속 근거로 삼아 타이밍을 해석해라. 예를 들어 올해 흐름이 자리·환경을 흔드는 신호면 '올해는 직장·가정 환경이 한 번 흔들리기 쉬운 흐름입니다'처럼 쉬운 말로 옮겨라. 목록에 없는 상호작용을 지어내지 마라. 좋은 시기와 조심할 시기를 구분하되, 단정 대신 \"이렇게 하면 좋아지는 시기\"로 설명하고, 사주 용어(대운·세운·충·월지 등)는 표면 문장에 쓰지 마라.",
     );
@@ -677,7 +722,7 @@ export function buildReadingUserMessage(facts: ReadingFacts): string {
 
   // 사건화 엔진: 원국이 있을 때, 계산된 분야별 사건 신호를 근거로 전달한다.
   // (성향 나열이 아니라 직업/돈/연애/건강/가족/이사/창업에서 "지금 무엇이 움직이는가"를 규칙으로 연결한다.)
-  if (facts.sajuChart && facts.type !== "tarot") {
+  if (facts.sajuChart && facts.type !== "tarot" && !compactMode) {
     const forecast = formatEventForecast(facts.sajuChart, facts.luckCycles, facts.gender);
     if (forecast) {
       parts.push(`[분야별 사건 신호 — 계산됨]\n${forecast}`);

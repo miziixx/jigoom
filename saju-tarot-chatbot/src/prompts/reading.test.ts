@@ -65,9 +65,13 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
   const luckCycles = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
   const msg = buildReadingUserMessage({ type: "saju", question: "요즘 지쳐요", gender: birth.gender, sajuChart, luckCycles });
 
-  it("원국 계산값을 근거 데이터로 전달한다 (LLM이 속으로 참고)", () => {
-    expect(msg).toContain("사주 원국 계산 결과");
+  it("기본 리딩은 평생사주 기본 리포트에 필요한 상세 계산 근거를 전달한다", () => {
+    expect(msg).toContain("상세 계산 근거 — 사주 원국");
+    expect(msg).toContain("상세 계산 근거 — 대운/세운/월운/일진");
     expect(msg).toContain(sajuChart.day.ganZhi);
+    expect(msg).toContain("지장간");
+    expect(msg).toContain("12운성");
+    expect(msg).not.toContain("압축 판단 근거 — 계산됨");
   });
 
   it("개인정보 보호: 생년월일 원본은 AI 메시지에 담지 않는다", () => {
@@ -113,11 +117,14 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(withPast).toContain("2021년 직업·일");
   });
 
-  it("깊이 미선택이면 짧지만 완결된 기본 핵심 리딩 프로필을 붙인다", () => {
+  it("깊이 미선택이면 평생사주 기본 리포트 프로필을 붙인다", () => {
     expect(msg).toContain("기본 리딩 — 종합");
-    expect(msg).toContain("짧지만 완결된 핵심 리포트");
-    expect(msg).toContain("1200~1800자");
-    expect(msg).toContain("길어도 2200자");
+    expect(msg).toContain("평생사주 기본 리포트");
+    expect(msg).toContain("# 재물 흐름");
+    expect(msg).toContain("# 애정과 관계");
+    expect(msg).toContain("# 건강과 컨디션");
+    expect(msg).toContain("# 인생의 큰 흐름");
+    expect(msg).toContain("3600~5200자");
     expect(msg).toContain("성향 / 직업·돈 / 재물 / 연애·관계 / 건강·컨디션 / 올해 흐름 6개 항목");
     expect(msg).toContain("각 항목을 1~2줄");
     expect(msg).toContain("질문 답변은 전체의 약 30%");
@@ -139,6 +146,8 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
       context: { depth: "advanced" },
     });
     expect(deep).not.toContain("[기본 리딩 — 종합]");
+    expect(deep).toContain("상세 계산 근거 — 사주 원국");
+    expect(deep).toContain("상세 계산 근거 — 대운/세운/월운/일진");
     expect(deep).toContain("정밀 확장 리딩");
     expect(deep).toContain("5000~6500자");
   });

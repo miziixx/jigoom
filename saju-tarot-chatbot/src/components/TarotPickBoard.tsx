@@ -38,13 +38,14 @@ export default function TarotPickBoard({ needCount, onComplete }: Props) {
         {Array.from({ length: FAN_SIZE }, (_, slot) => {
           const order = picked.indexOf(slot);
           const isPicked = order >= 0;
-          const angle = (slot - (FAN_SIZE - 1) / 2) * 4;
+          const offset = slot - (FAN_SIZE - 1) / 2;
+          const angle = offset * 4;
           return (
             <button
               key={slot}
               type="button"
               className={isPicked ? "tarot-fan-card tarot-fan-card--picked" : "tarot-fan-card"}
-              style={{ ["--angle" as string]: `${angle}deg` }}
+              style={{ ["--angle" as string]: `${angle}deg`, ["--i" as string]: offset }}
               onClick={() => toggle(slot)}
               aria-pressed={isPicked}
               aria-label={isPicked ? `${order + 1}번째로 고른 카드` : "카드 고르기"}

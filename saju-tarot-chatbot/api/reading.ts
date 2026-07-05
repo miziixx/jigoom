@@ -4,6 +4,7 @@ import { checkSecurity, clampText, MAX_QUESTION_LEN, MAX_CONTEXT_FIELD_LEN } fro
 import {
   READING_SYSTEM_PROMPT,
   buildCompareUserMessage,
+  buildReadingJudgmentPack,
   buildReadingUserMessage,
   type CompareReadingInput,
 } from "../src/prompts/systemPrompt.js";
@@ -257,20 +258,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       spreadNote,
       pastValidation,
     };
-    const userMessage = buildReadingUserMessage(readingFacts);
+    const judgmentPack = buildReadingJudgmentPack(readingFacts);
+    const userMessage = buildReadingUserMessage(readingFacts, judgmentPack);
     // 병렬 생성용 sectionGroup 지시는 Claude 호출에만 쓰고, 세션/후속질문 히스토리에는 남기지 않는다.
     const metaUserMessage = sectionGroup
-      ? buildReadingUserMessage({ ...readingFacts, sectionGroup: undefined })
+      ? buildReadingUserMessage({ ...readingFacts, sectionGroup: undefined }, buildReadingJudgmentPack({ ...readingFacts, sectionGroup: undefined }))
       : userMessage;
 
     const messages = withContinuation([{ role: "user", content: userMessage }], continueFrom);
     // 이어쓰기 호출에는 계산 메타(meta)를 다시 실어 보내지 않는다 (이미 첫 호출에서 전달됨).
-    const meta = continueFrom ? undefined : { userMessage: metaUserMessage, sajuChart, luckCycles };
+    const meta = continueFrom ? undefined : { userMessage: metaUserMessage, sajuChart, luckCycles, judgmentPack };
     if (streaming) {
       await streamMessages(res, anthropic, messages, meta);
     } else {
       const reply = await completeMessages(anthropic, messages);
-      res.status(200).json({ reply, userMessage, sajuChart, luckCycles });
+      res.status(200).json({ reply, userMessage, sajuChart, luckCycles, judgmentPack });
     }
   } catch (err) {
     console.error(err);

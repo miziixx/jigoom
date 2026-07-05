@@ -428,14 +428,6 @@ function CalculationEvidenceZone({
           <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />
         )}
         {session.type !== "combo" && hasTarot && <TarotFactsPanel cards={session.tarotCards!} />}
-        {hasSaju && (
-          <SajuFactsPanel
-            sajuChart={session.sajuChart}
-            luckCycles={session.luckCycles}
-            birthInfo={session.birthInfo}
-            showPillars={false}
-          />
-        )}
         {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
         {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}
         {session.luckCycles?.monthlyFlow && <ActionCalendar luckCycles={session.luckCycles} />}
@@ -547,6 +539,21 @@ export default function ReadingResult({ session, loading = false }: { session: R
       )}
 
       <SajuPillarSnapshot sajuChart={session.sajuChart} />
+
+      {session.sajuChart && (
+        <section className="reading-basic-report" aria-label="기본 사주 리포트">
+          <div className="reading-layer-heading">
+            <span>기본 사주 리포트</span>
+            <p>원국·오행·십신·신살·대운과 세운을 먼저 한눈에 정리했어요. 긴 풀이 전에 내 사주의 기본 베이스를 확인할 수 있습니다.</p>
+          </div>
+          <SajuFactsPanel
+            sajuChart={session.sajuChart}
+            luckCycles={session.luckCycles}
+            birthInfo={session.birthInfo}
+            showPillars={false}
+          />
+        </section>
+      )}
 
       {/* 사건화 예보: 원국이 있는 리딩에서 "지금 어느 분야가 움직이는지"를 계산값으로 바로 보여준다. */}
       {session.sajuChart && (

@@ -1,9 +1,11 @@
 import type { LuckCycles, SajuChart } from "../types";
+import type { JudgmentPack } from "./judgmentTypes.js";
 
 export interface ReadingMeta {
   userMessage: string;
   sajuChart?: SajuChart;
   luckCycles?: LuckCycles;
+  judgmentPack?: JudgmentPack | null;
 }
 
 interface StreamHandlers {
@@ -239,7 +241,7 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
   if (!contentType.includes("application/x-ndjson")) {
     const data = (await res.json()) as { reply: string } & Partial<ReadingMeta>;
     const meta = data.userMessage
-      ? { userMessage: data.userMessage, sajuChart: data.sajuChart, luckCycles: data.luckCycles }
+      ? { userMessage: data.userMessage, sajuChart: data.sajuChart, luckCycles: data.luckCycles, judgmentPack: data.judgmentPack }
       : undefined;
     if (meta) handlers.onMeta?.(meta);
     handlers.onText?.(data.reply);

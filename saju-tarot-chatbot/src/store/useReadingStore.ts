@@ -2,9 +2,11 @@ import { create } from "zustand";
 import { saveFeedback } from "../lib/feedback";
 import { streamReading } from "../lib/readingApi";
 import { getCachedResult, periodBucket, setCachedResult } from "../lib/resultCache";
+import { applyReadingValidationWarning } from "../lib/readingValidation";
 import { computeLuckCycles, computePastEventCalibrationInputs, computeSajuChart } from "../lib/saju";
 import { buildPastValidationReport } from "../lib/pastValidation";
 import { deleteAllSessions, deleteSession, isSessionSaved, loadSessions, saveSession, toggleFavorite } from "../lib/storage";
+import type { JudgmentPack } from "../lib/judgmentTypes";
 import type {
   BirthInfo,
   DrawnTarotCard,
@@ -159,6 +161,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
       spreadNote: spreadNote ?? null,
       pastEvents: effectiveContext.pastEvents ?? null,
       bucket: periodBucket(type === "today" ? "day" : "month"),
+      evidencePipeline: "compact-evidence-v1",
     };
     if (!forceRegenerate) {
       const cached = getCachedResult<CachedReading>("reading", cacheKey);
@@ -193,12 +196,14 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     // 스트리밍 도중 계속 갱신되는 세션 (계산 결과는 즉시 세션으로 먼저 보여주고, AI 텍스트가 실시간으로 자란다)
     let session: ReadingSession | null = provisionalSession;
     let metaUserMessage = "";
+    let judgmentPack: JudgmentPack | null = null;
     try {
       const result = await streamReading(
         { type, question, focus: inferredFocus, context: effectiveContext, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation },
         {
           onMeta: (meta) => {
             metaUserMessage = meta.userMessage;
+            judgmentPack = meta.judgmentPack ?? null;
             session = {
               id: session?.id ?? newId(),
               type,
@@ -231,14 +236,20 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
       // TS는 콜백 안의 할당을 추적하지 못하므로 여기서 타입을 되살린다
       const built = session as ReadingSession | null;
       if (!built) throw new Error("서버가 계산 결과를 보내지 않았습니다. 다시 시도해보세요.");
+      const validation = applyReadingValidationWarning({
+        type,
+        question,
+        reply: result.reply,
+        judgmentPack,
+      });
       const finalSession: ReadingSession = {
         ...built,
-        messages: [built.messages[0], { role: "assistant", content: result.reply }],
+        messages: [built.messages[0], { role: "assistant", content: validation.reply }],
       };
       // 같은 입력 재사용을 위해 결과를 캐시에 저장 (성공 시에만)
-      if (result.reply.trim()) {
+      if (validation.reply.trim()) {
         setCachedResult<CachedReading>("reading", cacheKey, {
-          reply: result.reply,
+          reply: validation.reply,
           userMessage: metaUserMessage || finalSession.messages[0].content,
         });
       }

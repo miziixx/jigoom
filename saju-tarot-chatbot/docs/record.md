@@ -917,3 +917,31 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
 사용자 확정 로드맵(사건화 → 과거검증 → activation/benefit/risk → 통근·투출·용신 → 대운·세운 중첩)
 5단계를 순차 구현하고 각 단계마다 main 커밋/푸시 완료. 모든 계산은 결정론·무 API,
 표면은 쉬운 말·근거는 전문가 영역 보존 원칙 유지. saju.ts(lunar) 미유입 원칙도 신규 룰 모듈에 유지.
+
+## Evidence Gate / Judgment Engine P0
+
+목표: LLM이 결론을 직접 만들지 않고, 계산·사건화·압축 근거 뒤에 판단 레이어가 먼저
+`JudgmentPack`을 만들고 LLM은 상담 문장으로 번역만 하도록 제한.
+
+- 새 판단 레이어 추가:
+  - `evidenceIds.ts`: compactEvidence의 문자열 근거를 `EvidenceRef` 객체(id/source/strength/direction/summary)로 정규화.
+  - `ruleEngine.ts`: career/money/love/health/startup/move/family/general P0 rule 발동. 모든 rule은 `rule.*` id와 evidence 보유.
+  - `judgmentEngine.ts`: rule 결과를 `CAREER_CHANGE_HIGH`, `MONEY_RISK_MEDIUM`, `STARTUP_NOT_RECOMMENDED` 같은 code 기반 JudgmentCandidate로 변환.
+  - `confidenceEngine.ts`: chart/luck/event/context/overall 확신도 산정. counterEvidence가 있으면 overall 감점.
+  - `contradictionEngine.ts`: 직업 변화 vs 즉시 창업 금지, 돈 위험 vs 창업 실험 등 P0 모순/긴장 탐지.
+  - `judgmentValidation.ts`: JudgmentPack 구조 검증 + LLM 출력의 forbidden claim/unsupported high-risk claim 검사.
+  - `judgmentPrompt.ts`: LLM에 JudgmentPack만 전달하고 새 결론 생성을 금지하는 prompt payload 구성.
+- `JudgmentPack.schemaVersion = 1.0.0`.
+- `DecisionTrace`와 `audit` 구조를 포함해 Evidence → Rules → Judgments → Confidence → Contradiction → Prompt 흐름 추적 가능.
+- 연결:
+  - light 사주/combo compactEvidence 경로에서 `buildReadingJudgmentPack` 생성.
+  - API meta에 `judgmentPack` 포함.
+  - `readingValidation`이 optional judgmentPack을 받아 출력 후 Evidence Gate warning/error를 기록.
+- 원칙:
+  - `saju.ts` 계산 로직 변경 없음.
+  - `eventEngine` 계산 결과 변경 없음.
+  - P0에서는 rewrite 없이 warning 기록만 수행.
+- 테스트 추가:
+  - ruleEngine, judgmentEngine, confidenceEngine, contradictionEngine, judgmentValidation, judgmentPrompt.
+  - `npm test`: 36 files / 243 tests 통과.
+  - `npm run build`와 별도 `tsc --noEmit`은 현재 로컬 환경에서 `tsc`가 장시간 무출력으로 멈춰 중단함.

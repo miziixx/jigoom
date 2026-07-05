@@ -294,3 +294,25 @@ AI 사주가 뭉뚱그려진다는 불만을 줄이기 위해 새로 넣은 상�
 - 사용자가 어떤 상품을 가장 사고 싶어 하는가
 - 가격 저항이 어디서 생기는가
 - 무료 맛보기와 유료 리포트의 차이가 분명한가
+
+## 13. Evidence Gate 다음 단계
+
+P0 완료 상태:
+
+- light 사주/combo 리딩에서 JudgmentPack 생성 → 프롬프트 전달 → 출력 후 검증 warning 연결.
+- Rule/Judgment/Confidence/Contradiction/Validation/Prompt Builder 테스트 추가.
+- 계산 엔진과 eventEngine 산식은 변경하지 않음.
+
+다음 우선순위:
+
+1. P1: basic/advanced/expert 경로까지 JudgmentPack 적용 범위 확대 여부 결정.
+2. P1: JudgmentPack을 UI/저장 기록에 노출할지, 내부 audit log로만 보관할지 결정.
+3. P1: validation 결과를 사용자에게 그대로 붙일지, 개발자 로그/품질 플래그로만 둘지 UX 결정.
+4. P2: 실제 리딩 샘플 20~50개로 forbidden claim/unsupported claim 오탐률 측정.
+5. P2: 결론 code와 리딩 섹션 간 매핑을 세분화해 "섹션은 쓰되 새 결론은 만들지 않는" 기준 강화.
+6. P3: 전문가 검수 데이터셋과 비교해 rule weight/confidence 산식을 보정.
+
+주의:
+
+- 용신/격국을 무리하게 확장하기보다, 먼저 결론-근거 1:1 추적과 검증 로그를 안정화한다.
+- LLM 프롬프트 강화만으로 해결하지 말고, 판단 객체와 forbiddenClaims를 계속 구조화한다.
