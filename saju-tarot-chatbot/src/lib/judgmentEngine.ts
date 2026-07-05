@@ -162,6 +162,47 @@ function judgmentFromRule(rule: TriggeredRule, index: number, context?: ReadingC
   };
 }
 
+function cautiousTone(): AllowedTone {
+  return {
+    stance: "cautious",
+    modality: "must_frame_as_condition",
+    wordingHints: ["가능성", "조건", "준비", "작게 확인", "단계적으로"],
+  };
+}
+
+function withLowerConfidence(judgment: JudgmentCandidate, amount: number): JudgmentCandidate {
+  const overall = Math.max(0, judgment.confidence.overall - amount);
+  const confidence = {
+    ...judgment.confidence,
+    overall,
+    reasons: [...judgment.confidence.reasons, `모순 탐지로 overall confidence ${amount}점 하향`],
+  };
+  return {
+    ...judgment,
+    confidence,
+    allowedTone: cautiousTone(),
+    uncertainty: uncertainty(overall, judgment.counterEvidence.length + 1),
+  };
+}
+
+function applyContradictionResolutions(
+  judgments: JudgmentCandidate[],
+  contradictions: ReturnType<typeof detectContradictions>,
+): JudgmentCandidate[] {
+  if (contradictions.length === 0) return judgments;
+  const downgradeById = new Map<string, number>();
+  for (const contradiction of contradictions) {
+    const amount = contradiction.severity === "error" ? 20 : contradiction.resolution === "downgrade-confidence" ? 15 : 10;
+    for (const id of contradiction.judgmentIds) {
+      downgradeById.set(id, Math.max(downgradeById.get(id) ?? 0, amount));
+    }
+  }
+  return judgments.map((judgment) => {
+    const amount = downgradeById.get(judgment.id);
+    return amount ? withLowerConfidence(judgment, amount) : judgment;
+  });
+}
+
 export function buildJudgmentPack(input: JudgmentEngineInput): JudgmentPack {
   const evidence = evidenceRefsFromCompactEvidence(input.compactEvidence);
   const triggeredRules = triggerRules({
@@ -171,14 +212,15 @@ export function buildJudgmentPack(input: JudgmentEngineInput): JudgmentPack {
     question: input.question,
     context: input.context,
   });
-  const judgments = triggeredRules.map((rule, index) => judgmentFromRule(rule, index, input.context));
-  const contradictions = detectContradictions(judgments);
+  const initialJudgments = triggeredRules.map((rule, index) => judgmentFromRule(rule, index, input.context));
+  const contradictions = detectContradictions(initialJudgments);
+  const judgments = applyContradictionResolutions(initialJudgments, contradictions);
   const decisionTrace = [
     { stage: "evidence" as const, refId: "evidence.compact", summary: `${evidence.length}개 근거 객체 생성` },
     { stage: "rule" as const, refId: "rules.triggered", summary: `${triggeredRules.length}개 Rule 발동` },
     { stage: "judgment" as const, refId: "judgments.generated", summary: `${judgments.length}개 JudgmentCandidate 생성` },
     { stage: "confidence" as const, refId: "confidence.scored", summary: "chart/luck/event/context/overall 확신도 산정" },
-    { stage: "contradiction" as const, refId: "contradictions.detected", summary: `${contradictions.length}개 모순 또는 긴장 탐지` },
+    { stage: "contradiction" as const, refId: "contradictions.detected", summary: `${contradictions.length}개 모순 또는 긴장 탐지 및 confidence/tone 반영` },
   ];
   return {
     schemaVersion: JUDGMENT_SCHEMA_VERSION,

@@ -18,6 +18,7 @@ export interface ReadingValidationIssue {
 
 export interface ReadingValidationResult {
   ok: boolean;
+  status: "pass" | "rewrite" | "fallback";
   issues: ReadingValidationIssue[];
   warningText: string | null;
 }
@@ -101,7 +102,7 @@ export function validateReadingOutput(params: {
   judgmentPack?: JudgmentPack | null;
 }): ReadingValidationResult {
   const { type, question = "", reply, judgmentPack } = params;
-  if (type !== "saju" && type !== "combo") return { ok: true, issues: [], warningText: null };
+  if (type !== "saju" && type !== "combo") return { ok: true, status: "pass", issues: [], warningText: null };
 
   const issues: ReadingValidationIssue[] = [];
   for (const section of missingSections(reply, question.trim().length > 0)) {
@@ -164,6 +165,7 @@ export function validateReadingOutput(params: {
   }
 
   const ok = issues.every((issue) => issue.severity !== "error");
+  const status = ok ? "pass" : "rewrite";
   const warningText =
     issues.length > 0
       ? [
@@ -174,7 +176,7 @@ export function validateReadingOutput(params: {
         ].join("\n")
       : null;
 
-  return { ok, issues, warningText };
+  return { ok, status, issues, warningText };
 }
 
 export function applyReadingValidationWarning(params: {

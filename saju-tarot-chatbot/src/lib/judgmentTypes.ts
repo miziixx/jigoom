@@ -108,6 +108,10 @@ export interface JudgmentAuditLog {
   judgmentIds: string[];
   promptId?: string;
   validationIssueIds?: string[];
+  validationStatus?: "pass" | "rewrite" | "fallback";
+  rewriteAttempted?: boolean;
+  fallbackUsed?: boolean;
+  finalConfidence?: number;
   userFeedback?: {
     rating?: number;
     note?: string;

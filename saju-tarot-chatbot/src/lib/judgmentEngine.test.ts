@@ -18,4 +18,18 @@ describe("judgmentEngine", () => {
     expect(pack.judgments.every((judgment) => judgment.forbiddenClaims.length > 0)).toBe(true);
     expect(pack.decisionTrace.map((step) => step.stage)).toContain("confidence");
   });
+
+  it("모순이 있는 judgment는 confidence를 낮추고 cautious tone으로 완화한다", () => {
+    const pack = buildJudgmentPack({
+      readingType: "saju",
+      compactEvidence: mockCompactEvidence(),
+      question: "퇴사 후 창업해도 될까요?",
+      generatedAt: "2026-07-06T00:00:00.000Z",
+    });
+    const career = pack.judgments.find((judgment) => judgment.code === "CAREER_CHANGE_HIGH");
+
+    expect(pack.contradictions.map((item) => item.id)).toContain("contradiction.career_change.startup_not_recommended");
+    expect(career?.allowedTone.stance).toBe("cautious");
+    expect(career?.confidence.reasons.some((reason) => reason.includes("모순 탐지"))).toBe(true);
+  });
 });

@@ -8,6 +8,15 @@ import {
   buildReadingUserMessage,
   type CompareReadingInput,
 } from "../src/prompts/systemPrompt.js";
+import {
+  buildJudgmentFallback,
+  buildJudgmentRewritePrompt,
+  finalizeJudgmentPackAudit,
+  passOrNeedsRewrite,
+  type JudgmentGateResult,
+} from "../src/lib/judgmentGate.js";
+import { validateOutputAgainstJudgmentPack } from "../src/lib/judgmentValidation.js";
+import type { JudgmentPack } from "../src/lib/judgmentTypes.js";
 import type {
   ChatMessage,
   DrawnTarotCard,
@@ -154,6 +163,73 @@ async function completeMessages(
   return extractText(response);
 }
 
+async function completeJudgmentGatedReply(
+  anthropic: Anthropic,
+  messages: Anthropic.Messages.MessageParam[],
+  judgmentPack: JudgmentPack,
+): Promise<{ reply: string; judgmentPack: JudgmentPack; gate: JudgmentGateResult }> {
+  const firstReply = await completeMessages(anthropic, messages);
+  const firstPass = passOrNeedsRewrite(firstReply, judgmentPack);
+  if (firstPass.status === "pass") {
+    return { reply: firstPass.reply, judgmentPack: finalizeJudgmentPackAudit(judgmentPack, firstPass), gate: firstPass };
+  }
+
+  const rewritePrompt = buildJudgmentRewritePrompt({
+    originalReply: firstReply,
+    validation: firstPass.validation,
+    pack: judgmentPack,
+  });
+  const rewriteReply = await completeMessages(anthropic, [{ role: "user", content: rewritePrompt }], { maxTokens: 7000 });
+  const rewriteValidation = validateOutputAgainstJudgmentPack({ reply: rewriteReply, pack: judgmentPack });
+  if (rewriteValidation.ok) {
+    const gate: JudgmentGateResult = {
+      status: "rewrite",
+      reply: rewriteReply,
+      validation: rewriteValidation,
+      firstValidation: firstPass.validation,
+      rewriteAttempted: true,
+      fallbackUsed: false,
+    };
+    return { reply: rewriteReply, judgmentPack: finalizeJudgmentPackAudit(judgmentPack, gate), gate };
+  }
+
+  const fallbackReply = buildJudgmentFallback(judgmentPack);
+  const fallbackValidation = validateOutputAgainstJudgmentPack({ reply: fallbackReply, pack: judgmentPack });
+  const gate: JudgmentGateResult = {
+    status: "fallback",
+    reply: fallbackReply,
+    validation: fallbackValidation,
+    firstValidation: firstPass.validation,
+    rewriteValidation,
+    rewriteAttempted: true,
+    fallbackUsed: true,
+  };
+  return { reply: fallbackReply, judgmentPack: finalizeJudgmentPackAudit(judgmentPack, gate), gate };
+}
+
+async function streamBufferedJudgmentGatedReply(
+  res: VercelResponse,
+  anthropic: Anthropic,
+  messages: Anthropic.Messages.MessageParam[],
+  meta: Record<string, unknown> | undefined,
+  judgmentPack: JudgmentPack,
+): Promise<void> {
+  res.status(200);
+  res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("X-Accel-Buffering", "no");
+  if (meta) res.write(JSON.stringify({ meta }) + "\n");
+  try {
+    const gated = await completeJudgmentGatedReply(anthropic, messages, judgmentPack);
+    res.write(JSON.stringify({ text: gated.reply }) + "\n");
+    res.write(JSON.stringify({ done: true, stopReason: "end_turn", gate: { status: gated.gate.status } }) + "\n");
+  } catch (err) {
+    console.error(err);
+    res.write(JSON.stringify({ error: `리딩 생성 중 오류: ${describeError(err)}` }) + "\n");
+  }
+  res.end();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST 요청만 지원합니다." });
@@ -269,10 +345,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 이어쓰기 호출에는 계산 메타(meta)를 다시 실어 보내지 않는다 (이미 첫 호출에서 전달됨).
     const meta = continueFrom ? undefined : { userMessage: metaUserMessage, sajuChart, luckCycles, judgmentPack };
     if (streaming) {
-      await streamMessages(res, anthropic, messages, meta);
+      if (judgmentPack && !continueFrom) {
+        await streamBufferedJudgmentGatedReply(res, anthropic, messages, meta, judgmentPack);
+      } else {
+        await streamMessages(res, anthropic, messages, meta);
+      }
     } else {
-      const reply = await completeMessages(anthropic, messages);
-      res.status(200).json({ reply, userMessage, sajuChart, luckCycles, judgmentPack });
+      if (judgmentPack && !continueFrom) {
+        const gated = await completeJudgmentGatedReply(anthropic, messages, judgmentPack);
+        res.status(200).json({ reply: gated.reply, userMessage, sajuChart, luckCycles, judgmentPack: gated.judgmentPack, gate: { status: gated.gate.status } });
+      } else {
+        const reply = await completeMessages(anthropic, messages);
+        res.status(200).json({ reply, userMessage, sajuChart, luckCycles, judgmentPack });
+      }
     }
   } catch (err) {
     console.error(err);
