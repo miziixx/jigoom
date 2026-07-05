@@ -331,6 +331,29 @@ export interface LuckCycles {
   monthlyFlow?: MonthFlowInfo[];
   /** 올해부터 10년치 세운 흐름 */
   yearlyFlow?: YearFlowInfo[];
+  /** 대운·세운 중첩 판정 (큰 흐름과 올해 흐름이 서로 겹치는 방식) */
+  daYunYearOverlap?: LuckOverlap;
+}
+
+/** 운의 용신/기신 방향 정렬 */
+export type LuckFavor = "boost" | "drain" | "neutral";
+
+/** 대운·세운 중첩 판정 결과 */
+export interface LuckOverlap {
+  daYunGanZhi: string;
+  yearGanZhi: string;
+  /** 대운 간지와 세운 간지 사이의 직접 합충형파해 */
+  interactions: string[];
+  /** 대운이 보완 기운(용신) 방향인지 부담 기운(기신) 방향인지 */
+  daYunFavor: LuckFavor;
+  /** 세운이 보완 기운 방향인지 부담 기운 방향인지 */
+  yearFavor: LuckFavor;
+  /** 종합: 좋은 흐름 겹침/부담 겹침/엇갈림/조용함 */
+  combo: "amplify-good" | "amplify-bad" | "mixed" | "quiet";
+  /** 쉬운 말 한 줄 */
+  headline: string;
+  /** 전문가 근거 */
+  evidence: string[];
 }
 
 export type CompatibilityRelationType =

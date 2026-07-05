@@ -5716,3 +5716,172 @@ label {
 .event-score--activation { background: var(--accent); }
 .event-score--benefit { background: #2e9c63; }
 .event-score--risk { background: var(--danger); }
+
+/* ── 타로 여정 스테이지 (shuffle / pick / reveal) ─────────────── */
+.tarot-stage {
+  display: grid;
+  gap: 20px;
+  justify-items: center;
+  text-align: center;
+  padding: 24px 16px;
+}
+.tarot-stage__head { display: grid; gap: 6px; justify-items: center; }
+.tarot-stage__desc { margin: 0; color: var(--text-dim); font-size: 0.9rem; }
+.tarot-stage .btn { min-width: 200px; }
+
+/* 셔플 연출 */
+.tarot-shuffle-deck {
+  position: relative;
+  width: 120px;
+  height: 170px;
+  margin: 8px auto;
+}
+.tarot-shuffle-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(122, 76, 31, 0.35);
+  background:
+    repeating-linear-gradient(45deg, rgba(122, 76, 31, 0.14) 0 6px, transparent 6px 12px),
+    linear-gradient(160deg, var(--accent-soft), rgba(181, 132, 78, 0.5));
+  box-shadow: 0 8px 18px rgba(122, 76, 31, 0.16);
+  animation: tarot-shuffle 1.1s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.14s);
+}
+@keyframes tarot-shuffle {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-26px) rotate(-7deg); }
+  50% { transform: translateX(0) rotate(0deg); }
+  75% { transform: translateX(26px) rotate(7deg); }
+}
+
+/* 부채꼴 고르기 */
+.tarot-fan {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  height: 210px;
+  margin: 0 auto;
+}
+.tarot-fan-card {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 60px;
+  height: 96px;
+  margin-left: -30px;
+  padding: 0;
+  border-radius: 9px;
+  border: 1px solid rgba(122, 76, 31, 0.4);
+  background:
+    repeating-linear-gradient(45deg, rgba(122, 76, 31, 0.12) 0 5px, transparent 5px 10px),
+    linear-gradient(160deg, var(--accent-soft), rgba(181, 132, 78, 0.55));
+  box-shadow: 0 6px 14px rgba(122, 76, 31, 0.16);
+  transform-origin: bottom center;
+  transform: rotate(var(--angle)) translateY(0);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  cursor: pointer;
+}
+.tarot-fan-card:hover { transform: rotate(var(--angle)) translateY(-12px); }
+.tarot-fan-card--picked {
+  background: linear-gradient(160deg, var(--accent-strong), var(--accent));
+  transform: rotate(var(--angle)) translateY(-22px);
+  box-shadow: 0 12px 22px rgba(122, 76, 31, 0.32);
+}
+.tarot-fan-card__face {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #fffaf1;
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+/* 공개 (flip) */
+.tarot-reveal-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+.tarot-reveal-slot { display: grid; gap: 6px; justify-items: center; width: 116px; }
+.tarot-reveal-slot__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-strong);
+  min-height: 2.2em;
+  display: flex;
+  align-items: center;
+}
+.tarot-reveal-slot__name { font-size: 0.72rem; color: var(--text-dim); font-weight: 700; }
+.tarot-flip {
+  width: 112px;
+  aspect-ratio: 2 / 3;
+  perspective: 900px;
+}
+.tarot-flip__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease;
+}
+.tarot-flip--up .tarot-flip__inner { transform: rotateY(180deg); }
+.tarot-flip__back,
+.tarot-flip__front {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.tarot-flip__back {
+  border-radius: 8px;
+  border: 1px solid rgba(122, 76, 31, 0.35);
+  background:
+    repeating-linear-gradient(45deg, rgba(122, 76, 31, 0.14) 0 6px, transparent 6px 12px),
+    linear-gradient(160deg, var(--accent-soft), rgba(181, 132, 78, 0.5));
+}
+.tarot-flip__front { transform: rotateY(180deg); }
+.tarot-flip__front .tarot-card-visual { margin: 0; width: 100%; }
+.tarot-reveal-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tarot-shuffle-card { animation: none; }
+  .tarot-fan-card,
+  .tarot-fan-card:hover { transition: none; }
+  .tarot-flip__inner { transition: none; }
+}
+
+/* ── 대운·세운 중첩 판정 ────────── */
+.luck-overlap {
+  margin: 10px 0;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.luck-overlap--amplify-good {
+  border-color: color-mix(in srgb, #2e9c63 45%, var(--border));
+  background: color-mix(in srgb, #2e9c63 8%, var(--surface));
+}
+.luck-overlap--amplify-bad {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+}
+.luck-overlap--mixed {
+  border-color: color-mix(in srgb, #9a6a1a 40%, var(--border));
+  background: color-mix(in srgb, #9a6a1a 7%, var(--surface));
+}
+.luck-overlap__tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.luck-overlap__headline {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.55;
+}

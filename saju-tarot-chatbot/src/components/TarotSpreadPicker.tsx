@@ -4,7 +4,7 @@ import type { ReadingContext } from "../types";
 
 interface Props {
   submitLabel: string;
-  onSubmit: (question: string, spreadId: SpreadId, shuffleId: ShuffleId, pickedSlots: number[], context: ReadingContext) => void;
+  onSubmit: (question: string, spreadId: SpreadId, shuffleId: ShuffleId, context: ReadingContext) => void;
   loading: boolean;
 }
 
@@ -23,38 +23,25 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
   const [spreadId, setSpreadId] = useState<SpreadId>("ppf");
   const [manualSpread, setManualSpread] = useState(false);
   const [shuffleId, setShuffleId] = useState<ShuffleId>("classic");
-  const [pickMode, setPickMode] = useState<"auto" | "manual">("auto");
-  const [pickedSlots, setPickedSlots] = useState<number[]>([]);
   const recommendedSpread = useMemo(() => recommendedSpreadFor(question), [question]);
   const activeSpreadId = manualSpread ? spreadId : recommendedSpread;
   const activeSpread = SPREADS[activeSpreadId];
-  const needCount = activeSpread.positions.length;
-  const readyToSubmit = question.trim() && (pickMode === "auto" || pickedSlots.length === needCount);
+  const readyToSubmit = !!question.trim();
 
   function changeSpread(next: SpreadId) {
     setSpreadId(next);
     setManualSpread(true);
-    setPickedSlots([]);
   }
 
   function useRecommendedSpread() {
     setManualSpread(false);
-    setPickedSlots([]);
-  }
-
-  function toggleSlot(slot: number) {
-    setPickedSlots((prev) => {
-      if (prev.includes(slot)) return prev.filter((item) => item !== slot);
-      if (prev.length >= needCount) return prev;
-      return [...prev, slot];
-    });
   }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (loading) return;
     const context: ReadingContext = {};
-    onSubmit(question, activeSpreadId, shuffleId, pickMode === "manual" ? pickedSlots : [], context);
+    onSubmit(question, activeSpreadId, shuffleId, context);
   }
 
   return (
@@ -133,50 +120,6 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="field-row field-row--column">
-          <span className="field-label">카드 선택 방식</span>
-          <div className="segmented tarot-pick-toggle">
-            <button
-              type="button"
-              className={pickMode === "auto" ? "segmented__item segmented__item--active" : "segmented__item"}
-              onClick={() => setPickMode("auto")}
-            >
-              자동 뽑기
-            </button>
-            <button
-              type="button"
-              className={pickMode === "manual" ? "segmented__item segmented__item--active" : "segmented__item"}
-              onClick={() => setPickMode("manual")}
-            >
-              직접 고르기
-            </button>
-          </div>
-          {pickMode === "manual" && (
-            <>
-              <div className="tarot-pick-board" aria-label={`카드 ${needCount}장 선택`}>
-                {Array.from({ length: 18 }, (_, slot) => {
-                  const order = pickedSlots.indexOf(slot);
-                  const picked = order >= 0;
-                  return (
-                    <button
-                      key={slot}
-                      type="button"
-                      className={picked ? "tarot-pick-card tarot-pick-card--picked" : "tarot-pick-card"}
-                      onClick={() => toggleSlot(slot)}
-                      aria-pressed={picked}
-                    >
-                      <span>{picked ? order + 1 : "✦"}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <span className="field-hint">
-                {needCount}장 중 {pickedSlots.length}장을 골랐어요. 고른 순서대로 스프레드 자리에 놓입니다.
-              </span>
-            </>
-          )}
         </div>
       </details>
 

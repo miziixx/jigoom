@@ -6,6 +6,7 @@ import type {
   FiveElementBalance,
   GyeokgukInfo,
   LuckCycles,
+  LuckOverlap,
   MonthFlowInfo,
   PastEvent,
   PastEventCalibrationInput,
@@ -1020,7 +1021,92 @@ function luckVsNatal(
 export interface LuckCycleOptions {
   /** 올해 1~12월 월운 흐름까지 계산 (월간/연간 흐름 리딩용) */
   includeMonthlyFlow?: boolean;
+  /** 대운·세운 중첩 판정에 쓸 용신(보완) 오행 (한글, 예: ["화","목"]) */
+  yongElements?: string[];
+  /** 대운·세운 중첩 판정에 쓸 기신(부담) 오행 (한글) */
+  avoidElements?: string[];
 }
+
+/** 간지(2글자)가 용신/기신 방향인지 판정 (천간·지지 오행 중 어느 쪽에 기우는지) */
+function luckFavorOf(ganZhi: string, yong: Set<string>, avoid: Set<string>): "boost" | "drain" | "neutral" {
+  if (ganZhi.length < 2) return "neutral";
+  const els = [GAN_WUXING[ganZhi[0]], ZHI_WUXING[ganZhi[1]]].filter(Boolean) as Array<keyof FiveElementBalance>;
+  let good = 0;
+  let bad = 0;
+  for (const el of els) {
+    const ko = ELEMENT_KO[el];
+    if (yong.has(ko)) good += 1;
+    if (avoid.has(ko)) bad += 1;
+  }
+  if (good > bad) return "boost";
+  if (bad > good) return "drain";
+  return "neutral";
+}
+
+/**
+ * 대운·세운 중첩 판정: 큰 흐름(대운)과 올해 흐름(세운)이 서로 어떻게 겹치는지 계산한다.
+ * - 두 간지 사이의 직접 합충형파해
+ * - 각각이 용신/기신 방향인지 → 좋은 흐름 겹침 / 부담 겹침 / 엇갈림 판정
+ */
+function computeLuckOverlap(
+  daYunGanZhi: string,
+  yearGanZhi: string,
+  yongElements: string[] = [],
+  avoidElements: string[] = [],
+): LuckOverlap {
+  const yong = new Set(yongElements);
+  const avoid = new Set(avoidElements);
+
+  // 대운-세운 두 기둥 사이의 상호작용만 (원국 없이)
+  const gans: PositionedChar[] = [
+    { label: "대운", char: daYunGanZhi[0] },
+    { label: "세운", char: yearGanZhi[0] },
+  ];
+  const zhis: PositionedChar[] = [
+    { label: "대운", char: daYunGanZhi[1] },
+    { label: "세운", char: yearGanZhi[1] },
+  ];
+  const interactions = computeInteractions(gans, zhis);
+
+  const daYunFavor = luckFavorOf(daYunGanZhi, yong, avoid);
+  const yearFavor = luckFavorOf(yearGanZhi, yong, avoid);
+
+  let combo: LuckOverlap["combo"];
+  if (daYunFavor === "boost" && yearFavor === "boost") combo = "amplify-good";
+  else if (daYunFavor === "drain" && yearFavor === "drain") combo = "amplify-bad";
+  else if (daYunFavor === "neutral" && yearFavor === "neutral") combo = "quiet";
+  else combo = "mixed";
+
+  const hasClash = interactions.some((s) => s.includes("충"));
+  const hasHe = interactions.some((s) => s.includes("합"));
+
+  let headline: string;
+  switch (combo) {
+    case "amplify-good":
+      headline = "큰 흐름과 올해 흐름이 같은 방향으로 실려, 좋은 기운이 겹쳐 나타나기 쉬운 시기입니다.";
+      break;
+    case "amplify-bad":
+      headline = "큰 흐름과 올해 흐름이 함께 부담 쪽으로 기울어, 무리하면 지치기 쉬운 시기입니다. 속도 조절이 중요합니다.";
+      break;
+    case "mixed":
+      headline = "큰 흐름과 올해 흐름이 서로 엇갈려, 방향을 하나로 정하기 애매한 시기입니다. 급하게 밀지 말고 신호를 보며 움직이세요.";
+      break;
+    default:
+      headline = "큰 흐름과 올해 흐름이 크게 부딪히지 않아, 비교적 담담하게 흘러가는 시기입니다.";
+  }
+  if (hasClash) headline += " 특히 두 흐름이 부딪히는 지점이 있어 자리·환경이 한 번 흔들릴 수 있습니다.";
+  else if (hasHe) headline += " 두 흐름이 묶이며 새로운 인연·기회가 만들어지기도 합니다.";
+
+  const favorWord = (f: LuckFavorLocal) => (f === "boost" ? "보완 방향" : f === "drain" ? "부담 방향" : "중립");
+  const evidence = [
+    `대운 ${daYunGanZhi}(${favorWord(daYunFavor)}) · 세운 ${yearGanZhi}(${favorWord(yearFavor)}) → ${combo}`,
+    ...(interactions.length > 0 ? [`대운-세운 상호작용: ${interactions.join(", ")}`] : ["대운-세운 직접 상호작용 없음"]),
+  ];
+
+  return { daYunGanZhi, yearGanZhi, interactions, daYunFavor, yearFavor, combo, headline, evidence };
+}
+
+type LuckFavorLocal = "boost" | "drain" | "neutral";
 
 /**
  * 과거 검증용: 사용자가 입력한 과거 사건들 각각에 대해, 그 해의 세운 간지와
@@ -1141,6 +1227,12 @@ export function computeLuckCycles(
     ...luckVsNatal(`일진 ${dayGanZhi}`, dayGanZhi, natalGans, natalZhis),
   ];
 
+  // 대운·세운 중첩 판정 (큰 흐름과 올해 흐름이 서로 겹치는 방식)
+  const daYunYearOverlap =
+    currentDaYun && yearGanZhi.length >= 2
+      ? computeLuckOverlap(currentDaYun, yearGanZhi, options.yongElements, options.avoidElements)
+      : undefined;
+
   let monthlyFlow: MonthFlowInfo[] | undefined;
   if (options.includeMonthlyFlow) {
     monthlyFlow = [];
@@ -1182,6 +1274,7 @@ export function computeLuckCycles(
     year: nowYear,
     month: now.getMonth() + 1,
     luckInteractions,
+    daYunYearOverlap,
   };
 }
 

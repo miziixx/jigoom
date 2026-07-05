@@ -110,7 +110,14 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     // 성별만 보낸다. 리딩 기록은 사용자가 직접 저장을 선택한 경우에만 브라우저 저장소에 남긴다.
     const includeMonthlyFlow = type === "saju" || type === "combo" || type === "flow";
     const sajuChart = birthInfo ? computeSajuChart(birthInfo) : undefined;
-    const luckCycles = birthInfo ? computeLuckCycles(birthInfo, new Date(), { includeMonthlyFlow }) : undefined;
+    const luckCycles = birthInfo
+      ? computeLuckCycles(birthInfo, new Date(), {
+          includeMonthlyFlow,
+          // 대운·세운 중첩 판정에 용신/기신 방향을 반영
+          yongElements: sajuChart?.yongshin?.supportive ?? sajuChart?.yongshin?.yongshin,
+          avoidElements: sajuChart?.yongshin?.unfavorable,
+        })
+      : undefined;
     // 과거 검증: 사용자가 실제 과거 사건을 입력했으면 그 시기 흐름 부합도를 계산한다(무 API·결정론).
     const pastValidation =
       birthInfo && sajuChart && effectiveContext.pastEvents && effectiveContext.pastEvents.length > 0

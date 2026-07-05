@@ -54,7 +54,7 @@ function cardSymbol(card: DrawnTarotCard["card"]) {
   return "◉";
 }
 
-function TarotCardVisual({ card, reversed }: { card: DrawnTarotCard["card"]; reversed: boolean }) {
+export function TarotCardVisual({ card, reversed }: { card: DrawnTarotCard["card"]; reversed: boolean }) {
   const label = cardVisualLabel(card);
   const name = card.name.replace(/\s*\(.+?\)/, "");
 

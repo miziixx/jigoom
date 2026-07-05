@@ -526,6 +526,13 @@ export default function SajuFactsPanel({
           </div>
           <DaYunTimeline luckCycles={luckCycles} />
 
+          {luckCycles.daYunYearOverlap && (
+            <div className={`luck-overlap luck-overlap--${luckCycles.daYunYearOverlap.combo}`}>
+              <span className="luck-overlap__tag">큰 흐름 × 올해 흐름</span>
+              <p className="luck-overlap__headline">{luckCycles.daYunYearOverlap.headline}</p>
+            </div>
+          )}
+
           {luckCycles.yearlyFlow && luckCycles.yearlyFlow.length > 0 && (
             <>
               <h4 className="saju-facts__subhead">세운 흐름 (앞으로 10년)</h4>

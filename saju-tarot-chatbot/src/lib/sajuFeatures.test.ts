@@ -97,6 +97,37 @@ describe("격국·희신", () => {
   });
 });
 
+describe("대운·세운 중첩", () => {
+  it("현재 대운이 있으면 중첩 판정을 계산한다", () => {
+    const chart = computeSajuChart(female1990);
+    const luck = computeLuckCycles(female1990, new Date("2026-07-03T03:00:00Z"), {
+      yongElements: chart.yongshin!.supportive,
+      avoidElements: chart.yongshin!.unfavorable,
+    });
+    if (luck.currentDaYun) {
+      expect(luck.daYunYearOverlap).toBeDefined();
+      const o = luck.daYunYearOverlap!;
+      expect(o.yearGanZhi).toBe(luck.yearGanZhi);
+      expect(o.daYunGanZhi).toBe(luck.currentDaYun);
+      expect(["amplify-good", "amplify-bad", "mixed", "quiet"]).toContain(o.combo);
+      expect(["boost", "drain", "neutral"]).toContain(o.daYunFavor);
+      expect(o.headline.length).toBeGreaterThan(0);
+      expect(o.evidence.length).toBeGreaterThan(0);
+      // 표면 headline에 십성/충합 용어를 그대로 노출하지 않는다
+      for (const term of ["편재", "정관", "식신", "비견"]) expect(o.headline).not.toContain(term);
+    }
+  });
+
+  it("용신 오행을 주지 않으면 방향은 중립으로 계산된다", () => {
+    const luck = computeLuckCycles(female1990, new Date("2026-07-03T03:00:00Z"));
+    if (luck.daYunYearOverlap) {
+      expect(luck.daYunYearOverlap.daYunFavor).toBe("neutral");
+      expect(luck.daYunYearOverlap.yearFavor).toBe("neutral");
+      expect(luck.daYunYearOverlap.combo).toBe("quiet");
+    }
+  });
+});
+
 describe("통근·투출", () => {
   const chart = computeSajuChart(female1990); // 경오 무자 임술 갑진
   it("각 천간의 통근을 계산한다", () => {

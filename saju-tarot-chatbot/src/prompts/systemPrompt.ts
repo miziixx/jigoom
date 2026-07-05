@@ -459,6 +459,12 @@ function formatLuckCycles(luck: LuckCycles): string {
         : "운과 원국의 상호작용 (계산됨): 현재 대운/세운/월운/일진과 원국 사이 새로 성립하는 합충형파해 없음",
     );
   }
+  if (luck.daYunYearOverlap) {
+    const o = luck.daYunYearOverlap;
+    lines.push(
+      `대운·세운 중첩 (계산됨): ${o.headline} [근거: ${o.evidence.join(" / ")}] — '인생의 큰 흐름'(대운)과 '올해의 흐름'(세운)을 연결해 해석할 때 이 중첩 판정을 우선 근거로 삼아라. 좋은 흐름이 겹치면 '지금이 밀어붙이기 좋은 시기', 부담이 겹치면 '속도를 늦추고 지킬 것을 지키는 시기', 엇갈리면 '방향을 하나로 정하기보다 신호를 보며 조정하는 시기'로 쉬운 말로 옮겨라. 사주 용어는 표면에 쓰지 마라.`,
+    );
+  }
   if (luck.yearlyFlow && luck.yearlyFlow.length > 0) {
     const yearLines = luck.yearlyFlow.map(
       (yf) =>

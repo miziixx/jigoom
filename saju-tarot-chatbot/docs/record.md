@@ -892,3 +892,28 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
 - 타입: `RootednessHit`, `TransparencyInfo`, GyeokgukInfo/YongshinCandidates 필드 확장.
 - 테스트: sajuFeatures.test.ts에 통근·투출·격국 성패·조후용신 검증 5건 추가.
   기존 회귀 테스트(계산 고정값) 전부 유지. 전체 228 통과, build OK.
+
+## 명리 엔진 고도화 5단계 — 대운·세운 중첩 규칙 강화
+
+로드맵 5번(마지막). 대운(큰 흐름)과 세운(올해 흐름)이 각각 원국과 맺는 상호작용만 보던 것을,
+두 흐름이 서로 겹치는 방식까지 판정하도록 확장. 무 API·결정론(additive).
+
+- `computeLuckOverlap(대운간지, 세운간지, 용신오행, 기신오행)`:
+  - 대운↔세운 두 기둥 사이의 직접 합충형파해(computeInteractions 재사용).
+  - 각 간지가 용신(보완) 방향인지 기신(부담) 방향인지(luckFavorOf) 판정.
+  - 종합 combo: amplify-good(좋은 흐름 겹침)/amplify-bad(부담 겹침)/mixed(엇갈림)/quiet(조용함).
+  - 충 있으면 "자리·환경 흔들림", 합 있으면 "새 인연·기회" 코멘트 부착. 쉬운 말 headline + 근거.
+- computeLuckCycles: currentDaYun+세운으로 overlap 계산 → `LuckCycles.daYunYearOverlap`.
+  LuckCycleOptions에 yongElements/avoidElements 추가(store에서 chart.yongshin 전달).
+- 타입: `LuckOverlap`, `LuckFavor`.
+- 배선: store에서 용신/기신 오행 전달. systemPrompt formatLuckCycles에 중첩 판정 근거 + 해석 안내
+  (좋은 흐름 겹침=밀어붙이기 좋은 시기, 부담 겹침=속도 조절, 엇갈림=신호 보며 조정).
+  SajuFactsPanel 운 흐름 영역에 combo별 색상 카드로 표시. index.css 추가.
+- 테스트: sajuFeatures.test.ts에 중첩 판정·중립 케이스 2건. 전체 230 통과, build OK.
+  기존 계산 회귀값 유지.
+
+## 명리 엔진 고도화 5단계 완료 — 로드맵 1~5 전부 반영
+
+사용자 확정 로드맵(사건화 → 과거검증 → activation/benefit/risk → 통근·투출·용신 → 대운·세운 중첩)
+5단계를 순차 구현하고 각 단계마다 main 커밋/푸시 완료. 모든 계산은 결정론·무 API,
+표면은 쉬운 말·근거는 전문가 영역 보존 원칙 유지. saju.ts(lunar) 미유입 원칙도 신규 룰 모듈에 유지.
