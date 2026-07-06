@@ -17,6 +17,9 @@ import {
   type QualityEvent,
   type QualityJudgmentPackLike,
 } from "./qualityTypes.js";
+import { computeLuckCycles, computeSajuChart } from "../saju.js";
+import { buildReadingJudgmentPack } from "../../prompts/systemPrompt.js";
+import type { BirthInfo } from "../../types/index.js";
 
 // ── 헬퍼 ──────────
 
@@ -149,6 +152,56 @@ describe("logReading (Observer)", () => {
     };
     expect(() => logReading({ readingType: "saju", judgmentPack: packLike() }, throwing)).not.toThrow();
     expect(logReading({ readingType: "saju", judgmentPack: packLike() }, throwing)).toBeNull();
+  });
+});
+
+describe("실제 엔진 JudgmentPack 대상 검증 (PII 미저장)", () => {
+  const birth: BirthInfo = {
+    displayName: "홍길동테스트", // 이름은 절대 이벤트에 남으면 안 된다
+    calendarType: "solar",
+    year: 1988,
+    month: 7,
+    day: 15,
+    hour: 13,
+    minute: 20,
+    gender: "female",
+  };
+  const question = "회사를그만두고이직해야할까요"; // 질문 원문도 남으면 안 된다
+  const chart = computeSajuChart(birth);
+  const luck = computeLuckCycles(birth, new Date("2026-07-06"));
+  // light depth라야 compactEvidence 경로로 실제 JudgmentPack이 생성된다
+  const pack = buildReadingJudgmentPack({
+    type: "saju",
+    question,
+    gender: birth.gender,
+    sajuChart: chart,
+    luckCycles: luck,
+    context: { depth: "light" },
+  });
+
+  it("실제 엔진이 JudgmentPack을 생성한다", () => {
+    expect(pack).not.toBeNull();
+    expect(pack!.judgments.length).toBeGreaterThan(0);
+  });
+
+  it("실제 pack에서 code/rule/confidence를 추출한다", () => {
+    const event = buildQualityEvent({ readingType: "saju", judgmentPack: pack });
+    expect(event).not.toBeNull();
+    expect(event!.judgments.length).toBe(pack!.judgments.length);
+    for (const j of event!.judgments) {
+      expect(j.confidence).toBeGreaterThanOrEqual(0);
+      expect(j.confidence).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("저장 이벤트에 개인정보(이름·생년·질문 원문)가 없다", () => {
+    const event = buildQualityEvent({ readingType: "saju", judgmentPack: pack });
+    const serialized = JSON.stringify(event);
+    expect(serialized).not.toContain("홍길동테스트");
+    expect(serialized).not.toContain("회사를그만두고");
+    expect(serialized).not.toContain("1988");
+    // 사주 원국 간지 같은 계산 결과도 새지 않는다 (일간)
+    expect(serialized).not.toContain(chart.dayMasterGan);
   });
 });
 
