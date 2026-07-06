@@ -1,17 +1,11 @@
-import Gauge from "./Gauge";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide";
 import { computeSajuChart } from "../lib/saju";
 import type { BirthInfo, FiveElementBalance, LuckCycles, SajuChart, SajuPillar, StrengthAssessment, YearFlowInfo } from "../types";
-
-const ELEMENT_LABEL: Record<keyof FiveElementBalance, string> = {
-  wood: "목",
-  fire: "화",
-  earth: "토",
-  metal: "금",
-  water: "수",
-};
-
-const ELEMENT_ORDER: Array<keyof FiveElementBalance> = ["wood", "fire", "earth", "metal", "water"];
+import ArcGauge from "./viz/ArcGauge";
+import ElementRadarChart from "./viz/ElementRadarChart";
+import MonthlyFlowChart from "./viz/MonthlyFlowChart";
+import { ELEMENT_GLOSS, ELEMENT_KEY_BY_KO, ELEMENT_LABEL, ELEMENT_ORDER } from "./viz/elementMeta";
+import { VizIcon } from "./viz/icons";
 
 const GAN_KO: Record<string, string> = {
   갑: "갑목",
@@ -97,14 +91,6 @@ const BRANCH_META: Record<string, { element: string; yinYang: string }> = {
   해: { element: "수", yinYang: "음" },
 };
 
-const ELEMENT_GLOSS: Record<keyof FiveElementBalance, string> = {
-  wood: "성장·배움",
-  fire: "표현·활력",
-  earth: "안정·책임",
-  metal: "판단·정리",
-  water: "생각·휴식",
-};
-
 const STRENGTH_GLOSS: Record<StrengthAssessment["label"], string> = {
   신강: "타고난 기운이 스스로 강한 편이에요. 밀어붙이는 힘은 있지만 자기 고집도 셀 수 있어요.",
   중화: "기운이 한쪽으로 치우치지 않고 균형 잡힌 편이에요.",
@@ -118,8 +104,9 @@ function PillarBox({ label, pillar }: { label: string; pillar: SajuPillar | null
   const zhiHanja = pillar ? (ZHI_HANJA[pillar.zhi] ?? pillar.zhi) : "";
   const stem = pillar ? STEM_META[pillar.gan] : null;
   const branch = pillar ? BRANCH_META[pillar.zhi] : null;
+  const elementKey = stem ? ELEMENT_KEY_BY_KO[stem.element] : undefined;
   return (
-    <div className="pillar-box">
+    <div className={`pillar-box${elementKey ? ` pillar-box--${elementKey}` : ""}`}>
       <span className="pillar-box__label">{label}</span>
       <span className="pillar-box__value">{pillar ? `${ganHanja}${zhiHanja}` : "모름"}</span>
       {pillar && (
@@ -149,21 +136,6 @@ function ElementBars({ fiveElements }: { fiveElements: FiveElementBalance }) {
           </div>
           <span className="element-bar__value">{fiveElements[k]}</span>
           <span className="element-bar__gloss">{ELEMENT_GLOSS[k]}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ElementRadar({ fiveElements }: { fiveElements: FiveElementBalance }) {
-  const max = Math.max(1, ...ELEMENT_ORDER.map((k) => fiveElements[k]));
-  return (
-    <div className="element-radar" aria-label="오행 분포 요약">
-      {ELEMENT_ORDER.map((k) => (
-        <div className={`element-radar__node element-radar__node--${k}`} key={k}>
-          <span className="element-radar__label">{ELEMENT_LABEL[k]}</span>
-          <span className="element-radar__dot" style={{ transform: `scale(${0.75 + (fiveElements[k] / max) * 0.75})` }} />
-          <span className="element-radar__value">{fiveElements[k]}</span>
         </div>
       ))}
     </div>
@@ -257,8 +229,19 @@ function DaYunTimeline({ luckCycles }: { luckCycles: LuckCycles }) {
     <div className="dayun-timeline">
       {luckCycles.daYun.map((dy) => {
         const phase = dayunPhase(dy.ganZhi);
+        const gan = dy.ganZhi?.[0];
+        const elementKo = gan ? STEM_META[gan]?.element : undefined;
+        const elementKey = elementKo ? ELEMENT_KEY_BY_KO[elementKo] : undefined;
         return (
-          <div key={`${dy.startAge}-${dy.ganZhi}`} className={`dayun-pill${dy.current ? " dayun-pill--current" : ""}`}>
+          <div
+            key={`${dy.startAge}-${dy.ganZhi}`}
+            className={`dayun-pill${elementKey ? ` dayun-pill--${elementKey}` : ""}${dy.current ? " dayun-pill--current" : ""}`}
+          >
+            {dy.current && (
+              <span className="dayun-pill__now">
+                <VizIcon name="flag" size={10} /> 지금
+              </span>
+            )}
             <span className="dayun-pill__age">{dy.startAge}세~</span>
             <span className="dayun-pill__ganzhi">{dy.ganZhi}</span>
             {phase && <span className="dayun-pill__phase">{phase}</span>}
@@ -424,7 +407,7 @@ export default function SajuFactsPanel({
           )}
 
           <h4 className="saju-facts__subhead">오행 분포</h4>
-          <ElementRadar fiveElements={sajuChart.fiveElements} />
+          <ElementRadarChart fiveElements={sajuChart.fiveElements} />
           <ElementBars fiveElements={sajuChart.fiveElements} />
 
           <LifestyleGuidePanel sajuChart={sajuChart} />
@@ -439,10 +422,11 @@ export default function SajuFactsPanel({
           {sajuChart.strength && ratio !== null && (
             <>
               <h4 className="saju-facts__subhead">기운 강도</h4>
-              <Gauge
-                label={sajuChart.strength.label}
+              <ArcGauge
+                label="나를 돕는 기운의 비중"
                 score={ratio}
                 tone="neutral"
+                tierLabel={sajuChart.strength.label}
                 comment={STRENGTH_GLOSS[sajuChart.strength.label]}
               />
             </>
@@ -554,6 +538,7 @@ export default function SajuFactsPanel({
             <details className="saju-facts__details saju-facts__monthly">
               <summary>월별 흐름 계산값 보기</summary>
               <h4 className="saju-facts__subhead">올해 1월~12월 흐름</h4>
+              <MonthlyFlowChart monthlyFlow={luckCycles.monthlyFlow} />
               <div className="month-flow-grid">
                 {luckCycles.monthlyFlow.map((mf) => (
                   <div

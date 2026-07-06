@@ -1329,15 +1329,34 @@ label {
 }
 
 .pillar-box {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 10px 6px;
+  padding: 12px 6px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface-alt);
+  overflow: hidden;
 }
+
+/* 천간 오행에 따른 기둥 상단 색 스트립 (색 옆에 이미 텍스트 라벨이 있음) */
+.pillar-box::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--border);
+}
+
+.pillar-box--wood::before { background: var(--wood); }
+.pillar-box--fire::before { background: var(--fire); }
+.pillar-box--earth::before { background: var(--earth); }
+.pillar-box--metal::before { background: var(--metal); }
+.pillar-box--water::before { background: var(--water); }
 
 .pillar-box__label {
   font-size: 0.76rem;
@@ -1362,58 +1381,6 @@ label {
   color: var(--text-dim);
   text-align: center;
   line-height: 1.25;
-}
-
-.element-radar {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.element-radar__node {
-  min-width: 0;
-  padding: 10px 6px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: rgba(126, 86, 42, 0.04);
-  text-align: center;
-}
-
-.element-radar__label,
-.element-radar__value {
-  display: block;
-  color: var(--text-dim);
-  font-size: 0.74rem;
-}
-
-.element-radar__dot {
-  display: block;
-  width: 22px;
-  height: 22px;
-  margin: 8px auto;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.element-radar__node--wood .element-radar__dot {
-  background: var(--wood);
-}
-
-.element-radar__node--fire .element-radar__dot {
-  background: #c76f48;
-}
-
-.element-radar__node--earth .element-radar__dot {
-  background: var(--earth);
-}
-
-.element-radar__node--metal .element-radar__dot {
-  background: var(--metal);
-}
-
-.element-radar__node--water .element-radar__dot {
-  background: var(--water);
 }
 
 .element-bars {
@@ -1834,13 +1801,28 @@ label {
 }
 
 .dayun-timeline {
+  position: relative;
   display: flex;
   gap: 8px;
   overflow-x: auto;
+  padding-top: 6px;
   padding-bottom: 4px;
 }
 
+/* 대운 알약들을 잇는 세월의 실선 */
+.dayun-timeline::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  min-width: 100%;
+  height: 1px;
+  background: var(--border);
+}
+
 .dayun-pill {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
@@ -1850,6 +1832,23 @@ label {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface-alt);
+  border-top-width: 3px;
+}
+
+/* 대운 천간 오행 색 (알약 안 '성장기' 등 텍스트가 의미를 함께 전달) */
+.dayun-pill--wood { border-top-color: var(--wood); }
+.dayun-pill--fire { border-top-color: var(--fire); }
+.dayun-pill--earth { border-top-color: var(--earth); }
+.dayun-pill--metal { border-top-color: var(--metal); }
+.dayun-pill--water { border-top-color: var(--water); }
+
+.dayun-pill__now {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--accent);
+  font-size: 0.66rem;
+  font-weight: 800;
 }
 
 .dayun-pill--current {
