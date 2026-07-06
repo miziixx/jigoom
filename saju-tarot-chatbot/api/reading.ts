@@ -163,6 +163,30 @@ async function completeMessages(
   return extractText(response);
 }
 
+/**
+ * 게이트 결과에서 PII 없는 이유 코드만 추출한다 (Quality Dashboard 관찰용).
+ * rewrite/fallback으로 escalation된 원인(첫 검증·재작성 검증 이슈 code)만 담는다. 절대 throw하지 않는다.
+ */
+function gateReasonCodes(gate: JudgmentGateResult): string[] {
+  try {
+    const codes = new Set<string>();
+    const g = gate as {
+      firstValidation?: { issues?: { code: string }[] };
+      rewriteValidation?: { issues?: { code: string }[] };
+    };
+    for (const issue of g.firstValidation?.issues ?? []) codes.add(issue.code);
+    for (const issue of g.rewriteValidation?.issues ?? []) codes.add(issue.code);
+    return [...codes];
+  } catch {
+    return [];
+  }
+}
+
+/** done 라인/JSON에 실을 PII 없는 게이트 신호 */
+function gateSignal(gate: JudgmentGateResult): { status: string; reasonCodes: string[] } {
+  return { status: gate.status, reasonCodes: gateReasonCodes(gate) };
+}
+
 async function completeJudgmentGatedReply(
   anthropic: Anthropic,
   messages: Anthropic.Messages.MessageParam[],
@@ -222,7 +246,7 @@ async function streamBufferedJudgmentGatedReply(
   try {
     const gated = await completeJudgmentGatedReply(anthropic, messages, judgmentPack);
     res.write(JSON.stringify({ text: gated.reply }) + "\n");
-    res.write(JSON.stringify({ done: true, stopReason: "end_turn", gate: { status: gated.gate.status } }) + "\n");
+    res.write(JSON.stringify({ done: true, stopReason: "end_turn", gate: gateSignal(gated.gate) }) + "\n");
   } catch (err) {
     console.error(err);
     res.write(JSON.stringify({ error: `리딩 생성 중 오류: ${describeError(err)}` }) + "\n");
@@ -353,7 +377,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else {
       if (judgmentPack && !continueFrom) {
         const gated = await completeJudgmentGatedReply(anthropic, messages, judgmentPack);
-        res.status(200).json({ reply: gated.reply, userMessage, sajuChart, luckCycles, judgmentPack: gated.judgmentPack, gate: { status: gated.gate.status } });
+        res.status(200).json({ reply: gated.reply, userMessage, sajuChart, luckCycles, judgmentPack: gated.judgmentPack, gate: gateSignal(gated.gate) });
       } else {
         const reply = await completeMessages(anthropic, messages);
         res.status(200).json({ reply, userMessage, sajuChart, luckCycles, judgmentPack });

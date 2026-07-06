@@ -338,3 +338,25 @@ P0 완료 상태:
 - Case 통계는 자료일 뿐, confidence를 자동으로 바꾸지 않는다.
 - 예측 방향이 없는 판단(GENERAL_MIXED_FLOW)은 자동 대조 대상이 아니다.
 - 표본이 적은 rule은 판단 유보, best/worst는 전문가 검토 전까지 추정치로 다룬다.
+
+## 15. AI Quality Dashboard P2 (개발자 전용 Observability Layer)
+
+완료:
+
+- `src/lib/quality/` 추가: qualityTypes / qualityLogger / qualityStorage / qualityMetrics / qualityHealth / qualityDashboard / qualityAccess / index.
+- 리딩 완료 시 PII 없는 QualityEvent 기록(관찰자). Engine Health(가중합+breakdown+등락 추적), reading/validation/rewrite/fallback/forbidden/confidence/judgment/rule/contradiction 지표.
+- 개발자 전용 화면 `/_internal/quality`(접근 제한 내장). 서버 gate 신호(status+reasonCodes) 전달 배선.
+- 계산·룰·판단 엔진 무변경. 로깅 실패가 리딩을 깨지 않도록 전 구간 throw 금지.
+- 테스트 26개. `npm test` 40 files / 304 tests 통과.
+
+다음 후보(P3, Case Validation 연계):
+
+- Case Validation Engine 결과를 같은 QualityEvent/저장소 위에 얹어 Rule Calibration 자료로 연결.
+- Explain Engine / Rule Calibration Engine도 동일 이벤트 소비(중심 운영 계층).
+- 브라우저 밖 집계가 필요하면 QualityStore 구현만 서버 sink로 교체(스키마 유지).
+- 실사용 이벤트 표본이 쌓이면 Health 가중치를 데이터로 재보정.
+
+주의:
+
+- QualityEvent에 생년월일·이름·사용자 입력·LLM 원문·개인정보를 절대 담지 않는다(불변식).
+- 대시보드는 관찰자다. 계산·리딩 로직을 호출하거나 confidence를 자동으로 바꾸지 않는다.

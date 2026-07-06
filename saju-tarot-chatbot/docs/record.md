@@ -972,3 +972,51 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
   전문가 검토 부재 시 best/worst는 사용자 결과 기반 추정치.
 - 테스트: `caseValidation.test.ts` 26개(score/validator/metrics/dataset/report/fixture). 기존 테스트 무변경.
   - `npm test`: 38 files / 278 tests 통과. `npm run build` 성공(기존 500kB chunk 경고만).
+
+## AI Quality Dashboard P2 (개발자 전용 Observability Layer)
+
+목표: 사용자 기능이 아니라, 개발자가 AI 엔진 품질을 숫자로 관찰·관리하는 운영 계층을 추가.
+계산(saju.ts)·eventEngine·Rule·Judgment 엔진은 절대 변경하지 않는 관찰자(Observer) 레이어.
+
+### Logging 위치 (분석 후 결정)
+- 파이프라인: Compute→Evidence→Rule→Judgment→Evidence Gate(서버 api/reading.ts)→Claude→Validation→Rewrite→Fallback.
+- JudgmentPack 생성: 서버 `buildReadingJudgmentPack`(api/reading.ts). rewrite/fallback 판정: 서버 `completeJudgmentGatedReply`.
+- 클라이언트 `useReadingStore.startReading`가 리딩 완료 시점에 (a) meta의 JudgmentPack, (b) 클라 readingValidation 결과,
+  (c) 서버 게이트 status를 모두 손에 쥔다 → 여기를 관찰 지점으로 선택. 계산 엔진 무변경, 저장은 브라우저 localStorage 모델과 일치.
+
+### 새 파일 (`src/lib/quality/`)
+- `qualityTypes.ts`: PII-free `QualityEvent` 스키마(timestamp/readingType/judgment·rule·contradiction·forbidden id/confidence/validation/gate/version). `QUALITY_SCHEMA_VERSION=1.0.0`, `ENGINE_VERSION`.
+- `qualityLogger.ts`: `buildQualityEvent`(순수, 서버 재사용 가능) + `logReading`(Observer, 절대 throw 안 함).
+- `qualityStorage.ts`: `QualityStore` 인터페이스 + localStorage 링버퍼(cap 2000) + 메모리 fallback. 모든 메서드 실패 삼킴.
+- `qualityMetrics.ts`: reading 기간별 수·validation 비율·rewrite/fallback·forbidden TOP10·confidence(domain별)·judgment TOP20·rule TOP20·contradiction TOP10·최근 실패 로그.
+- `qualityHealth.ts`: Engine Health(0~100) 가중합 + 컴포넌트 breakdown + `explainHealthChange`(왜 올랐/내렸는지 추적).
+- `qualityDashboard.ts`: 저장 이벤트 → 뷰-모델(health+trend+metrics). 로직/뷰 분리.
+- `qualityAccess.ts`: 개발자 전용 접근 제한(dev 허용 / prod는 VITE_QUALITY_DASHBOARD=1 또는 localStorage unlock).
+- `index.ts`: 배럴(중심 운영 계층 진입점).
+- UI: `src/pages/QualityDashboardPage.tsx` (경로 `/_internal/quality`, 접근 제한 내장).
+
+### 수정 파일 (관찰 배선, 계산 무영향)
+- `src/lib/readingApi.ts`: 서버 `gate`(status+reasonCodes) 신호를 StreamResult로 스레드(추가 필드, read-only).
+- `src/store/useReadingStore.ts`: 리딩 완료 후 `logReading` 호출(try/catch 이중 방어).
+- `api/reading.ts`: done 라인/JSON의 `gate: {status}` → `gate: {status, reasonCodes}` (PII 없는 이유 코드; gateSignal, 절대 throw 안 함).
+- `src/App.tsx`: `/_internal/quality` 라우트 등록.
+
+### Engine Health 계산
+- validationPass 40% / rewriteSuccess 20% / fallback 억제 15% / confidenceStability 15% / ruleCoverage 10% (가중치 합 100, HEALTH_WEIGHTS 한 곳 관리).
+- 각 컴포넌트 score·contribution·note로 분해 → Health 등락 원인 추적 가능. `explainHealthChange(before,after)`로 창(최근7일 vs 직전7일) 비교.
+
+### 저장 원칙(불변식)
+- 저장: timestamp, reading type, judgment/rule/contradiction/forbidden **code·id**, validation 결과, rewrite/fallback 플래그, confidence, engine/schema version만.
+- 절대 저장 안 함: 생년월일·이름·사용자 입력·LLM 원문·개인정보(구조적으로 배제).
+
+### 보안/원칙
+- 엔진과 완전 분리된 Observer. 로깅 실패가 리딩을 깨지 않도록 logReading/storage/서버 gateSignal 모두 throw 금지.
+- 대시보드는 계산·리딩을 호출하지 않고 저장된 이벤트만 읽는다.
+
+### 테스트
+- `src/lib/quality/quality.test.ts` 24개 + `QualityDashboardPage.test.tsx` 2개.
+- `npm test`: 40 files / 304 tests 통과. `npm run build` 성공(기존 500kB chunk 경고만).
+
+### 향후 P3 (Case Validation 연계)
+- Quality Dashboard를 중심 운영 계층으로: Case Validation Engine(`src/lib/caseValidation/`)의 검증 결과를 같은 QualityEvent/저장소 위에 얹어 Rule Calibration 자료로 연결.
+- Explain Engine / Rule Calibration Engine도 동일 이벤트를 소비. 서버 sink(QualityStore 구현 교체)로 브라우저 밖 집계 확장 가능(스키마 재설계 불필요).
