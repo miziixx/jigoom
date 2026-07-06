@@ -58,7 +58,11 @@ export default function NamingResult({
       </section>
 
       <section className="card">
-        <h4 className="naming-section-title">내 사주와의 궁합</h4>
+        <h4 className="naming-section-title">
+          {result.purpose?.mode === "stage" && "활동명으로서의 어울림"}
+          {result.purpose?.mode === "brand" && "업종·타깃과의 어울림"}
+          {(!result.purpose || ["baby", "rename"].includes(result.purpose.mode)) && "내 사주와의 궁합"}
+        </h4>
         <p className="naming-note">
           <span className={levelClass(fit.level)}>{fit.level}</span> {fit.note}
         </p>
@@ -85,9 +89,19 @@ export default function NamingResult({
       )}
 
       <section className="card naming-interpretation">
-        <h4 className="naming-section-title">AI 이름 해석 리포트</h4>
+        <h4 className="naming-section-title">
+          {result.purpose?.mode === "stage" && "AI 활동명 해석 리포트"}
+          {result.purpose?.mode === "brand" && "AI 브랜드명 해석 리포트"}
+          {(!result.purpose || ["baby", "rename"].includes(result.purpose.mode)) && "AI 이름 해석 리포트"}
+        </h4>
         {interpretationLoading && (
-          <p className="naming-note">계산 근거를 바탕으로 이름의 인상과 보완 포인트를 쉬운 문장으로 풀어쓰는 중입니다.</p>
+          <p className="naming-note">
+            {result.purpose?.mode === "stage"
+              ? "발음·사주 기운·개성을 바탕으로 활동명의 인상과 개선 포인트를 쉬운 문장으로 풀어쓰는 중입니다."
+              : result.purpose?.mode === "brand"
+              ? "발음·사주 기운·업종 적합성을 바탕으로 브랜드명의 이미지와 타깃 매칭도를 쉬운 문장으로 풀어쓰는 중입니다."
+              : "계산 근거를 바탕으로 이름의 인상과 보완 포인트를 쉬운 문장으로 풀어쓰는 중입니다."}
+          </p>
         )}
         {interpretationError && <p className="error-text">{interpretationError}</p>}
         {interpretation && <pre className="naming-interpretation__text">{interpretation}</pre>}
@@ -97,8 +111,11 @@ export default function NamingResult({
       </section>
 
       <p className="naming-disclaimer">
-        이름 감정은 절대적인 길흉 예언이 아니라, 발음오행·사주 보완·수리 같은 전통 작명 관점을 계산해 균형을 보여주는
-        참고 자료입니다. 어떤 이름도 "나쁜 이름"으로 단정하지 않습니다.
+        {result.purpose?.mode === "stage"
+          ? "활동명 감정은 발음·사주 기운·개성을 바탕으로 한 참고 자료이며, 기존 사용 여부나 저작권·상표·플랫폼 규정은 별도 확인이 필요합니다."
+          : result.purpose?.mode === "brand"
+          ? "브랜드명 감정은 발음·사주 기운·업종 적합성을 바탕으로 한 참고 자료이며, 상표 등록·도메인·SNS 계정·사업자등록 중복 여부는 별도 확인이 필요합니다."
+          : "이름 감정은 절대적인 길흉 예언이 아니라, 발음오행·사주 보완·수리 같은 전통 작명 관점을 계산해 균형을 보여주는 참고 자료입니다. 어떤 이름도 \"나쁜 이름\"으로 단정하지 않습니다."}
       </p>
     </div>
   );
