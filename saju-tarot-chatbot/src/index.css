@@ -6336,6 +6336,10 @@ label {
   gap: 8px;
   padding: 12px 16px 13px;
   box-shadow: 0 8px 22px rgba(122, 76, 31, 0.1);
+  /* 스티키로 떠 있을 때 아래 콘텐츠가 비치지 않게 불투명 바탕 위에 기존 틴트를 얹는다 */
+  background:
+    linear-gradient(180deg, rgba(111, 141, 134, 0.08), rgba(126, 86, 42, 0.035)),
+    var(--surface);
 }
 
 .reading-toc--chips .reading-toc__head p {
