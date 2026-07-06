@@ -6895,3 +6895,107 @@ label {
 .naming-interp-part .reading-body {
   font-size: 0.95rem;
 }
+
+/* ── 궁합 개선: 도넛 점수, 관계 레이더, 미니 4주, 갈등 단계 ── */
+
+.compat-score .viz-arc svg {
+  width: 118px;
+}
+
+.compat-radar {
+  margin-bottom: 14px;
+}
+
+.compat-radar__dot {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 1.4;
+}
+
+.compat-mini-pillars {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.compat-mini-pillar {
+  flex: 1 1 0;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-alt);
+}
+
+.compat-mini-pillar small {
+  color: var(--text-dim);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.compat-mini-pillar b {
+  font-size: 0.98rem;
+}
+
+.compat-person__traits span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.compat-step-grid--cycle .compat-step-card {
+  position: relative;
+  padding-top: 14px;
+}
+
+.compat-step-card__num {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--surface);
+  font-size: 0.76rem;
+  font-weight: 900;
+  box-shadow: 0 0 0 3px var(--surface);
+}
+
+.compat-step-card b {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* 단계 카드 사이 진행 화살표 (넓은 화면에서 가로 방향) */
+.compat-step-grid--cycle {
+  row-gap: 18px;
+}
+
+.compat-step-grid--cycle .compat-step-card:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-weight: 900;
+  opacity: 0.55;
+}
+
+@media (max-width: 560px) {
+  .compat-step-grid--cycle .compat-step-card:not(:last-child)::after {
+    content: "↓";
+    right: auto;
+    left: 50%;
+    top: auto;
+    bottom: -17px;
+    transform: translateX(-50%);
+  }
+}

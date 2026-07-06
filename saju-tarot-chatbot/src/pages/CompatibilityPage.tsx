@@ -1,8 +1,95 @@
 import { useState } from "react";
 import Gauge, { tierWord } from "../components/Gauge";
+import ArcGauge from "../components/viz/ArcGauge";
+import { VizIcon } from "../components/viz/icons";
 import { BIRTH_PLACES } from "../data/birthPlaces";
 import { computeCompatibility } from "../lib/saju";
 import type { BirthInfo, CalendarType, CompatibilityRelationType, CompatibilityResult, Gender, LateNightZiMode } from "../types";
+
+/**
+ * 세부 흐름(breakdown)을 N축 폴리곤 레이더로 요약한다. 꼭짓점 라벨은 점수 대신
+ * 생활 언어(tierWord)를 함께 보여주고, 정확한 항목별 내용은 아래 게이지 목록이 담당한다.
+ */
+function CompatBreakdownRadar({ breakdown }: { breakdown: CompatibilityResult["breakdown"] }) {
+  const axes = breakdown.slice(0, 6);
+  if (axes.length < 3) return null;
+
+  const CX = 150;
+  const CY = 120;
+  const R = 66;
+  const vertex = (i: number, radius: number) => {
+    const angle = ((-90 + (i * 360) / axes.length) * Math.PI) / 180;
+    return { x: CX + radius * Math.cos(angle), y: CY + radius * Math.sin(angle) };
+  };
+  const ring = (radius: number) =>
+    axes.map((_, i) => {
+      const v = vertex(i, radius);
+      return `${v.x.toFixed(1)},${v.y.toFixed(1)}`;
+    }).join(" ");
+
+  return (
+    <figure className="viz-radar compat-radar">
+      <svg viewBox="0 0 300 240" role="img" aria-label={`관계 세부 흐름: ${axes.map((b) => `${b.label} ${tierWord(b.score)}`).join(", ")}`}>
+        {[1 / 3, 2 / 3, 1].map((f) => (
+          <polygon key={f} className="viz-radar__grid" points={ring(R * f)} />
+        ))}
+        {axes.map((b, i) => {
+          const v = vertex(i, R);
+          return <line key={b.label} className="viz-radar__spoke" x1={CX} y1={CY} x2={v.x.toFixed(1)} y2={v.y.toFixed(1)} />;
+        })}
+        <polygon
+          className="viz-radar__area"
+          points={axes.map((b, i) => {
+            const v = vertex(i, (Math.max(8, Math.min(100, b.score)) / 100) * R);
+            return `${v.x.toFixed(1)},${v.y.toFixed(1)}`;
+          }).join(" ")}
+        />
+        {axes.map((b, i) => {
+          const v = vertex(i, (Math.max(8, Math.min(100, b.score)) / 100) * R);
+          return <circle key={b.label} className="compat-radar__dot" cx={v.x.toFixed(1)} cy={v.y.toFixed(1)} r={3.6} />;
+        })}
+        {axes.map((b, i) => {
+          const v = vertex(i, R + 14);
+          const anchor = Math.abs(v.x - CX) < 12 ? "middle" : v.x > CX ? "start" : "end";
+          const dy = v.y < CY - 10 ? -4 : 6;
+          return (
+            <g key={b.label}>
+              <text className="viz-radar__name" x={v.x.toFixed(1)} y={(v.y + dy).toFixed(1)} textAnchor={anchor}>
+                {b.label}
+              </text>
+              <text className="viz-radar__gloss" x={v.x.toFixed(1)} y={(v.y + dy + 11).toFixed(1)} textAnchor={anchor}>
+                {tierWord(b.score)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <figcaption className="viz-caption">
+        모양이 넓을수록 잘 맞물리는 영역이 많다는 뜻이에요. 항목별 자세한 설명은 아래 목록에 있습니다.
+      </figcaption>
+    </figure>
+  );
+}
+
+/** "경오" 같은 간지 문자열 4개를 미니 기둥 박스로 보여준다. */
+function MiniPillars({ pillars }: { pillars: { year: string; month: string; day: string; hour?: string | null } }) {
+  const cells = [
+    { label: "연", value: pillars.year },
+    { label: "월", value: pillars.month },
+    { label: "일", value: pillars.day },
+    { label: "시", value: pillars.hour ?? "모름" },
+  ];
+  return (
+    <div className="compat-mini-pillars">
+      {cells.map((c) => (
+        <span className="compat-mini-pillar" key={c.label}>
+          <small>{c.label}</small>
+          <b>{c.value}</b>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
@@ -258,8 +345,7 @@ export default function CompatibilityPage() {
               <p className="compat-summary">{result.summary}</p>
             </div>
             <div className="compat-score">
-              <span className="compat-score__num">{result.score}</span>
-              <span className="compat-score__unit">점</span>
+              <ArcGauge label={tierWord(result.score)} score={result.score} />
             </div>
           </div>
 
@@ -358,14 +444,17 @@ export default function CompatibilityPage() {
                 return (
                 <div className={`card compat-person compat-person--${role}`} key={p.label}>
                   <span className={`compat-role-badge compat-role-badge--${role}`}>{p.label}</span>
-                  <p className="compat-person__pillars">
-                    {p.pillars.year} / {p.pillars.month} / {p.pillars.day}
-                    {p.pillars.hour ? ` / ${p.pillars.hour}` : " / 시주 모름"}
-                  </p>
+                  <MiniPillars pillars={p.pillars} />
                   <div className="compat-person__traits">
-                    <span>나를 뜻하는 글자 {p.dayMaster}</span>
-                    <span>강한 힘: {p.strongestElement}</span>
-                    <span>보완점: {p.weakestElement}</span>
+                    <span>
+                      <VizIcon name="person" size={12} /> 나를 뜻하는 글자 {p.dayMaster}
+                    </span>
+                    <span>
+                      <VizIcon name="sparkle" size={12} /> 강한 힘: {p.strongestElement}
+                    </span>
+                    <span>
+                      <VizIcon name="sprout" size={12} /> 보완점: {p.weakestElement}
+                    </span>
                   </div>
                 </div>
                 );
@@ -390,12 +479,17 @@ export default function CompatibilityPage() {
 
               <div className="compat-section-block">
                 <h4>갈등이 커지는 순서와 회복법</h4>
-                <div className="compat-step-grid">
-                  {result.repairReport.conflictCycle.map((step) => (
+                <div className="compat-step-grid compat-step-grid--cycle">
+                  {result.repairReport.conflictCycle.map((step, i) => (
                     <article className="compat-step-card" key={step.step}>
+                      <span className="compat-step-card__num" aria-hidden="true">
+                        {i + 1}
+                      </span>
                       <span>{step.step}</span>
                       <p>{step.body}</p>
-                      <b>{step.repair}</b>
+                      <b>
+                        <VizIcon name="link" size={12} /> {step.repair}
+                      </b>
                     </article>
                   ))}
                 </div>
@@ -516,6 +610,7 @@ export default function CompatibilityPage() {
 
           <div className="card">
             <h3 className="card-title">세부 흐름</h3>
+            <CompatBreakdownRadar breakdown={result.breakdown} />
             <div className="compat-deep-list">
               {result.breakdown.map((b) => (
                 <article className="compat-deep-item" key={b.label}>
