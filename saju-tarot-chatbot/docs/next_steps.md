@@ -316,3 +316,67 @@ P0 완료 상태:
 
 - 용신/격국을 무리하게 확장하기보다, 먼저 결론-근거 1:1 추적과 검증 로그를 안정화한다.
 - LLM 프롬프트 강화만으로 해결하지 말고, 판단 객체와 forbiddenClaims를 계속 구조화한다.
+
+## 14. Case Validation Engine P2 (사례 기반 검증 엔진)
+
+완료:
+
+- `src/lib/caseValidation/` 추가: caseTypes / caseScore / caseValidator / caseMetrics / caseDataset / caseReport / caseFixtures.
+- JudgmentPack × 실제 사례 대조 → 판단별 match/partial/minor/miss + matchRate.
+- Rule/Judgment/Confidence 통계, 분야별 적중, rewrite/fallback 발생률, confidence 캘리브레이션 리포트.
+- 22개 픽스처 + 26개 테스트. 계산·룰·판단·confidence 미변경(읽기 전용).
+
+다음 후보:
+
+- 실제 사용자 사례를 수집·저장하는 경로 설계(현재는 저장 구조만, UI 없음).
+- 사용자 피드백(맞아요/보통/아니에요) → Case 연결 UI.
+- 전문가 검토(ExpertReview) 입력 경로.
+- 사례가 20건 이상 쌓이면 confidence 보정 후보를 사람이 검토 후 반영하는 절차 정의.
+
+주의:
+
+- Case 통계는 자료일 뿐, confidence를 자동으로 바꾸지 않는다.
+- 예측 방향이 없는 판단(GENERAL_MIXED_FLOW)은 자동 대조 대상이 아니다.
+- 표본이 적은 rule은 판단 유보, best/worst는 전문가 검토 전까지 추정치로 다룬다.
+
+## 15. AI Quality Dashboard P2 (개발자 전용 Observability Layer)
+
+완료:
+
+- `src/lib/quality/` 추가: qualityTypes / qualityLogger / qualityStorage / qualityMetrics / qualityHealth / qualityDashboard / qualityAccess / index.
+- 리딩 완료 시 PII 없는 QualityEvent 기록(관찰자). Engine Health(가중합+breakdown+등락 추적), reading/validation/rewrite/fallback/forbidden/confidence/judgment/rule/contradiction 지표.
+- 개발자 전용 화면 `/_internal/quality`(접근 제한 내장). 서버 gate 신호(status+reasonCodes) 전달 배선.
+- 계산·룰·판단 엔진 무변경. 로깅 실패가 리딩을 깨지 않도록 전 구간 throw 금지.
+- 테스트 26개. `npm test` 40 files / 304 tests 통과.
+
+다음 후보(P3, Case Validation 연계):
+
+- Case Validation Engine 결과를 같은 QualityEvent/저장소 위에 얹어 Rule Calibration 자료로 연결.
+- Explain Engine / Rule Calibration Engine도 동일 이벤트 소비(중심 운영 계층).
+- 브라우저 밖 집계가 필요하면 QualityStore 구현만 서버 sink로 교체(스키마 유지).
+- 실사용 이벤트 표본이 쌓이면 Health 가중치를 데이터로 재보정.
+
+주의:
+
+- QualityEvent에 생년월일·이름·사용자 입력·LLM 원문·개인정보를 절대 담지 않는다(불변식).
+- 대시보드는 관찰자다. 계산·리딩 로직을 호출하거나 confidence를 자동으로 바꾸지 않는다.
+
+## 16. Golden Test Cases P2 (리딩 엔진 회귀 테스트 기반)
+
+완료:
+
+- `src/lib/goldenCases/` 추가: goldenTypes / goldenRunner / goldenCases(21개) / golden.test / README.
+- 결정론 JudgmentPack을 허용범위로 회귀검사(judgment code·도메인·confidence 밴드·contradiction·evidence·구조유효성).
+- 네거티브 컨트롤 6종으로 "검사가 공허하지 않음" 증명. golden 31 tests, 전체 338 tests 통과.
+
+다음 후보(optional, 별도 단계):
+
+- LLM 출력 샘플 비교 단계(문장 품질·실제 rewrite/fallback)는 결정론 범위 밖 → 별도 optional로 분리 설계.
+- 엔진 의도 변경 시 goldenCases 기대값 갱신 절차 정착(README 참조).
+- Quality Dashboard / Case Validation과 연계해 회귀 발생 시 원인 도메인·룰 자동 표기.
+
+주의:
+
+- 계산 엔진(saju.ts)·eventEngine 수정 금지. golden은 순수 관찰자.
+- confidence는 정확값이 아니라 밴드로만 고정(미세 튜닝 통과, 급변만 감지).
+- 기대값은 현재 엔진 출력 기준. 의도적 개선으로 달라지면 리뷰 후 갱신한다.

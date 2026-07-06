@@ -3,6 +3,7 @@ import { saveFeedback } from "../lib/feedback";
 import { streamReading } from "../lib/readingApi";
 import { getCachedResult, periodBucket, setCachedResult } from "../lib/resultCache";
 import { applyReadingValidationWarning } from "../lib/readingValidation";
+import { logReading } from "../lib/quality/qualityLogger";
 import { computeLuckCycles, computePastEventCalibrationInputs, computeSajuChart } from "../lib/saju";
 import { buildPastValidationReport } from "../lib/pastValidation";
 import { deleteAllSessions, deleteSession, isSessionSaved, loadSessions, saveSession, toggleFavorite } from "../lib/storage";
@@ -242,6 +243,17 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
         reply: result.reply,
         judgmentPack,
       });
+      // 품질 관찰(Observer): PII 없는 신호만 기록. logReading은 절대 throw하지 않지만 이중 방어.
+      try {
+        logReading({
+          readingType: type,
+          judgmentPack,
+          validation: { status: validation.validation.status, issues: validation.validation.issues },
+          gate: result.gate,
+        });
+      } catch {
+        // 로깅 실패가 리딩을 막지 않는다
+      }
       const finalSession: ReadingSession = {
         ...built,
         messages: [built.messages[0], { role: "assistant", content: validation.reply }],

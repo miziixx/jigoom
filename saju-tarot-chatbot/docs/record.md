@@ -945,3 +945,96 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
   - ruleEngine, judgmentEngine, confidenceEngine, contradictionEngine, judgmentValidation, judgmentPrompt.
   - `npm test`: 36 files / 243 tests 통과.
   - `npm run build`와 별도 `tsc --noEmit`은 현재 로컬 환경에서 `tsc`가 장시간 무출력으로 멈춰 중단함.
+
+## Case Validation Engine P2 (사례 기반 검증 엔진)
+
+목표: 규칙을 더 추가하는 것이 아니라, 지금 판단(JudgmentPack)이 실제 사례에서 얼마나 맞는지
+자동으로 대조·집계하는 "데이터를 모으는 엔진"을 추가. 판단을 바꾸는 엔진이 아니다.
+
+- 새 모듈 `src/lib/caseValidation/` (읽기 전용, 계산·룰·판단 미변경):
+  - `caseTypes.ts`: `Case`(birth + 분야별 실제 결과 + 사용자/전문가 평가), `CaseDomainOutcome`,
+    `MatchLevel`(match/partial/minor/miss → 100/70/30/0), `PredictedDirection`,
+    `CaseJudgmentOutcome`, `CaseValidationResult`. `CASE_SCHEMA_VERSION = 1.0.0`.
+  - `caseScore.ts`: `CODE_EXPECTATION`(JudgmentCode → 분야·예측방향), `RULE_FOR_CODE`(codeForRule 역매핑),
+    `scoreMatch`(예측방향 ↔ 실제 사건/방향 채점). 예측 없는 판단(GENERAL_MIXED_FLOW)은 대조 제외.
+  - `caseValidator.ts`: JudgmentPack × Case 대조 → 판단별 등급 + `matchRate`. audit의 rewrite/fallback 반영.
+  - `caseMetrics.ts`: Rule/Judgment/Confidence 통계(trigger/match/mismatch/avgScore/avgConfidence/avgUserFeedback),
+    confidence 구간 캘리브레이션. 모두 읽기 전용, 값 자동 변경 없음.
+  - `caseDataset.ts`: 사례 저장 컨테이너(추가/필터/직렬화). UI 없음, 저장 구조만.
+  - `caseReport.ts`: 전체·분야별 적중, Rule Top/Best/Worst, rewrite/fallback 발생률, confidence 분포,
+    보정 후보(gap 큰 rule, 자동 적용 아님), 사람 검토 필요 항목. `formatCaseReport` 텍스트 출력.
+  - `caseFixtures.ts`: `makeJudgment`/`makePack` 팩토리 + 22개 픽스처(career/money/love/health/startup/move/family + 혼합).
+- 원칙:
+  - `saju.ts` 계산 / `eventEngine` / Rule / Judgment 구조 변경 없음.
+  - confidence 자동 보정 없음. 통계는 자료로만 제공하고, 보정 후보는 "사람 검토 후"로 명시.
+- 자동 보정 가능한 부분: Rule별 avgScore·avgConfidence gap, confidence 구간별 실제 적중률(캘리브레이션 자료).
+- 아직 사람 검토가 필요한 부분: 예측 방향 없는 판단(GENERAL_MIXED_FLOW), 표본 부족 rule,
+  전문가 검토 부재 시 best/worst는 사용자 결과 기반 추정치.
+- 테스트: `caseValidation.test.ts` 26개(score/validator/metrics/dataset/report/fixture). 기존 테스트 무변경.
+  - `npm test`: 38 files / 278 tests 통과. `npm run build` 성공(기존 500kB chunk 경고만).
+
+## AI Quality Dashboard P2 (개발자 전용 Observability Layer)
+
+목표: 사용자 기능이 아니라, 개발자가 AI 엔진 품질을 숫자로 관찰·관리하는 운영 계층을 추가.
+계산(saju.ts)·eventEngine·Rule·Judgment 엔진은 절대 변경하지 않는 관찰자(Observer) 레이어.
+
+### Logging 위치 (분석 후 결정)
+- 파이프라인: Compute→Evidence→Rule→Judgment→Evidence Gate(서버 api/reading.ts)→Claude→Validation→Rewrite→Fallback.
+- JudgmentPack 생성: 서버 `buildReadingJudgmentPack`(api/reading.ts). rewrite/fallback 판정: 서버 `completeJudgmentGatedReply`.
+- 클라이언트 `useReadingStore.startReading`가 리딩 완료 시점에 (a) meta의 JudgmentPack, (b) 클라 readingValidation 결과,
+  (c) 서버 게이트 status를 모두 손에 쥔다 → 여기를 관찰 지점으로 선택. 계산 엔진 무변경, 저장은 브라우저 localStorage 모델과 일치.
+
+### 새 파일 (`src/lib/quality/`)
+- `qualityTypes.ts`: PII-free `QualityEvent` 스키마(timestamp/readingType/judgment·rule·contradiction·forbidden id/confidence/validation/gate/version). `QUALITY_SCHEMA_VERSION=1.0.0`, `ENGINE_VERSION`.
+- `qualityLogger.ts`: `buildQualityEvent`(순수, 서버 재사용 가능) + `logReading`(Observer, 절대 throw 안 함).
+- `qualityStorage.ts`: `QualityStore` 인터페이스 + localStorage 링버퍼(cap 2000) + 메모리 fallback. 모든 메서드 실패 삼킴.
+- `qualityMetrics.ts`: reading 기간별 수·validation 비율·rewrite/fallback·forbidden TOP10·confidence(domain별)·judgment TOP20·rule TOP20·contradiction TOP10·최근 실패 로그.
+- `qualityHealth.ts`: Engine Health(0~100) 가중합 + 컴포넌트 breakdown + `explainHealthChange`(왜 올랐/내렸는지 추적).
+- `qualityDashboard.ts`: 저장 이벤트 → 뷰-모델(health+trend+metrics). 로직/뷰 분리.
+- `qualityAccess.ts`: 개발자 전용 접근 제한(dev 허용 / prod는 VITE_QUALITY_DASHBOARD=1 또는 localStorage unlock).
+- `index.ts`: 배럴(중심 운영 계층 진입점).
+- UI: `src/pages/QualityDashboardPage.tsx` (경로 `/_internal/quality`, 접근 제한 내장).
+
+### 수정 파일 (관찰 배선, 계산 무영향)
+- `src/lib/readingApi.ts`: 서버 `gate`(status+reasonCodes) 신호를 StreamResult로 스레드(추가 필드, read-only).
+- `src/store/useReadingStore.ts`: 리딩 완료 후 `logReading` 호출(try/catch 이중 방어).
+- `api/reading.ts`: done 라인/JSON의 `gate: {status}` → `gate: {status, reasonCodes}` (PII 없는 이유 코드; gateSignal, 절대 throw 안 함).
+- `src/App.tsx`: `/_internal/quality` 라우트 등록.
+
+### Engine Health 계산
+- validationPass 40% / rewriteSuccess 20% / fallback 억제 15% / confidenceStability 15% / ruleCoverage 10% (가중치 합 100, HEALTH_WEIGHTS 한 곳 관리).
+- 각 컴포넌트 score·contribution·note로 분해 → Health 등락 원인 추적 가능. `explainHealthChange(before,after)`로 창(최근7일 vs 직전7일) 비교.
+
+### 저장 원칙(불변식)
+- 저장: timestamp, reading type, judgment/rule/contradiction/forbidden **code·id**, validation 결과, rewrite/fallback 플래그, confidence, engine/schema version만.
+- 절대 저장 안 함: 생년월일·이름·사용자 입력·LLM 원문·개인정보(구조적으로 배제).
+
+### 보안/원칙
+- 엔진과 완전 분리된 Observer. 로깅 실패가 리딩을 깨지 않도록 logReading/storage/서버 gateSignal 모두 throw 금지.
+- 대시보드는 계산·리딩을 호출하지 않고 저장된 이벤트만 읽는다.
+
+### 테스트
+- `src/lib/quality/quality.test.ts` 24개 + `QualityDashboardPage.test.tsx` 2개.
+- `npm test`: 40 files / 304 tests 통과. `npm run build` 성공(기존 500kB chunk 경고만).
+
+### 향후 P3 (Case Validation 연계)
+- Quality Dashboard를 중심 운영 계층으로: Case Validation Engine(`src/lib/caseValidation/`)의 검증 결과를 같은 QualityEvent/저장소 위에 얹어 Rule Calibration 자료로 연결.
+- Explain Engine / Rule Calibration Engine도 동일 이벤트를 소비. 서버 sink(QualityStore 구현 교체)로 브라우저 밖 집계 확장 가능(스키마 재설계 불필요).
+
+## Golden Test Cases P2 (리딩 엔진 회귀 테스트 기반)
+
+목표: 모델/프롬프트/룰 변경 시 리딩 품질 퇴보를 자동 감지. LLM 문장을 고정하지 않고 결정론
+JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 엔진/eventEngine 무수정.
+
+- 새 파일 `src/lib/goldenCases/`:
+  - `goldenTypes.ts`: GoldenCase 스키마(필수/금지 code, 도메인, confidence 밴드, contradiction 허용집합, evidence 필수 id, 구조유효성).
+  - `goldenRunner.ts`: `buildPackForCase`(computeSajuChart→computeLuckCycles→buildReadingJudgmentPack, 결정론) + `summarizeJudgmentPack` + `checkGoldenCase`(허용범위 검사).
+  - `goldenCases.ts`: 실제 엔진 출력에서 도출한 21개 케이스(연령/성별/음양력/시간모름/야자시/focus 다양).
+  - `golden.test.ts`: it.each 드라이버 + 네거티브 컨트롤 6종(위반이 실제 감지되는지 증명).
+  - `README.md`: 갱신 절차.
+- 비교 기준: judgment code 부분집합/배타, 도메인 커버리지, `validateJudgmentPack.ok`(forbidden-claim 구조 결함 0),
+  confidence 넓은 밴드, contradiction 알려진 집합+개수 상한, 핵심 evidence id, 구조상 rewrite 강제 없음.
+- 결정론 경계: 실제 LLM rewrite/fallback·문장 품질은 범위 밖 → optional LLM 단계로 분리(미구현).
+- 회귀 원리: 룰이 조용히 죽거나(code 누락), 안전장치 퇴보(forbidden 구조결함), 도메인 하락, confidence 급변,
+  허용 밖 모순, evidence 배선 끊김 → FAIL. 무해한 추가는 통과(over-detection 억제).
+- 테스트: golden 31개. `npm test` 41 files / 338 tests 통과. `npm run build` 성공. golden 소스는 test-only import라 앱 번들 미포함.
