@@ -360,3 +360,23 @@ P0 완료 상태:
 
 - QualityEvent에 생년월일·이름·사용자 입력·LLM 원문·개인정보를 절대 담지 않는다(불변식).
 - 대시보드는 관찰자다. 계산·리딩 로직을 호출하거나 confidence를 자동으로 바꾸지 않는다.
+
+## 16. Golden Test Cases P2 (리딩 엔진 회귀 테스트 기반)
+
+완료:
+
+- `src/lib/goldenCases/` 추가: goldenTypes / goldenRunner / goldenCases(21개) / golden.test / README.
+- 결정론 JudgmentPack을 허용범위로 회귀검사(judgment code·도메인·confidence 밴드·contradiction·evidence·구조유효성).
+- 네거티브 컨트롤 6종으로 "검사가 공허하지 않음" 증명. golden 31 tests, 전체 338 tests 통과.
+
+다음 후보(optional, 별도 단계):
+
+- LLM 출력 샘플 비교 단계(문장 품질·실제 rewrite/fallback)는 결정론 범위 밖 → 별도 optional로 분리 설계.
+- 엔진 의도 변경 시 goldenCases 기대값 갱신 절차 정착(README 참조).
+- Quality Dashboard / Case Validation과 연계해 회귀 발생 시 원인 도메인·룰 자동 표기.
+
+주의:
+
+- 계산 엔진(saju.ts)·eventEngine 수정 금지. golden은 순수 관찰자.
+- confidence는 정확값이 아니라 밴드로만 고정(미세 튜닝 통과, 급변만 감지).
+- 기대값은 현재 엔진 출력 기준. 의도적 개선으로 달라지면 리뷰 후 갱신한다.

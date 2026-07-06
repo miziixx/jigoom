@@ -1020,3 +1020,21 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
 ### 향후 P3 (Case Validation 연계)
 - Quality Dashboard를 중심 운영 계층으로: Case Validation Engine(`src/lib/caseValidation/`)의 검증 결과를 같은 QualityEvent/저장소 위에 얹어 Rule Calibration 자료로 연결.
 - Explain Engine / Rule Calibration Engine도 동일 이벤트를 소비. 서버 sink(QualityStore 구현 교체)로 브라우저 밖 집계 확장 가능(스키마 재설계 불필요).
+
+## Golden Test Cases P2 (리딩 엔진 회귀 테스트 기반)
+
+목표: 모델/프롬프트/룰 변경 시 리딩 품질 퇴보를 자동 감지. LLM 문장을 고정하지 않고 결정론
+JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 엔진/eventEngine 무수정.
+
+- 새 파일 `src/lib/goldenCases/`:
+  - `goldenTypes.ts`: GoldenCase 스키마(필수/금지 code, 도메인, confidence 밴드, contradiction 허용집합, evidence 필수 id, 구조유효성).
+  - `goldenRunner.ts`: `buildPackForCase`(computeSajuChart→computeLuckCycles→buildReadingJudgmentPack, 결정론) + `summarizeJudgmentPack` + `checkGoldenCase`(허용범위 검사).
+  - `goldenCases.ts`: 실제 엔진 출력에서 도출한 21개 케이스(연령/성별/음양력/시간모름/야자시/focus 다양).
+  - `golden.test.ts`: it.each 드라이버 + 네거티브 컨트롤 6종(위반이 실제 감지되는지 증명).
+  - `README.md`: 갱신 절차.
+- 비교 기준: judgment code 부분집합/배타, 도메인 커버리지, `validateJudgmentPack.ok`(forbidden-claim 구조 결함 0),
+  confidence 넓은 밴드, contradiction 알려진 집합+개수 상한, 핵심 evidence id, 구조상 rewrite 강제 없음.
+- 결정론 경계: 실제 LLM rewrite/fallback·문장 품질은 범위 밖 → optional LLM 단계로 분리(미구현).
+- 회귀 원리: 룰이 조용히 죽거나(code 누락), 안전장치 퇴보(forbidden 구조결함), 도메인 하락, confidence 급변,
+  허용 밖 모순, evidence 배선 끊김 → FAIL. 무해한 추가는 통과(over-detection 억제).
+- 테스트: golden 31개. `npm test` 41 files / 338 tests 통과. `npm run build` 성공. golden 소스는 test-only import라 앱 번들 미포함.
