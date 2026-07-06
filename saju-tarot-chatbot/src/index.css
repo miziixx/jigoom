@@ -5898,3 +5898,525 @@ label {
   color: var(--text);
   line-height: 1.55;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   viz 공통 — 인라인 SVG 차트/아이콘/모티프 (src/components/viz/)
+   원칙: 기존 토큰만 사용, 차트마다 생활언어 캡션(.viz-caption) 필수
+   ═══════════════════════════════════════════════════════════════ */
+
+.viz-caption {
+  margin: 8px 0 0;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.viz-icon {
+  flex: none;
+  vertical-align: -3px;
+}
+
+/* ── 오행 레이더 ── */
+.viz-radar {
+  display: grid;
+  justify-items: center;
+  margin: 4px 0 10px;
+}
+
+.viz-radar svg {
+  width: min(100%, 320px);
+  height: auto;
+}
+
+.viz-radar__grid {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+  opacity: 0.55;
+}
+
+.viz-radar__spoke {
+  stroke: var(--border);
+  stroke-width: 1;
+  opacity: 0.4;
+}
+
+.viz-radar__area {
+  fill: rgba(169, 118, 56, 0.16);
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.viz-radar__dot {
+  stroke: var(--surface);
+  stroke-width: 1.6;
+}
+
+.viz-radar__dot--wood { fill: var(--wood); }
+.viz-radar__dot--fire { fill: var(--fire); }
+.viz-radar__dot--earth { fill: var(--earth); }
+.viz-radar__dot--metal { fill: var(--metal); }
+.viz-radar__dot--water { fill: var(--water); }
+
+.viz-radar__name {
+  fill: var(--text);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.viz-radar__gloss {
+  fill: var(--text-dim);
+  font-size: 9px;
+}
+
+/* ── 아크 게이지 ── */
+.viz-arc {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.viz-arc svg {
+  width: 130px;
+  height: auto;
+}
+
+.viz-arc--sm svg { width: 96px; }
+.viz-arc--lg svg { width: 184px; }
+
+.viz-arc__track {
+  fill: none;
+  stroke: var(--surface-alt);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.viz-arc__fill {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.viz-arc__fill--high { stroke: #7d8d58; }
+.viz-arc__fill--mid { stroke: #d6a052; }
+.viz-arc__fill--low { stroke: #c76f48; }
+.viz-arc__fill--neutral { stroke: #c79a5a; }
+
+.viz-arc__value {
+  fill: var(--text);
+  font-size: 19px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+.viz-arc__value--word {
+  font-size: 12.5px;
+}
+
+.viz-arc__unit {
+  fill: var(--text-dim);
+  font-size: 8.5px;
+  text-anchor: middle;
+}
+
+.viz-arc__label {
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.viz-arc--lg .viz-arc__label {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.viz-arc__comment {
+  margin: 2px 0 0;
+  max-width: 300px;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
+/* ── 1~12월 흐름 차트 ── */
+.viz-flow svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.viz-flow__grid-line {
+  stroke: var(--border);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.viz-flow__tone-label {
+  fill: var(--text-dim);
+  font-size: 9px;
+}
+
+.viz-flow__area {
+  fill: rgba(169, 118, 56, 0.13);
+}
+
+.viz-flow__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.viz-flow__dot {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.viz-flow__dot--selected {
+  fill: var(--accent);
+}
+
+.viz-flow__ring {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-width: 1.2;
+  opacity: 0.7;
+}
+
+.viz-flow__months {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.viz-flow__month {
+  appearance: none;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 5px 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.viz-flow__month--current {
+  border-color: var(--accent-strong);
+}
+
+.viz-flow__month--selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.viz-flow__month-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.viz-flow__month-dot--l0 { opacity: 0.16; }
+.viz-flow__month-dot--l1 { opacity: 0.42; }
+.viz-flow__month-dot--l2 { opacity: 0.7; }
+.viz-flow__month-dot--l3 { opacity: 1; }
+
+.viz-flow__detail {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-alt);
+}
+
+.viz-flow__detail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.viz-flow__detail-head b {
+  font-size: 1.02rem;
+}
+
+.viz-flow__ganzhi {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+.viz-flow__now {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.viz-flow__tone {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(169, 118, 56, 0.12);
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.viz-flow__tone-detail {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.viz-flow__rows {
+  display: grid;
+  gap: 4px;
+}
+
+.viz-flow__rows p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.viz-flow__rows p span {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-weight: 800;
+  vertical-align: 1px;
+}
+
+.viz-flow__row--caution span {
+  color: #9c4f2d;
+  border-color: rgba(199, 111, 72, 0.45);
+}
+
+.viz-flow__row--advice span {
+  color: #5c6b3c;
+  border-color: rgba(125, 141, 88, 0.45);
+}
+
+.viz-flow__evidence {
+  color: var(--text-dim);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 560px) {
+  .viz-flow__months {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* ── 장식 모티프 ── */
+.motif-divider {
+  display: flex;
+  justify-content: center;
+  margin: 26px 0 6px;
+  color: var(--accent);
+  opacity: 0.6;
+}
+
+.motif-divider svg {
+  width: min(100%, 260px);
+  height: 16px;
+}
+
+.motif-divider__line {
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.motif-divider__knot {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+
+.motif-divider__bead {
+  fill: currentColor;
+  opacity: 0.7;
+}
+
+.motif-corners {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: var(--accent);
+  opacity: 0.4;
+}
+
+.motif-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.motif-corner--tl { top: 8px; left: 8px; }
+.motif-corner--tr { top: 8px; right: 8px; transform: scaleX(-1); }
+.motif-corner--bl { bottom: 8px; left: 8px; transform: scaleY(-1); }
+.motif-corner--br { bottom: 8px; right: 8px; transform: scale(-1, -1); }
+
+.motif-quote {
+  display: block;
+  width: 30px;
+  height: auto;
+  margin-bottom: 2px;
+  color: var(--accent);
+  opacity: 0.35;
+}
+
+.motif-cloud {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--accent);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+.motif-seal {
+  display: inline-grid;
+  color: var(--danger);
+}
+
+.motif-seal svg {
+  width: 44px;
+  height: 44px;
+}
+
+.motif-seal__text {
+  fill: currentColor;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+/* ── 타로 카드 아트 ── */
+.tarot-card-art {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tarot-card-art--major { color: #7a4c1f; }
+.tarot-card-art--wands { color: #9c4f2d; }
+.tarot-card-art--cups { color: #55736c; }
+.tarot-card-art--swords { color: #746b5c; }
+.tarot-card-art--pentacles { color: #8a6c33; }
+
+.tarot-card-art__frame {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+  opacity: 0.55;
+}
+
+.tarot-card-art__frame--dashed {
+  stroke-dasharray: 3 3;
+  opacity: 0.32;
+}
+
+.tarot-card-art__corner-dot {
+  fill: currentColor;
+  opacity: 0.5;
+}
+
+.tarot-card-art__suit {
+  fill: currentColor;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-anchor: middle;
+}
+
+.tarot-card-art__rule {
+  stroke: currentColor;
+  stroke-width: 0.8;
+  opacity: 0.4;
+}
+
+.tarot-card-art__motif path,
+.tarot-card-art__motif circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tarot-card-art__name {
+  fill: var(--text);
+  font-size: 8px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.tarot-card-art__ko {
+  fill: var(--text-dim);
+  font-size: 6.5px;
+  text-anchor: middle;
+}
+
+/* ── 좋음/보통/주의 픽토그래프 ── */
+.rating-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.rating-cell--good {
+  color: #5c6b3c;
+  background: var(--wood-soft);
+}
+
+.rating-cell--mid {
+  color: #7c6a46;
+  background: var(--earth-soft);
+}
+
+.rating-cell--caution {
+  color: #9c4f2d;
+  background: var(--fire-soft);
+}
+
+.rating-cell__dots {
+  width: 26px;
+  height: 9px;
+}
+
+.rating-cell__dot--on { fill: currentColor; }
+.rating-cell__dot--off { fill: currentColor; opacity: 0.22; }
+
+.rating-cell__mark {
+  width: 13px;
+  height: 13px;
+}
