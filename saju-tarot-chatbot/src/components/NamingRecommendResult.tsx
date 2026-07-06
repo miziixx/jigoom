@@ -1,4 +1,4 @@
-import type { ScoredRecommendedName } from "../lib/naming";
+import type { NamingMode, ScoredRecommendedName } from "../lib/naming";
 
 const LEVEL_KEY: Record<string, string> = {
   좋음: "good",
@@ -23,10 +23,12 @@ export default function NamingRecommendResult({
   direction,
   candidates,
   topCount = 5,
+  mode = "baby",
 }: {
   direction?: string | null;
   candidates: ScoredRecommendedName[];
   topCount?: number;
+  mode?: NamingMode;
 }) {
   if (candidates.length === 0) return null;
   const top = candidates.slice(0, topCount);
@@ -35,26 +37,46 @@ export default function NamingRecommendResult({
     <>
       {direction && (
         <section className="card naming-interpretation">
-          <h4 className="naming-section-title">이름을 이렇게 골랐어요</h4>
+          <h4 className="naming-section-title">
+            {mode === "stage" && "활동명을 이렇게 골랐어요"}
+            {mode === "brand" && "브랜드명을 이렇게 골랐어요"}
+            {(mode === "baby" || mode === "rename") && "이름을 이렇게 골랐어요"}
+          </h4>
           <p>{direction}</p>
         </section>
       )}
 
       <section className="card naming-scoretable">
-        <h4 className="naming-section-title">추천 이름 {candidates.length}개 · 점수표</h4>
+        <h4 className="naming-section-title">
+          {mode === "stage" && "추천 활동명"}
+          {mode === "brand" && "추천 브랜드명"}
+          {(mode === "baby" || mode === "rename") && "추천 이름"}
+          {""} {candidates.length}개 · 점수표
+        </h4>
         <p className="field-hint">
-          점수는 사주 보완 적합도와 발음(소리) 조화를 시스템이 계산한 값이에요(100점 만점). 길흉 예언이 아니라 비교용
-          지표입니다.
+          {mode === "stage"
+            ? "점수는 활동명으로서의 기억성, 소리 흐름, 사주 기운 연결을 시스템이 계산한 값이에요(100점 만점). 길흉 예언이 아니라 비교용 지표입니다."
+            : mode === "brand"
+            ? "점수는 브랜드명으로서의 업종 적합성, 기억성, 소리 흐름, 사주 기운 연결을 시스템이 계산한 값이에요(100점 만점). 길흉 예언이 아니라 비교용 지표입니다."
+            : "점수는 사주 보완 적합도와 발음(소리) 조화를 시스템이 계산한 값이에요(100점 만점). 길흉 예언이 아니라 비교용 지표입니다."}
         </p>
         <div className="naming-scoretable__scroll">
           <table className="naming-scoretable__table">
             <thead>
               <tr>
                 <th>#</th>
-                <th>이름</th>
+                <th>
+                  {mode === "stage" && "활동명"}
+                  {mode === "brand" && "브랜드명"}
+                  {(mode === "baby" || mode === "rename") && "이름"}
+                </th>
                 <th>한자</th>
                 <th>점수</th>
-                <th>사주 보완</th>
+                <th>
+                  {mode === "stage" && "기억성·어울림"}
+                  {mode === "brand" && "업종·기억성"}
+                  {(mode === "baby" || mode === "rename") && "사주 보완"}
+                </th>
                 <th>소리</th>
               </tr>
             </thead>
@@ -79,7 +101,15 @@ export default function NamingRecommendResult({
       </section>
 
       <section className="card naming-topcards">
-        <h4 className="naming-section-title">TOP {top.length} 상세 분석</h4>
+        <h4 className="naming-section-title">
+          {mode === "stage" && "TOP "}
+          {mode === "brand" && "TOP "}
+          {(mode === "baby" || mode === "rename") && "TOP "}
+          {top.length}
+          {mode === "stage" && " 활동명 상세 분석"}
+          {mode === "brand" && " 브랜드명 상세 분석"}
+          {(mode === "baby" || mode === "rename") && " 이름 상세 분석"}
+        </h4>
         <div className="naming-comparison__grid">
           {top.map((c) => (
             <article key={c.fullName} className={c.rank === 1 ? "naming-candidate naming-candidate--best" : "naming-candidate"}>
@@ -93,7 +123,11 @@ export default function NamingRecommendResult({
               {c.hanjaMeaning && <p className="naming-candidate__meaning">{c.hanjaMeaning}</p>}
               <dl>
                 <div>
-                  <dt>사주 보완</dt>
+                  <dt>
+                    {mode === "stage" && "활동명 어울림"}
+                    {mode === "brand" && "업종·타깃 적합"}
+                    {(mode === "baby" || mode === "rename") && "사주 보완"}
+                  </dt>
                   <dd>
                     <span className={levelClass(c.evaluation.fit.level)}>{c.evaluation.fit.level}</span> ·{" "}
                     {c.evaluation.fit.neededLabel} 기운
