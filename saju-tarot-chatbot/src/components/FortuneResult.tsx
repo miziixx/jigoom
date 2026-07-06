@@ -1,5 +1,7 @@
 import { useState } from "react";
-import Gauge from "./Gauge";
+import ArcGauge from "./viz/ArcGauge";
+import { SealStamp } from "./viz/Motif";
+import { VizIcon } from "./viz/icons";
 import type { FortuneCategoryContent, FortuneResult as FortuneResultType } from "../types";
 
 interface CategoryCardDef {
@@ -8,13 +10,32 @@ interface CategoryCardDef {
   content: FortuneCategoryContent;
 }
 
+const CATEGORY_ICON: Record<string, string> = {
+  재물: "coin",
+  애정: "heart",
+  "직장·학업": "briefcase",
+  건강: "leaf",
+  대인관계: "people",
+};
+
 function CategoryCard({ label, score, content }: CategoryCardDef) {
   return (
     <div className="fortune-category-card">
-      <Gauge label={label} score={score} />
+      <span className="fortune-category-card__icon" aria-hidden="true">
+        <VizIcon name={CATEGORY_ICON[label] ?? "dots"} size={15} />
+      </span>
+      <ArcGauge label={label} score={score} size="sm" />
       <p className="fortune-category-card__comment">{content.comment}</p>
-      {content.good && <p className="fortune-badge fortune-badge--good">{content.good}</p>}
-      {content.caution && <p className="fortune-badge fortune-badge--caution">{content.caution}</p>}
+      {content.good && (
+        <p className="fortune-badge fortune-badge--good">
+          <VizIcon name="check" size={12} /> {content.good}
+        </p>
+      )}
+      {content.caution && (
+        <p className="fortune-badge fortune-badge--caution">
+          <VizIcon name="alertTriangle" size={12} /> {content.caution}
+        </p>
+      )}
     </div>
   );
 }
@@ -52,8 +73,9 @@ export default function FortuneResult({ result }: { result: FortuneResultType })
           <span className="fortune-date">
             {e.date} ({e.weekday})
           </span>
-          <span className="fortune-ganzhi" title="오늘의 일진 간지">
-            일진 {e.ganzhi.day}
+          <span className="fortune-ganzhi fortune-ganzhi--seal" title="오늘의 일진 간지">
+            <SealStamp text={e.ganzhi.day} />
+            <small>일진 {e.ganzhi.day}</small>
           </span>
         </div>
         <p className="fortune-summary">{content.summary}</p>
@@ -70,9 +92,9 @@ export default function FortuneResult({ result }: { result: FortuneResultType })
       </section>
 
       {/* 2) 전체 운세 */}
-      <section className="card">
+      <section className="card fortune-overall-card">
         <h3 className="card-title">오늘의 총운</h3>
-        <Gauge label="총운" score={e.categories.overall} />
+        <ArcGauge label="총운" score={e.categories.overall} size="lg" />
         <p className="fortune-overall">{content.overall}</p>
       </section>
 
@@ -88,19 +110,29 @@ export default function FortuneResult({ result }: { result: FortuneResultType })
 
       {/* 4) 추천 / 피할 행동 */}
       <section className="card fortune-two">
-        <div>
-          <h4 className="fortune-subhead fortune-subhead--good">추천 행동</h4>
-          <ul className="fortune-ul">
+        <div className="fortune-two__panel fortune-two__panel--good">
+          <h4 className="fortune-subhead fortune-subhead--good">
+            <VizIcon name="check" size={14} /> 추천 행동
+          </h4>
+          <ul className="fortune-ul fortune-ul--icons">
             {content.do_actions.map((s, i) => (
-              <li key={i}>{s}</li>
+              <li key={i}>
+                <VizIcon name="checkCircle" size={14} className="fortune-li-icon fortune-li-icon--good" />
+                <span>{s}</span>
+              </li>
             ))}
           </ul>
         </div>
-        <div>
-          <h4 className="fortune-subhead fortune-subhead--caution">피할 행동</h4>
-          <ul className="fortune-ul">
+        <div className="fortune-two__panel fortune-two__panel--caution">
+          <h4 className="fortune-subhead fortune-subhead--caution">
+            <VizIcon name="alertTriangle" size={14} /> 피할 행동
+          </h4>
+          <ul className="fortune-ul fortune-ul--icons">
             {content.avoid_actions.map((s, i) => (
-              <li key={i}>{s}</li>
+              <li key={i}>
+                <VizIcon name="alertTriangle" size={14} className="fortune-li-icon fortune-li-icon--caution" />
+                <span>{s}</span>
+              </li>
             ))}
           </ul>
         </div>
@@ -111,19 +143,27 @@ export default function FortuneResult({ result }: { result: FortuneResultType })
         <h3 className="card-title">오늘의 행운</h3>
         <div className="lucky-grid">
           <div className="lucky-item">
-            <span className="lucky-item__label">색</span>
+            <span className="lucky-item__label">
+              <VizIcon name="palette" size={13} /> 색
+            </span>
             <span className="lucky-item__value">{e.luckyItems.colors.join(", ")}</span>
           </div>
           <div className="lucky-item">
-            <span className="lucky-item__label">방향</span>
+            <span className="lucky-item__label">
+              <VizIcon name="compass" size={13} /> 방향
+            </span>
             <span className="lucky-item__value">{e.luckyItems.direction}</span>
           </div>
           <div className="lucky-item">
-            <span className="lucky-item__label">숫자</span>
+            <span className="lucky-item__label">
+              <VizIcon name="hash" size={13} /> 숫자
+            </span>
             <span className="lucky-item__value">{e.luckyItems.numbers.join(", ")}</span>
           </div>
           <div className="lucky-item">
-            <span className="lucky-item__label">시간대</span>
+            <span className="lucky-item__label">
+              <VizIcon name="clock" size={13} /> 시간대
+            </span>
             <span className="lucky-item__value">
               {e.luckyItems.timeSlot.zhi}시 ({e.luckyItems.timeSlot.range})
             </span>
