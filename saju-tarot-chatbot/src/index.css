@@ -622,25 +622,6 @@ label {
   object-fit: cover;
 }
 
-.tarot-card-visual__arcana,
-.tarot-card-visual__name {
-  position: relative;
-  z-index: 1;
-  color: #5d4024;
-  font-size: 0.66rem;
-  font-weight: 900;
-  line-height: 1.2;
-  text-align: center;
-}
-
-.tarot-card-visual__symbol {
-  position: relative;
-  z-index: 1;
-  color: #7a4c1f;
-  font-size: 2.3rem;
-  line-height: 1;
-}
-
 .tarot-card-visual--cups {
   background:
     radial-gradient(circle at 50% 35%, rgba(255, 251, 243, 0.86), transparent 42%),
@@ -812,47 +793,6 @@ label {
   border-color: rgba(224, 164, 79, 0.4);
 }
 
-.naming-syllables {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.naming-syllable {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 56px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface-alt);
-}
-
-.naming-syllable b {
-  font-size: 1.2rem;
-  color: var(--text);
-}
-
-.naming-syllable small {
-  color: var(--text-dim);
-  font-size: 0.72rem;
-}
-
-.naming-relations {
-  list-style: none;
-  margin: 0 0 10px;
-  padding: 0;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.naming-relations li {
-  font-size: 0.76rem;
-}
-
 .naming-note {
   margin: 0;
   color: var(--text-dim);
@@ -874,32 +814,6 @@ label {
   background: var(--surface-alt);
   color: var(--text-dim);
   font-size: 0.78rem;
-}
-
-.naming-suri {
-  list-style: none;
-  margin: 0 0 8px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.naming-suri li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.84rem;
-  color: var(--text-dim);
-}
-
-.naming-suri li b {
-  color: var(--text);
-  min-width: 28px;
-}
-
-.naming-suri li span:last-child {
-  margin-left: auto;
 }
 
 .naming-disclaimer {
@@ -4414,18 +4328,6 @@ label {
   gap: 4px;
 }
 
-.compat-score__num {
-  font-size: 3rem;
-  font-weight: 800;
-  color: var(--accent);
-  line-height: 1;
-}
-
-.compat-score__unit {
-  font-size: 1.1rem;
-  color: var(--text-dim);
-}
-
 .compat-summary {
   margin: 10px 0 0;
   font-size: 0.96rem;
@@ -6997,5 +6899,45 @@ label {
     top: auto;
     bottom: -17px;
     transform: translateX(-50%);
+  }
+}
+
+/* ── 프린트(PDF) 보강: 차트/카드가 페이지에 잘리지 않고 색이 유지되게 ── */
+@media print {
+  .viz-radar,
+  .viz-arc,
+  .viz-flow,
+  .viz-flow__detail,
+  .tarot-card-visual,
+  .name-sound-flow,
+  .compat-radar,
+  .reading-category-card,
+  .month-evidence-card {
+    break-inside: avoid;
+  }
+
+  .viz-radar svg,
+  .viz-arc svg,
+  .viz-flow svg,
+  .tarot-card-art,
+  .rating-cell,
+  .reading-category-tally__item,
+  .name-sound-flow__node,
+  .motif-seal {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* 스티키 목차는 종이에서 고정 의미가 없으니 흐름에 따라 인쇄 */
+  .reading-toc {
+    position: static;
+    box-shadow: none;
+  }
+
+  /* 장식 모티프는 잉크 절약을 위해 숨긴다 (데이터 없음) */
+  .motif-cloud,
+  .motif-corners,
+  .motif-divider {
+    display: none;
   }
 }

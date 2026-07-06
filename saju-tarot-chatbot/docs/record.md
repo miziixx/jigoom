@@ -1038,3 +1038,49 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 - 회귀 원리: 룰이 조용히 죽거나(code 누락), 안전장치 퇴보(forbidden 구조결함), 도메인 하락, confidence 급변,
   허용 밖 모순, evidence 배선 끊김 → FAIL. 무해한 추가는 통과(over-detection 억제).
 - 테스트: golden 31개. `npm test` 41 files / 338 tests 통과. `npm run build` 성공. golden 소스는 test-only import라 앱 번들 미포함.
+
+## 결과 페이지 전면 가독성·비주얼 개선 (인라인 SVG viz 레이어)
+
+목표: 모든 결과 화면(리딩/오늘운세/오늘의 카드/궁합/작명)에 도표·그래프·아이콘·장식을 넣어
+"사용자 입장에서 끝내준다"는 느낌의 리딩 UI로 개선. 의존성 추가 없이 전부 인라인 SVG로 제작.
+
+### 새 공용 레이어 `src/components/viz/`
+- `icons.tsx`: 섹션/파트 tone 키 기반 스트로크 아이콘 세트 (전부 aria-hidden 장식, 텍스트가 항상 의미 전달).
+- `ElementRadarChart.tsx`: 진짜 오행 오각형 레이더. 꼭짓점마다 이름+수치+풀이 라벨, 최강/최약 자동 캡션.
+- `ArcGauge.tsx`: 270° 아크 게이지. 기존 `GaugeDef`와 호환(드롭인). `tierLabel`로 숫자 대신 생활언어 노출.
+- `MonthlyFlowChart.tsx`: 1~12월 흐름 곡선. 곡선은 계산값(luckCycles.monthlyFlow)만 사용, y축은
+  잔잔함/가벼운 자극/변화 있음/흔들림 큼 4단어(숫자 미노출). 달 버튼 탭 → AI 월별 텍스트 상세 연결.
+- `TarotCardArt.tsx`: 제네릭 스타일라이즈드 타로 카드(이중 프레임+수트 배너+중앙 문양+이름 카르투슈).
+- `RatingCell.tsx`: 좋음/보통/주의 픽토그래프(점 3개/경고 삼각형 + 단어 항상 병기).
+- `Motif.tsx`: 장식 전용(붓선 구분선, 모서리 장식, 구름 문양, 낙관 도장, 태극). 데이터 미포함.
+- `elementMeta.ts`: 오행 순서/라벨/풀이 공용 메타 (SajuFactsPanel과 공유).
+- `readingText.tsx`(lib): ReadingResult의 parseSections/parseBodyParts/stripMarkdown/renderTextBlock 추출 —
+  작명 등 다른 화면이 같은 규칙으로 AI 텍스트 렌더.
+
+### 화면별 변경
+- SajuFactsPanel: 가짜 점 레이더 → 오행 레이더 차트, 기운 강도 → 중립 아크 게이지(단어 중심),
+  대운 알약 오행 틴트+연결선+"지금" 깃발, 월별 details 안에 흐름 차트 추가. 원국 스냅샷은 구조 불변
+  (항상 노출·한자 우선 유지), 기둥 상단 오행 색 스트립만 추가.
+- ReadingResult: 섹션/파트 헤더 tone 아이콘, 분야별 요약 = 아이콘+픽토그래프 카드+집계 스트립,
+  올해의 흐름 = 계산 곡선 차트(+AI 텍스트는 탭 상세, 12장 카드는 접힘 보존), 목차 = 스티키 칩 내비
+  (IntersectionObserver 하이라이트, HashRouter 제약으로 button+scrollIntoView 유지),
+  첫/마지막 점괘 카드에 구름 문양+모서리 장식+큰 따옴표, 레이어 사이 붓선 구분선.
+- 타로: TarotCardVisual 글리프 폴백 → TarotCardArt (imageUrl 분기 보존). FactsPanel/RevealStage/
+  오늘의 카드 동시 업그레이드, TarotTodayPage 중복 비주얼 삭제. SummaryHero 비율바 → 카드당 핍
+  (채움=정방향/점선 윤곽=역방향, 뽑은 순서 번호) + 칩 수트 아이콘.
+- FortuneResult: 총운 대형 아크, 분야 카드 소형 아크+분야 아이콘, do/avoid 투톤 패널+체크/경고 아이콘,
+  행운 그리드 아이콘, 일진 낙관 도장(+일반 텍스트 라벨 병기).
+- NamingResult: AI 해석 `<pre>` 제거 → readingText 파서 기반 섹션 카드(평문 폴백 내장),
+  발음오행 = 음절 노드+관계 화살표 다이어그램(상극은 지그재그, 단어 병기), 수리 = 실제 `<table>`,
+  궁합 = 단어만 노출하는 소형 아크.
+- CompatibilityPage: 점수 = 도넛 아크(+tierWord), breakdown = N축 폴리곤 레이더(꼭짓점 tierWord,
+  게이지 목록은 상세 뷰로 유지), 두 사람 미니 4주 박스, 갈등 사이클 번호 배지+진행 화살표.
+  computeCompatibility 로직 불변.
+
+### 원칙 (이후 세션도 유지할 것)
+- 오행 팔레트는 색약 구분이 어려움(검증 결과) → 색만으로 정보 구분 금지, 항상 텍스트 라벨 병기, 표 뷰 보존.
+- 차트마다 생활언어 캡션(`.viz-caption`) 필수 — "시각 요소 하나 = 메시지 하나", 설명 없는 숫자 금지.
+- 시각화 컴포넌트는 데이터 불충분 시 null 반환(스트리밍 내성). AI 산문을 수치화해 그래프로 그리지 않는다.
+- 장식 모티프는 aria-hidden + 프린트에서 숨김. 차트는 break-inside: avoid + print-color-adjust로 인쇄 보강.
+- 죽은 CSS 제거: .element-radar*, 옛 타로 글리프/작명 칩/compat 숫자 블록.
+- 검증: npm test 42파일/356테스트, npm run build 성공(기존 500kB 경고만, 신규 의존성 0).
