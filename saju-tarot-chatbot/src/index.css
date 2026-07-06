@@ -6299,6 +6299,11 @@ label {
   pointer-events: none;
 }
 
+.motif-cloud__rect {
+  width: 100%;
+  height: 100%;
+}
+
 .motif-seal {
   display: inline-grid;
   color: var(--danger);
@@ -6418,4 +6423,162 @@ label {
 .rating-cell__mark {
   width: 13px;
   height: 13px;
+}
+
+/* ── 리딩 결과 개선: 스티키 목차 칩, 섹션 아이콘, 분야 집계, 점괘 장식 ── */
+
+.reading-toc--chips {
+  position: sticky;
+  top: 8px;
+  z-index: 40;
+  gap: 8px;
+  padding: 12px 16px 13px;
+  box-shadow: 0 8px 22px rgba(122, 76, 31, 0.1);
+}
+
+.reading-toc--chips .reading-toc__head p {
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.reading-toc--chips .reading-toc__links {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.reading-toc--chips .reading-toc__link {
+  flex: 0 0 auto;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.reading-toc__link--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* 스티키 목차가 스크롤 목적지를 가리지 않게 여유를 둔다 */
+.reading-section {
+  scroll-margin-top: 96px;
+}
+
+.reading-section__icon,
+.reading-category-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.reading-category-card__icon {
+  width: 26px;
+  height: 26px;
+}
+
+/* 분야/섹션 아이콘 색: 오행 계열 색을 빌리되 텍스트 태그가 항상 옆에 있다 */
+.category-icon--money,
+.category-icon--year { color: #8a6c33; }
+.category-icon--work,
+.category-icon--decision { color: #746b5c; }
+.category-icon--love { color: #a85548; }
+.category-icon--health,
+.category-icon--use { color: #5c6b3c; }
+.category-icon--flow,
+.category-icon--tarot { color: #55736c; }
+.category-icon--self,
+.category-icon--pattern { color: #8f7475; }
+
+.reading-part__icon {
+  margin-right: 2px;
+  color: var(--accent);
+}
+
+.reading-part__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reading-category-tally {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.reading-category-tally__item {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.reading-category-tally__item--good {
+  color: #5c6b3c;
+  background: var(--wood-soft);
+}
+
+.reading-category-tally__item--mid {
+  color: #7c6a46;
+  background: var(--earth-soft);
+}
+
+.reading-category-tally__item--caution {
+  color: #9c4f2d;
+  background: var(--fire-soft);
+}
+
+.reading-category-card--caution {
+  border-color: rgba(199, 111, 72, 0.4);
+}
+
+/* 점괘(오라클) 카드: 구름 문양 + 모서리 장식 + 큰 따옴표 */
+.reading-oracle {
+  position: relative;
+  overflow: hidden;
+  padding: 26px 26px 24px;
+}
+
+.reading-oracle__tag,
+.reading-oracle__text,
+.reading-oracle .motif-quote {
+  position: relative;
+  z-index: 1;
+}
+
+.reading-oracle__text {
+  font-size: 1.05rem;
+  line-height: 1.85;
+}
+
+.reading-layer-heading span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.question-core-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.month-evidence-more > summary {
+  cursor: pointer;
+  margin: 6px 0 8px;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  font-weight: 700;
 }

@@ -88,10 +88,23 @@ describe("ReadingResult 몰입 렌더링", () => {
 
   it("총평 뒤에 목차를 제공하고 세부 섹션은 접힘 영역으로 렌더된다", () => {
     expect(html).toContain("reading-toc");
-    expect(html).toContain("위의 총평을 먼저 읽고");
+    expect(html).toContain("필요한 부분을 눌러 바로 이동하세요");
     expect(html).toContain('id="reading-건강과-컨디션"');
     expect(html).toContain('class="reading-toc__link"');
     expect(html).toContain("<details");
+  });
+
+  it("분야별 요약이 아이콘·픽토그래프 카드와 집계 스트립으로 렌더된다", () => {
+    expect(html).toContain("reading-category-tally");
+    expect(html).toContain("rating-cell--caution");
+    expect(html).toContain("category-icon--love");
+    // 평가 단어는 항상 텍스트로 함께 노출 (색만으로 구분 금지)
+    expect(html).toContain("<b>주의</b>");
+  });
+
+  it("섹션 헤더에 tone 아이콘이 붙는다", () => {
+    expect(html).toContain("reading-section__icon");
+    expect(html).toContain("category-icon--health");
   });
 
   it("마크다운 기호가 화면 텍스트에서 제거된다", () => {

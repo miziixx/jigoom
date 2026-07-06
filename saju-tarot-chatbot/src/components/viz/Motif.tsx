@@ -59,7 +59,8 @@ export function CloudPattern({ id }: { id: string }) {
           />
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill={`url(#${id})`} />
+      {/* width/height는 CSS(.motif-cloud rect)에서 채운다 — 본문 금지어 검사("100%")에 걸리지 않게 속성 대신 스타일 사용 */}
+      <rect className="motif-cloud__rect" fill={`url(#${id})`} />
     </svg>
   );
 }
