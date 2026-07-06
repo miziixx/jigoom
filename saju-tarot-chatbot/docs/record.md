@@ -945,3 +945,30 @@ LifeAreaBars·PatternMap·ActionCalendar)가 전부 맨 위에 쌓여 있고, �
   - ruleEngine, judgmentEngine, confidenceEngine, contradictionEngine, judgmentValidation, judgmentPrompt.
   - `npm test`: 36 files / 243 tests 통과.
   - `npm run build`와 별도 `tsc --noEmit`은 현재 로컬 환경에서 `tsc`가 장시간 무출력으로 멈춰 중단함.
+
+## Case Validation Engine P2 (사례 기반 검증 엔진)
+
+목표: 규칙을 더 추가하는 것이 아니라, 지금 판단(JudgmentPack)이 실제 사례에서 얼마나 맞는지
+자동으로 대조·집계하는 "데이터를 모으는 엔진"을 추가. 판단을 바꾸는 엔진이 아니다.
+
+- 새 모듈 `src/lib/caseValidation/` (읽기 전용, 계산·룰·판단 미변경):
+  - `caseTypes.ts`: `Case`(birth + 분야별 실제 결과 + 사용자/전문가 평가), `CaseDomainOutcome`,
+    `MatchLevel`(match/partial/minor/miss → 100/70/30/0), `PredictedDirection`,
+    `CaseJudgmentOutcome`, `CaseValidationResult`. `CASE_SCHEMA_VERSION = 1.0.0`.
+  - `caseScore.ts`: `CODE_EXPECTATION`(JudgmentCode → 분야·예측방향), `RULE_FOR_CODE`(codeForRule 역매핑),
+    `scoreMatch`(예측방향 ↔ 실제 사건/방향 채점). 예측 없는 판단(GENERAL_MIXED_FLOW)은 대조 제외.
+  - `caseValidator.ts`: JudgmentPack × Case 대조 → 판단별 등급 + `matchRate`. audit의 rewrite/fallback 반영.
+  - `caseMetrics.ts`: Rule/Judgment/Confidence 통계(trigger/match/mismatch/avgScore/avgConfidence/avgUserFeedback),
+    confidence 구간 캘리브레이션. 모두 읽기 전용, 값 자동 변경 없음.
+  - `caseDataset.ts`: 사례 저장 컨테이너(추가/필터/직렬화). UI 없음, 저장 구조만.
+  - `caseReport.ts`: 전체·분야별 적중, Rule Top/Best/Worst, rewrite/fallback 발생률, confidence 분포,
+    보정 후보(gap 큰 rule, 자동 적용 아님), 사람 검토 필요 항목. `formatCaseReport` 텍스트 출력.
+  - `caseFixtures.ts`: `makeJudgment`/`makePack` 팩토리 + 22개 픽스처(career/money/love/health/startup/move/family + 혼합).
+- 원칙:
+  - `saju.ts` 계산 / `eventEngine` / Rule / Judgment 구조 변경 없음.
+  - confidence 자동 보정 없음. 통계는 자료로만 제공하고, 보정 후보는 "사람 검토 후"로 명시.
+- 자동 보정 가능한 부분: Rule별 avgScore·avgConfidence gap, confidence 구간별 실제 적중률(캘리브레이션 자료).
+- 아직 사람 검토가 필요한 부분: 예측 방향 없는 판단(GENERAL_MIXED_FLOW), 표본 부족 rule,
+  전문가 검토 부재 시 best/worst는 사용자 결과 기반 추정치.
+- 테스트: `caseValidation.test.ts` 26개(score/validator/metrics/dataset/report/fixture). 기존 테스트 무변경.
+  - `npm test`: 38 files / 278 tests 통과. `npm run build` 성공(기존 500kB chunk 경고만).

@@ -316,3 +316,25 @@ P0 완료 상태:
 
 - 용신/격국을 무리하게 확장하기보다, 먼저 결론-근거 1:1 추적과 검증 로그를 안정화한다.
 - LLM 프롬프트 강화만으로 해결하지 말고, 판단 객체와 forbiddenClaims를 계속 구조화한다.
+
+## 14. Case Validation Engine P2 (사례 기반 검증 엔진)
+
+완료:
+
+- `src/lib/caseValidation/` 추가: caseTypes / caseScore / caseValidator / caseMetrics / caseDataset / caseReport / caseFixtures.
+- JudgmentPack × 실제 사례 대조 → 판단별 match/partial/minor/miss + matchRate.
+- Rule/Judgment/Confidence 통계, 분야별 적중, rewrite/fallback 발생률, confidence 캘리브레이션 리포트.
+- 22개 픽스처 + 26개 테스트. 계산·룰·판단·confidence 미변경(읽기 전용).
+
+다음 후보:
+
+- 실제 사용자 사례를 수집·저장하는 경로 설계(현재는 저장 구조만, UI 없음).
+- 사용자 피드백(맞아요/보통/아니에요) → Case 연결 UI.
+- 전문가 검토(ExpertReview) 입력 경로.
+- 사례가 20건 이상 쌓이면 confidence 보정 후보를 사람이 검토 후 반영하는 절차 정의.
+
+주의:
+
+- Case 통계는 자료일 뿐, confidence를 자동으로 바꾸지 않는다.
+- 예측 방향이 없는 판단(GENERAL_MIXED_FLOW)은 자동 대조 대상이 아니다.
+- 표본이 적은 rule은 판단 유보, best/worst는 전문가 검토 전까지 추정치로 다룬다.
