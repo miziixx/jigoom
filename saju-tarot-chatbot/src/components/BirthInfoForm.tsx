@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import ContextPicker from "./ContextPicker";
+import FocusPicker from "./FocusPicker";
 import { BIRTH_PLACES } from "../data/birthPlaces";
 import { clearProfile, loadProfile, saveProfile } from "../lib/profile";
 import type { BirthInfo, CalendarType, Gender, LateNightZiMode, ReadingContext, ReadingFocus } from "../types";
@@ -22,10 +24,16 @@ interface Props {
   expandOptionalSettings?: boolean;
 }
 
-const DEFAULT_READING_FOCUS: ReadingFocus = "general";
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
-export default function BirthInfoForm({ submitLabel, onSubmit, loading, showQuestionSection = true, expandOptionalSettings = false }: Props) {
+export default function BirthInfoForm({
+  submitLabel,
+  onSubmit,
+  loading,
+  showFocus = true,
+  showQuestionSection = true,
+  expandOptionalSettings = false,
+}: Props) {
   const [savedBirth] = useState(() => loadProfile());
   const [calendarType, setCalendarType] = useState<CalendarType>(savedBirth?.calendarType ?? "solar");
   const [year, setYear] = useState(savedBirth ? String(savedBirth.year) : "");
@@ -39,6 +47,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showQues
   const [saveBirthChart, setSaveBirthChart] = useState(Boolean(savedBirth));
   const [gender, setGender] = useState<Gender>(savedBirth?.gender ?? "female");
   const [question, setQuestion] = useState("");
+  const [focus, setFocus] = useState<ReadingFocus>("general");
+  const [context, setContext] = useState<ReadingContext>({});
 
   const canSubmit = year !== "" && month !== "" && day !== "" && !loading;
 
@@ -61,8 +71,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showQues
     if (saveBirthChart) saveProfile(birthInfo);
     else if (savedBirth) clearProfile();
     // 출생 시간을 모르면 정확도 응답과 무관하게 "모름"으로 고정한다
-    const finalContext: ReadingContext = hour === "unknown" ? { timeAccuracy: "unknown" } : {};
-    onSubmit(birthInfo, question, DEFAULT_READING_FOCUS, finalContext, { saveToHistory: saveBirthChart });
+    const finalContext: ReadingContext = hour === "unknown" ? { ...context, timeAccuracy: "unknown" } : context;
+    onSubmit(birthInfo, question, focus, finalContext, { saveToHistory: saveBirthChart });
   }
 
   return (
@@ -228,6 +238,17 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showQues
               rows={3}
             />
           </div>
+
+          <details className="consultation-panel optional-settings-panel">
+            <summary>
+              <span>분야와 말투를 직접 고르고 싶을 때</span>
+              <small>선택하지 않아도 질문 내용을 보고 기본값으로 풀이합니다.</small>
+            </summary>
+
+            {showFocus && <FocusPicker value={focus} onChange={setFocus} />}
+
+            <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
+          </details>
         </section>
       )}
 
