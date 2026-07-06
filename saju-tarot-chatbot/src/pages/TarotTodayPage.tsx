@@ -1,4 +1,7 @@
 import { useMemo, useState } from "react";
+import { TarotCardVisual } from "../components/TarotFactsPanel";
+import { CloudPattern } from "../components/viz/Motif";
+import { VizIcon } from "../components/viz/icons";
 import { TAROT_DECK } from "../data/tarotDeck";
 import { resolveSavedBirth } from "../lib/profile";
 import { describeTarotSymbolism, tarotElementOf, tarotSuitOf } from "../lib/tarotSymbolism";
@@ -63,30 +66,6 @@ function todayPersonalSeed(today: string) {
 function randomDraw() {
   const seed = `${Date.now()}-${Math.random()}`;
   return dailyDraw(seed);
-}
-
-function visualLabel(card: TarotCardDefinition) {
-  if (card.arcana === "major") return "major";
-  if (card.name.includes("Wands")) return "wands";
-  if (card.name.includes("Cups")) return "cups";
-  if (card.name.includes("Swords")) return "swords";
-  return "pentacles";
-}
-
-function visualTitle(card: TarotCardDefinition) {
-  if (card.arcana === "major") return "Major";
-  if (card.name.includes("Wands")) return "Wands";
-  if (card.name.includes("Cups")) return "Cups";
-  if (card.name.includes("Swords")) return "Swords";
-  return "Pentacles";
-}
-
-function visualSymbol(card: TarotCardDefinition) {
-  if (card.arcana === "major") return "✦";
-  if (card.name.includes("Wands")) return "♨";
-  if (card.name.includes("Cups")) return "☽";
-  if (card.name.includes("Swords")) return "◇";
-  return "◉";
 }
 
 function koreanName(card: TarotCardDefinition) {
@@ -193,23 +172,6 @@ function todayAdvice(card: TarotCardDefinition, reversed: boolean) {
   return reversed ? "무리해서 밀기보다 막힌 이유를 먼저 정리하세요." : "작게라도 움직여 오늘의 흐름을 확인하세요.";
 }
 
-function TodayCardVisual({ card, reversed }: { card: TarotCardDefinition; reversed: boolean }) {
-  const title = visualTitle(card);
-  return (
-    <div className={`tarot-card-visual tarot-card-visual--today tarot-card-visual--${visualLabel(card)}${reversed ? " tarot-card-visual--reversed" : ""}`}>
-      {card.imageUrl ? (
-        <img src={card.imageUrl} alt={card.name} loading="lazy" />
-      ) : (
-        <>
-          <span className="tarot-card-visual__arcana">{title}</span>
-          <b className="tarot-card-visual__symbol">{visualSymbol(card)}</b>
-          <span className="tarot-card-visual__name">{card.name.replace(/\s*\(.+?\)/, "")}</span>
-        </>
-      )}
-    </div>
-  );
-}
-
 export default function TarotTodayPage() {
   const today = dateKey();
   const stable = useMemo(() => dailyDraw(todayPersonalSeed(today)), [today]);
@@ -227,8 +189,9 @@ export default function TarotTodayPage() {
       </p>
 
       <section className="card today-tarot-card">
+        <CloudPattern id="today-card-cloud" />
         <div className="today-tarot-card__visual">
-          <TodayCardVisual card={draw.card} reversed={draw.reversed} />
+          <TarotCardVisual card={draw.card} reversed={draw.reversed} className="tarot-card-visual--today" />
         </div>
         <div className="today-tarot-card__body">
           <span className="feature-badge">{extra ? "지금 다시 뽑은 카드" : `${today} 오늘의 카드`}</span>
@@ -239,15 +202,21 @@ export default function TarotTodayPage() {
           <p className="today-tarot-card__meaning">{meaning}</p>
           <div className="today-tarot-card__grid">
             <div>
-              <b>오늘의 키워드</b>
+              <b>
+                <VizIcon name="sparkle" size={13} /> 오늘의 키워드
+              </b>
               <span>{todayKeywords(draw.card, draw.reversed)}</span>
             </div>
             <div>
-              <b>분위기</b>
+              <b>
+                <VizIcon name="wave" size={13} /> 분위기
+              </b>
               <span>{todayMood(draw.card, draw.reversed)}</span>
             </div>
             <div>
-              <b>현실 조언</b>
+              <b>
+                <VizIcon name="check" size={13} /> 현실 조언
+              </b>
               <span>{todayAdvice(draw.card, draw.reversed)}</span>
             </div>
           </div>

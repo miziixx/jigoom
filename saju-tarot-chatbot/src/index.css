@@ -6582,3 +6582,70 @@ label {
   font-size: 0.86rem;
   font-weight: 700;
 }
+
+/* ── 타로 화면 개선: 카드 아트, 핍 바 ── */
+
+/* SVG 카드 아트가 자체 프레임을 그리므로 pseudo 이중 프레임은 끈다 */
+.tarot-card-visual--drawn {
+  padding: 6px;
+}
+
+.tarot-card-visual--drawn::before,
+.tarot-card-visual--drawn::after {
+  display: none;
+}
+
+.tarot-card-visual--drawn .tarot-card-art {
+  position: relative;
+  z-index: 1;
+}
+
+.tarot-hero__pips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.tarot-hero__pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.tarot-hero__pip--reversed {
+  background: var(--surface);
+  color: var(--accent);
+  border-style: dashed;
+}
+
+.tarot-hero__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.today-tarot-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.today-tarot-card__visual,
+.today-tarot-card__body {
+  position: relative;
+  z-index: 1;
+}
+
+.today-tarot-card__grid b {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

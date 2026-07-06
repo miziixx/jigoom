@@ -1,5 +1,6 @@
 import { tarotElementOf, type TarotElement } from "../lib/tarotSymbolism";
 import type { DrawnTarotCard } from "../types";
+import { VizIcon } from "./viz/icons";
 
 const ELEMENT_GLOSS: Record<TarotElement, string> = {
   불: "행동·열정",
@@ -7,6 +8,14 @@ const ELEMENT_GLOSS: Record<TarotElement, string> = {
   공기: "생각·판단",
   흙: "현실·안정",
   메이저: "큰 주제·전환",
+};
+
+const ELEMENT_ICON: Record<TarotElement, string> = {
+  불: "wand",
+  물: "cup",
+  공기: "sword",
+  흙: "pentacle",
+  메이저: "star",
 };
 
 /**
@@ -48,27 +57,40 @@ export default function TarotSummaryHero({ cards }: { cards: DrawnTarotCard[] })
 
       <p className="tarot-hero__headline">{headline}</p>
 
+      {/* 카드 1장 = 핍 1개. 뽑은 순서 그대로, 채움=정방향 / 윤곽=역방향 */}
       <div className="tarot-hero__ratio">
+        <div className="tarot-hero__pips" role="img" aria-label={`정방향 ${upright}장, 역방향 ${reversed}장 (뽑은 순서대로)`}>
+          {cards.map((c, i) => (
+            <span
+              key={`${c.position}-${c.card.id}`}
+              className={`tarot-hero__pip${c.reversed ? " tarot-hero__pip--reversed" : ""}`}
+              title={`${c.positionLabel ?? `${c.position}번째`} · ${c.card.name} · ${c.reversed ? "역방향" : "정방향"}`}
+            >
+              {i + 1}
+            </span>
+          ))}
+        </div>
         <div className="tarot-hero__ratio-labels">
           <span>정방향 {upright}</span>
           <span>역방향 {reversed}</span>
         </div>
-        <div className="tarot-hero__ratio-track">
-          <span className="tarot-hero__ratio-fill" style={{ width: `${uprightPct}%` }} />
-        </div>
       </div>
 
       <div className="tarot-hero__chips">
-        <span className="tarot-hero__chip">카드 {cards.length}장</span>
-        <span className="tarot-hero__chip">메이저 {major}</span>
+        <span className="tarot-hero__chip">
+          <VizIcon name="moonStar" size={13} /> 카드 {cards.length}장
+        </span>
+        <span className="tarot-hero__chip">
+          <VizIcon name="star" size={13} /> 메이저 {major}
+        </span>
         {dominant && (counts.get(dominant) ?? 0) >= 2 && (
           <span className="tarot-hero__chip tarot-hero__chip--dominant">
-            중심 {dominant}({ELEMENT_GLOSS[dominant]})
+            <VizIcon name={ELEMENT_ICON[dominant]} size={13} /> 중심 {dominant}({ELEMENT_GLOSS[dominant]})
           </span>
         )}
         {missing.length > 0 && cards.length >= 3 && (
           <span className="tarot-hero__chip tarot-hero__chip--missing">
-            빠진 {missing.join("·")}
+            빠진 {missing.map((el) => `${el}(${ELEMENT_GLOSS[el]})`).join(" · ")}
           </span>
         )}
       </div>
