@@ -1400,3 +1400,27 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 
 ### 검증
 - npm test 50파일/427테스트 통과(신규 `bot/extractVerbosityHint.test.ts` 6개), tsc·build 통과.
+
+## 웹앱 리딩 속도 개선 + 올해의 흐름 디테일 강화 (2026-07-07 추가)
+
+### 배경
+"사주타로챗봇의 리딩 답변 속도가 너무 오래걸려... 330초 이상걸리더라고." — 웹앱(`api/reading.ts`) 새 리딩이 모든 깊이(light/basic/advanced/expert)에서 체감상 매우 느렸다.
+
+### 원인
+Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 아닌 첫 호출)은 항상 `streamBufferedJudgmentGatedReply`를 탔다. 이 함수는 `anthropic.messages.create`(non-streaming)로 전체 응답을 다 만든 뒤에야 NDJSON으로 한 번에 흘려보냈다 — 스트리밍 인프라(하트비트, `X-Accel-Buffering: no`)는 살아있었지만 실제로는 어떤 텍스트도 생성이 끝날 때까지 전송되지 않았다. 검증 실패 시에는 재작성(2차 non-streaming 호출)까지 순차로 붙어 지연이 배가됐다. 이것이 이전의 fan-out/스트리밍 최적화를 사실상 무력화하고 있었다.
+
+### 수정
+- `api/reading.ts`: `streamBufferedJudgmentGatedReply` → `streamJudgmentGatedReply`로 교체. 1차 생성은 `anthropic.messages.stream()`으로 실제 토큰 단위 스트리밍하고, 검증(`validateOutputAgainstJudgmentPack`)은 API 호출 없는 로컬 연산이라 지연 없이 스트림 종료 직후 수행한다. 통과하면 그대로 끝(대다수 케이스, 기존과 동일한 체감 속도). 실패하는 드문 경우에만 `rewriteAfterFailedGate`(신규, 기존 재작성/폴백 로직을 추출)로 2차 생성을 하고, 이미 보여준 텍스트를 최종본으로 교체하는 `{text, replace: true}` NDJSON 라인을 추가로 보낸다.
+- `src/lib/readingApi.ts`: NDJSON 텍스트 라인의 `replace` 플래그를 처리하도록 `handleLine`을 확장(`replace`가 없으면 기존처럼 누적, 있으면 통째로 교체). 하위 호환.
+- 비스트리밍(레거시) 경로용 `completeJudgmentGatedReply`도 `rewriteAfterFailedGate`를 공유하도록 리팩터링(동작 동일).
+
+### 올해의 흐름(월별) 디테일 강화
+"월별 흐름 풀이가 더 디테일했으면 좋겠다"는 요청으로 `systemPrompt.ts`의 `# 올해의 흐름` 지시를 개선:
+- 월별 한 줄 형식(`N월 | 키워드 | 기회 | 주의 | 조언`)은 유지하되, `기회`/`주의` 필드를 기존 1~2문장 → 2~3문장으로 늘려 "왜 이 달에 그 흐름이 오는지"(원국과의 연결)와 "실제로 어디서 어떻게 드러나는지"(관계/일/돈/건강)를 구체적으로 쓰도록 지시. 앞뒤 달과 차별화하고 반복 표현을 피하라는 지시 추가.
+- 파싱 안정성을 위해 "필드 안에 줄바꿈이나 `|` 금지" 지시를 명시적으로 추가(기존 `parseStrictMonthlyFlow` 정규식은 줄 단위·파이프 구분 그대로 유지, 변경 없음).
+- `light` 깊이는 기존처럼 필드당 1문장 위주로 간결하게 유지(빠른 보조 요약 포지션 유지).
+- 늘어난 본문 분량을 흡수하도록 전체 글자수 목표 상향: 기본 3600~5200 → 4200~6000자, 고급 5600~7200 → 6200~8000자, 전문가 6800~8400 → 7400~9200자. `MAX_TOKENS_STREAM`(16000)은 여유가 충분해 변경 없음.
+
+### 검증
+- `src/prompts/reading.test.ts`의 글자수 하드코딩 두 곳(3600~5200자, 5600~7200자)을 새 값으로 갱신.
+- npm test 50파일/427테스트 통과, tsc·build 통과.

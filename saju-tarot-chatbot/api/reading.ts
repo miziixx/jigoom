@@ -15,7 +15,7 @@ import {
   passOrNeedsRewrite,
   type JudgmentGateResult,
 } from "../src/lib/judgmentGate.js";
-import { validateOutputAgainstJudgmentPack } from "../src/lib/judgmentValidation.js";
+import { validateOutputAgainstJudgmentPack, type JudgmentValidationResult } from "../src/lib/judgmentValidation.js";
 import type { JudgmentPack } from "../src/lib/judgmentTypes.js";
 import type {
   ChatMessage,
@@ -187,6 +187,45 @@ function gateSignal(gate: JudgmentGateResult): { status: string; reasonCodes: st
   return { status: gate.status, reasonCodes: gateReasonCodes(gate) };
 }
 
+/**
+ * 1차 응답이 Evidence Gate 검증에 실패했을 때만 호출되는 재작성 경로.
+ * 대다수 리딩은 이 함수를 타지 않고 1차 생성만으로 끝난다 — API 호출은 여기서만 추가로 발생한다.
+ */
+async function rewriteAfterFailedGate(
+  anthropic: Anthropic,
+  firstReply: string,
+  firstValidation: JudgmentValidationResult,
+  judgmentPack: JudgmentPack,
+): Promise<{ reply: string; gate: JudgmentGateResult }> {
+  const rewritePrompt = buildJudgmentRewritePrompt({ originalReply: firstReply, validation: firstValidation, pack: judgmentPack });
+  const rewriteReply = await completeMessages(anthropic, [{ role: "user", content: rewritePrompt }], { maxTokens: 7000 });
+  const rewriteValidation = validateOutputAgainstJudgmentPack({ reply: rewriteReply, pack: judgmentPack });
+  if (rewriteValidation.ok) {
+    const gate: JudgmentGateResult = {
+      status: "rewrite",
+      reply: rewriteReply,
+      validation: rewriteValidation,
+      firstValidation,
+      rewriteAttempted: true,
+      fallbackUsed: false,
+    };
+    return { reply: rewriteReply, gate };
+  }
+
+  const fallbackReply = buildJudgmentFallback(judgmentPack);
+  const fallbackValidation = validateOutputAgainstJudgmentPack({ reply: fallbackReply, pack: judgmentPack });
+  const gate: JudgmentGateResult = {
+    status: "fallback",
+    reply: fallbackReply,
+    validation: fallbackValidation,
+    firstValidation,
+    rewriteValidation,
+    rewriteAttempted: true,
+    fallbackUsed: true,
+  };
+  return { reply: fallbackReply, gate };
+}
+
 async function completeJudgmentGatedReply(
   anthropic: Anthropic,
   messages: Anthropic.Messages.MessageParam[],
@@ -197,41 +236,19 @@ async function completeJudgmentGatedReply(
   if (firstPass.status === "pass") {
     return { reply: firstPass.reply, judgmentPack: finalizeJudgmentPackAudit(judgmentPack, firstPass), gate: firstPass };
   }
-
-  const rewritePrompt = buildJudgmentRewritePrompt({
-    originalReply: firstReply,
-    validation: firstPass.validation,
-    pack: judgmentPack,
-  });
-  const rewriteReply = await completeMessages(anthropic, [{ role: "user", content: rewritePrompt }], { maxTokens: 7000 });
-  const rewriteValidation = validateOutputAgainstJudgmentPack({ reply: rewriteReply, pack: judgmentPack });
-  if (rewriteValidation.ok) {
-    const gate: JudgmentGateResult = {
-      status: "rewrite",
-      reply: rewriteReply,
-      validation: rewriteValidation,
-      firstValidation: firstPass.validation,
-      rewriteAttempted: true,
-      fallbackUsed: false,
-    };
-    return { reply: rewriteReply, judgmentPack: finalizeJudgmentPackAudit(judgmentPack, gate), gate };
-  }
-
-  const fallbackReply = buildJudgmentFallback(judgmentPack);
-  const fallbackValidation = validateOutputAgainstJudgmentPack({ reply: fallbackReply, pack: judgmentPack });
-  const gate: JudgmentGateResult = {
-    status: "fallback",
-    reply: fallbackReply,
-    validation: fallbackValidation,
-    firstValidation: firstPass.validation,
-    rewriteValidation,
-    rewriteAttempted: true,
-    fallbackUsed: true,
-  };
-  return { reply: fallbackReply, judgmentPack: finalizeJudgmentPackAudit(judgmentPack, gate), gate };
+  const gated = await rewriteAfterFailedGate(anthropic, firstReply, firstPass.validation, judgmentPack);
+  return { reply: gated.reply, judgmentPack: finalizeJudgmentPackAudit(judgmentPack, gated.gate), gate: gated.gate };
 }
 
-async function streamBufferedJudgmentGatedReply(
+/**
+ * 판단 팩(JudgmentPack) 검증이 걸린 새 리딩을 실시간 스트리밍으로 생성한다.
+ * 이전 버전은 전체 응답을 버퍼링(non-streaming)한 뒤에야 클라이언트로 보내
+ * 리딩 하나가 통째로 끝날 때까지 화면에 아무것도 안 보였다(체감 지연의 핵심 원인).
+ * 이제는 1차 생성을 그대로 스트리밍하고, 검증은 API 호출 없는 로컬 연산이라 지연이 없다.
+ * 검증에 실패하는 드문 경우에만 재작성(2차 API 호출)을 하고, 이미 보여준 텍스트를 안전한
+ * 최종본으로 교체(replace)하는 라인을 한 번 더 보낸다.
+ */
+async function streamJudgmentGatedReply(
   res: VercelResponse,
   anthropic: Anthropic,
   messages: Anthropic.Messages.MessageParam[],
@@ -243,13 +260,46 @@ async function streamBufferedJudgmentGatedReply(
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("X-Accel-Buffering", "no");
   if (meta) res.write(JSON.stringify({ meta }) + "\n");
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(JSON.stringify({ heartbeat: true }) + "\n");
+    } catch {
+      // 이미 닫힌 연결
+    }
+  }, 10000);
+
   try {
-    const gated = await completeJudgmentGatedReply(anthropic, messages, judgmentPack);
-    res.write(JSON.stringify({ text: gated.reply }) + "\n");
-    res.write(JSON.stringify({ done: true, stopReason: "end_turn", gate: gateSignal(gated.gate) }) + "\n");
+    let reply = "";
+    const stream = anthropic.messages.stream({
+      model: MODEL,
+      max_tokens: MAX_TOKENS_STREAM,
+      system: [{ type: "text", text: READING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      messages,
+    });
+    let stopReason: string | null = null;
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        reply += event.delta.text;
+        res.write(JSON.stringify({ text: event.delta.text }) + "\n");
+      } else if (event.type === "message_delta" && event.delta.stop_reason) {
+        stopReason = event.delta.stop_reason;
+      }
+    }
+
+    const firstPass = passOrNeedsRewrite(reply, judgmentPack);
+    if (firstPass.status === "pass") {
+      res.write(JSON.stringify({ done: true, stopReason, gate: gateSignal(firstPass) }) + "\n");
+    } else {
+      const gated = await rewriteAfterFailedGate(anthropic, reply, firstPass.validation, judgmentPack);
+      res.write(JSON.stringify({ text: gated.reply, replace: true }) + "\n");
+      res.write(JSON.stringify({ done: true, stopReason: "end_turn", gate: gateSignal(gated.gate) }) + "\n");
+    }
   } catch (err) {
     console.error(err);
     res.write(JSON.stringify({ error: `리딩 생성 중 오류: ${describeError(err)}` }) + "\n");
+  } finally {
+    clearInterval(heartbeat);
   }
   res.end();
 }
@@ -370,7 +420,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const meta = continueFrom ? undefined : { userMessage: metaUserMessage, sajuChart, luckCycles, judgmentPack };
     if (streaming) {
       if (judgmentPack && !continueFrom) {
-        await streamBufferedJudgmentGatedReply(res, anthropic, messages, meta, judgmentPack);
+        await streamJudgmentGatedReply(res, anthropic, messages, meta, judgmentPack);
       } else {
         await streamMessages(res, anthropic, messages, meta);
       }

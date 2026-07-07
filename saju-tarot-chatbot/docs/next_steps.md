@@ -316,6 +316,7 @@ P0 완료 상태:
 
 - 용신/격국을 무리하게 확장하기보다, 먼저 결론-근거 1:1 추적과 검증 로그를 안정화한다.
 - LLM 프롬프트 강화만으로 해결하지 말고, 판단 객체와 forbiddenClaims를 계속 구조화한다.
+- **성능 주의 (2026-07-07 수정됨, 회귀 금지):** `api/reading.ts`의 Evidence Gate는 반드시 `anthropic.messages.stream()`으로 1차 생성을 실제 스트리밍하고, 로컬 검증(`validateOutputAgainstJudgmentPack`, API 호출 없음) 실패 시에만 `rewriteAfterFailedGate`로 2차 생성을 해야 한다. 과거 한 번 `streamBufferedJudgmentGatedReply`(non-streaming으로 전체 응답을 만든 뒤 한 번에 전송)로 구현되어 모든 새 리딩이 330초 이상 걸리는 회귀가 있었다(진행 상황이 전혀 안 보였음). Evidence Gate를 다시 손댈 때 이 버퍼링 패턴으로 되돌리지 말 것.
 
 ## 14. Case Validation Engine P2 (사례 기반 검증 엔진)
 

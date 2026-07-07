@@ -277,6 +277,8 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
     const obj = JSON.parse(line) as {
       meta?: ReadingMeta;
       text?: string;
+      /** true면 지금까지 누적된 reply를 이 text로 통째로 교체한다 (Evidence Gate 재작성 결과 반영용) */
+      replace?: boolean;
       done?: boolean;
       stopReason?: string | null;
       gate?: GateInfo;
@@ -288,7 +290,7 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
       handlers.onMeta?.(obj.meta);
     }
     if (obj.text) {
-      reply += obj.text;
+      reply = obj.replace ? obj.text : reply + obj.text;
       handlers.onText?.(reply);
     }
     if (obj.done) {
