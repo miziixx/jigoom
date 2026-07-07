@@ -47,6 +47,42 @@ describe("parseBirthInput — 완전 자연어 입력", () => {
     expect(r.birthInfo?.hour).toBeNull();
     expect((r.remainder ?? "").length).toBe(0);
   });
+
+  it("'오후 8시'를 20시로 읽는다", () => {
+    const r = parseBirthInput("1990-01-01 오후 8시 남");
+    expect(r.ok).toBe(true);
+    expect(r.birthInfo?.hour).toBe(20);
+  });
+
+  it("'오전 8시'는 8시 그대로 읽는다", () => {
+    const r = parseBirthInput("1990-01-01 오전 8시 남");
+    expect(r.ok).toBe(true);
+    expect(r.birthInfo?.hour).toBe(8);
+  });
+
+  it("'저녁 7시 30분'을 19:30으로 읽는다", () => {
+    const r = parseBirthInput("1990-01-01 저녁 7시 30분 여");
+    expect(r.ok).toBe(true);
+    expect(r.birthInfo?.hour).toBe(19);
+    expect(r.birthInfo?.minute).toBe(30);
+  });
+
+  it("'새벽 3시'는 3시로 읽는다", () => {
+    const r = parseBirthInput("1990-01-01 새벽 3시 남");
+    expect(r.ok).toBe(true);
+    expect(r.birthInfo?.hour).toBe(3);
+  });
+
+  it("'오후 12시'는 정오(12시), '오전 12시'는 자정(0시)", () => {
+    expect(parseBirthInput("1990-01-01 오후 12시 남").birthInfo?.hour).toBe(12);
+    expect(parseBirthInput("1990-01-01 오전 12시 남").birthInfo?.hour).toBe(0);
+  });
+
+  it("meridiem 없는 24시간제는 그대로 (오후 표기 없이 20시)", () => {
+    const r = parseBirthInput("1990-01-01 20시 남");
+    expect(r.ok).toBe(true);
+    expect(r.birthInfo?.hour).toBe(20);
+  });
 });
 
 describe("looksLikeBirthInput", () => {

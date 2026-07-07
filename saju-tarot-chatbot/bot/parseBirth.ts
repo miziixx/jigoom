@@ -59,6 +59,20 @@ export function parseRelationType(text: string): CompatibilityRelationType | nul
 }
 
 /**
+ * 12시간제 표현(오전/오후/새벽/아침/저녁/밤/낮 + N시)을 24시간제로 바꾼다.
+ * 오전 12시=0시(자정), 오후 12시=12시(정오), 밤 12시=0시로 본다.
+ */
+function applyMeridiem(hour: number, meridiem?: string): number {
+  if (!meridiem) return hour;
+  if (meridiem === "오전" || meridiem === "새벽" || meridiem === "아침") {
+    return hour === 12 ? 0 : hour; // 오전 12시 = 자정(0시)
+  }
+  // 오후·저녁·밤·낮 (오후권)
+  if (meridiem === "밤" && hour === 12) return 0; // 밤 12시 = 자정
+  return hour < 12 ? hour + 12 : hour; // 오후 8시 → 20, 오후 12시 → 정오(12)
+}
+
+/**
  * 자유 입력에서 생년월일시·성별·달력·출생지를 추출한다.
  * 예: "1993-03-15 14:30 여 서울", "음력 1990.5.2 07시20분 남 부산", "1988년 7월 15일 시간모름 남자"
  */
@@ -87,19 +101,22 @@ export function parseBirthInput(raw: string): ParseResult {
   }
   strike(dateMatch[0]);
 
-  // 시간: 14:30 / 14시 30분 / 14시 / "시간모름"/"시간 몰라"
+  // 시간: 14:30 / 14시 30분 / 14시 / "오후 8시" / "저녁 7시 30분" / "시간모름"/"시간 몰라"
   let hour: number | null = null;
   let minute = 0;
   const unknownTime = /시간\s*(?:모름|몰라|모르|미상|없)|(?:^|\s)(?:모름|미상)(?=\s|$|[.,])/.test(text);
   if (!unknownTime) {
     const rest = text.slice(dateMatch.index! + dateMatch[0].length);
-    const timeMatch = rest.match(/(\d{1,2})\s*[:시]\s*(\d{1,2})?\s*분?/);
+    // 시각 앞에 오전/오후 등이 붙으면(예: "오후 8시") 12시간제로 읽어 24시간제로 바꾼다.
+    const timeMatch = rest.match(/(오전|오후|새벽|아침|저녁|밤|낮)?\s*(\d{1,2})\s*[:시]\s*(\d{1,2})?\s*분?/);
     if (timeMatch) {
-      hour = Number(timeMatch[1]);
-      minute = timeMatch[2] !== undefined ? Number(timeMatch[2]) : 0;
+      const meridiem = timeMatch[1];
+      hour = Number(timeMatch[2]);
+      minute = timeMatch[3] !== undefined ? Number(timeMatch[3]) : 0;
       if (hour > 23 || minute > 59) {
         return { ok: false, error: `출생 시각이 이상해요: ${hour}시 ${minute}분 (0~23시로 입력해 주세요)` };
       }
+      hour = applyMeridiem(hour, meridiem);
       strike(timeMatch[0]);
     }
   }
