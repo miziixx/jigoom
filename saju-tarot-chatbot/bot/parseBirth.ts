@@ -63,12 +63,15 @@ export function parseBirthInput(raw: string): ParseResult {
     };
   }
 
-  // 성별
+  // 성별 — 공백/문자열 경계로 감싸인 독립 토큰만 인정한다.
+  // (지명에 포함된 "여"/"남" 오탐 방지: 예 "남 여수" 를 "남 여수"의 "여"로 잘못 읽지 않도록)
   let gender: Gender | null = null;
-  if (/남/.test(text)) gender = "male";
-  if (/여/.test(text)) gender = "female";
+  const genderMatch = text.match(/(?:^|\s)(남자|여자|남|여)(?=\s|$)/);
+  if (genderMatch) {
+    gender = genderMatch[1].startsWith("남") ? "male" : "female";
+  }
   if (!gender) {
-    return { ok: false, error: "성별을 찾지 못했어요. '남' 또는 '여'를 함께 적어주세요." };
+    return { ok: false, error: "성별을 찾지 못했어요. '남' 또는 '여'를 띄어서 함께 적어주세요." };
   }
 
   // 출생지 (선택)

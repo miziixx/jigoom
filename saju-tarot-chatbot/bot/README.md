@@ -23,6 +23,22 @@ npm run bot
 
 롱폴링 방식이라 웹훅·공개 서버가 필요 없습니다. 노트북, 라즈베리파이, 아무 VPS에서나 켜두면 됩니다.
 
+## Railway 배포
+
+이 저장소는 여러 앱이 섞인 모노레포라서, Railway 프로젝트 설정에서 **Root Directory를 `saju-tarot-chatbot`으로 지정**해야 합니다.
+
+1. [railway.app](https://railway.app) → New Project → **Deploy from GitHub repo** → 이 저장소(`miziixx/myapps`) 선택
+2. 생성된 서비스 → **Settings**
+   - **Root Directory**: `saju-tarot-chatbot`
+   - **Start Command**: `npm run bot` (저장소 안 `railway.json`에도 이미 지정되어 있음)
+   - **Networking**: 아무 것도 켤 필요 없음 (롱폴링 방식이라 공개 도메인/포트 불필요)
+3. **Variables** 탭에서 환경변수 등록 (아래 표 참고). 최소 `TELEGRAM_BOT_TOKEN`, `ANTHROPIC_API_KEY`.
+4. **중요 — 데이터 영속성**: Railway 컨테이너 파일시스템은 재배포할 때마다 초기화됩니다. `bot/data/users.json`(사주 등록 정보·대화 기록)을 계속 유지하려면:
+   - 서비스 → **Volumes** → 볼륨 추가, 마운트 경로를 예: `/data` 로 지정
+   - 환경변수에 `BOT_DATA_DIR=/data` 추가
+   - 이렇게 안 하면 재배포할 때마다 사용자가 `/start`부터 다시 등록해야 합니다.
+5. 배포 후 **Deploy Logs**에서 `사주 선생님 봇 시작 (롱폴링)` 로그가 뜨는지 확인 → 텔레그램에서 `/start` 테스트.
+
 ## 환경변수
 
 | 변수 | 필수 | 설명 |

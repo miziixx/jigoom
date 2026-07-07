@@ -5,8 +5,13 @@ import { buildNatalEvidence, buildTodayEvidence } from "./evidence.js";
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.
 const MODEL = process.env.BOT_MODEL ?? "claude-opus-4-8";
-const MAX_TOKENS = 8000;
+// adaptive thinking도 이 예산을 함께 쓰므로 근거 인용이 긴 답변이 잘리지 않도록 넉넉히 잡는다.
+const MAX_TOKENS = 16000;
 
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.error("ANTHROPIC_API_KEY 환경변수가 필요합니다. console.anthropic.com 에서 발급하세요.");
+  process.exit(1);
+}
 const client = new Anthropic(); // ANTHROPIC_API_KEY 환경변수 사용
 
 const TEACHER_SYSTEM = `당신은 수십 년 경력의 명리학(사주) 선생님입니다. 텔레그램에서 제자 한 명(사용자)의 사주를 두고 일대일로 가르치고 상담합니다.
@@ -73,5 +78,9 @@ export async function askTeacher({ birthInfo, history, question }: AskOptions): 
     .map((b) => b.text)
     .join("\n")
     .trim();
-  return text || "답변을 만들지 못했어요. 다시 한번 물어봐 주세요.";
+  if (!text) return "답변을 만들지 못했어요. 다시 한번 물어봐 주세요.";
+  if (final.stop_reason === "max_tokens") {
+    return `${text}\n\n_(답이 길어져 여기서 끊겼어요. "계속" 또는 "이어서 설명해줘"라고 보내주세요.)_`;
+  }
+  return text;
 }

@@ -1110,3 +1110,17 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 ### 검증
 - npm test 42파일/356테스트 통과, npm run build 성공(기존 500kB 경고만).
 - 계산 스모크: 2000-01-01 12:30 서울 → 일주 무오(만세력 검증값 일치), KST 보정 후 luck/fortune 일진 일치(임오) 확인.
+
+## 텔레그램 봇 — 버그 수정 + Railway 배포 준비
+
+날짜: 2026-07-07
+
+### 무엇을
+- **성별 파싱 버그 수정** (`bot/parseBirth.ts`): 기존 `/남/.test(text)` / `/여/.test(text)`가 문자열 전체를 독립적으로 스캔해서, 출생지에 "여"가 들어간 지명(예: 여수)이 있으면 실제 성별과 무관하게 female로 덮어써지는 문제가 있었다. 공백/문자열 경계로 감싸인 독립 토큰(`남`/`여`/`남자`/`여자`)만 인정하도록 정규식 하나로 교체. `1990-01-01 12:00 남 여수` 같은 입력에서 재현/수정 확인.
+- **답변 잘림 처리** (`bot/teacher.ts`): `max_tokens`를 8000 → 16000으로 올리고(adaptive thinking이 같은 예산을 나눠 쓰므로 근거 인용이 긴 답변은 8000에서 잘릴 위험이 있었음), `stop_reason === "max_tokens"`일 때 "답이 길어져 끊겼다" 안내를 답변 끝에 붙이도록 추가. 기존엔 `"refusal"`만 체크하고 잘림은 조용히 무시했다.
+- **기동 시 조기 실패**: `ANTHROPIC_API_KEY` 미설정 시 SDK가 던지는 raw stack trace 대신, `telegram.ts`의 `TELEGRAM_BOT_TOKEN` 체크와 동일한 패턴으로 한국어 에러 메시지 후 `process.exit(1)`.
+- **Railway 배포 대응**: `tsx`를 devDependencies → dependencies로 이동(Railway/Nixpacks가 `NODE_ENV=production`으로 설치하면 devDependency가 빠져서 `npm run bot` 런타임에 tsx가 없을 수 있음). `saju-tarot-chatbot/railway.json` 추가(startCommand: `npm run bot`, 재시작 정책). `bot/README.md`에 Railway 배포 절차 추가 — 특히 **Root Directory를 `saju-tarot-chatbot`으로 지정**해야 하는 점(모노레포)과, **Railway 컨테이너는 재배포마다 파일시스템이 초기화**되므로 `bot/data/users.json`(사주 등록·대화 기록)을 유지하려면 Volume을 붙이고 `BOT_DATA_DIR`을 그 마운트 경로로 지정해야 한다는 점을 명시.
+
+### 검증
+- npm test 42파일/356테스트 통과, npm run build 성공, `npx tsc -p tsconfig.bot.json --noEmit` 통과.
+- 성별 파싱 수정 후 5개 케이스(남/여 단독, 음력, 시간모름, "남 여수", "여수 남") 직접 실행해 전부 기대값과 일치 확인.
