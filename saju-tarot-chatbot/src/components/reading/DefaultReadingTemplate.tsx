@@ -6,6 +6,7 @@ import SummaryCardGrid from "../SummaryCardGrid";
 import EventForecastPanel from "../EventForecastPanel";
 import PastValidationPanel from "../PastValidationPanel";
 import TarotFactsPanel from "../TarotFactsPanel";
+import ReadingNextCta, { type NextCtaItem } from "./ReadingNextCta";
 import { buildReadingDashboard } from "../../lib/readingDashboard";
 import { VizIcon } from "../viz/icons";
 import { CloudPattern, CornerOrnaments, QuoteMark, SectionDivider } from "../viz/Motif";
@@ -36,6 +37,7 @@ export default function DefaultReadingTemplate({
   eyebrow,
   eyebrowIcon = "book",
   promoteTarotFacts = false,
+  nextCta,
 }: {
   session: ReadingSession;
   loading?: boolean;
@@ -44,6 +46,8 @@ export default function DefaultReadingTemplate({
   eyebrowIcon?: string;
   /** 타로형: 뽑힌 카드 근거 패널을 접힌 근거 존이 아니라 히어로 바로 아래에 펼친다. */
   promoteTarotFacts?: boolean;
+  /** 리딩 끝에 붙일 다음 행동 제안. AI 텍스트가 도착한 뒤에만 노출한다. */
+  nextCta?: { title?: string; items: NextCtaItem[] };
 }) {
   const reply = session.messages.find((m) => m.role === "assistant")?.content ?? "";
   const hasReply = reply.trim().length > 0;
@@ -223,6 +227,8 @@ export default function DefaultReadingTemplate({
 
       {session.sajuChart && <SectionDivider />}
       {session.sajuChart && <ActionChecklist sajuChart={session.sajuChart} luckCycles={session.luckCycles} />}
+
+      {nextCta && hasReply && !loading && <ReadingNextCta title={nextCta.title} items={nextCta.items} />}
     </div>
   );
 }

@@ -1159,3 +1159,16 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 - 하지 않은 것(의도): 프롬프트/AI 출력 구조/ReadingType/localStorage/useReadingStore 변경, 결제/구독.
 - 테스트: `reading/readingTemplates.test.tsx` 5개 신규 (flow 전용 배치·스트리밍 폴백·라벨 분기·타로 승격 중복 방지).
   전체 43파일/361개 통과, 빌드 성공.
+
+## 리딩 타입별 템플릿 2차 — 타입별 다음 리딩 CTA
+
+- `DefaultReadingTemplate`에 `nextCta` prop 추가: AI 텍스트 도착 후(`hasReply && !loading`)에만 리딩 끝에
+  `ReadingNextCta`를 렌더. 프롬프트/스토어/저장 구조 불변, 화면 배치만.
+- 디스패처(`ReadingResult.tsx`)가 타입별 CTA를 주입:
+  - 평생사주(saju 무질문): "이어서 보면 좋은 리포트" — 올해운세/고민 상담/오늘 운세.
+  - 고민 상담(saju·combo + 질문): "이 고민, 더 파고들려면" — 사주+타로 재질문/올해 흐름/궁합.
+  - 타로: 다시 뽑기/사주까지 보기/오늘의 카드. 콤보: 올해운세/전체 사주.
+- 후속질문 자동 추천은 스토어·프롬프트 변경이 필요해 이번 범위에서 제외(2차는 CTA만).
+  대운 인생지도 승격도 SajuFactsPanel 구조 변경 위험이 커서 3차로 남김.
+- `ReadingResult.test.tsx`는 CTA의 react-router `<Link>` 때문에 MemoryRouter로 감쌌다(동작 동일).
+- 테스트: 43파일/362개 통과, 빌드 성공. 헤드리스로 평생사주 라벨+CTA 렌더 육안 확인.

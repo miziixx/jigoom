@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import ReadingResult from "./ReadingResult.js";
 import { computeLuckCycles, computeSajuChart } from "../lib/saju.js";
@@ -47,7 +48,7 @@ const JARGON = [
 const FORBIDDEN = ["반드시", "무조건", "100%", "절대", "죽습니다", "바람난", "굿을", "귀신", "신내림"];
 
 describe("ReadingResult 몰입 렌더링", () => {
-  const html = renderToStaticMarkup(<ReadingResult session={makeSession(REPLY)} />);
+  const html = renderToStaticMarkup(<MemoryRouter><ReadingResult session={makeSession(REPLY)} /></MemoryRouter>);
 
   it("첫 점괘·마지막 점괘 히어로가 렌더된다", () => {
     expect(html).toContain("reading-oracle--opening");
@@ -79,7 +80,7 @@ describe("ReadingResult 몰입 렌더링", () => {
       "[한 줄 결론]",
       "결정 전에 조건을 먼저 확인하세요.",
     ].join("\n");
-    const html = renderToStaticMarkup(<ReadingResult session={makeSession(reply)} />);
+    const html = renderToStaticMarkup(<MemoryRouter><ReadingResult session={makeSession(reply)} /></MemoryRouter>);
 
     expect(html).toContain("듣기 싫어도 봐야 할 부분");
     expect(html).not.toContain('<span class="reading-part__label">듣기 싫어도 봐야 할 부분</span>');
@@ -127,12 +128,12 @@ describe("ReadingResult 몰입 렌더링", () => {
 
 describe("ReadingResult 견고성", () => {
   it("빈 응답이어도 크래시하지 않는다", () => {
-    const html = renderToStaticMarkup(<ReadingResult session={makeSession("")} />);
+    const html = renderToStaticMarkup(<MemoryRouter><ReadingResult session={makeSession("")} /></MemoryRouter>);
     expect(html).toContain("reading-result");
   });
 
   it("마크다운 없는 순수 문단도 그대로 렌더된다", () => {
-    const html = renderToStaticMarkup(<ReadingResult session={makeSession("# 첫 점괘\n오늘은 무난한 하루예요.")} />);
+    const html = renderToStaticMarkup(<MemoryRouter><ReadingResult session={makeSession("# 첫 점괘\n오늘은 무난한 하루예요.")} /></MemoryRouter>);
     expect(html).toContain("오늘은 무난한 하루예요.");
   });
 
@@ -143,7 +144,7 @@ describe("ReadingResult 견고성", () => {
       sajuChart: computeSajuChart(birth),
       luckCycles: computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"), { includeMonthlyFlow: true }),
     };
-    const html = renderToStaticMarkup(<ReadingResult session={session} />);
+    const html = renderToStaticMarkup(<MemoryRouter><ReadingResult session={session} /></MemoryRouter>);
     expect(html).toContain("근거 신뢰도");
     expect(html).toContain("내 반복 패턴 지도");
     expect(html).toContain("월별 실행 캘린더");
@@ -158,7 +159,7 @@ describe("ReadingResult 견고성", () => {
       sajuChart: computeSajuChart(birth),
       luckCycles: computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"), { includeMonthlyFlow: true }),
     };
-    const html = renderToStaticMarkup(<ReadingResult session={session} />);
+    const html = renderToStaticMarkup(<MemoryRouter><ReadingResult session={session} /></MemoryRouter>);
     const pillarIdx = html.indexOf("내 사주 원국");
     const tocIdx = html.indexOf("reading-toc__link");
     const evidenceIdx = html.indexOf("reading-evidence-zone");
@@ -180,7 +181,7 @@ describe("ReadingResult 견고성", () => {
       { card: TAROT_DECK.find((c) => c.name.startsWith("The Fool"))!, reversed: false, position: 1, positionLabel: "핵심 메시지" },
     ];
     const session = { ...makeSession(REPLY), tarotCards: cards };
-    const html = renderToStaticMarkup(<ReadingResult session={session} />);
+    const html = renderToStaticMarkup(<MemoryRouter><ReadingResult session={session} /></MemoryRouter>);
     const heroIdx = html.indexOf("tarot-hero");
     const evidenceIdx = html.indexOf("reading-evidence-zone");
     const factsIdx = html.indexOf("tarot-facts");
@@ -205,7 +206,7 @@ describe("ReadingResult 견고성", () => {
       "2월 | 키워드: 평온 | 기회: 체력 회복 | 주의: 나태해지기 쉬움 | 조언: 체력과 마음을 채워두세요",
       "3월 | 키워드: 미묘한 긴장과 화합 | 기회: 관계 회복 | 주의: 오해가 쌓이기 쉬움 | 조언: 대화의 문은 열어두세요",
     ].join("\n");
-    const html = renderToStaticMarkup(<ReadingResult session={makeSession(reply)} />);
+    const html = renderToStaticMarkup(<MemoryRouter><ReadingResult session={makeSession(reply)} /></MemoryRouter>);
 
     expect(html).toContain("month-evidence-grid");
     expect(html).toContain("month-evidence-card");
@@ -228,7 +229,7 @@ describe("ReadingResult 견고성", () => {
       "2월 — 키워드: 평온. 조언: 체력과 마음을 채워두세요.",
       "3월 — 키워드: 미묘한 긴장과 화합. 조언: 대화의 문은 열어두세요.",
     ].join("\n");
-    const html = renderToStaticMarkup(<ReadingResult session={makeSession(reply)} />);
+    const html = renderToStaticMarkup(<MemoryRouter><ReadingResult session={makeSession(reply)} /></MemoryRouter>);
 
     expect(html).toContain("month-evidence-grid");
     expect(html).toContain("month-evidence-card");

@@ -86,15 +86,24 @@ describe("리딩 타입별 템플릿 디스패처", () => {
     expect(html).toContain("올해의 흐름");
   });
 
-  it("saju + 질문 있음 → 고민 상담 리딩 라벨", () => {
+  it("saju + 질문 있음 → 고민 상담 리딩 라벨 + 고민 파고들기 CTA", () => {
     const html = render(makeSession("saju", "# 첫 점괘\n방향을 잡을 때입니다.", { question: "이직해도 될까요?" }));
     expect(html).toContain("고민 상담 리딩");
     expect(html).not.toContain("평생사주 리포트");
+    expect(html).toContain("이 고민, 더 파고들려면");
+    expect(html).toContain('href="/combo"');
   });
 
-  it("saju + 질문 없음 → 평생사주 리포트 라벨", () => {
+  it("saju + 질문 없음 → 평생사주 리포트 라벨 + 심화 리포트 CTA", () => {
     const html = render(makeSession("saju", "# 첫 점괘\n차분히 쌓는 구조입니다."));
     expect(html).toContain("평생사주 리포트");
+    expect(html).toContain("이어서 보면 좋은 리포트");
+    expect(html).toContain("올해운세 자세히 보기");
+  });
+
+  it("AI 텍스트가 아직 없으면 CTA를 노출하지 않는다", () => {
+    const html = render(makeSession("saju", ""));
+    expect(html).not.toContain("이어서 보면 좋은 리포트");
   });
 
   it("tarot → 카드 근거 패널이 접힘 존 밖으로 승격된다", () => {
