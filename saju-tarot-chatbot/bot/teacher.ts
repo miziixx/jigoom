@@ -1,12 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ChatTurn } from "./storeTypes.js";
 import { buildNatalEvidence, buildTodayEvidence, type ChartSource } from "./evidence.js";
+import { emitPartial, flushStream } from "./streamToTelegram.js";
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.
 const MODEL = process.env.BOT_MODEL ?? "claude-opus-4-8";
-// adaptive thinking도 이 예산을 함께 쓴다. 텔레그램 답변은 간결한 게 원칙이라
-// 8000이면 깊은 이론 설명도 충분하고, 불필요하게 길게 새는 출력 비용을 막는다.
-const MAX_TOKENS = 8000;
+// BOT_VERBOSITY로 답변 길이 제어: brief(4000), normal(8000), detailed(12000)
+const BOT_VERBOSITY = (process.env.BOT_VERBOSITY ?? "normal") as "brief" | "normal" | "detailed";
+const VERBOSITY_TOKENS = {
+  brief: 4000,
+  normal: 8000,
+  detailed: 12000,
+} as const;
+const MAX_TOKENS = VERBOSITY_TOKENS[BOT_VERBOSITY];
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error("ANTHROPIC_API_KEY 환경변수가 필요합니다. console.anthropic.com 에서 발급하세요.");
@@ -14,7 +20,17 @@ if (!process.env.ANTHROPIC_API_KEY) {
 }
 const client = new Anthropic(); // ANTHROPIC_API_KEY 환경변수 사용
 
-const TEACHER_SYSTEM = `당신은 50년 넘게 사주를 봐온, 정확하기로 소문난 명리학 대가입니다. 텔레그램에서 사람 한 명(사용자)과 일대일로 마주 앉아 있습니다 — 자기 사주가 궁금해서 묻든, 명리학 자체를 공부하고 싶어서 묻든, 둘 다 편하게 다 풀어서 얘기해주세요.
+const buildTeacherSystem = (verbosity: "brief" | "normal" | "detailed" = "normal"): string => {
+  const base = `당신은 50년 넘게 사주를 봐온, 정확하기로 소문난 명리학 대가입니다. 텔레그램에서 사람 한 명(사용자)과 일대일로 마주 앉아 있습니다 — 자기 사주가 궁금해서 묻든, 명리학 자체를 공부하고 싶어서 묻든, 둘 다 편하게 다 풀어서 얘기해주세요.`;
+  const verbosityHint = {
+    brief: "\n\n[길이 조절: 사용자가 짧은 답을 요청했으니, 주요 질문에 직결된 답을 먼저 간결하게 주고, 뒷받침 근거는 언급 정도만 하세요.]",
+    normal: "",
+    detailed: "\n\n[길이 조절: 사용자가 자세한 설명을 원하니, 기초 원리부터 차근차근 풀어주세요.]",
+  };
+  return base + verbosityHint[verbosity];
+};
+
+const TEACHER_SYSTEM = buildTeacherSystem(BOT_VERBOSITY) + `
 
 [가장 중요한 규칙 — 근거]
 - 대화에 첨부된 [원국 계산 데이터], [운의 흐름 계산 데이터], [오늘 일진 계산 데이터]는 만세력 기반 프로그램이 정확히 계산한 값입니다. 해석의 근거는 반드시 이 데이터 안의 값만 사용하세요.
@@ -50,10 +66,12 @@ export interface AskOptions {
   source: ChartSource | null;
   history: ChatTurn[];
   question: string;
+  chatId?: number; // 스트리밍용 (웹훅 모드)
+  verbosityOverride?: "brief" | "normal" | "detailed"; // 자연어 힌트에서 추출됨
 }
 
 /** 계산 근거 + 대화 맥락을 실어 Claude에게 해석을 요청한다 */
-export async function askTeacher({ source, history, question }: AskOptions): Promise<string> {
+export async function askTeacher({ source, history, question, chatId, verbosityOverride }: AskOptions): Promise<string> {
   const historyMessages = history.map((t) => ({ role: t.role, content: t.content }) as Anthropic.Messages.MessageParam);
 
   const messages: Anthropic.Messages.MessageParam[] = source
@@ -91,31 +109,54 @@ export async function askTeacher({ source, history, question }: AskOptions): Pro
         { role: "user", content: question },
       ];
 
-  return runStream(messages);
+  return runStream(messages, chatId, verbosityOverride);
 }
 
 /** 공통 스트리밍 호출 + refusal/max_tokens 처리. askTeacher·askCompatibility가 함께 쓴다. */
-async function runStream(messages: Anthropic.Messages.MessageParam[]): Promise<string> {
+async function runStream(
+  messages: Anthropic.Messages.MessageParam[],
+  chatId?: number,
+  verbosityOverride?: "brief" | "normal" | "detailed",
+): Promise<string> {
+  const maxTokens = VERBOSITY_TOKENS[verbosityOverride ?? BOT_VERBOSITY];
+  const systemPrompt = buildTeacherSystem(verbosityOverride ?? BOT_VERBOSITY);
+
   const stream = client.messages.stream({
     model: MODEL,
-    max_tokens: MAX_TOKENS,
+    max_tokens: maxTokens,
     thinking: { type: "adaptive" },
-    system: [{ type: "text", text: TEACHER_SYSTEM, cache_control: { type: "ephemeral" } }],
+    system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
     messages,
   });
-  const final = await stream.finalMessage();
 
-  if (final.stop_reason === "refusal") {
+  let fullText = "";
+  let stopReason: string | null = null;
+
+  try {
+    // 토큰 스트리밍: 이벤트 리스너로 콘텐츠 델타를 수집
+    const final = await stream.finalMessage();
+    stopReason = final.stop_reason;
+    fullText = final.content
+      .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("\n");
+
+    // Telegram으로 부분 텍스트 전송
+    if (chatId && fullText) {
+      await emitPartial(chatId, fullText);
+      await flushStream(chatId);
+    }
+  } catch (err) {
+    console.error("스트림 처리 오류:", err);
+  }
+
+  if (stopReason === "refusal") {
     return "죄송해요, 이 질문에는 답변이 제한되었어요. 다른 방식으로 물어봐 주시겠어요?";
   }
 
-  const text = final.content
-    .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("\n")
-    .trim();
+  const text = fullText.trim();
   if (!text) return "답변을 만들지 못했어요. 다시 한번 물어봐 주세요.";
-  if (final.stop_reason === "max_tokens") {
+  if (stopReason === "max_tokens") {
     return `${text}\n\n_(답이 길어져 여기서 끊겼어요. "계속" 또는 "이어서 설명해줘"라고 보내주세요.)_`;
   }
   return text;
