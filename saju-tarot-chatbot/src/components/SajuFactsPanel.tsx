@@ -463,6 +463,14 @@ export default function SajuFactsPanel({
             <div className="gyeokguk-box">
               <span className="gyeokguk-box__name">{sajuChart.gyeokguk.name}</span>
               <span className="gyeokguk-box__gloss">{sajuChart.gyeokguk.gloss}</span>
+              {sajuChart.gyeokguk.classic && (
+                <span className="gyeokguk-box__gloss">
+                  성패: {sajuChart.gyeokguk.classic.established}
+                  {sajuChart.gyeokguk.classic.sangshin ? ` · 상신 ${sajuChart.gyeokguk.classic.sangshin.tenGod}(${sajuChart.gyeokguk.classic.sangshin.present ? "갖춰짐" : "부족"})` : ""}
+                  {sajuChart.gyeokguk.classic.pattern ? ` · ${sajuChart.gyeokguk.classic.pattern}` : ""}
+                  {sajuChart.gyeokguk.classic.jonggyeok ? ` · ${sajuChart.gyeokguk.classic.jonggyeok.name}` : ""}
+                </span>
+              )}
             </div>
           )}
 
@@ -541,6 +549,7 @@ export default function SajuFactsPanel({
                   {sajuChart.yongshin.heesin && sajuChart.yongshin.heesin.length > 0 ? ` / 희신: ${sajuChart.yongshin.heesin.join("·")}` : ""}
                   {sajuChart.yongshin.unfavorable.length > 0 ? ` / 기신: ${sajuChart.yongshin.unfavorable.join("·")}` : ""}
                   {sajuChart.yongshin.climatic ? ` / 조후용신: ${sajuChart.yongshin.climatic.element}` : ""}
+                  {sajuChart.yongshin.climaticClassic ? ` / 궁통보감 조후: ${sajuChart.yongshin.climaticClassic.priorityStems.join("→")}(1순위 ${sajuChart.yongshin.climaticClassic.primaryElement}${sajuChart.yongshin.climaticClassic.satisfied ? ", 충족" : ", 보완필요"})` : ""}
                   {sajuChart.yongshin.mediating ? ` / 통관용신: ${sajuChart.yongshin.mediating.element}` : ""}
                   {sajuChart.yongshin.method ? ` (${sajuChart.yongshin.method})` : ""}
                 </p>

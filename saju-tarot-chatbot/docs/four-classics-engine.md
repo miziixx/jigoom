@@ -73,17 +73,25 @@
 - ⚠️ **정확성 주의**: 120셀은 통용본을 전사한 것으로, 1순위 조후는 대체로 안정적이나 2·3순위·일부 셀은
   참고서마다 차이가 있을 수 있음. 실서비스 노출 전 명리 전문가 검수 권장(리스크 최상).
 
-### 대면 상담 느낌 강화 · ⬜ 예정
-`src/prompts/systemPrompt.ts`(및 필요 시 fortunePrompt): "직접 찾아가 상담받은 듯한" 톤/구성.
-- 첫머리에서 사람을 먼저 읽어주는 도입, 상담사가 말 걸듯 이어가는 흐름, 되묻고 짚어주는 어조.
-- 단, CLAUDE.md 규칙 유지: 겁주기·단정 금지, 생활 언어 우선, 근거는 detail에.
+### 대면 상담 느낌 강화 · ✅ 완료
+`src/prompts/systemPrompt.ts` READING_SYSTEM_PROMPT에 `[대면 상담 느낌]` 섹션 추가.
+- 앉자마자 얼굴 읽은 듯한 도입, 상담가 호흡("왜 그렇게 보이냐면요"), 사용자가 적은 상황 되짚기,
+  따뜻하되 정확한 진단. CLAUDE.md 규칙 유지(겁주기·단정·무속·용어노출 금지, 생활 언어 우선).
+- 웹 리딩 엔진(장문)에만 적용. 텔레그램 봇(bot/teacher.ts, 짧은 티키타카)은 대상 아님.
 
-### 배선 + 테스트 + 검증 · ⬜ 예정
-- `src/prompts/systemPrompt.ts`(근거 라인 빌더 ~353-388), `src/lib/compactEvidence.ts`,
-  `src/components/SajuFactsPanel.tsx`에 새 필드 노출.
-- 새 테스트: `sajuGyeokgukClassic.test.ts`, `hiddenTenGods.test.ts`, `sinsalClassic.test.ts`, `johuClassic.test.ts`.
-  - `johuClassic.test.ts`는 기존 `yongshin.climatic.element` 잠금값이 그대로임을 **회귀 가드**로 assert.
-- `docs/validation/saju-calculation-validation.md`에 단계별 주의 노트 추가.
+### 배선 + 테스트 + 검증 · ✅ 완료
+- `src/prompts/systemPrompt.ts` 근거 라인 빌더: 격국 심화(상신·성패·파격), 십성 세기 분포, 궁통보감 조후 라인 추가.
+- `src/components/SajuFactsPanel.tsx`: 격국 박스에 상신/성패, 용신 줄에 궁통보감 조후 노출.
+- 새 테스트: `sinsalClassic.test.ts`, `johuClassic.test.ts`. (Phase A/B는 기존 스냅샷·런타임 확인으로 커버)
+  `johuClassic.test.ts`가 `yongshin.climatic.element` 잠금값 불변을 **회귀 가드**로 assert.
+- 런타임 확인: computeSajuChart 결과에 gyeokguk.classic/tenGodDistribution/climaticClassic/신규 신살 모두 정상 출력.
+- 총 52파일 439테스트 통과, build 통과.
+
+## 남은 후속 과제(선택)
+- Phase A 전용 단위테스트(`sajuGyeokgukClassic.test.ts`) 보강, Phase B(`hiddenTenGods.test.ts`) 추가.
+- 보류한 복성귀인·현침살, 세운 신살(상문·조객) 추가.
+- 궁통보감 120셀 명리 전문가 검수(리스크 최상 항목).
+- `compactEvidence.ts`에도 심화 필드 반영(현재는 상세 근거 경로에만 노출).
 
 ## 커밋 전략
 작게 쪼개서 각 Phase를 별도 커밋으로. 커밋 메시지는 한국어, 무엇을·왜를 명확히.

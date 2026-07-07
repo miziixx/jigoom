@@ -1556,3 +1556,12 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
 - `assembleChart`에서 `yongshin.climaticClassic`로 세팅. **기존 간이 `climatic`(화/수)은 불변** → 잠금 테스트(sajuPrecision) 그대로 통과.
 - 테스트 `johuClassic.test.ts` 신설(spot-check + climatic 공존 회귀 가드). 총 439 통과, build 통과.
 - ⚠️ 리스크 최상: 120셀 도메인 데이터라 1순위는 안정적이나 하위순위·일부 셀은 참고서 차이 가능 → 실노출 전 전문가 검수 권장.
+
+## 명리 4대 고전 — 배선 + 대면 상담 느낌 (2026-07-07 추가)
+- **다운스트림 배선**: `systemPrompt.ts` 근거 라인에 격국 심화(상신·성패·파격)·십성 세기 분포·궁통보감 조후 추가.
+  `SajuFactsPanel.tsx` 격국 박스에 상신/성패, 용신 줄에 궁통보감 조후 노출. 새 신살은 기존 map으로 자동 렌더.
+- **대면 상담 느낌**(사용자 요청 "직접 가서 사주 본 듯한"): `READING_SYSTEM_PROMPT`에 `[대면 상담 느낌]` 섹션 추가.
+  앉자마자 알아본 도입, 상담가 호흡, 사용자 상황 되짚기, 따뜻하되 정확한 진단. 기존 안전·용어노출 금지 규칙 유지.
+- 런타임 확인(computeSajuChart)으로 gyeokguk.classic·tenGodDistribution·climaticClassic·신규 신살 정상 출력 검증.
+- 총 52파일 439테스트 통과, build 통과. 이로써 4대 고전 반영(A/B/C/D) + 배선 + 상담 톤 1차 완료.
+- 후속(선택): Phase A/B 전용 단위테스트 보강, 보류 신살(복성·현침·상문·조객), 120셀 전문가 검수, compactEvidence 반영.

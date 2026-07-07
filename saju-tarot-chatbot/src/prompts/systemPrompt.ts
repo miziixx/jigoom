@@ -68,6 +68,15 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 속마음을 짚는 결론 → 왜 그런지(근거를 일상어로) → 실제 삶의 장면 → 지금 주의점 → 어떻게 풀지 → (해당되면) 시기.
 근거를 말할 때 용어 대신 "타고난 기질상", "요즘 흐름상", "지금 시기에는" 같은 일상어로 감싼다.
 
+[대면 상담 느낌 — 직접 찾아가 마주 앉은 것처럼]
+사용자가 "용하다는 선생님을 직접 찾아가 사주를 제대로 본 것 같다"고 느끼게 한다. 화면 속 자동 생성물이 아니라, 오래 본 상담가가 마주 앉아 읽어주는 목소리로 쓴다.
+- 시작은 계산 나열이 아니라, 이 사람을 먼저 알아본 한마디로 연다. 앉자마자 얼굴을 읽은 것처럼. 예: "요즘 겉으로는 괜찮은 척하지만, 속으로는 계속 재고 따지느라 마음이 쉬질 못했네요."
+- 상담가의 호흡으로 짚는다. 결론만 툭 던지지 말고 "왜 그렇게 보이냐면요,", "이건 짚고 갈게요" 같은 마주 앉아 설명하는 말투를 자연스럽게 섞는다. 단, 말을 늘여 장황하게 만들지 않는다.
+- 사용자가 적은 상황·감정을 상담가가 되짚어 확인하듯 언급한다. 예: "아까 요즘 결정을 못 내리겠다고 하셨죠. 그게 우연이 아니라 원래 결이 그래요."
+- 근거(십성·용신·조후·격국·신살·운 흐름)는 여전히 속으로만 계산에 쓰고, 겉으로는 "타고나길 이런 결이라", "지금 시기가 이렇게 흐르다 보니" 같은 상담가의 입말로 감싼다. 절대 용어를 노출하지 않는다.
+- 따뜻하되 물렁하지 않게. 편안하게 앉히되, 아플 수 있는 진단도 예의 있게 정확히 짚는 진짜 실력자의 태도를 유지한다.
+- 이 느낌을 위해서라도 겁주기·단정·무속 어조는 절대 쓰지 않는다. 신뢰는 공포가 아니라 "내 속을 정확히 봤다"는 데서 온다.
+
 [상담형 판단 원칙]
 사용자가 질문·선택지·최근 상황·두려운 결과를 적었다면, 단순 풀이보다 먼저 "판단에 쓸 기준"을 정리한다.
 모든 핵심 결론은 사주 근거를 쉬운 말로 번역한 이유 + 사용자가 적은 현재 상황 + 현실 행동 기준 + 피해야 할 오해를 함께 말한다.
@@ -359,15 +368,32 @@ function formatSajuChart(chart: SajuChart, todayGanZhi?: string): string {
   if (chart.gyeokguk) {
     const status = chart.gyeokguk.status ? ` · 성패: ${chart.gyeokguk.status}(${chart.gyeokguk.statusReason ?? ""})` : "";
     lines.push(`격국 (참고용) — ${chart.gyeokguk.name} · 근거: ${chart.gyeokguk.basis}${status}`);
+    const c = chart.gyeokguk.classic;
+    if (c) {
+      const sangshin = c.sangshin ? ` · 상신: ${c.sangshin.tenGod}(${c.sangshin.element}) ${c.sangshin.present ? "갖춰짐" : "부족"}` : "";
+      const pattern = c.pattern ? ` · 성격패턴: ${c.pattern}` : "";
+      const jong = c.jonggyeok ? ` · 종격: ${c.jonggyeok.name}` : "";
+      const fail = c.failures.length > 0 ? ` · 파격요인: ${c.failures.map((f) => f.name).join("·")}` : "";
+      lines.push(`격국 심화 (자평진전 상신론, 참고용) — 성패: ${c.established}${sangshin}${pattern}${jong}${fail}. ${c.note}`);
+    }
+  }
+  if (chart.tenGodDistribution) {
+    const dist = Object.entries(chart.tenGodDistribution)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k} ${v}`)
+      .join(", ");
+    lines.push(`십성 세기 분포 (천간+지장간 가중, 연해자평 십성론) — ${dist}`);
   }
   if (chart.yongshin) {
     const yong = (chart.yongshin.yongshin ?? chart.yongshin.supportive).join("·");
     const hee = chart.yongshin.heesin && chart.yongshin.heesin.length > 0 ? ` / 희신: ${chart.yongshin.heesin.join("·")}` : "";
     const climatic = chart.yongshin.climatic ? ` / 조후용신: ${chart.yongshin.climatic.element}(${chart.yongshin.climatic.note})` : "";
+    const cc = chart.yongshin.climaticClassic;
+    const climaticClassic = cc ? ` / 궁통보감 조후: ${cc.priorityStems.join("→")} 우선(1순위 ${cc.primaryElement}, ${cc.satisfied ? "충족" : `보완필요: ${cc.missingStems.join("·") || cc.primaryElement}`}) — ${cc.note}` : "";
     const mediating = chart.yongshin.mediating ? ` / 통관용신: ${chart.yongshin.mediating.element}(${chart.yongshin.mediating.note})` : "";
     const method = chart.yongshin.method ? ` [관법: ${chart.yongshin.method}]` : "";
     lines.push(
-      `용신 후보 — 용신: ${yong}${hee}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""}${climatic}${mediating}${method} (${chart.yongshin.note})`,
+      `용신 후보 — 용신: ${yong}${hee}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""}${climatic}${climaticClassic}${mediating}${method} (${chart.yongshin.note})`,
     );
   }
   const lifestyle = buildLifestyleGuide(chart, { todayGanZhi });
