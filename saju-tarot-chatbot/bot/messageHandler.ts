@@ -301,8 +301,8 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     let verbosityOverride: "brief" | "normal" | "detailed" | undefined;
 
     if (text === "/today") {
-      question = "오늘 일진이 어떻게 흘러가는지, 왜 그렇게 보는지 계산 근거를 짚어가며 자세히 알려주세요.";
-      verbosityOverride = "detailed"; // /today는 기본적으로 상세 설명
+      // 오늘 일진만 짧게. "오늘/일진"이 들어 있어 teacher가 오늘 데이터를 자동 첨부한다.
+      question = "오늘 일진 어때? 핵심만 짧게 알려줘.";
     } else if (text === "/퀴즈") {
       question =
         "지금까지 나눈 대화나 내 사주 계산 데이터 중에서 개념 하나를 골라 복습 문제를 내주세요. " +
