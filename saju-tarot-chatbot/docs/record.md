@@ -1380,3 +1380,23 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 ### 검증
 - 왕복 검증: 경오/무자/임술→1990-12-23(유일), 계해/을축/계묘→1924·1984(최근 1984), 갑자년 정축월 병인일→1985-01-27. 되짚은 생일이 원 팔자 재현. 1990 케이스는 기존 검증 베이스라인 대운(2026 갑신)과 일치.
 - npm test 49파일/412테스트 통과, tsc(앱·봇)·build 통과. 신규 테스트: inferSolarDatesFromPillars(pillarsInput.test.ts), bot/inferBirth.test.ts, looksLikePartialPillars(parseFourPillars.test.ts).
+
+## 텔레그램 봇 — 실시간 응답 스트리밍 + 자연어 길이 제어 (2026-07-07 추가)
+
+### 배경
+"얘 말 너무 느리고 매번 너무 많은데" — 봇이 (1) 답이 다 만들어질 때까지 타이핑 표시만 보여 느리게 느껴지고, (2) 항상 "왜 그런지"를 길게 설명해 장황했다. 두 가지를 함께 개선.
+
+### 스트리밍 (체감 속도)
+- 기존: `runStream`이 `stream.finalMessage()`로 전체 응답을 기다린 뒤 한 번에 `sendMessage`. 생성 내내 사용자는 타이핑 점만 봄.
+- 변경: `runStream`이 `for await`로 스트림 이벤트를 순회하며 토큰이 도착하는 대로 `emitPartial` 호출 → 답이 실시간으로 채워짐.
+- 신규 `bot/streamToTelegram.ts`: 생성 중에는 첫 메시지 하나만 `editMessageText`로 계속 갱신(일반 텍스트), 완료 시 `finalizeStream`이 최종본을 마크다운으로 **한 번만** 확정 표시. 편집 간격 최소 1.2초(rate limit 여유), 실패해도 최종 표시는 보장.
+- `bot/telegram.ts`: `sendMessage`에 `plain` 옵션 + `message_id` 반환, `editMessageText`가 성공/"not modified"를 boolean으로 반환.
+- 계약: `askTeacher`/`askCompatibility`에 `chatId`를 넘기면 답을 스트리밍으로 직접 표시하므로, 호출부(`messageHandler.ts`)는 재전송하지 않고 히스토리 저장만 함(4개 호출부에서 중복 `sendMessage` 제거). **주의: chatId를 넘긴 뒤 또 sendMessage(answer)하면 답이 두 번 나간다.**
+
+### 길이 제어 (장황함)
+- `BOT_VERBOSITY` 환경변수: `brief`(4000)·`normal`(8000, 기본)·`detailed`(12000) — `max_tokens`와 시스템 프롬프트 길이 지시를 함께 조절.
+- 자연어 힌트(신규 `bot/extractVerbosityHint.ts`): 질문에 "짧게/간단히/요약/핵심만"→brief, "자세히/길게/깊게/전부"→detailed, "일반/보통"→normal. 힌트는 질문에서 제거 후 Claude에 전달. 힌트가 env var보다 우선.
+- `/today`는 기본 detailed로 매핑.
+
+### 검증
+- npm test 50파일/427테스트 통과(신규 `bot/extractVerbosityHint.test.ts` 6개), tsc·build 통과.
