@@ -135,6 +135,14 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 "반드시 손해 본다", "병에 걸린다", "무조건 헤어진다"처럼 겁주거나 확정하지 않는다.
 질병 진단·투자 지시·법률 판단은 대신 내리지 않는다. [근거 데이터]에 없는 구체 사건을 지어내서도 안 된다(구체성은 계산된 근거 안에서만).
 
+[밀도와 풍부함 — 분량이 아니라 정보로 채워라]
+'밀도 있게'는 군더더기·반복·뻔한 덕담 없이 문장마다 새 정보를 담는다는 뜻이고,
+'풍부하게'는 같은 분량 안에 서로 다른 근거·각도·현실 예시를 최대한 많이 담는다는 뜻이다.
+둘은 함께 간다: 분량을 늘려 풍부함을 흉내내지 말고, 정해진 분량을 서로 다른 정보로 빽빽하게 채워라.
+- 한 문단이 앞 문단과 같은 말을 다른 표현으로 반복하면 지우고, 새 근거·새 각도로 다시 써라.
+- 각 섹션은 최소 2개 이상의 서로 다른 근거 조합을 연결하고, 현실 예시·행동은 매번 다른 장면으로 바꾼다.
+- "쉽게 쓴다"가 "정보를 줄인다"는 뜻이 절대 아니다. 쉬운 말로 옮기되 담는 내용은 오히려 더 촘촘하게.
+
 [전문성 유지 원칙]
 내용을 쉽게 만든다는 이유로 정보량을 줄이지 않는다. 계산 정확도와 해석 깊이는 전문가 수준으로 유지하되,
 사용자가 보는 본문은 쉬운 생활 언어로 먼저 번역한다. 사주 전문용어는 본문 결론처럼 던지지 말고,
@@ -605,6 +613,14 @@ const TAROT_FOCUSED_INSTRUCTION =
   "질문에는 분명히 답하되, 고위험 판단(결혼·이별·퇴사·투자·질병)은 단정하지 말고 선택 기준으로 제시해라. " +
   "전체 공백 포함 1800~2800자로 밀도 있게 쓰되, 같은 말을 반복해 늘리지 말고 반드시 '마지막 점괘'까지 완결해라.";
 
+// 타로 고급 리딩: 기본 타로 리딩보다 더 깊게 확장하되, 사주 원국이 없으므로 여전히 카드와 질문에만 근거한다.
+const TAROT_ADVANCED_ADDENDUM =
+  "[타로 고급 — 더 깊게, 여전히 카드에만 근거] 위 타로 리딩 구조를 유지하되, 기본보다 한 단계 더 깊게 쓴다. " +
+  "각 카드의 자리 의미·정/역방향·슈트·원소 조합을 더 촘촘히 풀고, 카드끼리의 강화·충돌·전환을 하나의 이야기로 더 정밀하게 엮어라. " +
+  "'# 카드가 그리는 흐름' 뒤에 '# 흐름을 가르는 지점'을 추가해, 질문의 선택 기준과 확인해야 할 현실 신호, 언제 확인·행동하면 좋은지 시기 감각을 카드 근거로 정리해라. " +
+  "사주 원국이 없으므로 생애 전반·연간 운세·월별 흐름 같은 사주 섹션은 여전히 만들지 마라(고급이라도 카드로 뒷받침되지 않는 내용을 지어내면 실패다). " +
+  "전체 공백 포함 3000~4200자로 밀도 있게 쓰되, 같은 말을 반복해 늘리지 말고 반드시 '마지막 점괘'까지 완결해라.";
+
 const COMBO_REQUIRED_INSTRUCTION =
   "[통합 리딩 고정 구조 — 절대 누락 금지] 이 결과는 사주 페이지 결과와 타로 페이지 결과를 합친 통합 리포트다. " +
   "질문이 연애·돈·일·관계·건강·선택·전반 중 무엇이든, 사용자가 질문을 짧게 쓰거나 아예 쓰지 않았더라도, " +
@@ -643,7 +659,7 @@ const TIME_ACCURACY_LABEL: Record<NonNullable<ReadingContext["timeAccuracy"]>, s
   unknown: "모름",
 };
 
-function formatContext(context: ReadingContext): string[] {
+function formatContext(context: ReadingContext, type?: ReadingType): string[] {
   const parts: string[] = [];
 
   const info: string[] = [];
@@ -667,7 +683,8 @@ function formatContext(context: ReadingContext): string[] {
 
   const style: string[] = [];
   if (context.tone) style.push(TONE_INSTRUCTION[context.tone]);
-  if (context.depth) style.push(DEPTH_INSTRUCTION[context.depth]);
+  // 순수 타로는 사주 원국이 없어 사주 섹션 위주인 깊이 지시가 맞지 않는다. 타로 전용 깊이 지시로 대체한다.
+  if (context.depth && type !== "tarot") style.push(DEPTH_INSTRUCTION[context.depth]);
   if (context.styleHint) style.push(`지난 리딩 피드백 반영 요청: ${context.styleHint}`);
   if (style.length > 0) parts.push(`[답변 스타일]\n${style.join("\n")}`);
 
@@ -803,7 +820,7 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
   }
 
   if (facts.context) {
-    parts.push(...formatContext(facts.context));
+    parts.push(...formatContext(facts.context, facts.type));
   }
 
   if (facts.type === "today") {
@@ -846,6 +863,9 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
   // 그 외 saju/combo는 깊이 미선택 시 종합 기본 프로필 적용. (today/flow는 자체 섹션 안내가 있으므로 제외)
   if (facts.type === "tarot") {
     parts.push(TAROT_FOCUSED_INSTRUCTION);
+    if (facts.context?.depth === "advanced" || facts.context?.depth === "expert") {
+      parts.push(TAROT_ADVANCED_ADDENDUM);
+    }
   } else if (!facts.context?.depth && (facts.type === "saju" || facts.type === "combo")) {
     parts.push(DEFAULT_STANDARD_INSTRUCTION);
   }

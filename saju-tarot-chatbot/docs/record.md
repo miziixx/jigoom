@@ -1464,3 +1464,25 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
 
 ### 검증
 - npm test 50파일/427테스트 통과, tsc·build 통과. (프롬프트 텍스트만, 계산·로직 미변경)
+
+## 깊이 기본/고급 통일 + 선택설정 펼침 + 모바일 입력 레이아웃 수정 (2026-07-07 추가)
+
+### 1. 밀도있지만 풍부하게 (분량 유지)
+- `systemPrompt.ts` 기본 프롬프트에 `[밀도와 풍부함]` 블록 추가: 분량을 늘리지 말고 같은 분량을 서로 다른 정보로 촘촘히 채우라는 지시. 글자 수 budget은 변경 없음(속도 보호, 사용자 결정).
+
+### 2. 해석 깊이 = 기본/고급으로 통일, 타로·통합에도 추가
+- 사용자 노출 깊이는 **기본**(=depth undefined) / **고급**(=depth "advanced") 두 가지만. `light`/`expert`는 UI에서 제거(타입·DEPTH_INSTRUCTION·golden/quality 테스트에는 내부적으로 남겨둠 — JudgmentPack 품질 하네스가 light를 씀).
+- `ContextPicker`: 고급 값 `expert`→`advanced`.
+- 신규 공용 컴포넌트 `DepthChoice.tsx`(기본/고급 세그먼트) 추가. **타로**(`TarotSpreadPicker`)와 **통합**(`ComboPage`)에 깊이 선택을 새로 넣어 세 리딩 모두 일관되게 기본/고급 제공.
+- 타로 고급 처리: 순수 타로는 사주 섹션 위주 깊이 지시가 안 맞으므로 `formatContext(context, type)`로 타로일 때 사주 DEPTH_INSTRUCTION을 건너뛰고, 대신 `TAROT_ADVANCED_ADDENDUM`(카드 근거로 더 깊게, '# 흐름을 가르는 지점' 추가, 3000~4200자)을 붙인다. 통합은 기존대로 advanced 지시 + fan-out 적용.
+
+### 3. 선택설정 접힘 제거 → 항상 펼침
+- `<details>/<summary>` 접힘 패널을 항상 열린 `<section class="...optional-settings-panel--open">`로 교체: `BirthInfoForm`(선택 설정, 분야·말투·깊이) ×2, `ComboPage`(선택 설정, 카드 뽑기 방식) ×2, `TarotSpreadPicker`(배열·뽑기·깊이) ×1.
+- 이제 항상 펼쳐지므로 `BirthInfoForm`의 `expandOptionalSettings` prop 제거(및 `FlowPage` 호출부 정리).
+
+### 4. 모바일 입력 레이아웃 깨짐 수정
+- `index.css`: ≤560px에서 `.form-section .field-row`의 라벨·힌트는 각자 한 줄, 숫자 입력(년/월/일)과 셀렉트는 남는 폭을 flex로 고르게 나눠 갖도록 수정. 생년월일 입력칸이 제각각 아랫단으로 내려가며 깨지던 문제 해결. `.depth-choice-grid` 스타일 추가.
+
+### 검증
+- npm test 50파일/427테스트 통과, tsc·build 통과.
+- Playwright(전역)로 사주/타로/통합 폼을 390px 모바일 뷰 스크린샷 확인: 패널 펼침, 기본/고급 깊이 노출, 생년월일 입력칸 한 줄 정렬 모두 정상.

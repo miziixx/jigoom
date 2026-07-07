@@ -20,8 +20,6 @@ interface Props {
   showFocus?: boolean;
   /** 작명처럼 고민 질문 입력이 필요 없는 화면에서는 상담 섹션 전체를 숨긴다 */
   showQuestionSection?: boolean;
-  /** 흐름 캘린더처럼 출생지/저장 설정을 바로 보여줘야 하는 화면에서만 접힘을 해제한다 */
-  expandOptionalSettings?: boolean;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
@@ -32,7 +30,6 @@ export default function BirthInfoForm({
   loading,
   showFocus = true,
   showQuestionSection = true,
-  expandOptionalSettings = false,
 }: Props) {
   const [savedBirth] = useState(() => loadProfile());
   const [calendarType, setCalendarType] = useState<CalendarType>(savedBirth?.calendarType ?? "solar");
@@ -175,35 +172,17 @@ export default function BirthInfoForm({
           </div>
         )}
 
-        <section className={expandOptionalSettings ? "consultation-panel optional-settings-panel optional-settings-panel--open" : undefined}>
-          {expandOptionalSettings ? (
-            <div className="optional-settings-panel__head">
-              <span>선택 설정</span>
-              <small>출생지를 알면 더 정밀하고, 몰라도 기본 해석은 가능합니다.</small>
-            </div>
-          ) : (
-            <details className="consultation-panel optional-settings-panel">
-              <summary>
-                <span>선택 설정</span>
-                <small>출생지를 알면 더 정밀하고, 몰라도 기본 해석은 가능합니다.</small>
-              </summary>
-              <OptionalSettingsFields
-                birthPlace={birthPlace}
-                setBirthPlace={setBirthPlace}
-                saveBirthChart={saveBirthChart}
-                setSaveBirthChart={setSaveBirthChart}
-              />
-            </details>
-          )}
-
-          {expandOptionalSettings && (
-            <OptionalSettingsFields
-              birthPlace={birthPlace}
-              setBirthPlace={setBirthPlace}
-              saveBirthChart={saveBirthChart}
-              setSaveBirthChart={setSaveBirthChart}
-            />
-          )}
+        <section className="consultation-panel optional-settings-panel optional-settings-panel--open">
+          <div className="optional-settings-panel__head">
+            <span>선택 설정</span>
+            <small>출생지를 알면 더 정밀하고, 몰라도 기본 해석은 가능합니다.</small>
+          </div>
+          <OptionalSettingsFields
+            birthPlace={birthPlace}
+            setBirthPlace={setBirthPlace}
+            saveBirthChart={saveBirthChart}
+            setSaveBirthChart={setSaveBirthChart}
+          />
         </section>
 
         <div className="field-row">
@@ -239,16 +218,16 @@ export default function BirthInfoForm({
             />
           </div>
 
-          <details className="consultation-panel optional-settings-panel">
-            <summary>
-              <span>분야와 말투를 직접 고르고 싶을 때</span>
+          <section className="consultation-panel optional-settings-panel optional-settings-panel--open">
+            <div className="optional-settings-panel__head">
+              <span>분야·말투·해석 깊이</span>
               <small>선택하지 않아도 질문 내용을 보고 기본값으로 풀이합니다.</small>
-            </summary>
+            </div>
 
             {showFocus && <FocusPicker value={focus} onChange={setFocus} />}
 
             <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
-          </details>
+          </section>
         </section>
       )}
 

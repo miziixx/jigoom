@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
+import DepthChoice from "./DepthChoice";
 import { SHUFFLES, SHUFFLE_IDS, SPREADS, SPREAD_IDS, type ShuffleId, type SpreadId } from "../lib/tarot";
-import type { ReadingContext } from "../types";
+import type { AnswerDepth, ReadingContext } from "../types";
 
 interface Props {
   submitLabel: string;
@@ -23,6 +24,7 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
   const [spreadId, setSpreadId] = useState<SpreadId>("ppf");
   const [manualSpread, setManualSpread] = useState(false);
   const [shuffleId, setShuffleId] = useState<ShuffleId>("classic");
+  const [depth, setDepth] = useState<AnswerDepth | undefined>(undefined);
   const recommendedSpread = useMemo(() => recommendedSpreadFor(question), [question]);
   const activeSpreadId = manualSpread ? spreadId : recommendedSpread;
   const activeSpread = SPREADS[activeSpreadId];
@@ -40,7 +42,7 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (loading) return;
-    const context: ReadingContext = {};
+    const context: ReadingContext = depth ? { depth } : {};
     onSubmit(question, activeSpreadId, shuffleId, context);
   }
 
@@ -81,11 +83,13 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
         )}
       </section>
 
-      <details className="consultation-panel optional-settings-panel">
-        <summary>
-          <span>다른 배열이나 뽑기 방식을 고르고 싶을 때</span>
+      <section className="consultation-panel optional-settings-panel optional-settings-panel--open">
+        <div className="optional-settings-panel__head">
+          <span>배열·뽑기 방식·해석 깊이</span>
           <small>그냥 두면 질문에 맞는 배열로 자동 선택합니다.</small>
-        </summary>
+        </div>
+
+        <DepthChoice value={depth} onChange={setDepth} />
 
         <div className="field-row field-row--column">
           <span className="field-label">카드 배열</span>
@@ -121,7 +125,7 @@ export default function TarotSpreadPicker({ submitLabel, onSubmit, loading }: Pr
             ))}
           </div>
         </div>
-      </details>
+      </section>
 
       <button type="submit" className="btn btn--primary" disabled={loading || !readyToSubmit}>
         {loading ? "카드를 해석하는 중..." : submitLabel}
