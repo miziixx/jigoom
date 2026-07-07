@@ -1548,3 +1548,11 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
 - 관귀학관·재고귀인은 하드코딩 없이 오행에서 파생 계산 → 12운성 테이블과 일관.
 - 테스트: `sinsalClassic.test.ts` 신설, `sajuFeatures.test.ts` KNOWN 집합 갱신. 총 436 테스트 통과.
 - 보류: 복성귀인·현침살(판본 이견/과다발화 우려), 상문·조객(세운 신살 → 원국 아님). docs/four-classics-engine.md에 사유 기록.
+
+## 명리 4대 고전 — Phase C 궁통보감 조후 120조합 (2026-07-07 추가)
+`src/lib/saju.ts`:
+- `JOHU_CLASSIC` 일간(10)×월지(12)=120셀 전부 채움(서락오 정리 궁통보감 통용본 기준). 각 셀=우선순위 조후용신 천간.
+- `climaticClassicYongshin`: 원국(천간+지장간)에 우선 천간이 present/missing인지, 1순위 충족(satisfied) 여부, note 생성.
+- `assembleChart`에서 `yongshin.climaticClassic`로 세팅. **기존 간이 `climatic`(화/수)은 불변** → 잠금 테스트(sajuPrecision) 그대로 통과.
+- 테스트 `johuClassic.test.ts` 신설(spot-check + climatic 공존 회귀 가드). 총 439 통과, build 통과.
+- ⚠️ 리스크 최상: 120셀 도메인 데이터라 1순위는 안정적이나 하위순위·일부 셀은 참고서 차이 가능 → 실노출 전 전문가 검수 권장.

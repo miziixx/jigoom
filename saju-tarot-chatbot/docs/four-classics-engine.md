@@ -60,15 +60,18 @@
 - ⚠️ **의도적 보류**(판본 차이로 정확성 리스크): **복성귀인**(일간→지지 표 이견 큼), **현침살**(뾰족획 글자셋 이견 + 과다발화 우려). 추후 검증된 출처 확보 시 추가.
 - ⚠️ 상문/조객은 **세운(년지 상대)** 신살 → 원국이 아니라 대운/세운 경로에 넣어야 함(미구현, 별도 과제).
 
-### Phase C — 궁통보감 조후 120조합 · ⬜ 예정 (★정확성 최대 리스크)
+### Phase C — 궁통보감 조후 120조합 · ✅ 완료(코드+테스트)
 `src/lib/saju.ts`:
-- `JOHU_CLASSIC: Record<일간(10), Record<월지(12), { primary: string[]; note?: string }>>`
-  - 각 셀 = 그 일간·월지의 **우선순위 조후용신 천간** 목록. 예: 갑목 사월 → `["계","정","경"]`.
-  - ⚠️ 120셀 내용은 궁통보감(欄江網) 원전 도메인 데이터. **추측 금지, 원전/검증된 참고서에서 전사**.
-    일간 블록(갑→을→…)별로 10셀씩 채우고 블록 단위로 검수.
+- `JOHU_CLASSIC: Record<일간(10), Record<월지(12), string[]>>` — 120셀 전부 채움(테스트로 완결성 검증).
+  각 셀 = 우선순위 조후용신 천간 목록(한글). 예: 갑 사월 → `["계","정","경"]`.
+  **서락오 정리 궁통보감(欄江網) 통용본 기준.** 판본·유파 이견 가능 → "참고용" 명시.
 - `climaticClassicYongshin(dayGan, monthZhi, gans, zhis)` → `ClimaticClassicInfo`
-  - present/missing 우선 천간, primaryElement, satisfied, note.
-- `assembleChart`에서 `yongshin.climaticClassic` 세팅(‑ `climatic`은 그대로 둠), `method`에 " + 궁통보감 조후" 부기.
+  (priorityStems/Elements, presentStems, missingStems, primaryElement, satisfied, note, source).
+- `assembleChart`에서 `yongshin.climaticClassic` 세팅. **기존 `climatic`(간이 화/수)은 불변** → 잠금 테스트 통과.
+  `method`에 " + 궁통보감 조후" 부기.
+- 테스트: `johuClassic.test.ts`(임 자월=무·병 spot-check, present/missing, climatic 공존 회귀 가드). 총 439 통과.
+- ⚠️ **정확성 주의**: 120셀은 통용본을 전사한 것으로, 1순위 조후는 대체로 안정적이나 2·3순위·일부 셀은
+  참고서마다 차이가 있을 수 있음. 실서비스 노출 전 명리 전문가 검수 권장(리스크 최상).
 
 ### 대면 상담 느낌 강화 · ⬜ 예정
 `src/prompts/systemPrompt.ts`(및 필요 시 fortunePrompt): "직접 찾아가 상담받은 듯한" 톤/구성.

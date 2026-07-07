@@ -1,6 +1,7 @@
 import { Lunar, Solar } from "lunar-javascript";
 import type {
   BirthInfo,
+  ClimaticClassicInfo,
   CompatibilityResult,
   CompatibilityRelationType,
   FiveElementBalance,
@@ -1284,6 +1285,60 @@ function climaticYongshin(monthZhi: string, dayGan: string): { element: string; 
   return null; // 한난이 크게 치우치지 않으면 조후 부담이 적어 억부 위주로 본다
 }
 
+// ── 궁통보감(窮通寶鑑·欄江網) 조후용신 정밀표 ──────────
+// 일간(10) × 월지(12) 각 칸에 그 사주가 필요로 하는 조후용신 천간을 "우선순위 순"으로 담는다.
+// 서락오(徐樂吾) 정리 궁통보감 통용본 기준. 판본·유파에 따라 이견이 있을 수 있어 참고용으로 제공한다.
+// (기존 간이 climaticYongshin(화/수 2택)은 그대로 두고, 이 정밀표는 별도 필드 climaticClassic으로 제공)
+const JOHU_CLASSIC: Record<string, Record<string, string[]>> = {
+  갑: { 인: ["병", "계"], 묘: ["경", "병", "정"], 진: ["경", "정", "임"], 사: ["계", "정", "경"], 오: ["계", "정", "경"], 미: ["계", "정", "경"], 신: ["경", "정", "임"], 유: ["경", "정", "병"], 술: ["경", "갑", "정", "임"], 해: ["경", "정", "병", "무"], 자: ["정", "경", "병"], 축: ["정", "경", "병"] },
+  을: { 인: ["병", "계"], 묘: ["병", "계"], 진: ["계", "병", "무"], 사: ["계"], 오: ["계", "병"], 미: ["계", "병", "정"], 신: ["병", "계", "기"], 유: ["계", "병", "정"], 술: ["계", "신", "갑"], 해: ["병", "무"], 자: ["병"], 축: ["병"] },
+  병: { 인: ["임", "경"], 묘: ["임", "기"], 진: ["임", "갑"], 사: ["임", "경", "계"], 오: ["임", "경"], 미: ["임", "경"], 신: ["임", "무"], 유: ["임", "계"], 술: ["갑", "임"], 해: ["갑", "무", "경", "임"], 자: ["임", "무", "기"], 축: ["임", "갑"] },
+  정: { 인: ["갑", "경"], 묘: ["경", "갑"], 진: ["갑", "경"], 사: ["갑", "경"], 오: ["임", "경", "계"], 미: ["갑", "임", "경"], 신: ["갑", "경", "병", "무"], 유: ["갑", "경", "병", "무"], 술: ["갑", "경", "무"], 해: ["갑", "경"], 자: ["갑", "경"], 축: ["갑", "경"] },
+  무: { 인: ["병", "갑", "계"], 묘: ["병", "갑", "계"], 진: ["갑", "병", "계"], 사: ["갑", "병", "계"], 오: ["임", "갑", "병"], 미: ["계", "병", "갑"], 신: ["병", "계", "갑"], 유: ["병", "계"], 술: ["갑", "병", "계"], 해: ["갑", "병"], 자: ["병", "갑"], 축: ["병", "갑"] },
+  기: { 인: ["병", "경", "갑"], 묘: ["갑", "계", "병"], 진: ["병", "계", "갑"], 사: ["계", "병"], 오: ["계", "병"], 미: ["계", "병"], 신: ["병", "계"], 유: ["병", "계"], 술: ["갑", "병", "계"], 해: ["병", "갑", "무"], 자: ["병", "갑", "무"], 축: ["병", "갑", "무"] },
+  경: { 인: ["병", "갑", "임"], 묘: ["정", "갑", "병"], 진: ["갑", "정", "임"], 사: ["임", "무", "병"], 오: ["임", "계"], 미: ["정", "갑"], 신: ["정", "갑"], 유: ["정", "갑", "병"], 술: ["갑", "임"], 해: ["정", "병"], 자: ["정", "갑", "병"], 축: ["병", "정", "갑"] },
+  신: { 인: ["기", "임", "경"], 묘: ["임", "갑"], 진: ["임", "갑"], 사: ["임", "갑", "계"], 오: ["임", "기", "계"], 미: ["임", "경", "갑"], 신: ["임", "갑", "무"], 유: ["임", "갑"], 술: ["임", "갑"], 해: ["임", "병"], 자: ["병", "임", "무"], 축: ["병", "임", "무"] },
+  임: { 인: ["경", "병", "무"], 묘: ["무", "신", "경"], 진: ["갑", "경"], 사: ["임", "경", "계"], 오: ["계", "경", "신"], 미: ["신", "갑"], 신: ["무", "정"], 유: ["갑", "경"], 술: ["갑", "병"], 해: ["무", "경", "병"], 자: ["무", "병"], 축: ["병", "정", "갑"] },
+  계: { 인: ["신", "병"], 묘: ["경", "신"], 진: ["병", "신", "갑"], 사: ["신"], 오: ["경", "신", "임"], 미: ["경", "신", "임"], 신: ["정"], 유: ["신", "병"], 술: ["신", "갑", "임"], 해: ["경", "신", "무"], 자: ["병", "신"], 축: ["병", "정"] },
+};
+
+/**
+ * 궁통보감 조후용신 판정: 일간·월지로 우선순위 조후 천간을 찾고, 원국에 갖춰졌는지 본다.
+ * present = 천간 또는 지장간에 실제로 존재. missing = 원국에 없어 보완이 필요한 우선 천간.
+ */
+function climaticClassicYongshin(
+  dayGan: string,
+  monthZhi: string,
+  gans: PositionedChar[],
+  zhis: PositionedChar[],
+): ClimaticClassicInfo | null {
+  const priorityStems = JOHU_CLASSIC[dayGan]?.[monthZhi];
+  if (!priorityStems || priorityStems.length === 0) return null;
+
+  // 원국에 실제로 있는 천간 + 지장간 전체
+  const present = new Set<string>(gans.map((g) => g.char));
+  for (const z of zhis) for (const s of HIDDEN_STEMS[z.char] ?? []) present.add(s);
+
+  const presentStems = priorityStems.filter((s) => present.has(s));
+  const missingStems = priorityStems.filter((s) => !present.has(s));
+  const priorityElements: string[] = [];
+  for (const s of priorityStems) {
+    const el = ELEMENT_KO[GAN_WUXING[s]];
+    if (el && !priorityElements.includes(el)) priorityElements.push(el);
+  }
+  const primaryStem = priorityStems[0];
+  const primaryElement = ELEMENT_KO[GAN_WUXING[primaryStem]];
+  const satisfied = present.has(primaryStem);
+  const season = SEASON_KO[monthZhi] ?? `${monthZhi}월`;
+
+  const stemList = priorityStems.map((s) => `${s}(${ELEMENT_KO[GAN_WUXING[s]]})`).join(" → ");
+  const note = satisfied
+    ? `${season}(${monthZhi}월) ${dayGan}일간의 조후용신은 ${stemList} 순입니다. 원국에 ${presentStems.join("·")}이(가) 있어 계절 조화가 어느 정도 갖춰졌습니다.`
+    : `${season}(${monthZhi}월) ${dayGan}일간의 조후용신은 ${stemList} 순인데, 1순위 ${primaryStem}(${primaryElement})이(가) 원국에 뚜렷하지 않습니다. ${primaryElement} 기운이 채워지면 계절의 치우침이 풀려 사주가 맑아집니다.`;
+
+  return { priorityStems, priorityElements, presentStems, missingStems, primaryElement, satisfied, note, source: "궁통보감" };
+}
+
 /** 통관용신(간이): 가장 강한 두 오행이 상극이면 그 사이를 잇는 오행을 통관으로 본다. */
 function mediatingYongshin(five: FiveElementBalance): { element: string; note: string } | null {
   const entries = (Object.keys(five) as Array<keyof FiveElementBalance>)
@@ -1513,10 +1568,12 @@ function assembleChart(
   const yongshin = suggestYongshin(dayGan, strength, fiveElements);
   // 용신 체계 확장: 억부(기존) + 조후(계절) + 통관(대립 오행 잇기)
   const climatic = climaticYongshin(monthPillar.zhi, dayGan);
+  const climaticClassic = climaticClassicYongshin(dayGan, monthPillar.zhi, gans, zhis);
   const mediating = mediatingYongshin(fiveElements);
   if (climatic) yongshin.climatic = climatic;
+  if (climaticClassic) yongshin.climaticClassic = climaticClassic;
   if (mediating) yongshin.mediating = mediating;
-  yongshin.method = `억부 중심${climatic ? " + 조후 보정" : ""}${mediating ? " + 통관 참고" : ""}`;
+  yongshin.method = `억부 중심${climatic ? " + 조후 보정" : ""}${climaticClassic ? " + 궁통보감 조후" : ""}${mediating ? " + 통관 참고" : ""}`;
 
   // 통근·투출
   const rootedness = computeRootedness(gans, zhis);
