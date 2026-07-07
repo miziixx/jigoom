@@ -1140,3 +1140,29 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 
 ### 검증
 - npm test 42파일/356테스트 통과, `npx tsc -p tsconfig.bot.json --noEmit` 통과.
+
+## 텔레그램 봇 — 롱폴링(Railway) → 웹훅(Vercel) 전환
+
+날짜: 2026-07-07
+
+### 왜
+- Railway에 올린 롱폴링 봇은 하루 24시간 프로세스가 떠 있어야 해서, 실제 사용량과 무관하게 컴퓨팅 자원이 계속 과금됨. 사용자가 비용이 예상보다 많이 나온다고 확인 → 텔레그램 웹훅 + 서버리스(Vercel)로 전환 결정(사용자가 4가지 선택지 중 명시적으로 선택).
+- 이 앱은 이미 Vercel에 배포돼 있으므로, 별도 인프라 없이 서버리스 함수 하나(`api/telegram-webhook.ts`) 추가로 끝남. 메시지가 올 때만 실행되므로 개인 사용량 기준 사실상 무료.
+
+### 아키텍처 변경
+- **저장소를 두 구현으로 분리** (`bot/storeTypes.ts`의 공용 `Store` 인터페이스: `getUser/setBirthInfo/appendHistory/clearHistory/deleteUser`, 전부 비동기로 통일):
+  - `bot/fileStore.ts` (구 `bot/store.ts`) — 로컬 파일(`bot/data/users.json`). 롱폴링/로컬 개발 전용으로 격하.
+  - `bot/kvStore.ts` (신규) — Upstash Redis REST API. 웹훅(서버리스)은 파일시스템이 요청/인스턴스마다 초기화되므로 필수. `api/_security.ts`의 `upstashRateLimit()`과 동일한 순수 HTTP `/pipeline` 방식을 그대로 재사용(호스팅 이식성 유지, 새 의존성 없음). 사용자당 JSON 한 덩어리를 `saju-bot:user:<chatId>` 키에 SET/GET.
+  - `kvStore.ts`에 `markUpdateProcessed(updateId)`도 추가 — 텔레그램이 웹훅 응답 지연 시 같은 update를 재전송하는 경우를 막기 위해 `SET ... NX EX 3600`으로 원자적 중복 체크(Redis 장애 시엔 안전하게 "새 업데이트로 간주"하고 처리 — 무응답보다 드문 중복이 낫다는 판단).
+- **메시지 처리 로직을 공용 모듈로 추출**: `bot/messageHandler.ts`가 `handleMessage(msg, store: Store)`를 export. 롱폴링(`bot/index.ts`, `fileStore` 주입)과 웹훅(`api/telegram-webhook.ts`, `kvStore` 주입)이 완전히 동일한 로직을 공유 — 저장소만 다르게 주입됨. 기존 `askTeacher` 호출 에러만 잡던 좁은 try/catch를 `handleMessage` 전체를 감싸는 구조로 넓혀서, 저장소 오류(예: Upstash 미설정)도 사용자에게 에러 메시지로 전달되게 함.
+- `bot/teacher.ts`: `ChatTurn` 타입 임포트 경로를 `./store.js` → `./storeTypes.js`로 수정(타입 위치 이동에 따른 후속 수정).
+- `api/telegram-webhook.ts` (신규, Vercel 서버리스): POST만 허용, `TELEGRAM_WEBHOOK_SECRET`으로 `X-Telegram-Bot-Api-Secret-Token` 헤더 검증(설정 시), `markUpdateProcessed`로 중복 제거 후 `handleMessage` 호출, 항상 200 반환. Claude 응답 생성까지 함수 안에서 끝까지 기다리므로(텔레그램에 별도 `sendMessage`로 보내야 해서) `vercel.json`에 `api/reading.ts`와 동일하게 `maxDuration: 300` 부여.
+- `bot/index.ts`는 이제 로컬 개발/테스트 전용 롱폴링 루프로 축소 — `fileStore` + `messageHandler`만 사용. 파일 상단에 "웹훅과 동시에 못 쓴다, 로컬 테스트 전엔 `deleteWebhook` 먼저" 경고 추가.
+- `tsconfig.bot.json`의 `include`에 `api/telegram-webhook.ts` 추가해서 웹훅 함수도 봇 타입체크(`npx tsc -p tsconfig.bot.json --noEmit`) 범위에 포함시킴.
+- `bot/README.md` 전면 개편: 웹훅(프로덕션)을 기본 경로로, 롱폴링은 "로컬 개발/테스트용"으로 격하. Upstash 가입, Vercel 환경변수, `setWebhook`/`getWebhookInfo`/`deleteWebhook` curl 명령, **레일웨이 서비스를 반드시 삭제해야 비용이 실제로 멈춘다는 경고**(안 지우면 웹훅과 충돌하며 에러만 반복하고 요금도 계속 나감)를 명시.
+- `railway.json`은 그대로 남겨둠(로컬 대안으로 다시 쓸 수도 있어 삭제하지 않음) — 다만 프로덕션 경로로는 더 이상 쓰지 않음.
+
+### 검증
+- `bot/fileStore.ts`를 임시 `BOT_DATA_DIR`로 직접 실행해 등록→기록→초기화→삭제 5단계 스모크 테스트 통과.
+- npm test 42파일/356테스트 통과, `npx tsc -p tsconfig.bot.json --noEmit` 통과(신규 `api/telegram-webhook.ts` 포함), `npm run build` 성공.
+- Upstash 실제 연동(kvStore.ts)은 로컬에서 실제 Upstash 인스턴스 없이는 테스트 못 함 — 배포 후 텔레그램에서 `/start`~질문까지 실사용 테스트 필요.

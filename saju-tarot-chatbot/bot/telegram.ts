@@ -14,7 +14,7 @@ export interface TgMessage {
   text?: string;
 }
 
-interface TgUpdate {
+export interface TgUpdate {
   update_id: number;
   message?: TgMessage;
 }

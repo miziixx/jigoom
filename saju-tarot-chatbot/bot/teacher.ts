@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { BirthInfo } from "../src/types/index.js";
-import type { ChatTurn } from "./store.js";
+import type { ChatTurn } from "./storeTypes.js";
 import { buildNatalEvidence, buildTodayEvidence } from "./evidence.js";
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.

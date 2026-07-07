@@ -5,49 +5,104 @@
 - 계산은 전부 기존 웹앱 엔진(`src/lib/saju.ts`, `src/lib/fortune.ts`)을 재사용 — AI가 간지를 지어내지 않고, 프로그램이 계산한 값만 근거로 해석합니다.
 - 서머타임·표준시 경선(1954~1961 UTC+8:30)·출생지 경도 보정, 야자시/조자시, 음력·윤달까지 웹앱과 동일하게 처리됩니다.
 
+## 두 가지 실행 방식
+
+| | 웹훅 (프로덕션 권장) | 롱폴링 (로컬 개발/테스트용) |
+|---|---|---|
+| 어디서 실행 | Vercel 서버리스 함수(`api/telegram-webhook.ts`) | 아무 Node 프로세스(`bot/index.ts`) |
+| 언제 실행 | 텔레그램 메시지가 올 때만 잠깐 실행 | 24시간 계속 켜져 있어야 함 |
+| 비용 | 개인 사용량이면 사실상 0원 (Vercel 무료 한도 안) | 항상 켜진 서버 필요 → Railway 등에서 계속 과금 |
+| 데이터 저장 | Upstash Redis(무료 티어) — 서버리스는 파일 저장이 안 됨 | 로컬 JSON 파일(`bot/data/users.json`) |
+| 언제 쓰나 | **실제로 쓸 때는 이걸로** | 코드 고치고 바로 손으로 찔러볼 때 |
+
+**둘을 동시에 켜두면 안 됩니다.** 텔레그램은 웹훅과 롱폴링을 동시에 지원하지 않아요 — 웹훅이 등록된 상태면 롱폴링(`getUpdates`)은 계속 에러만 냅니다.
+
+---
+
 ## 준비물
 
 1. **텔레그램 봇 토큰**: 텔레그램에서 [@BotFather](https://t.me/BotFather) → `/newbot` → 토큰 복사
-2. **Anthropic API 키**: console.anthropic.com
+2. **Anthropic API 키**: console.anthropic.com (이 저장소의 웹앱이 이미 Vercel에 배포돼 있다면 `ANTHROPIC_API_KEY`는 보통 이미 설정돼 있음)
+3. **Upstash Redis** (웹훅용, 무료): [upstash.com](https://upstash.com) 가입 → **Create Database** → Region은 아무거나(가까운 곳) → 생성 후 **REST API** 섹션에서 `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` 복사
 
-## 실행
+## 웹훅 등록 (Vercel — 프로덕션)
+
+이 봇은 이미 Vercel에 배포돼 있는 `saju-tarot-chatbot` 웹앱과 같은 프로젝트에서 서버리스 함수로 같이 돕니다. 별도 서버가 필요 없습니다.
+
+### 1) Vercel 환경변수 등록
+Vercel 대시보드 → 이 프로젝트 → **Settings → Environment Variables**에 추가:
+
+| 변수 | 값 |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | BotFather 토큰 |
+| `TELEGRAM_WEBHOOK_SECRET` | 아무 랜덤 문자열 직접 생성 (예: `openssl rand -hex 20`) — 아무나 웹훅 URL을 알아도 위조 요청을 못 넣게 막는 값 |
+| `UPSTASH_REDIS_REST_URL` | Upstash 대시보드에서 복사 |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash 대시보드에서 복사 |
+| `TELEGRAM_ALLOWED_USER_IDS` | 내 텔레그램 ID (권장 — [@userinfobot](https://t.me/userinfobot)으로 확인) |
+| `BOT_MODEL` | (선택) 기본 `claude-opus-4-8`. 비용 아끼려면 `claude-sonnet-5` |
+| `ANTHROPIC_API_KEY` | 이미 설정돼 있으면 그대로 두면 됨 |
+
+등록 후 **재배포**(Redeploy)해서 반영하세요.
+
+### 2) 텔레그램에 웹훅 URL 등록
+터미널에서 딱 한 번만 실행하면 됩니다 (본인 값으로 바꿔서):
+
+```bash
+curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+  -d "url=https://<내-vercel-도메인>/api/telegram-webhook" \
+  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+```
+
+성공하면 `{"ok":true,"result":true,"description":"Webhook was set"}` 가 뜹니다.
+
+확인:
+```bash
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
+```
+
+되돌리고 싶으면(예: 다시 로컬 롱폴링으로 테스트하고 싶을 때):
+```bash
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/deleteWebhook"
+```
+
+### 3) 테스트
+텔레그램에서 `/start` 보내보기. 안 되면 Vercel 대시보드 → **Deployments → 최근 배포 → Functions → telegram-webhook** 로그 확인.
+
+### 4) 레일웨이에서 옮겨오는 중이라면 — 꼭 레일웨이 서비스를 지우세요
+웹훅이 정상 동작하는 걸 확인했으면, Railway 프로젝트로 가서 **그 서비스를 삭제(또는 최소한 중지)**하세요. 안 지우면:
+- 롱폴링 프로세스가 계속 돌면서 웹훅과 충돌해 에러 로그만 반복해서 남기고
+- **레일웨이 요금도 계속 그대로 나갑니다** — 웹훅으로 옮기는 목적 자체가 이 비용을 없애는 거예요.
+
+## 로컬 개발/테스트 (롱폴링)
+
+코드를 고치고 배포 전에 손으로 빠르게 찔러보고 싶을 때만 씁니다.
 
 ```bash
 cd saju-tarot-chatbot
 npm install
+
+# 웹훅이 등록돼 있으면 먼저 해제 (안 그러면 getUpdates가 계속 실패함)
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/deleteWebhook"
 
 TELEGRAM_BOT_TOKEN="123456:ABC-..." \
 ANTHROPIC_API_KEY="sk-ant-..." \
 npm run bot
 ```
 
-롱폴링 방식이라 웹훅·공개 서버가 필요 없습니다. 노트북, 라즈베리파이, 아무 VPS에서나 켜두면 됩니다.
-
-## Railway 배포
-
-이 저장소는 여러 앱이 섞인 모노레포라서, Railway 프로젝트 설정에서 **Root Directory를 `saju-tarot-chatbot`으로 지정**해야 합니다.
-
-1. [railway.app](https://railway.app) → New Project → **Deploy from GitHub repo** → 이 저장소(`miziixx/myapps`) 선택
-2. 생성된 서비스 → **Settings**
-   - **Root Directory**: `saju-tarot-chatbot`
-   - **Start Command**: `npm run bot` (저장소 안 `railway.json`에도 이미 지정되어 있음)
-   - **Networking**: 아무 것도 켤 필요 없음 (롱폴링 방식이라 공개 도메인/포트 불필요)
-3. **Variables** 탭에서 환경변수 등록 (아래 표 참고). 최소 `TELEGRAM_BOT_TOKEN`, `ANTHROPIC_API_KEY`.
-4. **중요 — 데이터 영속성**: Railway 컨테이너 파일시스템은 재배포할 때마다 초기화됩니다. `bot/data/users.json`(사주 등록 정보·대화 기록)을 계속 유지하려면:
-   - 서비스 → **Volumes** → 볼륨 추가, 마운트 경로를 예: `/data` 로 지정
-   - 환경변수에 `BOT_DATA_DIR=/data` 추가
-   - 이렇게 안 하면 재배포할 때마다 사용자가 `/start`부터 다시 등록해야 합니다.
-5. 배포 후 **Deploy Logs**에서 `사주 선생님 봇 시작 (롱폴링)` 로그가 뜨는지 확인 → 텔레그램에서 `/start` 테스트.
+로컬 실행은 `bot/data/users.json`(파일)에 저장하므로 Upstash 없이도 됩니다. 테스트가 끝나면 다시 웹훅을 등록해서 프로덕션으로 돌려놓으세요.
 
 ## 환경변수
 
-| 변수 | 필수 | 설명 |
-|---|---|---|
-| `TELEGRAM_BOT_TOKEN` | ✅ | BotFather 토큰 |
-| `ANTHROPIC_API_KEY` | ✅ | Claude API 키 |
-| `BOT_MODEL` | — | 기본 `claude-opus-4-8` (가장 깊은 해석). 비용을 아끼려면 `claude-sonnet-5` |
-| `TELEGRAM_ALLOWED_USER_IDS` | — | 쉼표 구분 텔레그램 사용자 ID. 지정하면 그 사람만 사용 가능 (개인 봇 보호). 내 ID는 [@userinfobot](https://t.me/userinfobot) 으로 확인 |
-| `BOT_DATA_DIR` | — | 프로필/대화 저장 위치 (기본 `bot/data/`) |
+| 변수 | 웹훅 | 롱폴링 | 설명 |
+|---|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | ✅ | ✅ | BotFather 토큰 |
+| `ANTHROPIC_API_KEY` | ✅ | ✅ | Claude API 키 |
+| `TELEGRAM_WEBHOOK_SECRET` | 권장 | — | 웹훅 위조 방지용 랜덤 문자열 |
+| `UPSTASH_REDIS_REST_URL` | ✅ | — | Upstash Redis REST URL |
+| `UPSTASH_REDIS_REST_TOKEN` | ✅ | — | Upstash Redis REST 토큰 |
+| `BOT_MODEL` | 선택 | 선택 | 기본 `claude-opus-4-8` (가장 깊은 해석). 비용을 아끼려면 `claude-sonnet-5` |
+| `TELEGRAM_ALLOWED_USER_IDS` | 권장 | 권장 | 쉼표 구분 텔레그램 사용자 ID. 지정하면 그 사람만 사용 가능 (개인 봇 보호). 내 ID는 [@userinfobot](https://t.me/userinfobot) 으로 확인 |
+| `BOT_DATA_DIR` | — | 선택 | 롱폴링 전용 — 프로필/대화 저장 위치 (기본 `bot/data/`) |
 
 ## 사용법
 
@@ -70,5 +125,7 @@ npm run bot
 
 ## 저장/개인정보
 
-- 프로필(생년월일시)과 최근 대화 40턴이 `bot/data/users.json` 에 저장됩니다 (git 미포함).
+- **웹훅 모드**: 프로필(생년월일시)과 최근 대화 40턴이 Upstash Redis에 저장됩니다.
+- **롱폴링 모드**: 같은 내용이 `bot/data/users.json`(로컬 파일)에 저장됩니다 (git 미포함).
 - `/delete` 로 언제든 완전 삭제할 수 있습니다.
+- 질문할 때마다 등록된 생년월일시로 다시 계산한 사주 데이터 전체가 Anthropic API로 전송됩니다(해석을 위해 필요).

@@ -4,6 +4,6 @@
     "noEmit": true,
     "composite": false
   },
-  "include": ["bot", "src/types"],
+  "include": ["bot", "src/types", "api/telegram-webhook.ts"],
   "references": []
 }

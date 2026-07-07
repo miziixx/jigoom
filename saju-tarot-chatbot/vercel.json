@@ -12,6 +12,9 @@
     },
     "api/naming.ts": {
       "maxDuration": 120
+    },
+    "api/telegram-webhook.ts": {
+      "maxDuration": 300
     }
   }
 }
