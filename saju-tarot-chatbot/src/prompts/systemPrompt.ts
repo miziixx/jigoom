@@ -457,7 +457,18 @@ function formatTarotDiagnostics(cards: DrawnTarotCard[]): string {
 
 function formatLuckCycles(luck: LuckCycles): string {
   const daYunLines = luck.daYun
-    .map((dy) => `${dy.startAge}세~${dy.endAge}세 ${dy.ganZhi} (${dy.startYear}~${dy.endYear})${dy.current ? " ← 현재" : ""}`)
+    .map((dy) => {
+      const extra = [
+        dy.tenGod && `십성 ${dy.tenGod}`,
+        dy.twelveStage && `운성 ${dy.twelveStage}`,
+        dy.sibiSinsal && dy.sibiSinsal !== "?" && `신살 ${dy.sibiSinsal}`,
+        dy.gongmang && "공망",
+        dy.samjae && `삼재 ${dy.samjae}`,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      return `${dy.startAge}세~${dy.endAge}세 ${dy.ganZhi} (${dy.startYear}~${dy.endYear})${dy.current ? " ← 현재" : ""}${extra ? ` [${extra}]` : ""}`;
+    })
     .join(" / ");
   const lines = [
     `대운 흐름: ${daYunLines}`,
@@ -481,10 +492,19 @@ function formatLuckCycles(luck: LuckCycles): string {
   }
   if (luck.yearlyFlow && luck.yearlyFlow.length > 0) {
     const yearLines = luck.yearlyFlow.map(
-      (yf) =>
-        `${yf.year}년(${yf.age}세) ${yf.ganZhi}${yf.current ? " ← 올해" : ""}${yf.interactions.length > 0 ? ` — ${yf.interactions.join(", ")}` : " — 원국과 새 상호작용 없음"}`,
+      (yf) => {
+        const tags = [yf.tenGod && `십성 ${yf.tenGod}`, yf.twelveStage && `운성 ${yf.twelveStage}`, yf.samjae]
+          .filter(Boolean)
+          .join(", ");
+        return `${yf.year}년(${yf.age}세) ${yf.ganZhi}${yf.current ? " ← 올해" : ""}${tags ? ` [${tags}]` : ""}${yf.interactions.length > 0 ? ` — ${yf.interactions.join(", ")}` : " — 원국과 새 상호작용 없음"}`;
+      },
     );
     lines.push(`앞으로 10년 세운 흐름 (입춘 기준, 계산됨):\n${yearLines.join("\n")}`);
+  }
+  if (luck.samjae && (luck.samjae.currentPhase || luck.samjae.years.length > 0)) {
+    lines.push(
+      `삼재 (년지 삼합국 기준, 계산됨): ${luck.samjae.note} 삼재는 흉하게 단정하지 말고 '큰일을 새로 벌이기보다 지키고 마무리하는 참고 시기'로만 부드럽게 옮겨라. 공포 표현 금지.`,
+    );
   }
   if (luck.monthlyFlow && luck.monthlyFlow.length > 0) {
     const monthLines = luck.monthlyFlow.map(

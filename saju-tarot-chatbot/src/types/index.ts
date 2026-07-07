@@ -313,6 +313,16 @@ export interface DaYunInfo {
   endYear: number;
   ganZhi: string;
   current: boolean;
+  /** 대운 천간이 일간과 맺는 십성 */
+  tenGod?: string;
+  /** 대운 지지의 12운성 (일간 기준) */
+  twelveStage?: string;
+  /** 대운 지지의 십이신살 (일지 삼합국 기준) */
+  sibiSinsal?: string;
+  /** 대운 지지가 일주 공망에 해당하는지 */
+  gongmang?: boolean;
+  /** 이 대운 구간이 삼재에 걸리는지 (걸리는 해가 있으면 표기) */
+  samjae?: string;
 }
 
 /** 올해 특정 달의 월운 흐름 (연간 12개월 흐름 계산용) */
@@ -335,6 +345,12 @@ export interface YearFlowInfo {
   interactions: string[];
   /** 현재 해 여부 */
   current: boolean;
+  /** 세운 천간이 일간과 맺는 십성 */
+  tenGod?: string;
+  /** 세운 지지의 12운성 (일간 기준) */
+  twelveStage?: string;
+  /** 이 해 삼재 여부 (들삼재/눌삼재/날삼재), 아니면 undefined */
+  samjae?: string;
 }
 
 export interface LuckCycles {
@@ -357,6 +373,19 @@ export interface LuckCycles {
   yearlyFlow?: YearFlowInfo[];
   /** 대운·세운 중첩 판정 (큰 흐름과 올해 흐름이 서로 겹치는 방식) */
   daYunYearOverlap?: LuckOverlap;
+  /** 삼재 정보 (년지 삼합국 기준) */
+  samjae?: SamjaeInfo;
+}
+
+/** 삼재(三災) 정보 — 년지 삼합국 기준 3년 주기 */
+export interface SamjaeInfo {
+  /** 삼재에 해당하는 지지 3개 (들·눌·날 순) */
+  branches: string[];
+  /** 삼재가 드는 해(입춘 기준) 목록 (지금부터 앞으로 12년 내) */
+  years: Array<{ year: number; phase: string; ganZhi: string }>;
+  /** 올해가 삼재인지 (들삼재/눌삼재/날삼재), 아니면 null */
+  currentPhase: string | null;
+  note: string;
 }
 
 /** 운의 용신/기신 방향 정렬 */

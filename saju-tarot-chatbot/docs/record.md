@@ -1298,9 +1298,31 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 
 ### 한계(후속)
 - 조후는 일간×월지 60조합 궁통보감 정밀표가 아니라 계절·일간 한난 기반 간이. 검증된 출처로 정밀표 대체는 후속.
-- 대운·세운별 십성/12운성/신살, 삼재, 합화 성립·탐합/쟁합은 2순위로 미구현.
+- 합화 성립·탐합/쟁합 상호작용 우선순위는 여전히 미구현(3순위 후속).
 
 ### 검증
 - 신규 `src/lib/sajuPrecision.test.ts` 9개 통과. 기존 회귀(sajuCalculationValidation·sajuFeatures) 무변경 통과.
 - npm test 46파일/385테스트 통과, tsc(앱·봇) 통과, npm run build 성공.
 - 계산 엔진의 연월일시주·오행·십성·대운 고정값은 불변(additive 필드만 추가).
+
+## 전통 명리 정밀도 2순위 — 대운·세운 해석 필드 · 삼재 (2026-07)
+
+전통 만세력이 관습적으로 보여주는 부가 정보를 additive로 추가. 만세력 대운(간지·나이·연도) 고정값 불변.
+
+### 1) 대운·세운별 십성/12운성/신살/공망 — 신규
+- `computeLuckCycles`에서 원국 일간·일지·년지를 뽑아 각 대운·세운에 해석 필드를 부착:
+  - `DaYunInfo.tenGod`(대운 천간 십성), `.twelveStage`(대운 지지 12운성), `.sibiSinsal`(일지 삼합국 기준 십이신살), `.gongmang`(대운 지지 공망 여부), `.samjae`(그 10년 구간 삼재 해 표기).
+  - `YearFlowInfo.tenGod`/`.twelveStage`/`.samjae` 동일 부착.
+- 신규 순수 함수 `sibiSinsalOf(baseZhi,targetZhi)`, `samjaeBranchesOf(yearZhi)` export.
+
+### 2) 삼재(三災) — 신규
+- 년지 삼합국 기준: 신자진生→인묘진해, 사유축生→해자축해, 인오술生→신유술해, 해묘미生→사오미해.
+- `LuckCycles.samjae`(`SamjaeInfo`): branches·앞으로 12년 내 드는 해(들/눌/날삼재)·올해 phase·부드러운 note(공포 표현 배제, 참고용).
+
+### 3) 표출(계산 불변, 표현만)
+- `SajuFactsPanel`: 대운 인생 지도 각 행에 `dayun-lifemap__evidence`(십성·운성·신살·공망·삼재), 현재 대운 배너 아래 `samjae-note` 배지.
+- `systemPrompt.formatLuckCycles`: 대운/세운 라인에 십성·운성·신살·삼재 태그, 삼재 별도 근거 줄(흉단정 금지 지시).
+
+### 검증
+- `sajuPrecision.test.ts`에 5개 추가(대운·세운 필드, 삼재, 순수함수). 회귀 스냅샷은 만세력 대운 기존 키만 비교하도록 조정(해석 필드 제외).
+- npm test 46파일/390테스트 통과, tsc 통과, npm run build 성공.

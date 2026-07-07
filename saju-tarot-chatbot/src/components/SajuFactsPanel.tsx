@@ -275,6 +275,19 @@ export function DaYunLifeMap({ luckCycles }: { luckCycles?: LuckCycles }) {
                 )}
               </div>
               {theme && <p className="dayun-lifemap__theme">{theme}</p>}
+              {(dy.tenGod || dy.twelveStage || dy.sibiSinsal || dy.gongmang || dy.samjae) && (
+                <p className="dayun-lifemap__evidence">
+                  {[
+                    dy.tenGod && `십성 ${dy.tenGod}`,
+                    dy.twelveStage && `운성 ${dy.twelveStage}`,
+                    dy.sibiSinsal && dy.sibiSinsal !== "?" && `신살 ${dy.sibiSinsal}`,
+                    dy.gongmang && "공망",
+                    dy.samjae && `삼재(${dy.samjae})`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
             </div>
           </li>
         );
@@ -571,6 +584,12 @@ export default function SajuFactsPanel({
             </span>
           </div>
           {showDaYun && <DaYunTimeline luckCycles={luckCycles} />}
+          {luckCycles.samjae && (luckCycles.samjae.currentPhase || luckCycles.samjae.years.length > 0) && (
+            <p className={`samjae-note${luckCycles.samjae.currentPhase ? " samjae-note--current" : ""}`}>
+              삼재 {luckCycles.samjae.currentPhase ? `— 올해 ${luckCycles.samjae.currentPhase}` : `— 다음 ${luckCycles.samjae.years[0].year}년(${luckCycles.samjae.years[0].phase})`}
+              <small> {luckCycles.samjae.note}</small>
+            </p>
+          )}
 
           {showDaYun && luckCycles.daYunYearOverlap && (
             <div className={`luck-overlap luck-overlap--${luckCycles.daYunYearOverlap.combo}`}>

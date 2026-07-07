@@ -13,6 +13,7 @@ import type {
   PastEventCalibrationInput,
   RootednessHit,
   SajuChart,
+  SamjaeInfo,
   SajuPillar,
   SinsalHit,
   StrengthAssessment,
@@ -384,6 +385,34 @@ const SIBI_SINSAL: Record<"water" | "fire" | "metal" | "wood", Record<string, st
   metal: { 인: "겁살", 묘: "재살", 진: "천살", 사: "지살", 오: "년살", 미: "월살", 신: "망신살", 유: "장성살", 술: "반안살", 해: "역마살", 자: "육해살", 축: "화개살" },
   wood: { 신: "겁살", 유: "재살", 술: "천살", 해: "지살", 자: "년살", 축: "월살", 인: "망신살", 묘: "장성살", 진: "반안살", 사: "역마살", 오: "육해살", 미: "화개살" },
 };
+
+/** 어떤 지지가 기준 지지(보통 일지)의 삼합국에서 받는 십이신살 이름 */
+export function sibiSinsalOf(baseZhi: string, targetZhi: string): string {
+  const el = SANHE_ELEMENT[baseZhi];
+  if (!el) return "?";
+  return SIBI_SINSAL[el][targetZhi] ?? "?";
+}
+
+/** 삼재(三災)에 드는 지지 3개 — 년지(생년 지지) 삼합국 기준. 들→눌→날 순. */
+const SAMJAE_BRANCHES: Record<"water" | "fire" | "metal" | "wood", string[]> = {
+  water: ["인", "묘", "진"], // 신자진生 → 인묘진年
+  metal: ["해", "자", "축"], // 사유축生 → 해자축年
+  fire: ["신", "유", "술"], // 인오술生 → 신유술年
+  wood: ["사", "오", "미"], // 해묘미生 → 사오미年
+};
+const SAMJAE_PHASE = ["들삼재", "눌삼재", "날삼재"];
+
+export function samjaeBranchesOf(yearZhi: string): { branches: string[]; phaseOf: (zhi: string) => string | null } {
+  const el = SANHE_ELEMENT[yearZhi];
+  const branches = el ? SAMJAE_BRANCHES[el] : [];
+  return {
+    branches,
+    phaseOf: (zhi: string) => {
+      const i = branches.indexOf(zhi);
+      return i < 0 ? null : SAMJAE_PHASE[i];
+    },
+  };
+}
 
 // 천을귀인: 일간 기준 귀인 지지
 const CHEONEUL: Record<string, string[]> = {
@@ -1303,19 +1332,43 @@ export function computeLuckCycles(
   const yun = ec.getYun(birthInfo.gender === "male" ? 1 : 0);
   const nowYear = now.getFullYear();
 
+  // 대운/세운 십성·12운성·신살 판정에 쓸 원국 기준 글자
+  const dayGan = toPillar(ec.getDay()).gan;
+  const dayZhi = toPillar(ec.getDay()).zhi;
+  const yearZhi = toPillar(ec.getYear()).zhi;
+  const gongmangZhis = gongmangOf(dayGan, dayZhi); // 공망 지지 2글자
+  const samjaeCalc = samjaeBranchesOf(yearZhi);
+
   // 첫 항목은 대운 시작 전 구간이라 간지가 비어 있을 수 있음 → 제외
   const daYun = yun
     .getDaYun()
     .filter((dy) => dy.getGanZhi() !== "")
     .slice(0, 8)
-    .map((dy) => ({
-      startAge: dy.getStartAge(),
-      endAge: dy.getEndAge(),
-      startYear: dy.getStartYear(),
-      endYear: dy.getEndYear(),
-      ganZhi: toHangul(dy.getGanZhi()),
-      current: dy.getStartYear() <= nowYear && nowYear <= dy.getEndYear(),
-    }));
+    .map((dy) => {
+      const ganZhi = toHangul(dy.getGanZhi());
+      const gan = ganZhi[0];
+      const zhi = ganZhi[1];
+      // 이 대운 10년 구간에 삼재가 드는 해가 있으면 표기
+      const samjaeYears: string[] = [];
+      for (let y = dy.getStartYear(); y <= dy.getEndYear(); y++) {
+        const yz = toHangul(Solar.fromYmdHms(y, 6, 15, 12, 0, 0).getLunar().getYearInGanZhiByLiChun())[1];
+        const phase = samjaeCalc.phaseOf(yz);
+        if (phase) samjaeYears.push(`${y} ${phase}`);
+      }
+      return {
+        startAge: dy.getStartAge(),
+        endAge: dy.getEndAge(),
+        startYear: dy.getStartYear(),
+        endYear: dy.getEndYear(),
+        ganZhi,
+        current: dy.getStartYear() <= nowYear && nowYear <= dy.getEndYear(),
+        tenGod: gan ? tenGodOf(dayGan, gan) : undefined,
+        twelveStage: zhi ? twelveStageOf(dayGan, zhi) : undefined,
+        sibiSinsal: zhi ? sibiSinsalOf(dayZhi, zhi) : undefined,
+        gongmang: zhi ? gongmangZhis.includes(zhi) : undefined,
+        samjae: samjaeYears.length > 0 ? samjaeYears.join(", ") : undefined,
+      };
+    });
 
   const nowLunar = Solar.fromDate(now).getLunar();
   const currentDaYun = daYun.find((dy) => dy.current)?.ganZhi ?? null;
@@ -1375,14 +1428,42 @@ export function computeLuckCycles(
     const y = nowYear + i;
     const yLunar = Solar.fromYmdHms(y, 6, 15, 12, 0, 0).getLunar();
     const ganZhi = toHangul(yLunar.getYearInGanZhiByLiChun());
+    const gan = ganZhi[0];
+    const zhi = ganZhi[1];
     yearlyFlow.push({
       year: y,
       age: y - birthSolarYear,
       ganZhi,
       interactions: luckVsNatal(`${y}년 세운 ${ganZhi}`, ganZhi, natalGans, natalZhis),
       current: y === nowYear,
+      tenGod: gan ? tenGodOf(dayGan, gan) : undefined,
+      twelveStage: zhi ? twelveStageOf(dayGan, zhi) : undefined,
+      samjae: zhi ? samjaeCalc.phaseOf(zhi) ?? undefined : undefined,
     });
   }
+
+  // 삼재: 지금부터 12년 내 드는 해 + 올해 여부
+  const samjaeYearsList: Array<{ year: number; phase: string; ganZhi: string }> = [];
+  for (let i = 0; i < 12; i++) {
+    const y = nowYear + i;
+    const gz = toHangul(Solar.fromYmdHms(y, 6, 15, 12, 0, 0).getLunar().getYearInGanZhiByLiChun());
+    const phase = samjaeCalc.phaseOf(gz[1]);
+    if (phase) samjaeYearsList.push({ year: y, phase, ganZhi: gz });
+  }
+  const currentSamjaePhase = samjaeCalc.phaseOf(yearGanZhi[1]);
+  const samjae: SamjaeInfo | undefined =
+    samjaeCalc.branches.length > 0
+      ? {
+          branches: samjaeCalc.branches,
+          years: samjaeYearsList,
+          currentPhase: currentSamjaePhase,
+          note: currentSamjaePhase
+            ? `올해(${yearGanZhi})는 ${currentSamjaePhase}에 해당해요. 삼재는 큰일을 벌이기보다 지키고 마무리하는 데 유리한 시기로 봅니다(참고용).`
+            : samjaeYearsList.length > 0
+              ? `다음 삼재는 ${samjaeYearsList[0].year}년(${samjaeYearsList[0].phase})부터예요. 년지 삼합국 기준 ${samjaeCalc.branches.join("·")}해에 듭니다(참고용).`
+              : "",
+        }
+      : undefined;
 
   return {
     monthlyFlow,
@@ -1396,6 +1477,7 @@ export function computeLuckCycles(
     month: now.getMonth() + 1,
     luckInteractions,
     daYunYearOverlap,
+    samjae,
   };
 }
 

@@ -73,3 +73,51 @@ describe("조후 — 계절·일간 한난", () => {
     expect(c.yongshin!.climatic ?? null).toBeNull();
   });
 });
+
+// 2순위: 대운·세운 십성/12운성/신살, 삼재 (모두 additive)
+import { computeLuckCycles, sibiSinsalOf, samjaeBranchesOf } from "./saju.js";
+
+describe("대운·세운 해석 필드 (십성·12운성·신살·삼재)", () => {
+  const b: BirthInfo = { calendarType: "solar", year: 1985, month: 6, day: 15, hour: 14, minute: 0, gender: "female" };
+  const luck = computeLuckCycles(b, new Date("2026-07-07"));
+
+  it("각 대운에 십성·12운성·십이신살·공망 여부가 붙는다", () => {
+    for (const dy of luck.daYun) {
+      expect(dy.tenGod).toBeTruthy();
+      expect(dy.twelveStage).toBeTruthy();
+      expect(dy.sibiSinsal).toBeTruthy();
+      expect(typeof dy.gongmang).toBe("boolean");
+    }
+    // 을유 대운: 일간 을 기준 유 지지 → 비견 / 절 / (일지 삼합국) 신살
+    const eulYu = luck.daYun.find((d) => d.ganZhi === "을유");
+    expect(eulYu?.tenGod).toBe("비견");
+    expect(eulYu?.twelveStage).toBe("절");
+  });
+
+  it("세운(올해)에 십성·12운성이 붙는다 (2026 병오, 을목 기준)", () => {
+    const cur = luck.yearlyFlow!.find((y) => y.current)!;
+    expect(cur.ganZhi).toBe("병오");
+    expect(cur.tenGod).toBe("상관"); // 을 → 병(화, 양) = 상관
+    expect(cur.twelveStage).toBe("장생"); // 을 장생 = 오
+  });
+
+  it("삼재는 년지 삼합국 기준으로 계산된다 (축생 = 사유축국 → 해자축해)", () => {
+    expect(luck.samjae).toBeDefined();
+    expect(luck.samjae!.branches).toEqual(["해", "자", "축"]);
+    expect(luck.samjae!.years.length).toBeGreaterThan(0);
+    expect(luck.samjae!.years[0].phase).toBe("들삼재");
+  });
+});
+
+describe("십이신살·삼재 순수 함수", () => {
+  it("sibiSinsalOf: 일지 삼합국 기준 지살/역마 등을 반환한다", () => {
+    expect(sibiSinsalOf("오", "인")).toBe("지살"); // 인오술 火국에서 인 = 지살
+    expect(sibiSinsalOf("자", "인")).toBe("역마살"); // 신자진 水국에서 인 = 역마
+  });
+
+  it("samjaeBranchesOf: 삼합국별 삼재 지지 3개", () => {
+    expect(samjaeBranchesOf("자").branches).toEqual(["인", "묘", "진"]); // 신자진生
+    expect(samjaeBranchesOf("술").branches).toEqual(["신", "유", "술"]); // 인오술生
+    expect(samjaeBranchesOf("진").phaseOf("묘")).toBe("눌삼재");
+  });
+});

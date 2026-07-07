@@ -96,7 +96,10 @@ describe("사주 계산 기준 케이스", () => {
     expect(luck.yearGanZhi).toBe(luck2026.yearGanZhi);
     expect(luck.monthGanZhi).toBe(luck2026.monthGanZhi);
     expect(luck.dayGanZhi).toBe(luck2026.dayGanZhi);
-    expect(luck.daYun[0]).toEqual(luck2026.firstDaYun);
+    // 만세력 대운(간지·나이·연도)만 잠근다. 십성·12운성·신살·삼재 등 해석 필드는
+    // additive라 스냅샷에서 제외하고 기존 키만 비교한다.
+    const { startAge, endAge, startYear, endYear, ganZhi, current } = luck.daYun[0];
+    expect({ startAge, endAge, startYear, endYear, ganZhi, current }).toEqual(luck2026.firstDaYun);
   });
 });
 
