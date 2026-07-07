@@ -18,6 +18,11 @@ export interface ParseResult {
   error?: string;
 }
 
+/** 생년월일시 등록/재등록 시도로 볼 만한 입력인지 (연도 + 독립된 성별 토큰이 함께 있는지) */
+export function looksLikeBirthInput(text: string): boolean {
+  return /(19|20)\d{2}\s*[.\-/년]/.test(text) && /(?:^|\s)(남자|여자|남|여)(?=\s|$)/.test(text);
+}
+
 /**
  * 자유 입력에서 생년월일시·성별·달력·출생지를 추출한다.
  * 예: "1993-03-15 14:30 여 서울", "음력 1990.5.2 07시20분 남 부산", "1988년 7월 15일 시간모름 남자"

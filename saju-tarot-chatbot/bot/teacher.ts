@@ -20,6 +20,7 @@ const TEACHER_SYSTEM = `당신은 수십 년 경력의 명리학(사주) 선생�
 - 대화에 첨부된 [원국 계산 데이터], [운의 흐름 계산 데이터], [오늘 일진 계산 데이터]는 만세력 기반 프로그램이 정확히 계산한 값입니다. 해석의 근거는 반드시 이 데이터 안의 값만 사용하세요.
 - 데이터에 없는 간지·신살·운을 지어내지 마세요. 데이터로 확인할 수 없는 것을 물으면 "그건 계산 데이터에 없어서 단정할 수 없다"고 솔직히 말하세요.
 - 출생 시간을 모르는 사주(시주 null)면 시주 관련 해석은 하지 말고, 그 한계를 언급하세요.
+- 사용자가 아직 사주를 등록하지 않았다면(대화 시작에 안내됨) 개인 차트 데이터가 없다는 뜻입니다. 그래도 명리학 일반 이론 질문("지장간이 뭐야", "십성이 뭐야" 등)에는 알고 있는 지식으로 정상적으로 답하세요. 대신 그 사람의 사주가 있어야만 답할 수 있는 질문("내 신강신약은?", "오늘 내 일진은?")이 오면, 먼저 생년월일시를 등록해달라고 짧게 안내하세요.
 
 [선생님으로서의 답변 방식]
 - 항상 "왜 그런지"를 가르치세요. 결론만 던지지 말고, 어떤 기둥의 어떤 글자, 어떤 십성·지장간·통근·합충형파해, 어떤 점수 때문인지 데이터를 짚어가며 설명하세요.
@@ -39,28 +40,41 @@ const TEACHER_SYSTEM = `당신은 수십 년 경력의 명리학(사주) 선생�
 - 관법(유파)에 따라 달라질 수 있는 판단(격국·용신 등)은 그 사실을 짧게 언급하세요. 이 데이터의 강약 판정은 위치 가중치 기반 간이 억부법임을 알고 계세요.`;
 
 export interface AskOptions {
-  birthInfo: BirthInfo;
+  birthInfo: BirthInfo | null;
   history: ChatTurn[];
   question: string;
 }
 
 /** 계산 근거 + 대화 맥락을 실어 Claude에게 해석을 요청한다 */
 export async function askTeacher({ birthInfo, history, question }: AskOptions): Promise<string> {
-  const natal = buildNatalEvidence(birthInfo);
-  const today = buildTodayEvidence(birthInfo);
+  const historyMessages = history.map((t) => ({ role: t.role, content: t.content }) as Anthropic.Messages.MessageParam);
 
-  const messages: Anthropic.Messages.MessageParam[] = [
-    {
-      role: "user",
-      content: `${natal}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 확인했으면 다음 질문부터 이 데이터를 근거로 답해주세요.`,
-    },
-    { role: "assistant", content: "원국과 운의 흐름 데이터를 확인했습니다. 이 계산값을 근거로 답하겠습니다. 무엇이 궁금하신가요?" },
-    ...history.map((t) => ({ role: t.role, content: t.content }) as Anthropic.Messages.MessageParam),
-    {
-      role: "user",
-      content: `${today}\n\n[질문]\n${question}`,
-    },
-  ];
+  const messages: Anthropic.Messages.MessageParam[] = birthInfo
+    ? [
+        {
+          role: "user",
+          content: `${buildNatalEvidence(birthInfo)}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 확인했으면 다음 질문부터 이 데이터를 근거로 답해주세요.`,
+        },
+        { role: "assistant", content: "원국과 운의 흐름 데이터를 확인했습니다. 이 계산값을 근거로 답하겠습니다. 무엇이 궁금하신가요?" },
+        ...historyMessages,
+        {
+          role: "user",
+          content: `${buildTodayEvidence(birthInfo)}\n\n[질문]\n${question}`,
+        },
+      ]
+    : [
+        {
+          role: "user",
+          content:
+            "아직 제 생년월일시를 등록하지 않았습니다. 개인 사주 데이터 없이도 답할 수 있는 명리학 일반 이론 질문에는 알고 있는 지식으로 답해주시고, 제 사주가 있어야만 답할 수 있는 질문이 오면 먼저 생년월일시를 등록해달라고 자연스럽게 안내해주세요.",
+        },
+        {
+          role: "assistant",
+          content: "알겠습니다. 사주 등록 전이니 일반 이론 질문은 바로 답하고, 개인 차트가 필요한 질문이면 등록을 안내할게요. 무엇이 궁금하신가요?",
+        },
+        ...historyMessages,
+        { role: "user", content: question },
+      ];
 
   const stream = client.messages.stream({
     model: MODEL,

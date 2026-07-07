@@ -1,7 +1,7 @@
 // 사주 선생님 봇 메시지 처리 로직 — 롱폴링(bot/index.ts)과 웹훅(api/telegram-webhook.ts)이 공유한다.
 // 저장소(Store)만 주입받아 동작하므로, 어떤 방식으로 실행되는지는 이 파일이 몰라도 된다.
 import { sendMessage, sendTyping, type TgMessage } from "./telegram.js";
-import { parseBirthInput, describeBirthInfo } from "./parseBirth.js";
+import { parseBirthInput, describeBirthInfo, looksLikeBirthInput } from "./parseBirth.js";
 import { formatChartSummary } from "./evidence.js";
 import { askTeacher } from "./teacher.js";
 import type { Store } from "./storeTypes.js";
@@ -30,17 +30,20 @@ const START_GUIDE = [
   "",
   "만세력으로 정확히 계산한 사주 데이터를 근거로, 궁금한 걸 뭐든 설명해주는 개인 사주 선생님이에요.",
   "",
-  "먼저 사주를 등록해주세요.",
+  "사주 등록 없이 바로 이런 것도 물어볼 수 있어요:",
+  "• 지장간이 뭐야? 왜 그렇게 배당돼?",
+  "• 신강신약이 뭔지 원리부터 설명해줘",
+  "",
+  "*내 사주 기반*으로 답을 받고 싶으면 먼저 등록해주세요 (한 줄, 형식 자유):",
   "",
   BIRTH_GUIDE,
   "",
-  "등록 후에는 이렇게 물어보세요:",
+  "등록하면 이런 질문도 가능해져요:",
   "• 나 왜 신약사주야?",
   "• 오늘 일진이 왜 이렇게 흘러가?",
   "• 내 격국이 뭔지, 왜 그렇게 잡히는지 알려줘",
-  "• 지장간은 왜 그렇게 배당되는 거야? (내 사주와 무관한 원리 질문도 OK)",
   "",
-  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /퀴즈 배운 개념 복습 · /birth 사주 재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
+  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
 ].join("\n");
 
 export async function handleMessage(msg: TgMessage, store: Store): Promise<void> {
@@ -77,39 +80,36 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     }
     if (text === "/saju") {
       if (!user.birthInfo) {
-        await sendMessage(chatId, "먼저 사주를 등록해주세요.\n\n" + BIRTH_GUIDE);
+        await sendMessage(chatId, "이건 내 사주 원국이 있어야 보여줄 수 있어요. 먼저 등록해주세요.\n\n" + BIRTH_GUIDE);
         return;
       }
       await sendMessage(chatId, formatChartSummary(user.birthInfo));
       return;
     }
-
-    // ── 사주 미등록: 입력을 생년월일시로 해석 ──
-    if (!user.birthInfo) {
-      const parsed = parseBirthInput(text);
-      if (!parsed.ok) {
-        await sendMessage(chatId, `${parsed.error}\n\n${BIRTH_GUIDE}`);
-        return;
-      }
-      await store.setBirthInfo(chatId, parsed.birthInfo!);
-      await sendMessage(chatId, `등록했어요 ✅\n${describeBirthInfo(parsed.birthInfo!)}\n\n${formatChartSummary(parsed.birthInfo!)}`);
+    if (text === "/today" && !user.birthInfo) {
+      await sendMessage(chatId, "오늘 일진은 내 사주와 오늘 간지를 대조해야 해서, 먼저 등록이 필요해요.\n\n" + BIRTH_GUIDE);
       return;
     }
 
-    // ── 등록된 상태에서 생년월일 형태 입력이 오면 재등록으로 처리 ──
-    if (/(19|20)\d{2}\s*[.\-/년]/.test(text) && /남|여/.test(text)) {
+    // ── 생년월일시 형태 입력 → 등록/재등록 (등록 여부와 무관하게 처리) ──
+    if (looksLikeBirthInput(text)) {
       const parsed = parseBirthInput(text);
       if (parsed.ok) {
+        const wasRegistered = Boolean(user.birthInfo);
         await store.setBirthInfo(chatId, parsed.birthInfo!);
-        await sendMessage(
-          chatId,
-          `사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)\n${describeBirthInfo(parsed.birthInfo!)}\n\n${formatChartSummary(parsed.birthInfo!)}`,
-        );
+        const prefix = wasRegistered ? "사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)" : "등록했어요 ✅";
+        await sendMessage(chatId, `${prefix}\n${describeBirthInfo(parsed.birthInfo!)}\n\n${formatChartSummary(parsed.birthInfo!)}`);
+        return;
+      }
+      // 등록 시도로 보이는데 형식이 안 맞으면 안내. 등록 전 사용자에게만 보여준다 —
+      // 이미 등록된 사용자가 그냥 연도/성별이 우연히 섞인 질문을 했을 수도 있어서다.
+      if (!user.birthInfo) {
+        await sendMessage(chatId, `${parsed.error}\n\n${BIRTH_GUIDE}`);
         return;
       }
     }
 
-    // ── 질문 → 사주 선생님(Claude) ──
+    // ── 질문 → 사주 선생님(Claude). 사주 등록 여부와 무관하게 답한다 ──
     let question = text;
     if (text === "/today") {
       question = "오늘 일진이 어떻게 흘러가는지, 왜 그렇게 보는지 계산 근거를 짚어가며 자세히 알려주세요.";
