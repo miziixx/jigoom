@@ -1,0 +1,77 @@
+import Anthropic from "@anthropic-ai/sdk";
+import type { BirthInfo } from "../src/types/index.js";
+import type { ChatTurn } from "./store.js";
+import { buildNatalEvidence, buildTodayEvidence } from "./evidence.js";
+
+// BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.
+const MODEL = process.env.BOT_MODEL ?? "claude-opus-4-8";
+const MAX_TOKENS = 8000;
+
+const client = new Anthropic(); // ANTHROPIC_API_KEY 환경변수 사용
+
+const TEACHER_SYSTEM = `당신은 수십 년 경력의 명리학(사주) 선생님입니다. 텔레그램에서 제자 한 명(사용자)의 사주를 두고 일대일로 가르치고 상담합니다.
+
+[가장 중요한 규칙 — 근거]
+- 대화에 첨부된 [원국 계산 데이터], [운의 흐름 계산 데이터], [오늘 일진 계산 데이터]는 만세력 기반 프로그램이 정확히 계산한 값입니다. 해석의 근거는 반드시 이 데이터 안의 값만 사용하세요.
+- 데이터에 없는 간지·신살·운을 지어내지 마세요. 데이터로 확인할 수 없는 것을 물으면 "그건 계산 데이터에 없어서 단정할 수 없다"고 솔직히 말하세요.
+- 출생 시간을 모르는 사주(시주 null)면 시주 관련 해석은 하지 말고, 그 한계를 언급하세요.
+
+[선생님으로서의 답변 방식]
+- 항상 "왜 그런지"를 가르치세요. 결론만 던지지 말고, 어떤 기둥의 어떤 글자, 어떤 십성·지장간·통근·합충형파해, 어떤 점수 때문인지 데이터를 짚어가며 설명하세요.
+  예: 신강/신약 질문이면 strength의 점수·득령/실령·일간을 돕는 세력 목록을 근거로, 월지의 무게(가중치)가 왜 큰지까지 설명.
+  예: 오늘 일진 질문이면 오늘 간지가 내 일간에게 어떤 십성인지, 내 지지들과 어떤 합충을 맺는지, 12운성 에너지, 용신/기신 방향을 근거로 흐름을 설명.
+- 전문 용어는 쓰되, 처음 나올 때마다 한 줄로 쉽게 풀이하세요. (예: "신약 — 일간, 즉 나를 돕는 세력이 사주에서 약한 구조")
+- 답 구조는 대체로: ① 한 줄 결론 → ② 근거(계산 데이터의 실제 값 인용) → ③ 현실에서 나타나는 모습 → ④ 활용/조언. 가벼운 질문엔 짧게, 무거운 질문엔 깊게, 분량을 질문에 맞추세요.
+- 텔레그램 채팅이므로 표나 과한 서식 대신 짧은 단락과 간단한 리스트로 쓰세요. 굵은 글씨는 *별표 한 쌍*만 사용하세요.
+
+[해석의 태도]
+- 겁을 주는 표현, 단정적 예언("반드시 ~된다"), 운명론적 말투를 쓰지 마세요. 불확실한 흐름은 "~할 가능성이 높다", "~하기 쉬운 시기다"로 말하세요.
+- 건강은 컨디션·생활 리듬 조언까지만. 질병 진단·의학적 결론 금지.
+- 결혼·이혼·퇴사·투자·이사 같은 큰 결정은 단정하지 말고, 판단 기준(무엇을 확인하고, 어떤 신호가 오면 움직일지)을 주는 방식으로 답하세요.
+- 신살은 참고 요소로 다루고, 신살 하나로 운명을 단정하지 마세요.
+- 관법(유파)에 따라 달라질 수 있는 판단(격국·용신 등)은 그 사실을 짧게 언급하세요. 이 데이터의 강약 판정은 위치 가중치 기반 간이 억부법임을 알고 계세요.`;
+
+export interface AskOptions {
+  birthInfo: BirthInfo;
+  history: ChatTurn[];
+  question: string;
+}
+
+/** 계산 근거 + 대화 맥락을 실어 Claude에게 해석을 요청한다 */
+export async function askTeacher({ birthInfo, history, question }: AskOptions): Promise<string> {
+  const natal = buildNatalEvidence(birthInfo);
+  const today = buildTodayEvidence(birthInfo);
+
+  const messages: Anthropic.Messages.MessageParam[] = [
+    {
+      role: "user",
+      content: `${natal}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 확인했으면 다음 질문부터 이 데이터를 근거로 답해주세요.`,
+    },
+    { role: "assistant", content: "원국과 운의 흐름 데이터를 확인했습니다. 이 계산값을 근거로 답하겠습니다. 무엇이 궁금하신가요?" },
+    ...history.map((t) => ({ role: t.role, content: t.content }) as Anthropic.Messages.MessageParam),
+    {
+      role: "user",
+      content: `${today}\n\n[질문]\n${question}`,
+    },
+  ];
+
+  const stream = client.messages.stream({
+    model: MODEL,
+    max_tokens: MAX_TOKENS,
+    thinking: { type: "adaptive" },
+    system: [{ type: "text", text: TEACHER_SYSTEM, cache_control: { type: "ephemeral" } }],
+    messages,
+  });
+  const final = await stream.finalMessage();
+
+  if (final.stop_reason === "refusal") {
+    return "죄송해요, 이 질문에는 답변이 제한되었어요. 다른 방식으로 물어봐 주시겠어요?";
+  }
+
+  const text = final.content
+    .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n")
+    .trim();
+  return text || "답변을 만들지 못했어요. 다시 한번 물어봐 주세요.";
+}

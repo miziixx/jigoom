@@ -27,3 +27,6 @@ npm-debug.log*
 *.local
 .vscode/*
 !.vscode/extensions.json
+
+# telegram bot local data (profiles/chat history)
+bot/data/

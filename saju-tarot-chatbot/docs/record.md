@@ -1084,3 +1084,29 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 - 장식 모티프는 aria-hidden + 프린트에서 숨김. 차트는 break-inside: avoid + print-color-adjust로 인쇄 보강.
 - 죽은 CSS 제거: .element-radar*, 옛 타로 글리프/작명 칩/compat 숫자 블록.
 - 검증: npm test 42파일/356테스트, npm run build 성공(기존 500kB 경고만, 신규 의존성 0).
+
+## 텔레그램 사주 선생님 봇 추가 (bot/)
+
+날짜: 2026-07-06
+
+### 무엇을
+- `bot/` 디렉토리에 개인용 텔레그램 챗봇 추가. 용도: 내 사주를 등록해두고 "왜 신약사주인지", "오늘 일진이 왜 이렇게 흘러가는지" 같은 질문에 계산 근거를 짚어가며 답하는 1:1 사주 선생님.
+- 실행: `TELEGRAM_BOT_TOKEN=... ANTHROPIC_API_KEY=... npm run bot` (롱폴링, 웹훅/서버 불필요). 상세는 `bot/README.md`.
+
+### 아키텍처 (핵심 원칙 유지: 계산은 결정적, AI는 해석만)
+- 계산은 전부 기존 엔진 재사용: `computeSajuChart` + `computeLuckCycles`(includeMonthlyFlow, 용신/기신 전달) + `computeFortuneEvidence`(오늘 일진). 봇이 새 계산 로직을 만들지 않는다.
+- Claude에는 계산 JSON을 [원국]/[운 흐름]/[오늘 일진] 근거 팩으로 전달하고, 시스템 프롬프트에서 "데이터에 있는 값만 근거로, 왜 그런지 가르치듯" 답하게 제한. 공포/단정 금지, 건강=컨디션 조언까지, 큰 결정=판단 기준 제공 등 기존 안전 규칙 동일 적용.
+- 파일: `bot/index.ts`(명령 라우팅), `bot/telegram.ts`(의존성 없는 Bot API 클라이언트, 4096자 분할, Markdown 실패 시 평문 폴백), `bot/parseBirth.ts`(자유 형식 생년월일 파싱: 음력/윤달/시간모름/출생지), `bot/evidence.ts`(근거 팩 + API 없는 /saju 요약), `bot/teacher.ts`(Claude 호출), `bot/store.ts`(bot/data/users.json, 최근 40턴, git 미포함).
+- 명령어: /start /birth /saju(API 호출 없음) /today /reset /delete. `TELEGRAM_ALLOWED_USER_IDS`로 개인 봇 잠금 가능.
+
+### 중요한 버그 수정 지식 (이후 세션 주의)
+- `computeLuckCycles`는 `now`의 **로컬 시간 필드**(`Solar.fromDate`)를 쓴다. 웹앱은 브라우저(KST)라 문제없지만, UTC 서버에서 돌리면 일진이 하루(절기 경계면 월운까지) 어긋난다. 봇은 `bot/evidence.ts`의 `kstNow()`로 KST 벽시계 값을 가진 Date를 만들어 전달한다. 서버에서 이 함수를 쓰는 다른 경로가 생기면 같은 보정 필요.
+
+### 부수 변경
+- `@anthropic-ai/sdk` 0.32.1 → 0.110.0 (봇의 adaptive thinking 사용 목적). `api/reading.ts` 타입체크 통과, 기존 사용 API(messages.stream/create, APIError) 호환 확인.
+- devDependency `tsx` 추가, `npm run bot` 스크립트 추가, `tsconfig.bot.json`(봇 전용 타입체크: `npx tsc -p tsconfig.bot.json`).
+- 봇 기본 모델은 `claude-opus-4-8`(BOT_MODEL로 교체 가능). 웹앱 READING_MODEL(claude-sonnet-5)과 독립.
+
+### 검증
+- npm test 42파일/356테스트 통과, npm run build 성공(기존 500kB 경고만).
+- 계산 스모크: 2000-01-01 12:30 서울 → 일주 무오(만세력 검증값 일치), KST 보정 후 luck/fortune 일진 일치(임오) 확인.
