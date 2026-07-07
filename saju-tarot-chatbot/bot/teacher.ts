@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ChatTurn } from "./storeTypes.js";
 import { buildNatalEvidence, buildTodayEvidence, type ChartSource } from "./evidence.js";
-import { emitPartial, flushStream } from "./streamToTelegram.js";
+import { emitPartial, finalizeStream } from "./streamToTelegram.js";
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.
 const MODEL = process.env.BOT_MODEL ?? "claude-opus-4-8";
@@ -112,7 +112,14 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
   return runStream(messages, chatId, verbosityOverride);
 }
 
-/** 공통 스트리밍 호출 + refusal/max_tokens 처리. askTeacher·askCompatibility가 함께 쓴다. */
+/**
+ * 공통 스트리밍 호출. askTeacher·askCompatibility가 함께 쓴다.
+ *
+ * chatId가 주어지면: 생성되는 대로 텍스트를 Telegram에 실시간 반영하고, 끝나면 최종본을
+ * 확정 표시한다(finalizeStream). 이 경우 답을 이미 화면에 띄웠으니, 호출부는 반환값을
+ * "다시 전송"하면 안 되고 히스토리 저장에만 쓴다.
+ * chatId가 없으면: 화면 표시 없이 최종 텍스트만 반환한다(호출부가 직접 sendMessage).
+ */
 async function runStream(
   messages: Anthropic.Messages.MessageParam[],
   chatId?: number,
@@ -129,46 +136,51 @@ async function runStream(
     messages,
   });
 
-  let fullText = "";
-  let stopReason: string | null = null;
-
-  try {
-    // 토큰 스트리밍: 이벤트 리스너로 콘텐츠 델타를 수집
-    const final = await stream.finalMessage();
-    stopReason = final.stop_reason;
-    fullText = final.content
-      .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("\n");
-
-    // Telegram으로 부분 텍스트 전송
-    if (chatId && fullText) {
-      await emitPartial(chatId, fullText);
-      await flushStream(chatId);
+  let streamedText = "";
+  // 토큰이 도착하는 대로 누적하고, chatId가 있으면 그때그때 화면에 반영한다.
+  // for await로 각 emitPartial을 기다리므로 루프가 끝나면 진행 중 전송이 남지 않는다.
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      streamedText += event.delta.text;
+      if (chatId) await emitPartial(chatId, streamedText);
     }
-  } catch (err) {
-    console.error("스트림 처리 오류:", err);
   }
 
+  const final = await stream.finalMessage();
+  const stopReason = final.stop_reason;
+  const assembled = final.content
+    .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n")
+    .trim();
+
+  // 최종 사용자에게 보일 텍스트 결정
+  let result: string;
   if (stopReason === "refusal") {
-    return "죄송해요, 이 질문에는 답변이 제한되었어요. 다른 방식으로 물어봐 주시겠어요?";
+    result = "죄송해요, 이 질문에는 답변이 제한되었어요. 다른 방식으로 물어봐 주시겠어요?";
+  } else if (!assembled) {
+    result = "답변을 만들지 못했어요. 다시 한번 물어봐 주세요.";
+  } else if (stopReason === "max_tokens") {
+    result = `${assembled}\n\n_(답이 길어져 여기서 끊겼어요. "계속" 또는 "이어서 설명해줘"라고 보내주세요.)_`;
+  } else {
+    result = assembled;
   }
 
-  const text = fullText.trim();
-  if (!text) return "답변을 만들지 못했어요. 다시 한번 물어봐 주세요.";
-  if (stopReason === "max_tokens") {
-    return `${text}\n\n_(답이 길어져 여기서 끊겼어요. "계속" 또는 "이어서 설명해줘"라고 보내주세요.)_`;
+  // 스트리밍 모드면 최종본을 여기서 확정 표시한다(호출부는 재전송하지 않음).
+  if (chatId) {
+    await finalizeStream(chatId, result);
   }
-  return text;
+  return result;
 }
 
 export interface AskCompatibilityOptions {
   compatEvidence: string;
   question?: string;
+  chatId?: number; // 스트리밍용 (주어지면 답을 직접 화면에 표시)
 }
 
 /** 궁합 근거를 실어 두 사람 관계 해석을 요청한다. */
-export async function askCompatibility({ compatEvidence, question }: AskCompatibilityOptions): Promise<string> {
+export async function askCompatibility({ compatEvidence, question, chatId }: AskCompatibilityOptions): Promise<string> {
   const ask = question?.trim()
     ? `[이 관계에 대해 특히 궁금한 것]\n${question.trim()}\n\n위 궁금증에 먼저 답하고, 이어서 관계 전반을 풀어주세요.`
     : "이 궁합을 풀어주세요. 두 사람이 왜 그렇게 맞물리는지, 어디서 잘 맞고 어디서 부딪히기 쉬운지, 그리고 관계를 편하게 가져가는 현실적인 방법까지 짚어주세요.";
@@ -184,5 +196,5 @@ export async function askCompatibility({ compatEvidence, question }: AskCompatib
     },
     { role: "user", content: ask },
   ];
-  return runStream(messages);
+  return runStream(messages, chatId);
 }

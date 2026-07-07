@@ -172,8 +172,8 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
       void sendTyping(chatId);
       try {
         const compatEvidence = buildCompatibilityEvidence(user.birthInfo, parsed.birthInfo!, relationType);
-        const answer = await askCompatibility({ compatEvidence });
-        await sendMessage(chatId, answer);
+        // chatId를 넘기면 답이 스트리밍으로 화면에 직접 표시된다(여기서 재전송하지 않음).
+        await askCompatibility({ compatEvidence, chatId });
       } finally {
         clearInterval(typing);
       }
@@ -196,6 +196,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
           void sendTyping(chatId);
           try {
             const { cleanQuestion, override } = extractVerbosityHint(followUp);
+            // 답은 askTeacher가 스트리밍으로 화면에 직접 표시한다(여기서 재전송하지 않음).
             const answer = await askTeacher({
               source: birthSource(parsed.birthInfo!),
               history: [],
@@ -204,7 +205,6 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
               verbosityOverride: override,
             });
             await store.appendHistory(chatId, { role: "user", content: cleanQuestion }, { role: "assistant", content: answer });
-            await sendMessage(chatId, answer);
           } finally {
             clearInterval(typing);
           }
@@ -255,6 +255,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
           void sendTyping(chatId);
           try {
             const { cleanQuestion, override } = extractVerbosityHint(followUp);
+            // 답은 askTeacher가 스트리밍으로 화면에 직접 표시한다(여기서 재전송하지 않음).
             const answer = await askTeacher({
               source: newSource,
               history: [],
@@ -263,7 +264,6 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
               verbosityOverride: override,
             });
             await store.appendHistory(chatId, { role: "user", content: cleanQuestion }, { role: "assistant", content: answer });
-            await sendMessage(chatId, answer);
           } finally {
             clearInterval(typing);
           }
@@ -318,6 +318,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     const typing = setInterval(() => void sendTyping(chatId), 5000);
     void sendTyping(chatId);
     try {
+      // 답은 askTeacher가 스트리밍으로 화면에 직접 표시한다(여기서 재전송하지 않음).
       const answer = await askTeacher({
         source,
         history: user.history,
@@ -326,7 +327,6 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         verbosityOverride,
       });
       await store.appendHistory(chatId, { role: "user", content: question }, { role: "assistant", content: answer });
-      await sendMessage(chatId, answer);
     } finally {
       clearInterval(typing);
     }

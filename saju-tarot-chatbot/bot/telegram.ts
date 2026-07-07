@@ -63,22 +63,29 @@ function splitChunks(text: string, limit = 3900): string[] {
 }
 
 /**
- * 메시지 전송. Markdown으로 먼저 시도하고, 파싱 오류(짝 안 맞는 * 등)면 일반 텍스트로 재전송한다.
+ * 메시지 전송. 기본은 Markdown으로 먼저 시도하고, 파싱 오류(짝 안 맞는 * 등)면 일반 텍스트로 재전송한다.
+ * `plain: true`면 Markdown 시도 없이 바로 일반 텍스트로 보낸다 (스트리밍 중간 갱신용).
  * 첫 청크의 message_id를 반환한다 (스트리밍 편집용).
  */
-export async function sendMessage(chatId: number, text: string): Promise<number | undefined> {
+export async function sendMessage(
+  chatId: number,
+  text: string,
+  opts?: { plain?: boolean },
+): Promise<number | undefined> {
   let firstMessageId: number | undefined;
   for (const chunk of splitChunks(text)) {
-    try {
-      const msg = await call<TgMessage>("sendMessage", { chat_id: chatId, text: chunk, parse_mode: "Markdown" });
-      if (!firstMessageId && msg?.message_id) {
-        firstMessageId = msg.message_id;
+    let msg: TgMessage | undefined;
+    if (opts?.plain) {
+      msg = await call<TgMessage>("sendMessage", { chat_id: chatId, text: chunk });
+    } else {
+      try {
+        msg = await call<TgMessage>("sendMessage", { chat_id: chatId, text: chunk, parse_mode: "Markdown" });
+      } catch {
+        msg = await call<TgMessage>("sendMessage", { chat_id: chatId, text: chunk });
       }
-    } catch {
-      const msg = await call<TgMessage>("sendMessage", { chat_id: chatId, text: chunk });
-      if (!firstMessageId && msg?.message_id) {
-        firstMessageId = msg.message_id;
-      }
+    }
+    if (!firstMessageId && msg?.message_id) {
+      firstMessageId = msg.message_id;
     }
   }
   return firstMessageId;
@@ -86,19 +93,32 @@ export async function sendMessage(chatId: number, text: string): Promise<number 
 
 /**
  * 이미 보낸 메시지를 편집한다 (스트리밍 업데이트용).
- * message_id가 없거나 편집 실패 시 조용히 넘어간다.
+ * 성공/"내용 동일(not modified)"이면 true, 편집 자체가 실패하면 false를 반환한다.
+ * `plain: true`면 Markdown 시도 없이 일반 텍스트로만 편집한다.
  */
-export async function editMessageText(chatId: number, text: string, messageId?: number): Promise<void> {
-  if (!messageId) return;
-  try {
-    // Markdown 우선
-    await call("editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" });
-  } catch {
+export async function editMessageText(
+  chatId: number,
+  text: string,
+  messageId?: number,
+  opts?: { plain?: boolean },
+): Promise<boolean> {
+  if (messageId == null) return false;
+  const tryEdit = async (useMarkdown: boolean): Promise<boolean> => {
     try {
-      // Markdown 실패 시 일반 텍스트
-      await call("editMessageText", { chat_id: chatId, message_id: messageId, text });
-    } catch {
-      // 편집 실패해도 무시 — 메시지는 이미 전송됨
+      await call("editMessageText", {
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        ...(useMarkdown ? { parse_mode: "Markdown" } : {}),
+      });
+      return true;
+    } catch (err) {
+      // 바꿀 내용이 없으면(이미 같은 텍스트) 성공으로 본다.
+      const m = err instanceof Error ? err.message : String(err);
+      if (m.includes("not modified")) return true;
+      return false;
     }
-  }
+  };
+  if (!opts?.plain && (await tryEdit(true))) return true;
+  return tryEdit(false);
 }

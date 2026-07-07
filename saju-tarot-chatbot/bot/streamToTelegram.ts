@@ -1,96 +1,24 @@
-// Claude 토큰을 실시간으로 Telegram에 스트리밍하는 로직.
-// editMessageText로 이미 보낸 메시지를 점진적으로 업데이트한다.
+// Claude 답변을 생성되는 동안 실시간으로 Telegram에 반영한다.
+// 생성 중에는 "첫 메시지 한 개"만 editMessageText로 계속 갱신하고(일반 텍스트),
+// 생성이 끝나면 finalizeStream이 최종 텍스트를 마크다운으로 확정 표시한다.
+// 이렇게 하면 한 답변이 정확히 한 번만 최종 형태로 남는다(중복 전송 없음).
 
-import { sendMessage, editMessageText, type TgMessage } from "./telegram.js";
+import { sendMessage, editMessageText } from "./telegram.js";
 
 interface StreamBuffer {
-  chatId: number;
-  messageId?: number;
-  buffer: string;
-  lastUpdateTime: number;
-  chunks: string[];
-  sentChunks: number; // 몇 개 청크를 이미 보냈는지 추적
+  messageId?: number; // 갱신 대상 첫 메시지 (스트리밍 중 편집)
+  displayedLen: number; // 마지막으로 표시한 길이
+  lastEditAt: number; // 마지막 편집 시각 (rate limit 여유용)
 }
 
 const buffers = new Map<number, StreamBuffer>();
 
-const UPDATE_INTERVAL_MS = 500; // 0.5초마다 업데이트
-const CHUNK_SIZE = 100; // 100 토큰마다 한 번은 확인
+// 텔레그램 편집 rate limit 여유 + 화면 깜빡임 최소화. 이 간격 안에는 갱신하지 않는다.
+const MIN_EDIT_INTERVAL_MS = 1200;
+// 이만큼(글자) 늘어났을 때만 갱신 (자잘한 편집 호출 억제)
+const MIN_GROWTH = 60;
 
-/** Telegram에 부분 텍스트를 전송하거나 업데이트한다 */
-export async function emitPartial(chatId: number, partialText: string): Promise<void> {
-  let buffer = buffers.get(chatId);
-  if (!buffer) {
-    buffer = { chatId, buffer: "", lastUpdateTime: Date.now(), chunks: [], sentChunks: 0 };
-    buffers.set(chatId, buffer);
-  }
-
-  buffer.buffer = partialText;
-  const now = Date.now();
-
-  // 충분히 시간이 지났거나 텍스트가 충분히 쌓였으면 전송
-  const timeSinceLastUpdate = now - buffer.lastUpdateTime;
-  const currentLength = buffer.chunks.join("").length;
-  const shouldUpdate = timeSinceLastUpdate >= UPDATE_INTERVAL_MS || partialText.length > currentLength + CHUNK_SIZE;
-
-  if (!shouldUpdate) {
-    return;
-  }
-
-  buffer.lastUpdateTime = now;
-
-  // Telegram 4096자 한계 대응: 이전 청크들과 현재 청크 분리
-  const chunks = splitChunks(partialText, 3900);
-
-  // 첫 청크: 메시지 생성 또는 업데이트
-  if (chunks.length > 0) {
-    const firstChunk = chunks[0];
-    if (!buffer.messageId) {
-      // 첫 메시지 생성
-      try {
-        const msgId = await sendMessage(chatId, firstChunk);
-        if (msgId) {
-          buffer.messageId = msgId;
-        }
-      } catch (err) {
-        console.error("스트림 첫 메시지 전송 실패:", err);
-        return;
-      }
-    } else {
-      // 첫 청크 업데이트 (message_id가 있으면)
-      try {
-        await editMessageText(chatId, firstChunk, buffer.messageId);
-      } catch (err) {
-        console.error("스트림 메시지 업데이트 실패:", err);
-        // 실패해도 무시 — 타이핑 표시가 있으니 괜찮음
-      }
-    }
-  }
-
-  // 추가 청크들: 새 메시지로 전송 (이전에 보내지 않은 청크만)
-  for (let i = buffer.sentChunks; i < chunks.length; i++) {
-    try {
-      await sendMessage(chatId, chunks[i]);
-    } catch (err) {
-      console.error(`스트림 추가 청크 ${i} 전송 실패:`, err);
-    }
-  }
-
-  buffer.chunks = chunks;
-  buffer.sentChunks = chunks.length;
-}
-
-/** 스트리밍 완료 후 버퍼 정리 */
-export async function flushStream(chatId: number): Promise<void> {
-  const buffer = buffers.get(chatId);
-  if (buffer && buffer.buffer) {
-    // 마지막 업데이트 (아직 전송되지 않은 부분)
-    await emitPartial(chatId, buffer.buffer);
-  }
-  buffers.delete(chatId);
-}
-
-/** 텔레그램 4096자 한계에 맞춰 문단 경계에서 나눈다 */
+/** 텔레그램 메시지 상한(4096자)에 맞춰 문단 경계에서 나눈다 */
 function splitChunks(text: string, limit = 3900): string[] {
   if (text.length <= limit) return [text];
   const chunks: string[] = [];
@@ -104,4 +32,66 @@ function splitChunks(text: string, limit = 3900): string[] {
   }
   if (rest) chunks.push(rest);
   return chunks;
+}
+
+/**
+ * 생성 중 부분 텍스트를 화면에 반영한다 (베스트 에포트, 일반 텍스트).
+ * 스로틀에 걸리거나 전송 실패해도 조용히 넘어간다 — 최종 표시는 finalizeStream이 보장한다.
+ * 스트리밍 중에는 "첫 청크(첫 3900자)"만 갱신한다. 그보다 길어지면 머리 부분만 계속 보이고,
+ * 나머지는 finalizeStream이 확정 전송한다(중복 방지).
+ */
+export async function emitPartial(chatId: number, partialText: string): Promise<void> {
+  if (!partialText.trim()) return;
+
+  let buf = buffers.get(chatId);
+  if (!buf) {
+    buf = { displayedLen: 0, lastEditAt: 0 };
+    buffers.set(chatId, buf);
+  }
+
+  const now = Date.now();
+  if (now - buf.lastEditAt < MIN_EDIT_INTERVAL_MS) return;
+  if (partialText.length - buf.displayedLen < MIN_GROWTH) return;
+
+  // 동시 호출 경합 방지: 네트워크 대기 전에 먼저 스로틀 값을 갱신한다.
+  buf.lastEditAt = now;
+  buf.displayedLen = partialText.length;
+
+  const head = splitChunks(partialText)[0];
+  try {
+    if (buf.messageId == null) {
+      const id = await sendMessage(chatId, head, { plain: true });
+      if (id != null) buf.messageId = id;
+    } else {
+      await editMessageText(chatId, head, buf.messageId, { plain: true });
+    }
+  } catch {
+    // 표시용이라 실패해도 무시
+  }
+}
+
+/**
+ * 최종 텍스트를 확실히 표시하고 스트림 버퍼를 정리한다 (마크다운 적용).
+ * 스트리밍으로 이미 만든 첫 메시지가 있으면 그걸 편집하고, 없으면 새로 보낸다.
+ * 길이가 넘치면 첫 청크는 편집/전송하고 나머지 청크는 새 메시지로 이어 보낸다.
+ * 반드시 runStream이 스트리밍을 끝낸 뒤(진행 중 emitPartial이 남아있지 않을 때) 호출해야 한다.
+ */
+export async function finalizeStream(chatId: number, finalText: string): Promise<void> {
+  const buf = buffers.get(chatId);
+  buffers.delete(chatId);
+
+  const chunks = splitChunks(finalText);
+
+  // 첫 청크: 기존 스트리밍 메시지를 마크다운으로 확정. 편집이 완전히 실패하면 새로 보낸다.
+  if (buf?.messageId != null) {
+    const ok = await editMessageText(chatId, chunks[0], buf.messageId);
+    if (!ok) await sendMessage(chatId, chunks[0]);
+  } else {
+    await sendMessage(chatId, chunks[0]);
+  }
+
+  // 나머지 청크: 스트리밍 중에는 첫 청크만 보였으므로, 여기서만 이어 보낸다(중복 없음).
+  for (let i = 1; i < chunks.length; i++) {
+    await sendMessage(chatId, chunks[i]);
+  }
 }
