@@ -1172,3 +1172,16 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
   대운 인생지도 승격도 SajuFactsPanel 구조 변경 위험이 커서 3차로 남김.
 - `ReadingResult.test.tsx`는 CTA의 react-router `<Link>` 때문에 MemoryRouter로 감쌌다(동작 동일).
 - 테스트: 43파일/362개 통과, 빌드 성공. 헤드리스로 평생사주 라벨+CTA 렌더 육안 확인.
+
+## 평생사주형 — 대운 인생 지도 승격 (3차)
+
+- `SajuFactsPanel`에 `DaYunLifeMap` export 추가: 계산된 대운 배열을 세로 타임라인으로 렌더
+  (나이·연도 범위 + 간지 + 기운 주제 문장 + 현재 시기 강조 + 오행별 노드 색). 계산 로직 불변, 표현만.
+  기운 주제는 대운 천간 오행 → 성장/표현/안정/정리/사색 한 문장으로 옮긴 것(새 운명 주장 아님).
+- `SajuFactsPanel`에 `showDaYun` prop(기본 true) 추가: 평생사주 템플릿이 대운을 위에서 인생 지도로
+  이미 보여줄 때 하단 패널의 대운 알약 타임라인 + 큰흐름×올해흐름 중복 렌더를 끈다.
+- `DefaultReadingTemplate`에 `promoteDaYunLifeMap` prop 추가: 원국 스냅샷 바로 아래에 "대운 인생 지도"
+  카드(인생 지도 + 오버랩 헤드라인 + 캡션)를 렌더하고, 하단 SajuFactsPanel엔 showDaYun=false 전달.
+- 디스패처: 평생사주(saju 무질문)만 promoteDaYunLifeMap 적용. 다른 타입은 기존대로 하단 패널에 대운 유지.
+- 테스트: 인생 지도 승격 + 하단 중복 없음 검증 1개 추가(43파일/363개 통과), 빌드 성공.
+  헤드리스로 세로 타임라인 렌더 + dayun-timeline 0개 육안 확인.

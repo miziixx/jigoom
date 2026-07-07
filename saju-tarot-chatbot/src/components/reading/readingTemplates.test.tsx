@@ -101,6 +101,18 @@ describe("리딩 타입별 템플릿 디스패처", () => {
     expect(html).toContain("올해운세 자세히 보기");
   });
 
+  it("평생사주형은 대운 인생 지도를 원국 아래에 승격하고 하단 패널에 중복하지 않는다", () => {
+    const sajuChart = computeSajuChart(BIRTH);
+    const luckCycles = computeLuckCycles(BIRTH, new Date(), { includeMonthlyFlow: true });
+    const html = render(makeSession("saju", "# 첫 점괘\n차분히 쌓는 구조입니다.", { birthInfo: BIRTH, sajuChart, luckCycles }));
+    expect(html).toContain("대운 인생 지도");
+    expect(html).toContain("dayun-lifemap");
+    // 승격 시 하단 기본 리포트의 대운 알약 타임라인(dayun-timeline)은 렌더하지 않는다
+    expect(html).not.toContain("dayun-timeline");
+    // 인생 지도는 한 번만
+    expect(html.split("dayun-lifemap-card").length - 1).toBe(1);
+  });
+
   it("AI 텍스트가 아직 없으면 CTA를 노출하지 않는다", () => {
     const html = render(makeSession("saju", ""));
     expect(html).not.toContain("이어서 보면 좋은 리포트");

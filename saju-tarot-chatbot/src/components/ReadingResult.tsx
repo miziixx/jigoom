@@ -62,6 +62,7 @@ export default function ReadingResult({ session, loading = false }: { session: R
         loading={loading}
         eyebrow="평생사주 리포트"
         eyebrowIcon="book"
+        promoteDaYunLifeMap
         nextCta={{
           title: "이어서 보면 좋은 리포트",
           items: [

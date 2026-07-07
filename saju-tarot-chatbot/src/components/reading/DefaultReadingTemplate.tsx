@@ -1,5 +1,5 @@
 import LoadingNotice from "../LoadingNotice";
-import SajuFactsPanel, { SajuPillarSnapshot } from "../SajuFactsPanel";
+import SajuFactsPanel, { DaYunLifeMap, SajuPillarSnapshot } from "../SajuFactsPanel";
 import ActionChecklist from "../ActionChecklist";
 import TarotSummaryHero from "../TarotSummaryHero";
 import SummaryCardGrid from "../SummaryCardGrid";
@@ -37,6 +37,7 @@ export default function DefaultReadingTemplate({
   eyebrow,
   eyebrowIcon = "book",
   promoteTarotFacts = false,
+  promoteDaYunLifeMap = false,
   nextCta,
 }: {
   session: ReadingSession;
@@ -46,6 +47,8 @@ export default function DefaultReadingTemplate({
   eyebrowIcon?: string;
   /** 타로형: 뽑힌 카드 근거 패널을 접힌 근거 존이 아니라 히어로 바로 아래에 펼친다. */
   promoteTarotFacts?: boolean;
+  /** 평생사주형: 대운을 원국 바로 아래에 "인생 지도"로 승격하고, 하단 패널의 대운 알약은 숨긴다. */
+  promoteDaYunLifeMap?: boolean;
   /** 리딩 끝에 붙일 다음 행동 제안. AI 텍스트가 도착한 뒤에만 노출한다. */
   nextCta?: { title?: string; items: NextCtaItem[] };
 }) {
@@ -91,6 +94,29 @@ export default function DefaultReadingTemplate({
 
       <SajuPillarSnapshot sajuChart={session.sajuChart} />
 
+      {/* 평생사주형: 대운을 "인생 지도"로 원국 바로 아래에 승격 (10년 단위 큰 흐름) */}
+      {promoteDaYunLifeMap && session.luckCycles?.daYun && session.luckCycles.daYun.length > 0 && (
+        <section className="card dayun-lifemap-card" aria-label="대운 인생 지도">
+          <div className="section-heading-row">
+            <h3 className="card-title">
+              <VizIcon name="calendar" size={15} /> 대운 인생 지도
+            </h3>
+            <span className="feature-badge">10년 단위 큰 흐름</span>
+          </div>
+          <DaYunLifeMap luckCycles={session.luckCycles} />
+          {session.luckCycles.daYunYearOverlap && (
+            <div className={`luck-overlap luck-overlap--${session.luckCycles.daYunYearOverlap.combo}`}>
+              <span className="luck-overlap__tag">큰 흐름 × 올해 흐름</span>
+              <p className="luck-overlap__headline">{session.luckCycles.daYunYearOverlap.headline}</p>
+            </div>
+          )}
+          <p className="viz-caption">
+            대운은 10년 단위로 바뀌는 큰 흐름이에요. 지금 어느 시기에 있는지, 앞으로 어떤 기운으로 넘어가는지 계산값을 쉬운 말로
+            옮긴 것입니다.
+          </p>
+        </section>
+      )}
+
       {session.sajuChart && (
         <section className="reading-basic-report" aria-label="기본 사주 리포트">
           <div className="reading-layer-heading">
@@ -104,6 +130,7 @@ export default function DefaultReadingTemplate({
             luckCycles={session.luckCycles}
             birthInfo={session.birthInfo}
             showPillars={false}
+            showDaYun={!promoteDaYunLifeMap}
           />
         </section>
       )}
