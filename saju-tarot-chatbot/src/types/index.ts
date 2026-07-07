@@ -227,7 +227,25 @@ export interface SinsalHit {
   gloss: string;
 }
 
-/** 격국 판정 (월지 정기 십성 기준 + 종격 후보) */
+/** 월률분야(月律分野) / 사령(司令): 절입 경과일로 월지 지장간 중 어느 것이 그 시점을 주관하는지 */
+export interface MonthCommand {
+  /** 월지 */
+  monthZhi: string;
+  /** 사령한 지장간 글자 */
+  stem: string;
+  /** 지장간 내 위치 (여기/중기/정기) */
+  phase: "여기" | "중기" | "정기";
+  /** 사령 지장간이 일간에게 갖는 십성 */
+  tenGod: string;
+  /** 절입(節入)부터 지난 일수 */
+  daysSinceTerm: number;
+  /** 직전 절(節) 이름 (예: "대설") */
+  termName?: string;
+  /** 쉬운 말 설명 */
+  note: string;
+}
+
+/** 격국 판정 (월지 사령/투출 십성 기준 + 종격 후보) */
 export interface GyeokgukInfo {
   /** 격국 이름 (예: "편관격", "종재격 후보") */
   name: string;
@@ -235,6 +253,10 @@ export interface GyeokgukInfo {
   basis: string;
   /** 쉬운 말 설명 */
   gloss: string;
+  /** 격을 잡은 근거가 된 월지 지장간 글자 */
+  basisStem?: string;
+  /** 격을 잡은 방식: 사령 투출 / 정기 투출 / 지장간 투출 / 사령 잠복(정기) */
+  basisKind?: "사령 투출" | "정기 투출" | "지장간 투출" | "사령(잠복)";
   /** 성패 경향: 격이 뚜렷한지(성격)·흔들리는지(파격)·불명확한지 */
   status?: "성격 경향" | "파격 경향" | "불명확";
   /** 성패 판단 근거 (투출·충 등) */
@@ -264,6 +286,8 @@ export interface SajuChart {
   rootedness?: RootednessHit[];
   /** 투출(投出): 월지 지장간이 천간에 드러났는지 */
   transparency?: TransparencyInfo;
+  /** 월률분야(사령): 절입 경과일 기준 월지 지장간 중 주관하는 기운 */
+  monthCommand?: MonthCommand;
   /** 12운성 (일간 기준 기둥별) */
   twelveStages?: string[];
   /** 공망 (일주 순중공망 지지 2개) */

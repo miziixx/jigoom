@@ -1276,3 +1276,31 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 ### 검증
 - `bot/parseBirth.test.ts` 신규 8개(두 자리 연도 1900/2000대·붙여쓴 성별+시간몰라+질문·지명 오탐 방지·순수 생일 remainder 빔·looksLike) 통과.
 - npm test 45파일/376테스트 통과, `npx tsc -p tsconfig.bot.json --noEmit` 통과, `npm run build` 성공.
+
+## 전통 명리 정밀도 1순위 — 월률분야(사령) · 격국 투출 · 한난 조후
+
+사용자 방향: 이 앱을 전통 명리사주 프로그램으로 만들 것. 소스 점검 결과 만세력 근간(연월일시주·절기·음력/윤달·야자시·서머타임·경도)은 외부 만세력 4곳과 대조해 신뢰 가능하고 해석 레이어(지장간·십성·통근/투출·신살 20여종·격국·용신·합충)도 이미 풍부. 부족했던 "1순위 정밀도" 세 가지를 additive로 보강.
+
+### 1) 월률분야(月律分野)·사령(司令) — 신규
+- `MONTH_COMMAND_DAYS`(생지 7·7·16 / 왕지 10·20 / 오 10·9·11 / 묘고 9·3·18) + `commandStemOf`.
+- `lunar.getPrevJie()`(직전 절)의 율리우스일과 출생 율리우스일 차이로 절입 경과일수 산출 → 그 시점을 주관하는 지장간(사령)을 여기/중기/정기로 판정.
+- `SajuChart.monthCommand`(stem·phase·tenGod·daysSinceTerm·termName·note) 신설. lunar-javascript 타입에 JieQi/getPrevJie/getJulianDay 추가.
+- 검증: 1990-12-23 자월 15.6일차→정기 계(겁재), 1984-02-05 입춘 0.1일차→여기 무.
+
+### 2) 격국 — 정기 고정에서 투출/사령 기반으로
+- `computeGyeokguk`이 transparency·monthCommand를 받아: ① 정기 투출 시 정기, ② 정기 불투·지장간(중기>여기) 투출 시 그 투출자, ③ 투출 전무 시 사령(잠복격)으로 격을 잡음.
+- `GyeokgukInfo.basisStem`/`basisKind`("정기 투출"/"지장간 투출"/"사령(잠복)") 추가. basis 문자열은 "월지" 유지(기존 테스트 호환).
+- compactEvidence의 structure는 basis 전문 대신 이름+성패만 담게 조정(원자료 용어 미유출 테스트 유지).
+
+### 3) 조후 — 겨울/여름만에서 계절·일간 한난 모델로
+- `climaticYongshin`을 `MONTH_TEMP`(계절 온도)+`GAN_TEMP`(일간 온도) 한난 지수로 재작성. 温≤-2→화, 温≥2→수, 그 외 null. 봄·가을생·일간별 차이 반영.
+- 잠금 케이스(을木 오월→수, 임水 자월→화) 그대로 유지 확인.
+
+### 한계(후속)
+- 조후는 일간×월지 60조합 궁통보감 정밀표가 아니라 계절·일간 한난 기반 간이. 검증된 출처로 정밀표 대체는 후속.
+- 대운·세운별 십성/12운성/신살, 삼재, 합화 성립·탐합/쟁합은 2순위로 미구현.
+
+### 검증
+- 신규 `src/lib/sajuPrecision.test.ts` 9개 통과. 기존 회귀(sajuCalculationValidation·sajuFeatures) 무변경 통과.
+- npm test 46파일/385테스트 통과, tsc(앱·봇) 통과, npm run build 성공.
+- 계산 엔진의 연월일시주·오행·십성·대운 고정값은 불변(additive 필드만 추가).

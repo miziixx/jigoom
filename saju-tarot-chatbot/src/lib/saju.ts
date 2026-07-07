@@ -7,6 +7,7 @@ import type {
   GyeokgukInfo,
   LuckCycles,
   LuckOverlap,
+  MonthCommand,
   MonthFlowInfo,
   PastEvent,
   PastEventCalibrationInput,
@@ -247,6 +248,44 @@ const HIDDEN_STEMS: Record<string, string[]> = {
   술: ["신", "정", "무"],
   해: ["무", "갑", "임"],
 };
+
+// ── 월률분야(月律分野)·사령(司令) ──────────
+// 절입(節入)부터 며칠 지났는지에 따라 월지 지장간 중 어느 기운이 그 시점을 "주관(사령)"하는지 정한다.
+// 일수는 HIDDEN_STEMS 배열 순서(여기→중기→정기)와 index가 맞다. (전통 월률분야 통용 일수)
+//  · 生地(인신사해): 여기7·중기7·정기16   · 旺地(자묘유): 여기10·정기20   · 오(旺,3기): 병10·기9·정11   · 墓地(진술축미): 여기9·중기3·정기18
+const MONTH_COMMAND_DAYS: Record<string, number[]> = {
+  자: [10, 20],
+  축: [9, 3, 18],
+  인: [7, 7, 16],
+  묘: [10, 20],
+  진: [9, 3, 18],
+  사: [7, 7, 16],
+  오: [10, 9, 11],
+  미: [9, 3, 18],
+  신: [7, 7, 16],
+  유: [10, 20],
+  술: [9, 3, 18],
+  해: [7, 7, 16],
+};
+
+/**
+ * 사령(司令) 판정: 절입 경과일수로 월지 지장간 중 그 시점을 주관하는 기운을 고른다.
+ * daysSinceTerm은 절입 당일=0 기준의 경과 일수(소수 가능).
+ */
+function commandStemOf(monthZhi: string, daysSinceTerm: number): { stem: string; phase: "정기" | "중기" | "여기"; index: number } | null {
+  const stems = HIDDEN_STEMS[monthZhi];
+  const spans = MONTH_COMMAND_DAYS[monthZhi];
+  if (!stems || !spans) return null;
+  const d = Math.max(0, daysSinceTerm);
+  let acc = 0;
+  for (let i = 0; i < stems.length; i++) {
+    acc += spans[i];
+    if (d < acc || i === stems.length - 1) {
+      return { stem: stems[i], phase: hiddenStemStrength(stems, i), index: i };
+    }
+  }
+  return null;
+}
 
 export const ELEMENT_KO: Record<keyof FiveElementBalance, string> = {
   wood: "목",
@@ -713,32 +752,84 @@ const GYEOKGUK_BY_TENGOD: Record<string, { name: string; gloss: string }> = {
   정인: { name: "정인격", gloss: "학문·명예·보호의 구조. 배우고 정리하는 힘이 강점이에요." },
 };
 
-function computeGyeokguk(dayGan: string, monthZhi: string, strength: StrengthAssessment): GyeokgukInfo {
+/** 절입 경과일수로 월률분야(사령)를 조립한다. */
+function buildMonthCommand(monthZhi: string, dayGan: string, daysSinceTerm: number, termName?: string): MonthCommand | null {
+  const cmd = commandStemOf(monthZhi, daysSinceTerm);
+  if (!cmd) return null;
+  const tenGod = tenGodOf(dayGan, cmd.stem);
+  const note = `${termName ? `${termName} 절입 ` : "절입 "}${daysSinceTerm.toFixed(1)}일차 — 이 시점 월지 ${monthZhi}는 ${cmd.phase} ${cmd.stem}이(가) 사령(주관)하며, 일간 ${dayGan} 기준 ${tenGod}입니다. 사령 기운은 그 사람 기질의 바탕색이 됩니다.`;
+  return { monthZhi, stem: cmd.stem, phase: cmd.phase, tenGod, daysSinceTerm, termName, note };
+}
+
+/**
+ * 격국(格局): 월지 지장간 중 어느 기운으로 격을 잡을지 정한다.
+ * 전통 순서 — ① 월지 정기가 천간에 투출하면 정기로, ② 정기가 불투하고 중기/여기가 투출하면 그 투출자로,
+ * ③ 아무것도 투출하지 않으면 그 시점을 주관하는 사령(司令)으로 (잠복격) 잡는다.
+ * 사령은 절입 경과일 기준 월률분야로 판정된다(command 인자).
+ */
+function computeGyeokguk(
+  dayGan: string,
+  monthZhi: string,
+  strength: StrengthAssessment,
+  transparency: TransparencyInfo,
+  command: MonthCommand | null,
+): GyeokgukInfo {
   const stems = HIDDEN_STEMS[monthZhi] ?? [];
-  const main = stems[stems.length - 1] ?? "";
-  const tenGod = tenGodOf(dayGan, main);
+  const mainStem = stems[stems.length - 1] ?? "";
+  const revealedStems = transparency.revealed.map((r) => r.stem);
+
+  let basisStem = mainStem;
+  let basisKind: GyeokgukInfo["basisKind"] = "사령(잠복)";
+  if (revealedStems.includes(mainStem)) {
+    basisStem = mainStem;
+    basisKind = "정기 투출";
+  } else if (revealedStems.length > 0) {
+    // 정기 불투 — 투출한 지장간 중 가장 강한 위치(중기 > 여기)를 택한다
+    const phaseRank = (stem: string) => {
+      const p = hiddenStemStrength(stems, stems.indexOf(stem));
+      return p === "정기" ? 3 : p === "중기" ? 2 : 1;
+    };
+    basisStem = [...revealedStems].sort((a, b) => phaseRank(b) - phaseRank(a))[0];
+    basisKind = "지장간 투출";
+  } else if (command) {
+    // 투출 전무 — 그 시점을 주관하는 사령으로 격을 잡는다(잠복격)
+    basisStem = command.stem;
+    basisKind = "사령(잠복)";
+  }
+
+  const tenGod = tenGodOf(dayGan, basisStem);
   const base = GYEOKGUK_BY_TENGOD[tenGod] ?? { name: "일반격", gloss: "뚜렷한 격이 잡히지 않는 균형형 구조예요." };
+  const kindNote =
+    basisKind === "정기 투출" ? `월지 ${monthZhi}의 정기(${basisStem})가 천간에 투출`
+    : basisKind === "지장간 투출" ? `월지 ${monthZhi}의 정기는 불투하고 지장간 ${basisStem}이(가) 천간에 투출`
+    : `월지 ${monthZhi}에 투출한 지장간이 없어 사령(${basisStem}${command ? `, 절입 ${command.daysSinceTerm.toFixed(0)}일차` : ""}) 기준`;
 
   const ratio = strength.supportScore / strength.totalScore;
   // 극도로 치우치면 종격 후보로 표시 (참고용)
   if (ratio <= 0.2) {
     return {
       name: `${base.name} · 종격(從格) 후보`,
-      basis: `월지 ${monthZhi}의 정기(${main}) 기준 ${tenGod} + 일간이 매우 약함(지지세력 ${(ratio * 100).toFixed(0)}%)`,
+      basis: `${kindNote} → ${tenGod} + 일간이 매우 약함(지지세력 ${(ratio * 100).toFixed(0)}%)`,
       gloss: `${base.gloss} 다만 일간이 매우 약해, 강한 세력을 따라가는 종격으로 볼 여지도 있어요(관법에 따라 달라지는 참고용).`,
+      basisStem,
+      basisKind,
     };
   }
   if (ratio >= 0.8) {
     return {
       name: `${base.name} · 종왕/종강격 후보`,
-      basis: `월지 ${monthZhi}의 정기(${main}) 기준 ${tenGod} + 일간이 매우 강함(지지세력 ${(ratio * 100).toFixed(0)}%)`,
+      basis: `${kindNote} → ${tenGod} + 일간이 매우 강함(지지세력 ${(ratio * 100).toFixed(0)}%)`,
       gloss: `${base.gloss} 다만 일간이 매우 강해, 그 힘을 그대로 쓰는 종왕/종강격으로 볼 여지도 있어요(참고용).`,
+      basisStem,
+      basisKind,
     };
   }
   return {
     name: base.name,
-    basis: `월지 ${monthZhi}의 정기(${main}) 기준 일간과의 관계 = ${tenGod}`,
+    basis: `${kindNote} → 일간과의 관계 = ${tenGod}`,
     gloss: base.gloss,
+    basisStem,
+    basisKind,
   };
 }
 
@@ -823,27 +914,46 @@ function assessGyeokgukStatus(
 }
 
 // ── 조후·통관 용신 ──────────
-const WINTER_ZHI = new Set(["해", "자", "축"]);
-const SUMMER_ZHI = new Set(["사", "오", "미"]);
+// 한난(寒暖) 지수: 월지 계절 온도 + 일간 자체 온도를 더해 조후 방향을 정한다.
+// 겨울/여름뿐 아니라 봄·가을도, 일간의 차고 더움까지 반영해 판정한다.
+// (일간×월지 60조합 궁통보감 정밀표는 후속 과제 — 여기서는 계절·일간 한난 기반 간이 조후)
+const MONTH_TEMP: Record<string, number> = {
+  인: -1, 묘: 0, 진: 1, // 봄: 초봄(인)은 아직 냉 → 늦봄(진)은 온
+  사: 2, 오: 3, 미: 2, // 여름: 뜨거움
+  신: 0, 유: -1, 술: -1, // 가을: 서늘 → 냉·건조
+  해: -2, 자: -3, 축: -2, // 겨울: 한랭
+};
+const GAN_TEMP: Record<string, number> = {
+  병: 2, 정: 1, 무: 1, 갑: 0, 을: 0, 기: 0, 경: -1, 신: -1, 임: -1, 계: -1,
+};
+const SEASON_KO: Record<string, string> = {
+  인: "초봄", 묘: "봄", 진: "늦봄", 사: "초여름", 오: "한여름", 미: "늦여름",
+  신: "초가을", 유: "가을", 술: "늦가을", 해: "초겨울", 자: "한겨울", 축: "늦겨울",
+};
 
-/** 조후용신(간이): 겨울생은 따뜻한 화, 여름생은 시원한 수를 조후로 본다. */
+/**
+ * 조후용신(간이): 사주의 한난(寒暖)을 보고, 차면 따뜻한 화, 더우면 시원한 수를 조후로 제시한다.
+ * 월지 계절 온도와 일간 자체 온도를 더해 판정하므로 봄·가을생·일간별 차이도 반영된다.
+ */
 function climaticYongshin(monthZhi: string, dayGan: string): { element: string; note: string } | null {
-  const dayEl = GAN_WUXING[dayGan];
-  if (WINTER_ZHI.has(monthZhi)) {
-    const cold = dayEl === "metal" || dayEl === "water";
+  const monthT = MONTH_TEMP[monthZhi];
+  if (monthT === undefined) return null;
+  const temp = monthT + (GAN_TEMP[dayGan] ?? 0);
+  const dayEl = ELEMENT_KO[GAN_WUXING[dayGan]];
+  const season = SEASON_KO[monthZhi] ?? `${monthZhi}월`;
+  if (temp <= -2) {
     return {
       element: "화",
-      note: `겨울(${monthZhi}월) 태생이라 언 기운을 녹이는 따뜻한 화 기운이 조후로 도움이 됩니다.${cold ? " 일간도 차가운 편이라 더욱 그렇습니다." : ""}`,
+      note: `${season}(${monthZhi}월) 태생에 일간 ${dayGan}(${dayEl})까지 더하면 사주가 차가운 편이라, 언 기운을 녹이는 따뜻한 화 기운이 조후로 도움이 됩니다.`,
     };
   }
-  if (SUMMER_ZHI.has(monthZhi)) {
-    const hot = dayEl === "fire" || dayEl === "wood";
+  if (temp >= 2) {
     return {
       element: "수",
-      note: `여름(${monthZhi}월) 태생이라 열기를 식히는 시원한 수 기운이 조후로 도움이 됩니다.${hot ? " 일간도 뜨거운 편이라 더욱 그렇습니다." : ""}`,
+      note: `${season}(${monthZhi}월) 태생에 일간 ${dayGan}(${dayEl})까지 더하면 사주가 더운 편이라, 열기를 식히는 시원한 수 기운이 조후로 도움이 됩니다.`,
     };
   }
-  return null;
+  return null; // 한난이 크게 치우치지 않으면 조후 부담이 적어 억부 위주로 본다
 }
 
 /** 통관용신(간이): 가장 강한 두 오행이 상극이면 그 사이를 잇는 오행을 통관으로 본다. */
@@ -960,8 +1070,18 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
   const gongmangHits = zhis.filter((z) => gongmangZhis.includes(z.char)).map((z) => `${z.label} ${z.char}`);
   const gongmang = `${gongmangZhis} 공망${gongmangHits.length > 0 ? ` (원국 내 해당: ${gongmangHits.join(", ")})` : " (원국 내 해당 지지 없음)"}`;
 
+  // 월률분야(사령): 절입 경과일 기준 월지 지장간 중 주관하는 기운
+  let monthCommand: MonthCommand | null = null;
+  try {
+    const jie = lunar.getPrevJie();
+    const daysSinceTerm = lunar.getSolar().getJulianDay() - jie.getSolar().getJulianDay();
+    monthCommand = buildMonthCommand(monthPillar.zhi, dayGan, daysSinceTerm, jie.getName());
+  } catch {
+    monthCommand = null;
+  }
+
   const sinsal = computeSinsal(dayGan, dayPillar.zhi, monthPillar.zhi, yearPillar.zhi, gans, zhis);
-  const gyeokguk = computeGyeokguk(dayGan, monthPillar.zhi, strength);
+  const gyeokguk = computeGyeokguk(dayGan, monthPillar.zhi, strength, transparency, monthCommand);
   // 격국 성패(투출·충 기준) 보정
   const gyeokgukStatus = assessGyeokgukStatus(monthPillar.zhi, transparency, interactions);
   gyeokguk.status = gyeokgukStatus.status;
@@ -984,6 +1104,7 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
     yongshin,
     rootedness,
     transparency,
+    monthCommand: monthCommand ?? undefined,
     twelveStages,
     gongmang,
     seasonNote: seasonNoteOf(monthPillar.zhi, dayGan),
