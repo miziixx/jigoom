@@ -1516,3 +1516,28 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
 
 ### 검증
 - npm test 50파일/433테스트 통과(오전/오후 6개 추가), tsc·build 통과. 라이브 API 실호출은 이 환경에서 불가(키 없음) — 프롬프트 조립·오늘 첨부 게이트는 코드 리뷰로 확인.
+
+## 명리 4대 고전 엔진 반영 — Phase 0/B/A (2026-07-07 추가)
+
+진행 문서: `docs/four-classics-engine.md` (여러 세션이 이어서 작업하는 기록). 원칙: **ADDITIVE ONLY**, 기존 잠금 테스트값 유지, 작게 쪼개 커밋.
+
+### Phase 0 — 타입 (`src/types/index.ts`)
+- `ClimaticClassicInfo`(궁통보감 조후) + `YongshinCandidates.climaticClassic?` (기존 `climatic`은 그대로 둠 — 잠금값 보호).
+- `GyeokgukClassicInfo`(상신·성패·종격) + `GyeokgukInfo.classic?`.
+- `HiddenTenGodBreakdown` + `SajuChart.hiddenTenGods?`, `SajuChart.tenGodDistribution?`.
+
+### Phase B — 연해자평 십성론 심화 (`src/lib/saju.ts`)
+- `HIDDEN_PHASE_WEIGHT`(정기1.0/중기0.5/여기0.3), `computeHiddenTenGods`, `computeTenGodDistribution`, `tenGodGroupTotals`.
+- 지장간까지 위상별로 십성을 가중 집계해 십성 세기 분포를 만든다. `assembleChart`에서 세팅.
+
+### Phase A — 자평진전 격국 심화 (`src/lib/saju.ts`)
+- `assessJonggyeok`(종재/종살/종아/종왕/종강격), `assessGyeokgukClassic`(상신·성격패턴·파격요인·성패 종합).
+- 성격 패턴: 살인상생·식신제살·상관생재·상관패인·식신생재·재생관·관인상생. 파격: 상관견관·정관봉상관·재다신약·탐재괴인·칠살무제·효신탈식·녹인무의.
+- 기존 `assessGyeokgukStatus`(간이 성패)는 그대로 두고 `gyeokguk.classic`에 병렬로 심화 결과 추가.
+- ⚠️ 상신/파격은 관법 이견 있어 "참고용" 문구 유지.
+
+### 검증
+- npm test 50파일/433테스트 통과(기존 잠금값 그대로), build 통과. 새 필드는 아직 프롬프트/UI에 미배선이라 출력 변화 없음(additive).
+
+### 남은 일 (별도 커밋 예정)
+- Phase D 신살 확장, Phase C 궁통보감 120조합, 대면 상담 느낌 프롬프트, 다운스트림 배선 + 신규 테스트.

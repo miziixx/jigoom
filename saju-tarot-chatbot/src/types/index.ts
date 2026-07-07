@@ -177,10 +177,32 @@ export interface YongshinCandidates {
   heesin?: string[];
   /** 조후용신 (계절 조화: 겨울생→화, 여름생→수 등). 없으면 null */
   climatic?: { element: string; note: string } | null;
+  /** 궁통보감(窮通寶鑑) 일간×월지 조후 정밀 판정. 없으면 null */
+  climaticClassic?: ClimaticClassicInfo | null;
   /** 통관용신 (강하게 대립하는 두 오행 사이를 잇는 오행). 없으면 null */
   mediating?: { element: string; note: string } | null;
   /** 적용한 관법 요약 (예: "억부 중심 + 조후 보정") */
   method?: string;
+}
+
+/** 궁통보감(窮通寶鑑) 조후용신: 일간×월지별 우선순위 조후 천간 판정 */
+export interface ClimaticClassicInfo {
+  /** 우선순위 순서의 조후용신 천간 (예: ["계","정","경"] = 계수 우선 → 정화 → 경금) */
+  priorityStems: string[];
+  /** priorityStems를 오행으로 환산한 목록 (중복 제거, 우선순위 유지) */
+  priorityElements: string[];
+  /** 원국(천간+지장간)에 실제로 있는 우선 천간 */
+  presentStems: string[];
+  /** 원국에 없어 보완이 필요한 우선 천간 */
+  missingStems: string[];
+  /** 1순위 조후용신의 오행 */
+  primaryElement: string;
+  /** 1순위 조후용신(또는 그 오행)이 원국에 갖춰졌는지 */
+  satisfied: boolean;
+  /** 쉬운 말 설명 */
+  note: string;
+  /** 근거 고전 */
+  source: "궁통보감";
 }
 
 /** 천간 하나의 통근(通根) 판정 — 그 천간 오행이 지지 지장간에 뿌리를 두는지 */
@@ -216,6 +238,21 @@ export interface TransparencyInfo {
   revealed: Array<{ stem: string; atPosition: string; tenGod: string }>;
   /** 쉬운 말 설명 */
   note: string;
+}
+
+/** 지지 하나의 지장간 기반 십성 분해 (여기/중기/정기 위상별) */
+export interface HiddenTenGodBreakdown {
+  /** 지지 위치 (예: "월지") */
+  position: string;
+  /** 지지 (예: "인") */
+  zhi: string;
+  /** 지장간별 십성과 위상 가중치 */
+  stems: Array<{
+    stem: string;
+    phase: "여기" | "중기" | "정기";
+    tenGod: string;
+    weight: number;
+  }>;
 }
 
 /** 신살 한 개 (이름 + 해당 위치 + 쉬운 뜻) */
@@ -261,6 +298,26 @@ export interface GyeokgukInfo {
   status?: "성격 경향" | "파격 경향" | "불명확";
   /** 성패 판단 근거 (투출·충 등) */
   statusReason?: string;
+  /** 자평진전(子平眞詮) 심화: 상신·성격/파격·종격 판정 */
+  classic?: GyeokgukClassicInfo;
+}
+
+/** 자평진전(子平眞詮) 격국 심화 판정: 상신(相神)·성격/파격·종격 */
+export interface GyeokgukClassicInfo {
+  /** 상신(相神): 격을 완성시키는 핵심 십성/오행 */
+  sangshin?: { tenGod: string; element: string; role: string; present: boolean };
+  /** 성격 패턴 이름 (예: "살인상생", "식신생재") */
+  pattern?: string;
+  /** 패턴 쉬운 말 설명 */
+  patternGloss?: string;
+  /** 파격 요인 목록 (상관견관·재다신약 등) */
+  failures: Array<{ name: string; reason: string }>;
+  /** 종격 유형 (종재격·종살격·종왕격 등). 일반격이면 null */
+  jonggyeok?: { name: string; reason: string } | null;
+  /** 최종 성패 판정 */
+  established: "성격" | "파격" | "미형성";
+  /** 종합 쉬운 말 설명 */
+  note: string;
 }
 
 export interface SajuChart {
@@ -278,6 +335,10 @@ export interface SajuChart {
   hiddenStems?: string[];
   /** 지지 십성 (지장간 정기 기준) */
   branchTenGods?: string[];
+  /** 지지별 지장간(여기/중기/정기) 기반 십성 분해 */
+  hiddenTenGods?: HiddenTenGodBreakdown[];
+  /** 십성 세기 분포 (천간 + 지장간 가중 합산) */
+  tenGodDistribution?: Record<string, number>;
   /** 합충형파해 목록 (예: "월지-연지 자오충") */
   interactions?: string[];
   strength?: StrengthAssessment;

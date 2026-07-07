@@ -4,7 +4,9 @@ import type {
   CompatibilityResult,
   CompatibilityRelationType,
   FiveElementBalance,
+  GyeokgukClassicInfo,
   GyeokgukInfo,
+  HiddenTenGodBreakdown,
   LuckCycles,
   LuckOverlap,
   MonthCommand,
@@ -915,6 +917,73 @@ function computeTransparency(dayGan: string, monthZhi: string, gans: PositionedC
   return { monthZhi, hidden, revealed, note };
 }
 
+// ── 지장간 기반 십성 분해 (연해자평 十星論 심화) ──────────
+// 겉 천간의 십성뿐 아니라 지지 속에 숨은 지장간까지, 위상별 세기(정기>중기>여기)를
+// 가중치로 반영해 십성 세기 분포를 만든다. 성향/격국 해석의 가중치 근거가 된다.
+const HIDDEN_PHASE_WEIGHT: Record<"정기" | "중기" | "여기", number> = {
+  정기: 1.0,
+  중기: 0.5,
+  여기: 0.3,
+};
+
+/** 각 지지의 지장간을 여기/중기/정기 위상별로 십성 분해한다. */
+function computeHiddenTenGods(dayGan: string, zhis: PositionedChar[]): HiddenTenGodBreakdown[] {
+  return zhis.map(({ label, char }) => {
+    const stems = HIDDEN_STEMS[char] ?? [];
+    return {
+      position: label,
+      zhi: char,
+      stems: stems.map((stem, idx) => {
+        const phase = hiddenStemStrength(stems, idx);
+        return { stem, phase, tenGod: tenGodOf(dayGan, stem), weight: HIDDEN_PHASE_WEIGHT[phase] };
+      }),
+    };
+  });
+}
+
+/** 천간(가중 1.0, 일간 제외) + 지장간(위상 가중) 십성을 합산해 십성 세기 분포를 만든다. */
+function computeTenGodDistribution(
+  dayGan: string,
+  gans: PositionedChar[],
+  zhis: PositionedChar[],
+): Record<string, number> {
+  const dist: Record<string, number> = {};
+  const add = (tenGod: string, w: number) => {
+    if (tenGod === "?") return;
+    dist[tenGod] = (dist[tenGod] ?? 0) + w;
+  };
+  for (const g of gans) {
+    if (g.label === "일간") continue;
+    add(tenGodOf(dayGan, g.char), 1.0);
+  }
+  for (const z of zhis) {
+    const stems = HIDDEN_STEMS[z.char] ?? [];
+    stems.forEach((stem, idx) => add(tenGodOf(dayGan, stem), HIDDEN_PHASE_WEIGHT[hiddenStemStrength(stems, idx)]));
+  }
+  for (const k of Object.keys(dist)) dist[k] = Math.round(dist[k] * 100) / 100;
+  return dist;
+}
+
+/** 십성 → 상위 그룹(비겁/식상/재성/관성/인성) 매핑 */
+const TENGOD_GROUP: Record<string, "비겁" | "식상" | "재성" | "관성" | "인성"> = {
+  비견: "비겁", 겁재: "비겁",
+  식신: "식상", 상관: "식상",
+  편재: "재성", 정재: "재성",
+  편관: "관성", 정관: "관성",
+  편인: "인성", 정인: "인성",
+};
+
+/** 십성 세기 분포를 상위 그룹(비겁/식상/재성/관성/인성)별 합계로 집계한다. */
+function tenGodGroupTotals(dist: Record<string, number>): Record<string, number> {
+  const totals: Record<string, number> = { 비겁: 0, 식상: 0, 재성: 0, 관성: 0, 인성: 0 };
+  for (const [tenGod, v] of Object.entries(dist)) {
+    const group = TENGOD_GROUP[tenGod];
+    if (group) totals[group] += v;
+  }
+  for (const k of Object.keys(totals)) totals[k] = Math.round(totals[k] * 100) / 100;
+  return totals;
+}
+
 /** 격국 성패(간이): 월지 정기가 투출하면 뚜렷(성격 경향), 월지가 충 맞으면 흔들림(파격 경향) */
 function assessGyeokgukStatus(
   monthZhi: string,
@@ -940,6 +1009,171 @@ function assessGyeokgukStatus(
     status: "불명확",
     statusReason: `월지 정기(${mainStem})가 천간에 드러나지 않아 격의 뚜렷함이 약합니다. 여러 기운이 섞인 혼합형으로 볼 수 있습니다.`,
   };
+}
+
+// ── 자평진전(子平眞詮) 격국 심화: 상신(相神)·성격/파격·종격 ──────────
+// 자평진전은 격을 사길신(재·정관·인수·식신, 順用)과 사흉신(칠살·상관·편인·양인, 逆用)으로 나누고,
+// 격을 완성시키는 상신(相神)의 유무로 성격/파격을 가른다. 아래 표는 심효첨·서락오 통설을 따르되,
+// 관법에 따라 이견이 있을 수 있어 참고용으로 표기한다.
+interface SangshinRule {
+  /** 상신 후보 그룹 (우선순위 순) */
+  needs: Array<"비겁" | "식상" | "재성" | "관성" | "인성">;
+  /** 상신 역할 설명 */
+  role: string;
+}
+const SANGSHIN_RULE: Record<string, SangshinRule> = {
+  정관: { needs: ["재성", "인성"], role: "재성이 정관을 생하거나(재생관) 인성이 정관을 보호하면(관인상생) 격이 맑아집니다" },
+  편관: { needs: ["식상", "인성"], role: "식상이 칠살을 제어하거나(식신제살) 인성이 살을 인화하면(살인상생) 격이 맑아집니다" },
+  정재: { needs: ["식상", "관성"], role: "식상이 재성을 생하거나(식신생재) 관성이 재성을 지키면 격이 맑아집니다" },
+  편재: { needs: ["식상", "관성"], role: "식상이 재성을 생하거나(식신생재) 관성이 재성을 지키면 격이 맑아집니다" },
+  정인: { needs: ["관성"], role: "관성이 인성을 생하면(관인상생) 격이 맑아집니다" },
+  편인: { needs: ["재성"], role: "재성이 지나친 편인을 덜어주면 격이 맑아집니다" },
+  식신: { needs: ["재성"], role: "식신이 재성을 생하면(식신생재) 격이 맑아집니다" },
+  상관: { needs: ["재성", "인성"], role: "상관이 재성을 생하거나(상관생재) 인성이 상관을 다스리면(상관패인) 격이 맑아집니다" },
+  비견: { needs: ["관성", "재성", "식상"], role: "건록은 재·관·식상을 상신으로 삼아 힘을 쓸 곳이 있어야 격이 맑아집니다" },
+  겁재: { needs: ["관성"], role: "양인은 관살로 제어해야(관살제인) 격이 맑아집니다" },
+};
+
+const GROUP_ELEMENT_OF = (dayGan: string, group: "비겁" | "식상" | "재성" | "관성" | "인성"): string => {
+  const dayEl = GAN_WUXING[dayGan];
+  if (group === "비겁") return ELEMENT_KO[dayEl];
+  if (group === "식상") return ELEMENT_KO[GENERATES[dayEl]];
+  if (group === "재성") return ELEMENT_KO[OVERCOMES[dayEl]];
+  if (group === "관성") return ELEMENT_KO[(Object.keys(OVERCOMES) as Array<keyof FiveElementBalance>).find((el) => OVERCOMES[el] === dayEl)!];
+  return ELEMENT_KO[(Object.keys(GENERATES) as Array<keyof FiveElementBalance>).find((el) => GENERATES[el] === dayEl)!];
+};
+
+/** 종격(從格) 판정: 일간이 극도로 치우쳐 대세를 따를 때의 유형 */
+function assessJonggyeok(
+  strength: StrengthAssessment,
+  groupTotals: Record<string, number>,
+): { name: string; reason: string } | null {
+  const ratio = strength.supportScore / strength.totalScore;
+  if (ratio <= 0.2) {
+    // 일간이 뿌리 없이 극약 → 가장 강한 외부 세력을 따른다
+    const external: Array<["재성" | "관성" | "식상", number]> = [
+      ["재성", groupTotals.재성 ?? 0],
+      ["관성", groupTotals.관성 ?? 0],
+      ["식상", groupTotals.식상 ?? 0],
+    ];
+    const [topGroup, topVal] = external.sort((a, b) => b[1] - a[1])[0];
+    if (topVal > 0) {
+      const map = {
+        재성: { name: "종재격(從財格)", reason: "일간이 매우 약하고 재성이 왕성해, 재성의 세력을 따르는 종재격으로 볼 여지가 있습니다." },
+        관성: { name: "종살격(從殺格)", reason: "일간이 매우 약하고 관살이 왕성해, 관살의 세력을 따르는 종살격으로 볼 여지가 있습니다." },
+        식상: { name: "종아격(從兒格)", reason: "일간이 매우 약하고 식상이 왕성해, 식상의 세력을 따르는 종아격으로 볼 여지가 있습니다." },
+      } as const;
+      return map[topGroup];
+    }
+  }
+  if (ratio >= 0.8) {
+    if ((groupTotals.인성 ?? 0) > (groupTotals.비겁 ?? 0)) {
+      return { name: "종강격(從強格)", reason: "인성이 극도로 왕성해 그 힘을 따르는 종강격으로 볼 여지가 있습니다." };
+    }
+    return { name: "종왕격(從旺格)", reason: "비겁이 극도로 왕성해 그 힘을 그대로 쓰는 종왕격으로 볼 여지가 있습니다." };
+  }
+  return null;
+}
+
+/**
+ * 자평진전 격국 심화 판정: 상신(相神)을 찾고, 성격/파격 패턴과 파격 요인을 종합한다.
+ * dist는 십성 세기 분포, groupTotals는 상위 그룹 합계.
+ */
+function assessGyeokgukClassic(
+  dayGan: string,
+  baseTenGod: string,
+  strength: StrengthAssessment,
+  dist: Record<string, number>,
+  groupTotals: Record<string, number>,
+): GyeokgukClassicInfo {
+  const has = (tenGod: string) => (dist[tenGod] ?? 0) > 0;
+  const hasGroup = (g: "비겁" | "식상" | "재성" | "관성" | "인성") => (groupTotals[g] ?? 0) > 0;
+
+  // 종격이면 별도 경로로 처리
+  const jonggyeok = assessJonggyeok(strength, groupTotals);
+  if (jonggyeok) {
+    return {
+      failures: [],
+      jonggyeok,
+      established: "성격",
+      note: `${jonggyeok.reason} 종격은 대세를 거스르는 기운(용신의 반대)이 섞이면 오히려 탁해지니, 흐름을 따르는 방향이 유리합니다.`,
+    };
+  }
+
+  // 1) 상신 판정
+  const rule = SANGSHIN_RULE[baseTenGod];
+  let sangshin: GyeokgukClassicInfo["sangshin"];
+  if (rule) {
+    const chosen = rule.needs.find((g) => hasGroup(g)) ?? rule.needs[0];
+    sangshin = {
+      tenGod: chosen,
+      element: GROUP_ELEMENT_OF(dayGan, chosen),
+      role: rule.role,
+      present: hasGroup(chosen),
+    };
+  }
+
+  // 2) 성격 패턴 이름
+  let pattern: string | undefined;
+  let patternGloss: string | undefined;
+  const setPattern = (p: string, g: string) => {
+    if (!pattern) { pattern = p; patternGloss = g; }
+  };
+  if (baseTenGod === "편관") {
+    if (hasGroup("인성")) setPattern("살인상생(殺印相生)", "칠살의 압박을 인성이 받아 지혜·권위로 바꿔 쓰는 맑은 구조입니다.");
+    if (hasGroup("식상")) setPattern("식신제살(食神制殺)", "식신이 칠살을 눌러 통제하는, 담대하게 도전을 제어하는 구조입니다.");
+  } else if (baseTenGod === "상관") {
+    if (hasGroup("재성")) setPattern("상관생재(傷官生財)", "재능·표현(상관)이 재물(재성)로 이어지는 실속 있는 구조입니다.");
+    if (hasGroup("인성")) setPattern("상관패인(傷官佩印)", "인성이 상관의 날카로움을 다듬어 품격을 더하는 구조입니다.");
+  } else if (baseTenGod === "식신") {
+    if (hasGroup("재성")) setPattern("식신생재(食神生財)", "꾸준한 생산(식신)이 재물(재성)로 이어지는 안정적인 구조입니다.");
+  } else if (baseTenGod === "정재" || baseTenGod === "편재") {
+    if (hasGroup("관성")) setPattern("재생관(財生官)", "재물(재성)이 명예·지위(관성)를 뒷받침하는 구조입니다.");
+    else if (hasGroup("식상")) setPattern("식상생재(食傷生財)", "재능·활동(식상)이 재물(재성)을 만들어내는 구조입니다.");
+  } else if (baseTenGod === "정관") {
+    if (hasGroup("재성")) setPattern("재생관(財生官)", "재물이 정관을 생해 명예·지위가 든든해지는 구조입니다.");
+    if (hasGroup("인성")) setPattern("관인상생(官印相生)", "관성과 인성이 이어져 명예와 학문·인덕이 함께 가는 구조입니다.");
+  } else if (baseTenGod === "정인" || baseTenGod === "편인") {
+    if (hasGroup("관성")) setPattern("관인상생(官印相生)", "관성이 인성을 생해 지위와 배움이 함께 자라는 구조입니다.");
+  }
+
+  // 3) 파격 요인
+  const failures: GyeokgukClassicInfo["failures"] = [];
+  if (baseTenGod === "상관" && has("정관")) {
+    failures.push({ name: "상관견관(傷官見官)", reason: "상관격에 정관이 드러나 서로 상하니, 규칙·조직과 부딪히는 굴곡이 생기기 쉽습니다." });
+  }
+  if (baseTenGod === "정관" && (has("상관") || has("겁재"))) {
+    if (has("상관")) failures.push({ name: "정관봉상관(正官逢傷官)", reason: "정관격에 상관이 있어 정관을 손상하니, 명예·직위가 흔들리기 쉽습니다." });
+  }
+  if ((baseTenGod === "정재" || baseTenGod === "편재") && strength.label === "신약" && !hasGroup("비겁") && !hasGroup("인성")) {
+    failures.push({ name: "재다신약(財多身弱)", reason: "재성은 많은데 일간이 약하고 비겁·인성의 뿌리가 없어, 재물을 감당하기 벅찬 구조입니다." });
+  }
+  if (baseTenGod === "정인" && hasGroup("재성") && !hasGroup("관성")) {
+    failures.push({ name: "탐재괴인(貪財壞印)", reason: "인수격에 재성이 인성을 극하는데 이를 풀 관성이 없어, 배움·명예가 재물 욕심에 흔들리기 쉽습니다." });
+  }
+  if (baseTenGod === "편관" && !hasGroup("식상") && !hasGroup("인성")) {
+    failures.push({ name: "칠살무제(七殺無制)", reason: "칠살을 제어할 식상도, 인화할 인성도 없어 압박이 그대로 몰리는 구조입니다." });
+  }
+  if (baseTenGod === "식신" && has("편인") && !hasGroup("재성")) {
+    failures.push({ name: "효신탈식(梟神奪食)", reason: "식신격에 편인이 식신을 빼앗는데 이를 막을 재성이 없어, 결실을 맺기 어려운 구조입니다." });
+  }
+  if ((baseTenGod === "비견" || baseTenGod === "겁재") && !hasGroup("재성") && !hasGroup("관성")) {
+    failures.push({ name: "녹인무의(祿刃無依)", reason: "건록·양인의 강한 힘을 쓸 재성·관성이 없어, 기운을 풀 곳이 마땅치 않은 구조입니다." });
+  }
+
+  // 4) 성패 종합
+  let established: GyeokgukClassicInfo["established"];
+  if (failures.length > 0 && !(sangshin?.present)) established = "파격";
+  else if (sangshin?.present) established = "성격";
+  else established = "미형성";
+
+  const parts: string[] = [];
+  if (sangshin) parts.push(sangshin.present ? `상신 ${sangshin.tenGod}(${sangshin.element})이(가) 갖춰져 ${sangshin.role.replace(/면 격이 맑아집니다$/, "는 흐름")}` : `상신은 ${sangshin.tenGod}(${sangshin.element})인데 원국에 뚜렷하지 않아 격을 완성할 힘이 아쉽습니다`);
+  if (pattern) parts.push(`성격 패턴: ${pattern}`);
+  if (failures.length > 0) parts.push(`파격 요인: ${failures.map((f) => f.name).join(", ")}`);
+  const note = parts.length > 0 ? `${parts.join(" / ")}. (자평진전 상신론 기준 참고)` : "뚜렷한 상신·파격 요인이 드러나지 않는 무난한 구조입니다.";
+
+  return { sangshin, pattern, patternGloss, failures, jonggyeok: null, established, note };
 }
 
 // ── 조후·통관 용신 ──────────
@@ -1205,6 +1439,9 @@ function assembleChart(
     const main = stems[stems.length - 1] ?? "";
     return `${z.label} ${z.char}(정기 ${main}): ${tenGodOf(dayGan, main)}`;
   });
+  // 지장간 위상별 십성 분해 + 십성 세기 분포 (연해자평 십성론 심화)
+  const hiddenTenGods = computeHiddenTenGods(dayGan, zhis);
+  const tenGodDistribution = computeTenGodDistribution(dayGan, gans, zhis);
 
   const interactions = computeInteractions(gans, zhis);
   const strength = assessStrength(dayGan, gans, zhis);
@@ -1232,6 +1469,10 @@ function assembleChart(
   const gyeokgukStatus = assessGyeokgukStatus(monthPillar.zhi, transparency, interactions);
   gyeokguk.status = gyeokgukStatus.status;
   gyeokguk.statusReason = gyeokgukStatus.statusReason;
+  // 자평진전 심화: 상신(相神)·성격/파격·종격
+  const baseTenGod = gyeokguk.basisStem ? tenGodOf(dayGan, gyeokguk.basisStem) : "";
+  const groupTotals = tenGodGroupTotals(tenGodDistribution);
+  gyeokguk.classic = assessGyeokgukClassic(dayGan, baseTenGod, strength, tenGodDistribution, groupTotals);
   const iljuTrait = iljuTraitOf(dayPillar.ganZhi);
 
   return {
@@ -1245,6 +1486,8 @@ function assembleChart(
     yinYang: { yang, yin: totalChars - yang },
     hiddenStems,
     branchTenGods,
+    hiddenTenGods,
+    tenGodDistribution,
     interactions,
     strength,
     yongshin,
