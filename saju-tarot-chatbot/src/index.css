@@ -6945,3 +6945,231 @@ label {
     display: none;
   }
 }
+
+/* ── 리딩 타입별 템플릿: 상품 라벨, 올해운세 히어로, 다음 리딩 CTA ── */
+
+.reading-type-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 4px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: rgba(169, 118, 56, 0.1);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.reading-result > .reading-type-eyebrow {
+  margin-bottom: -6px;
+}
+
+.yearly-hero {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  border-color: var(--accent);
+}
+
+.yearly-hero__headline {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.yearly-hero__note {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.yearly-overlap {
+  margin-top: 2px;
+}
+
+.reading-cta__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.reading-cta__item {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-alt);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.reading-cta__item:hover {
+  border-color: var(--accent);
+}
+
+.reading-cta__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.reading-cta__item b {
+  font-size: 0.95rem;
+}
+
+.reading-cta__item small {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.tarot-facts-promoted {
+  margin-top: 2px;
+}
+
+@media print {
+  .reading-cta {
+    display: none;
+  }
+}
+
+/* ── 평생사주: 대운 인생 지도 (세로 타임라인) ── */
+.dayun-lifemap-card .card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dayun-lifemap {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  position: relative;
+}
+
+/* 세로 연결선 */
+.dayun-lifemap::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--border);
+}
+
+.dayun-lifemap__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 12px;
+  padding: 10px 0 10px 24px;
+  align-items: start;
+}
+
+/* 각 시기 노드 (연결선 위 점) */
+.dayun-lifemap__row::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 15px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+}
+
+.dayun-lifemap__row--wood::before { border-color: var(--wood); }
+.dayun-lifemap__row--fire::before { border-color: var(--fire); }
+.dayun-lifemap__row--earth::before { border-color: var(--earth); }
+.dayun-lifemap__row--metal::before { border-color: var(--metal); }
+.dayun-lifemap__row--water::before { border-color: var(--water); }
+
+.dayun-lifemap__row--current::before {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(169, 118, 56, 0.18);
+}
+
+.dayun-lifemap__row--current {
+  background: rgba(169, 118, 56, 0.06);
+  border-radius: 10px;
+}
+
+.dayun-lifemap__age {
+  display: grid;
+  gap: 1px;
+  padding-top: 12px;
+}
+
+.dayun-lifemap__age b {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.dayun-lifemap__age small {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+
+.dayun-lifemap__body {
+  padding-top: 10px;
+}
+
+.dayun-lifemap__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dayun-lifemap__ganzhi {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.dayun-lifemap__phase {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.dayun-lifemap__now {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.dayun-lifemap__theme {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+@media print {
+  .dayun-lifemap__row { break-inside: avoid; }
+}

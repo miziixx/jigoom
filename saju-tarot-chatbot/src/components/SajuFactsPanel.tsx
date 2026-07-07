@@ -224,6 +224,65 @@ function dayunPhase(ganZhi: string): string | null {
   return el ? (ELEMENT_PHASE_WORD[el] ?? null) : null;
 }
 
+// 시기별 기운을 한 문장 주제로 (인생 지도용, 계산값을 쉬운 말로만 옮김 — 새 운명 주장 아님)
+const ELEMENT_PHASE_THEME: Record<string, string> = {
+  목: "새로 시작하고 배우고 뻗어나가는 힘이 커지는 시기",
+  화: "드러내고 표현하고 사람들 앞에 나서는 힘이 커지는 시기",
+  토: "터를 다지고 책임을 맡으며 현실을 정리하는 시기",
+  금: "기준을 세우고 정리하고 결단하는 힘이 커지는 시기",
+  수: "생각하고 준비하고 흐름을 살피며 안으로 쌓는 시기",
+};
+
+function dayunTheme(ganZhi: string): string | null {
+  const gan = ganZhi?.[0];
+  const el = gan ? STEM_META[gan]?.element : null;
+  return el ? (ELEMENT_PHASE_THEME[el] ?? null) : null;
+}
+
+/**
+ * 평생사주(인생 지도)용 대운 세로 타임라인. 계산된 대운 배열을 10년 단위 흐름으로
+ * 나이·연도·간지·기운 주제와 함께 보여준다. 현재 대운을 강조. (계산 로직 불변, 표현만)
+ */
+export function DaYunLifeMap({ luckCycles }: { luckCycles?: LuckCycles }) {
+  if (!luckCycles?.daYun || luckCycles.daYun.length === 0) return null;
+  return (
+    <ol className="dayun-lifemap">
+      {luckCycles.daYun.map((dy) => {
+        const gan = dy.ganZhi?.[0];
+        const elementKo = gan ? STEM_META[gan]?.element : undefined;
+        const elementKey = elementKo ? ELEMENT_KEY_BY_KO[elementKo] : undefined;
+        const phase = dayunPhase(dy.ganZhi);
+        const theme = dayunTheme(dy.ganZhi);
+        return (
+          <li
+            key={`${dy.startAge}-${dy.ganZhi}`}
+            className={`dayun-lifemap__row${elementKey ? ` dayun-lifemap__row--${elementKey}` : ""}${
+              dy.current ? " dayun-lifemap__row--current" : ""
+            }`}
+          >
+            <div className="dayun-lifemap__age">
+              <b>{dy.startAge}~{dy.endAge}세</b>
+              <small>{dy.startYear}~{dy.endYear}</small>
+            </div>
+            <div className="dayun-lifemap__body">
+              <div className="dayun-lifemap__head">
+                <span className="dayun-lifemap__ganzhi">{dy.ganZhi}</span>
+                {phase && <span className="dayun-lifemap__phase">{phase}</span>}
+                {dy.current && (
+                  <span className="dayun-lifemap__now">
+                    <VizIcon name="flag" size={10} /> 지금 이 시기
+                  </span>
+                )}
+              </div>
+              {theme && <p className="dayun-lifemap__theme">{theme}</p>}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function DaYunTimeline({ luckCycles }: { luckCycles: LuckCycles }) {
   return (
     <div className="dayun-timeline">
@@ -319,12 +378,15 @@ export default function SajuFactsPanel({
   luckCycles,
   birthInfo,
   showPillars = true,
+  showDaYun = true,
 }: {
   sajuChart?: SajuChart;
   luckCycles?: LuckCycles;
   birthInfo?: BirthInfo;
   /** 이미 SajuPillarSnapshot으로 4기둥을 보여준 경우 중복 렌더를 막기 위해 false로 넘긴다. */
   showPillars?: boolean;
+  /** 평생사주 템플릿이 대운을 인생 지도로 위에서 이미 보여줄 때 대운 알약 타임라인을 숨긴다. */
+  showDaYun?: boolean;
 }) {
   if (!sajuChart && !luckCycles) return null;
 
@@ -508,9 +570,9 @@ export default function SajuFactsPanel({
               현재 대운 <b>{luckCycles.currentDaYun ?? "시작 전"}</b>
             </span>
           </div>
-          <DaYunTimeline luckCycles={luckCycles} />
+          {showDaYun && <DaYunTimeline luckCycles={luckCycles} />}
 
-          {luckCycles.daYunYearOverlap && (
+          {showDaYun && luckCycles.daYunYearOverlap && (
             <div className={`luck-overlap luck-overlap--${luckCycles.daYunYearOverlap.combo}`}>
               <span className="luck-overlap__tag">큰 흐름 × 올해 흐름</span>
               <p className="luck-overlap__headline">{luckCycles.daYunYearOverlap.headline}</p>
