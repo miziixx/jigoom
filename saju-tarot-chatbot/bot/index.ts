@@ -38,8 +38,9 @@ const START_GUIDE = [
   "• 나 왜 신약사주야?",
   "• 오늘 일진이 왜 이렇게 흘러가?",
   "• 내 격국이 뭔지, 왜 그렇게 잡히는지 알려줘",
+  "• 지장간은 왜 그렇게 배당되는 거야? (내 사주와 무관한 원리 질문도 OK)",
   "",
-  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /birth 사주 재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
+  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /퀴즈 배운 개념 복습 · /birth 사주 재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
 ].join("\n");
 
 async function handleMessage(msg: TgMessage): Promise<void> {
@@ -105,7 +106,15 @@ async function handleMessage(msg: TgMessage): Promise<void> {
   }
 
   // ── 질문 → 사주 선생님(Claude) ──
-  const question = text === "/today" ? "오늘 일진이 어떻게 흘러가는지, 왜 그렇게 보는지 계산 근거를 짚어가며 자세히 알려주세요." : text;
+  let question = text;
+  if (text === "/today") {
+    question = "오늘 일진이 어떻게 흘러가는지, 왜 그렇게 보는지 계산 근거를 짚어가며 자세히 알려주세요.";
+  } else if (text === "/퀴즈") {
+    question =
+      "지금까지 나눈 대화나 내 사주 계산 데이터 중에서 개념 하나를 골라 복습 문제를 내주세요. " +
+      "정답을 바로 알려주지 말고, 문제만 먼저 주고 제가 답해볼 수 있게 기다려주세요. " +
+      "제가 다음 메시지로 답하면 그때 채점하고, 틀렸거나 애매하면 원리를 다시 짚어 설명해주세요.";
+  }
 
   const typing = setInterval(() => void sendTyping(chatId), 5000);
   void sendTyping(chatId);
