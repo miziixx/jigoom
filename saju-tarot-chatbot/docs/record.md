@@ -1140,3 +1140,22 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 
 ### 검증
 - npm test 42파일/356테스트 통과, `npx tsc -p tsconfig.bot.json --noEmit` 통과.
+
+## 리딩 타입별 템플릿 1차 분리 (화면 배치만, 프롬프트/타입/저장 불변)
+
+- 사전 점검: 헤드리스 Chromium + 스텁 NDJSON 스트림으로 전 결과 화면 육안 확인.
+  발견 버그 1건 수정 — 스티키 목차 배경이 반투명이라 떠 있을 때 아래 콘텐츠가 비침 → 불투명 바탕 추가.
+- `src/components/reading/readingBlocks.tsx`: ReadingResult에서 섹션 메타/월별 파서/섹션 카드/분야 요약/
+  목차/근거 존/로딩 카드 등을 공용 블록으로 추출 (순수 이동, DOM 불변).
+- `ReadingResult.tsx` = 디스패처: session.type + 질문 유무로 템플릿 선택.
+  flow → `YearlyFlowTemplate`, tarot → 기본 템플릿 + 카드 근거 승격(promoteTarotFacts, 근거 존 중복 억제),
+  saju+질문 → "고민 상담 리딩" 라벨, saju 무질문 → "평생사주 리포트" 라벨, combo 무질문 → "사주+타로 통합 리딩",
+  그 외/과거 저장 세션 → 기본 템플릿 폴백.
+- `YearlyFlowTemplate` (올해운세형, "1년 작전 지도"): 올해 한 줄 총평 히어로(연도 라벨+키워드 칩) →
+  원국 스냅샷(항상 노출 유지) → 큰 흐름×올해 흐름 오버랩 카드 → 올해 총평 → 분야별 요약 →
+  12개월 흐름 차트 승격 → 월별 상세 12카드 → 해야 할 것/피해야 할 것(펼침) → 나머지 섹션 →
+  마지막 정리 → 근거 존/기본 리포트(하단) → 다음 리딩 CTA(`ReadingNextCta`, HashRouter Link).
+  올해의 흐름이 월별 형식이 아니면(스트리밍 중/구버전 저장분) 일반 섹션 카드로 폴백.
+- 하지 않은 것(의도): 프롬프트/AI 출력 구조/ReadingType/localStorage/useReadingStore 변경, 결제/구독.
+- 테스트: `reading/readingTemplates.test.tsx` 5개 신규 (flow 전용 배치·스트리밍 폴백·라벨 분기·타로 승격 중복 방지).
+  전체 43파일/361개 통과, 빌드 성공.

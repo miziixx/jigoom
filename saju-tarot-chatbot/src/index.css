@@ -6945,3 +6945,104 @@ label {
     display: none;
   }
 }
+
+/* ── 리딩 타입별 템플릿: 상품 라벨, 올해운세 히어로, 다음 리딩 CTA ── */
+
+.reading-type-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 4px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: rgba(169, 118, 56, 0.1);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.reading-result > .reading-type-eyebrow {
+  margin-bottom: -6px;
+}
+
+.yearly-hero {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  border-color: var(--accent);
+}
+
+.yearly-hero__headline {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.yearly-hero__note {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.yearly-overlap {
+  margin-top: 2px;
+}
+
+.reading-cta__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.reading-cta__item {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-alt);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.reading-cta__item:hover {
+  border-color: var(--accent);
+}
+
+.reading-cta__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.reading-cta__item b {
+  font-size: 0.95rem;
+}
+
+.reading-cta__item small {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.tarot-facts-promoted {
+  margin-top: 2px;
+}
+
+@media print {
+  .reading-cta {
+    display: none;
+  }
+}
