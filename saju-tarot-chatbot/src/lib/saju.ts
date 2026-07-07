@@ -463,6 +463,25 @@ const YEAR_BANGHAP: Array<{ group: string[]; goshin: string; gwasuk: string }> =
 const BAEKHO = new Set(["갑진", "을미", "병술", "정축", "무진", "임술", "계축"]);
 const GOEGANG = new Set(["경진", "경술", "무술", "임진", "임술"]);
 
+// ── 삼명통회(三命通會) 계열 신살 추가분 ──────────
+// 태극귀인(太極貴人): 일간 기준 지지. 시작과 끝을 아우르는 귀인.
+const TAEGEUK: Record<string, string[]> = {
+  갑: ["자", "오"], 을: ["자", "오"],
+  병: ["묘", "유"], 정: ["묘", "유"],
+  무: ["진", "술", "축", "미"], 기: ["진", "술", "축", "미"],
+  경: ["인", "해"], 신: ["인", "해"],
+  임: ["사", "신"], 계: ["사", "신"],
+};
+// 삼기귀인(三奇貴人): 세 천간이 원국에 모두 있으면 성립. 천상/지하/인중 삼기.
+const SAMGI: Array<{ name: string; stems: string[] }> = [
+  { name: "천상삼기", stems: ["갑", "무", "경"] },
+  { name: "지하삼기", stems: ["을", "병", "정"] },
+  { name: "인중삼기", stems: ["임", "계", "신"] },
+];
+// 오행별 양간(장생 기준용) / 고지(墓庫)
+const ELEMENT_YANG_GAN: Record<keyof FiveElementBalance, string> = { wood: "갑", fire: "병", earth: "무", metal: "경", water: "임" };
+const ELEMENT_TOMB: Record<keyof FiveElementBalance, string> = { wood: "미", fire: "술", earth: "술", metal: "축", water: "진" };
+
 const SINSAL_GLOSS: Record<string, string> = {
   겁살: "예기치 못한 손실·강제·빼앗김의 기운. 큰 변동을 조심",
   재살: "관재·구속·시비(수옥)의 기운. 법적 문제·다툼 주의",
@@ -491,6 +510,13 @@ const SINSAL_GLOSS: Record<string, string> = {
   귀문관살: "예민·직관·집착·신경과민이 강해지는 기운",
   고신살: "배우자·인연이 외로워지기 쉬운 기운 (홀로)",
   과숙살: "배우자·인연이 외로워지기 쉬운 기운 (홀로)",
+  태극귀인: "위기에서 반전·복을 얻는 길신. 끝과 시작을 잇는 귀인",
+  천상삼기: "비범한 재주·큰 포부의 길격 (갑무경 삼기)",
+  지하삼기: "비범한 재주·큰 포부의 길격 (을병정 삼기)",
+  인중삼기: "비범한 재주·큰 포부의 길격 (임계신 삼기)",
+  관귀학관: "학문·관운·승진에 유리한 길신 (관성의 장생지)",
+  재고귀인: "재물을 쌓아두는 창고의 기운. 알뜰히 모으는 복",
+  격각살: "일지와 시지가 한 칸 어긋나 매듭·지체가 생기기 쉬운 기운 (참고용)",
 };
 
 /**
@@ -573,6 +599,45 @@ function computeSinsal(
     const gz = (gans[i]?.char ?? "") + zhis[i].char;
     if (BAEKHO.has(gz)) hits.push({ name: "백호대살", position: `${label} ${gz}`, gloss: glossOf("백호대살") });
     if (GOEGANG.has(gz)) hits.push({ name: "괴강", position: `${label} ${gz}`, gloss: glossOf("괴강") });
+  }
+
+  // ── 삼명통회 계열 추가 신살 ──
+  // 태극귀인 (일간 기준 지지)
+  for (const char of TAEGEUK[dayGan] ?? []) pushZhi("태극귀인", char);
+
+  // 삼기귀인 (세 천간이 모두 원국에 있으면 성립)
+  const ganSet = new Set(gans.map((g) => g.char));
+  for (const { name, stems } of SAMGI) {
+    if (stems.every((s) => ganSet.has(s))) {
+      const pos = stems.map((s) => gans.find((g) => g.char === s)!).map((g) => `${g.label} ${g.char}`).join("·");
+      hits.push({ name, position: pos, gloss: glossOf(name) });
+    }
+  }
+
+  // 관귀학관 (관성 오행의 장생지 = 관성 양간의 장생 지지)
+  const dayGanEl = GAN_WUXING[dayGan];
+  if (dayGanEl) {
+    const gwanEl = (Object.keys(OVERCOMES) as Array<keyof FiveElementBalance>).find((el) => OVERCOMES[el] === dayGanEl);
+    if (gwanEl) {
+      const gwanZhi = CHANGSHENG[ELEMENT_YANG_GAN[gwanEl]];
+      if (gwanZhi) pushZhi("관귀학관", gwanZhi);
+    }
+    // 재고귀인 (재성 오행의 묘고 지지)
+    const jaeEl = OVERCOMES[dayGanEl];
+    const jaeGo = ELEMENT_TOMB[jaeEl];
+    if (jaeGo) pushZhi("재고귀인", jaeGo);
+  }
+
+  // 격각살 (일지·시지가 지지 순서상 한 칸 건너뛴 관계 = 사이에 지지 하나가 빔)
+  const dayZhiPos = zhis.find((z) => z.label === "일지");
+  const timeZhiPos = zhis.find((z) => z.label === "시지");
+  if (dayZhiPos && timeZhiPos) {
+    const di = BRANCH_ORDER.indexOf(dayZhiPos.char);
+    const ti = BRANCH_ORDER.indexOf(timeZhiPos.char);
+    if (di >= 0 && ti >= 0) {
+      const gap = Math.min((di - ti + 12) % 12, (ti - di + 12) % 12);
+      if (gap === 2) hits.push({ name: "격각살", position: `일지 ${dayZhiPos.char}–시지 ${timeZhiPos.char}`, gloss: glossOf("격각살") });
+    }
   }
 
   return hits;
