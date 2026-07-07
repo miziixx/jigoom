@@ -1228,3 +1228,28 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 ### 검증
 - `looksLikeBirthInput` 직접 실행 확인: 일반 질문("지장간이 뭐야?") → false, 등록 형식 → true, 오탐 후보("2024년에 남자친구가...") → false(공백 경계 조건 덕분에 "남자친구" 안의 "남자"는 매치 안 됨).
 - npm test 43파일/363테스트 통과, `npx tsc -p tsconfig.bot.json --noEmit` 통과, `npm run build` 성공.
+
+## 텔레그램 봇 — 입고/개고 + 궁합 추가
+
+날짜: 2026-07-07
+
+### 왜
+- 사용자 요청: 웹앱 사주 프로그램에 있는 계산을 봇에서도 최대한 다 쓸 수 있게. 지난 감사에서 봇에 없다고 짚었던 것 중, 실효성 있는 두 가지(입고개고, 궁합)를 우선 추가. (허자론·오행전도론·납음론 등은 논쟁적/비주류라 보류하기로 사용자와 합의.)
+- 참고: 원국 근거는 이미 `JSON.stringify(chart)`로 전체가 전달되고 있어서, 봇의 원국 해석 풍부함 자체는 원래도 웹앱과 동일했다. 이번에 추가한 건 (1) 웹앱 엔진에 아예 없던 입고개고 계산, (2) `computeCompatibility`를 쓰는 궁합 흐름.
+
+### 입고/개고 (묘고)
+- `bot/evidence.ts`에 `computeStorageStatus(chart)` 신규. 원국 지지 중 창고(진술축미)를 찾아 각 창고가 담는 기운(진=수/계, 술=화/정, 축=금/신, 미=목/을, 지장간 중기 기준)과 개고 여부(충 상대 지지가 원국에 있으면 열림: 진↔술, 축↔미)를 계산. **판단 근거는 원국 지지만** 쓰고, 충으로 열리는 것만 "열림"으로 표시(형까지는 넣지 않음 — 과잉주장 방지).
+- `buildNatalEvidence`에 `[입고/개고(묘고) 계산 데이터]` 블록으로 추가. 아직 안 열린 창고는 대운·세운 충으로 열린다는 걸 [운의 흐름 데이터]와 연결해 설명하되 없는 창고/충은 지어내지 말라고 `TEACHER_SYSTEM`에 지침 추가.
+- **saju.ts(검증된 코어 엔진)는 건드리지 않음.** 입고개고는 봇 해석 보조 레이어(evidence.ts)에만 추가 — 원국 계산 회귀 위험 0.
+
+### 궁합
+- `bot/evidence.ts`에 `buildCompatibilityEvidence(myBirth, otherBirth, relationType)` 신규 — 웹앱의 `computeCompatibility`(이미 존재) 결과 전체를 근거 팩으로 조립. 관계 유형 8종 라벨 매핑 포함.
+- `bot/parseBirth.ts`에 `parseRelationType(text)` 신규 — 자유 입력에서 관계 키워드(연인/부모/형제/직장상사/동료/친구/가족)를 유형으로 매핑, 없으면 null.
+- `bot/teacher.ts`에 `askCompatibility` 신규. 기존 스트리밍+refusal/max_tokens 처리를 `runStream()` 헬퍼로 추출해 askTeacher와 공유. 점수 숫자 나열 대신 간지·오행·일지(배우자궁) 근거로 풀도록 프롬프트.
+- **다단계 흐름 상태**: `bot/storeTypes.ts`의 `UserRecord`에 `pending?: PendingCompat | null` 추가, `Store`에 `setPending` 추가(fileStore·kvStore 둘 다 구현). `/궁합` → pending 설정 후 상대 입력 안내 → 다음 메시지를 상대 사주로 파싱해 궁합 계산 → pending 해제. 웹훅(서버리스, 무상태)에서도 KV에 상태가 남아 두 메시지에 걸친 흐름이 이어짐. `setBirthInfo`/`clearHistory`는 pending도 함께 초기화(진행 중 흐름 취소).
+- `/궁합`은 내 사주 등록이 선행돼야 함(양쪽 원국 필요). 미등록이면 등록부터 안내.
+
+### 검증
+- `bot/evidence.test.ts` 신규 5개(창고 감지·개고 판정·관계 파싱) 통과.
+- 스모크: 1993-03-15 여 서울 → 일지·시지 미(未)=목 창고, 축 없어 미개고(openedByNatalChong=false) 확인. 관계 키워드 8종 파싱 및 궁합 근거 조립 확인.
+- npm test 44파일/368테스트 통과, `npx tsc -p tsconfig.bot.json --noEmit` 통과, `npm run build` 성공.

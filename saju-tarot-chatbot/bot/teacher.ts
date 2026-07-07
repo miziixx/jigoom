@@ -31,6 +31,8 @@ const TEACHER_SYSTEM = `당신은 50년 넘게 사주를 봐온, 정확하기로
 - 사용자의 이해 수준은 지금까지의 대화로 판단하세요. 사용자가 이미 자연스럽게 쓰는 용어는 다시 풀어 설명할 필요 없지만, 이건 "쉬운 말을 써라"는 원칙과 별개입니다 — 용어를 안 풀어줘도 된다는 거지, 용어를 더 많이 쓰라는 뜻이 아닙니다. 처음 보는 심화 용어가 나오면 쉽게 풀되, 사용자가 심화 질문(예: 세운 간지와 지장간 중기의 상호작용)을 던지면 눈높이를 낮추지 말고 그 수준에 맞게 답하세요.
 - 정해진 틀(결론→근거→현실→조언 같은 고정 순서)을 기계적으로 반복하지 마세요. 실제로 묻는 것에 자연스럽게 대화하듯 바로 답하고, 필요한 경우에만 근거·현실 예시·조언을 자연스러운 흐름으로 곁들이세요. 짧게 물으면 짧게, 깊게 물으면 깊게 — 질문 자체의 난이도에 분량을 맞추고, 이해를 돕는 데 필요하지 않은 문장은 쓰지 마세요. 길게 쓰는 것과 잘 이해되게 쓰는 것은 다릅니다.
 - 텔레그램 채팅이므로 표나 과한 서식 대신 짧은 단락과 간단한 리스트로 쓰세요. 굵은 글씨는 *별표 한 쌍*만 사용하세요.
+- [입고/개고 데이터]가 첨부되면, 원국의 창고(진술축미) 지지에 어떤 기운이 갇혀 있는지, 그 창고가 충으로 열려 있는지(openedByNatalChong)를 근거로 설명하세요. 아직 안 열린 창고는, 대운·세운에서 충이 들어올 때 열리며 그 기운이 드러난다고 [운의 흐름 데이터]와 연결해 짚어주세요. 창고가 열리고 닫히는 걸 사건 시기와 연결하되, 없는 창고나 없는 충을 지어내지는 마세요.
+- [궁합 계산 데이터]가 첨부되면, 점수 숫자를 그대로 읊는 대신 두 사람의 일간 관계·지지 합충·오행 보완·일지(배우자궁)를 짚어가며 왜 그렇게 맞물리는지 풀어주세요. 관계는 좋다/나쁘다로 단정하지 말고, 잘 맞는 지점과 부딪히기 쉬운 지점을 나눠 보여주고 현실적인 관계 운영법을 곁들이세요.
 
 [말투 — 확신 있게, 그러나 절대 넘겨짚지 않기]
 - 계산으로 확실한 것(원국 간지, 오행 분포, 오늘 일진, 합충형파해, 신살 존재 여부 등)은 "~일 수도 있어요" 식으로 흐리지 말고, 대가답게 또렷하고 확신 있게 짚어 말하세요.
@@ -81,6 +83,11 @@ export async function askTeacher({ birthInfo, history, question }: AskOptions): 
         { role: "user", content: question },
       ];
 
+  return runStream(messages);
+}
+
+/** 공통 스트리밍 호출 + refusal/max_tokens 처리. askTeacher·askCompatibility가 함께 쓴다. */
+async function runStream(messages: Anthropic.Messages.MessageParam[]): Promise<string> {
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: MAX_TOKENS,
@@ -104,4 +111,29 @@ export async function askTeacher({ birthInfo, history, question }: AskOptions): 
     return `${text}\n\n_(답이 길어져 여기서 끊겼어요. "계속" 또는 "이어서 설명해줘"라고 보내주세요.)_`;
   }
   return text;
+}
+
+export interface AskCompatibilityOptions {
+  compatEvidence: string;
+  question?: string;
+}
+
+/** 궁합 근거를 실어 두 사람 관계 해석을 요청한다. */
+export async function askCompatibility({ compatEvidence, question }: AskCompatibilityOptions): Promise<string> {
+  const ask = question?.trim()
+    ? `[이 관계에 대해 특히 궁금한 것]\n${question.trim()}\n\n위 궁금증에 먼저 답하고, 이어서 관계 전반을 풀어주세요.`
+    : "이 궁합을 풀어주세요. 두 사람이 왜 그렇게 맞물리는지, 어디서 잘 맞고 어디서 부딪히기 쉬운지, 그리고 관계를 편하게 가져가는 현실적인 방법까지 짚어주세요.";
+
+  const messages: Anthropic.Messages.MessageParam[] = [
+    {
+      role: "user",
+      content: `${compatEvidence}\n\n위 계산 데이터가 이 궁합 해석의 근거입니다. 점수 숫자를 그대로 읊지 말고, 왜 그렇게 나오는지 두 사람의 간지·오행·일지(배우자궁)를 짚어가며 설명하세요. 확실한 계산값은 확신 있게, 사람이 말해주지 않은 실제 상황은 넘겨짚지 말고요.`,
+    },
+    {
+      role: "assistant",
+      content: "두 사람의 원국과 궁합 계산 데이터를 확인했습니다. 이 근거로 관계를 풀어드릴게요.",
+    },
+    { role: "user", content: ask },
+  ];
+  return runStream(messages);
 }

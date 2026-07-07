@@ -1,9 +1,9 @@
 // 사주 선생님 봇 메시지 처리 로직 — 롱폴링(bot/index.ts)과 웹훅(api/telegram-webhook.ts)이 공유한다.
 // 저장소(Store)만 주입받아 동작하므로, 어떤 방식으로 실행되는지는 이 파일이 몰라도 된다.
 import { sendMessage, sendTyping, type TgMessage } from "./telegram.js";
-import { parseBirthInput, describeBirthInfo, looksLikeBirthInput } from "./parseBirth.js";
-import { formatChartSummary } from "./evidence.js";
-import { askTeacher } from "./teacher.js";
+import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationType } from "./parseBirth.js";
+import { formatChartSummary, buildCompatibilityEvidence } from "./evidence.js";
+import { askTeacher, askCompatibility } from "./teacher.js";
 import type { Store } from "./storeTypes.js";
 
 // 개인 봇 보호: 지정하면 이 텔레그램 사용자 ID만 사용 가능 (쉼표 구분)
@@ -43,7 +43,18 @@ const START_GUIDE = [
   "• 오늘 일진이 왜 이렇게 흘러가?",
   "• 내 격국이 뭔지, 왜 그렇게 잡히는지 알려줘",
   "",
-  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
+  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /궁합 상대와 궁합 보기 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
+].join("\n");
+
+const COMPAT_GUIDE = [
+  "*궁합*을 볼게요. 상대방 생년월일시를 한 줄로 보내주세요 (내 사주 등록과 같은 형식).",
+  "",
+  "관계도 같이 적어주면 그 관계에 맞게 풀어드려요:",
+  "• `1995-06-20 09:30 남 서울 연인`",
+  "• `음력 1992년 3월 5일 시간모름 여 부산 동료`",
+  "",
+  "관계 키워드: 연인 · 부모/자식 · 형제 · 가족 · 직장상사 · 동료 · 친구 (안 적으면 연인으로 봐요)",
+  "그만두려면 /reset",
 ].join("\n");
 
 export async function handleMessage(msg: TgMessage, store: Store): Promise<void> {
@@ -88,6 +99,43 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     }
     if (text === "/today" && !user.birthInfo) {
       await sendMessage(chatId, "오늘 일진은 내 사주와 오늘 간지를 대조해야 해서, 먼저 등록이 필요해요.\n\n" + BIRTH_GUIDE);
+      return;
+    }
+    if (text === "/궁합" || text === "/compat" || text === "/궁합보기") {
+      if (!user.birthInfo) {
+        await sendMessage(chatId, "궁합은 내 사주와 상대 사주를 맞대봐야 해서, 먼저 내 사주부터 등록해주세요.\n\n" + BIRTH_GUIDE);
+        return;
+      }
+      await store.setPending(chatId, { type: "compat" });
+      await sendMessage(chatId, COMPAT_GUIDE);
+      return;
+    }
+
+    // ── 궁합 대기 중: 이 입력을 상대방 사주로 해석 ──
+    if (user.pending?.type === "compat") {
+      if (!user.birthInfo) {
+        // 대기 중 내 사주가 지워진 비정상 상태 — 안전하게 해제
+        await store.setPending(chatId, null);
+        await sendMessage(chatId, "내 사주 정보가 없어 궁합을 못 봐요. /birth 로 먼저 등록해주세요.");
+        return;
+      }
+      const parsed = parseBirthInput(text);
+      if (!parsed.ok) {
+        await sendMessage(chatId, `상대방 정보를 못 읽었어요. ${parsed.error}\n\n${COMPAT_GUIDE}`);
+        return;
+      }
+      const relationType = user.pending.relationType ?? parseRelationType(text) ?? "romantic";
+      await store.setPending(chatId, null); // 한 번 처리하면 대기 해제
+
+      const typing = setInterval(() => void sendTyping(chatId), 5000);
+      void sendTyping(chatId);
+      try {
+        const compatEvidence = buildCompatibilityEvidence(user.birthInfo, parsed.birthInfo!, relationType);
+        const answer = await askCompatibility({ compatEvidence });
+        await sendMessage(chatId, answer);
+      } finally {
+        clearInterval(typing);
+      }
       return;
     }
 

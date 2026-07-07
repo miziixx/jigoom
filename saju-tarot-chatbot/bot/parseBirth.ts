@@ -1,4 +1,4 @@
-import type { BirthInfo, Gender } from "../src/types/index.js";
+import type { BirthInfo, CompatibilityRelationType, Gender } from "../src/types/index.js";
 
 // 지역 표기 → BIRTH_PLACES 키 매핑 (진태양시 보정용)
 const PLACE_ALIASES: Array<[RegExp, string]> = [
@@ -21,6 +21,25 @@ export interface ParseResult {
 /** 생년월일시 등록/재등록 시도로 볼 만한 입력인지 (연도 + 독립된 성별 토큰이 함께 있는지) */
 export function looksLikeBirthInput(text: string): boolean {
   return /(19|20)\d{2}\s*[.\-/년]/.test(text) && /(?:^|\s)(남자|여자|남|여)(?=\s|$)/.test(text);
+}
+
+// 관계 키워드 → CompatibilityRelationType. 앞쪽(더 구체적)부터 검사한다.
+const RELATION_KEYWORDS: Array<[RegExp, CompatibilityRelationType]> = [
+  [/연인|애인|배우자|부부|남친|여친|남자친구|여자친구|남편|아내|썸/, "romantic"],
+  [/부모|엄마|아빠|자식|자녀|아들|딸|모녀|부자|모자/, "parentChild"],
+  [/형제|자매|남매|형|누나|언니|오빠|동생/, "siblings"],
+  [/사장|상사|직원|부하|고용|팀장|대표/, "bossEmployee"],
+  [/동료|동업|파트너|직장/, "coworker"],
+  [/친구|지인/, "friend"],
+  [/가족/, "family"],
+];
+
+/** 자유 입력에서 관계 유형을 뽑는다. 못 찾으면 null (기본값은 호출부가 결정). */
+export function parseRelationType(text: string): CompatibilityRelationType | null {
+  for (const [re, type] of RELATION_KEYWORDS) {
+    if (re.test(text)) return type;
+  }
+  return null;
 }
 
 /**

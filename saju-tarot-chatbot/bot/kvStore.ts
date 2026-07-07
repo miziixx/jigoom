@@ -2,7 +2,7 @@
 // 서버리스는 파일시스템이 요청/인스턴스마다 초기화되므로 프로필·대화 기록을 외부에 둬야 한다.
 // api/_security.ts의 upstashRateLimit()과 동일한 순수 HTTP REST 방식(호스팅 이식성 유지).
 import type { BirthInfo } from "../src/types/index.js";
-import { MAX_HISTORY, emptyUser, type ChatTurn, type Store, type UserRecord } from "./storeTypes.js";
+import { MAX_HISTORY, emptyUser, type ChatTurn, type PendingCompat, type Store, type UserRecord } from "./storeTypes.js";
 
 function requireEnv(): { url: string; token: string } {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -39,7 +39,12 @@ async function readUser(chatId: number): Promise<UserRecord> {
   if (typeof raw !== "string") return emptyUser();
   try {
     const parsed = JSON.parse(raw) as UserRecord;
-    return { birthInfo: parsed.birthInfo ?? null, history: parsed.history ?? [], updatedAt: parsed.updatedAt };
+    return {
+      birthInfo: parsed.birthInfo ?? null,
+      history: parsed.history ?? [],
+      pending: parsed.pending ?? null,
+      updatedAt: parsed.updatedAt,
+    };
   } catch {
     return emptyUser();
   }
@@ -59,6 +64,7 @@ export const kvStore: Store = {
     const user = await readUser(chatId);
     user.birthInfo = birthInfo;
     user.history = []; // 사주가 바뀌면 이전 해석 맥락은 무효
+    user.pending = null;
     await writeUser(chatId, user);
   },
 
@@ -74,6 +80,13 @@ export const kvStore: Store = {
   async clearHistory(chatId: number): Promise<void> {
     const user = await readUser(chatId);
     user.history = [];
+    user.pending = null;
+    await writeUser(chatId, user);
+  },
+
+  async setPending(chatId: number, pending: PendingCompat | null): Promise<void> {
+    const user = await readUser(chatId);
+    user.pending = pending;
     await writeUser(chatId, user);
   },
 

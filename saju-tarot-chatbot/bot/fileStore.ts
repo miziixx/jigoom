@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { BirthInfo } from "../src/types/index.js";
-import { MAX_HISTORY, emptyUser, type ChatTurn, type Store, type UserRecord } from "./storeTypes.js";
+import { MAX_HISTORY, emptyUser, type ChatTurn, type PendingCompat, type Store, type UserRecord } from "./storeTypes.js";
 
 const DATA_DIR = process.env.BOT_DATA_DIR ?? join(dirname(fileURLToPath(import.meta.url)), "data");
 const DATA_FILE = join(DATA_DIR, "users.json");
@@ -48,6 +48,14 @@ export const fileStore: Store = {
     const user = getUserSync(chatId);
     user.birthInfo = birthInfo;
     user.history = []; // 사주가 바뀌면 이전 해석 맥락은 무효
+    user.pending = null;
+    user.updatedAt = new Date().toISOString();
+    save();
+  },
+
+  async setPending(chatId: number, pending: PendingCompat | null): Promise<void> {
+    const user = getUserSync(chatId);
+    user.pending = pending;
     user.updatedAt = new Date().toISOString();
     save();
   },
@@ -65,6 +73,7 @@ export const fileStore: Store = {
   async clearHistory(chatId: number): Promise<void> {
     const user = getUserSync(chatId);
     user.history = [];
+    user.pending = null;
     user.updatedAt = new Date().toISOString();
     save();
   },
