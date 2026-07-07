@@ -5,8 +5,9 @@ import { buildNatalEvidence, buildTodayEvidence } from "./evidence.js";
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.
 const MODEL = process.env.BOT_MODEL ?? "claude-opus-4-8";
-// adaptive thinking도 이 예산을 함께 쓰므로 근거 인용이 긴 답변이 잘리지 않도록 넉넉히 잡는다.
-const MAX_TOKENS = 16000;
+// adaptive thinking도 이 예산을 함께 쓴다. 텔레그램 답변은 간결한 게 원칙이라
+// 8000이면 깊은 이론 설명도 충분하고, 불필요하게 길게 새는 출력 비용을 막는다.
+const MAX_TOKENS = 8000;
 
 if (!process.env.ANTHROPIC_API_KEY) {
   console.error("ANTHROPIC_API_KEY 환경변수가 필요합니다. console.anthropic.com 에서 발급하세요.");
@@ -60,7 +61,15 @@ export async function askTeacher({ birthInfo, history, question }: AskOptions): 
     ? [
         {
           role: "user",
-          content: `${buildNatalEvidence(birthInfo)}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 확인했으면 다음 질문부터 이 데이터를 근거로 답해주세요.`,
+          // 원국·운 계산 데이터는 대화 내내 고정이라 프롬프트 캐시에 태운다.
+          // 같은 사람과 이어지는 턴에서는 이 큰 JSON을 원가로 재전송하지 않고 캐시에서 읽어 토큰값을 아낀다.
+          content: [
+            {
+              type: "text",
+              text: `${buildNatalEvidence(birthInfo)}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 확인했으면 다음 질문부터 이 데이터를 근거로 답해주세요.`,
+              cache_control: { type: "ephemeral" },
+            },
+          ],
         },
         { role: "assistant", content: "원국과 운의 흐름 데이터를 확인했습니다. 이 계산값을 근거로 답하겠습니다. 무엇이 궁금하신가요?" },
         ...historyMessages,

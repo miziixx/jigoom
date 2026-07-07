@@ -1253,3 +1253,26 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 - `bot/evidence.test.ts` 신규 5개(창고 감지·개고 판정·관계 파싱) 통과.
 - 스모크: 1993-03-15 여 서울 → 일지·시지 미(未)=목 창고, 축 없어 미개고(openedByNatalChong=false) 확인. 관계 키워드 8종 파싱 및 궁합 근거 조립 확인.
 - npm test 44파일/368테스트 통과, `npx tsc -p tsconfig.bot.json --noEmit` 통과, `npm run build` 성공.
+
+## 텔레그램 봇 — 완전 자연어 입력 + 원국 데이터 캐싱 (토큰 절감)
+
+### 배경
+사용자 요청: (1) "95년 8월 23일남자 성격좀 봐줘, 근데 시간 몰라" 같은 완전 자연어를 그냥 받아 알아서 처리, (2) 웬만한 건 미리 계산해두고 API는 말만 쓰게 해서 토큰값 절감.
+
+### 파싱 (bot/parseBirth.ts)
+- 두 자리 연도 지원: `95년`→1995, `05년`→2005 (`normalizeYear`, 올해 두 자리 기준 미래면 1900년대).
+- 성별을 붙여 써도 인식: `남자/여자/남성/여성`은 경계 없이, 한 글자 `남/여`는 지명 오탐 방지 위해 공백/경계로 감싼 것만.
+- 시각 미상 표현 확장: `시간모름` 외 `시간 몰라`, `시간 모르`, `시간 미상`, `시간 없…` 인식.
+- `ParseResult.remainder` 추가: 생일 토큰을 걷어낸 나머지(=질문) 반환.
+- `looksLikeBirthInput`도 두 자리 연도·붙여쓴 성별을 함께 인식.
+
+### 등록 즉시 답변 (bot/messageHandler.ts)
+- 생일 입력에 질문이 섞여 있으면(`remainder`에 한글 질문이 남으면) 등록 사실을 한 줄로만 알리고 곧바로 그 질문에 `askTeacher`로 답한다. `extractQuestion` 헬퍼로 찌꺼기/장소만 남은 경우는 걸러냄.
+
+### 토큰 절감 (bot/teacher.ts)
+- 원국·운 계산 데이터(고정) 블록에 `cache_control: ephemeral` 부여 → 같은 사람과 이어지는 턴에서 거대한 chart/luck JSON을 원가로 재전송하지 않고 캐시에서 읽음.
+- `MAX_TOKENS` 16000→8000 (adaptive thinking 공유, 텔레그램 답변엔 충분하고 과다 출력 비용 차단).
+
+### 검증
+- `bot/parseBirth.test.ts` 신규 8개(두 자리 연도 1900/2000대·붙여쓴 성별+시간몰라+질문·지명 오탐 방지·순수 생일 remainder 빔·looksLike) 통과.
+- npm test 45파일/376테스트 통과, `npx tsc -p tsconfig.bot.json --noEmit` 통과, `npm run build` 성공.

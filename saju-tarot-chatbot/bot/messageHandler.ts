@@ -57,6 +57,16 @@ const COMPAT_GUIDE = [
   "그만두려면 /reset",
 ].join("\n");
 
+/** 생일 입력에서 걷어내고 남은 텍스트가 실제 질문인지 판단한다. 아니면 null. */
+function extractQuestion(remainder?: string): string | null {
+  if (!remainder) return null;
+  const q = remainder.trim();
+  // 한글이 하나도 없거나(장소/숫자 찌꺼기) 너무 짧으면 질문이 아니다.
+  if (!/[가-힣]/.test(q)) return null;
+  if (q.replace(/\s/g, "").length < 2) return null;
+  return q;
+}
+
 export async function handleMessage(msg: TgMessage, store: Store): Promise<void> {
   const chatId = msg.chat.id;
   const text = (msg.text ?? "").trim();
@@ -145,6 +155,24 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
       if (parsed.ok) {
         const wasRegistered = Boolean(user.birthInfo);
         await store.setBirthInfo(chatId, parsed.birthInfo!);
+
+        // 생일과 함께 질문까지 한 번에 보냈으면(예: "95년 8월 23일남자 성격 봐줘")
+        // 등록 사실만 한 줄로 알리고 곧바로 그 질문에 답한다.
+        const followUp = extractQuestion(parsed.remainder);
+        if (followUp) {
+          await sendMessage(chatId, `${describeBirthInfo(parsed.birthInfo!)}로 보고 답할게요.`);
+          const typing = setInterval(() => void sendTyping(chatId), 5000);
+          void sendTyping(chatId);
+          try {
+            const answer = await askTeacher({ birthInfo: parsed.birthInfo!, history: [], question: followUp });
+            await store.appendHistory(chatId, { role: "user", content: followUp }, { role: "assistant", content: answer });
+            await sendMessage(chatId, answer);
+          } finally {
+            clearInterval(typing);
+          }
+          return;
+        }
+
         const prefix = wasRegistered ? "사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)" : "등록했어요 ✅";
         await sendMessage(chatId, `${prefix}\n${describeBirthInfo(parsed.birthInfo!)}\n\n${formatChartSummary(parsed.birthInfo!)}`);
         return;
