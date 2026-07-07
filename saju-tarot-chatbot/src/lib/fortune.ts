@@ -16,6 +16,7 @@ import type {
   FiveElementBalance,
   FortuneCategoryScores,
   FortuneEvidence,
+  SajuChart,
   TenGodGroup,
 } from "../types/index.js";
 
@@ -463,7 +464,14 @@ function computeLuckyItems(luckyElement: string, todayZhi: string): FortuneEvide
 // ──────────────────────────────────────────────────────────────
 
 export function computeFortuneEvidence(birthInfo: BirthInfo, now: Date = new Date()): FortuneEvidence {
-  const chart = computeSajuChart(birthInfo);
+  return computeFortuneEvidenceFromChart(computeSajuChart(birthInfo), now);
+}
+
+/**
+ * 이미 계산된 원국(SajuChart)에서 오늘 일진 근거를 만든다.
+ * 생년월일시 등록(computeFortuneEvidence)과 사주팔자 직접 입력이 함께 쓴다.
+ */
+export function computeFortuneEvidenceFromChart(chart: SajuChart, now: Date = new Date()): FortuneEvidence {
   const kst = kstDateOf(now);
   const gz = ganzhiForKstDate(kst);
 

@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { BirthInfo } from "../src/types/index.js";
 import type { ChatTurn } from "./storeTypes.js";
-import { buildNatalEvidence, buildTodayEvidence } from "./evidence.js";
+import { buildNatalEvidence, buildTodayEvidence, type ChartSource } from "./evidence.js";
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.
 const MODEL = process.env.BOT_MODEL ?? "claude-opus-4-8";
@@ -48,16 +47,16 @@ const TEACHER_SYSTEM = `당신은 50년 넘게 사주를 봐온, 정확하기로
 - 관법(유파)에 따라 달라질 수 있는 판단(격국·용신 등)은 그 사실을 짧게 언급하세요. 이 데이터의 강약 판정은 위치 가중치 기반 간이 억부법임을 알고 계세요.`;
 
 export interface AskOptions {
-  birthInfo: BirthInfo | null;
+  source: ChartSource | null;
   history: ChatTurn[];
   question: string;
 }
 
 /** 계산 근거 + 대화 맥락을 실어 Claude에게 해석을 요청한다 */
-export async function askTeacher({ birthInfo, history, question }: AskOptions): Promise<string> {
+export async function askTeacher({ source, history, question }: AskOptions): Promise<string> {
   const historyMessages = history.map((t) => ({ role: t.role, content: t.content }) as Anthropic.Messages.MessageParam);
 
-  const messages: Anthropic.Messages.MessageParam[] = birthInfo
+  const messages: Anthropic.Messages.MessageParam[] = source
     ? [
         {
           role: "user",
@@ -66,7 +65,7 @@ export async function askTeacher({ birthInfo, history, question }: AskOptions): 
           content: [
             {
               type: "text",
-              text: `${buildNatalEvidence(birthInfo)}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 확인했으면 다음 질문부터 이 데이터를 근거로 답해주세요.`,
+              text: `${buildNatalEvidence(source)}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 확인했으면 다음 질문부터 이 데이터를 근거로 답해주세요.`,
               cache_control: { type: "ephemeral" },
             },
           ],
@@ -75,7 +74,7 @@ export async function askTeacher({ birthInfo, history, question }: AskOptions): 
         ...historyMessages,
         {
           role: "user",
-          content: `${buildTodayEvidence(birthInfo)}\n\n[질문]\n${question}`,
+          content: `${buildTodayEvidence(source)}\n\n[질문]\n${question}`,
         },
       ]
     : [

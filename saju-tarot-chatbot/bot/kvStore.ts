@@ -2,6 +2,7 @@
 // 서버리스는 파일시스템이 요청/인스턴스마다 초기화되므로 프로필·대화 기록을 외부에 둬야 한다.
 // api/_security.ts의 upstashRateLimit()과 동일한 순수 HTTP REST 방식(호스팅 이식성 유지).
 import type { BirthInfo } from "../src/types/index.js";
+import type { StoredPillars } from "./parseFourPillars.js";
 import { MAX_HISTORY, emptyUser, type ChatTurn, type PendingCompat, type Store, type UserRecord } from "./storeTypes.js";
 
 function requireEnv(): { url: string; token: string } {
@@ -41,6 +42,7 @@ async function readUser(chatId: number): Promise<UserRecord> {
     const parsed = JSON.parse(raw) as UserRecord;
     return {
       birthInfo: parsed.birthInfo ?? null,
+      pillars: parsed.pillars ?? null,
       history: parsed.history ?? [],
       pending: parsed.pending ?? null,
       updatedAt: parsed.updatedAt,
@@ -63,7 +65,17 @@ export const kvStore: Store = {
   async setBirthInfo(chatId: number, birthInfo: BirthInfo): Promise<void> {
     const user = await readUser(chatId);
     user.birthInfo = birthInfo;
+    user.pillars = null; // 생년월일시로 등록하면 팔자 직접입력은 해제
     user.history = []; // 사주가 바뀌면 이전 해석 맥락은 무효
+    user.pending = null;
+    await writeUser(chatId, user);
+  },
+
+  async setPillars(chatId: number, pillars: StoredPillars): Promise<void> {
+    const user = await readUser(chatId);
+    user.pillars = pillars;
+    user.birthInfo = null; // 팔자 직접입력으로 등록하면 생년월일시는 해제
+    user.history = [];
     user.pending = null;
     await writeUser(chatId, user);
   },

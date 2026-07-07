@@ -1,5 +1,6 @@
 // 롱폴링(fileStore)과 웹훅(kvStore) 두 저장소 구현이 공유하는 타입/인터페이스.
 import type { BirthInfo, CompatibilityRelationType } from "../src/types/index.js";
+import type { StoredPillars } from "./parseFourPillars.js";
 
 export interface ChatTurn {
   role: "user" | "assistant";
@@ -15,6 +16,8 @@ export interface PendingCompat {
 
 export interface UserRecord {
   birthInfo: BirthInfo | null;
+  /** 생년월일시 대신 만세력 사주팔자(여덟 글자)를 직접 등록한 경우. birthInfo 와 상호배타. */
+  pillars?: StoredPillars | null;
   history: ChatTurn[];
   /** 여러 메시지에 걸친 흐름(궁합 등) 대기 상태. 없으면 일반 대화. */
   pending?: PendingCompat | null;
@@ -27,6 +30,8 @@ export const MAX_HISTORY = 40;
 export interface Store {
   getUser(chatId: number): Promise<UserRecord>;
   setBirthInfo(chatId: number, birthInfo: BirthInfo): Promise<void>;
+  /** 만세력 사주팔자(여덟 글자) 직접 등록. birthInfo 는 지우고 대화 맥락도 초기화한다. */
+  setPillars(chatId: number, pillars: StoredPillars): Promise<void>;
   appendHistory(chatId: number, ...turns: ChatTurn[]): Promise<void>;
   clearHistory(chatId: number): Promise<void>;
   deleteUser(chatId: number): Promise<void>;
@@ -35,5 +40,5 @@ export interface Store {
 }
 
 export function emptyUser(): UserRecord {
-  return { birthInfo: null, history: [], pending: null, updatedAt: new Date().toISOString() };
+  return { birthInfo: null, pillars: null, history: [], pending: null, updatedAt: new Date().toISOString() };
 }

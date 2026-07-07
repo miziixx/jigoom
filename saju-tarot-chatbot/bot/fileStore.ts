@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { BirthInfo } from "../src/types/index.js";
+import type { StoredPillars } from "./parseFourPillars.js";
 import { MAX_HISTORY, emptyUser, type ChatTurn, type PendingCompat, type Store, type UserRecord } from "./storeTypes.js";
 
 const DATA_DIR = process.env.BOT_DATA_DIR ?? join(dirname(fileURLToPath(import.meta.url)), "data");
@@ -47,7 +48,18 @@ export const fileStore: Store = {
   async setBirthInfo(chatId: number, birthInfo: BirthInfo): Promise<void> {
     const user = getUserSync(chatId);
     user.birthInfo = birthInfo;
+    user.pillars = null; // 생년월일시로 등록하면 팔자 직접입력은 해제
     user.history = []; // 사주가 바뀌면 이전 해석 맥락은 무효
+    user.pending = null;
+    user.updatedAt = new Date().toISOString();
+    save();
+  },
+
+  async setPillars(chatId: number, pillars: StoredPillars): Promise<void> {
+    const user = getUserSync(chatId);
+    user.pillars = pillars;
+    user.birthInfo = null; // 팔자 직접입력으로 등록하면 생년월일시는 해제
+    user.history = [];
     user.pending = null;
     user.updatedAt = new Date().toISOString();
     save();

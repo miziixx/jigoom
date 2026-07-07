@@ -1,9 +1,41 @@
 // 사주 계산 근거 데이터 조립. 계산은 전부 기존 엔진(src/lib)을 재사용하고,
 // Claude에는 "이 데이터 안에서만 해석하라"는 근거 팩으로 전달한다.
-import { computeSajuChart, computeLuckCycles, computeCompatibility } from "../src/lib/saju.js";
-import { computeFortuneEvidence } from "../src/lib/fortune.js";
+import {
+  computeSajuChart,
+  computeLuckCycles,
+  computeCompatibility,
+  computeChartFromPillars,
+  computeLuckFromPillars,
+} from "../src/lib/saju.js";
+import { computeFortuneEvidence, computeFortuneEvidenceFromChart } from "../src/lib/fortune.js";
 import type { BirthInfo, CompatibilityRelationType, LuckCycles, SajuChart } from "../src/types/index.js";
 import { describeBirthInfo } from "./parseBirth.js";
+import { describePillars, toFourPillarsInput, type StoredPillars } from "./parseFourPillars.js";
+
+/**
+ * 해석의 근거가 되는 원국 출처.
+ * - birth: 생년월일시로 계산 (대운 포함 전체 흐름)
+ * - pillars: 만세력 사주팔자 직접 입력 (대운 제외 — 생년·성별이 없어 계산 불가)
+ */
+export type ChartSource = { kind: "birth"; birthInfo: BirthInfo } | { kind: "pillars"; pillars: StoredPillars };
+
+export function birthSource(birthInfo: BirthInfo): ChartSource {
+  return { kind: "birth", birthInfo };
+}
+export function pillarsSource(pillars: StoredPillars): ChartSource {
+  return { kind: "pillars", pillars };
+}
+
+/** 저장된 유저 레코드에서 원국 출처를 뽑는다. 등록 전이면 null. */
+export function chartSourceOf(user: { birthInfo: BirthInfo | null; pillars?: StoredPillars | null }): ChartSource | null {
+  if (user.birthInfo) return birthSource(user.birthInfo);
+  if (user.pillars) return pillarsSource(user.pillars);
+  return null;
+}
+
+function describeSource(source: ChartSource): string {
+  return source.kind === "birth" ? describeBirthInfo(source.birthInfo) : describePillars(source.pillars);
+}
 
 export interface ComputedPack {
   chart: SajuChart;
@@ -70,9 +102,14 @@ function kstNow(): Date {
   );
 }
 
-export function computePack(birthInfo: BirthInfo): ComputedPack {
-  const chart = computeSajuChart(birthInfo);
-  const luck = computeLuckCycles(birthInfo, kstNow(), {
+export function computePack(source: ChartSource): ComputedPack {
+  if (source.kind === "pillars") {
+    const chart = computeChartFromPillars(toFourPillarsInput(source.pillars));
+    const luck = computeLuckFromPillars(chart, kstNow(), { includeMonthlyFlow: true });
+    return { chart, luck };
+  }
+  const chart = computeSajuChart(source.birthInfo);
+  const luck = computeLuckCycles(source.birthInfo, kstNow(), {
     includeMonthlyFlow: true,
     yongElements: chart.yongshin?.supportive,
     avoidElements: chart.yongshin?.unfavorable,
@@ -81,11 +118,20 @@ export function computePack(birthInfo: BirthInfo): ComputedPack {
 }
 
 /** 원국·대운 근거 (사용자마다 고정, 대화 첫 컨텍스트로 전달) */
-export function buildNatalEvidence(birthInfo: BirthInfo): string {
-  const { chart, luck } = computePack(birthInfo);
+export function buildNatalEvidence(source: ChartSource): string {
+  const { chart, luck } = computePack(source);
   const storage = computeStorageStatus(chart);
+  const luckHeader =
+    source.kind === "pillars"
+      ? "[운의 흐름 계산 데이터 — 올해 세운/월운/오늘 일진. 주의: 사주팔자만 직접 입력받아 대운(10년 흐름)은 계산되지 않았습니다(daYun 빈 배열). 대운을 물으면 '생년월일시가 있어야 대운을 계산할 수 있다'고 밝히세요.]"
+      : "[운의 흐름 계산 데이터 — 대운/올해 세운/월운]";
+  const sourceNote =
+    source.kind === "pillars"
+      ? "[근거 출처] 생년월일시가 아니라 만세력 사주팔자(여덟 글자)를 직접 입력받았습니다. 원국·십성·지장간·통근/투출·신강신약·격국·신살·오행 분포·세운/월운/오늘 일진은 그대로 정확히 계산되지만, 대운(10년 흐름)·사령(월률분야)·진태양시 보정은 생년월일이 없어 계산에서 제외됩니다."
+      : "[근거 출처] 생년월일시로 계산한 원국입니다.";
   return [
-    `[출생 정보] ${describeBirthInfo(birthInfo)}`,
+    `[출생/원국 정보] ${describeSource(source)}`,
+    sourceNote,
     "",
     "[원국 계산 데이터 — 만세력 기반으로 프로그램이 정확히 계산한 값]",
     JSON.stringify(chart),
@@ -93,7 +139,7 @@ export function buildNatalEvidence(birthInfo: BirthInfo): string {
     "[입고/개고(묘고) 계산 데이터 — 원국의 창고 지지와 개고(충으로 열림) 여부]",
     storage.length > 0 ? JSON.stringify(storage) : "원국에 창고(진술축미) 지지 없음",
     "",
-    "[운의 흐름 계산 데이터 — 대운/올해 세운/월운]",
+    luckHeader,
     JSON.stringify(luck),
   ].join("\n");
 }
@@ -127,8 +173,11 @@ export function buildCompatibilityEvidence(
 }
 
 /** 오늘 일진 근거 (매 질문마다 새로 계산해 현재 턴에만 첨부) */
-export function buildTodayEvidence(birthInfo: BirthInfo): string {
-  const fortune = computeFortuneEvidence(birthInfo);
+export function buildTodayEvidence(source: ChartSource): string {
+  const fortune =
+    source.kind === "pillars"
+      ? computeFortuneEvidenceFromChart(computeChartFromPillars(toFourPillarsInput(source.pillars)))
+      : computeFortuneEvidence(source.birthInfo);
   return [
     `[오늘(${fortune.date} ${fortune.weekday}) 일진 계산 데이터 — 오늘 간지와 내 원국의 상호작용]`,
     JSON.stringify(fortune),
@@ -136,8 +185,8 @@ export function buildTodayEvidence(birthInfo: BirthInfo): string {
 }
 
 /** API 호출 없이 즉시 보여주는 원국 요약 (/saju 명령) */
-export function formatChartSummary(birthInfo: BirthInfo): string {
-  const { chart, luck } = computePack(birthInfo);
+export function formatChartSummary(source: ChartSource): string {
+  const { chart, luck } = computePack(source);
   const lines: string[] = [];
 
   lines.push("📜 *내 사주 원국*");
@@ -171,6 +220,11 @@ export function formatChartSummary(birthInfo: BirthInfo): string {
     lines.push(`현재 대운: ${current.ganZhi} (${current.startAge}~${current.endAge}세, ${current.startYear}~${current.endYear}년)`);
   }
   lines.push(`올해 세운: ${luck.yearGanZhi} · 이번 달: ${luck.monthGanZhi} · 오늘 일진: ${luck.dayGanZhi ?? "-"}`);
+
+  if (source.kind === "pillars") {
+    lines.push("");
+    lines.push("_(팔자만 입력해서 대운(10년 흐름)은 빠졌어요. 대운까지 보려면 생년월일시로 등록해주세요.)_");
+  }
 
   lines.push("");
   lines.push("궁금한 건 그냥 물어보세요. 예: \"나 왜 신약사주야?\", \"오늘 일진이 왜 이렇게 흘러가?\"");

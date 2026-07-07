@@ -2,7 +2,9 @@
 // 저장소(Store)만 주입받아 동작하므로, 어떤 방식으로 실행되는지는 이 파일이 몰라도 된다.
 import { sendMessage, sendTyping, type TgMessage } from "./telegram.js";
 import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationType } from "./parseBirth.js";
-import { formatChartSummary, buildCompatibilityEvidence } from "./evidence.js";
+import { looksLikeFourPillars, looksLikePartialPillars, parseFourPillars, describePillars } from "./parseFourPillars.js";
+import { formatChartSummary, buildCompatibilityEvidence, chartSourceOf, pillarsSource, birthSource } from "./evidence.js";
+import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
 import { askTeacher, askCompatibility } from "./teacher.js";
 import type { Store } from "./storeTypes.js";
 
@@ -23,6 +25,11 @@ const BIRTH_GUIDE = [
   "",
   "포함할 것: 날짜 + 시각(또는 '시간모름') + 성별(남/여)",
   "선택: 음력/윤달, 출생 지역(진태양시 보정)",
+  "",
+  "이미 만세력에서 사주팔자(여덟 글자)를 알고 있으면, 그걸 그대로 붙여넣어도 돼요:",
+  "• `경오 무자 임술 갑진`",
+  "• `연주 경오 월주 무자 일주 임술 시주 갑진`",
+  "(팔자만 넣으면 대운(10년 흐름)은 빠지고 나머지는 그대로 계산돼요. 대운까지 보려면 생년월일시로 넣어주세요.)",
 ].join("\n");
 
 const START_GUIDE = [
@@ -57,6 +64,24 @@ const COMPAT_GUIDE = [
   "그만두려면 /reset",
 ].join("\n");
 
+/** 팔자 → 실제 생일 되짚기 성공 시 등록 안내 문구를 만든다. */
+function buildInferHeader(wasRegistered: boolean, inferred: InferBirthResult): string {
+  const b = inferred.birthInfo!;
+  const lines: string[] = [];
+  lines.push(wasRegistered ? "사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)" : "팔자로 등록했어요 ✅");
+  lines.push(`이 팔자는 실제로 *${b.year}년 ${b.month}월 ${b.day}일${inferred.weekday ? `(${inferred.weekday})` : ""}*로 보여요. 그 날짜로 대운까지 계산했어요.`);
+  if (inferred.otherYears && inferred.otherYears.length > 0) {
+    lines.push(`(같은 팔자가 ${inferred.otherYears.join("·")}년에도 있지만, 가장 최근인 ${b.year}년으로 봤어요. 다른 연도면 생년월일시로 알려주세요.)`);
+  }
+  if (inferred.genderAssumed) {
+    lines.push("성별을 안 주셔서 대운은 *남성 기준*으로 잡았어요. 여성이면 팔자 뒤에 '여'를 붙여 다시 보내주세요(대운 방향이 반대예요).");
+  }
+  if (inferred.hourDropped) {
+    lines.push("적어주신 시주가 계산과 안 맞아, 시주는 빼고 등록했어요.");
+  }
+  return lines.join("\n");
+}
+
 /** 생일 입력에서 걷어내고 남은 텍스트가 실제 질문인지 판단한다. 아니면 null. */
 function extractQuestion(remainder?: string): string | null {
   if (!remainder) return null;
@@ -79,6 +104,8 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     }
 
     const user = await store.getUser(chatId);
+    // 원국 출처: 생년월일시(birth) 또는 만세력 팔자 직접입력(pillars). 등록 전이면 null.
+    const source = chartSourceOf(user);
 
     // ── 명령어 ──
     if (text === "/start") {
@@ -100,20 +127,23 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
       return;
     }
     if (text === "/saju") {
-      if (!user.birthInfo) {
+      if (!source) {
         await sendMessage(chatId, "이건 내 사주 원국이 있어야 보여줄 수 있어요. 먼저 등록해주세요.\n\n" + BIRTH_GUIDE);
         return;
       }
-      await sendMessage(chatId, formatChartSummary(user.birthInfo));
+      await sendMessage(chatId, formatChartSummary(source));
       return;
     }
-    if (text === "/today" && !user.birthInfo) {
+    if (text === "/today" && !source) {
       await sendMessage(chatId, "오늘 일진은 내 사주와 오늘 간지를 대조해야 해서, 먼저 등록이 필요해요.\n\n" + BIRTH_GUIDE);
       return;
     }
     if (text === "/궁합" || text === "/compat" || text === "/궁합보기") {
       if (!user.birthInfo) {
-        await sendMessage(chatId, "궁합은 내 사주와 상대 사주를 맞대봐야 해서, 먼저 내 사주부터 등록해주세요.\n\n" + BIRTH_GUIDE);
+        const msg = user.pillars
+          ? "궁합은 두 사람의 생년월일시로 시기·흐름까지 맞대봐야 해서, 팔자만으로는 볼 수 없어요. 내 사주를 생년월일시로 다시 등록해주세요.\n\n"
+          : "궁합은 내 사주와 상대 사주를 맞대봐야 해서, 먼저 내 사주부터 등록해주세요.\n\n";
+        await sendMessage(chatId, msg + BIRTH_GUIDE);
         return;
       }
       await store.setPending(chatId, { type: "compat" });
@@ -164,7 +194,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
           const typing = setInterval(() => void sendTyping(chatId), 5000);
           void sendTyping(chatId);
           try {
-            const answer = await askTeacher({ birthInfo: parsed.birthInfo!, history: [], question: followUp });
+            const answer = await askTeacher({ source: birthSource(parsed.birthInfo!), history: [], question: followUp });
             await store.appendHistory(chatId, { role: "user", content: followUp }, { role: "assistant", content: answer });
             await sendMessage(chatId, answer);
           } finally {
@@ -174,7 +204,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         }
 
         const prefix = wasRegistered ? "사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)" : "등록했어요 ✅";
-        await sendMessage(chatId, `${prefix}\n${describeBirthInfo(parsed.birthInfo!)}\n\n${formatChartSummary(parsed.birthInfo!)}`);
+        await sendMessage(chatId, `${prefix}\n${describeBirthInfo(parsed.birthInfo!)}\n\n${formatChartSummary(birthSource(parsed.birthInfo!))}`);
         return;
       }
       // 등록 시도로 보이는데 형식이 안 맞으면 안내. 등록 전 사용자에게만 보여준다 —
@@ -183,6 +213,72 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         await sendMessage(chatId, `${parsed.error}\n\n${BIRTH_GUIDE}`);
         return;
       }
+    }
+
+    // ── 만세력 사주팔자(여덟 글자) 직접 입력 → 등록/재등록 ──
+    if (looksLikeFourPillars(text)) {
+      const parsed = parseFourPillars(text);
+      if (parsed.ok) {
+        const wasRegistered = Boolean(user.birthInfo || user.pillars);
+
+        // 1순위: 팔자로 실제 생일을 되짚어본다. 되짚으면 대운·사령까지 되살아난다.
+        const inferred = inferBirthFromPillars(parsed.pillars!);
+        let newSource;
+        let header: string;
+        if (inferred.ok) {
+          await store.setBirthInfo(chatId, inferred.birthInfo!);
+          newSource = birthSource(inferred.birthInfo!);
+          header = buildInferHeader(wasRegistered, inferred);
+        } else {
+          // 되짚기 실패 → 팔자 그대로 해석(대운 제외)
+          await store.setPillars(chatId, parsed.pillars!);
+          newSource = pillarsSource(parsed.pillars!);
+          header =
+            (wasRegistered ? "사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)" : "팔자로 등록했어요 ✅") +
+            `\n${describePillars(parsed.pillars!)}` +
+            "\n(이 팔자에 딱 맞는 실제 날짜를 못 찾아서, 팔자 그대로 해석해요 — 대운은 빠져요.)";
+        }
+
+        // 팔자와 함께 질문까지 한 줄로 보냈으면 등록만 알리고 바로 답한다.
+        const followUp = extractQuestion(parsed.remainder);
+        if (followUp) {
+          await sendMessage(chatId, header);
+          const typing = setInterval(() => void sendTyping(chatId), 5000);
+          void sendTyping(chatId);
+          try {
+            const answer = await askTeacher({ source: newSource, history: [], question: followUp });
+            await store.appendHistory(chatId, { role: "user", content: followUp }, { role: "assistant", content: answer });
+            await sendMessage(chatId, answer);
+          } finally {
+            clearInterval(typing);
+          }
+          return;
+        }
+
+        await sendMessage(chatId, `${header}\n\n${formatChartSummary(newSource)}`);
+        return;
+      }
+      // 팔자 형태로 보였지만 못 읽은 경우 — 등록 전 사용자에게만 안내한다.
+      if (!source) {
+        await sendMessage(chatId, `${parsed.error}\n\n${BIRTH_GUIDE}`);
+        return;
+      }
+    }
+
+    // ── 간지를 쓰려다 연·월주까지만 준 경우(예: "갑자년 정축월") → 최소 일주 안내 ──
+    if (looksLikePartialPillars(text)) {
+      await sendMessage(
+        chatId,
+        [
+          "간지로 사주를 보려면 *최소 연·월·일주*가 필요해요.",
+          "연·월주만으론 대략 몇 년 몇 월인지까지만 좁혀지고, 정작 '나'를 뜻하는 *일주(日柱)*가 없어 사주가 세워지지 않아요.",
+          "",
+          "일주(예: `병인일`)까지 넣어주세요. 시주(예: `정묘시`)까지 있으면 실제 생년월일을 되짚어 *대운*까지 계산해드려요.",
+          "• `갑자년 정축월 병인일 정묘시`",
+          "• `갑자 정축 병인` (시주 모르면 생략)",
+        ].join("\n"),
+      );
+      return;
     }
 
     // ── 질문 → 사주 선생님(Claude). 사주 등록 여부와 무관하게 답한다 ──
@@ -199,7 +295,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     const typing = setInterval(() => void sendTyping(chatId), 5000);
     void sendTyping(chatId);
     try {
-      const answer = await askTeacher({ birthInfo: user.birthInfo, history: user.history, question });
+      const answer = await askTeacher({ source, history: user.history, question });
       await store.appendHistory(chatId, { role: "user", content: question }, { role: "assistant", content: answer });
       await sendMessage(chatId, answer);
     } finally {

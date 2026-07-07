@@ -1305,6 +1305,8 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 - npm test 46파일/385테스트 통과, tsc(앱·봇) 통과, npm run build 성공.
 - 계산 엔진의 연월일시주·오행·십성·대운 고정값은 불변(additive 필드만 추가).
 
+---
+
 ## 전통 명리 정밀도 2순위 — 대운·세운 해석 필드 · 삼재 (2026-07)
 
 전통 만세력이 관습적으로 보여주는 부가 정보를 additive로 추가. 만세력 대운(간지·나이·연도) 고정값 불변.
@@ -1326,3 +1328,55 @@ JudgmentPack(계산→근거→룰→판단)만 허용범위로 비교. 계산 �
 ### 검증
 - `sajuPrecision.test.ts`에 5개 추가(대운·세운 필드, 삼재, 순수함수). 회귀 스냅샷은 만세력 대운 기존 키만 비교하도록 조정(해석 필드 제외).
 - npm test 46파일/390테스트 통과, tsc 통과, npm run build 성공.
+
+---
+
+## 텔레그램 봇 — 만세력 사주팔자(여덟 글자) 직접 입력 지원 (2026-07-07)
+
+### 배경(사용자 요청)
+텔레그램 봇에 만세력 앱에서 뽑은 사주팔자(여덟 글자)를 그대로 붙여넣으면, 봇이 그걸 근거로 해석하지 못하고 생년월일시를 자꾸 다시 요구했다. 이제 팔자만 붙여넣어도 등록·해석되도록 입력 경로를 추가했다.
+
+### 엔진(src/lib) — additive
+- `computeSajuChart`를 리팩터: 네 기둥에서 원국 전체를 조립하는 핵심부 `assembleChart(...)`를 분리. 기존 동작·고정값은 불변(회귀 테스트 무변경 통과).
+- 신규 `computeChartFromPillars(FourPillarsInput)`: 만세력 팔자(연·월·일·시 간지, 한글/한자, 시주 null 허용)를 그대로 받아 원국을 조립. 십성·지장간·통근/투출·신강신약·격국·신살·오행 분포는 생년월일시 계산과 동일 규칙.
+  - 한계: 생년월일이 없어 사령(월률분야)·진태양시 보정은 계산에서 제외. 사령이 관여하는 경우(월간 투출 전무) 격국이 정기 기준으로 폴백되어 생년월일시 계산과 달라질 수 있음(관법에 따라 갈리는 부분 — 근거 데이터·안내 문구에 명시).
+- 신규 `computeLuckFromPillars(chart, now, opts)`: 세운/월운/오늘 일진과 원국 상호작용, 올해 1~12월 월운 흐름을 계산. 대운(daYun)은 생년·성별이 없어 빈 배열, 세운 타임라인(yearlyFlow)은 나이 미상이라 생략.
+- `fortune.ts`에 `computeFortuneEvidenceFromChart(chart, now)` 분리(기존 `computeFortuneEvidence(birthInfo)`는 이를 감싸는 래퍼로 유지).
+
+### 봇(bot)
+- 신규 `bot/parseFourPillars.ts`: `looksLikeFourPillars`(일상 문장 오탐 방지: 4토큰 또는 라벨/시간모름+3토큰), `parseFourPillars`(라벨 `연주/월주/…` → 단위 접미사 `년/월/일/시`(역순 안전) → 위치 순 매핑, 한자 정규화, 성별·뒤따르는 질문 분리).
+- 저장 모델: `UserRecord.pillars` 추가(생년월일시 `birthInfo`와 상호배타). `Store.setPillars` 추가(kvStore·fileStore 구현). 한쪽으로 등록하면 다른 쪽은 해제하고 대화 맥락 초기화.
+- `evidence.ts`: `ChartSource = {kind:"birth"|"pillars"}` 도입. `computePack`/`buildNatalEvidence`/`buildTodayEvidence`/`formatChartSummary`가 소스 기반으로 동작. 팔자 소스면 대운 부재·사령/진태양시 제외를 근거 텍스트와 요약에 명시.
+- `teacher.ts` `askTeacher({source, ...})`로 변경. 궁합(`/궁합`)은 두 사람 생년월일시가 필요해 팔자 등록자에겐 생년월일시 재등록을 안내(기존 궁합 동작 불변).
+- `messageHandler.ts`: 생년월일시 입력 다음에 팔자 입력 분기 추가. 팔자+질문 한 줄 입력 시 등록 후 즉시 답변.
+
+### 검증
+- 신규 `src/lib/pillarsInput.test.ts`(팔자↔생년월일시 원국 일치), `bot/parseFourPillars.test.ts`.
+- npm test 48파일/403테스트 통과, tsc(앱·봇) 통과, npm run build 성공.
+- 파이프라인 실제 구동 확인: 팔자 붙여넣기 → 원국·세운/월운/일진 정확 계산, 대운 부재 안내, 뒤따르는 질문 온전 보존.
+
+---
+
+## 텔레그램 봇 — 팔자 → 실제 생년월일 역추적(만세력 逆산출) (2026-07-07 추가)
+
+### 배경(사용자 요청 후속)
+"갑자년 정축월 막 이렇게 해도 몇 년 몇 월인지 알아서 추측했으면"— 팔자를 그대로 해석만 하는 게 아니라, 그 팔자가 실제 몇 년 몇 월 며칠인지 되짚어주길 원함. 날짜를 되짚으면 대운·사령이 되살아나므로 팔자 직접해석보다 완전해진다.
+
+### 결정
+- 범위: 팔자 4기둥(최소 연·월·일주) → 실제 양력 날짜 역추적.
+- 60년 주기 중복은 사람 수명 범위(1900~올해)에서 가장 최근(가장 어린) 연도를 자동 선택, 다른 후보는 안내.
+
+### 엔진(src/lib/saju.ts)
+- `inferSolarDatesFromPillars(yearGZ, monthGZ, dayGZ, opts)`: 연주(입춘 기준)·월주(절기)·일주가 모두 맞는 양력 날짜를 범위 내 오름차순으로 반환. 일진 60일 주기를 이용해 60일 간격으로만 확인(빠름), 경계는 라이브러리 판정에 위임.
+
+### 봇(bot/inferBirth.ts)
+- `inferBirthFromPillars(StoredPillars)`: 후보 중 오늘 이전 가장 최근을 선택 → 시주는 지지별 대표 시각(자시=00:30 조자시)으로 매핑 → `computeSajuChart`로 왕복 검증(연·월·일 재현 확인, 시주 불일치 시 시주만 드롭) → 검증된 BirthInfo 반환. 실패 시 ok:false(팔자 직접해석으로 폴백).
+- 성별 미입력 시 남성 기준 가정(genderAssumed 플래그로 안내). 성별은 대운 방향(순/역행)에만 영향.
+
+### 봇 흐름(messageHandler)
+- 팔자 입력 시 1순위로 `inferBirthFromPillars` 시도 → 성공하면 `store.setBirthInfo`로 등록(대운·사령 포함 전체 원국), 실패하면 `store.setPillars`(직접해석). 안내 문구에 되짚은 날짜·다른 후보 연도·성별 가정·시주 드롭을 명시.
+- 부분 입력(`looksLikePartialPillars`, 예 "갑자년 정축월")은 최소 일주 필요 안내. 단위가 붙은 3기둥("갑자년 정축월 병인일")은 `looksLikeFourPillars`가 인식하도록 보강(extractBySuffix).
+
+### 검증
+- 왕복 검증: 경오/무자/임술→1990-12-23(유일), 계해/을축/계묘→1924·1984(최근 1984), 갑자년 정축월 병인일→1985-01-27. 되짚은 생일이 원 팔자 재현. 1990 케이스는 기존 검증 베이스라인 대운(2026 갑신)과 일치.
+- npm test 49파일/412테스트 통과, tsc(앱·봇)·build 통과. 신규 테스트: inferSolarDatesFromPillars(pillarsInput.test.ts), bot/inferBirth.test.ts, looksLikePartialPillars(parseFourPillars.test.ts).

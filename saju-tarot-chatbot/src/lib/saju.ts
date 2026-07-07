@@ -1037,6 +1037,132 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
   const dayPillar = toPillar(ec.getDay());
   const timePillar = hour === null ? null : toPillar(ec.getTime());
 
+  // 월률분야(사령): 절입 경과일 기준 월지 지장간 중 주관하는 기운.
+  // 생년월일(절입일 대비 경과일)이 있어야 계산할 수 있다.
+  let monthCommand: MonthCommand | null = null;
+  try {
+    const jie = lunar.getPrevJie();
+    const daysSinceTerm = lunar.getSolar().getJulianDay() - jie.getSolar().getJulianDay();
+    monthCommand = buildMonthCommand(monthPillar.zhi, dayPillar.gan, daysSinceTerm, jie.getName());
+  } catch {
+    monthCommand = null;
+  }
+
+  return assembleChart(yearPillar, monthPillar, dayPillar, timePillar, {
+    monthCommand,
+    timeCorrection: correction ?? undefined,
+    calculationBasis: calculationBasisOf(birthInfo),
+  });
+}
+
+/** 간지 2글자(예: "경오"·"庚午")를 SajuPillar로. 한자/한글 모두 받는다. */
+function pillarFromGanZhi(ganZhi: string): SajuPillar {
+  return toPillar(ganZhi);
+}
+
+/** 사주팔자(여덟 글자) 직접 입력 — 생년월일시 없이 만세력 원국을 그대로 받아 해석에 쓴다. */
+export interface FourPillarsInput {
+  /** 간지 2글자 (한글 "경오" 또는 한자 "庚午") */
+  year: string;
+  month: string;
+  day: string;
+  /** 시주. 출생 시간을 모르면 null */
+  hour: string | null;
+}
+
+/**
+ * 만세력에서 뽑은 사주팔자(여덟 글자)를 그대로 받아 원국을 조립한다.
+ * 생년월일이 없으므로 사령(월률분야)·진태양시 보정은 계산하지 않는다.
+ * 나머지(십성·지장간·통근/투출·신강신약·격국·신살·오행 분포)는
+ * computeSajuChart 와 완전히 동일한 규칙으로 계산된다.
+ */
+export function computeChartFromPillars(input: FourPillarsInput): SajuChart {
+  const yearPillar = pillarFromGanZhi(input.year);
+  const monthPillar = pillarFromGanZhi(input.month);
+  const dayPillar = pillarFromGanZhi(input.day);
+  const timePillar = input.hour ? pillarFromGanZhi(input.hour) : null;
+
+  return assembleChart(yearPillar, monthPillar, dayPillar, timePillar, {
+    monthCommand: null, // 절입 경과일(생년월일)이 없어 사령 특정 불가
+    calculationBasis: { isLateNightZiHour: false, inputTimeLabel: null },
+  });
+}
+
+export interface InferredBirthDate {
+  year: number;
+  month: number;
+  day: number;
+}
+
+/**
+ * 사주팔자(연·월·일 간지)에 맞는 실제 양력 날짜를 역추적한다.
+ * 만세력에서 팔자만 아는 사용자가 붙여넣으면, 그 팔자가 실제로 몇 년 몇 월 며칠인지 되짚는다.
+ * 같은 간지는 60년마다 반복되므로 범위 안 후보를 모두 오름차순으로 반환한다.
+ * 일진(일주)은 60일 주기라 60일 간격으로만 확인하면 되므로 빠르다.
+ * 연주는 입춘 기준(getYearInGanZhiByLiChun), 월주는 절기 기준으로 라이브러리가 판정하므로
+ * 경계(입춘·절입)까지 정확히 맞는 날짜만 걸린다.
+ */
+export function inferSolarDatesFromPillars(
+  yearGZ: string,
+  monthGZ: string,
+  dayGZ: string,
+  opts: { minYear?: number; maxYear?: number } = {},
+): InferredBirthDate[] {
+  const yGZ = toHangul(yearGZ);
+  const mGZ = toHangul(monthGZ);
+  const dGZ = toHangul(dayGZ);
+  const minYear = opts.minYear ?? 1900;
+  const maxYear = opts.maxYear ?? new Date().getFullYear();
+
+  // 정오 기준으로만 본다(자정 경계·서버 시간대 영향 배제).
+  const dayGZof = (y: number, m: number, d: number): string =>
+    toHangul(Solar.fromYmdHms(y, m, d, 12, 0, 0).getLunar().getDayInGanZhi());
+  const addDays = (dt: Date, n: number): Date => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + n, 12, 0, 0);
+
+  // 범위 시작에서 일진이 맞는 첫 날을 찾는다(최대 60일 스캔).
+  let cur = new Date(minYear, 0, 1, 12, 0, 0);
+  let found = false;
+  for (let k = 0; k < 60; k++) {
+    if (dayGZof(cur.getFullYear(), cur.getMonth() + 1, cur.getDate()) === dGZ) {
+      found = true;
+      break;
+    }
+    cur = addDays(cur, 1);
+  }
+  const results: InferredBirthDate[] = [];
+  if (!found) return results;
+
+  while (cur.getFullYear() <= maxYear) {
+    const y = cur.getFullYear();
+    const m = cur.getMonth() + 1;
+    const d = cur.getDate();
+    const lunar = Solar.fromYmdHms(y, m, d, 12, 0, 0).getLunar();
+    if (
+      toHangul(lunar.getYearInGanZhiByLiChun()) === yGZ &&
+      toHangul(lunar.getMonthInGanZhi()) === mGZ &&
+      toHangul(lunar.getDayInGanZhi()) === dGZ
+    ) {
+      results.push({ year: y, month: m, day: d });
+    }
+    cur = addDays(cur, 60); // 일진 60일 주기로만 확인
+  }
+  return results;
+}
+
+/** computeSajuChart / computeChartFromPillars 가 공유하는, 네 기둥에서 원국 전체를 조립하는 핵심부. */
+interface ChartExtras {
+  monthCommand: MonthCommand | null;
+  timeCorrection?: TimeCorrection;
+  calculationBasis?: SajuChart["calculationBasis"];
+}
+
+function assembleChart(
+  yearPillar: SajuPillar,
+  monthPillar: SajuPillar,
+  dayPillar: SajuPillar,
+  timePillar: SajuPillar | null,
+  extras: ChartExtras,
+): SajuChart {
   const fiveElements: FiveElementBalance = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
   for (const pillar of [yearPillar, monthPillar, dayPillar, timePillar]) {
     if (!pillar) continue;
@@ -1099,16 +1225,7 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
   const gongmangHits = zhis.filter((z) => gongmangZhis.includes(z.char)).map((z) => `${z.label} ${z.char}`);
   const gongmang = `${gongmangZhis} 공망${gongmangHits.length > 0 ? ` (원국 내 해당: ${gongmangHits.join(", ")})` : " (원국 내 해당 지지 없음)"}`;
 
-  // 월률분야(사령): 절입 경과일 기준 월지 지장간 중 주관하는 기운
-  let monthCommand: MonthCommand | null = null;
-  try {
-    const jie = lunar.getPrevJie();
-    const daysSinceTerm = lunar.getSolar().getJulianDay() - jie.getSolar().getJulianDay();
-    monthCommand = buildMonthCommand(monthPillar.zhi, dayGan, daysSinceTerm, jie.getName());
-  } catch {
-    monthCommand = null;
-  }
-
+  const monthCommand = extras.monthCommand;
   const sinsal = computeSinsal(dayGan, dayPillar.zhi, monthPillar.zhi, yearPillar.zhi, gans, zhis);
   const gyeokguk = computeGyeokguk(dayGan, monthPillar.zhi, strength, transparency, monthCommand);
   // 격국 성패(투출·충 기준) 보정
@@ -1140,8 +1257,8 @@ export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
     sinsal,
     iljuTrait,
     gyeokguk,
-    timeCorrection: correction ?? undefined,
-    calculationBasis: calculationBasisOf(birthInfo),
+    timeCorrection: extras.timeCorrection,
+    calculationBasis: extras.calculationBasis,
   };
 }
 
@@ -1478,6 +1595,70 @@ export function computeLuckCycles(
     luckInteractions,
     daYunYearOverlap,
     samjae,
+  };
+}
+
+/**
+ * 사주팔자 직접 입력용 운 흐름.
+ * 대운은 생년월일·성별이 있어야 계산되므로 여기서는 비운다(daYun: []).
+ * 세운/월운/오늘 일진과 원국의 상호작용, 올해 1~12월 흐름은 원국 지지만으로 계산 가능하다.
+ */
+export function computeLuckFromPillars(
+  chart: SajuChart,
+  now: Date = new Date(),
+  options: LuckCycleOptions = {},
+): LuckCycles {
+  const nowYear = now.getFullYear();
+  const nowLunar = Solar.fromDate(now).getLunar();
+  const yearGanZhi = toHangul(nowLunar.getYearInGanZhiByLiChun());
+  const monthGanZhi = toHangul(nowLunar.getMonthInGanZhi());
+  const dayGanZhi = toHangul(nowLunar.getDayInGanZhi());
+
+  const natalGans: PositionedChar[] = [
+    { label: "연간", char: chart.year.gan },
+    { label: "월간", char: chart.month.gan },
+    { label: "일간", char: chart.day.gan },
+    ...(chart.hour ? [{ label: "시간", char: chart.hour.gan }] : []),
+  ];
+  const natalZhis: PositionedChar[] = [
+    { label: "연지", char: chart.year.zhi },
+    { label: "월지", char: chart.month.zhi },
+    { label: "일지", char: chart.day.zhi },
+    ...(chart.hour ? [{ label: "시지", char: chart.hour.zhi }] : []),
+  ];
+
+  const luckInteractions = [
+    ...luckVsNatal(`세운 ${yearGanZhi}`, yearGanZhi, natalGans, natalZhis),
+    ...luckVsNatal(`월운 ${monthGanZhi}`, monthGanZhi, natalGans, natalZhis),
+    ...luckVsNatal(`일진 ${dayGanZhi}`, dayGanZhi, natalGans, natalZhis),
+  ];
+
+  let monthlyFlow: MonthFlowInfo[] | undefined;
+  if (options.includeMonthlyFlow) {
+    monthlyFlow = [];
+    for (let m = 1; m <= 12; m++) {
+      const midLunar = Solar.fromYmdHms(nowYear, m, 15, 12, 0, 0).getLunar();
+      const ganZhi = toHangul(midLunar.getMonthInGanZhi());
+      monthlyFlow.push({
+        month: m,
+        ganZhi,
+        interactions: luckVsNatal(`${m}월 월운 ${ganZhi}`, ganZhi, natalGans, natalZhis),
+      });
+    }
+  }
+
+  return {
+    daYun: [],
+    currentDaYun: null,
+    yearGanZhi,
+    monthGanZhi,
+    dayGanZhi,
+    year: nowYear,
+    month: now.getMonth() + 1,
+    luckInteractions,
+    monthlyFlow,
+    // yearlyFlow: 생년(나이)이 없어 세운 타임라인의 나이를 특정할 수 없어 생략
+    // daYunYearOverlap: 대운이 없어 중첩 판정 불가
   };
 }
 
