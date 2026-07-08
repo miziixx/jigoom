@@ -1,4 +1,5 @@
 import type {
+  CrossValidationReport,
   Gender,
   DrawnTarotCard,
   LuckCycles,
@@ -511,6 +512,16 @@ function formatPastValidation(report: PastValidationReport): string {
   return lines.join("\n");
 }
 
+/** 사주·자미두수 교차검증을 압축 근거 블록으로 직렬화한다(분야별 일치 판정만, 자미두수 원식은 넘기지 않음). */
+function formatCrossValidation(report: CrossValidationReport): string {
+  const lines = [report.headline];
+  for (const m of report.matches) {
+    lines.push(`- ${m.label} [${m.level}] 사주 ${m.sajuTone} / 자미두수 ${m.ziweiTone} — ${m.summary}`);
+  }
+  lines.push(`(근거) ${report.matches.flatMap((m) => m.evidence).join("; ")}`);
+  return lines.join("\n");
+}
+
 function formatTarotCards(cards: DrawnTarotCard[]): string {
   return cards
     .map((c) => {
@@ -823,6 +834,8 @@ export interface ReadingFacts {
   spreadNote?: string;
   /** 과거 검증 결과 (브라우저에서 계산해 전달). 해석 신뢰도 보정에 사용한다. */
   pastValidation?: PastValidationReport;
+  /** 사주·자미두수 교차검증 (브라우저에서 계산해 전달). 분야별 확신 조절에 사용한다. */
+  crossValidation?: CrossValidationReport;
 }
 
 export function buildReadingJudgmentPack(facts: ReadingFacts): JudgmentPack | null {
@@ -946,6 +959,15 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
     parts.push(`[과거 사건 검증 — 계산됨]\n${formatPastValidation(facts.pastValidation)}`);
     parts.push(
       "[과거 검증 활용 안내] 위는 사용자가 알려준 실제 과거 사건이 그 시기 계산 흐름과 얼마나 맞는지 판정한 것이다. 규칙: (1) '잘 맞음'으로 나온 분야의 해석은 더 자신 있게, 구체적으로 써라. (2) '신호 약함'으로 나온 분야는 단정을 피하고 '이 부분은 사주 흐름보다 성향·선택·환경의 영향이 컸을 수 있다'는 태도로 조심스럽게 다뤄라. (3) 과거가 맞았다고 미래를 단정하지 마라 — 어디까지나 이 사주에서 어떤 축을 더 믿고 볼지에 대한 보정일 뿐이다. (4) 사용자의 과거 사건 내용을 리딩 안에서 자연스럽게 언급해 '당신의 실제 경험과 맞춰 보면'처럼 연결하되, 사주 용어는 표면에 쓰지 마라.",
+    );
+  }
+
+  // 사주·자미두수 교차검증: 브라우저에서 자미두수 원식을 계산·대조한 압축 리포트만 넘긴다(원식 원본 아님).
+  // 앞부분 담당(분야별 요약·분야 섹션)이라 front 전용, 사주/통합만. 확신 조절용 참고 신호.
+  if (facts.crossValidation && facts.crossValidation.matches.length > 0 && facts.sectionGroup !== "back" && (facts.type === "saju" || facts.type === "combo")) {
+    parts.push(`[교차검증 — 사주·자미두수 — 계산됨]\n${formatCrossValidation(facts.crossValidation)}`);
+    parts.push(
+      "[교차검증 활용 안내] 위는 같은 생년월일시로 사주와 자미두수가 각 분야를 어떻게 보는지 대조한 것이다. 별도 섹션을 만들지 말고, 해당 분야 서술의 '확신 세기'만 조절하는 데 쓴다. 규칙: (1) '강일치' 분야는 두 방식이 같은 방향이니 더 또렷하게 말해도 된다. (2) '불일치' 분야는 단정하지 말고 '방식에 따라 갈릴 수 있다'는 태도로 조심스럽게. (3) '부분일치'는 참고만 하고 과하게 확신하지 마라. (4) 두 방식이 같다고 미래를 단정하는 근거로 쓰지 마라. (5) '자미두수'라는 말은 자연스럽게 언급해도 되나 별·궁 이름 같은 자미두수 전문용어는 표면에 쓰지 말고 (근거)에만 남겨라.",
     );
   }
 

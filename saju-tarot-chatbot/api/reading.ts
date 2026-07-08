@@ -19,6 +19,7 @@ import { validateOutputAgainstJudgmentPack, type JudgmentValidationResult } from
 import type { JudgmentPack } from "../src/lib/judgmentTypes.js";
 import type {
   ChatMessage,
+  CrossValidationReport,
   DrawnTarotCard,
   Gender,
   LuckCycles,
@@ -68,6 +69,8 @@ interface NewReadingBody {
   spreadNote?: string;
   // 과거 검증 결과. 계산은 클라이언트에서 끝내고 결과 값만 전달한다(서버는 통과만).
   pastValidation?: PastValidationReport;
+  // 사주·자미두수 교차검증 결과. 자미두수 계산·대조는 클라이언트에서 끝내고 압축 리포트만 전달한다.
+  crossValidation?: CrossValidationReport;
 }
 
 interface FollowUpBody {
@@ -391,7 +394,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const { type, question, focus, context, sectionGroup, gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation } = body;
+    const { type, question, focus, context, sectionGroup, gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation, crossValidation } = body;
 
     if ((type === "saju" || type === "combo" || type === "today" || type === "flow") && !sajuChart) {
       res.status(400).json({ error: "sajuChart(계산 결과)가 필요합니다." });
@@ -426,6 +429,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tarotCards,
       spreadNote,
       pastValidation,
+      crossValidation,
     };
     const judgmentPack = buildReadingJudgmentPack(readingFacts);
     const userMessage = buildReadingUserMessage(readingFacts, judgmentPack);

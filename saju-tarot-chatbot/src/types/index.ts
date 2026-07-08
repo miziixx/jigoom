@@ -84,6 +84,32 @@ export interface PastValidationReport {
   reliableDomains: LifeDomain[];
 }
 
+// ── 사주·자미두수 교차검증 ──────────
+
+export type CrossValidationLevel = "강일치" | "부분일치" | "불일치";
+
+export interface CrossValidationMatch {
+  domain: string;
+  label: string;
+  level: CrossValidationLevel;
+  /** 사주 쪽 판정 (좋음/보통/주의) */
+  sajuTone: string;
+  /** 자미두수 쪽 판정 (좋음/보통/주의) */
+  ziweiTone: string;
+  /** 쉬운 말 요지 */
+  summary: string;
+  /** 전문가 근거 (사주 흐름 + 자미두수 궁·별) */
+  evidence: string[];
+}
+
+export interface CrossValidationReport {
+  /** 전체 일치 경향 한 줄 */
+  headline: string;
+  /** 강일치 비율 0-100 (두 방식이 같은 방향인 정도) */
+  agreementScore: number;
+  matches: CrossValidationMatch[];
+}
+
 // ── 리딩 후 피드백 ──────────
 
 export type FeedbackRating = "accurate" | "partial" | "unsure" | "inaccurate";
