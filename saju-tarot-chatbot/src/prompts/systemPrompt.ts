@@ -14,6 +14,7 @@ import { formatJudgmentPackForPrompt } from "../lib/judgmentPrompt.js";
 import type { JudgmentPack } from "../lib/judgmentTypes.js";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide.js";
 import { buildEventForecast } from "../lib/eventEngine.js";
+import { buildNowMind, formatNowMind } from "../lib/nowMind.js";
 import { describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 
 /**
@@ -251,6 +252,7 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 # 첫 점괘
 지금 사용자의 상태를 정확히 찌르는 강한 한두 문장. 뻔하지 않게, 그러나 겁주지 않게.
 예 톤: "지금은 쉬고 싶은 게 아니라, 방향을 잃어서 지친 상태에 가깝습니다."
+사용자 메시지에 [지금 마음 — 계산됨]이 있으면 그 계산된 현재 상태(지금 올라오는 마음·속 긴장·흔들리는 자리)를 이 섹션의 축으로 삼아, 성향 나열이 아니라 "요즘"을 콕 짚어 연다. 계산된 범위를 넘어 지어내지 말고, 경향으로만.
 
 # 질문 중심 핵심
 사용자가 질문을 썼다면 반드시 이 섹션에서 질문에 먼저 답한다. 질문이 없고 관심사를 선택했다면 선택한 관심사에 대한 핵심 흐름을 먼저 보여준다.
@@ -840,6 +842,19 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
     parts.push(
       "[운 흐름 해석 안내] '인생의 큰 흐름'은 전달된 대운(10년 단위 큰 흐름)을, '올해의 흐름'은 세운·월운을 속 근거로 삼아 타이밍을 해석해라. 예를 들어 올해 흐름이 자리·환경을 흔드는 신호면 '올해는 직장·가정 환경이 한 번 흔들리기 쉬운 흐름입니다'처럼 쉬운 말로 옮겨라. 목록에 없는 상호작용을 지어내지 마라. 좋은 시기와 조심할 시기를 구분하되, 단정 대신 \"이렇게 하면 좋아지는 시기\"로 설명하고, 사주 용어(대운·세운·충·월지 등)는 표면 문장에 쓰지 마라.",
     );
+  }
+
+  // 지금 마음 엔진: 원국+운이 있을 때, 지금 시점(세운·월운)이 이 구조에 끌어올리는 심리 상태를
+  // 계산해 전달한다. 모든 깊이(가벼운 리딩 포함) 공통으로 붙여, "지금 내 마음을 짚었다"는 체감을
+  // 라이트든 전문가든 일관되게 만든다. (표면은 쉬운 말, 사주 용어는 근거에만.)
+  if (facts.sajuChart && facts.luckCycles) {
+    const nowMind = buildNowMind(facts.sajuChart, facts.luckCycles);
+    if (nowMind) {
+      parts.push(`[지금 마음 — 계산됨(세운·월운 기준)]\n${formatNowMind(nowMind)}`);
+      parts.push(
+        "[지금 마음 활용 안내] 위 [지금 마음]은 이 사람의 타고난 구조에 지금 시점(세운·월운)이 겹쳐 특히 올라오기 쉬운 심리 상태를 규칙으로 계산한 것이다. '# 첫 점괘'와 (있으면) '# 질문 중심 핵심'을 반드시 이 계산된 현재 상태로 열어라 — 일반론이 아니라 \"요즘 당신은 ~\" 하고 지금을 콕 짚는 문장으로 시작해라. 규칙: (1) 계산된 마음·긴장·흔들리는 자리를 근거로 삼되 그 범위를 넘어 새 사건을 지어내지 마라. (2) 단정·공포 없이 \"~한 마음이 올라오기 쉬운 때\"처럼 경향으로 옮겨라. (3) '속 긴장'이 있으면 그 사람의 개인 사용 설명서처럼(어떻게 지치고 어떻게 회복되는지) 풀어라. (4) 사주 용어(십성·세운·충 등)는 표면에 쓰지 말고 (근거)는 전문가 근거 보기에만 남겨라.",
+      );
+    }
   }
 
   // 사건화 엔진: 원국이 있을 때, 계산된 분야별 사건 신호를 근거로 전달한다.
