@@ -34,6 +34,20 @@ export const config = { supportsResponseStreaming: true };
 
 // READING_MODEL 환경변수로 상위 모델 교체 가능 (프리미엄 리딩 등)
 const MODEL = process.env.READING_MODEL ?? "claude-sonnet-5";
+// A/B·속도 측정용: 요청별로 모델을 고를 수 있게 한다(허용목록만).
+// body.model 필드가 없거나 목록에 없으면 기본(MODEL) 유지 → 프로덕션 무영향.
+// 정확도는 결정론 엔진(4대 고전 근거)이 담보하므로 빠른 모델도 "번역"만 하면 되도록 설계됨.
+const MODEL_ALLOWLIST: Record<string, string> = {
+  haiku: "claude-haiku-4-5-20251001",
+  draft: "claude-haiku-4-5-20251001",
+  sonnet: "claude-sonnet-5",
+  deep: "claude-sonnet-5",
+};
+function resolveModel(body: unknown): string {
+  const raw = (body as { model?: unknown } | null)?.model;
+  if (typeof raw === "string" && MODEL_ALLOWLIST[raw]) return MODEL_ALLOWLIST[raw];
+  return MODEL;
+}
 // 스트리밍: 전문가 리딩이 문장 중간에 잘리지 않도록 여유 있게
 const MAX_TOKENS_STREAM = 16000;
 // 일괄 응답(구버전 클라이언트): 함수 시간 제한 안에서 완성돼야 하므로 보수적으로
@@ -103,7 +117,7 @@ async function streamMessages(
   anthropic: Anthropic,
   messages: Anthropic.Messages.MessageParam[],
   meta?: Record<string, unknown>,
-  options: { maxTokens?: number } = {},
+  options: { maxTokens?: number; model?: string } = {},
 ): Promise<void> {
   res.status(200);
   res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
@@ -124,7 +138,7 @@ async function streamMessages(
 
   try {
     const stream = anthropic.messages.stream({
-      model: MODEL,
+      model: options.model ?? MODEL,
       max_tokens: options.maxTokens ?? MAX_TOKENS_STREAM,
       system: [{ type: "text", text: READING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages,
@@ -152,10 +166,10 @@ async function streamMessages(
 async function completeMessages(
   anthropic: Anthropic,
   messages: Anthropic.Messages.MessageParam[],
-  options: { maxTokens?: number } = {},
+  options: { maxTokens?: number; model?: string } = {},
 ): Promise<string> {
   const response = await anthropic.messages.create({
-    model: MODEL,
+    model: options.model ?? MODEL,
     max_tokens: options.maxTokens ?? MAX_TOKENS_COMPLETE,
     system: READING_SYSTEM_PROMPT,
     messages,
@@ -196,9 +210,10 @@ async function rewriteAfterFailedGate(
   firstReply: string,
   firstValidation: JudgmentValidationResult,
   judgmentPack: JudgmentPack,
+  model: string = MODEL,
 ): Promise<{ reply: string; gate: JudgmentGateResult }> {
   const rewritePrompt = buildJudgmentRewritePrompt({ originalReply: firstReply, validation: firstValidation, pack: judgmentPack });
-  const rewriteReply = await completeMessages(anthropic, [{ role: "user", content: rewritePrompt }], { maxTokens: 7000 });
+  const rewriteReply = await completeMessages(anthropic, [{ role: "user", content: rewritePrompt }], { maxTokens: 7000, model });
   const rewriteValidation = validateOutputAgainstJudgmentPack({ reply: rewriteReply, pack: judgmentPack });
   if (rewriteValidation.ok) {
     const gate: JudgmentGateResult = {
@@ -230,13 +245,14 @@ async function completeJudgmentGatedReply(
   anthropic: Anthropic,
   messages: Anthropic.Messages.MessageParam[],
   judgmentPack: JudgmentPack,
+  model: string = MODEL,
 ): Promise<{ reply: string; judgmentPack: JudgmentPack; gate: JudgmentGateResult }> {
-  const firstReply = await completeMessages(anthropic, messages);
+  const firstReply = await completeMessages(anthropic, messages, { model });
   const firstPass = passOrNeedsRewrite(firstReply, judgmentPack);
   if (firstPass.status === "pass") {
     return { reply: firstPass.reply, judgmentPack: finalizeJudgmentPackAudit(judgmentPack, firstPass), gate: firstPass };
   }
-  const gated = await rewriteAfterFailedGate(anthropic, firstReply, firstPass.validation, judgmentPack);
+  const gated = await rewriteAfterFailedGate(anthropic, firstReply, firstPass.validation, judgmentPack, model);
   return { reply: gated.reply, judgmentPack: finalizeJudgmentPackAudit(judgmentPack, gated.gate), gate: gated.gate };
 }
 
@@ -254,6 +270,7 @@ async function streamJudgmentGatedReply(
   messages: Anthropic.Messages.MessageParam[],
   meta: Record<string, unknown> | undefined,
   judgmentPack: JudgmentPack,
+  model: string = MODEL,
 ): Promise<void> {
   res.status(200);
   res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
@@ -272,7 +289,7 @@ async function streamJudgmentGatedReply(
   try {
     let reply = "";
     const stream = anthropic.messages.stream({
-      model: MODEL,
+      model,
       max_tokens: MAX_TOKENS_STREAM,
       system: [{ type: "text", text: READING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages,
@@ -291,7 +308,7 @@ async function streamJudgmentGatedReply(
     if (firstPass.status === "pass") {
       res.write(JSON.stringify({ done: true, stopReason, gate: gateSignal(firstPass) }) + "\n");
     } else {
-      const gated = await rewriteAfterFailedGate(anthropic, reply, firstPass.validation, judgmentPack);
+      const gated = await rewriteAfterFailedGate(anthropic, reply, firstPass.validation, judgmentPack, model);
       res.write(JSON.stringify({ text: gated.reply, replace: true }) + "\n");
       res.write(JSON.stringify({ done: true, stopReason: "end_turn", gate: gateSignal(gated.gate) }) + "\n");
     }
@@ -327,6 +344,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = req.body as RequestBody;
   const anthropic = new Anthropic({ apiKey });
   const streaming = wantsStream(req);
+  // A/B·측정용 요청별 모델(허용목록만, 없으면 기본 MODEL). 이 요청의 모든 생성/재작성이 같은 모델을 쓴다.
+  const model = resolveModel(req.body);
 
   // 이어쓰기(continue): 앞선 응답이 토큰 상한/네트워크 절단으로 잘렸을 때, 지금까지 받은 본문을
   // 사용자 메시지에 합쳐 "반복 없이 이어서" 쓰게 한다. 일부 Claude 모델은 assistant 프리필을
@@ -347,10 +366,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         continueFrom,
       );
       if (streaming) {
-        await streamMessages(res, anthropic, messages, undefined, mode === "concise" ? { maxTokens: 2200 } : undefined);
+        await streamMessages(res, anthropic, messages, undefined, { model, ...(mode === "concise" ? { maxTokens: 2200 } : {}) });
       } else {
         res.status(200).json({
-          reply: await completeMessages(anthropic, messages, mode === "concise" ? { maxTokens: 2200 } : undefined),
+          reply: await completeMessages(anthropic, messages, { model, ...(mode === "concise" ? { maxTokens: 2200 } : {}) }),
         });
       }
       return;
@@ -365,9 +384,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         { role: "user", content: buildCompareUserMessage(body.readingA, body.readingB) },
       ];
       if (streaming) {
-        await streamMessages(res, anthropic, messages);
+        await streamMessages(res, anthropic, messages, undefined, { model });
       } else {
-        res.status(200).json({ reply: await completeMessages(anthropic, messages) });
+        res.status(200).json({ reply: await completeMessages(anthropic, messages, { model }) });
       }
       return;
     }
@@ -420,16 +439,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const meta = continueFrom ? undefined : { userMessage: metaUserMessage, sajuChart, luckCycles, judgmentPack };
     if (streaming) {
       if (judgmentPack && !continueFrom) {
-        await streamJudgmentGatedReply(res, anthropic, messages, meta, judgmentPack);
+        await streamJudgmentGatedReply(res, anthropic, messages, meta, judgmentPack, model);
       } else {
-        await streamMessages(res, anthropic, messages, meta);
+        await streamMessages(res, anthropic, messages, meta, { model });
       }
     } else {
       if (judgmentPack && !continueFrom) {
-        const gated = await completeJudgmentGatedReply(anthropic, messages, judgmentPack);
+        const gated = await completeJudgmentGatedReply(anthropic, messages, judgmentPack, model);
         res.status(200).json({ reply: gated.reply, userMessage, sajuChart, luckCycles, judgmentPack: gated.judgmentPack, gate: gateSignal(gated.gate) });
       } else {
-        const reply = await completeMessages(anthropic, messages);
+        const reply = await completeMessages(anthropic, messages, { model });
         res.status(200).json({ reply, userMessage, sajuChart, luckCycles, judgmentPack });
       }
     }

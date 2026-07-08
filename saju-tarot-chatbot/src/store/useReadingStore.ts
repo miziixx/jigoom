@@ -20,6 +20,18 @@ import type {
 
 const MAX_FOLLOW_UP_QUESTIONS = 5;
 
+/**
+ * A/B·속도 측정용 모델 override. 배포 사이트에서 `?model=haiku` / `?model=sonnet`로
+ * 동일 사주를 각 모델로 뽑아 눈으로 대조할 수 있게 한다. 값이 없으면 서버 기본(소넷) 유지.
+ * 서버(api/reading.ts)도 허용목록으로 재검증하므로 클라이언트는 그대로 전달만 한다.
+ */
+const MODEL_OVERRIDE_VALUES = new Set(["haiku", "draft", "sonnet", "deep"]);
+function readModelOverride(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const raw = new URLSearchParams(window.location.search).get("model");
+  return raw && MODEL_OVERRIDE_VALUES.has(raw) ? raw : undefined;
+}
+
 interface StartReadingParams {
   type: ReadingType;
   question: string;
@@ -163,6 +175,8 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
       pastEvents: effectiveContext.pastEvents ?? null,
       bucket: periodBucket(type === "today" ? "day" : "month"),
       evidencePipeline: "compact-evidence-v1",
+      // 모델별로 캐시를 분리해야 동일 사주 A/B(?model=haiku↔sonnet)가 서로를 덮어쓰지 않는다.
+      model: readModelOverride() ?? null,
     };
     if (!forceRegenerate) {
       const cached = getCachedResult<CachedReading>("reading", cacheKey);
@@ -200,7 +214,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     let judgmentPack: JudgmentPack | null = null;
     try {
       const result = await streamReading(
-        { type, question, focus: inferredFocus, context: effectiveContext, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation },
+        { type, question, focus: inferredFocus, context: effectiveContext, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation, model: readModelOverride() },
         {
           onMeta: (meta) => {
             metaUserMessage = meta.userMessage;
@@ -304,7 +318,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
 
     try {
       const result = await streamReading(
-        { type: "followup", history: historyWithQuestion, followUpMode: followUpModeFor(question) },
+        { type: "followup", history: historyWithQuestion, followUpMode: followUpModeFor(question), model: readModelOverride() },
         {
           onText: (accumulated) => {
             set({

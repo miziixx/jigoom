@@ -1579,3 +1579,11 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
 - 상문·조객은 고신·과숙과 같은 년지 기준이라 원국 위치판정 버전으로 함께 둠(추후 세운 발동 연동은 선택 과제).
 - 현침살은 낱글자 1개는 과다표기라 2개 이상일 때만 1건 집계. 정의는 웹검색으로 확인(삼명통회 계열, 판본 차이 gloss에 '참고용' 명시).
 - 테스트: `sinsalClassic.test.ts` 케이스 추가 + `sajuFeatures.test.ts` KNOWN 갱신. 443 테스트/build 통과. 런타임 확인 완료.
+
+## 리딩 속도 — 요청별 모델 override (Haiku/소넷 A/B) (2026-07-08 추가)
+- **문제**: 사용자 체감 "리딩이 느리다 + 화면 꺼지면 끊긴다". 코드 분석 결과 (1) 즉석 요약(계산 기반)은 이미 `useReadingStore.ts:195`에서 서버 호출 전에 0초 렌더됨(팩트는 빠름), (2) 느림의 실체는 소넷이 장문 프로즈를 스트리밍하는 시간, (3) 화면 꺼짐은 WakeLock 한계(화면 잠기면 브라우저 탭 자체가 정지 → 클라이언트 스트림 구조상 필연). 근본 해결은 서버사이드 생성 분리(별도 과제).
+- **이번 조치(속도, 3번 안)**: 정확도는 4대 고전 결정론 엔진이 담보하므로 AI는 "번역"만 하면 됨 → 빠른 모델(Haiku 4.5)도 소넷급 가능하다는 가설. 이를 **측정 후 확정**하기 위한 스위치를 추가.
+  - `api/reading.ts`: `MODEL_ALLOWLIST`(haiku/draft→Haiku 4.5, sonnet/deep→소넷) + `resolveModel(body)`. 요청별 모델을 `streamMessages`/`completeMessages`/`streamJudgmentGatedReply`/게이트 재작성까지 end-to-end 스레딩. **body.model 없으면 기본(소넷) 유지 → 프로덕션 무영향.**
+  - `useReadingStore.ts`: 배포 사이트에서 `?model=haiku` / `?model=sonnet` 쿼리로 동일 사주를 각 모델로 뽑아 대조. 캐시 키에 model 포함(A/B 상호 덮어쓰기 방지).
+- **측정 제약**: 이 개발환경엔 `ANTHROPIC_API_KEY` 없음 + 골든 하네스는 LLM 미호출(JudgmentPack 결정론 회귀용)이라 모델 프로즈 비교 불가. **실측은 키가 있는 배포본에서 `?model=` A/B로 사용자가 수행** → 만족 시 Vercel `READING_MODEL=claude-haiku-4-5-20251001`로 기본 플립.
+- 53파일 446테스트 통과, build 통과. ADDITIVE ONLY(기본 동작 불변).
