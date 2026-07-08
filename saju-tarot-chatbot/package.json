@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
     "astronomy-engine": "^2.1.19",
+    "iztro": "^2.5.8",
     "jszip": "^3.10.1",
     "lunar-javascript": "^1.7.6",
     "react": "^18.3.1",
