@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applyReadingValidationWarning, validateReadingOutput } from "./readingValidation.js";
+import {
+  applyReadingValidationWarning,
+  buildContentRewritePrompt,
+  contentNeedsRewrite,
+  validateReadingContent,
+  validateReadingOutput,
+} from "./readingValidation.js";
 
 const VALID_REPLY = [
   "# 첫 점괘",
@@ -39,5 +45,47 @@ describe("readingValidation", () => {
     const result = validateReadingOutput({ type: "tarot", question: "관계", reply: "짧은 답" });
     expect(result.ok).toBe(true);
     expect(result.issues).toHaveLength(0);
+  });
+});
+
+describe("내용 자가교정 게이트", () => {
+  it("validateReadingContent는 구조와 무관하게 단정 예언을 잡는다(반쪽에도 안전)", () => {
+    // 섹션 헤더가 없는 리딩 '반쪽'이어도 단정 표현은 잡힌다
+    const half = "요즘 흐름을 보면 반드시 성공합니다. 힘내세요.";
+    const issues = validateReadingContent(half);
+    expect(issues.some((i) => i.code === "deterministic-claim")).toBe(true);
+    expect(contentNeedsRewrite(issues)).toBe(true);
+  });
+
+  it("깨끗한 리딩은 교정이 필요 없다", () => {
+    const clean = "지금은 속도를 낮추면 선택이 또렷해지는 흐름입니다. 이번 주 확인할 신호를 먼저 보세요.";
+    const issues = validateReadingContent(clean);
+    expect(contentNeedsRewrite(issues)).toBe(false);
+  });
+
+  it("전문용어는 [전문가 근거 보기] 안에서는 세지 않는다", () => {
+    const withEvidence = "타고난 결이 이렇습니다.\n[전문가 근거 보기]\n- 일간 병화, 월지 자수, 정관, 편재, 식신, 상관, 대운 신유, 세운 갑진";
+    const issues = validateReadingContent(withEvidence);
+    expect(issues.some((i) => i.code === "excessive-jargon")).toBe(false);
+  });
+
+  it("경고(뻔한 조언)만 있으면 교정을 트리거하지 않는다", () => {
+    const issues = validateReadingContent("신중하게 결정하세요");
+    expect(issues.some((i) => i.code === "generic-advice")).toBe(true);
+    expect(contentNeedsRewrite(issues)).toBe(false); // warning만이면 재생성 안 함
+  });
+
+  it("buildContentRewritePrompt는 이슈·원 근거·기존 리딩·금지 규칙을 담는다", () => {
+    const issues = validateReadingContent("반드시 합격합니다.");
+    const prompt = buildContentRewritePrompt({
+      originalReply: "반드시 합격합니다.",
+      issues,
+      evidenceUserMessage: "[상세 계산 근거] 오행 분포 ...",
+    });
+    expect(prompt).toContain("리딩 교정 요청");
+    expect(prompt).toContain("[원 근거]");
+    expect(prompt).toContain("[기존 리딩]");
+    expect(prompt).toContain("반드시/무조건/100%/절대");
+    expect(prompt).toContain("[상세 계산 근거]");
   });
 });

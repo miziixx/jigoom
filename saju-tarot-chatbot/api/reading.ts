@@ -16,6 +16,7 @@ import {
   type JudgmentGateResult,
 } from "../src/lib/judgmentGate.js";
 import { validateOutputAgainstJudgmentPack, type JudgmentValidationResult } from "../src/lib/judgmentValidation.js";
+import { buildContentRewritePrompt, contentNeedsRewrite, validateReadingContent } from "../src/lib/readingValidation.js";
 import type { JudgmentPack } from "../src/lib/judgmentTypes.js";
 import type {
   ChatMessage,
@@ -324,6 +325,78 @@ async function streamJudgmentGatedReply(
   res.end();
 }
 
+/**
+ * 깊은 리딩(사주·통합, 판단게이트 없는 경로)용 내용 자가교정 게이트.
+ * streamMessages처럼 스트리밍한 뒤, 내용 검증(단정 예언 등 error)에 걸리면 1회 교정 호출로 고쳐
+ * {replace:true}로 교체한다. 위반이 없으면(대부분) 추가 호출 없이 그대로 끝낸다.
+ * (라이트 판단게이트 streamJudgmentGatedReply의 내용판 미러.)
+ */
+async function streamContentGatedReply(
+  res: VercelResponse,
+  anthropic: Anthropic,
+  messages: Anthropic.Messages.MessageParam[],
+  meta: Record<string, unknown> | undefined,
+  evidenceUserMessage: string,
+  model: string = MODEL,
+): Promise<void> {
+  res.status(200);
+  res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("X-Accel-Buffering", "no");
+  if (meta) res.write(JSON.stringify({ meta }) + "\n");
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(JSON.stringify({ heartbeat: true }) + "\n");
+    } catch {
+      // 이미 닫힌 연결
+    }
+  }, 10000);
+
+  try {
+    let reply = "";
+    const stream = anthropic.messages.stream({
+      model,
+      max_tokens: MAX_TOKENS_STREAM,
+      system: [{ type: "text", text: READING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      messages,
+    });
+    let stopReason: string | null = null;
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        reply += event.delta.text;
+        res.write(JSON.stringify({ text: event.delta.text }) + "\n");
+      } else if (event.type === "message_delta" && event.delta.stop_reason) {
+        stopReason = event.delta.stop_reason;
+      }
+    }
+
+    // 이어쓰기가 필요한(max_tokens로 잘린) 응답은 아직 미완성이라 교정하지 않고 그대로 넘긴다.
+    const issues = stopReason === "max_tokens" ? [] : validateReadingContent(reply);
+    if (!contentNeedsRewrite(issues)) {
+      res.write(JSON.stringify({ done: true, stopReason, contentGate: { status: "pass", codes: issues.map((i) => i.code) } }) + "\n");
+    } else {
+      const rewritePrompt = buildContentRewritePrompt({ originalReply: reply, issues, evidenceUserMessage });
+      const corrected = await completeMessages(anthropic, [{ role: "user", content: rewritePrompt }], { maxTokens: MAX_TOKENS_STREAM, model });
+      const remaining = validateReadingContent(corrected);
+      res.write(JSON.stringify({ text: corrected, replace: true }) + "\n");
+      res.write(
+        JSON.stringify({
+          done: true,
+          stopReason: "end_turn",
+          contentGate: { status: contentNeedsRewrite(remaining) ? "rewrite-partial" : "rewrite", codes: issues.map((i) => i.code) },
+        }) + "\n",
+      );
+    }
+  } catch (err) {
+    console.error(err);
+    res.write(JSON.stringify({ error: `리딩 생성 중 오류: ${describeError(err)}` }) + "\n");
+  } finally {
+    clearInterval(heartbeat);
+  }
+  res.end();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST 요청만 지원합니다." });
@@ -444,6 +517,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (streaming) {
       if (judgmentPack && !continueFrom) {
         await streamJudgmentGatedReply(res, anthropic, messages, meta, judgmentPack, model);
+      } else if (!continueFrom && (type === "saju" || type === "combo")) {
+        // 깊은 사주·통합 리딩: 판단게이트가 없는 경로라 내용 자가교정 게이트를 적용한다.
+        await streamContentGatedReply(res, anthropic, messages, meta, userMessage, model);
       } else {
         await streamMessages(res, anthropic, messages, meta, { model });
       }
