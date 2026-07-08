@@ -1,7 +1,7 @@
 // 사주 선생님 봇 메시지 처리 로직 — 롱폴링(bot/index.ts)과 웹훅(api/telegram-webhook.ts)이 공유한다.
 // 저장소(Store)만 주입받아 동작하므로, 어떤 방식으로 실행되는지는 이 파일이 몰라도 된다.
 import { sendMessage, sendTyping, type TgMessage } from "./telegram.js";
-import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationType } from "./parseBirth.js";
+import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationType, looksLikeTwoBirths, parseTwoBirthsInput } from "./parseBirth.js";
 import { looksLikeFourPillars, looksLikePartialPillars, parseFourPillars, describePillars } from "./parseFourPillars.js";
 import { formatChartSummary, buildCompatibilityEvidence, chartSourceOf, computePack, pillarsSource, birthSource, type ChartSource } from "./evidence.js";
 import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
@@ -113,6 +113,7 @@ const HELP_TEXT = [
   "• \"이거 기획 좀 정리해줘\" → 기획 정리",
   "• \"이 글 좀 자연스럽게 고쳐줘\" → 글쓰기 도움",
   "• \"이거 먼저 할까 저거 먼저 할까?\" → 판단/결정",
+  "• \"1993-03-15 14:30 여 서울, 1995-06-20 09:30 남 부산 연인\" → 두 사람 궁합 (명령어 없이 한 줄에 둘 다 넣으면 자동)",
   "• \"방금 얘기한 거 기억해둬\" / \"이건 저장하지 마\" → 기억 저장/삭제",
   "• \"보안 상태 알려줘\" → /privacy",
   "",
@@ -127,6 +128,9 @@ const COMPAT_GUIDE = [
   "• `음력 1992년 3월 5일 시간모름 여 부산 동료`",
   "",
   "관계 키워드: 연인 · 부모/자식 · 형제 · 가족 · 직장상사 · 동료 · 친구 (안 적으면 연인으로 봐요)",
+  "",
+  "명령어 없이도 돼요 — 두 사람 사주를 한 줄에 같이 넣으면 바로 궁합을 봐드려요:",
+  "• `1993-03-15 14:30 여 서울, 1995-06-20 09:30 남 부산 연인`",
   "그만두려면 /reset",
 ].join("\n");
 
@@ -250,6 +254,29 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
       } finally {
         clearInterval(typing);
       }
+      return;
+    }
+
+    // ── 한 메시지에 두 사람 생년월일시 → 명령어 없이 바로 궁합 (완전 자연어) ──
+    // "/궁합"을 누르지 않아도, 두 사람 사주를 한 박스에 넣으면 궁합으로 알아듣는다.
+    // 단일 사주 등록(looksLikeBirthInput)보다 먼저 검사해야, 첫 사람만 본인으로 등록되는 걸 막는다.
+    if (looksLikeTwoBirths(text)) {
+      const two = parseTwoBirthsInput(text);
+      if (two.ok) {
+        const relationType = two.relationType ?? "romantic";
+        const typing = setInterval(() => void sendTyping(chatId), 5000);
+        void sendTyping(chatId);
+        try {
+          const compatEvidence = buildCompatibilityEvidence(two.first!, two.second!, relationType);
+          // chatId를 넘기면 답이 스트리밍으로 화면에 직접 표시된다(여기서 재전송하지 않음).
+          await askCompatibility({ compatEvidence, chatId });
+        } finally {
+          clearInterval(typing);
+        }
+        return;
+      }
+      // 두 사람처럼 보였는데 못 읽음 → 안내 (각 사람에 성별이 빠졌을 때가 잦다)
+      await sendMessage(chatId, `두 분 궁합으로 보려 했는데 못 읽었어요. ${two.error}\n\n두 사람 다 날짜+성별을 넣어주세요. 예:\n\`1993-03-15 14:30 여 서울, 1995-06-20 09:30 남 부산 연인\``);
       return;
     }
 

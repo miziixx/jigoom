@@ -178,6 +178,55 @@ export function parseBirthInput(raw: string): ParseResult {
   return { ok: true, birthInfo, remainder };
 }
 
+// 두 사람 생년월일을 한 메시지에서 세는 데 쓰는 날짜 패턴(parseBirthInput의 날짜부와 동일 코어).
+const DATE_CORE = /((?:19|20)\d{2}|\d{2})\s*[.\-/년]\s*(\d{1,2})\s*[.\-/월]\s*(\d{1,2})/g;
+
+/**
+ * 한 메시지 안에 두 사람의 생년월일이 들어 있는지(=명령어 없이 바로 궁합 볼 입력인지) 판단한다.
+ * 완전 자연어 원칙: "/궁합"을 누르지 않아도, 두 사람 사주를 한 박스에 넣으면 궁합으로 본다.
+ * 오탐을 막으려 "온전한 날짜 2개 이상 + *각 조각마다* 성별 토큰"을 요구한다 — 본인 사주 하나에
+ * 우연히 다른 날짜가 섞인 경우(둘째 조각에 성별 없음)를 궁합으로 오인하지 않게 한다.
+ */
+export function looksLikeTwoBirths(text: string): boolean {
+  const matches = [...text.matchAll(DATE_CORE)];
+  if (matches.length < 2) return false;
+  const splitIdx = matches[1].index ?? 0;
+  return hasGenderToken(text.slice(0, splitIdx)) && hasGenderToken(text.slice(splitIdx));
+}
+
+export interface TwoBirthsResult {
+  ok: boolean;
+  first?: BirthInfo;
+  second?: BirthInfo;
+  /** 관계 키워드가 있으면 그 유형, 없으면 null(호출부가 기본값 결정). */
+  relationType?: CompatibilityRelationType | null;
+  error?: string;
+}
+
+/**
+ * 한 메시지를 두 사람 생년월일시로 쪼개 각각 파싱한다.
+ * 두 번째 날짜가 시작되는 위치를 경계로 앞/뒤를 나눈다 — 앞사람의 시각·성별·지역 토큰은
+ * 첫 날짜 뒤·둘째 날짜 앞에 오므로 자연스럽게 각 조각에 들어간다.
+ * 첫 사람 = 나, 둘째 사람 = 상대로 본다.
+ */
+export function parseTwoBirthsInput(raw: string): TwoBirthsResult {
+  const text = raw.trim();
+  const matches = [...text.matchAll(DATE_CORE)];
+  if (matches.length < 2) {
+    return { ok: false, error: "두 사람의 생년월일을 찾지 못했어요." };
+  }
+  const splitIdx = matches[1].index ?? 0;
+  const firstChunk = text.slice(0, splitIdx);
+  const secondChunk = text.slice(splitIdx);
+
+  const p1 = parseBirthInput(firstChunk);
+  if (!p1.ok) return { ok: false, error: `첫 번째 사람: ${p1.error}` };
+  const p2 = parseBirthInput(secondChunk);
+  if (!p2.ok) return { ok: false, error: `두 번째 사람: ${p2.error}` };
+
+  return { ok: true, first: p1.birthInfo, second: p2.birthInfo, relationType: parseRelationType(text) };
+}
+
 export function describeBirthInfo(b: BirthInfo): string {
   const cal = b.calendarType === "lunar" ? `음력${b.isLeapMonth ? "(윤달)" : ""}` : "양력";
   const time = b.hour === null ? "시간 모름" : `${String(b.hour).padStart(2, "0")}:${String(b.minute ?? 0).padStart(2, "0")}`;

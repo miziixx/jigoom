@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseBirthInput, looksLikeBirthInput } from "./parseBirth.js";
+import { parseBirthInput, looksLikeBirthInput, looksLikeTwoBirths, parseTwoBirthsInput } from "./parseBirth.js";
 
 describe("parseBirthInput — 완전 자연어 입력", () => {
   it("네 자리 연도 표준 입력을 읽는다", () => {
@@ -94,5 +94,43 @@ describe("looksLikeBirthInput", () => {
   it("연도나 성별이 없으면 생일 입력이 아니다", () => {
     expect(looksLikeBirthInput("지장간이 뭐야?")).toBe(false);
     expect(looksLikeBirthInput("오늘 일진 어때")).toBe(false);
+  });
+});
+
+describe("looksLikeTwoBirths / parseTwoBirthsInput — 한 박스에 두 사람(명령어 없는 궁합)", () => {
+  it("한 줄에 두 사람 생년월일+성별이 있으면 두 사람 입력으로 본다", () => {
+    expect(looksLikeTwoBirths("1993-03-15 14:30 여 서울, 1995-06-20 09:30 남 부산 연인")).toBe(true);
+    expect(looksLikeTwoBirths("나 95년 8월 23일 여, 상대 90년 5월 2일 남 우리 궁합 어때?")).toBe(true);
+  });
+
+  it("한 사람만 있으면 두 사람 입력이 아니다", () => {
+    expect(looksLikeTwoBirths("1993-03-15 14:30 여 서울")).toBe(false);
+    expect(looksLikeTwoBirths("95년 8월 23일 남자 성격 봐줘")).toBe(false);
+  });
+
+  it("본인 사주 + 우연히 섞인 다른 날짜(둘째에 성별 없음)는 궁합으로 오인하지 않는다", () => {
+    expect(looksLikeTwoBirths("1993-03-15 14:30 여 서울, 2020년 1월 1일에 이사했어")).toBe(false);
+  });
+
+  it("두 사람을 각각 정확히 파싱하고 첫=나·둘째=상대로 나눈다", () => {
+    const r = parseTwoBirthsInput("1993-03-15 14:30 여 서울, 1995-06-20 09:30 남 부산 연인");
+    expect(r.ok).toBe(true);
+    expect(r.first).toMatchObject({ year: 1993, month: 3, day: 15, hour: 14, gender: "female" });
+    expect(r.second).toMatchObject({ year: 1995, month: 6, day: 20, hour: 9, gender: "male" });
+    expect(r.relationType).toBe("romantic");
+  });
+
+  it("관계 키워드(동료 등)를 읽고, 두 자리 연도·자연어 표현도 처리한다", () => {
+    const r = parseTwoBirthsInput("나 95년 8월 23일 시간모름 여, 상대 90년 5월 2일 07시 남 동료");
+    expect(r.ok).toBe(true);
+    expect(r.first).toMatchObject({ year: 1995, month: 8, day: 23, hour: null, gender: "female" });
+    expect(r.second).toMatchObject({ year: 1990, month: 5, day: 2, hour: 7, gender: "male" });
+    expect(r.relationType).toBe("coworker");
+  });
+
+  it("한쪽에 성별이 빠지면 어느 사람이 문제인지 알려준다", () => {
+    const r = parseTwoBirthsInput("1993-03-15 14:30 서울, 1995-06-20 09:30 남 부산");
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("첫 번째 사람");
   });
 });
