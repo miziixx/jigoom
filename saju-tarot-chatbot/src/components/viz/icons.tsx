@@ -221,6 +221,7 @@ const PART_ICON: Record<string, string> = {
   why: "magnifier",
   life: "home",
   caution: "alertTriangle",
+  recommend: "star",
   use: "sprout",
   todo: "checkSquare",
   default: "dots",

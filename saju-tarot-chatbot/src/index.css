@@ -1942,6 +1942,38 @@ label {
   color: var(--text-dim);
 }
 
+/* 좁은 화면(모바일)에서는 가로 스크롤 대신 세로 테이블처럼 한 줄씩 쌓아 보여준다. */
+@media (max-width: 560px) {
+  .dayun-timeline,
+  .yearly-timeline {
+    flex-direction: column;
+    overflow-x: visible;
+    gap: 6px;
+  }
+
+  /* 세로 스택에서는 대운 알약들을 잇던 가로 실선이 의미가 없다. */
+  .dayun-timeline::before {
+    display: none;
+  }
+
+  .dayun-pill,
+  .year-pill {
+    flex: 0 0 auto;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+  }
+
+  .dayun-pill__age,
+  .year-pill__year {
+    min-width: 4.5em;
+  }
+}
+
 .checkbox-label {
   display: inline-flex;
   align-items: center;
@@ -2456,6 +2488,11 @@ label {
   color: #7b5d26;
 }
 
+.reading-part--recommend .reading-part__label {
+  background: rgba(214, 160, 82, 0.2);
+  color: #8a5a12;
+}
+
 .reading-section--pattern::before,
 .reading-section--decision::before,
 .reading-section--strategy::before {
@@ -2545,6 +2582,11 @@ label {
 .reading-part--why {
   border-color: rgba(111, 141, 134, 0.24);
   background: linear-gradient(180deg, rgba(111, 141, 134, 0.08), rgba(126, 86, 42, 0.035));
+}
+
+.reading-part--recommend {
+  border-color: rgba(214, 160, 82, 0.34);
+  background: linear-gradient(180deg, rgba(214, 160, 82, 0.12), rgba(214, 160, 82, 0.04));
 }
 
 .evidence-translation {

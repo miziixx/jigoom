@@ -475,8 +475,8 @@ export default function SajuFactsPanel({
           )}
 
           {sajuChart.sinsal && sajuChart.sinsal.length > 0 && (
-            <>
-              <h4 className="saju-facts__subhead">신살</h4>
+            <details className="saju-facts__details">
+              <summary>신살 보기</summary>
               <div className="sinsal-list">
                 {sajuChart.sinsal.map((s, i) => (
                   <div className="sinsal-chip" key={`${s.name}-${s.position}-${i}`} title={s.gloss}>
@@ -486,7 +486,7 @@ export default function SajuFactsPanel({
                   </div>
                 ))}
               </div>
-            </>
+            </details>
           )}
 
           <h4 className="saju-facts__subhead">오행 분포</h4>
@@ -616,12 +616,14 @@ export default function SajuFactsPanel({
           )}
 
           {luckCycles.luckInteractions && (
-            <p className="saju-facts__note">
-              운과 원국의 상호작용 —{" "}
-              {luckCycles.luckInteractions.length > 0
-                ? luckCycles.luckInteractions.join(", ")
-                : "현재 대운/세운/월운/일진과 원국 사이 새로 성립하는 관계 없음"}
-            </p>
+            <details className="saju-facts__details">
+              <summary>운과 원국의 상호작용 보기</summary>
+              <p className="saju-facts__note">
+                {luckCycles.luckInteractions.length > 0
+                  ? luckCycles.luckInteractions.join(", ")
+                  : "현재 대운/세운/월운/일진과 원국 사이 새로 성립하는 관계 없음"}
+              </p>
+            </details>
           )}
 
           {luckCycles.monthlyFlow && luckCycles.monthlyFlow.length > 0 && (

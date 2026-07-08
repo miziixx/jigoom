@@ -50,6 +50,7 @@ export const PART_META: Record<string, { label: string; tone: string }> = {
   "왜 그렇게 보는지": { label: "근거 번역", tone: "why" },
   "현실에서 나타나는 모습": { label: "현실 예시", tone: "life" },
   "조심할 점": { label: "주의", tone: "caution" },
+  "추천": { label: "추천", tone: "recommend" },
   "활용 방법 / 보완 방법": { label: "활용", tone: "use" },
   "오늘 바로 할 수 있는 행동": { label: "바로 실행", tone: "todo" },
 };
