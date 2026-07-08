@@ -397,6 +397,11 @@ function formatSajuChart(chart: SajuChart, todayGanZhi?: string): string {
   if (chart.transparency) {
     lines.push(`투출(드러남) — ${chart.transparency.note}`);
   }
+  if (chart.storageOpenings && chart.storageOpenings.length > 0) {
+    lines.push(
+      `개고(창고 열림) — ${chart.storageOpenings.map((o) => `${o.note} (${o.trigger}, ${o.tenGod})`).join(" ")} 이 '열린 창고'는 잠겨 있던 그 분야의 힘이 쓸 수 있게 드러난다는 뜻이니, 해당 분야(재고=재물, 관고=지위·역할, 인고=배움·문서, 식상고=표현·재능)를 해석할 때 '뒤늦게 트이거나 한 번 크게 흔들며 열리는 힘'으로 반영해라. 단정적 길흉으로 쓰지 말고, 사주 용어는 표면에 쓰지 마라.`,
+    );
+  }
   if (chart.gyeokguk) {
     const status = chart.gyeokguk.status ? ` · 성패: ${chart.gyeokguk.status}(${chart.gyeokguk.statusReason ?? ""})` : "";
     lines.push(`격국 (참고용) — ${chart.gyeokguk.name} · 근거: ${chart.gyeokguk.basis}${status}`);

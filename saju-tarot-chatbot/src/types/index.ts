@@ -266,6 +266,23 @@ export interface TransparencyInfo {
   note: string;
 }
 
+export interface StorageOpening {
+  /** 창고 지지 (진·술·축·미) */
+  zhi: string;
+  /** 창고 지지 위치 (예: "일지") */
+  position: string;
+  /** 창고 오행 (예: "수" — 진은 수의 창고) */
+  element: string;
+  /** 창고 안에 갈무리된 대표 지장간(중기) */
+  storedStem: string;
+  /** 그 갈무리 기운의 십성 (일간 기준) */
+  tenGod: string;
+  /** 무엇이 열었는지 (예: "진술충", "축술미 삼형") */
+  trigger: string;
+  /** 쉬운 말 설명 */
+  note: string;
+}
+
 /** 지지 하나의 지장간 기반 십성 분해 (여기/중기/정기 위상별) */
 export interface HiddenTenGodBreakdown {
   /** 지지 위치 (예: "월지") */
@@ -373,6 +390,8 @@ export interface SajuChart {
   rootedness?: RootednessHit[];
   /** 투출(投出): 월지 지장간이 천간에 드러났는지 */
   transparency?: TransparencyInfo;
+  /** 개고(開庫): 창고 지지(진술축미)가 충/형으로 열려 안의 기운이 쓸 수 있게 드러났는지 */
+  storageOpenings?: StorageOpening[];
   /** 월률분야(사령): 절입 경과일 기준 월지 지장간 중 주관하는 기운 */
   monthCommand?: MonthCommand;
   /** 12운성 (일간 기준 기둥별) */

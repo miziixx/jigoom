@@ -19,6 +19,7 @@ import type {
   SamjaeInfo,
   SajuPillar,
   SinsalHit,
+  StorageOpening,
   StrengthAssessment,
   TimeCorrection,
   TransparencyInfo,
@@ -763,6 +764,65 @@ function computeInteractions(gans: PositionedChar[], zhis: PositionedChar[]): st
   }
 
   return found;
+}
+
+// ── 개고(開庫): 창고 지지가 충/형으로 열림 ──────────
+// 진·술·축·미는 오행의 묘고(墓庫)다. 평소엔 안의 기운이 잠겨 못 쓰지만, 충(진술충·축미충)이나
+// 삼형(축술미)으로 열리면(개고) 갈무리된 중기(中氣)가 쓸 수 있게 드러난다. 재고가 열리면 숨은
+// 재물이, 관고가 열리면 숨은 지위·역할이 활성화되는 식. (유파에 따라 개고 길흉은 갈리므로 여기서는
+// '열렸다는 사실 + 무엇이 드러났는지'만 계산하고, 좋고 나쁨은 단정하지 않는다.)
+const STORAGE_INFO: Record<string, { element: string; stored: string }> = {
+  진: { element: "수", stored: "계" }, // 水庫
+  술: { element: "화", stored: "정" }, // 火庫
+  축: { element: "금", stored: "신" }, // 金庫
+  미: { element: "목", stored: "을" }, // 木庫
+};
+const TEN_GOD_STORE_LABEL: Record<string, string> = {
+  비견: "경쟁·동료 기운의 창고", 겁재: "경쟁·동료 기운의 창고",
+  식신: "표현·재능 기운의 창고", 상관: "표현·재능 기운의 창고",
+  편재: "재물 창고", 정재: "재물 창고",
+  편관: "직위·역할 기운의 창고", 정관: "직위·역할 기운의 창고", 칠살: "직위·역할 기운의 창고",
+  편인: "배움·문서 기운의 창고", 정인: "배움·문서 기운의 창고", 인수: "배움·문서 기운의 창고",
+};
+
+function computeStorageOpenings(zhis: PositionedChar[], dayGan: string): StorageOpening[] {
+  const present = new Map<string, PositionedChar>();
+  for (const z of zhis) if (z.char in STORAGE_INFO && !present.has(z.char)) present.set(z.char, z);
+
+  const openers: Array<{ zhi: string; trigger: string }> = [];
+  // 충개고: 진↔술, 축↔미
+  if (present.has("진") && present.has("술")) {
+    openers.push({ zhi: "진", trigger: "진술충" }, { zhi: "술", trigger: "진술충" });
+  }
+  if (present.has("축") && present.has("미")) {
+    openers.push({ zhi: "축", trigger: "축미충" }, { zhi: "미", trigger: "축미충" });
+  }
+  // 형개고: 축술미 삼형 (셋 다 있을 때)
+  if (present.has("축") && present.has("술") && present.has("미")) {
+    for (const z of ["축", "술", "미"]) openers.push({ zhi: z, trigger: "축술미 삼형" });
+  }
+
+  const seen = new Set<string>();
+  const out: StorageOpening[] = [];
+  for (const { zhi, trigger } of openers) {
+    const key = `${zhi}:${trigger}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const info = STORAGE_INFO[zhi];
+    const pos = present.get(zhi)!;
+    const tenGod = tenGodOf(dayGan, info.stored);
+    const storeLabel = TEN_GOD_STORE_LABEL[tenGod] ?? `${info.element} 기운의 창고`;
+    out.push({
+      zhi,
+      position: pos.label,
+      element: info.element,
+      storedStem: info.stored,
+      tenGod,
+      trigger,
+      note: `${pos.label} ${zhi}(${info.element}의 창고)가 ${trigger}으로 열려, 안에 갈무리돼 있던 ${storeLabel}가 쓸 수 있게 드러나는 구조입니다. 잠겨 있던 힘이 풀리는 대신 한 번은 크게 흔들며 열립니다.`,
+    });
+  }
+  return out;
 }
 
 // 간이 억부법: 위치별 가중치 (월지가 가장 큼 = 계절의 힘)
@@ -1640,6 +1700,7 @@ function assembleChart(
     yongshin,
     rootedness,
     transparency,
+    storageOpenings: computeStorageOpenings(zhis, dayGan),
     monthCommand: monthCommand ?? undefined,
     twelveStages,
     gongmang,
