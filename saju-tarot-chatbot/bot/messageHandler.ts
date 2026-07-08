@@ -3,7 +3,7 @@
 import { sendMessage, sendTyping, type TgMessage } from "./telegram.js";
 import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationType } from "./parseBirth.js";
 import { looksLikeFourPillars, looksLikePartialPillars, parseFourPillars, describePillars } from "./parseFourPillars.js";
-import { formatChartSummary, buildCompatibilityEvidence, chartSourceOf, pillarsSource, birthSource } from "./evidence.js";
+import { formatChartSummary, buildCompatibilityEvidence, chartSourceOf, computePack, pillarsSource, birthSource, type ChartSource } from "./evidence.js";
 import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
 import { askTeacher, askCompatibility } from "./teacher.js";
 import { extractVerbosityHint } from "./extractVerbosityHint.js";
@@ -13,7 +13,40 @@ import { buildAssistantContext } from "./assistantContext.js";
 import { buildAstrologyEvidenceText } from "./astrologyEvidence.js";
 import { askSecretary, type SecretaryIntent } from "./secretary.js";
 import { summarizeForMemory, detectMemoryDeleteScope } from "./memoryOps.js";
+import type { StoredPillars } from "./parseFourPillars.js";
 import type { Store } from "./storeTypes.js";
+import type { BirthInfo } from "../src/types/index.js";
+
+/**
+ * 새로 파싱된 생년월일시가 이미 등록된 사주와 사실상 같은 사람인지 판단한다.
+ * 대화 도중 "이거 내 사주야"처럼 자기 사주를 다시 붙여넣었을 때, 이게 "새 사람 등록"이
+ * 아니라 "같은 사람 재확인"임을 알아채 대화 맥락(history)을 날리지 않기 위함이다.
+ */
+function isSameBirthInfo(a: BirthInfo, b: BirthInfo | null | undefined): boolean {
+  if (!b) return false;
+  return (
+    a.calendarType === b.calendarType &&
+    a.year === b.year &&
+    a.month === b.month &&
+    a.day === b.day &&
+    (a.hour ?? null) === (b.hour ?? null) &&
+    (a.minute ?? 0) === (b.minute ?? 0) &&
+    Boolean(a.isLeapMonth) === Boolean(b.isLeapMonth) &&
+    a.gender === b.gender &&
+    (a.birthPlace ?? "none") === (b.birthPlace ?? "none")
+  );
+}
+
+/** 새로 붙여넣은 만세력 팔자가 이미 등록된 원국과 같은 사람의 것인지 (계산된 간지로 비교). */
+function pillarsMatchSource(pillars: StoredPillars, source: ChartSource | null): boolean {
+  if (!source) return false;
+  const { chart } = computePack(source);
+  if (chart.year.ganZhi !== pillars.year) return false;
+  if (chart.month.ganZhi !== pillars.month) return false;
+  if (chart.day.ganZhi !== pillars.day) return false;
+  if (pillars.hour && chart.hour?.ganZhi && pillars.hour !== chart.hour.ganZhi) return false;
+  return true;
+}
 
 // 개인 봇 보호: 지정하면 이 텔레그램 사용자 ID만 사용 가능 (쉼표 구분)
 // TELEGRAM_ALLOWED_USER_IDS(기존)와 ALLOWED_TELEGRAM_USER_IDS(신규 별칭) 둘 다 인식한다.
@@ -224,14 +257,20 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     if (looksLikeBirthInput(text)) {
       const parsed = parseBirthInput(text);
       if (parsed.ok) {
+        // 이미 등록된 것과 같은 사람이면 "새 등록"이 아니라 "재확인" — 맥락(history)을 지우지 않는다.
+        const isSame = isSameBirthInfo(parsed.birthInfo!, user.birthInfo);
         const wasRegistered = Boolean(user.birthInfo);
-        await store.setBirthInfo(chatId, parsed.birthInfo!);
+        if (!isSame) {
+          await store.setBirthInfo(chatId, parsed.birthInfo!);
+        }
 
         // 생일과 함께 질문까지 한 번에 보냈으면(예: "95년 8월 23일남자 성격 봐줘")
         // 등록 사실만 한 줄로 알리고 곧바로 그 질문에 답한다.
         const followUp = extractQuestion(parsed.remainder);
         if (followUp) {
-          await sendMessage(chatId, `${describeBirthInfo(parsed.birthInfo!)}로 보고 답할게요.`);
+          if (!isSame) {
+            await sendMessage(chatId, `${describeBirthInfo(parsed.birthInfo!)}로 보고 답할게요.`);
+          }
           const typing = setInterval(() => void sendTyping(chatId), 5000);
           void sendTyping(chatId);
           try {
@@ -239,7 +278,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
             // 답은 askTeacher가 스트리밍으로 화면에 직접 표시한다(여기서 재전송하지 않음).
             const answer = await askTeacher({
               source: birthSource(parsed.birthInfo!),
-              history: [],
+              history: isSame ? user.history : [],
               question: cleanQuestion,
               chatId,
               verbosityOverride: override,
@@ -248,6 +287,11 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
           } finally {
             clearInterval(typing);
           }
+          return;
+        }
+
+        if (isSame) {
+          await sendMessage(chatId, `네, 등록된 사주 맞아요 ✅\n${describeBirthInfo(parsed.birthInfo!)}`);
           return;
         }
 
@@ -267,24 +311,31 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     if (looksLikeFourPillars(text)) {
       const parsed = parseFourPillars(text);
       if (parsed.ok) {
+        // 이미 등록된 원국과 같은 사람의 팔자면 "재등록"이 아니라 "재확인" — 맥락을 지우지 않는다.
+        const isSame = pillarsMatchSource(parsed.pillars!, source);
         const wasRegistered = Boolean(user.birthInfo || user.pillars);
 
-        // 1순위: 팔자로 실제 생일을 되짚어본다. 되짚으면 대운·사령까지 되살아난다.
-        const inferred = inferBirthFromPillars(parsed.pillars!);
-        let newSource;
+        let newSource: typeof source;
         let header: string;
-        if (inferred.ok) {
-          await store.setBirthInfo(chatId, inferred.birthInfo!);
-          newSource = birthSource(inferred.birthInfo!);
-          header = buildInferHeader(wasRegistered, inferred);
+        if (isSame && source) {
+          newSource = source;
+          header = "네, 등록된 사주 맞아요 ✅";
         } else {
-          // 되짚기 실패 → 팔자 그대로 해석(대운 제외)
-          await store.setPillars(chatId, parsed.pillars!);
-          newSource = pillarsSource(parsed.pillars!);
-          header =
-            (wasRegistered ? "사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)" : "팔자로 등록했어요 ✅") +
-            `\n${describePillars(parsed.pillars!)}` +
-            "\n(이 팔자에 딱 맞는 실제 날짜를 못 찾아서, 팔자 그대로 해석해요 — 대운은 빠져요.)";
+          // 1순위: 팔자로 실제 생일을 되짚어본다. 되짚으면 대운·사령까지 되살아난다.
+          const inferred = inferBirthFromPillars(parsed.pillars!);
+          if (inferred.ok) {
+            await store.setBirthInfo(chatId, inferred.birthInfo!);
+            newSource = birthSource(inferred.birthInfo!);
+            header = buildInferHeader(wasRegistered, inferred);
+          } else {
+            // 되짚기 실패 → 팔자 그대로 해석(대운 제외)
+            await store.setPillars(chatId, parsed.pillars!);
+            newSource = pillarsSource(parsed.pillars!);
+            header =
+              (wasRegistered ? "사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)" : "팔자로 등록했어요 ✅") +
+              `\n${describePillars(parsed.pillars!)}` +
+              "\n(이 팔자에 딱 맞는 실제 날짜를 못 찾아서, 팔자 그대로 해석해요 — 대운은 빠져요.)";
+          }
         }
 
         // 팔자와 함께 질문까지 한 줄로 보냈으면 등록만 알리고 바로 답한다.
@@ -298,7 +349,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
             // 답은 askTeacher가 스트리밍으로 화면에 직접 표시한다(여기서 재전송하지 않음).
             const answer = await askTeacher({
               source: newSource,
-              history: [],
+              history: isSame ? user.history : [],
               question: cleanQuestion,
               chatId,
               verbosityOverride: override,
@@ -310,7 +361,12 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
           return;
         }
 
-        await sendMessage(chatId, `${header}\n\n${formatChartSummary(newSource)}`);
+        if (isSame) {
+          await sendMessage(chatId, header);
+          return;
+        }
+
+        await sendMessage(chatId, `${header}\n\n${formatChartSummary(newSource!)}`);
         return;
       }
       // 팔자 형태로 보였지만 못 읽은 경우 — 등록 전 사용자에게만 안내한다.

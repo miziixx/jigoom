@@ -1630,3 +1630,22 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
 검증: `npm test` 통과(신규 intentDetector 13 / astrology 5 / assistantContext 4 포함), `npm run build` 통과.
 한계: 이 세션엔 TELEGRAM_BOT_TOKEN이 없어 실제 텔레그램 라이브 왕복은 못 함 — 유닛 테스트+타입체크+빌드로 대체.
 참고: main의 "속마음 점성술 엔진 이식" 커밋과 겹쳐, 리베이스 시 astrology.ts는 main 정본(CJS createRequire 로더 fix 포함)을 기반으로 두고 이 브랜치의 computeMajorAspects·computeCurrentTransitTheme 두 함수만 얹었다.
+
+## 텔레그램 봇 버그 수정 — 대화 중 사주 재확인 시 맥락 초기화 문제 (2026-07-08)
+
+**증상**: 이미 내 사주를 등록하고 한창 대화하던 중, 사용자가 자기 사주(생년월일시 또는 만세력 팔자)를
+다시 붙여넣으며 "이거 내 사주야"라고 하면, 봇이 이를 "새 사람 등록"으로 오인해 `store.setBirthInfo`/
+`setPillars`를 호출 → `history`가 무조건 리셋되고 "사주를 새로 등록했어요(이전 대화 맥락 초기화)"라고
+답함. 이후 대화가 끊긴 상태에서 이어지는 질문에 봇이 엉뚱하게 "이건 님의 사주가 아닌데요?"류 반응을 보임.
+
+**원인**: `looksLikeBirthInput`/`looksLikeFourPillars`가 "생년+성별 토큰" 또는 "간지 8글자 패턴"만 보고
+매칭하는 넓은 휴리스틱이라, 대화 도중 같은 사람의 사주를 다시 언급해도 무조건 재등록 분기를 탐.
+
+**수정** (`bot/messageHandler.ts`):
+- `isSameBirthInfo(a, b)`: 새로 파싱된 생년월일시가 이미 등록된 것과 (연/월/일/시/분/음양력/윤달/성별/출생지) 전부 같은지 비교.
+- `pillarsMatchSource(pillars, source)`: 새로 붙여넣은 팔자가 이미 등록된 원국의 계산된 간지(연·월·일·시주)와 같은지 비교(`computePack` 재사용, 계산 로직 불변).
+- 둘 다 같은 사람으로 판정되면: `setBirthInfo`/`setPillars` 재호출 생략, `history` 유지(askTeacher에 `user.history` 그대로 전달), "새로 등록했어요" 대신 "네, 등록된 사주 맞아요 ✅"로 응답.
+- 실제로 다른 사람/다른 값이면 기존 동작(재등록 + 맥락 초기화) 그대로 유지.
+
+검증: `npm test` 472 통과, `npm run build` 통과. `bot/`은 `ANTHROPIC_API_KEY` 없이 import 시 `process.exit(1)`하는
+구조(`teacher.ts`)라 `messageHandler.ts` 자체의 자동 테스트는 기존에도 없음 — 타입체크+전체 회귀 테스트+수동 코드 추적으로 검증.
