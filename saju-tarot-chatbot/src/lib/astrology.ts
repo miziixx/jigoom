@@ -7,7 +7,7 @@ const { Body, EclipticLongitude, SiderealTime, SunPosition } =
 // Body는 값(enum)이자 타입으로 쓰인다. require는 값만 주므로 타입은 별칭으로 따로 확보한다.
 type Body = import("astronomy-engine").Body;
 import { Lunar } from "lunar-javascript";
-import { BIRTH_PLACES } from "../data/birthPlaces";
+import { BIRTH_PLACES } from "../data/birthPlaces.js";
 import type {
   AstrologyAspect,
   AstrologyPlacement,
@@ -18,7 +18,7 @@ import type {
   VedicDashaInfo,
   VedicPlacement,
   ZodiacSign,
-} from "../types";
+} from "../types/index.js";
 
 const SIGNS: ZodiacSign[] = [
   "양자리",
