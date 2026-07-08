@@ -10,6 +10,7 @@ import { deleteAllSessions, deleteSession, isSessionSaved, loadSessions, saveSes
 import type { JudgmentPack } from "../lib/judgmentTypes";
 import type {
   BirthInfo,
+  CrossValidationReport,
   DrawnTarotCard,
   FeedbackRating,
   ReadingContext,
@@ -208,13 +209,29 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
 
     if (provisionalSession) set({ currentSession: provisionalSession });
 
+    // 사주·자미두수 교차검증: 자미두수 원식을 브라우저에서 계산·대조해 압축 리포트만 서버로 넘긴다
+    // (원식 원본·생년월일은 서버로 보내지 않음). iztro가 무거워 동적 import로 초기 번들에서 분리한다.
+    // 사주/통합·생년월일이 있을 때만. 계산 실패는 조용히 생략하고 리딩은 그대로 진행한다.
+    let crossValidation: CrossValidationReport | undefined;
+    if (birthInfo && sajuChart && (type === "saju" || type === "combo")) {
+      try {
+        const [{ computeZiweiChart }, { buildCrossValidation }] = await Promise.all([
+          import("../lib/ziwei"),
+          import("../lib/crossValidation"),
+        ]);
+        crossValidation = buildCrossValidation(sajuChart, computeZiweiChart(birthInfo), luckCycles, birthInfo.gender) ?? undefined;
+      } catch {
+        crossValidation = undefined;
+      }
+    }
+
     // 스트리밍 도중 계속 갱신되는 세션 (계산 결과는 즉시 세션으로 먼저 보여주고, AI 텍스트가 실시간으로 자란다)
     let session: ReadingSession | null = provisionalSession;
     let metaUserMessage = "";
     let judgmentPack: JudgmentPack | null = null;
     try {
       const result = await streamReading(
-        { type, question, focus: inferredFocus, context: effectiveContext, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation, model: readModelOverride() },
+        { type, question, focus: inferredFocus, context: effectiveContext, gender: birthInfo?.gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation, crossValidation, model: readModelOverride() },
         {
           onMeta: (meta) => {
             metaUserMessage = meta.userMessage;
