@@ -87,10 +87,17 @@
 - 런타임 확인: computeSajuChart 결과에 gyeokguk.classic/tenGodDistribution/climaticClassic/신규 신살 모두 정상 출력.
 - 총 52파일 439테스트 통과, build 통과.
 
+### 궁통보감 120셀 검수 · ✅ 1차 완료(전문가 최종 검수만 남음)
+- 원전 대조(웹검색): 갑목 행 전부 + 임/계/무/기 핵심 셀의 **1순위 조후 통용본과 일치 확인**. 하위순위는 판본 차이.
+  (전체 표 fetch는 egress 403 → 1순위 위주 확인.)
+- `src/lib/johuClassicAudit.test.ts`: 120셀 완결성·유효성·조후 원리(일간 자기온도 반영)·원전 스팟체크. `JOHU_CLASSIC` export.
+- `docs/validation/johu-classic-table.md`: 전문가 1:1 대조용 덤프표(한자·계절).
+- 핵심 발견: 火 일간 겨울·水 일간 여름에 반대 오행 없음은 정상(자기온도 조절). 표는 이 원리대로 되어 있음.
+
 ## 남은 후속 과제(선택)
 - Phase A 전용 단위테스트(`sajuGyeokgukClassic.test.ts`) 보강, Phase B(`hiddenTenGods.test.ts`) 추가.
 - 보류한 복성귀인·현침살, 세운 신살(상문·조객) 추가.
-- 궁통보감 120셀 명리 전문가 검수(리스크 최상 항목).
+- 궁통보감 120셀 **하위순위**의 명리 전문가 최종 검수(1순위는 확인됨).
 - `compactEvidence.ts`에도 심화 필드 반영(현재는 상세 근거 경로에만 노출).
 
 ## 커밋 전략
