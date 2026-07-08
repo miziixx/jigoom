@@ -8,6 +8,7 @@
 import { getUpdates } from "./telegram.js";
 import { handleMessage } from "./messageHandler.js";
 import { fileStore } from "./fileStore.js";
+import { logError } from "./logSafe.js";
 
 async function main(): Promise<void> {
   console.log("사주 선생님 봇 시작 (롱폴링, 로컬 테스트용). 모델:", process.env.BOT_MODEL ?? "claude-opus-4-8");
@@ -19,11 +20,11 @@ async function main(): Promise<void> {
         offset = u.update_id + 1;
         if (u.message) {
           // 순차 처리 (개인 봇 규모에선 충분). 오류가 폴링 루프를 죽이지 않게 개별 처리.
-          await handleMessage(u.message, fileStore).catch((e) => console.error("메시지 처리 오류:", e));
+          await handleMessage(u.message, fileStore).catch((e) => logError("bot/index handleMessage", e));
         }
       }
     } catch (err) {
-      console.error("폴링 오류(5초 후 재시도):", err instanceof Error ? err.message : err);
+      logError("bot/index polling(5초 후 재시도)", err);
       await new Promise((r) => setTimeout(r, 5000));
     }
   }

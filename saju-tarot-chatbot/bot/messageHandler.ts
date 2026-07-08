@@ -7,11 +7,19 @@ import { formatChartSummary, buildCompatibilityEvidence, chartSourceOf, pillarsS
 import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
 import { askTeacher, askCompatibility } from "./teacher.js";
 import { extractVerbosityHint } from "./extractVerbosityHint.js";
+import { logError } from "./logSafe.js";
+import { detectIntent, isSecretaryIntent } from "./intentDetector.js";
+import { buildAssistantContext } from "./assistantContext.js";
+import { buildAstrologyEvidenceText } from "./astrologyEvidence.js";
+import { askSecretary, type SecretaryIntent } from "./secretary.js";
+import { summarizeForMemory, detectMemoryDeleteScope } from "./memoryOps.js";
 import type { Store } from "./storeTypes.js";
 
 // 개인 봇 보호: 지정하면 이 텔레그램 사용자 ID만 사용 가능 (쉼표 구분)
+// TELEGRAM_ALLOWED_USER_IDS(기존)와 ALLOWED_TELEGRAM_USER_IDS(신규 별칭) 둘 다 인식한다.
 const ALLOWED_IDS = new Set(
-  (process.env.TELEGRAM_ALLOWED_USER_IDS ?? "")
+  [process.env.TELEGRAM_ALLOWED_USER_IDS ?? "", process.env.ALLOWED_TELEGRAM_USER_IDS ?? ""]
+    .join(",")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
@@ -52,6 +60,30 @@ const START_GUIDE = [
   "• 내 격국이 뭔지, 왜 그렇게 잡히는지 알려줘",
   "",
   "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /궁합 상대와 궁합 보기 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
+].join("\n");
+
+const PRIVACY_TEXT = [
+  "🔒 *보안/개인정보 정책*",
+  "",
+  "• 이 봇은 개인 전용이에요. 등록된 텔레그램 사용자 ID만 사용할 수 있고, 그 외 사용자의 메시지는 Claude API로 전달되지 않아요.",
+  "• 서버 로그에는 대화 원문·질문 원문·Claude 응답 원문을 남기지 않아요. 로그엔 요청 ID·처리 시간·토큰 수 정도만 남아요.",
+  "• Claude는 사주·점성술을 직접 계산하지 않아요. 계산은 항상 프로그램(만세력/좌표 엔진)이 하고, Claude는 그 계산 결과만 해석·정리해요.",
+  "• 최근 대화 맥락(히스토리)은 마지막 메시지로부터 일정 시간(기본 45분) 지나면 자동으로 사라져요.",
+  "• '기억'은 명시적으로 '기억해줘'라고 요청한 내용만, 원문이 아니라 짧은 요약으로 저장돼요. '저장하지 마'/'잊어줘'라고 하면 바로 지워져요.",
+  "",
+  "/reset 대화 맥락 초기화 · /delete 내 사주·기억 전체 삭제",
+].join("\n");
+
+const HELP_TEXT = [
+  "이 봇은 명령어 없이 그냥 말로 걸어도 알아들어요. 예:",
+  "• \"나 오늘 왜 이렇게 의욕이 없지?\" → 오늘 흐름/자기분석",
+  "• \"이거 기획 좀 정리해줘\" → 기획 정리",
+  "• \"이 글 좀 자연스럽게 고쳐줘\" → 글쓰기 도움",
+  "• \"이거 먼저 할까 저거 먼저 할까?\" → 판단/결정",
+  "• \"방금 얘기한 거 기억해둬\" / \"이건 저장하지 마\" → 기억 저장/삭제",
+  "• \"보안 상태 알려줘\" → /privacy",
+  "",
+  "명령어(선택): /start · /birth · /saju · /today · /궁합 · /reset · /delete · /privacy · /help",
 ].join("\n");
 
 const COMPAT_GUIDE = [
@@ -125,6 +157,14 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     if (text === "/delete") {
       await store.deleteUser(chatId);
       await sendMessage(chatId, "사주 정보와 대화 기록을 모두 삭제했어요. /start 로 다시 시작할 수 있어요.");
+      return;
+    }
+    if (text === "/privacy") {
+      await sendMessage(chatId, PRIVACY_TEXT);
+      return;
+    }
+    if (text === "/help") {
+      await sendMessage(chatId, HELP_TEXT);
       return;
     }
     if (text === "/saju") {
@@ -299,6 +339,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     // ── 질문 → 사주 선생님(Claude). 사주 등록 여부와 무관하게 답한다 ──
     let question = text;
     let verbosityOverride: "brief" | "normal" | "detailed" | undefined;
+    let astrologyEvidence: string | undefined;
 
     if (text === "/today") {
       // 오늘 일진만 짧게. "오늘/일진"이 들어 있어 teacher가 오늘 데이터를 자동 첨부한다.
@@ -309,10 +350,84 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         "정답을 바로 알려주지 말고, 문제만 먼저 주고 제가 답해볼 수 있게 기다려주세요. " +
         "제가 다음 메시지로 답하면 그때 채점하고, 틀렸거나 애매하면 원리를 다시 짚어 설명해주세요.";
     } else {
-      // 사용자가 직접 쓴 질문에서 길이 힌트 추출
+      // ── 자연어 의도 분류 (Step 3). 슬래시 명령이 아닌 자유 텍스트는 전부 여기를 거친다 ──
+      const intent = detectIntent(text);
+
+      if (intent === "privacyCheck") {
+        await sendMessage(chatId, PRIVACY_TEXT);
+        return;
+      }
+      if (intent === "resetContext") {
+        await store.clearHistory(chatId);
+        await sendMessage(chatId, "대화 기록을 초기화했어요. 사주 등록은 유지됩니다.");
+        return;
+      }
+      if (intent === "memoryDelete") {
+        const scope = detectMemoryDeleteScope(text);
+        const removed = await store.deleteMemory(chatId, scope);
+        await sendMessage(chatId, removed > 0 ? `기억 ${removed}건 지웠어요 ✅` : "지울 만한 저장된 기억이 없었어요.");
+        return;
+      }
+      if (intent === "memoryLookup") {
+        const memories = user.memories ?? [];
+        if (memories.length === 0) {
+          await sendMessage(chatId, "아직 기억해둔 게 없어요. \"기억해줘\"라고 말하면 그때부터 요약해서 기억할게요.");
+          return;
+        }
+        const lines = memories.slice(-10).map((m) => `• [${m.category}] ${m.summary}`);
+        await sendMessage(chatId, `기억하고 있는 것들:\n${lines.join("\n")}`);
+        return;
+      }
+      if (intent === "memorySave") {
+        const typing = setInterval(() => void sendTyping(chatId), 5000);
+        void sendTyping(chatId);
+        try {
+          const { category, summary, sensitive } = await summarizeForMemory(user.history, text);
+          await store.addMemory(chatId, { category, summary, sensitive });
+          await sendMessage(chatId, `기억해뒀어요 ✅ (${category})\n"${summary}"`);
+        } finally {
+          clearInterval(typing);
+        }
+        return;
+      }
+
+      if (isSecretaryIntent(intent)) {
+        const typing = setInterval(() => void sendTyping(chatId), 5000);
+        void sendTyping(chatId);
+        try {
+          const { cleanQuestion, override } = extractVerbosityHint(text);
+          const assistantContext = buildAssistantContext({
+            chartSource: source,
+            birthInfo: user.birthInfo ?? null,
+            detectedIntent: intent,
+            memories: user.memories ?? [],
+            currentQuestion: cleanQuestion,
+          });
+          // 답은 askSecretary가 스트리밍으로 화면에 직접 표시한다(여기서 재전송하지 않음).
+          const answer = await askSecretary({
+            intent: intent as SecretaryIntent,
+            question: cleanQuestion,
+            assistantContext,
+            history: user.history,
+            chatId,
+            verbosityOverride: override,
+          });
+          await store.appendHistory(chatId, { role: "user", content: cleanQuestion }, { role: "assistant", content: answer });
+        } finally {
+          clearInterval(typing);
+        }
+        return;
+      }
+
+      // 나머지(sajuReading/astrologyReading/combinedReading/todayFlow/generalChat) → 기존 askTeacher 경로
       const { cleanQuestion, override } = extractVerbosityHint(text);
       question = cleanQuestion;
       verbosityOverride = override;
+      // astrology/combined 의도면 점성술 근거를 추가로 첨부(첫 줄 의도 고지는 secretary 모드 전용,
+      // teacher 경로는 기존 대화 톤을 유지한다).
+      if ((intent === "astrologyReading" || intent === "combinedReading") && user.birthInfo) {
+        astrologyEvidence = buildAstrologyEvidenceText(user.birthInfo);
+      }
     }
 
     const typing = setInterval(() => void sendTyping(chatId), 5000);
@@ -325,13 +440,14 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         question,
         chatId,
         verbosityOverride,
+        astrologyEvidence,
       });
       await store.appendHistory(chatId, { role: "user", content: question }, { role: "assistant", content: answer });
     } finally {
       clearInterval(typing);
     }
   } catch (err) {
-    console.error("메시지 처리 오류:", err);
-    await sendMessage(chatId, `문제가 생겼어요: ${err instanceof Error ? err.message : String(err)}`).catch(() => {});
+    logError("messageHandler", err);
+    await sendMessage(chatId, "문제가 생겼어요. 잠시 후 다시 시도해주세요.").catch(() => {});
   }
 }

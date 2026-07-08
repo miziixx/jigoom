@@ -5,7 +5,18 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { BirthInfo } from "../src/types/index.js";
 import type { StoredPillars } from "./parseFourPillars.js";
-import { MAX_HISTORY, emptyUser, type ChatTurn, type PendingCompat, type Store, type UserRecord } from "./storeTypes.js";
+import {
+  MAX_HISTORY,
+  HISTORY_TTL_MINUTES,
+  emptyUser,
+  applyHistoryExpiry,
+  type ChatTurn,
+  type MemoryCategory,
+  type MemoryEntry,
+  type PendingCompat,
+  type Store,
+  type UserRecord,
+} from "./storeTypes.js";
 
 const DATA_DIR = process.env.BOT_DATA_DIR ?? join(dirname(fileURLToPath(import.meta.url)), "data");
 const DATA_FILE = join(DATA_DIR, "users.json");
@@ -36,6 +47,11 @@ function getUserSync(chatId: number): UserRecord {
   const key = String(chatId);
   if (!users[key]) {
     users[key] = emptyUser();
+  }
+  const expired = applyHistoryExpiry(users[key]);
+  if (expired !== users[key]) {
+    users[key] = expired;
+    save();
   }
   return users[key];
 }
@@ -78,6 +94,7 @@ export const fileStore: Store = {
     if (user.history.length > MAX_HISTORY) {
       user.history = user.history.slice(user.history.length - MAX_HISTORY);
     }
+    user.historyExpiresAt = new Date(Date.now() + HISTORY_TTL_MINUTES * 60 * 1000).toISOString();
     user.updatedAt = new Date().toISOString();
     save();
   },
@@ -85,6 +102,7 @@ export const fileStore: Store = {
   async clearHistory(chatId: number): Promise<void> {
     const user = getUserSync(chatId);
     user.history = [];
+    user.historyExpiresAt = null;
     user.pending = null;
     user.updatedAt = new Date().toISOString();
     save();
@@ -94,5 +112,41 @@ export const fileStore: Store = {
     const users = load();
     delete users[String(chatId)];
     save();
+  },
+
+  async addMemory(chatId: number, entry: Omit<MemoryEntry, "id" | "createdAt">): Promise<MemoryEntry> {
+    const user = getUserSync(chatId);
+    if (!user.memories) user.memories = [];
+    const full: MemoryEntry = { ...entry, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, createdAt: new Date().toISOString() };
+    user.memories.push(full);
+    user.updatedAt = new Date().toISOString();
+    save();
+    return full;
+  },
+
+  async deleteMemory(chatId: number, opts: { mode: "recent" | "all"; category?: MemoryCategory; count?: number }): Promise<number> {
+    const user = getUserSync(chatId);
+    const memories = user.memories ?? [];
+    const matches = (m: MemoryEntry) => !opts.category || m.category === opts.category;
+    let removed = 0;
+    if (opts.mode === "all") {
+      const before = memories.length;
+      user.memories = memories.filter((m) => !matches(m));
+      removed = before - user.memories.length;
+    } else {
+      const count = opts.count ?? 1;
+      const kept: MemoryEntry[] = [];
+      for (let i = memories.length - 1; i >= 0; i--) {
+        if (matches(memories[i]) && removed < count) {
+          removed++;
+          continue;
+        }
+        kept.unshift(memories[i]);
+      }
+      user.memories = kept;
+    }
+    user.updatedAt = new Date().toISOString();
+    save();
+    return removed;
   },
 };

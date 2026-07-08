@@ -9,7 +9,9 @@ type Body = import("astronomy-engine").Body;
 import { Lunar } from "lunar-javascript";
 import { BIRTH_PLACES } from "../data/birthPlaces";
 import type {
+  AstrologyAspect,
   AstrologyPlacement,
+  AstrologyTransitTheme,
   AstrologyProfile,
   BirthInfo,
   ClassicalPlacement,
@@ -433,5 +435,89 @@ export function computeAstrologyProfile(birthInfo: BirthInfo): AstrologyProfile 
       `베딕: ${vedicMoon.nakshatra} ${vedicMoon.pada}파다, ${lagna ? `라그나 ${lagna.sign}` : "라그나 미계산"}, 라후 ${rahu.sign}, 케투 ${ketu.sign}, ${dasha.currentMahaDasha} 마하다샤`,
       accuracyNote,
     ],
+  };
+}
+
+// ── 어스펙트(각도 패턴) 계산 — 봇 비서용 추가 (sokmaeum 원본엔 없던 계산) ──────────
+// 표준 5대 각도(합/육십분/사각/삼분/충)를 orb 범위 안에서 탐지한다.
+
+const ASPECT_ANGLES: Array<{ name: AstrologyAspect["aspect"]; angle: number; orb: number }> = [
+  { name: "합", angle: 0, orb: 8 },
+  { name: "육십분", angle: 60, orb: 4 },
+  { name: "사각", angle: 90, orb: 6 },
+  { name: "삼분", angle: 120, orb: 6 },
+  { name: "충", angle: 180, orb: 8 },
+];
+
+function angularDiff(a: number, b: number): number {
+  const diff = Math.abs(normalizeDegrees(a) - normalizeDegrees(b));
+  return diff > 180 ? 360 - diff : diff;
+}
+
+/** 현대 5대 천체(태양/달/금성/화성) + 고전 목록의 수성/목성/토성 사이 주요 각도를 계산한다. */
+export function computeMajorAspects(profile: AstrologyProfile): AstrologyAspect[] {
+  const bodies: AstrologyPlacement[] = [
+    profile.modern.sun,
+    profile.modern.moon,
+    profile.modern.venus,
+    profile.modern.mars,
+    ...profile.classical.placements.filter((p) => p.body === "수성" || p.body === "목성" || p.body === "토성"),
+  ];
+
+  const aspects: AstrologyAspect[] = [];
+  for (let i = 0; i < bodies.length; i++) {
+    for (let j = i + 1; j < bodies.length; j++) {
+      const diff = angularDiff(bodies[i].absoluteLongitude, bodies[j].absoluteLongitude);
+      for (const candidate of ASPECT_ANGLES) {
+        const orb = Math.abs(diff - candidate.angle);
+        if (orb <= candidate.orb) {
+          aspects.push({
+            bodyA: bodies[i].body,
+            bodyB: bodies[j].body,
+            aspect: candidate.name,
+            angle: Number(diff.toFixed(2)),
+            orb: Number(orb.toFixed(2)),
+          });
+          break;
+        }
+      }
+    }
+  }
+  return aspects;
+}
+
+// ── 오늘 트랜짓 테마 — 봇 비서용 추가 ──────────
+// 오늘 태양/달의 트로피컬 경도를 원국 상승궁 기준 whole-sign 하우스에 대입해
+// "오늘 어느 삶의 영역이 활성화되는지"만 짧게 계산한다(트랜짓 전체 계산은 아님).
+const HOUSE_THEME: Record<number, string> = {
+  1: "나 자신과 시작하는 힘",
+  2: "돈과 자원",
+  3: "소통과 일상",
+  4: "집과 마음의 기반",
+  5: "표현과 즐거움",
+  6: "일상 루틴과 컨디션",
+  7: "관계와 협업",
+  8: "깊은 정서와 정리",
+  9: "배움과 시야 확장",
+  10: "커리어와 사회적 방향",
+  11: "동료·커뮤니티",
+  12: "휴식과 내면 정리",
+};
+
+export function computeCurrentTransitTheme(profile: AstrologyProfile, now: Date = new Date()): AstrologyTransitTheme {
+  const ascLon = profile.classical.ascendant?.absoluteLongitude;
+  const sunHouse = wholeSignHouse(bodyLongitude(Body.Sun, now), ascLon);
+  const moonHouse = wholeSignHouse(bodyLongitude(Body.Moon, now), ascLon);
+
+  const parts: string[] = [];
+  if (sunHouse) parts.push(`오늘 태양은 당신의 ${sunHouse}하우스(${HOUSE_THEME[sunHouse]})를 지나는 중`);
+  if (moonHouse) parts.push(`달은 ${moonHouse}하우스(${HOUSE_THEME[moonHouse]}) 쪽 감정을 건드리는 중`);
+  const theme = parts.length > 0 ? parts.join(", ") + "이에요." : "출생시간이 없어 오늘 트랜짓 하우스는 계산하지 못했어요(별자리 흐름만 참고).";
+
+  return {
+    date: now.toISOString().slice(0, 10),
+    sunTransitHouse: sunHouse,
+    moonTransitHouse: moonHouse,
+    theme,
   };
 }

@@ -2,12 +2,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ChatTurn } from "./storeTypes.js";
 import { buildNatalEvidence, buildTodayEvidence, type ChartSource } from "./evidence.js";
 import { emitPartial, finalizeStream } from "./streamToTelegram.js";
+import { logError, logRequest } from "./logSafe.js";
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.
 const MODEL = process.env.BOT_MODEL ?? "claude-opus-4-8";
 // BOT_VERBOSITY로 답변 길이 상한 제어. 기본은 채팅답게 짧게(normal).
 // 텔레그램은 수다처럼 짧게 티키타카가 원칙이라 상한을 낮게 둔다. detailed만 깊은 설명용.
 const BOT_VERBOSITY = (process.env.BOT_VERBOSITY ?? "normal") as "brief" | "normal" | "detailed";
+// (선택) 온도 오버라이드. 미설정 시 SDK 기본값 사용.
+const BOT_TEMPERATURE = process.env.BOT_TEMPERATURE ? Number(process.env.BOT_TEMPERATURE) : undefined;
 const VERBOSITY_TOKENS = {
   brief: 900,
   normal: 1800,
@@ -68,6 +71,8 @@ export interface AskOptions {
   question: string;
   chatId?: number; // 스트리밍용 (웹훅 모드)
   verbosityOverride?: "brief" | "normal" | "detailed"; // 자연어 힌트에서 추출됨
+  /** astrologyReading/combinedReading일 때만 첨부하는 점성술 근거 텍스트 블록 */
+  astrologyEvidence?: string;
 }
 
 /**
@@ -80,14 +85,14 @@ function questionAsksAboutToday(question: string): boolean {
 }
 
 /** 계산 근거 + 대화 맥락을 실어 Claude에게 해석을 요청한다 */
-export async function askTeacher({ source, history, question, chatId, verbosityOverride }: AskOptions): Promise<string> {
+export async function askTeacher({ source, history, question, chatId, verbosityOverride, astrologyEvidence }: AskOptions): Promise<string> {
   const historyMessages = history.map((t) => ({ role: t.role, content: t.content }) as Anthropic.Messages.MessageParam);
 
   // 오늘 일진은 사용자가 오늘을 직접 물었을 때만 첨부한다(평소엔 원국 데이터만).
-  const finalUserContent =
-    source && questionAsksAboutToday(question)
-      ? `${buildTodayEvidence(source)}\n\n[질문]\n${question}`
-      : `[질문]\n${question}`;
+  const evidenceBlocks: string[] = [];
+  if (source && questionAsksAboutToday(question)) evidenceBlocks.push(buildTodayEvidence(source));
+  if (astrologyEvidence) evidenceBlocks.push(astrologyEvidence);
+  const finalUserContent = evidenceBlocks.length > 0 ? `${evidenceBlocks.join("\n\n")}\n\n[질문]\n${question}` : `[질문]\n${question}`;
 
   const messages: Anthropic.Messages.MessageParam[] = source
     ? [
@@ -124,7 +129,7 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
         { role: "user", content: question },
       ];
 
-  return runStream(messages, chatId, verbosityOverride);
+  return runStream(messages, chatId, verbosityOverride, "teacher");
 }
 
 /**
@@ -135,20 +140,25 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
  * "다시 전송"하면 안 되고 히스토리 저장에만 쓴다.
  * chatId가 없으면: 화면 표시 없이 최종 텍스트만 반환한다(호출부가 직접 sendMessage).
  */
-async function runStream(
+export async function runStream(
   messages: Anthropic.Messages.MessageParam[],
   chatId?: number,
   verbosityOverride?: "brief" | "normal" | "detailed",
+  mode = "teacher",
+  systemPromptOverride?: string,
 ): Promise<string> {
   const level = verbosityOverride ?? BOT_VERBOSITY;
   const maxTokens = VERBOSITY_TOKENS[level];
-  const systemPrompt = buildTeacherSystem(level);
+  const systemPrompt = systemPromptOverride ?? buildTeacherSystem(level);
+  const requestId = crypto.randomUUID();
+  const startedAt = Date.now();
 
   // 짧은 채팅 답변엔 확장 사고를 끄고 바로 답하게 해 속도를 높인다.
   // 깊은 설명(detailed)일 때만 adaptive thinking을 켠다.
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: maxTokens,
+    ...(BOT_TEMPERATURE !== undefined ? { temperature: BOT_TEMPERATURE } : {}),
     ...(level === "detailed" ? { thinking: { type: "adaptive" as const } } : {}),
     system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
     messages,
@@ -157,11 +167,17 @@ async function runStream(
   let streamedText = "";
   // 토큰이 도착하는 대로 누적하고, chatId가 있으면 그때그때 화면에 반영한다.
   // for await로 각 emitPartial을 기다리므로 루프가 끝나면 진행 중 전송이 남지 않는다.
-  for await (const event of stream) {
-    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-      streamedText += event.delta.text;
-      if (chatId) await emitPartial(chatId, streamedText);
+  try {
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        streamedText += event.delta.text;
+        if (chatId) await emitPartial(chatId, streamedText);
+      }
     }
+  } catch (err) {
+    logError("teacher.runStream", err);
+    logRequest({ requestId, mode, latencyMs: Date.now() - startedAt, errorCode: "stream_error" });
+    throw err;
   }
 
   const final = await stream.finalMessage();
@@ -171,6 +187,13 @@ async function runStream(
     .map((b) => b.text)
     .join("\n")
     .trim();
+
+  logRequest({
+    requestId,
+    mode,
+    latencyMs: Date.now() - startedAt,
+    tokenCount: (final.usage?.input_tokens ?? 0) + (final.usage?.output_tokens ?? 0),
+  });
 
   // 최종 사용자에게 보일 텍스트 결정
   let result: string;
@@ -214,5 +237,5 @@ export async function askCompatibility({ compatEvidence, question, chatId }: Ask
     },
     { role: "user", content: ask },
   ];
-  return runStream(messages, chatId);
+  return runStream(messages, chatId, undefined, "compatibility");
 }

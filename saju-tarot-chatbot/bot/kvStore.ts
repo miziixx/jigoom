@@ -3,7 +3,18 @@
 // api/_security.ts의 upstashRateLimit()과 동일한 순수 HTTP REST 방식(호스팅 이식성 유지).
 import type { BirthInfo } from "../src/types/index.js";
 import type { StoredPillars } from "./parseFourPillars.js";
-import { MAX_HISTORY, emptyUser, type ChatTurn, type PendingCompat, type Store, type UserRecord } from "./storeTypes.js";
+import {
+  MAX_HISTORY,
+  HISTORY_TTL_MINUTES,
+  emptyUser,
+  applyHistoryExpiry,
+  type ChatTurn,
+  type MemoryCategory,
+  type MemoryEntry,
+  type PendingCompat,
+  type Store,
+  type UserRecord,
+} from "./storeTypes.js";
 
 function requireEnv(): { url: string; token: string } {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -40,13 +51,16 @@ async function readUser(chatId: number): Promise<UserRecord> {
   if (typeof raw !== "string") return emptyUser();
   try {
     const parsed = JSON.parse(raw) as UserRecord;
-    return {
+    const user: UserRecord = {
       birthInfo: parsed.birthInfo ?? null,
       pillars: parsed.pillars ?? null,
       history: parsed.history ?? [],
+      historyExpiresAt: parsed.historyExpiresAt ?? null,
       pending: parsed.pending ?? null,
+      memories: parsed.memories ?? [],
       updatedAt: parsed.updatedAt,
     };
+    return applyHistoryExpiry(user);
   } catch {
     return emptyUser();
   }
@@ -86,12 +100,14 @@ export const kvStore: Store = {
     if (user.history.length > MAX_HISTORY) {
       user.history = user.history.slice(user.history.length - MAX_HISTORY);
     }
+    user.historyExpiresAt = new Date(Date.now() + HISTORY_TTL_MINUTES * 60 * 1000).toISOString();
     await writeUser(chatId, user);
   },
 
   async clearHistory(chatId: number): Promise<void> {
     const user = await readUser(chatId);
     user.history = [];
+    user.historyExpiresAt = null;
     user.pending = null;
     await writeUser(chatId, user);
   },
@@ -104,6 +120,40 @@ export const kvStore: Store = {
 
   async deleteUser(chatId: number): Promise<void> {
     await redisPipeline([["DEL", userKey(chatId)]]);
+  },
+
+  async addMemory(chatId: number, entry: Omit<MemoryEntry, "id" | "createdAt">): Promise<MemoryEntry> {
+    const user = await readUser(chatId);
+    if (!user.memories) user.memories = [];
+    const full: MemoryEntry = { ...entry, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, createdAt: new Date().toISOString() };
+    user.memories.push(full);
+    await writeUser(chatId, user);
+    return full;
+  },
+
+  async deleteMemory(chatId: number, opts: { mode: "recent" | "all"; category?: MemoryCategory; count?: number }): Promise<number> {
+    const user = await readUser(chatId);
+    const memories = user.memories ?? [];
+    const matches = (m: MemoryEntry) => !opts.category || m.category === opts.category;
+    let removed = 0;
+    if (opts.mode === "all") {
+      const before = memories.length;
+      user.memories = memories.filter((m) => !matches(m));
+      removed = before - user.memories.length;
+    } else {
+      const count = opts.count ?? 1;
+      const kept: MemoryEntry[] = [];
+      for (let i = memories.length - 1; i >= 0; i--) {
+        if (matches(memories[i]) && removed < count) {
+          removed++;
+          continue;
+        }
+        kept.unshift(memories[i]);
+      }
+      user.memories = kept;
+    }
+    await writeUser(chatId, user);
+    return removed;
   },
 };
 

@@ -1,0 +1,154 @@
+// 자연어 메시지에서 의도를 분류한다. 별도 Claude 호출 없이 결정론적 키워드 매칭으로 판단한다
+// (extractVerbosityHint.ts와 같은 스타일). 특히 기억 저장/삭제 같은 보안 민감 동작은
+// LLM의 애매한 판단이 아니라 명시적 트리거 문구로만 작동해야 안전하다.
+
+export type DetectedIntent =
+  | "sajuReading"
+  | "astrologyReading"
+  | "combinedReading"
+  | "todayFlow"
+  | "selfAnalysis"
+  | "planning"
+  | "writing"
+  | "decision"
+  | "memorySave"
+  | "memoryDelete"
+  | "memoryLookup"
+  | "privacyCheck"
+  | "resetContext"
+  | "generalChat";
+
+interface IntentRule {
+  intent: DetectedIntent;
+  patterns: RegExp[];
+}
+
+// 우선순위 순서대로 배열. 위에서부터 먼저 매치되는 규칙이 이긴다.
+const RULES: IntentRule[] = [
+  {
+    intent: "privacyCheck",
+    patterns: [/보안\s*상태/, /개인정보.*(어떻게|처리|보관)/, /프라이버시/, /로그.*(남|저장)/],
+  },
+  {
+    intent: "resetContext",
+    patterns: [/대화\s*(초기화|리셋)/, /맥락\s*(초기화|리셋)/, /처음부터\s*다시/],
+  },
+  {
+    intent: "memoryDelete",
+    patterns: [/저장하지\s*마/, /기억하지\s*마/, /방금\s*(건|거)\s*잊어/, /잊어(줘|버려)/, /기억\s*(지워|삭제)/, /저장\s*(지워|삭제)/, /최근\s*기억.*(지워|삭제)/],
+  },
+  {
+    intent: "memorySave",
+    patterns: [/기억해\s*(줘|둬|주세요)?/, /저장해\s*(줘|둬|주세요)?/, /프로젝트에\s*넣어/, /이\s*기준으로\s*봐줘/, /잊지\s*마/],
+  },
+  {
+    intent: "memoryLookup",
+    patterns: [/뭐\s*기억하고\s*있어/, /저장된\s*(거|것).*보여/, /기억\s*목록/, /기억하고\s*있는\s*거/],
+  },
+  {
+    intent: "combinedReading",
+    patterns: [/사주.*점성술|점성술.*사주/, /사주랑\s*별자리|별자리랑\s*사주/, /둘\s*다\s*봤을\s*때/],
+  },
+  {
+    intent: "astrologyReading",
+    patterns: [/별자리/, /점성술/, /태양궁|달별자리|상승궁/, /트랜짓/],
+  },
+  {
+    intent: "sajuReading",
+    patterns: [/사주/, /신강|신약/, /격국/, /지장간/, /대운/, /일주/, /오행/],
+  },
+  {
+    intent: "todayFlow",
+    patterns: [/오늘.*(어때|운|흐름|일진)/, /오늘의\s*운세/, /하루\s*운/],
+  },
+  {
+    intent: "selfAnalysis",
+    patterns: [
+      /나\s*왜\s*자꾸/,
+      /나\s*왜/,
+      /내가\s*예민한\s*건가/,
+      /하기\s*싫은\s*이유/,
+      /반복되(는|지)/,
+      /자꾸\s*미루/,
+      /완성을?\s*못\s*하/,
+    ],
+  },
+  {
+    intent: "planning",
+    patterns: [
+      /기획/,
+      /만들고\s*싶어/,
+      /구조\s*(좀\s*)?잡아/,
+      /mvp/i,
+      /기능\s*넣으면/,
+      /작업\s*지시서/,
+      /claude\s*code.*시킬/i,
+      /앱으로\s*만들면/,
+    ],
+  },
+  {
+    intent: "writing",
+    patterns: [/고쳐줘/, /자연스럽게/, /ai\s*티/i, /설명문으로/, /프롬프트로\s*정리/, /글\s*(좀\s*)?다듬/, /윤문/],
+  },
+  {
+    intent: "decision",
+    patterns: [
+      /뭐부터/,
+      /해야\s*할까/,
+      /먼저\s*할까/,
+      /이\s*방향\s*맞아/,
+      /지금\s*이\s*선택/,
+      /버려도\s*돼/,
+      /밀어붙여도\s*돼/,
+      /해도\s*될까/,
+    ],
+  },
+];
+
+/** 자연어 텍스트에서 의도를 분류한다. 매치되는 규칙이 없으면 generalChat. */
+export function detectIntent(text: string): DetectedIntent {
+  const t = text.trim();
+  if (!t) return "generalChat";
+  for (const rule of RULES) {
+    for (const pattern of rule.patterns) {
+      if (pattern.test(t)) return rule.intent;
+    }
+  }
+  return "generalChat";
+}
+
+/** 새 비서 모드(기획/글쓰기/판단/자기분석) 대상인지 판별 */
+export function isSecretaryIntent(intent: DetectedIntent): intent is "planning" | "writing" | "decision" | "selfAnalysis" {
+  return intent === "planning" || intent === "writing" || intent === "decision" || intent === "selfAnalysis";
+}
+
+/** 결정론적으로 즉시 처리해야 하는(별도 Claude 호출 불필요할 수 있는) 의도인지 */
+export function isDeterministicIntent(
+  intent: DetectedIntent,
+): intent is "memorySave" | "memoryDelete" | "memoryLookup" | "privacyCheck" | "resetContext" {
+  return (
+    intent === "memorySave" ||
+    intent === "memoryDelete" ||
+    intent === "memoryLookup" ||
+    intent === "privacyCheck" ||
+    intent === "resetContext"
+  );
+}
+
+/** 사람이 읽는 의도 고지 문구 (Step 9: 응답 첫 줄에 감지된 의도 짧게 고지) */
+export const INTENT_LABEL: Record<DetectedIntent, string> = {
+  sajuReading: "사주 질문",
+  astrologyReading: "점성술 질문",
+  combinedReading: "사주+점성술 통합 질문",
+  todayFlow: "오늘 흐름 질문",
+  selfAnalysis: "자기분석 질문",
+  planning: "기획 질문",
+  writing: "글쓰기 요청",
+  decision: "판단/결정 질문",
+  memorySave: "기억 저장 요청",
+  memoryDelete: "기억 삭제 요청",
+  memoryLookup: "기억 조회 요청",
+  privacyCheck: "보안 정책 확인",
+  resetContext: "대화 초기화",
+  generalChat: "일반 대화",
+};

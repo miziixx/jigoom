@@ -689,6 +689,27 @@ export interface ReadingSession {
   messages: ChatMessage[];
 }
 
+// ── 점성술 어스펙트/트랜짓 (봇 비서용 추가 계산) ──────────
+// 기본 점성술 타입(ZodiacSign/AstrologyPlacement/AstrologyProfile 등)은 아래쪽
+// "속마음 점성술 엔진 이식" 블록에 정의돼 있다. 여기는 봇 비서에서만 쓰는 두 타입만 추가한다.
+
+/** 행성 두 개 사이의 주요 각도(어스펙트) 관계 */
+export interface AstrologyAspect {
+  bodyA: string;
+  bodyB: string;
+  aspect: "합" | "육십분" | "사각" | "삼분" | "충";
+  angle: number;
+  orb: number;
+}
+
+/** 오늘 하늘(트랜짓)이 원국의 어느 지점을 건드리는지 요약한 한 줄 테마 */
+export interface AstrologyTransitTheme {
+  date: string;
+  sunTransitHouse?: number;
+  moonTransitHouse?: number;
+  theme: string;
+}
+
 // ── 오늘의 운세 (결정론적 근거 데이터 + LLM 문장) ──────────
 
 /** 십성 5분류 (비겁/식상/재성/관성/인성) */

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { TgUpdate } from "../bot/telegram.js";
 import { handleMessage } from "../bot/messageHandler.js";
 import { kvStore, markUpdateProcessed } from "../bot/kvStore.js";
+import { logError } from "../bot/logSafe.js";
 
 /**
  * 텔레그램 웹훅 수신 엔드포인트.
@@ -40,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await handleMessage(update.message, kvStore);
       }
     } catch (err) {
-      console.error("웹훅 메시지 처리 오류:", err);
+      logError("telegram-webhook", err);
     }
   }
 

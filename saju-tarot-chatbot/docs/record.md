@@ -1596,3 +1596,37 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
   - 렌더 안전망(`readingBlocks.tsx`): 대괄호 소제목이 없는 통짜 본문은 `extractLeadSentence`로 첫 문장을 리드 줄(`reading-lead`)로 분리. 월별 흐름 본문은 기존 전용 렌더 유지. 모델이 구조를 빠뜨려도 최소 스캔 훅 보장(내용 불변). Haiku 등 저모델 전환 시 특히 유효.
   - 테스트: `readingTemplates.test.tsx`에 `extractLeadSentence` 단위 3케이스 + 통짜 섹션 리드 분리 통합 1케이스 추가.
 - 53파일 450테스트 통과, build 통과. ADDITIVE(기존 잠금 테스트 불변).
+
+## 텔레그램 봇 → 자연어 우선 개인비서 확장 (2026-07-08)
+
+기존 사주 상담 전용 텔레그램 봇을 사주+점성술+기획/글쓰기/판단/자기분석까지 다루는
+개인 전용 비서로 확장했다. 핵심은 슬래시 명령이 아니라 자연어로 모든 기능이 동작하는 것.
+사주타로 웹앱(src/lib/saju 등)의 계산 엔진·리딩 프롬프트는 건드리지 않았다(봇은 별도 표면).
+
+보안/로그 위생 (Step 1-2):
+- `bot/logSafe.ts` 신규: `logError`(name/message/status만), `logRequest`(requestId/mode/latencyMs/tokenCount/errorCode만).
+  index.ts·messageHandler.ts·telegram-webhook.ts의 `console.error(..., 원문)`을 전부 교체 — 대화·프롬프트·응답 원문을 로그에 안 남긴다.
+- 화이트리스트: `TELEGRAM_ALLOWED_USER_IDS`(기존)+`ALLOWED_TELEGRAM_USER_IDS`(신규 별칭) 합집합. 허용 안 된 사용자 메시지는 Claude로 안 감.
+- Claude 호출은 여전히 `teacher.ts`의 `runStream()` 한 곳. `secretary.ts`·기억 요약도 전부 이걸 재사용. `BOT_TEMPERATURE` env 추가.
+
+세션 TTL 히스토리 + 기억(Step 7):
+- `user.history`를 무조건 영구 저장 → 세션 TTL(기본 45분, `BOT_HISTORY_TTL_MINUTES`)로 자동 만료. storeTypes에 `historyExpiresAt`,
+  `applyHistoryExpiry()` 추가, fileStore/kvStore가 read 시 lazy 만료. `/reset`은 TTL도 초기화.
+- 기억(memories): `MemoryEntry{category,summary,sensitive}`, `addMemory`/`deleteMemory`. 명시적 "기억해줘"에만 저장하고,
+  원문이 아니라 Claude로 1~2문장 요약(`memoryOps.ts`)만 저장. "저장하지 마/잊어/지워"는 삭제.
+
+점성술 엔진 (Step 4):
+- `astronomy-engine` 의존성 추가. `src/data/birthPlaces.ts`에 latitude 추가. 점성술 타입을 `src/types/index.ts`에 포팅.
+- `src/lib/astrology.ts`: sokmaeum의 `computeAstrologyProfile` 포팅(계산 로직 불변) + 신규 `computeMajorAspects`(5대 각도)·
+  `computeCurrentTransitTheme`(오늘 태양/달 트랜짓 하우스). Claude는 계산 결과만 근거로 받고 좌표·각도 계산은 안 함.
+
+의도 분류·비서 모드 (Step 3,5,8,9):
+- `bot/intentDetector.ts`: LLM 없이 결정론적 키워드로 14개 의도 분류(보안 민감 동작을 LLM 판단에 안 맡김).
+- `bot/assistantContext.ts`: 원국 계산을 압축한 `sajuSummary` + `astrologySummary` + 의도 + 저장된 기억 + securityLevel 병합(비서 모드 전용).
+- `bot/secretary.ts`: 자기분석/기획/글쓰기/판단 4개 시스템 프롬프트(스펙 섹션 구조 인코딩) + 짧은 기본 응답 구조(결론/이유/오늘 할 일).
+- `messageHandler.ts`: 기존 명령·등록·궁합 흐름은 그대로 두고(additive), 자유 텍스트에 의도 라우팅 삽입. `/privacy`·`/help` 추가,
+  "보안 상태 알려줘" 자연어도 privacy로. astrology/combined 의도면 askTeacher에 점성술 근거 블록 조건부 첨부.
+
+검증: `npm test` 통과(신규 intentDetector 13 / astrology 5 / assistantContext 4 포함), `npm run build` 통과.
+한계: 이 세션엔 TELEGRAM_BOT_TOKEN이 없어 실제 텔레그램 라이브 왕복은 못 함 — 유닛 테스트+타입체크+빌드로 대체.
+참고: main의 "속마음 점성술 엔진 이식" 커밋과 겹쳐, 리베이스 시 astrology.ts는 main 정본(CJS createRequire 로더 fix 포함)을 기반으로 두고 이 브랜치의 computeMajorAspects·computeCurrentTransitTheme 두 함수만 얹었다.
