@@ -17,6 +17,7 @@ import { buildEventForecast } from "../lib/eventEngine.js";
 import { buildNowMind, formatNowMind } from "../lib/nowMind.js";
 import { buildPsychLayer, formatPsychLayer } from "../lib/psychLayer.js";
 import { buildCapacityAxes, formatCapacityAxes } from "../lib/capacityAxis.js";
+import { buildDeliberation, formatDeliberation } from "../lib/deliberation.js";
 import { describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 
 /**
@@ -899,6 +900,19 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
       parts.push(`[타고난 재료-출력 대비 — 계산됨]\n${formatCapacityAxes(axes)}`);
       parts.push(
         "[재료-출력 활용 안내] 위 대비는 '이 사람만'의 문장을 쓰기 위한 핵심 근거다. '# 타고난 성격과 기질'을 중심으로 직업·재물·관계 섹션에서도, 남한테도 맞는 뻔한 말 대신 이 재료-출력 차이를 근거로 써라. 특히 '재료는 넉넉한데 출력이 약한' 기질은 이 사람이 '어떻게 지치고 어떻게 막히는지'의 개인 사용 설명서로 풀고, '재료는 적은데 잘 써먹는' 기질은 숨은 강점으로 살려라. 규칙: (1) 강약 판정은 유파마다 다르게 볼 수 있으니 단정하지 말고 '~한 편'처럼 경향으로 써라. (2) 사주 용어(십성·통근·신강 등)는 표면에 쓰지 말고 근거는 전문가 근거 보기에만. (3) 재료-출력이 다르면 사람마다 다른 문장이 나와야 한다 — 복붙 금지.",
+      );
+    }
+  }
+
+  // 지금 저울질 신호 엔진: 지금 활성 분야(eventEngine)를 '지금 무슨 선택을 저울질하기 쉬운가'로
+  // 옮겨, "내가 지금 이런 고민을 하는 걸 어떻게 알았지" 체감을 만든다. 단, 맞히려 들다 틀리면
+  // 신뢰가 깨지므로 되짚어 묻는 톤으로만. 사용자가 질문을 직접 적었으면 그 질문이 우선.
+  if (facts.sajuChart && (facts.type === "saju" || facts.type === "combo")) {
+    const deliberation = buildDeliberation(facts.sajuChart, facts.luckCycles, facts.gender);
+    if (deliberation) {
+      parts.push(`[지금 저울질 신호 — 계산됨]\n${formatDeliberation(deliberation)}`);
+      parts.push(
+        "[지금 저울질 신호 활용 안내] 위는 지금 이 사람에게 어떤 선택이 걸려 있기 쉬운지를 활성 분야로 계산한 것이다. 규칙: (1) 사용자가 질문·고민·선택지를 직접 적었으면 그 질문이 우선이고, 이 신호는 보조로만 쓴다. (2) 질문을 적지 않았으면 '# 질문 중심 핵심'(없으면 '# 첫 점괘')에서 이 저울질을 부드럽게 되짚어라 — \"혹시 요즘 ~를 두고 고민 중이신 것 아닐까요\"처럼 단정하지 말고 확인을 청하는 톤으로. (3) 맞히려 들다 틀리면 신뢰가 깨지니 한 가지로 단정하지 말고 계산된 1~2가지 가능성으로 열어두고 사용자가 고르게 하라. (4) 확인된 뒤에는 그 선택이 '잘 풀리려면 필요한 조건'과 오늘·이번 주 확인할 신호로 이어가라. 결정을 대신 내리지 말고, 사주 용어는 표면에 쓰지 마라.",
       );
     }
   }
