@@ -104,6 +104,14 @@ export default function PrivacyPage() {
         </ul>
       </section>
 
+      <section className="card privacy-section">
+        <h3 className="card-title">오픈소스 사용 고지</h3>
+        <p>
+          사주 만세력(음력·양력 변환) 계산에 오픈소스 라이브러리 lunar-javascript(© 2018 6tail, MIT License)를
+          사용합니다.
+        </p>
+      </section>
+
       <p className="privacy-updated">마지막 수정일: {UPDATED_AT}</p>
       <Link to="/" className="btn btn--ghost">
         홈으로 돌아가기
