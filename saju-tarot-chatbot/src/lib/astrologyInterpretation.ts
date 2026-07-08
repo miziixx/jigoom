@@ -148,11 +148,18 @@ export function buildAstrologyInterpretationHints(
   );
   for (const p of modernPoints) placements.push(placementHint(p.body, p.sign, p.house));
 
-  // 고전 행성 중 현대에서 안 다룬 수·목·토(및 향후 외행성)
+  // 고전 행성 중 현대에서 안 다룬 수·목·토
   const already = new Set(modernPoints.map((p) => p.body));
   for (const p of profile.classical.placements) {
     if (already.has(p.body)) continue;
     placements.push(placementHint(p.body, p.sign, p.house));
+    already.add(p.body);
+  }
+  // 세대 행성(천왕·해왕·명왕): 별자리는 세대 공유라 하우스가 있을 때 특히 개인 의미가 있다.
+  for (const p of profile.modern.outer) {
+    if (already.has(p.body)) continue;
+    placements.push(placementHint(p.body, p.sign, p.house));
+    already.add(p.body);
   }
 
   const aspectHints = aspects.slice(0, 8).map((a) => `${a.bodyA}-${a.bodyB} ${a.aspect}(orb ${a.orb}도): ${ASPECT_GLOSS[a.aspect]}`);

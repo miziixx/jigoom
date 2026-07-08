@@ -36,6 +36,16 @@ describe("computeAstrologyProfile", () => {
     expect(profile.classical.ascendant).toBeUndefined();
     expect(profile.modern.sun.sign).toBeTruthy();
   });
+
+  it("세대 행성(천왕·해왕·명왕)을 별자리로 계산한다", () => {
+    const profile = computeAstrologyProfile(withTime);
+    const names = profile.modern.outer.map((p) => p.body);
+    expect(names).toEqual(["천왕성", "해왕성", "명왕성"]);
+    for (const p of profile.modern.outer) {
+      expect(p.sign).toBeTruthy();
+      expect(p.house).toBeDefined(); // 출생시간 있으면 하우스도
+    }
+  });
 });
 
 describe("computeMajorAspects", () => {
@@ -46,6 +56,14 @@ describe("computeMajorAspects", () => {
       expect(["합", "육십분", "사각", "삼분", "충"]).toContain(a.aspect);
       expect(a.orb).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it("세대 행성도 각도 계산에 포함된다", () => {
+    const profile = computeAstrologyProfile(withTime);
+    const bodies = new Set(computeMajorAspects(profile).flatMap((a) => [a.bodyA, a.bodyB]));
+    // 외행성 3개가 다른 천체와 최소 하나의 각도는 맺는 게 일반적
+    const outerInAspects = ["천왕성", "해왕성", "명왕성"].some((b) => bodies.has(b));
+    expect(outerInAspects).toBe(true);
   });
 });
 

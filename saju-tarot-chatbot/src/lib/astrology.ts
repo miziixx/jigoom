@@ -58,6 +58,9 @@ const BODY_LABEL: Record<string, string> = {
   Mars: "화성",
   Jupiter: "목성",
   Saturn: "토성",
+  Uranus: "천왕성",
+  Neptune: "해왕성",
+  Pluto: "명왕성",
 };
 
 const MODERN_KEYWORD: Record<string, string> = {
@@ -349,6 +352,12 @@ export function computeAstrologyProfile(birthInfo: BirthInfo): AstrologyProfile 
   const venus = placement("금성", venusLon, wholeSignHouse(venusLon, ascLon));
   const mars = placement("화성", marsLon, wholeSignHouse(marsLon, ascLon));
 
+  // 세대 행성(천왕·해왕·명왕): 별자리는 또래 세대가 공유하지만, 하우스·각도는 개인 차트에서 의미가 크다.
+  const outer: AstrologyPlacement[] = [Body.Uranus, Body.Neptune, Body.Pluto].map((body) => {
+    const lon = bodyLongitude(body, date);
+    return placement(BODY_LABEL[body], lon, wholeSignHouse(lon, ascLon));
+  });
+
   const classicalBodies = [Body.Sun, Body.Moon, Body.Mercury, Body.Venus, Body.Mars, Body.Jupiter, Body.Saturn];
   const classicalPlacements: ClassicalPlacement[] = classicalBodies.map((body) => {
     const label = BODY_LABEL[body];
@@ -387,12 +396,14 @@ export function computeAstrologyProfile(birthInfo: BirthInfo): AstrologyProfile 
       ascendant,
       venus,
       mars,
+      outer,
       summary: [
         `${signLine(sun)}: 삶의 방향`,
         `${signLine(moon)}: 감정 습관`,
         ascendant ? `${signLine(ascendant)}: 첫인상과 방어 방식` : "상승궁: 출생시간 필요",
         `${signLine(venus)}: 사랑받고 싶은 방식`,
         `${signLine(mars)}: 욕망과 추진력`,
+        `세대 행성 ${outer.map((p) => `${p.body} ${p.sign}${p.house ? ` ${p.house}하우스` : ""}`).join(", ")}: 시대 배경과 무의식의 큰 테마 (하우스로 개인화)`,
       ],
     },
     classical: {
@@ -454,7 +465,7 @@ function angularDiff(a: number, b: number): number {
   return diff > 180 ? 360 - diff : diff;
 }
 
-/** 현대 5대 천체(태양/달/금성/화성) + 고전 목록의 수성/목성/토성 사이 주요 각도를 계산한다. */
+/** 개인 천체(태양/달/수성/금성/화성) + 사회 천체(목성/토성) + 세대 천체(천왕/해왕/명왕) 사이 주요 각도를 계산한다. */
 export function computeMajorAspects(profile: AstrologyProfile): AstrologyAspect[] {
   const bodies: AstrologyPlacement[] = [
     profile.modern.sun,
@@ -462,6 +473,7 @@ export function computeMajorAspects(profile: AstrologyProfile): AstrologyAspect[
     profile.modern.venus,
     profile.modern.mars,
     ...profile.classical.placements.filter((p) => p.body === "수성" || p.body === "목성" || p.body === "토성"),
+    ...profile.modern.outer,
   ];
 
   const aspects: AstrologyAspect[] = [];

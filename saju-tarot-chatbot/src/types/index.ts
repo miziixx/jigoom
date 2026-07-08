@@ -980,6 +980,8 @@ export interface AstrologyProfile {
     ascendant?: AstrologyPlacement;
     venus: AstrologyPlacement;
     mars: AstrologyPlacement;
+    /** 세대 행성: 천왕성·해왕성·명왕성 (별자리는 세대, 하우스·각도는 개인 차트에 유의미) */
+    outer: AstrologyPlacement[];
     summary: string[];
   };
   classical: {
