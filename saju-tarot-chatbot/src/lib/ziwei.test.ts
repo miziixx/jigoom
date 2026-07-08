@@ -57,6 +57,25 @@ describe("computeZiweiChart (자미두수 래퍼)", () => {
     expect(c!.palaces).toHaveLength(12);
   });
 
+  it("주성에 묘왕리함 밝기(-3~+3)를 담는다", () => {
+    const c = computeZiweiChart(birthA)!;
+    const brights = c.palaces.flatMap((p) => p.majorStars.map((s) => s.brightness));
+    expect(brights.length).toBeGreaterThan(0);
+    for (const b of brights) {
+      expect(b).toBeGreaterThanOrEqual(-3);
+      expect(b).toBeLessThanOrEqual(3);
+    }
+    // 실제로 밝기 편차가 있어야 한다(전부 0이면 파싱 실패)
+    expect(new Set(brights).size).toBeGreaterThan(1);
+  });
+
+  it("각 궁에 삼방사정 방조(대궁+삼합) 주성을 담는다", () => {
+    const c = computeZiweiChart(birthA)!;
+    expect(c.palaces.every((p) => Array.isArray(p.sanfangStars))).toBe(true);
+    // 삼방에는 보통 주성이 실린다(전부 빈 경우는 드묾)
+    expect(c.palaces.some((p) => p.sanfangStars.length > 0)).toBe(true);
+  });
+
   it("사화(록·권·과·기)가 붙은 별을 보존한다", () => {
     const c = computeZiweiChart(birthB)!;
     const mutagens = c.palaces.flatMap((p) => p.majorStars.map((s) => s.mutagen)).filter(Boolean);

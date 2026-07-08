@@ -70,26 +70,57 @@ export interface ZiweiDomainVerdict {
   evidence: string;
 }
 
+// 묘왕리함 밝기 → 세기 배율. 함(-3)이면 0(밝지 않아 힘을 못 씀), 평(0)이면 1, 묘(+3)이면 2.
+function brightnessWeight(brightness: number): number {
+  return Math.max(0, Math.min(2, 1 + brightness / 3));
+}
+
+/** 별 하나의 기여 = 기본 길흉 × 밝기 배율 (밝기가 별의 나머지 성질을 증폭/약화) */
+function starContribution(name: string, brightness: number): number {
+  const base = STAR_VALENCE[name];
+  return base === undefined ? 0 : base * brightnessWeight(brightness);
+}
+
 function scorePalace(palace: ZiweiPalace): { score: number; stars: string[]; glosses: string[] } {
   let score = 0;
   const stars: string[] = [];
   const glosses: string[] = [];
-  const consider = [...palace.majorStars, ...palace.minorStars.map((name) => ({ name, mutagen: undefined as string | undefined }))];
-  for (const s of consider) {
+
+  // 본궁 주성: 밝기 가중
+  for (const s of palace.majorStars) {
+    score += starContribution(s.name, s.brightness);
     if (s.name in STAR_VALENCE) {
-      score += STAR_VALENCE[s.name];
       stars.push(s.name);
-      if (STAR_GLOSS[s.name]) glosses.push(`${s.name}(${STAR_GLOSS[s.name]})`);
+      if (STAR_GLOSS[s.name]) glosses.push(`${s.name}${brightnessTag(s.brightness)}(${STAR_GLOSS[s.name]})`);
     }
     if (s.mutagen && s.mutagen in MUTAGEN_VALENCE) score += MUTAGEN_VALENCE[s.mutagen];
   }
+  // 보좌·살성(minor): 밝기 정보 없어 기본값의 0.7배
+  for (const name of palace.minorStars) {
+    if (name in STAR_VALENCE) {
+      score += STAR_VALENCE[name] * 0.7;
+      stars.push(name);
+      if (STAR_GLOSS[name]) glosses.push(`${name}(${STAR_GLOSS[name]})`);
+    }
+  }
+  // 삼방사정 방조: 대궁·삼합궁 주성을 절반 가중으로 참작 (빈 궁도 여기서 힘을 빌린다)
+  for (const s of palace.sanfangStars) {
+    score += starContribution(s.name, s.brightness) * 0.5;
+    if (s.mutagen && s.mutagen in MUTAGEN_VALENCE) score += MUTAGEN_VALENCE[s.mutagen] * 0.5;
+  }
+
   return { score, stars, glosses };
 }
 
-function toneOf(score: number, hasStars: boolean): ZiweiTone {
-  if (!hasStars) return "보통";
-  if (score >= 1) return "좋음";
-  if (score <= -1) return "주의";
+function brightnessTag(b: number): string {
+  if (b >= 2) return "(밝음)";
+  if (b <= -2) return "(어두움)";
+  return "";
+}
+
+function toneOf(score: number): ZiweiTone {
+  if (score >= 1.5) return "좋음";
+  if (score <= -1.5) return "주의";
   return "보통";
 }
 
@@ -134,16 +165,17 @@ export function deriveZiweiDomainVerdicts(chart: ZiweiChart): ZiweiDomainVerdict
     const p = byName.get(palace);
     if (!p) continue;
     const { score, stars, glosses } = scorePalace(p);
-    const tone = toneOf(score, p.majorStars.length > 0);
+    const tone = toneOf(score);
+    const borrowed = p.majorStars.length === 0 ? " (본궁 비어 삼방에서 차성)" : "";
     verdicts.push({
       domain,
       label,
       palace,
       tone,
-      score,
+      score: Math.round(score * 10) / 10,
       stars,
       note: TONE_NOTE[domain][tone],
-      evidence: `${palace}궁(${p.branch}) ${glosses.length > 0 ? glosses.join("·") : "주성 없음(차성)"} → ${tone}`,
+      evidence: `${palace}궁(${p.branch}) ${glosses.length > 0 ? glosses.join("·") : "주성 없음"}${borrowed} → ${tone}(${Math.round(score * 10) / 10})`,
     });
   }
   return verdicts;

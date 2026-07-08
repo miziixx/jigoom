@@ -21,6 +21,8 @@ export interface ZiweiStar {
   name: string;
   /** 사화: 록/권/과/기 (없으면 undefined) */
   mutagen?: string;
+  /** 묘왕리함 밝기 -3(함)~+3(묘). 별의 힘 세기. */
+  brightness: number;
 }
 
 export interface ZiweiPalace {
@@ -30,6 +32,8 @@ export interface ZiweiPalace {
   stem: string;
   majorStars: ZiweiStar[];
   minorStars: string[];
+  /** 삼방사정 방조: 대궁 + 삼합 2궁의 주성 (이 궁을 볼 때 함께 참작) */
+  sanfangStars: ZiweiStar[];
   /** 신궁 여부 */
   isBody: boolean;
   /** 명궁 여부 */
@@ -58,6 +62,17 @@ function timeIndexFromHour(hour: number): number {
   return Math.floor((hour + 1) / 2);
 }
 
+/** iztro 밝기 문자열("[+3]"·"[-1]" 등) → 숫자. 값 없으면 0(평). */
+function parseBrightness(b: string | undefined): number {
+  const m = /(-?\d+)/.exec(b ?? "");
+  return m ? Number(m[1]) : 0;
+}
+
+type IztroStar = { name: string; mutagen?: string; brightness?: string };
+function toStar(s: IztroStar): ZiweiStar {
+  return { name: s.name, mutagen: s.mutagen || undefined, brightness: parseBrightness(s.brightness) };
+}
+
 /**
  * BirthInfo로 자미두수 원식 차트를 계산한다.
  * 출생 시간을 모르면(hour === null) 명궁을 잡을 수 없어 null을 반환한다.
@@ -74,15 +89,26 @@ export function computeZiweiChart(birth: BirthInfo): ZiweiChart | null {
         ? astro.byLunar(dateStr, timeIndex, genderCh, Boolean(birth.isLeapMonth), true, "ko-KR")
         : astro.bySolar(dateStr, timeIndex, genderCh, true, "ko-KR");
 
-    const palaces: ZiweiPalace[] = chart.palaces.map((p) => ({
-      name: p.name,
-      branch: p.earthlyBranch,
-      stem: p.heavenlyStem,
-      majorStars: p.majorStars.map((s) => ({ name: s.name, mutagen: s.mutagen || undefined })),
-      minorStars: p.minorStars.map((s) => s.name),
-      isBody: p.isBodyPalace,
-      isSoul: p.name === "명궁",
-    }));
+    const palaces: ZiweiPalace[] = chart.palaces.map((p) => {
+      // 삼방사정: 이 궁 + 대궁(opposite) + 삼합 2궁(wealth·career)의 주성을 방조로 모은다.
+      let sanfangStars: ZiweiStar[] = [];
+      try {
+        const s = chart.surroundedPalaces(p.name);
+        sanfangStars = [...s.opposite.majorStars, ...s.wealth.majorStars, ...s.career.majorStars].map(toStar);
+      } catch {
+        sanfangStars = [];
+      }
+      return {
+        name: p.name,
+        branch: p.earthlyBranch,
+        stem: p.heavenlyStem,
+        majorStars: p.majorStars.map(toStar),
+        minorStars: p.minorStars.map((s) => s.name),
+        sanfangStars,
+        isBody: p.isBodyPalace,
+        isSoul: p.name === "명궁",
+      };
+    });
 
     return {
       soulBranch: chart.earthlyBranchOfSoulPalace,

@@ -34,6 +34,20 @@ describe("deriveZiweiDomainVerdicts (자미두수 분야 판정)", () => {
     expect(v.every((x) => x.evidence.includes("궁"))).toBe(true);
   });
 
+  it("본궁이 비어도 삼방사정 차성으로 판정을 낸다", () => {
+    // 두 사람 중 빈 본궁(삼방 차성) 케이스가 최소 하나는 나오고, 그 evidence에 '차성' 표기가 있다
+    const all = [birthA, birthB].flatMap((b) => deriveZiweiDomainVerdicts(computeZiweiChart(b)!));
+    const borrowed = all.filter((v) => v.evidence.includes("차성"));
+    expect(borrowed.length).toBeGreaterThan(0);
+    for (const v of borrowed) expect(["좋음", "보통", "주의"]).toContain(v.tone);
+  });
+
+  it("밝기가 점수에 반영돼 판정이 ±1 단순합보다 넓게 분포한다", () => {
+    const scores = [birthA, birthB].flatMap((b) => deriveZiweiDomainVerdicts(computeZiweiChart(b)!).map((v) => v.score));
+    // 밝기 가중·삼방 반영으로 정수 ±1,2 범위를 벗어나는 점수가 존재
+    expect(scores.some((s) => Math.abs(s) > 2)).toBe(true);
+  });
+
   it("서로 다른 사람은 분야 판정 조합이 달라진다(개인차)", () => {
     const a = deriveZiweiDomainVerdicts(computeZiweiChart(birthA)!).map((x) => x.tone).join("");
     const b = deriveZiweiDomainVerdicts(computeZiweiChart(birthB)!).map((x) => x.tone).join("");
