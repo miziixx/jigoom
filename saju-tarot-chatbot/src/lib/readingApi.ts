@@ -15,15 +15,24 @@ interface StreamHandlers {
   onText?: (accumulated: string) => void;
 }
 
+/** 서버 Evidence Gate 최종 신호 (품질 관찰용, PII 없음). done 라인/JSON의 gate 필드. */
+export interface GateInfo {
+  status?: string;
+  reasonCodes?: string[];
+}
+
 export interface StreamResult {
   meta?: ReadingMeta;
   reply: string;
+  /** 서버 게이트 상태 (pass/rewrite/fallback). 품질 대시보드 관찰용. */
+  gate?: GateInfo;
 }
 
 /** 한 번의 스트림 호출 결과 (이어쓰기 판단용 완결 여부 포함) */
 interface StreamChunkResult {
   meta?: ReadingMeta;
   reply: string;
+  gate?: GateInfo;
   /** 이 호출이 끝까지 완성됐는가 (done 수신 + stopReason이 max_tokens가 아님) */
   complete: boolean;
 }
@@ -163,7 +172,8 @@ async function streamReadingFanOut(body: FanOutBody, handlers: StreamHandlers): 
   const reply = combineParts(frontResult.reply, backResult.reply);
   if (meta && !metaDelivered) handlers.onMeta?.(meta);
   handlers.onText?.(reply);
-  return { meta, reply };
+  // 게이트 신호는 계산 메타를 실어보내는 front 호출에 실린다
+  return { meta, reply, gate: frontResult.gate ?? backResult.gate };
 }
 
 async function streamReadingWithContinuations(body: unknown, handlers: StreamHandlers = {}): Promise<StreamResult> {
@@ -171,6 +181,7 @@ async function streamReadingWithContinuations(body: unknown, handlers: StreamHan
   // 받은 본문을 continueFrom으로 넘겨 "이어서" 생성하게 한다. UI에는 항상 누적 전문을 보여준다.
   let fullReply = "";
   let meta: ReadingMeta | undefined;
+  let gate: GateInfo | undefined;
 
   for (let attempt = 0; attempt <= MAX_CONTINUATIONS; attempt++) {
     const isContinuation = fullReply.length > 0;
@@ -184,13 +195,14 @@ async function streamReadingWithContinuations(body: unknown, handlers: StreamHan
 
     const chunk = await streamChunkWithRetry(callBody, wrapped);
     if (!isContinuation) meta = chunk.meta;
+    if (chunk.gate) gate = chunk.gate;
     fullReply += chunk.reply;
 
     // 완결됐거나, 더 이어붙일 게 없으면(이번 호출에서 새 텍스트가 없음) 종료
     if (chunk.complete || chunk.reply.length === 0) break;
   }
 
-  return { meta, reply: fullReply };
+  return { meta, reply: fullReply, gate };
 }
 
 /**
@@ -239,14 +251,14 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
 
   // 구버전 서버(일괄 JSON) 호환
   if (!contentType.includes("application/x-ndjson")) {
-    const data = (await res.json()) as { reply: string } & Partial<ReadingMeta>;
+    const data = (await res.json()) as { reply: string; gate?: GateInfo } & Partial<ReadingMeta>;
     const meta = data.userMessage
       ? { userMessage: data.userMessage, sajuChart: data.sajuChart, luckCycles: data.luckCycles, judgmentPack: data.judgmentPack }
       : undefined;
     if (meta) handlers.onMeta?.(meta);
     handlers.onText?.(data.reply);
     // 구버전 일괄 JSON 응답은 완결 여부를 알 수 없으므로 완결로 간주(이어쓰기 안 함)
-    return { meta, reply: data.reply, complete: true };
+    return { meta, reply: data.reply, gate: data.gate, complete: true };
   }
 
   if (!res.body) throw new Error("스트리밍 응답을 읽을 수 없습니다.");
@@ -256,6 +268,7 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
   let buffer = "";
   let reply = "";
   let meta: ReadingMeta | undefined;
+  let gate: GateInfo | undefined;
   let done = false;
   let stopReason: string | null = null;
 
@@ -264,8 +277,11 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
     const obj = JSON.parse(line) as {
       meta?: ReadingMeta;
       text?: string;
+      /** true면 지금까지 누적된 reply를 이 text로 통째로 교체한다 (Evidence Gate 재작성 결과 반영용) */
+      replace?: boolean;
       done?: boolean;
       stopReason?: string | null;
+      gate?: GateInfo;
       error?: unknown;
     };
     if (obj.error) throw new ServerReportedError(serverErrorText(obj.error, "서버가 오류를 반환했습니다."));
@@ -274,12 +290,13 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
       handlers.onMeta?.(obj.meta);
     }
     if (obj.text) {
-      reply += obj.text;
+      reply = obj.replace ? obj.text : reply + obj.text;
       handlers.onText?.(reply);
     }
     if (obj.done) {
       done = true;
       stopReason = obj.stopReason ?? null;
+      if (obj.gate) gate = obj.gate;
     }
   };
 
@@ -309,5 +326,5 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
   // - done 없이 텍스트만 오다 끊긴 경우(네트워크 절단) → 미완결 → 상위에서 이어쓰기
   // - stopReason === "max_tokens"(토큰 상한) → 미완결 → 상위에서 이어쓰기
   const complete = done && stopReason !== "max_tokens";
-  return { meta, reply, complete };
+  return { meta, reply, gate, complete };
 }

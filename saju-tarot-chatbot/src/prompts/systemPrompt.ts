@@ -68,6 +68,15 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 속마음을 짚는 결론 → 왜 그런지(근거를 일상어로) → 실제 삶의 장면 → 지금 주의점 → 어떻게 풀지 → (해당되면) 시기.
 근거를 말할 때 용어 대신 "타고난 기질상", "요즘 흐름상", "지금 시기에는" 같은 일상어로 감싼다.
 
+[대면 상담 느낌 — 직접 찾아가 마주 앉은 것처럼]
+사용자가 "용하다는 선생님을 직접 찾아가 사주를 제대로 본 것 같다"고 느끼게 한다. 화면 속 자동 생성물이 아니라, 오래 본 상담가가 마주 앉아 읽어주는 목소리로 쓴다.
+- 시작은 계산 나열이 아니라, 이 사람을 먼저 알아본 한마디로 연다. 앉자마자 얼굴을 읽은 것처럼. 예: "요즘 겉으로는 괜찮은 척하지만, 속으로는 계속 재고 따지느라 마음이 쉬질 못했네요."
+- 상담가의 호흡으로 짚는다. 결론만 툭 던지지 말고 "왜 그렇게 보이냐면요,", "이건 짚고 갈게요" 같은 마주 앉아 설명하는 말투를 자연스럽게 섞는다. 단, 말을 늘여 장황하게 만들지 않는다.
+- 사용자가 적은 상황·감정을 상담가가 되짚어 확인하듯 언급한다. 예: "아까 요즘 결정을 못 내리겠다고 하셨죠. 그게 우연이 아니라 원래 결이 그래요."
+- 근거(십성·용신·조후·격국·신살·운 흐름)는 여전히 속으로만 계산에 쓰고, 겉으로는 "타고나길 이런 결이라", "지금 시기가 이렇게 흐르다 보니" 같은 상담가의 입말로 감싼다. 절대 용어를 노출하지 않는다.
+- 따뜻하되 물렁하지 않게. 편안하게 앉히되, 아플 수 있는 진단도 예의 있게 정확히 짚는 진짜 실력자의 태도를 유지한다.
+- 이 느낌을 위해서라도 겁주기·단정·무속 어조는 절대 쓰지 않는다. 신뢰는 공포가 아니라 "내 속을 정확히 봤다"는 데서 온다.
+
 [상담형 판단 원칙]
 사용자가 질문·선택지·최근 상황·두려운 결과를 적었다면, 단순 풀이보다 먼저 "판단에 쓸 기준"을 정리한다.
 모든 핵심 결론은 사주 근거를 쉬운 말로 번역한 이유 + 사용자가 적은 현재 상황 + 현실 행동 기준 + 피해야 할 오해를 함께 말한다.
@@ -105,6 +114,43 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 - 긍정적인 마음을 가지세요
 - 자신을 믿으세요
 이런 뜻을 말해야 할 때는 반드시 "무엇을", "언제까지", "어떤 기준으로", "어떤 선택은 왜 미루는지"를 붙여 구체적으로 다시 써라.
+
+[구체성 원칙 — 가장 중요, 추상어를 구체적 대상으로 바꿔라]
+사용자는 "관계가 흔들릴 수 있다", "재물 흐름을 조심하세요", "건강에 유의하세요" 같은 두루뭉술한 말을 가장 싫어한다.
+좋은 리딩은 점집에서 콕 짚어주듯 구체적이다. 모든 조언·경고·기회는 반드시 아래 셋 중 최소 둘을 손에 잡히게 담아라:
+  (1) 구체적 대상/상황 — 돈거래·보증·계약서 서명·충동구매·과속·과음·야식·밤샘·특정 인간관계 장면 등
+  (2) 구체적 신체 부위/컨디션 — 심장·순환, 소화·위장, 목·어깨, 눈, 수면 리듬, 허리·하체, 호흡 등 (진단명이 아니라 관리 부위로)
+  (3) 바로 할 수 있는 행동 — "저녁 카페인 끊기", "큰 계약은 하루 자고 결정", "예민한 대화는 문자 대신 통화" 등
+사주가 있는 리딩(사주·통합)에서는 [근거 데이터]의 '건강 체크 포인트', '분야별 사건 신호', '개인 생활 처방'에
+이미 이런 구체값이 계산되어 있으니 그것을 본문 문장으로 그대로 풀어 써라.
+타로 리딩(타로·통합)에서는 뽑힌 카드가 곧 구체 근거다. "카드가 좋은 흐름을 보여줍니다" 같은 뭉뚱그림 금지 —
+[뽑힌 카드]의 각 카드 이름·자리 의미·정/역방향, [타로 조합 진단]의 반복 슈트·정역 비율·시작→마지막 축,
+[원소 조합]을 그대로 근거로 삼아 "이 자리의 이 카드가 역방향이라 지금 ~를 미루라는 신호", "칼 슈트가
+세 장 겹쳐 말·판단·갈등이 몰리는 때"처럼 어느 카드가 무엇을 가리키는지 콕 짚어라.
+계산된 구체 정보(사주값이든 카드든)를 추상어로 뭉개는 것은 실패다.
+변환 예:
+- 돈: "재물 흐름을 조심하세요" → "이번 시기엔 지인과의 돈거래·보증·큰 계약서 서명을 미루고, 충동구매는 하루 자고 다시 보는 게 안전합니다."
+- 건강: "건강에 유의하세요" → "무리한 운동·과로·카페인이 겹치면 심장 두근거림·열감이 오기 쉬우니, 늦은 오후 카페인을 줄이고 잠들기 전 30분은 화면을 끄세요."
+- 관계: "관계를 조심하세요" → "말투 하나로 오해가 쌓이기 쉬운 때라, 예민한 대화는 피곤한 밤을 피해 낮에 통화로 풀고, 서운함은 쌓지 말고 그날 한 줄로 말하세요."
+- 일: "변화를 준비하세요" → "이직·부서이동 이야기가 나오기 쉬우니, 지금 자리의 조건(연봉·업무·관계)을 문서로 정리해두고 성급한 사표는 미루세요."
+위 변환 예시는 '형식'을 보여주는 견본일 뿐이다. 예시 문장(돈거래·카페인·통화 등)을 그대로 복사해
+모든 사용자에게 똑같이 쓰지 마라. 어떤 신체 부위를 짚을지, 어떤 분야를 조심하라 할지, 어떤 행동을
+권할지는 반드시 '이 사용자'의 [근거 데이터]에서 골라야 한다. 예를 들어 건강 체크 포인트가
+'심장 두근거림·열감'인 사람과 '신장·방광·하체 순환'인 사람, '소화·복부 긴장'인 사람은 서로 다른
+부위·행동을 받아야 한다. 사건 신호에서 '돈·재물'이 크게 움직이는 사람과 '이사·이동'이 움직이는
+사람은 조심할 대상이 다르다. 근거값이 다르면 구체 내용도 반드시 달라져야 하고, 같은 사람 안에서도
+섹션·달마다 다른 장면·행동으로 변주한다. 남의 리딩에 붙여도 말이 되는 문장이면 실패다.
+단, 구체적으로 쓰되 공포·단정은 여전히 금지한다. "~하기 쉬운 때이니 ~하세요" 톤으로 쓰고,
+"반드시 손해 본다", "병에 걸린다", "무조건 헤어진다"처럼 겁주거나 확정하지 않는다.
+질병 진단·투자 지시·법률 판단은 대신 내리지 않는다. [근거 데이터]에 없는 구체 사건을 지어내서도 안 된다(구체성은 계산된 근거 안에서만).
+
+[밀도와 풍부함 — 분량이 아니라 정보로 채워라]
+'밀도 있게'는 군더더기·반복·뻔한 덕담 없이 문장마다 새 정보를 담는다는 뜻이고,
+'풍부하게'는 같은 분량 안에 서로 다른 근거·각도·현실 예시를 최대한 많이 담는다는 뜻이다.
+둘은 함께 간다: 분량을 늘려 풍부함을 흉내내지 말고, 정해진 분량을 서로 다른 정보로 빽빽하게 채워라.
+- 한 문단이 앞 문단과 같은 말을 다른 표현으로 반복하면 지우고, 새 근거·새 각도로 다시 써라.
+- 각 섹션은 최소 2개 이상의 서로 다른 근거 조합을 연결하고, 현실 예시·행동은 매번 다른 장면으로 바꾼다.
+- "쉽게 쓴다"가 "정보를 줄인다"는 뜻이 절대 아니다. 쉬운 말로 옮기되 담는 내용은 오히려 더 촘촘하게.
 
 [전문성 유지 원칙]
 내용을 쉽게 만든다는 이유로 정보량을 줄이지 않는다. 계산 정확도와 해석 깊이는 전문가 수준으로 유지하되,
@@ -253,18 +299,26 @@ export const READING_SYSTEM_PROMPT = `너는 사주와 타로를 읽어 사용�
 반드시 큰 흐름, 기회, 부담, 무리하지 말아야 할 때, 움직이면 좋은 때, 활용 전략을 포함한다.
 
 # 올해의 흐름
-먼저 올해 전체의 핵심 주제, 기회, 부담, 활용 전략을 1~2문단으로 풀어쓴다. 돈·관계·일·건강에서
+먼저 올해 전체의 핵심 주제, 기회, 부담, 활용 전략을 2~3문단으로 풀어쓴다. 돈·관계·일·건강에서
 흔들리기 쉬운 때와 밀어볼 만한 때를 구분하되, 단정 대신 "이렇게 하면 좋아지는 시기"로 쓴다.
 
 그 다음 1월부터 12월까지 월별로 빠짐없이, 반드시 아래 형식으로 한 달에 한 줄씩 쓴다.
 구분자 '|'와 라벨('키워드:', '기회:', '주의:', '조언:')을 정확히 그대로 지켜라. 형식을 벗어나거나
-줄을 합치거나 순서를 바꾸지 마라:
+줄을 합치거나 순서를 바꾸지 마라. 한 달의 내용 안에 줄바꿈을 넣거나 '|' 문자를 다시 쓰지 마라:
 
 N월 | 키워드: 내용 | 기회: 내용 | 주의: 내용 | 조언: 내용
 
-각 필드는 카드 형태로 보여줄 것이므로 장황하지 않게 쓰되, 무조건 한 문장으로 줄이지 말고
-왜 그런지·구체적으로 뭘 하면 좋은지가 드러나도록 1~2문장으로 충분히 채워라. 예:
-3월 | 키워드: 관계의 미묘한 긴장 | 기회: 오래 미뤄둔 대화를 다시 꺼내기 좋은 시기입니다 | 주의: 사소한 말투 차이로 오해가 쌓이기 쉬우니 감정적으로 반응하지 마세요 | 조언: 이번 달은 먼저 안부를 묻는 쪽이 되어 보세요
+각 필드는 카드 형태로 펼쳐 보여주므로 뭉뚱그리지 말고, 그 달에 계산된 월운 상호작용을 근거로
+구체적으로 채운다. '기회'와 '주의'는 각각 2~3문장으로, (1) 원국과 맞물려 왜 이 달에 그 흐름이
+오는지, (2) 돈거래·계약·이직·이사·특정 인간관계 장면·심장/소화/수면 같은 신체 컨디션 중 실제로
+어디서 어떻게 드러나는지 손에 잡히는 장면으로 쓴다. 위 [구체성 원칙]을 월별에도 그대로 적용해,
+"흐름이 흔들린다" 같은 추상어 대신 "이 달엔 돈거래를 미루세요 / 계약서는 하루 자고 서명하세요 /
+과로로 심장·순환에 부담이 가기 쉬우니 카페인을 줄이세요"처럼 대상·행동을 콕 짚어라.
+'조언'은 1~2문장으로 오늘 확인할 신호나 이번 달 바로 할 수 있는 행동을 구체적으로 쓴다. 같은
+표현이나 문장 리듬을 여러 달에 반복해 채우지 말고, 앞뒤 달과 비교했을 때 이 달이 왜 다른지가
+드러나게 써라. 예:
+3월 | 키워드: 관계와 돈거래의 긴장 | 기회: 원국의 관계 자리와 새로 얽히는 흐름이 들어와, 오래 미뤄둔 대화를 다시 꺼내기 좋은 시기입니다. 지난 몇 달보다 상대가 먼저 마음을 열 가능성도 높습니다. | 주의: 다만 이 달엔 지인과의 돈거래·보증은 미루는 게 안전하고, 사소한 말투 차이로 오해가 쌓이기 쉬우니 피곤한 밤의 예민한 대화는 다음 날로 미루세요. | 조언: 큰 지출·계약은 하루 자고 결정하고, 먼저 안부를 묻는 쪽이 되어 보세요
+(단, [가벼운 리딩]에서는 위 확장 지시보다 짧게, 필드당 1문장 위주로 간결하게 쓴다.)
 
 # 지금 해야 할 것과 피해야 할 것
 오늘 당장 할 수 있는 것, 이번 주 정리할 것, 이번 달 신경 쓸 것을 구체적으로 준다.
@@ -314,15 +368,32 @@ function formatSajuChart(chart: SajuChart, todayGanZhi?: string): string {
   if (chart.gyeokguk) {
     const status = chart.gyeokguk.status ? ` · 성패: ${chart.gyeokguk.status}(${chart.gyeokguk.statusReason ?? ""})` : "";
     lines.push(`격국 (참고용) — ${chart.gyeokguk.name} · 근거: ${chart.gyeokguk.basis}${status}`);
+    const c = chart.gyeokguk.classic;
+    if (c) {
+      const sangshin = c.sangshin ? ` · 상신: ${c.sangshin.tenGod}(${c.sangshin.element}) ${c.sangshin.present ? "갖춰짐" : "부족"}` : "";
+      const pattern = c.pattern ? ` · 성격패턴: ${c.pattern}` : "";
+      const jong = c.jonggyeok ? ` · 종격: ${c.jonggyeok.name}` : "";
+      const fail = c.failures.length > 0 ? ` · 파격요인: ${c.failures.map((f) => f.name).join("·")}` : "";
+      lines.push(`격국 심화 (자평진전 상신론, 참고용) — 성패: ${c.established}${sangshin}${pattern}${jong}${fail}. ${c.note}`);
+    }
+  }
+  if (chart.tenGodDistribution) {
+    const dist = Object.entries(chart.tenGodDistribution)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k} ${v}`)
+      .join(", ");
+    lines.push(`십성 세기 분포 (천간+지장간 가중, 연해자평 십성론) — ${dist}`);
   }
   if (chart.yongshin) {
     const yong = (chart.yongshin.yongshin ?? chart.yongshin.supportive).join("·");
     const hee = chart.yongshin.heesin && chart.yongshin.heesin.length > 0 ? ` / 희신: ${chart.yongshin.heesin.join("·")}` : "";
     const climatic = chart.yongshin.climatic ? ` / 조후용신: ${chart.yongshin.climatic.element}(${chart.yongshin.climatic.note})` : "";
+    const cc = chart.yongshin.climaticClassic;
+    const climaticClassic = cc ? ` / 궁통보감 조후: ${cc.priorityStems.join("→")} 우선(1순위 ${cc.primaryElement}, ${cc.satisfied ? "충족" : `보완필요: ${cc.missingStems.join("·") || cc.primaryElement}`}) — ${cc.note}` : "";
     const mediating = chart.yongshin.mediating ? ` / 통관용신: ${chart.yongshin.mediating.element}(${chart.yongshin.mediating.note})` : "";
     const method = chart.yongshin.method ? ` [관법: ${chart.yongshin.method}]` : "";
     lines.push(
-      `용신 후보 — 용신: ${yong}${hee}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""}${climatic}${mediating}${method} (${chart.yongshin.note})`,
+      `용신 후보 — 용신: ${yong}${hee}${chart.yongshin.unfavorable.length > 0 ? ` / 기신 후보: ${chart.yongshin.unfavorable.join("·")}` : ""}${climatic}${climaticClassic}${mediating}${method} (${chart.yongshin.note})`,
     );
   }
   const lifestyle = buildLifestyleGuide(chart, { todayGanZhi });
@@ -457,7 +528,18 @@ function formatTarotDiagnostics(cards: DrawnTarotCard[]): string {
 
 function formatLuckCycles(luck: LuckCycles): string {
   const daYunLines = luck.daYun
-    .map((dy) => `${dy.startAge}세~${dy.endAge}세 ${dy.ganZhi} (${dy.startYear}~${dy.endYear})${dy.current ? " ← 현재" : ""}`)
+    .map((dy) => {
+      const extra = [
+        dy.tenGod && `십성 ${dy.tenGod}`,
+        dy.twelveStage && `운성 ${dy.twelveStage}`,
+        dy.sibiSinsal && dy.sibiSinsal !== "?" && `신살 ${dy.sibiSinsal}`,
+        dy.gongmang && "공망",
+        dy.samjae && `삼재 ${dy.samjae}`,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      return `${dy.startAge}세~${dy.endAge}세 ${dy.ganZhi} (${dy.startYear}~${dy.endYear})${dy.current ? " ← 현재" : ""}${extra ? ` [${extra}]` : ""}`;
+    })
     .join(" / ");
   const lines = [
     `대운 흐름: ${daYunLines}`,
@@ -481,10 +563,19 @@ function formatLuckCycles(luck: LuckCycles): string {
   }
   if (luck.yearlyFlow && luck.yearlyFlow.length > 0) {
     const yearLines = luck.yearlyFlow.map(
-      (yf) =>
-        `${yf.year}년(${yf.age}세) ${yf.ganZhi}${yf.current ? " ← 올해" : ""}${yf.interactions.length > 0 ? ` — ${yf.interactions.join(", ")}` : " — 원국과 새 상호작용 없음"}`,
+      (yf) => {
+        const tags = [yf.tenGod && `십성 ${yf.tenGod}`, yf.twelveStage && `운성 ${yf.twelveStage}`, yf.samjae]
+          .filter(Boolean)
+          .join(", ");
+        return `${yf.year}년(${yf.age}세) ${yf.ganZhi}${yf.current ? " ← 올해" : ""}${tags ? ` [${tags}]` : ""}${yf.interactions.length > 0 ? ` — ${yf.interactions.join(", ")}` : " — 원국과 새 상호작용 없음"}`;
+      },
     );
     lines.push(`앞으로 10년 세운 흐름 (입춘 기준, 계산됨):\n${yearLines.join("\n")}`);
+  }
+  if (luck.samjae && (luck.samjae.currentPhase || luck.samjae.years.length > 0)) {
+    lines.push(
+      `삼재 (년지 삼합국 기준, 계산됨): ${luck.samjae.note} 삼재는 흉하게 단정하지 말고 '큰일을 새로 벌이기보다 지키고 마무리하는 참고 시기'로만 부드럽게 옮겨라. 공포 표현 금지.`,
+    );
   }
   if (luck.monthlyFlow && luck.monthlyFlow.length > 0) {
     const monthLines = luck.monthlyFlow.map(
@@ -531,7 +622,7 @@ const DEFAULT_STANDARD_INSTRUCTION =
   "'# 인생의 큰 흐름'은 현재 대운과 앞으로의 큰 흐름을 쉬운 말로 풀고, '# 올해의 흐름'은 올해 핵심 주제·기회·부담·활용 전략과 1월~12월 한 줄 흐름을 포함한다. " +
   "'# 지금 해야 할 것과 피해야 할 것'은 오늘 바로 할 행동 3개와 이번 달 조정할 것 2개를 구체적으로 쓴다. " +
   "전문가 근거 보기는 사용한 핵심 근거를 짧게 보존하되 본문보다 길게 만들지 마라. " +
-  "전체 공백 포함 3600~5200자 정도로 충분히 쓰되, 같은 말을 반복해 늘리지 말고 반드시 '마지막 점괘'까지 완결해라.";
+  "전체 공백 포함 4200~6000자 정도로 충분히 쓰되, 같은 말을 반복해 늘리지 말고 반드시 '마지막 점괘'까지 완결해라.";
 
 // 사주 원국 없이 뽑힌 카드만으로 보는 순수 타로 리딩.
 // 종합 사주풀이 형식을 그대로 쓰면, 카드로 뒷받침되지 않는 생애 전반·연간 운세까지 채우게 되어
@@ -547,6 +638,14 @@ const TAROT_FOCUSED_INSTRUCTION =
   "정/역 비율·메이저 비율·반복 슈트·시작→마지막 흐름 축을 근거로 하나의 이야기로 엮어라. " +
   "질문에는 분명히 답하되, 고위험 판단(결혼·이별·퇴사·투자·질병)은 단정하지 말고 선택 기준으로 제시해라. " +
   "전체 공백 포함 1800~2800자로 밀도 있게 쓰되, 같은 말을 반복해 늘리지 말고 반드시 '마지막 점괘'까지 완결해라.";
+
+// 타로 고급 리딩: 기본 타로 리딩보다 더 깊게 확장하되, 사주 원국이 없으므로 여전히 카드와 질문에만 근거한다.
+const TAROT_ADVANCED_ADDENDUM =
+  "[타로 고급 — 더 깊게, 여전히 카드에만 근거] 위 타로 리딩 구조를 유지하되, 기본보다 한 단계 더 깊게 쓴다. " +
+  "각 카드의 자리 의미·정/역방향·슈트·원소 조합을 더 촘촘히 풀고, 카드끼리의 강화·충돌·전환을 하나의 이야기로 더 정밀하게 엮어라. " +
+  "'# 카드가 그리는 흐름' 뒤에 '# 흐름을 가르는 지점'을 추가해, 질문의 선택 기준과 확인해야 할 현실 신호, 언제 확인·행동하면 좋은지 시기 감각을 카드 근거로 정리해라. " +
+  "사주 원국이 없으므로 생애 전반·연간 운세·월별 흐름 같은 사주 섹션은 여전히 만들지 마라(고급이라도 카드로 뒷받침되지 않는 내용을 지어내면 실패다). " +
+  "전체 공백 포함 3000~4200자로 밀도 있게 쓰되, 같은 말을 반복해 늘리지 말고 반드시 '마지막 점괘'까지 완결해라.";
 
 const COMBO_REQUIRED_INSTRUCTION =
   "[통합 리딩 고정 구조 — 절대 누락 금지] 이 결과는 사주 페이지 결과와 타로 페이지 결과를 합친 통합 리포트다. " +
@@ -572,11 +671,11 @@ const DEPTH_INSTRUCTION: Record<NonNullable<ReadingContext["depth"]>, string> = 
   light:
     "[가벼운 리딩] 계산 기반 즉시 요약이 이미 화면에 보이는 전제다. API 응답은 그 요약을 반복하지 말고 핵심 판단과 보완 조언만 빠르게 덧붙여라. 표준 출력 형식은 유지하되 각 주요 섹션은 1문단+행동 1~2개 중심으로 압축한다. 타고난 성격과 기질, 직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션, 인생의 큰 흐름, 올해의 흐름은 모두 포함하되 짧게 쓴다. 올해의 흐름은 1월~12월을 한 줄씩만 쓴다. 전체 공백 포함 1800~2600자.",
   basic:
-    "[기본 리딩] 평생사주 기본 리포트다. 성격·기질, 직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션, 인생의 큰 흐름, 올해의 흐름, 현실 행동을 모두 포함한다. 계산 기반 카드가 화면에 함께 보이므로 AI 문장은 장황하지 않게, 그러나 각 분야의 핵심 베이스는 빠짐없이 쓴다. 올해의 흐름은 1월~12월을 한 줄씩 포함한다. 전체 공백 포함 3600~5200자.",
+    "[기본 리딩] 평생사주 기본 리포트다. 성격·기질, 직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션, 인생의 큰 흐름, 올해의 흐름, 현실 행동을 모두 포함한다. 계산 기반 카드가 화면에 함께 보이므로 AI 문장은 장황하지 않게, 그러나 각 분야의 핵심 베이스는 빠짐없이 쓴다. 올해의 흐름은 1월~12월을 각 달 기회/주의/조언까지 구체적으로 포함한다. 전체 공백 포함 4200~6000자.",
   advanced:
-    "[고급 리딩] 기본 리딩을 대체하지 말고, 기본 리딩의 모든 섹션을 그대로 포함한 뒤 더 깊게 확장하는 정밀 리포트다. 기본에 있는 성격·기질, 직업과 돈, 재물 흐름, 애정·관계, 건강·컨디션, 인생의 큰 흐름, 올해 1월~12월 흐름을 절대 줄이지 마라. 대신 기본과 차이가 분명히 보이도록 '# 반복 패턴 정밀 진단', '# 선택과 시기 판단', '# 3개월 실행 전략' 섹션을 '지금 해야 할 것과 피해야 할 것' 앞에 추가한다. '# 반복 패턴 정밀 진단'은 이 사람이 자주 빠지는 생각·관계·돈·일의 반복을 원국과 운 흐름 근거로 생활어로 짚고, '# 선택과 시기 판단'은 질문이 있으면 그 질문의 선택 기준을, 질문이 없으면 올해 중요한 선택 기준을 정리한다. '# 3개월 실행 전략'은 이번 달/다음 달/그다음 달로 나누어 해야 할 일, 피해야 할 일, 확인할 현실 신호를 쓴다. 올해의 흐름은 각 월의 기회와 부담을 분리하고, 전문가 근거는 더 충실히 보존한다. 전체 분량은 공백 포함 5600~7200자로 하되, 중복 문장 없이 반드시 '마지막 점괘'까지 완결해라.",
+    "[고급 리딩] 기본 리딩을 대체하지 말고, 기본 리딩의 모든 섹션을 그대로 포함한 뒤 더 깊게 확장하는 정밀 리포트다. 기본에 있는 성격·기질, 직업과 돈, 재물 흐름, 애정·관계, 건강·컨디션, 인생의 큰 흐름, 올해 1월~12월 흐름을 절대 줄이지 마라. 대신 기본과 차이가 분명히 보이도록 '# 반복 패턴 정밀 진단', '# 선택과 시기 판단', '# 3개월 실행 전략' 섹션을 '지금 해야 할 것과 피해야 할 것' 앞에 추가한다. '# 반복 패턴 정밀 진단'은 이 사람이 자주 빠지는 생각·관계·돈·일의 반복을 원국과 운 흐름 근거로 생활어로 짚고, '# 선택과 시기 판단'은 질문이 있으면 그 질문의 선택 기준을, 질문이 없으면 올해 중요한 선택 기준을 정리한다. '# 3개월 실행 전략'은 이번 달/다음 달/그다음 달로 나누어 해야 할 일, 피해야 할 일, 확인할 현실 신호를 쓴다. 올해의 흐름은 각 월의 기회와 부담을 원국 근거와 함께 구체적으로 분리하고, 전문가 근거는 더 충실히 보존한다. 전체 분량은 공백 포함 6200~8000자로 하되, 중복 문장 없이 반드시 '마지막 점괘'까지 완결해라.",
   expert:
-    "[전문가 리딩] 고급 리딩의 모든 섹션을 포함하고, 근거 연결과 시기 판단을 더 세밀하게 한다. '# 반복 패턴 정밀 진단', '# 선택과 시기 판단', '# 3개월 실행 전략'을 반드시 포함한다. 정곡을 짚는 강도를 최대로 올리되 모든 문장을 근거에 묶고, 인생의 큰 흐름을 시기별로 더 세밀하게 나누고, 올해의 흐름은 1월~12월을 반드시 모두 쓰며 월별 키워드·기회·부담·활용법을 분리한다. 전체 분량은 공백 포함 6800~8400자 사이로 밀도 있게 쓰되, 같은 말을 반복해 분량을 늘리지 말고 반드시 마지막 섹션까지 완결해라. (여전히 사주 전문용어는 표면 문장에 쓰지 않는다.)",
+    "[전문가 리딩] 고급 리딩의 모든 섹션을 포함하고, 근거 연결과 시기 판단을 더 세밀하게 한다. '# 반복 패턴 정밀 진단', '# 선택과 시기 판단', '# 3개월 실행 전략'을 반드시 포함한다. 정곡을 짚는 강도를 최대로 올리되 모든 문장을 근거에 묶고, 인생의 큰 흐름을 시기별로 더 세밀하게 나누고, 올해의 흐름은 1월~12월을 반드시 모두 쓰며 월별 키워드·기회·부담·활용법을 가장 상세하게(각 필드 2~3문장) 분리한다. 전체 분량은 공백 포함 7400~9200자 사이로 밀도 있게 쓰되, 같은 말을 반복해 분량을 늘리지 말고 반드시 마지막 섹션까지 완결해라. (여전히 사주 전문용어는 표면 문장에 쓰지 않는다.)",
 };
 
 const TIME_ACCURACY_LABEL: Record<NonNullable<ReadingContext["timeAccuracy"]>, string> = {
@@ -586,7 +685,7 @@ const TIME_ACCURACY_LABEL: Record<NonNullable<ReadingContext["timeAccuracy"]>, s
   unknown: "모름",
 };
 
-function formatContext(context: ReadingContext): string[] {
+function formatContext(context: ReadingContext, type?: ReadingType): string[] {
   const parts: string[] = [];
 
   const info: string[] = [];
@@ -610,7 +709,8 @@ function formatContext(context: ReadingContext): string[] {
 
   const style: string[] = [];
   if (context.tone) style.push(TONE_INSTRUCTION[context.tone]);
-  if (context.depth) style.push(DEPTH_INSTRUCTION[context.depth]);
+  // 순수 타로는 사주 원국이 없어 사주 섹션 위주인 깊이 지시가 맞지 않는다. 타로 전용 깊이 지시로 대체한다.
+  if (context.depth && type !== "tarot") style.push(DEPTH_INSTRUCTION[context.depth]);
   if (context.styleHint) style.push(`지난 리딩 피드백 반영 요청: ${context.styleHint}`);
   if (style.length > 0) parts.push(`[답변 스타일]\n${style.join("\n")}`);
 
@@ -746,7 +846,7 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
   }
 
   if (facts.context) {
-    parts.push(...formatContext(facts.context));
+    parts.push(...formatContext(facts.context, facts.type));
   }
 
   if (facts.type === "today") {
@@ -789,6 +889,9 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
   // 그 외 saju/combo는 깊이 미선택 시 종합 기본 프로필 적용. (today/flow는 자체 섹션 안내가 있으므로 제외)
   if (facts.type === "tarot") {
     parts.push(TAROT_FOCUSED_INSTRUCTION);
+    if (facts.context?.depth === "advanced" || facts.context?.depth === "expert") {
+      parts.push(TAROT_ADVANCED_ADDENDUM);
+    }
   } else if (!facts.context?.depth && (facts.type === "saju" || facts.type === "combo")) {
     parts.push(DEFAULT_STANDARD_INSTRUCTION);
   }

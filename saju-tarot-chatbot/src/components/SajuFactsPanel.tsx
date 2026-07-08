@@ -1,17 +1,11 @@
-import Gauge from "./Gauge";
 import { buildLifestyleGuide } from "../lib/lifestyleGuide";
 import { computeSajuChart } from "../lib/saju";
 import type { BirthInfo, FiveElementBalance, LuckCycles, SajuChart, SajuPillar, StrengthAssessment, YearFlowInfo } from "../types";
-
-const ELEMENT_LABEL: Record<keyof FiveElementBalance, string> = {
-  wood: "목",
-  fire: "화",
-  earth: "토",
-  metal: "금",
-  water: "수",
-};
-
-const ELEMENT_ORDER: Array<keyof FiveElementBalance> = ["wood", "fire", "earth", "metal", "water"];
+import ArcGauge from "./viz/ArcGauge";
+import ElementRadarChart from "./viz/ElementRadarChart";
+import MonthlyFlowChart from "./viz/MonthlyFlowChart";
+import { ELEMENT_GLOSS, ELEMENT_KEY_BY_KO, ELEMENT_LABEL, ELEMENT_ORDER } from "./viz/elementMeta";
+import { VizIcon } from "./viz/icons";
 
 const GAN_KO: Record<string, string> = {
   갑: "갑목",
@@ -97,14 +91,6 @@ const BRANCH_META: Record<string, { element: string; yinYang: string }> = {
   해: { element: "수", yinYang: "음" },
 };
 
-const ELEMENT_GLOSS: Record<keyof FiveElementBalance, string> = {
-  wood: "성장·배움",
-  fire: "표현·활력",
-  earth: "안정·책임",
-  metal: "판단·정리",
-  water: "생각·휴식",
-};
-
 const STRENGTH_GLOSS: Record<StrengthAssessment["label"], string> = {
   신강: "타고난 기운이 스스로 강한 편이에요. 밀어붙이는 힘은 있지만 자기 고집도 셀 수 있어요.",
   중화: "기운이 한쪽으로 치우치지 않고 균형 잡힌 편이에요.",
@@ -118,8 +104,9 @@ function PillarBox({ label, pillar }: { label: string; pillar: SajuPillar | null
   const zhiHanja = pillar ? (ZHI_HANJA[pillar.zhi] ?? pillar.zhi) : "";
   const stem = pillar ? STEM_META[pillar.gan] : null;
   const branch = pillar ? BRANCH_META[pillar.zhi] : null;
+  const elementKey = stem ? ELEMENT_KEY_BY_KO[stem.element] : undefined;
   return (
-    <div className="pillar-box">
+    <div className={`pillar-box${elementKey ? ` pillar-box--${elementKey}` : ""}`}>
       <span className="pillar-box__label">{label}</span>
       <span className="pillar-box__value">{pillar ? `${ganHanja}${zhiHanja}` : "모름"}</span>
       {pillar && (
@@ -149,21 +136,6 @@ function ElementBars({ fiveElements }: { fiveElements: FiveElementBalance }) {
           </div>
           <span className="element-bar__value">{fiveElements[k]}</span>
           <span className="element-bar__gloss">{ELEMENT_GLOSS[k]}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ElementRadar({ fiveElements }: { fiveElements: FiveElementBalance }) {
-  const max = Math.max(1, ...ELEMENT_ORDER.map((k) => fiveElements[k]));
-  return (
-    <div className="element-radar" aria-label="오행 분포 요약">
-      {ELEMENT_ORDER.map((k) => (
-        <div className={`element-radar__node element-radar__node--${k}`} key={k}>
-          <span className="element-radar__label">{ELEMENT_LABEL[k]}</span>
-          <span className="element-radar__dot" style={{ transform: `scale(${0.75 + (fiveElements[k] / max) * 0.75})` }} />
-          <span className="element-radar__value">{fiveElements[k]}</span>
         </div>
       ))}
     </div>
@@ -252,13 +224,96 @@ function dayunPhase(ganZhi: string): string | null {
   return el ? (ELEMENT_PHASE_WORD[el] ?? null) : null;
 }
 
+// 시기별 기운을 한 문장 주제로 (인생 지도용, 계산값을 쉬운 말로만 옮김 — 새 운명 주장 아님)
+const ELEMENT_PHASE_THEME: Record<string, string> = {
+  목: "새로 시작하고 배우고 뻗어나가는 힘이 커지는 시기",
+  화: "드러내고 표현하고 사람들 앞에 나서는 힘이 커지는 시기",
+  토: "터를 다지고 책임을 맡으며 현실을 정리하는 시기",
+  금: "기준을 세우고 정리하고 결단하는 힘이 커지는 시기",
+  수: "생각하고 준비하고 흐름을 살피며 안으로 쌓는 시기",
+};
+
+function dayunTheme(ganZhi: string): string | null {
+  const gan = ganZhi?.[0];
+  const el = gan ? STEM_META[gan]?.element : null;
+  return el ? (ELEMENT_PHASE_THEME[el] ?? null) : null;
+}
+
+/**
+ * 평생사주(인생 지도)용 대운 세로 타임라인. 계산된 대운 배열을 10년 단위 흐름으로
+ * 나이·연도·간지·기운 주제와 함께 보여준다. 현재 대운을 강조. (계산 로직 불변, 표현만)
+ */
+export function DaYunLifeMap({ luckCycles }: { luckCycles?: LuckCycles }) {
+  if (!luckCycles?.daYun || luckCycles.daYun.length === 0) return null;
+  return (
+    <ol className="dayun-lifemap">
+      {luckCycles.daYun.map((dy) => {
+        const gan = dy.ganZhi?.[0];
+        const elementKo = gan ? STEM_META[gan]?.element : undefined;
+        const elementKey = elementKo ? ELEMENT_KEY_BY_KO[elementKo] : undefined;
+        const phase = dayunPhase(dy.ganZhi);
+        const theme = dayunTheme(dy.ganZhi);
+        return (
+          <li
+            key={`${dy.startAge}-${dy.ganZhi}`}
+            className={`dayun-lifemap__row${elementKey ? ` dayun-lifemap__row--${elementKey}` : ""}${
+              dy.current ? " dayun-lifemap__row--current" : ""
+            }`}
+          >
+            <div className="dayun-lifemap__age">
+              <b>{dy.startAge}~{dy.endAge}세</b>
+              <small>{dy.startYear}~{dy.endYear}</small>
+            </div>
+            <div className="dayun-lifemap__body">
+              <div className="dayun-lifemap__head">
+                <span className="dayun-lifemap__ganzhi">{dy.ganZhi}</span>
+                {phase && <span className="dayun-lifemap__phase">{phase}</span>}
+                {dy.current && (
+                  <span className="dayun-lifemap__now">
+                    <VizIcon name="flag" size={10} /> 지금 이 시기
+                  </span>
+                )}
+              </div>
+              {theme && <p className="dayun-lifemap__theme">{theme}</p>}
+              {(dy.tenGod || dy.twelveStage || dy.sibiSinsal || dy.gongmang || dy.samjae) && (
+                <p className="dayun-lifemap__evidence">
+                  {[
+                    dy.tenGod && `십성 ${dy.tenGod}`,
+                    dy.twelveStage && `운성 ${dy.twelveStage}`,
+                    dy.sibiSinsal && dy.sibiSinsal !== "?" && `신살 ${dy.sibiSinsal}`,
+                    dy.gongmang && "공망",
+                    dy.samjae && `삼재(${dy.samjae})`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function DaYunTimeline({ luckCycles }: { luckCycles: LuckCycles }) {
   return (
     <div className="dayun-timeline">
       {luckCycles.daYun.map((dy) => {
         const phase = dayunPhase(dy.ganZhi);
+        const gan = dy.ganZhi?.[0];
+        const elementKo = gan ? STEM_META[gan]?.element : undefined;
+        const elementKey = elementKo ? ELEMENT_KEY_BY_KO[elementKo] : undefined;
         return (
-          <div key={`${dy.startAge}-${dy.ganZhi}`} className={`dayun-pill${dy.current ? " dayun-pill--current" : ""}`}>
+          <div
+            key={`${dy.startAge}-${dy.ganZhi}`}
+            className={`dayun-pill${elementKey ? ` dayun-pill--${elementKey}` : ""}${dy.current ? " dayun-pill--current" : ""}`}
+          >
+            {dy.current && (
+              <span className="dayun-pill__now">
+                <VizIcon name="flag" size={10} /> 지금
+              </span>
+            )}
             <span className="dayun-pill__age">{dy.startAge}세~</span>
             <span className="dayun-pill__ganzhi">{dy.ganZhi}</span>
             {phase && <span className="dayun-pill__phase">{phase}</span>}
@@ -336,12 +391,15 @@ export default function SajuFactsPanel({
   luckCycles,
   birthInfo,
   showPillars = true,
+  showDaYun = true,
 }: {
   sajuChart?: SajuChart;
   luckCycles?: LuckCycles;
   birthInfo?: BirthInfo;
   /** 이미 SajuPillarSnapshot으로 4기둥을 보여준 경우 중복 렌더를 막기 위해 false로 넘긴다. */
   showPillars?: boolean;
+  /** 평생사주 템플릿이 대운을 인생 지도로 위에서 이미 보여줄 때 대운 알약 타임라인을 숨긴다. */
+  showDaYun?: boolean;
 }) {
   if (!sajuChart && !luckCycles) return null;
 
@@ -405,6 +463,14 @@ export default function SajuFactsPanel({
             <div className="gyeokguk-box">
               <span className="gyeokguk-box__name">{sajuChart.gyeokguk.name}</span>
               <span className="gyeokguk-box__gloss">{sajuChart.gyeokguk.gloss}</span>
+              {sajuChart.gyeokguk.classic && (
+                <span className="gyeokguk-box__gloss">
+                  성패: {sajuChart.gyeokguk.classic.established}
+                  {sajuChart.gyeokguk.classic.sangshin ? ` · 상신 ${sajuChart.gyeokguk.classic.sangshin.tenGod}(${sajuChart.gyeokguk.classic.sangshin.present ? "갖춰짐" : "부족"})` : ""}
+                  {sajuChart.gyeokguk.classic.pattern ? ` · ${sajuChart.gyeokguk.classic.pattern}` : ""}
+                  {sajuChart.gyeokguk.classic.jonggyeok ? ` · ${sajuChart.gyeokguk.classic.jonggyeok.name}` : ""}
+                </span>
+              )}
             </div>
           )}
 
@@ -424,7 +490,7 @@ export default function SajuFactsPanel({
           )}
 
           <h4 className="saju-facts__subhead">오행 분포</h4>
-          <ElementRadar fiveElements={sajuChart.fiveElements} />
+          <ElementRadarChart fiveElements={sajuChart.fiveElements} />
           <ElementBars fiveElements={sajuChart.fiveElements} />
 
           <LifestyleGuidePanel sajuChart={sajuChart} />
@@ -439,10 +505,11 @@ export default function SajuFactsPanel({
           {sajuChart.strength && ratio !== null && (
             <>
               <h4 className="saju-facts__subhead">기운 강도</h4>
-              <Gauge
-                label={sajuChart.strength.label}
+              <ArcGauge
+                label="나를 돕는 기운의 비중"
                 score={ratio}
                 tone="neutral"
+                tierLabel={sajuChart.strength.label}
                 comment={STRENGTH_GLOSS[sajuChart.strength.label]}
               />
             </>
@@ -482,6 +549,7 @@ export default function SajuFactsPanel({
                   {sajuChart.yongshin.heesin && sajuChart.yongshin.heesin.length > 0 ? ` / 희신: ${sajuChart.yongshin.heesin.join("·")}` : ""}
                   {sajuChart.yongshin.unfavorable.length > 0 ? ` / 기신: ${sajuChart.yongshin.unfavorable.join("·")}` : ""}
                   {sajuChart.yongshin.climatic ? ` / 조후용신: ${sajuChart.yongshin.climatic.element}` : ""}
+                  {sajuChart.yongshin.climaticClassic ? ` / 궁통보감 조후: ${sajuChart.yongshin.climaticClassic.priorityStems.join("→")}(1순위 ${sajuChart.yongshin.climaticClassic.primaryElement}${sajuChart.yongshin.climaticClassic.satisfied ? ", 충족" : ", 보완필요"})` : ""}
                   {sajuChart.yongshin.mediating ? ` / 통관용신: ${sajuChart.yongshin.mediating.element}` : ""}
                   {sajuChart.yongshin.method ? ` (${sajuChart.yongshin.method})` : ""}
                 </p>
@@ -524,9 +592,15 @@ export default function SajuFactsPanel({
               현재 대운 <b>{luckCycles.currentDaYun ?? "시작 전"}</b>
             </span>
           </div>
-          <DaYunTimeline luckCycles={luckCycles} />
+          {showDaYun && <DaYunTimeline luckCycles={luckCycles} />}
+          {luckCycles.samjae && (luckCycles.samjae.currentPhase || luckCycles.samjae.years.length > 0) && (
+            <p className={`samjae-note${luckCycles.samjae.currentPhase ? " samjae-note--current" : ""}`}>
+              삼재 {luckCycles.samjae.currentPhase ? `— 올해 ${luckCycles.samjae.currentPhase}` : `— 다음 ${luckCycles.samjae.years[0].year}년(${luckCycles.samjae.years[0].phase})`}
+              <small> {luckCycles.samjae.note}</small>
+            </p>
+          )}
 
-          {luckCycles.daYunYearOverlap && (
+          {showDaYun && luckCycles.daYunYearOverlap && (
             <div className={`luck-overlap luck-overlap--${luckCycles.daYunYearOverlap.combo}`}>
               <span className="luck-overlap__tag">큰 흐름 × 올해 흐름</span>
               <p className="luck-overlap__headline">{luckCycles.daYunYearOverlap.headline}</p>
@@ -554,6 +628,7 @@ export default function SajuFactsPanel({
             <details className="saju-facts__details saju-facts__monthly">
               <summary>월별 흐름 계산값 보기</summary>
               <h4 className="saju-facts__subhead">올해 1월~12월 흐름</h4>
+              <MonthlyFlowChart monthlyFlow={luckCycles.monthlyFlow} />
               <div className="month-flow-grid">
                 {luckCycles.monthlyFlow.map((mf) => (
                   <div

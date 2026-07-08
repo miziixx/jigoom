@@ -177,10 +177,32 @@ export interface YongshinCandidates {
   heesin?: string[];
   /** 조후용신 (계절 조화: 겨울생→화, 여름생→수 등). 없으면 null */
   climatic?: { element: string; note: string } | null;
+  /** 궁통보감(窮通寶鑑) 일간×월지 조후 정밀 판정. 없으면 null */
+  climaticClassic?: ClimaticClassicInfo | null;
   /** 통관용신 (강하게 대립하는 두 오행 사이를 잇는 오행). 없으면 null */
   mediating?: { element: string; note: string } | null;
   /** 적용한 관법 요약 (예: "억부 중심 + 조후 보정") */
   method?: string;
+}
+
+/** 궁통보감(窮通寶鑑) 조후용신: 일간×월지별 우선순위 조후 천간 판정 */
+export interface ClimaticClassicInfo {
+  /** 우선순위 순서의 조후용신 천간 (예: ["계","정","경"] = 계수 우선 → 정화 → 경금) */
+  priorityStems: string[];
+  /** priorityStems를 오행으로 환산한 목록 (중복 제거, 우선순위 유지) */
+  priorityElements: string[];
+  /** 원국(천간+지장간)에 실제로 있는 우선 천간 */
+  presentStems: string[];
+  /** 원국에 없어 보완이 필요한 우선 천간 */
+  missingStems: string[];
+  /** 1순위 조후용신의 오행 */
+  primaryElement: string;
+  /** 1순위 조후용신(또는 그 오행)이 원국에 갖춰졌는지 */
+  satisfied: boolean;
+  /** 쉬운 말 설명 */
+  note: string;
+  /** 근거 고전 */
+  source: "궁통보감";
 }
 
 /** 천간 하나의 통근(通根) 판정 — 그 천간 오행이 지지 지장간에 뿌리를 두는지 */
@@ -218,6 +240,21 @@ export interface TransparencyInfo {
   note: string;
 }
 
+/** 지지 하나의 지장간 기반 십성 분해 (여기/중기/정기 위상별) */
+export interface HiddenTenGodBreakdown {
+  /** 지지 위치 (예: "월지") */
+  position: string;
+  /** 지지 (예: "인") */
+  zhi: string;
+  /** 지장간별 십성과 위상 가중치 */
+  stems: Array<{
+    stem: string;
+    phase: "여기" | "중기" | "정기";
+    tenGod: string;
+    weight: number;
+  }>;
+}
+
 /** 신살 한 개 (이름 + 해당 위치 + 쉬운 뜻) */
 export interface SinsalHit {
   name: string;
@@ -227,7 +264,25 @@ export interface SinsalHit {
   gloss: string;
 }
 
-/** 격국 판정 (월지 정기 십성 기준 + 종격 후보) */
+/** 월률분야(月律分野) / 사령(司令): 절입 경과일로 월지 지장간 중 어느 것이 그 시점을 주관하는지 */
+export interface MonthCommand {
+  /** 월지 */
+  monthZhi: string;
+  /** 사령한 지장간 글자 */
+  stem: string;
+  /** 지장간 내 위치 (여기/중기/정기) */
+  phase: "여기" | "중기" | "정기";
+  /** 사령 지장간이 일간에게 갖는 십성 */
+  tenGod: string;
+  /** 절입(節入)부터 지난 일수 */
+  daysSinceTerm: number;
+  /** 직전 절(節) 이름 (예: "대설") */
+  termName?: string;
+  /** 쉬운 말 설명 */
+  note: string;
+}
+
+/** 격국 판정 (월지 사령/투출 십성 기준 + 종격 후보) */
 export interface GyeokgukInfo {
   /** 격국 이름 (예: "편관격", "종재격 후보") */
   name: string;
@@ -235,10 +290,34 @@ export interface GyeokgukInfo {
   basis: string;
   /** 쉬운 말 설명 */
   gloss: string;
+  /** 격을 잡은 근거가 된 월지 지장간 글자 */
+  basisStem?: string;
+  /** 격을 잡은 방식: 사령 투출 / 정기 투출 / 지장간 투출 / 사령 잠복(정기) */
+  basisKind?: "사령 투출" | "정기 투출" | "지장간 투출" | "사령(잠복)";
   /** 성패 경향: 격이 뚜렷한지(성격)·흔들리는지(파격)·불명확한지 */
   status?: "성격 경향" | "파격 경향" | "불명확";
   /** 성패 판단 근거 (투출·충 등) */
   statusReason?: string;
+  /** 자평진전(子平眞詮) 심화: 상신·성격/파격·종격 판정 */
+  classic?: GyeokgukClassicInfo;
+}
+
+/** 자평진전(子平眞詮) 격국 심화 판정: 상신(相神)·성격/파격·종격 */
+export interface GyeokgukClassicInfo {
+  /** 상신(相神): 격을 완성시키는 핵심 십성/오행 */
+  sangshin?: { tenGod: string; element: string; role: string; present: boolean };
+  /** 성격 패턴 이름 (예: "살인상생", "식신생재") */
+  pattern?: string;
+  /** 패턴 쉬운 말 설명 */
+  patternGloss?: string;
+  /** 파격 요인 목록 (상관견관·재다신약 등) */
+  failures: Array<{ name: string; reason: string }>;
+  /** 종격 유형 (종재격·종살격·종왕격 등). 일반격이면 null */
+  jonggyeok?: { name: string; reason: string } | null;
+  /** 최종 성패 판정 */
+  established: "성격" | "파격" | "미형성";
+  /** 종합 쉬운 말 설명 */
+  note: string;
 }
 
 export interface SajuChart {
@@ -256,6 +335,10 @@ export interface SajuChart {
   hiddenStems?: string[];
   /** 지지 십성 (지장간 정기 기준) */
   branchTenGods?: string[];
+  /** 지지별 지장간(여기/중기/정기) 기반 십성 분해 */
+  hiddenTenGods?: HiddenTenGodBreakdown[];
+  /** 십성 세기 분포 (천간 + 지장간 가중 합산) */
+  tenGodDistribution?: Record<string, number>;
   /** 합충형파해 목록 (예: "월지-연지 자오충") */
   interactions?: string[];
   strength?: StrengthAssessment;
@@ -264,6 +347,8 @@ export interface SajuChart {
   rootedness?: RootednessHit[];
   /** 투출(投出): 월지 지장간이 천간에 드러났는지 */
   transparency?: TransparencyInfo;
+  /** 월률분야(사령): 절입 경과일 기준 월지 지장간 중 주관하는 기운 */
+  monthCommand?: MonthCommand;
   /** 12운성 (일간 기준 기둥별) */
   twelveStages?: string[];
   /** 공망 (일주 순중공망 지지 2개) */
@@ -289,6 +374,16 @@ export interface DaYunInfo {
   endYear: number;
   ganZhi: string;
   current: boolean;
+  /** 대운 천간이 일간과 맺는 십성 */
+  tenGod?: string;
+  /** 대운 지지의 12운성 (일간 기준) */
+  twelveStage?: string;
+  /** 대운 지지의 십이신살 (일지 삼합국 기준) */
+  sibiSinsal?: string;
+  /** 대운 지지가 일주 공망에 해당하는지 */
+  gongmang?: boolean;
+  /** 이 대운 구간이 삼재에 걸리는지 (걸리는 해가 있으면 표기) */
+  samjae?: string;
 }
 
 /** 올해 특정 달의 월운 흐름 (연간 12개월 흐름 계산용) */
@@ -311,6 +406,12 @@ export interface YearFlowInfo {
   interactions: string[];
   /** 현재 해 여부 */
   current: boolean;
+  /** 세운 천간이 일간과 맺는 십성 */
+  tenGod?: string;
+  /** 세운 지지의 12운성 (일간 기준) */
+  twelveStage?: string;
+  /** 이 해 삼재 여부 (들삼재/눌삼재/날삼재), 아니면 undefined */
+  samjae?: string;
 }
 
 export interface LuckCycles {
@@ -333,6 +434,19 @@ export interface LuckCycles {
   yearlyFlow?: YearFlowInfo[];
   /** 대운·세운 중첩 판정 (큰 흐름과 올해 흐름이 서로 겹치는 방식) */
   daYunYearOverlap?: LuckOverlap;
+  /** 삼재 정보 (년지 삼합국 기준) */
+  samjae?: SamjaeInfo;
+}
+
+/** 삼재(三災) 정보 — 년지 삼합국 기준 3년 주기 */
+export interface SamjaeInfo {
+  /** 삼재에 해당하는 지지 3개 (들·눌·날 순) */
+  branches: string[];
+  /** 삼재가 드는 해(입춘 기준) 목록 (지금부터 앞으로 12년 내) */
+  years: Array<{ year: number; phase: string; ganZhi: string }>;
+  /** 올해가 삼재인지 (들삼재/눌삼재/날삼재), 아니면 null */
+  currentPhase: string | null;
+  note: string;
 }
 
 /** 운의 용신/기신 방향 정렬 */

@@ -28,6 +28,11 @@ declare module "lunar-javascript" {
     getYun(gender: number): Yun;
   }
 
+  export class JieQi {
+    getName(): string;
+    getSolar(): Solar;
+  }
+
   export class Lunar {
     static fromYmdHms(
       year: number,
@@ -43,6 +48,9 @@ declare module "lunar-javascript" {
     getMonthInGanZhi(): string;
     getDayInGanZhi(): string;
     getSolar(): Solar;
+    /** 직전 절(節): 현재 월주가 시작된 절입. 월률분야(사령) 경과일 계산에 쓴다. */
+    getPrevJie(): JieQi;
+    getNextJie(): JieQi;
   }
 
   export class Solar {
@@ -61,5 +69,6 @@ declare module "lunar-javascript" {
     getDay(): number;
     getHour(): number;
     getMinute(): number;
+    getJulianDay(): number;
   }
 }

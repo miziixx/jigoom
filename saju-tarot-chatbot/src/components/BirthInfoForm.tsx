@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import ContextPicker from "./ContextPicker";
+import FocusPicker from "./FocusPicker";
 import { BIRTH_PLACES } from "../data/birthPlaces";
 import { clearProfile, loadProfile, saveProfile } from "../lib/profile";
 import type { BirthInfo, CalendarType, Gender, LateNightZiMode, ReadingContext, ReadingFocus } from "../types";
@@ -18,14 +20,17 @@ interface Props {
   showFocus?: boolean;
   /** 작명처럼 고민 질문 입력이 필요 없는 화면에서는 상담 섹션 전체를 숨긴다 */
   showQuestionSection?: boolean;
-  /** 흐름 캘린더처럼 출생지/저장 설정을 바로 보여줘야 하는 화면에서만 접힘을 해제한다 */
-  expandOptionalSettings?: boolean;
 }
 
-const DEFAULT_READING_FOCUS: ReadingFocus = "general";
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
-export default function BirthInfoForm({ submitLabel, onSubmit, loading, showQuestionSection = true, expandOptionalSettings = false }: Props) {
+export default function BirthInfoForm({
+  submitLabel,
+  onSubmit,
+  loading,
+  showFocus = true,
+  showQuestionSection = true,
+}: Props) {
   const [savedBirth] = useState(() => loadProfile());
   const [calendarType, setCalendarType] = useState<CalendarType>(savedBirth?.calendarType ?? "solar");
   const [year, setYear] = useState(savedBirth ? String(savedBirth.year) : "");
@@ -39,6 +44,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showQues
   const [saveBirthChart, setSaveBirthChart] = useState(Boolean(savedBirth));
   const [gender, setGender] = useState<Gender>(savedBirth?.gender ?? "female");
   const [question, setQuestion] = useState("");
+  const [focus, setFocus] = useState<ReadingFocus>("general");
+  const [context, setContext] = useState<ReadingContext>({});
 
   const canSubmit = year !== "" && month !== "" && day !== "" && !loading;
 
@@ -61,8 +68,8 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showQues
     if (saveBirthChart) saveProfile(birthInfo);
     else if (savedBirth) clearProfile();
     // 출생 시간을 모르면 정확도 응답과 무관하게 "모름"으로 고정한다
-    const finalContext: ReadingContext = hour === "unknown" ? { timeAccuracy: "unknown" } : {};
-    onSubmit(birthInfo, question, DEFAULT_READING_FOCUS, finalContext, { saveToHistory: saveBirthChart });
+    const finalContext: ReadingContext = hour === "unknown" ? { ...context, timeAccuracy: "unknown" } : context;
+    onSubmit(birthInfo, question, focus, finalContext, { saveToHistory: saveBirthChart });
   }
 
   return (
@@ -165,35 +172,17 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showQues
           </div>
         )}
 
-        <section className={expandOptionalSettings ? "consultation-panel optional-settings-panel optional-settings-panel--open" : undefined}>
-          {expandOptionalSettings ? (
-            <div className="optional-settings-panel__head">
-              <span>선택 설정</span>
-              <small>출생지를 알면 더 정밀하고, 몰라도 기본 해석은 가능합니다.</small>
-            </div>
-          ) : (
-            <details className="consultation-panel optional-settings-panel">
-              <summary>
-                <span>선택 설정</span>
-                <small>출생지를 알면 더 정밀하고, 몰라도 기본 해석은 가능합니다.</small>
-              </summary>
-              <OptionalSettingsFields
-                birthPlace={birthPlace}
-                setBirthPlace={setBirthPlace}
-                saveBirthChart={saveBirthChart}
-                setSaveBirthChart={setSaveBirthChart}
-              />
-            </details>
-          )}
-
-          {expandOptionalSettings && (
-            <OptionalSettingsFields
-              birthPlace={birthPlace}
-              setBirthPlace={setBirthPlace}
-              saveBirthChart={saveBirthChart}
-              setSaveBirthChart={setSaveBirthChart}
-            />
-          )}
+        <section className="consultation-panel optional-settings-panel optional-settings-panel--open">
+          <div className="optional-settings-panel__head">
+            <span>선택 설정</span>
+            <small>출생지를 알면 더 정밀하고, 몰라도 기본 해석은 가능합니다.</small>
+          </div>
+          <OptionalSettingsFields
+            birthPlace={birthPlace}
+            setBirthPlace={setBirthPlace}
+            saveBirthChart={saveBirthChart}
+            setSaveBirthChart={setSaveBirthChart}
+          />
         </section>
 
         <div className="field-row">
@@ -228,6 +217,17 @@ export default function BirthInfoForm({ submitLabel, onSubmit, loading, showQues
               rows={3}
             />
           </div>
+
+          <section className="consultation-panel optional-settings-panel optional-settings-panel--open">
+            <div className="optional-settings-panel__head">
+              <span>분야·말투·해석 깊이</span>
+              <small>선택하지 않아도 질문 내용을 보고 기본값으로 풀이합니다.</small>
+            </div>
+
+            {showFocus && <FocusPicker value={focus} onChange={setFocus} />}
+
+            <ContextPicker value={context} onChange={setContext} showTimeAccuracy={hour !== "unknown"} />
+          </section>
         </section>
       )}
 

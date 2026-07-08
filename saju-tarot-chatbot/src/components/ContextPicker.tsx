@@ -28,7 +28,7 @@ const TONES: Array<{ value: AnswerTone; label: string; desc: string }> = [
 ];
 
 const DEPTHS: Array<{ value: AnswerDepth; label: string }> = [
-  { value: "expert", label: "고급" },
+  { value: "advanced", label: "고급" },
 ];
 
 const TIME_ACCURACIES: Array<{ value: BirthTimeAccuracy; label: string }> = [

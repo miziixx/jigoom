@@ -7,6 +7,7 @@ import {
   type TarotElement,
 } from "../lib/tarotSymbolism";
 import type { DrawnTarotCard } from "../types";
+import TarotCardArt, { tarotSuitKeyOf } from "./viz/TarotCardArt";
 
 interface Props {
   cards: DrawnTarotCard[];
@@ -38,36 +39,29 @@ const RELATION_MARK: Record<DignityRelation, string> = {
   중립: "→",
 };
 
-function cardVisualLabel(card: DrawnTarotCard["card"]) {
-  if (card.arcana === "major") return "Major";
-  if (card.name.includes("Wands")) return "Wands";
-  if (card.name.includes("Cups")) return "Cups";
-  if (card.name.includes("Swords")) return "Swords";
-  return "Pentacles";
-}
-
-function cardSymbol(card: DrawnTarotCard["card"]) {
-  if (card.arcana === "major") return "✦";
-  if (card.name.includes("Wands")) return "♨";
-  if (card.name.includes("Cups")) return "☽";
-  if (card.name.includes("Swords")) return "◇";
-  return "◉";
-}
-
-export function TarotCardVisual({ card, reversed }: { card: DrawnTarotCard["card"]; reversed: boolean }) {
-  const label = cardVisualLabel(card);
-  const name = card.name.replace(/\s*\(.+?\)/, "");
+export function TarotCardVisual({
+  card,
+  reversed,
+  className,
+}: {
+  card: DrawnTarotCard["card"];
+  reversed: boolean;
+  /** 자리별 크기 변형(예: "tarot-card-visual--today")을 붙일 때 사용 */
+  className?: string;
+}) {
+  const suit = tarotSuitKeyOf(card.name, card.arcana);
+  const koName = card.name.match(/\((.+)\)/)?.[1] ?? null;
 
   return (
-    <div className={`tarot-card-visual tarot-card-visual--${label.toLowerCase()}${reversed ? " tarot-card-visual--reversed" : ""}`}>
+    <div
+      className={`tarot-card-visual tarot-card-visual--${suit}${reversed ? " tarot-card-visual--reversed" : ""}${
+        card.imageUrl ? "" : " tarot-card-visual--drawn"
+      }${className ? ` ${className}` : ""}`}
+    >
       {card.imageUrl ? (
         <img src={card.imageUrl} alt={card.name} loading="lazy" />
       ) : (
-        <>
-          <span className="tarot-card-visual__arcana">{label}</span>
-          <b className="tarot-card-visual__symbol">{cardSymbol(card)}</b>
-          <span className="tarot-card-visual__name">{name}</span>
-        </>
+        <TarotCardArt name={card.name} arcana={card.arcana} koName={koName} />
       )}
     </div>
   );

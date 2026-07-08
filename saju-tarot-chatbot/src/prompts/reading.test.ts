@@ -124,7 +124,7 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(msg).toContain("# 애정과 관계");
     expect(msg).toContain("# 건강과 컨디션");
     expect(msg).toContain("# 인생의 큰 흐름");
-    expect(msg).toContain("3600~5200자");
+    expect(msg).toContain("4200~6000자");
     expect(msg).toContain("성향 / 직업·돈 / 재물 / 연애·관계 / 건강·컨디션 / 올해 흐름 6개 항목");
     expect(msg).toContain("각 항목을 1~2줄");
     expect(msg).toContain("질문 답변은 전체의 약 30%");
@@ -152,7 +152,7 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(deep).toContain("# 반복 패턴 정밀 진단");
     expect(deep).toContain("# 선택과 시기 판단");
     expect(deep).toContain("# 3개월 실행 전략");
-    expect(deep).toContain("5600~7200자");
+    expect(deep).toContain("6200~8000자");
   });
 
   it("병렬 생성을 위해 지정 섹션만 쓰라는 지시를 붙일 수 있다", () => {

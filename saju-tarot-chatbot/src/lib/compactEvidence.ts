@@ -66,7 +66,7 @@ function evidenceMap(chart: SajuChart, luck?: LuckCycles): Record<string, string
     ids.useful_elements = `용신 ${chart.yongshin.yongshin?.join("·") || chart.yongshin.supportive.join("·") || "없음"} / 희신 ${chart.yongshin.heesin?.join("·") || "없음"} / 기신 ${chart.yongshin.unfavorable.join("·") || "없음"}`;
   }
   if (chart.interactions && chart.interactions.length > 0) ids.natal_interactions = chart.interactions.slice(0, 4).join(", ");
-  if (chart.gyeokguk) ids.structure = `${chart.gyeokguk.name}: ${chart.gyeokguk.basis}`;
+  if (chart.gyeokguk) ids.structure = `${chart.gyeokguk.name}${chart.gyeokguk.status ? ` (${chart.gyeokguk.status})` : ""}`;
   if (luck) {
     ids.current_luck = `현재 대운 ${luck.currentDaYun ?? "시작 전"} / 세운 ${luck.yearGanZhi} / 월운 ${luck.monthGanZhi}`;
     if (luck.daYunYearOverlap) ids.luck_overlap = luck.daYunYearOverlap.evidence.join(" / ");

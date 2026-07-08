@@ -254,10 +254,10 @@ export default function NamingPage() {
                   >
                     <b>{NAMING_MODE_LABEL[key]}</b>
                     <span>
-                      {key === "baby" && "출생신고 전 최종 확인이 필요한 이름"}
-                      {key === "rename" && "현재 이름과 다른 이미지가 필요한 경우"}
-                      {key === "stage" && "활동 분야와 기억되기 쉬운 인상"}
-                      {key === "brand" && "상호·브랜드로 부르기 쉬운 이름"}
+                      {key === "baby" && "출생신고 전 최종 확인이 필요한 아기 이름"}
+                      {key === "rename" && "현재 이름과 다른 이미지가 필요한 개명 이름"}
+                      {key === "stage" && "필명·예명·활동명처럼 대중에게 기억될 이름"}
+                      {key === "brand" && "가게이름·상호·브랜드명·상품명·채널명"}
                     </span>
                   </button>
                 ))}
@@ -344,17 +344,41 @@ export default function NamingPage() {
           <div className="card naming-legal-note">
             <b>등록·법적 확인 안내</b>
             <p>
-              이 기능은 사주 보완, 발음오행, 선택 입력한 획수를 바탕으로 한 참고 리포트입니다. 아기 이름·개명 이름은 실제
-              출생신고 또는 개명 신청 전 전자가족관계등록시스템이나 관할 기관에서 인명용 한자, 이름 글자 수, 동일 이름 등
-              등록 요건을 최종 확인해야 합니다. 예명·상호·브랜드명은 상표, 도메인, SNS 계정, 기존 사용 여부를 별도로 확인하세요.
+              이 기능은 사주 보완, 발음오행, 선택 입력한 획수를 바탕으로 한 참고 리포트입니다.{" "}
+              {mode === "baby" && (
+                <>
+                  아기 이름은 출생신고 전 전자가족관계등록시스템에서 인명용 한자, 이름 글자 수, 동일 이름 등 등록 요건을
+                  최종 확인해야 합니다.
+                </>
+              )}
+              {mode === "rename" && (
+                <>
+                  개명 이름은 개명 신청 전 관할 기관에서 인명용 한자, 이름 글자 수, 등록 요건을 최종 확인해야 합니다.
+                </>
+              )}
+              {mode === "stage" && (
+                <>
+                  필명·예명·활동명은 기존 사용 여부, 저작권·상표 이슈, 소속 단체나 플랫폼 규정을 별도로 확인해야 합니다.
+                </>
+              )}
+              {mode === "brand" && (
+                <>
+                  상호·브랜드명·상품명·채널명은 상표 등록, 도메인, SNS 계정, 사업자등록상 중복·사용 가능 여부를 반드시
+                  별도로 확인해야 합니다.
+                </>
+              )}
             </p>
             <div className="naming-legal-links">
-              <a href={OFFICIAL_NAMING_LINKS.efamilyHanja} target="_blank" rel="noreferrer">
-                인명용 한자 조회
-              </a>
-              <a href={OFFICIAL_NAMING_LINKS.easyLawName} target="_blank" rel="noreferrer">
-                자녀 이름 법령 안내
-              </a>
+              {(mode === "baby" || mode === "rename") && (
+                <>
+                  <a href={OFFICIAL_NAMING_LINKS.efamilyHanja} target="_blank" rel="noreferrer">
+                    인명용 한자 조회
+                  </a>
+                  <a href={OFFICIAL_NAMING_LINKS.easyLawName} target="_blank" rel="noreferrer">
+                    자녀 이름 법령 안내
+                  </a>
+                </>
+              )}
             </div>
           </div>
           <BirthInfoForm
@@ -416,8 +440,8 @@ export default function NamingPage() {
                     <span>
                       {key === "baby" && "새로 지을 아기 이름"}
                       {key === "rename" && "지금과 다른 이미지의 개명 이름"}
-                      {key === "stage" && "활동 분야에 어울리는 예명·활동명"}
-                      {key === "brand" && "부르기 쉬운 상호·브랜드명"}
+                      {key === "stage" && "필명·예명·활동명 추천"}
+                      {key === "brand" && "상호·브랜드명·상품명·채널명 추천"}
                     </span>
                   </button>
                 ))}
@@ -434,13 +458,34 @@ export default function NamingPage() {
               <span className="field-hint">예명·브랜드명은 성 없이 이름 부분만 추천받아도 됩니다.</span>
             </div>
             <div className="field-row field-row--column">
-              <span className="field-label">성별·대상 선호 (선택)</span>
+              <span className="field-label">
+                {mode === "baby" || mode === "rename"
+                  ? "성별·대상 선호 (선택)"
+                  : mode === "stage"
+                    ? "활동 분야·보이고 싶은 이미지 (선택)"
+                    : "업종·타깃 고객·브랜드 톤 (선택)"}
+              </span>
               <input
                 type="text"
-                placeholder="예: 남아, 여아, 중성적인 느낌"
+                placeholder={
+                  mode === "baby"
+                    ? "예: 남아, 여아, 중성적인 느낌"
+                    : mode === "rename"
+                      ? "예: 남성스러움, 세련됨, 부드러움"
+                      : mode === "stage"
+                        ? "예: 소설가, 배우, 유튜버, 음악가, 화가"
+                        : "예: 카페, IT, 패션, 미용, 음식점"
+                }
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
               />
+              <span className="field-hint">
+                {mode === "baby" || mode === "rename"
+                  ? "원하는 성별 이미지나 특징을 넣으면 더 맞춤형으로 추천해요."
+                  : mode === "stage"
+                    ? "필명·예명·활동명은 분야의 느낌과 개성을 함께 봅니다."
+                    : "업종과 타깃 고객을 명시하면 더 맞춤형 상호·브랜드명을 추천해요."}
+              </span>
             </div>
             <div className="field-row field-row--column">
               <span className="field-label">이름 글자 수 (성 제외)</span>
@@ -504,17 +549,41 @@ export default function NamingPage() {
           <div className="card naming-legal-note">
             <b>등록·법적 확인 안내</b>
             <p>
-              추천 이름은 사주 보완·발음오행 관점의 참고 제안입니다. 아기 이름·개명 이름은 실제 출생신고 또는 개명 신청 전
-              전자가족관계등록시스템이나 관할 기관에서 인명용 한자, 이름 글자 수, 동일 이름 등 등록 요건을 최종 확인해야 합니다.
-              예명·상호·브랜드명은 상표, 도메인, SNS 계정, 기존 사용 여부를 별도로 확인하세요.
+              추천 이름은 사주 보완·발음오행 관점의 참고 제안입니다.{" "}
+              {mode === "baby" && (
+                <>
+                  아기 이름은 출생신고 전 전자가족관계등록시스템에서 인명용 한자, 이름 글자 수, 동일 이름 등 등록 요건을
+                  최종 확인해야 합니다.
+                </>
+              )}
+              {mode === "rename" && (
+                <>
+                  개명 이름은 개명 신청 전 관할 기관에서 인명용 한자, 이름 글자 수, 등록 요건을 최종 확인해야 합니다.
+                </>
+              )}
+              {mode === "stage" && (
+                <>
+                  필명·예명·활동명은 기존 사용 여부, 저작권·상표 이슈, 소속 단체나 플랫폼 규정을 별도로 확인해야 합니다.
+                </>
+              )}
+              {mode === "brand" && (
+                <>
+                  상호·브랜드명·상품명·채널명은 상표 등록, 도메인, SNS 계정, 사업자등록상 중복·사용 가능 여부를 반드시
+                  별도로 확인해야 합니다.
+                </>
+              )}
             </p>
             <div className="naming-legal-links">
-              <a href={OFFICIAL_NAMING_LINKS.efamilyHanja} target="_blank" rel="noreferrer">
-                인명용 한자 조회
-              </a>
-              <a href={OFFICIAL_NAMING_LINKS.easyLawName} target="_blank" rel="noreferrer">
-                자녀 이름 법령 안내
-              </a>
+              {(mode === "baby" || mode === "rename") && (
+                <>
+                  <a href={OFFICIAL_NAMING_LINKS.efamilyHanja} target="_blank" rel="noreferrer">
+                    인명용 한자 조회
+                  </a>
+                  <a href={OFFICIAL_NAMING_LINKS.easyLawName} target="_blank" rel="noreferrer">
+                    자녀 이름 법령 안내
+                  </a>
+                </>
+              )}
             </div>
           </div>
           <BirthInfoForm
@@ -554,7 +623,7 @@ export default function NamingPage() {
             </section>
           )}
           {recommendScored.length > 0 ? (
-            <NamingRecommendResult direction={recommendDirection} candidates={recommendScored} topCount={5} />
+            <NamingRecommendResult direction={recommendDirection} candidates={recommendScored} topCount={5} mode={mode} />
           ) : (
             <section className="card naming-interpretation">
               <h4 className="naming-section-title">AI 이름 추천</h4>

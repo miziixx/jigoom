@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import DepthChoice from "../components/DepthChoice";
 import LoadingNotice from "../components/LoadingNotice";
 import ReadingResult from "../components/ReadingResult";
 import ChatFollowUp from "../components/ChatFollowUp";
@@ -10,7 +11,7 @@ import { useReadingStore } from "../store/useReadingStore";
 import { drawSpread, SHUFFLES, SHUFFLE_IDS, SPREADS, type ShuffleId, type SpreadId } from "../lib/tarot";
 import { BIRTH_PLACES } from "../data/birthPlaces";
 import { clearProfile, loadProfile, saveProfile } from "../lib/profile";
-import type { BirthInfo, CalendarType, Gender, LateNightZiMode, ReadingContext, ReadingFocus } from "../types";
+import type { AnswerDepth, BirthInfo, CalendarType, Gender, LateNightZiMode, ReadingContext, ReadingFocus } from "../types";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 const DEFAULT_READING_FOCUS: ReadingFocus = "general";
@@ -39,6 +40,7 @@ export default function ComboPage() {
   const [shuffleId, setShuffleId] = useState<ShuffleId>("classic");
   const [pickMode, setPickMode] = useState<"auto" | "manual">("auto");
   const [pickedSlots, setPickedSlots] = useState<number[]>([]);
+  const [depth, setDepth] = useState<AnswerDepth | undefined>(undefined);
 
   const neededCards = SPREADS[spreadId].positions.length;
   const canSubmit =
@@ -79,7 +81,10 @@ export default function ComboPage() {
     };
     if (saveBirthChart) saveProfile(birthInfo);
     else if (savedBirth) clearProfile();
-    const finalContext: ReadingContext = hour === "unknown" ? { timeAccuracy: "unknown" } : {};
+    const finalContext: ReadingContext = {
+      ...(hour === "unknown" ? { timeAccuracy: "unknown" as const } : {}),
+      ...(depth ? { depth } : {}),
+    };
     const manualSlots = pickMode === "manual" ? pickedSlots : [];
     const tarotCards = drawSpread(spreadId, shuffleId, manualSlots);
     const pickNote = manualSlots.length
@@ -202,11 +207,11 @@ export default function ComboPage() {
               </div>
             )}
 
-            <details className="consultation-panel optional-settings-panel">
-              <summary>
+            <section className="consultation-panel optional-settings-panel optional-settings-panel--open">
+              <div className="optional-settings-panel__head">
                 <span>선택 설정</span>
                 <small>출생지를 알면 더 정밀하고, 몰라도 기본 해석은 가능합니다.</small>
-              </summary>
+              </div>
 
               <div className="field-row">
                 <span className="field-label">출생지</span>
@@ -234,7 +239,7 @@ export default function ComboPage() {
                   저장하면 기록 페이지에도 남고, 오늘 운세와 다음 사주 조회에서 다시 입력하지 않고 쓸 수 있어요. 서버가 아니라 이 브라우저에만 저장됩니다.
                 </span>
               </div>
-            </details>
+            </section>
 
             <div className="field-row">
               <span className="field-label">성별</span>
@@ -268,6 +273,8 @@ export default function ComboPage() {
                 required
               />
             </div>
+
+            <DepthChoice value={depth} onChange={setDepth} />
           </section>
 
           <section className="form-section">
@@ -279,11 +286,11 @@ export default function ComboPage() {
               </div>
             </div>
 
-            <details className="consultation-panel optional-settings-panel">
-              <summary>
+            <section className="consultation-panel optional-settings-panel optional-settings-panel--open">
+              <div className="optional-settings-panel__head">
                 <span>카드 뽑기 방식을 직접 정하고 싶을 때</span>
                 <small>그냥 두면 기본 3장 리딩으로 사주와 함께 봅니다.</small>
-              </summary>
+              </div>
 
               <div className="field-row">
                 <span className="field-label">스프레드</span>
@@ -355,7 +362,7 @@ export default function ComboPage() {
                   </>
                 )}
               </div>
-            </details>
+            </section>
           </section>
 
           <p className="privacy-note">
