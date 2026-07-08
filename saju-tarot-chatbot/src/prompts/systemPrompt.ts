@@ -16,6 +16,7 @@ import { buildLifestyleGuide } from "../lib/lifestyleGuide.js";
 import { buildEventForecast } from "../lib/eventEngine.js";
 import { buildNowMind, formatNowMind } from "../lib/nowMind.js";
 import { buildPsychLayer, formatPsychLayer } from "../lib/psychLayer.js";
+import { buildCapacityAxes, formatCapacityAxes } from "../lib/capacityAxis.js";
 import { describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 
 /**
@@ -885,6 +886,19 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
       parts.push(`[속마음 레이어 — 계산됨(원국 기준)]\n${formatPsychLayer(psych)}`);
       parts.push(
         "[속마음 레이어 활용 안내] 위 [속마음 레이어]는 이 사람의 타고난 원국 구조를 심리 패턴으로 규칙 계산한 것이다. 사주 지식을 나열하지 말고, 이 사람의 실제 생활 언어(속마음·반복 패턴·관계·선택 방식)로 옮기는 데 쓴다. 어디에 녹일지: '핵심 욕구'와 '겉과 속'은 '# 첫 점괘'를 여는 축과 '# 타고난 성격과 기질'에, '눌릴 때 나오는 방식'도 성격/기질에, '가까운 관계'는 '# 애정과 관계'에, '인정·선택'은 '# 직업과 돈'에, '반복 병목'은 가장 맞는 섹션에 자연스럽게 녹여라. 규칙: (1) '겉과 속'이 있으면 반드시 살려라 — 겉으로 보이는 모습과 속마음의 대비가 '어? 이거 내 얘긴데' 느낌을 만든다. (2) 심리학 용어(애착유형·회피형·불안형·방어기제·번아웃·우울/불안 등)와 사주 용어(십성·천간·지지·비겁·관성 등)를 표면에 절대 쓰지 마라. 심리 검사나 진단처럼 보이면 실패다. 패턴 서술로만 옮긴다. (3) '확신도'가 '추정'이면 단정하지 말고 '~쪽에 가까울 수 있다'로 부드럽게, '확실'이면 조금 더 또렷하게 말하라. (4) 계산된 범위를 넘어 새 성향·사건·진단을 지어내지 마라. (근거)는 '전문가 근거 보기'에만 짧게 남겨라.",
+      );
+    }
+  }
+
+  // 재료축/출력축 엔진: 원국이 있는 종합 리딩(사주·통합)에서, 기질을 '얼마나 타고났나(재료)'와
+  // '실제로 굴릴 힘이 되나(출력)'로 나눠 계산해 전달한다. 이 대비가 '이 사람만'의 문장을 만들어
+  // 뻔한 성격론을 막는다. psychLayer(타고난 속마음)와 상보적: 이쪽은 '재료 vs 실제 쓸 힘'의 격차. 모든 깊이 공통.
+  if (facts.sajuChart && (facts.type === "saju" || facts.type === "combo")) {
+    const axes = buildCapacityAxes(facts.sajuChart);
+    if (axes) {
+      parts.push(`[타고난 재료-출력 대비 — 계산됨]\n${formatCapacityAxes(axes)}`);
+      parts.push(
+        "[재료-출력 활용 안내] 위 대비는 '이 사람만'의 문장을 쓰기 위한 핵심 근거다. '# 타고난 성격과 기질'을 중심으로 직업·재물·관계 섹션에서도, 남한테도 맞는 뻔한 말 대신 이 재료-출력 차이를 근거로 써라. 특히 '재료는 넉넉한데 출력이 약한' 기질은 이 사람이 '어떻게 지치고 어떻게 막히는지'의 개인 사용 설명서로 풀고, '재료는 적은데 잘 써먹는' 기질은 숨은 강점으로 살려라. 규칙: (1) 강약 판정은 유파마다 다르게 볼 수 있으니 단정하지 말고 '~한 편'처럼 경향으로 써라. (2) 사주 용어(십성·통근·신강 등)는 표면에 쓰지 말고 근거는 전문가 근거 보기에만. (3) 재료-출력이 다르면 사람마다 다른 문장이 나와야 한다 — 복붙 금지.",
       );
     }
   }
