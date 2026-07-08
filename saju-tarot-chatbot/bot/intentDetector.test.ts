@@ -11,6 +11,27 @@ describe("detectIntent", () => {
     expect(detectIntent("내 별자리가 뭐야")).toBe("astrologyReading");
   });
 
+  it("확장된 점성술 용어(행성·하우스·역행·새턴리턴·베딕)도 astrologyReading으로 잡는다", () => {
+    expect(detectIntent("나 수성 역행 때 왜 이래?")).toBe("astrologyReading");
+    expect(detectIntent("내 토성이 몇 하우스야?")).toBe("astrologyReading");
+    expect(detectIntent("새턴 리턴 곧이야?")).toBe("astrologyReading");
+    expect(detectIntent("내 네이탈 차트 봐줘")).toBe("astrologyReading");
+    expect(detectIntent("내 나크샤트라 뭐야")).toBe("astrologyReading");
+    expect(detectIntent("어센던트가 뭔지 궁금해")).toBe("astrologyReading");
+  });
+
+  it("점성술 규칙이 사주 질문을 가로채지 않는다", () => {
+    expect(detectIntent("나 왜 신약사주야?")).toBe("sajuReading");
+    expect(detectIntent("내 격국이 뭔지 알려줘")).toBe("sajuReading");
+    expect(detectIntent("지장간이 뭐야")).toBe("sajuReading");
+    expect(detectIntent("오늘 일진 어때")).toBe("todayFlow");
+  });
+
+  it("사주+점성술을 함께 언급하면 combinedReading (astrology보다 먼저)", () => {
+    expect(detectIntent("사주랑 행성 배치 같이 보면 어때?")).toBe("combinedReading");
+    expect(detectIntent("내 별자리랑 사주 둘 다 보면?")).toBe("combinedReading");
+  });
+
   it("사주+점성술 통합 질문은 combinedReading으로 분류한다", () => {
     expect(detectIntent("사주랑 점성술 같이 봤을 때 나는 왜 이런 패턴이 반복돼?")).toBe("combinedReading");
   });
