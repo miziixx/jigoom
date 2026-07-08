@@ -91,7 +91,7 @@ const POSITION_LABELS = ["연간", "연지", "월간", "월지", "일간", "일�
 export type PositionLabel = (typeof POSITION_LABELS)[number];
 
 /** 궁위가 상징하는 현실 대상 (충/합이 어디를 흔드는지 해석용) */
-const POSITION_MEANING: Record<PositionLabel, string> = {
+export const POSITION_MEANING: Record<PositionLabel, string> = {
   연간: "사회·바깥 활동, 윗세대",
   연지: "사회 기반·초년 환경",
   월간: "직업·사회활동",
@@ -142,15 +142,15 @@ function groupCounts(parsed: ParsedTenGod[]): Record<TenGodGroup, number> {
 }
 
 // ── 상호작용(충합형파해) 파싱 ──────────
-type InteractionKind = "충" | "형" | "파" | "해" | "합" | "삼합" | "반합" | "방합" | "자형";
+export type InteractionKind = "충" | "형" | "파" | "해" | "합" | "삼합" | "반합" | "방합" | "자형";
 
-interface ParsedInteraction {
+export interface ParsedInteraction {
   kind: InteractionKind;
   positions: PositionLabel[];
   raw: string;
 }
 
-function parseInteraction(raw: string): ParsedInteraction | null {
+export function parseInteraction(raw: string): ParsedInteraction | null {
   const positions = POSITION_LABELS.filter((p) => raw.includes(p));
   let kind: InteractionKind | null = null;
   if (raw.includes("삼합")) kind = "삼합";
@@ -167,7 +167,7 @@ function parseInteraction(raw: string): ParsedInteraction | null {
 }
 
 /** 충합형파해의 성격을 쉬운 말로 */
-const KIND_NUANCE: Record<InteractionKind, string> = {
+export const KIND_NUANCE: Record<InteractionKind, string> = {
   충: "부딪히고 자리가 바뀌는 변동",
   형: "속으로 쌓이는 압박·마찰",
   파: "계획이 어긋나 수정이 필요한 흐름",
@@ -298,8 +298,8 @@ function clamp100(n: number): number {
 }
 
 /** 합 계열(결합·기회 성향) / 충형파해(변동·부담 성향) 구분 */
-const BENEFIT_KINDS = new Set<InteractionKind>(["합", "삼합", "반합", "방합"]);
-const RISK_KINDS = new Set<InteractionKind>(["충", "형", "파", "해", "자형"]);
+export const BENEFIT_KINDS = new Set<InteractionKind>(["합", "삼합", "반합", "방합"]);
+export const RISK_KINDS = new Set<InteractionKind>(["충", "형", "파", "해", "자형"]);
 
 /** 상호작용 + 세운/대운 신호로 분야별 활성도·이득·위험 점수와 타이밍 신호를 만든다 */
 function activationFor(
@@ -473,13 +473,17 @@ export function buildEventForecast(chart?: SajuChart, luck?: LuckCycles, gender?
       avoid,
       counts,
     );
+    const patterns = natalPatternsFor(domain, counts, gender);
+    // activation이 있는 분야는 4개 고정 문장에서 그치지 않고, 이 사람의 실제 원국 패턴 한 줄을
+    // 이어 붙여 매번 다른 근거가 보이게 한다 (patterns는 이미 십성 원문 없이 순화된 문장).
+    const activationNote = activation !== "low" && patterns.length > 0 ? `${note} ${patterns[0]}` : note;
     return {
       domain,
       label: DOMAIN_LABEL[domain],
       activation,
       scores,
-      activationNote: note,
-      patterns: natalPatternsFor(domain, counts, gender),
+      activationNote,
+      patterns,
       timingSignals: timing,
       cautions: cautionsFor(domain, chart, counts),
       evidence,

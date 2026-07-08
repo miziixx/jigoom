@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import ArcGauge from "./ArcGauge.js";
 import ElementRadarChart from "./ElementRadarChart.js";
-import MonthlyFlowChart, { monthTone } from "./MonthlyFlowChart.js";
+import MonthlyFlowChart from "./MonthlyFlowChart.js";
+import { describeMonthFlow } from "../../lib/monthFlowNarrative.js";
 import RatingCell from "./RatingCell.js";
 import TarotCardArt, { tarotSuitKeyOf } from "./TarotCardArt.js";
 import { PartIcon, SectionIcon, VizIcon } from "./icons.js";
@@ -80,11 +81,33 @@ describe("MonthlyFlowChart", () => {
     expect(html).toContain("지출 점검");
   });
 
-  it("monthTone은 개수를 쉬운 말 4단계로 바꾼다", () => {
-    expect(monthTone(0).label).toBe("잔잔함");
-    expect(monthTone(1).label).toBe("가벼운 자극");
-    expect(monthTone(2).label).toBe("변화 있음");
-    expect(monthTone(4).label).toBe("흔들림 큼");
+  it("describeMonthFlow는 상호작용이 없으면 잔잔한 문구를 반환한다", () => {
+    const quiet = describeMonthFlow({ month: 1, ganZhi: "갑자", interactions: [] });
+    expect(quiet.label).toBe("잔잔함");
+    expect(quiet.level).toBe(0);
+  });
+
+  it("describeMonthFlow는 실제 상호작용 내용(관계 종류·자리)에 따라 서로 다른 문구를 만든다", () => {
+    const clash = describeMonthFlow({ month: 3, ganZhi: "병인", interactions: ["일지-월운 자오충"] });
+    const combine = describeMonthFlow({ month: 7, ganZhi: "을미", interactions: ["일간-월운 을경합(금)"] });
+    // 같은 개수(1개)여도 관계 종류·자리가 다르면 문구가 달라야 한다 (기존엔 둘 다 "가벼운 자극"으로 뭉뚱그려짐)
+    expect(clash.label).not.toBe(combine.label);
+    expect(clash.detail).not.toBe(combine.detail);
+    expect(clash.detail).toContain("배우자");
+    expect(combine.detail).toContain("나 자신");
+  });
+
+  it("describeMonthFlow의 level은 상호작용 개수를 기준으로 차트 높이를 유지한다", () => {
+    expect(describeMonthFlow({ month: 1, ganZhi: "갑자", interactions: [] }).level).toBe(0);
+    expect(describeMonthFlow({ month: 1, ganZhi: "갑자", interactions: ["일지-월운 자오충"] }).level).toBe(1);
+    expect(describeMonthFlow({ month: 1, ganZhi: "갑자", interactions: ["일지-월운 자오충", "일간-월운 을경합(금)"] }).level).toBe(2);
+    expect(
+      describeMonthFlow({
+        month: 1,
+        ganZhi: "갑자",
+        interactions: ["일지-월운 자오충", "일간-월운 을경합(금)", "월지-월운 묘유충", "시지-월운 축미충"],
+      }).level,
+    ).toBe(3);
   });
 });
 

@@ -1,6 +1,6 @@
 export { default as ElementRadarChart } from "./ElementRadarChart";
 export { default as ArcGauge } from "./ArcGauge";
-export { default as MonthlyFlowChart, monthTone, type MonthDetail } from "./MonthlyFlowChart";
+export { default as MonthlyFlowChart, type MonthDetail } from "./MonthlyFlowChart";
 export { default as TarotCardArt, tarotSuitKeyOf, type TarotSuitKey } from "./TarotCardArt";
 export { default as RatingCell, type RatingLevel } from "./RatingCell";
 export { VizIcon, SectionIcon, PartIcon } from "./icons";

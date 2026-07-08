@@ -1,22 +1,5 @@
-import type { LuckCycles, MonthFlowInfo } from "../types";
-
-function actionFor(month: MonthFlowInfo): { tone: "quiet" | "move" | "care"; label: string; action: string } {
-  const count = month.interactions.length;
-  const joined = month.interactions.join(" ");
-  if (count >= 3) {
-    return { tone: "care", label: "조정 집중", action: "큰 결정은 하루 더 두고, 일정·관계·돈의 조건을 다시 확인하세요." };
-  }
-  if (count >= 2) {
-    return { tone: "move", label: "변화 활용", action: "새 제안이나 방향 전환을 검토하되, 조건을 문서로 남기세요." };
-  }
-  if (/합|끌림|묶임/.test(joined)) {
-    return { tone: "move", label: "관계 형성", action: "사람을 만나고 제안을 연결하기 좋습니다. 약속과 역할은 분명히 하세요." };
-  }
-  if (/충|형|파|해|부딪|흔들|깨짐|방해/.test(joined)) {
-    return { tone: "care", label: "무리 금지", action: "감정적으로 바로 결정하지 말고, 계획을 작게 수정하는 쪽이 좋습니다." };
-  }
-  return { tone: "quiet", label: "기본기 정리", action: "새로 벌리기보다 루틴, 기록, 정리, 회복을 챙기세요." };
-}
+import { describeMonthAction } from "../lib/monthFlowNarrative";
+import type { LuckCycles } from "../types";
 
 function currentQuarter(month: number): string {
   if (month <= 3) return "1분기";
@@ -45,7 +28,7 @@ export default function ActionCalendar({ luckCycles }: { luckCycles?: LuckCycles
       )}
       <div className="action-calendar__grid">
         {monthly.map((month) => {
-          const action = actionFor(month);
+          const action = describeMonthAction(month);
           return (
             <article className={`action-month action-month--${action.tone}`} key={month.month}>
               <div className="action-month__top">

@@ -1,4 +1,5 @@
 import { buildLifestyleGuide } from "../lib/lifestyleGuide";
+import { describeMonthFlow } from "../lib/monthFlowNarrative";
 import { computeSajuChart } from "../lib/saju";
 import type { BirthInfo, FiveElementBalance, LuckCycles, SajuChart, SajuPillar, StrengthAssessment, YearFlowInfo } from "../types";
 import ArcGauge from "./viz/ArcGauge";
@@ -342,13 +343,6 @@ function YearlyTimeline({ yearlyFlow }: { yearlyFlow: YearFlowInfo[] }) {
   );
 }
 
-function monthTone(count: number): { label: string; detail: string } {
-  if (count >= 4) return { label: "흔들림 큼", detail: "원국과 맞물리는 변화 신호가 많은 달" };
-  if (count >= 2) return { label: "변화 있음", detail: "관계·일정·마음 흐름이 움직이기 쉬운 달" };
-  if (count === 1) return { label: "가벼운 자극", detail: "작은 변동이나 조정 신호가 있는 달" };
-  return { label: "잔잔함", detail: "큰 작용이 적어 기본 리듬을 유지하기 좋은 달" };
-}
-
 function pillarLine(chart: SajuChart) {
   return `${chart.year.ganZhi}/${chart.month.ganZhi}/${chart.day.ganZhi}/${chart.hour?.ganZhi ?? "시주 모름"}`;
 }
@@ -632,18 +626,21 @@ export default function SajuFactsPanel({
               <h4 className="saju-facts__subhead">올해 1월~12월 흐름</h4>
               <MonthlyFlowChart monthlyFlow={luckCycles.monthlyFlow} />
               <div className="month-flow-grid">
-                {luckCycles.monthlyFlow.map((mf) => (
-                  <div
-                    key={mf.month}
-                    className={`month-flow-cell${mf.interactions.length > 0 ? " month-flow-cell--active" : ""}`}
-                    title={mf.interactions.length > 0 ? mf.interactions.join(", ") : monthTone(0).detail}
-                  >
-                    <span className="month-flow-cell__month">{mf.month}월</span>
-                    <span className="month-flow-cell__ganzhi">{mf.ganZhi}</span>
-                    <span className="month-flow-cell__note">{monthTone(mf.interactions.length).label}</span>
-                    <span className="month-flow-cell__detail">{monthTone(mf.interactions.length).detail}</span>
-                  </div>
-                ))}
+                {luckCycles.monthlyFlow.map((mf) => {
+                  const tone = describeMonthFlow(mf);
+                  return (
+                    <div
+                      key={mf.month}
+                      className={`month-flow-cell${mf.interactions.length > 0 ? " month-flow-cell--active" : ""}`}
+                      title={mf.interactions.length > 0 ? mf.interactions.join(", ") : tone.detail}
+                    >
+                      <span className="month-flow-cell__month">{mf.month}월</span>
+                      <span className="month-flow-cell__ganzhi">{mf.ganZhi}</span>
+                      <span className="month-flow-cell__note">{tone.label}</span>
+                      <span className="month-flow-cell__detail">{tone.detail}</span>
+                    </div>
+                  );
+                })}
               </div>
               <p className="saju-facts__hint">월별 표시는 원국과 올해 흐름이 얼마나 강하게 맞물리는지를 쉬운 말로 바꾼 것입니다. 더 읽기 쉬운 해석은 "월별 실행 캘린더"와 "올해의 흐름" 섹션에 있습니다.</p>
             </details>

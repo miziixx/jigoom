@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { MonthFlowInfo } from "../../types";
+import { describeMonthFlow } from "../../lib/monthFlowNarrative";
 
 /** ReadingResult가 AI 텍스트에서 파싱한 월별 상세(키워드/기회/주의/조언)와 구조적으로 호환되는 타입. */
 export interface MonthDetail {
@@ -10,17 +11,7 @@ export interface MonthDetail {
   advice?: string;
 }
 
-/**
- * 상호작용 개수 → 쉬운 말 4단계. SajuFactsPanel의 monthTone과 같은 기준을 쓰되,
- * 차트 y축 레벨(0~3)까지 함께 돌려준다. 숫자 자체는 화면에 노출하지 않는다.
- */
-export function monthTone(count: number): { label: string; detail: string; level: 0 | 1 | 2 | 3 } {
-  if (count >= 4) return { label: "흔들림 큼", detail: "원국과 맞물리는 변화 신호가 많은 달", level: 3 };
-  if (count >= 2) return { label: "변화 있음", detail: "관계·일정·마음 흐름이 움직이기 쉬운 달", level: 2 };
-  if (count === 1) return { label: "가벼운 자극", detail: "작은 변동이나 조정 신호가 있는 달", level: 1 };
-  return { label: "잔잔함", detail: "큰 작용이 적어 기본 리듬을 유지하기 좋은 달", level: 0 };
-}
-
+/** 세로축 심각도 4단계 범례 (매달 반복되는 설명 문구가 아니라 축 눈금 이름이다). */
 const TONE_LABELS = ["잔잔함", "가벼운 자극", "변화 있음", "흔들림 큼"];
 const PLOT_LEFT = 66;
 const PLOT_RIGHT = 352;
@@ -48,13 +39,13 @@ function FlowChartInner({
 
   const n = monthlyFlow.length;
   const xOf = (i: number) => (n === 1 ? (PLOT_LEFT + PLOT_RIGHT) / 2 : PLOT_LEFT + (i * (PLOT_RIGHT - PLOT_LEFT)) / (n - 1));
-  const yOf = (mf: MonthFlowInfo) => BASE_Y - monthTone(mf.interactions.length).level * STEP_Y;
+  const yOf = (mf: MonthFlowInfo) => BASE_Y - describeMonthFlow(mf).level * STEP_Y;
 
   const linePoints = monthlyFlow.map((mf, i) => `${xOf(i).toFixed(1)},${yOf(mf).toFixed(1)}`).join(" ");
   const areaPath = `M ${xOf(0).toFixed(1)} ${BASE_Y} L ${linePoints.split(" ").join(" L ")} L ${xOf(n - 1).toFixed(1)} ${BASE_Y} Z`;
 
   const sel = monthlyFlow.find((m) => m.month === selected) ?? monthlyFlow[0];
-  const selTone = monthTone(sel.interactions.length);
+  const selTone = describeMonthFlow(sel);
   const selDetail = monthDetails?.find((d) => monthNumberOf(d.month) === sel.month);
 
   return (
@@ -88,7 +79,7 @@ function FlowChartInner({
 
       <div className="viz-flow__months" role="group" aria-label="달 선택">
         {monthlyFlow.map((mf) => {
-          const tone = monthTone(mf.interactions.length);
+          const tone = describeMonthFlow(mf);
           return (
             <button
               type="button"

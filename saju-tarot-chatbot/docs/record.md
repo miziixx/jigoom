@@ -1679,3 +1679,32 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
 **검증**: 신규 `src/lib/psychLayer.test.ts`(14) 포함 `npm test` 497 통과, `npm run build` 통과.
 표면 문장에 사주/심리 용어·단정 표현 미노출을 정규식 가드로 자동 검증. 실제 원국 샘플로 렌더 출력 육안 확인
 (겉/속 대비·반복 병목이 자연스럽고 심리 티 없음).
+
+## 월별 흐름 / 지금 움직이는 분야 문구 구체화 (2026-07-08)
+
+**배경**: 사용자가 올해 운세 리포트의 월별 흐름 스크린샷을 보여주며 "너무 뭉뚱그려져 있다"고 지적.
+원인은 `MonthlyFlowChart.tsx`/`SajuFactsPanel.tsx`/`ActionCalendar.tsx` 세 곳이 각자 거의 동일한
+`monthTone`/`actionFor` 함수를 갖고 있었는데, 이미 계산된 `interactions`(예: "일간-월운 을경합(금)")의
+내용을 버리고 `interactions.length`(개수)만 보고 4~5개 고정 문구 중 하나를 반복해서 골랐기 때문 —
+관계 종류(합/충/형/파/해)나 어느 자리(일간/일지/월지/시지 등)가 움직이는지가 문장에 전혀 드러나지
+않았다. `eventEngine.ts`의 "지금 움직이는 분야" `activationNote`도 activation×balance 조합별 4개
+고정 문장만 쓰는 동일한 패턴이었다.
+
+**변경**: 계산 로직(`computeInteractions`/`luckVsNatal`/`eventEngine`의 점수식)은 그대로 두고
+표면 문구만 구체화했다.
+- 신규 `src/lib/monthFlowNarrative.ts`: `eventEngine.ts`에서 새로 export한 `parseInteraction`/
+  `KIND_NUANCE`/`POSITION_MEANING`/`BENEFIT_KINDS`를 재사용해, 그 달 interactions 중 가장 특징적인
+  것(우선순위: 충 > 형 > 파/해/자형 > 삼합/방합 > 합/반합)을 골라 어떤 관계가 어느 자리(나 자신/배우자·
+  관계/직업/자녀 등)에서 일어나는지 드러나는 문장을 만든다. `describeMonthFlow`(차트/그리드용, level은
+  기존과 동일하게 개수 기반 유지)와 `describeMonthAction`(실행 캘린더용, 자리별로 다른 행동 제안)을
+  export.
+- `MonthlyFlowChart.tsx`/`SajuFactsPanel.tsx`/`ActionCalendar.tsx`는 각자의 중복 로직을 지우고 이
+  모듈을 쓴다. 차트 Y축의 4단계 심각도 범례(`TONE_LABELS`)는 매달 반복 문구가 아니라 축 눈금이므로
+  그대로 유지.
+- `eventEngine.ts`의 `buildEventForecast`: activation이 있는 분야는 4개 고정 note 뒤에 그 사람의
+  `natalPatternsFor` 원국 패턴 문장(이미 십성 원문 없이 순화됨) 하나를 이어 붙여, note도 사람마다
+  달라지게 함. 활성/이득/위험 점수 계산 자체는 무변경.
+
+**검증**: `viz.test.tsx`에 "같은 개수여도 관계·자리가 다르면 문구가 달라진다" 케이스 추가.
+`npm test` 515 통과(신규 monthFlowNarrative 관련 케이스 포함, `eventEngine.test.ts`의 "표면 문구에
+사주 전문용어 미노출" 테스트도 그대로 통과), `npm run build` 통과.

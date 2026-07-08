@@ -314,14 +314,25 @@ Current implementation:
 - The prompt asks the model to write 1월~12월, not just grouped periods.
 - `SajuFactsPanel` displays a 1월~12월 flow grid.
 
-The monthly grid should avoid unexplained numbers. It currently translates interaction counts into plain labels:
+The monthly grid should avoid unexplained numbers. It used to translate interaction *counts* into 4 fixed
+labels (`잔잔함`/`가벼운 자극`/`변화 있음`/`흔들림 큼`) repeated verbatim across every month and every
+user, which read as vague/generic. It now uses `src/lib/monthFlowNarrative.ts`
+(`describeMonthFlow`/`describeMonthAction`) to re-parse each month's already-computed `interactions`
+strings (via `eventEngine.ts`'s `parseInteraction`/`KIND_NUANCE`/`POSITION_MEANING`, now exported) and
+generate a sentence naming the actual relation type (합/충/형/파/해) and which natal pillar it touches
+(일간=나 자신, 일지=배우자·가까운 관계, 월지=직업, 시지=자녀 등), so two months with the same
+interaction *count* but different content now read differently. `MonthlyFlowChart.tsx`,
+`SajuFactsPanel.tsx`'s monthly grid, and `ActionCalendar.tsx` all call this shared module instead of each
+keeping their own copy of the bucket logic. The Y-axis 4-tier legend (`TONE_LABELS` in
+`MonthlyFlowChart.tsx`) is unrelated and intentionally stays fixed — it labels chart severity levels, not
+the per-month sentence. Raw ganzhi/technical evidence strings remain in tooltip/title and evidence areas
+only.
 
-- `잔잔함`
-- `가벼운 자극`
-- `변화 있음`
-- `흔들림 큼`
-
-Detailed interactions remain in tooltip/title and evidence areas.
+`eventEngine.ts`'s "지금 움직이는 분야" (`EventForecastPanel`) had the same issue one level up: the
+per-domain `activationNote` was one of only 4 fixed template sentences keyed by activation×balance. It now
+appends the domain's first rule-based `natalPatternsFor` sentence (already jargon-free) to that template
+so the note also reflects this person's actual ten-god pattern, not just a generic tone. Scoring
+(`activation`/`benefit`/`risk`) is unchanged.
 
 ### Health Reading
 
