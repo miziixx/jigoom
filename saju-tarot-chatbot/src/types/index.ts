@@ -853,3 +853,84 @@ export interface FortuneResult {
   /** 생성 시각 (ISO) */
   createdAt: string;
 }
+
+// ── 점성술(속마음 엔진 공용) 타입 ──────────────────────
+export type ZodiacSign =
+  | "양자리"
+  | "황소자리"
+  | "쌍둥이자리"
+  | "게자리"
+  | "사자자리"
+  | "처녀자리"
+  | "천칭자리"
+  | "전갈자리"
+  | "사수자리"
+  | "염소자리"
+  | "물병자리"
+  | "물고기자리";
+
+export interface AstrologyPlacement {
+  body: string;
+  sign: ZodiacSign;
+  degree: number;
+  absoluteLongitude: number;
+  house?: number;
+  keyword: string;
+}
+
+export interface ClassicalPlacement extends AstrologyPlacement {
+  dignity: "도미사일" | "엑잘테이션" | "디트리먼트" | "폴" | "페레그린";
+  ruler: string;
+}
+
+export interface VedicPlacement {
+  body: string;
+  sign: ZodiacSign;
+  degree: number;
+  absoluteLongitude: number;
+  nakshatra?: string;
+  pada?: number;
+  keyword: string;
+}
+
+export interface VedicDashaInfo {
+  system: "Vimshottari";
+  currentMahaDasha: string;
+  currentMahaDashaStart: string;
+  currentMahaDashaEnd: string;
+  birthNakshatraLord: string;
+  balanceAtBirthYears: number;
+  note: string;
+}
+
+export interface AstrologyProfile {
+  calculatedAt: string;
+  locationLabel: string;
+  timeKnown: boolean;
+  accuracyNote: string;
+  modern: {
+    sun: AstrologyPlacement;
+    moon: AstrologyPlacement;
+    ascendant?: AstrologyPlacement;
+    venus: AstrologyPlacement;
+    mars: AstrologyPlacement;
+    summary: string[];
+  };
+  classical: {
+    sect: "day" | "night" | "unknown";
+    ascendant?: AstrologyPlacement;
+    placements: ClassicalPlacement[];
+    summary: string[];
+  };
+  vedic: {
+    ayanamsa: string;
+    lagna?: VedicPlacement;
+    moon: VedicPlacement;
+    sun: VedicPlacement;
+    rahu: VedicPlacement;
+    ketu: VedicPlacement;
+    dasha: VedicDashaInfo;
+    summary: string[];
+  };
+  notes: string[];
+}
