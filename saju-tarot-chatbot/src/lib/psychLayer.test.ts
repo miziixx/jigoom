@@ -100,14 +100,15 @@ describe("buildPsychLayer (속마음 레이어 엔진)", () => {
   });
 });
 
-describe("systemPrompt 배선: 속마음 레이어가 원국 리딩에 붙는다", () => {
-  it("사주 리딩에 [속마음 레이어] 블록과 활용 안내를 전달한다", () => {
+describe("systemPrompt 배선: 속마음 레이어가 통합 심리 블록에 들어간다", () => {
+  it("사주 리딩에 통합 블록과 '타고난 속마음' 소재, 활용 안내를 전달한다", () => {
     const msg = buildReadingUserMessage({ type: "saju", question: "요즘 지쳐요", gender: birth.gender, sajuChart: chart, luckCycles: luck });
-    expect(msg).toContain("[속마음 레이어 — 계산됨");
-    expect(msg).toContain("속마음 레이어 활용 안내");
+    expect(msg).toContain("[속마음·현재 심리 — 계산됨");
+    expect(msg).toContain("▸ 타고난 속마음·반복 패턴");
+    expect(msg).toContain("속마음·현재 심리 활용 안내");
   });
 
-  it("가벼운(light) 리딩에도 [속마음 레이어]가 붙는다", () => {
+  it("가벼운(light) 리딩에서는 타고난 속마음이 빠진다(압축 유지)", () => {
     const msg = buildReadingUserMessage({
       type: "saju",
       question: "요즘 지쳐요",
@@ -116,11 +117,11 @@ describe("systemPrompt 배선: 속마음 레이어가 원국 리딩에 붙는다
       luckCycles: luck,
       context: { depth: "light" },
     });
-    expect(msg).toContain("[속마음 레이어 — 계산됨");
+    expect(msg).not.toContain("▸ 타고난 속마음·반복 패턴");
   });
 
-  it("순수 타로(원국 없음)에는 [속마음 레이어]가 붙지 않는다", () => {
+  it("순수 타로(원국 없음)에는 심리 블록이 붙지 않는다", () => {
     const msg = buildReadingUserMessage({ type: "tarot", question: "이 관계 어때요?", tarotCards: [] });
-    expect(msg).not.toContain("[속마음 레이어 — 계산됨");
+    expect(msg).not.toContain("[속마음·현재 심리 — 계산됨");
   });
 });

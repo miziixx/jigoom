@@ -53,16 +53,16 @@ describe("buildDeliberation (지금 저울질 신호 엔진)", () => {
 });
 
 describe("systemPrompt 배선: 지금 저울질 신호", () => {
-  it("사주 리딩에 신호가 있으면 블록과 활용 안내를 전달한다", () => {
+  it("사주 리딩에 신호가 있으면 통합 블록 안에 '지금 저울질 신호' 소재로 들어간다", () => {
     const msg = buildReadingUserMessage({ type: "saju", question: "", gender: birth.gender, sajuChart: chart, luckCycles: luck });
-    if (msg.includes("[지금 저울질 신호 — 계산됨")) {
-      expect(msg).toContain("지금 저울질 신호 활용 안내");
-      expect(msg).toContain("확인을 청하는 톤");
+    if (msg.includes("▸ 지금 저울질 신호")) {
+      expect(msg).toContain("[속마음·현재 심리 — 계산됨");
+      expect(msg).toContain("단정하지 마라");
     }
   });
 
   it("순수 타로(원국 없음)에는 붙지 않는다", () => {
     const msg = buildReadingUserMessage({ type: "tarot", question: "이 관계 어때요?", tarotCards: [] });
-    expect(msg).not.toContain("[지금 저울질 신호");
+    expect(msg).not.toContain("▸ 지금 저울질 신호");
   });
 });

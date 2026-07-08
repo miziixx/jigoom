@@ -77,14 +77,15 @@ describe("buildNowMind (지금 마음 엔진)", () => {
   });
 });
 
-describe("systemPrompt 배선: 지금 마음이 전 깊이 공통으로 붙는다", () => {
-  it("기본 리딩에 [지금 마음] 블록과 활용 안내를 전달한다", () => {
+describe("systemPrompt 배선: 지금 마음이 통합 심리 블록에 들어간다", () => {
+  it("기본 리딩에 통합 블록과 '지금 올라오는 마음' 소재, 활용 안내를 전달한다", () => {
     const msg = buildReadingUserMessage({ type: "saju", question: "요즘 지쳐요", gender: birth.gender, sajuChart: chart, luckCycles: luck });
-    expect(msg).toContain("[지금 마음 — 계산됨");
-    expect(msg).toContain("지금 마음 활용 안내");
+    expect(msg).toContain("[속마음·현재 심리 — 계산됨");
+    expect(msg).toContain("▸ 지금 올라오는 마음");
+    expect(msg).toContain("속마음·현재 심리 활용 안내");
   });
 
-  it("가벼운(light) 리딩에도 [지금 마음]이 붙는다", () => {
+  it("가벼운(light) 리딩에도 '지금 올라오는 마음'은 남는다(무거운 소재는 제외)", () => {
     const msg = buildReadingUserMessage({
       type: "saju",
       question: "요즘 지쳐요",
@@ -93,11 +94,24 @@ describe("systemPrompt 배선: 지금 마음이 전 깊이 공통으로 붙는�
       luckCycles: luck,
       context: { depth: "light" },
     });
-    expect(msg).toContain("[지금 마음 — 계산됨");
+    expect(msg).toContain("▸ 지금 올라오는 마음");
+    expect(msg).not.toContain("▸ 재료 vs 실제 쓸 힘");
   });
 
-  it("순수 타로(원국 없음)에는 [지금 마음]이 붙지 않는다", () => {
+  it("팬아웃 back 호출에는 심리 블록이 붙지 않는다", () => {
+    const msg = buildReadingUserMessage({
+      type: "saju",
+      question: "전체",
+      gender: birth.gender,
+      sajuChart: chart,
+      luckCycles: luck,
+      sectionGroup: "back",
+    });
+    expect(msg).not.toContain("[속마음·현재 심리 — 계산됨");
+  });
+
+  it("순수 타로(원국 없음)에는 심리 블록이 붙지 않는다", () => {
     const msg = buildReadingUserMessage({ type: "tarot", question: "이 관계 어때요?", tarotCards: [] });
-    expect(msg).not.toContain("[지금 마음 — 계산됨");
+    expect(msg).not.toContain("[속마음·현재 심리 — 계산됨");
   });
 });

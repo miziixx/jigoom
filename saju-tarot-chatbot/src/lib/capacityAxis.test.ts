@@ -76,14 +76,19 @@ describe("buildCapacityAxes (재료축/출력축 엔진)", () => {
 });
 
 describe("systemPrompt 배선: 재료-출력 대비", () => {
-  it("사주 리딩에 [타고난 재료-출력 대비] 블록과 활용 안내를 전달한다", () => {
+  it("사주 리딩에 통합 심리 블록 안에 '재료 vs 실제 쓸 힘' 소재로 들어간다", () => {
     const msg = buildReadingUserMessage({ type: "saju", question: "요즘 어때요?", gender: birth.gender, sajuChart: chart });
-    expect(msg).toContain("[타고난 재료-출력 대비 — 계산됨");
-    expect(msg).toContain("재료-출력 활용 안내");
+    expect(msg).toContain("[속마음·현재 심리 — 계산됨");
+    expect(msg).toContain("▸ 재료 vs 실제 쓸 힘");
+  });
+
+  it("가벼운(light) 리딩에서는 재료-출력이 빠진다(압축 유지)", () => {
+    const msg = buildReadingUserMessage({ type: "saju", question: "요즘 어때요?", gender: birth.gender, sajuChart: chart, context: { depth: "light" } });
+    expect(msg).not.toContain("▸ 재료 vs 실제 쓸 힘");
   });
 
   it("순수 타로(원국 없음)에는 붙지 않는다", () => {
     const msg = buildReadingUserMessage({ type: "tarot", question: "이 관계 어때요?", tarotCards: [] });
-    expect(msg).not.toContain("[타고난 재료-출력 대비");
+    expect(msg).not.toContain("▸ 재료 vs 실제 쓸 힘");
   });
 });

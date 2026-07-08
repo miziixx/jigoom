@@ -836,6 +836,59 @@ export function buildReadingJudgmentPack(facts: ReadingFacts): JudgmentPack | nu
   });
 }
 
+/**
+ * 속마음·현재 심리 통합 블록.
+ * 지금 마음/타고난 속마음/재료-출력/저울질 4개 심리 엔진을 하나의 근거 블록 + 하나의 활용 안내로
+ * 묶는다. 예전엔 4개가 각각 "첫 점괘를 내 걸로 열어라"라고 경쟁해 서로 무시됐다. 여기서 각 소재의
+ * 담당 섹션을 한 번만 지정해 충돌을 없앤다.
+ * - 순수 타로(원국 없음)에는 붙지 않는다.
+ * - 압축(light) 모드는 무거운 3개를 빼고 '지금 마음' 훅만 싣는다(압축 유지).
+ * - 종합 생애 소재(속마음·재료출력·저울질)는 사주/통합에서만. 오늘/흐름은 '지금 마음'만.
+ */
+function composeInnerPsychology(
+  facts: ReadingFacts,
+  compactMode: boolean,
+): { evidence: string; instruction: string } | null {
+  if (!facts.sajuChart) return null;
+  const isLife = facts.type === "saju" || facts.type === "combo";
+  const heavy = !compactMode && isLife;
+
+  const nowMind = facts.luckCycles ? buildNowMind(facts.sajuChart, facts.luckCycles) : null;
+  const psych = heavy ? buildPsychLayer(facts.sajuChart) : null;
+  const axes = heavy ? buildCapacityAxes(facts.sajuChart) : null;
+  const deliberation = heavy ? buildDeliberation(facts.sajuChart, facts.luckCycles, facts.gender) : null;
+
+  const sections: string[] = [];
+  if (nowMind) sections.push(`▸ 지금 올라오는 마음 (세운·월운 기준)\n${formatNowMind(nowMind)}`);
+  if (psych) sections.push(`▸ 타고난 속마음·반복 패턴\n${formatPsychLayer(psych)}`);
+  if (axes) sections.push(`▸ 재료 vs 실제 쓸 힘\n${formatCapacityAxes(axes)}`);
+  if (deliberation) sections.push(`▸ 지금 저울질 신호\n${formatDeliberation(deliberation)}`);
+  if (sections.length === 0) return null;
+
+  const rules: string[] = [
+    "[속마음·현재 심리 활용 안내] 위는 이 사람의 속마음을 규칙으로 계산한 것이다. 각 소재는 아래 지정 섹션에서 한 번씩만 쓰고, 첫 점괘에 전부 몰아넣지 마라(그러면 나머지가 다 뭉개진다).",
+  ];
+  if (nowMind)
+    rules.push(
+      "· '# 첫 점괘'는 [지금 올라오는 마음]으로 연다 — 성향 나열 대신 \"요즘 당신은 ~\"로 지금을 콕 짚고, '속 긴장'이 있으면 어떻게 지치고 회복되는지로 푼다.",
+    );
+  if (psych || axes)
+    rules.push(
+      "· '# 타고난 성격과 기질'은 [타고난 속마음]의 겉과 속 대비와 [재료 vs 쓸 힘]으로 쓴다. 재료는 넉넉한데 힘이 약한 지점은 개인 사용 설명서로, 적은데 잘 쓰는 건 숨은 강점으로. 남한테도 맞는 뻔한 말 금지.",
+    );
+  if (psych)
+    rules.push("· [타고난 속마음]의 '가까운 관계'는 '# 애정과 관계'에, '인정·선택'은 '# 직업과 돈'에만 녹인다.");
+  if (deliberation)
+    rules.push(
+      "· 사용자가 질문을 직접 적었으면 그 질문이 우선. 안 적었으면 '# 질문 중심 핵심'(없으면 첫 점괘 끝)에서 [지금 저울질 신호]를 \"혹시 요즘 ~ 아닐까요\"로 1~2가지만 되짚되 단정하지 마라.",
+    );
+  rules.push(
+    "· 공통: 모든 판정은 경향(~한 편)으로. 단정·공포·심리진단(애착유형·회피형·번아웃 등)·사주 용어(십성·세운·통근·신강 등)를 표면에 쓰지 말고, 근거는 전문가 근거 보기에만 남긴다.",
+  );
+
+  return { evidence: `[속마음·현재 심리 — 계산됨]\n${sections.join("\n\n")}`, instruction: rules.join("\n") };
+}
+
 /** 새 리딩을 시작할 때 보낼 사용자 메시지(계산된 사실 + 질문)를 구성한다 */
 export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPack: JudgmentPack | null = buildReadingJudgmentPack(facts)): string {
   const parts: string[] = [];
@@ -865,55 +918,14 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
     );
   }
 
-  // 지금 마음 엔진: 원국+운이 있을 때, 지금 시점(세운·월운)이 이 구조에 끌어올리는 심리 상태를
-  // 계산해 전달한다. 모든 깊이(가벼운 리딩 포함) 공통으로 붙여, "지금 내 마음을 짚었다"는 체감을
-  // 라이트든 전문가든 일관되게 만든다. (표면은 쉬운 말, 사주 용어는 근거에만.)
-  if (facts.sajuChart && facts.luckCycles) {
-    const nowMind = buildNowMind(facts.sajuChart, facts.luckCycles);
-    if (nowMind) {
-      parts.push(`[지금 마음 — 계산됨(세운·월운 기준)]\n${formatNowMind(nowMind)}`);
-      parts.push(
-        "[지금 마음 활용 안내] 위 [지금 마음]은 이 사람의 타고난 구조에 지금 시점(세운·월운)이 겹쳐 특히 올라오기 쉬운 심리 상태를 규칙으로 계산한 것이다. '# 첫 점괘'와 (있으면) '# 질문 중심 핵심'을 반드시 이 계산된 현재 상태로 열어라 — 일반론이 아니라 \"요즘 당신은 ~\" 하고 지금을 콕 짚는 문장으로 시작해라. 규칙: (1) 계산된 마음·긴장·흔들리는 자리를 근거로 삼되 그 범위를 넘어 새 사건을 지어내지 마라. (2) 단정·공포 없이 \"~한 마음이 올라오기 쉬운 때\"처럼 경향으로 옮겨라. (3) '속 긴장'이 있으면 그 사람의 개인 사용 설명서처럼(어떻게 지치고 어떻게 회복되는지) 풀어라. (4) 사주 용어(십성·세운·충 등)는 표면에 쓰지 말고 (근거)는 전문가 근거 보기에만 남겨라.",
-      );
-    }
-  }
-
-  // 속마음 레이어 엔진: 원국이 있을 때, 타고난 구조가 만드는 지속적 속마음·반복 패턴을
-  // 심리 패턴 언어로 계산해 전달한다. (nowMind=지금 시점의 마음, psychLayer=타고난 성향·패턴.)
-  // 심리학 용어는 근거에만 두고, 표면 문장은 사주풀이의 결에 자연스럽게 녹인다.
-  if (facts.sajuChart) {
-    const psych = buildPsychLayer(facts.sajuChart);
-    if (psych) {
-      parts.push(`[속마음 레이어 — 계산됨(원국 기준)]\n${formatPsychLayer(psych)}`);
-      parts.push(
-        "[속마음 레이어 활용 안내] 위 [속마음 레이어]는 이 사람의 타고난 원국 구조를 심리 패턴으로 규칙 계산한 것이다. 사주 지식을 나열하지 말고, 이 사람의 실제 생활 언어(속마음·반복 패턴·관계·선택 방식)로 옮기는 데 쓴다. 어디에 녹일지: '핵심 욕구'와 '겉과 속'은 '# 첫 점괘'를 여는 축과 '# 타고난 성격과 기질'에, '눌릴 때 나오는 방식'도 성격/기질에, '가까운 관계'는 '# 애정과 관계'에, '인정·선택'은 '# 직업과 돈'에, '반복 병목'은 가장 맞는 섹션에 자연스럽게 녹여라. 규칙: (1) '겉과 속'이 있으면 반드시 살려라 — 겉으로 보이는 모습과 속마음의 대비가 '어? 이거 내 얘긴데' 느낌을 만든다. (2) 심리학 용어(애착유형·회피형·불안형·방어기제·번아웃·우울/불안 등)와 사주 용어(십성·천간·지지·비겁·관성 등)를 표면에 절대 쓰지 마라. 심리 검사나 진단처럼 보이면 실패다. 패턴 서술로만 옮긴다. (3) '확신도'가 '추정'이면 단정하지 말고 '~쪽에 가까울 수 있다'로 부드럽게, '확실'이면 조금 더 또렷하게 말하라. (4) 계산된 범위를 넘어 새 성향·사건·진단을 지어내지 마라. (근거)는 '전문가 근거 보기'에만 짧게 남겨라.",
-      );
-    }
-  }
-
-  // 재료축/출력축 엔진: 원국이 있는 종합 리딩(사주·통합)에서, 기질을 '얼마나 타고났나(재료)'와
-  // '실제로 굴릴 힘이 되나(출력)'로 나눠 계산해 전달한다. 이 대비가 '이 사람만'의 문장을 만들어
-  // 뻔한 성격론을 막는다. psychLayer(타고난 속마음)와 상보적: 이쪽은 '재료 vs 실제 쓸 힘'의 격차. 모든 깊이 공통.
-  if (facts.sajuChart && (facts.type === "saju" || facts.type === "combo")) {
-    const axes = buildCapacityAxes(facts.sajuChart);
-    if (axes) {
-      parts.push(`[타고난 재료-출력 대비 — 계산됨]\n${formatCapacityAxes(axes)}`);
-      parts.push(
-        "[재료-출력 활용 안내] 위 대비는 '이 사람만'의 문장을 쓰기 위한 핵심 근거다. '# 타고난 성격과 기질'을 중심으로 직업·재물·관계 섹션에서도, 남한테도 맞는 뻔한 말 대신 이 재료-출력 차이를 근거로 써라. 특히 '재료는 넉넉한데 출력이 약한' 기질은 이 사람이 '어떻게 지치고 어떻게 막히는지'의 개인 사용 설명서로 풀고, '재료는 적은데 잘 써먹는' 기질은 숨은 강점으로 살려라. 규칙: (1) 강약 판정은 유파마다 다르게 볼 수 있으니 단정하지 말고 '~한 편'처럼 경향으로 써라. (2) 사주 용어(십성·통근·신강 등)는 표면에 쓰지 말고 근거는 전문가 근거 보기에만. (3) 재료-출력이 다르면 사람마다 다른 문장이 나와야 한다 — 복붙 금지.",
-      );
-    }
-  }
-
-  // 지금 저울질 신호 엔진: 지금 활성 분야(eventEngine)를 '지금 무슨 선택을 저울질하기 쉬운가'로
-  // 옮겨, "내가 지금 이런 고민을 하는 걸 어떻게 알았지" 체감을 만든다. 단, 맞히려 들다 틀리면
-  // 신뢰가 깨지므로 되짚어 묻는 톤으로만. 사용자가 질문을 직접 적었으면 그 질문이 우선.
-  if (facts.sajuChart && (facts.type === "saju" || facts.type === "combo")) {
-    const deliberation = buildDeliberation(facts.sajuChart, facts.luckCycles, facts.gender);
-    if (deliberation) {
-      parts.push(`[지금 저울질 신호 — 계산됨]\n${formatDeliberation(deliberation)}`);
-      parts.push(
-        "[지금 저울질 신호 활용 안내] 위는 지금 이 사람에게 어떤 선택이 걸려 있기 쉬운지를 활성 분야로 계산한 것이다. 규칙: (1) 사용자가 질문·고민·선택지를 직접 적었으면 그 질문이 우선이고, 이 신호는 보조로만 쓴다. (2) 질문을 적지 않았으면 '# 질문 중심 핵심'(없으면 '# 첫 점괘')에서 이 저울질을 부드럽게 되짚어라 — \"혹시 요즘 ~를 두고 고민 중이신 것 아닐까요\"처럼 단정하지 말고 확인을 청하는 톤으로. (3) 맞히려 들다 틀리면 신뢰가 깨지니 한 가지로 단정하지 말고 계산된 1~2가지 가능성으로 열어두고 사용자가 고르게 하라. (4) 확인된 뒤에는 그 선택이 '잘 풀리려면 필요한 조건'과 오늘·이번 주 확인할 신호로 이어가라. 결정을 대신 내리지 말고, 사주 용어는 표면에 쓰지 마라.",
-      );
+  // 속마음·현재 심리 통합 블록: 지금 마음/타고난 속마음/재료-출력/저울질 4개 엔진을 하나로 묶어
+  // 지시 충돌(특히 첫 점괘 쟁탈)을 없앤다. 이 소재들은 모두 앞부분 섹션(첫 점괘~애정과 관계) 담당이라
+  // 팬아웃 back 호출에는 싣지 않는다. 압축(light) 모드는 composer 안에서 '지금 마음'만 남긴다.
+  if (facts.sajuChart && facts.sectionGroup !== "back") {
+    const inner = composeInnerPsychology(facts, compactMode);
+    if (inner) {
+      parts.push(inner.evidence);
+      parts.push(inner.instruction);
     }
   }
 
