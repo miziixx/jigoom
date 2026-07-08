@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import ReadingResult from "../ReadingResult.js";
+import { extractLeadSentence } from "./readingBlocks.js";
 import { computeLuckCycles, computeSajuChart } from "../../lib/saju.js";
 import { TAROT_DECK } from "../../data/tarotDeck.js";
 import type { BirthInfo, DrawnTarotCard, ReadingSession, ReadingType } from "../../types/index.js";
@@ -128,5 +129,37 @@ describe("리딩 타입별 템플릿 디스패처", () => {
     expect(html).toContain("tarot-facts-promoted");
     // 근거 존 내부 중복 렌더는 막는다 (뽑힌 카드와 근거 패널은 승격된 1곳만)
     expect(html.split("뽑힌 카드와 근거").length - 1).toBe(1);
+  });
+
+  it("대괄호 소제목 없는 통짜 섹션은 첫 문장을 리드 줄로 분리해 렌더한다 (텍스트 벽 방지)", () => {
+    const wall =
+      "겉으로는 담담한데 속으로는 계속 생각하고 곱씹다가 티 안 내던 서운함이 한꺼번에 터지는 편입니다. " +
+      "서운함이 쌓이는 지점은 특히 가장 가까운 관계에서 반복됩니다. " +
+      "잘 맞는 상대는 안정적이면서도 혼자 있는 시간을 존중해주는 사람입니다.";
+    const html = render(makeSession("saju", `# 첫 점괘\n방향을 잡을 때입니다.\n\n# 애정과 관계\n${wall}`));
+    expect(html).toContain("reading-lead");
+    // 첫 문장이 리드로 올라가고 나머지는 본문 문단으로 남는다
+    expect(html).toContain("서운함이 쌓이는 지점은");
+  });
+});
+
+describe("extractLeadSentence (통짜 본문 리드 분리 안전망)", () => {
+  it("소제목·목록 없는 긴 줄글은 첫 문장을 리드로 분리한다", () => {
+    const body =
+      "겉으로는 담담한데 속으로는 계속 생각하고 곱씹는 편이라, 티 안 내던 서운함이 어느 순간 한꺼번에 터지곤 합니다. " +
+      "그 서운함이 쌓이는 지점은 특히 가장 가까운 관계에서 반복됩니다. 짧게라도 그날 말로 풀어두는 습관이 큰 도움이 됩니다.";
+    const split = extractLeadSentence(body);
+    expect(split).not.toBeNull();
+    expect(split!.lead.startsWith("겉으로는 담담한데")).toBe(true);
+    expect(split!.lead.endsWith("터지곤 합니다.")).toBe(true);
+    expect(split!.rest.startsWith("그 서운함이")).toBe(true);
+  });
+
+  it("이미 목록('- ')이 있으면 건드리지 않는다", () => {
+    expect(extractLeadSentence("이런 모습이 나타납니다.\n- 첫째 장면\n- 둘째 장면")).toBeNull();
+  });
+
+  it("짧은 본문은 나누지 않는다", () => {
+    expect(extractLeadSentence("차분히 쌓는 구조입니다.")).toBeNull();
   });
 });

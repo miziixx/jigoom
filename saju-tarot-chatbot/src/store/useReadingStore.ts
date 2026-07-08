@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { saveFeedback } from "../lib/feedback";
 import { streamReading } from "../lib/readingApi";
 import { getCachedResult, periodBucket, setCachedResult } from "../lib/resultCache";
-import { applyReadingValidationWarning } from "../lib/readingValidation";
+import { validateReadingOutput } from "../lib/readingValidation";
 import { logReading } from "../lib/quality/qualityLogger";
 import { computeLuckCycles, computePastEventCalibrationInputs, computeSajuChart } from "../lib/saju";
 import { buildPastValidationReport } from "../lib/pastValidation";
@@ -251,7 +251,9 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
       // TS는 콜백 안의 할당을 추적하지 못하므로 여기서 타입을 되살린다
       const built = session as ReadingSession | null;
       if (!built) throw new Error("서버가 계산 결과를 보내지 않았습니다. 다시 시도해보세요.");
-      const validation = applyReadingValidationWarning({
+      // 검증은 품질 관찰(로깅)용으로만 실행하고, 결과 텍스트에는 '검수 메모'를 덧붙이지 않는다.
+      // (내부 QA 문구가 사용자 리딩 본문에 노출되던 문제 제거 — 원문 그대로 표시/캐시)
+      const validation = validateReadingOutput({
         type,
         question,
         reply: result.reply,
@@ -262,7 +264,7 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
         logReading({
           readingType: type,
           judgmentPack,
-          validation: { status: validation.validation.status, issues: validation.validation.issues },
+          validation: { status: validation.status, issues: validation.issues },
           gate: result.gate,
         });
       } catch {
@@ -270,12 +272,12 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
       }
       const finalSession: ReadingSession = {
         ...built,
-        messages: [built.messages[0], { role: "assistant", content: validation.reply }],
+        messages: [built.messages[0], { role: "assistant", content: result.reply }],
       };
       // 같은 입력 재사용을 위해 결과를 캐시에 저장 (성공 시에만)
-      if (validation.reply.trim()) {
+      if (result.reply.trim()) {
         setCachedResult<CachedReading>("reading", cacheKey, {
-          reply: validation.reply,
+          reply: result.reply,
           userMessage: metaUserMessage || finalSession.messages[0].content,
         });
       }

@@ -197,12 +197,43 @@ export function MonthlyFlowOrText({ body, luckCycles }: { body: string; luckCycl
   );
 }
 
+/**
+ * 대괄호 소제목이 하나도 없는 통짜 본문에서 첫 문장을 리드 줄로 떼어낸다.
+ * 모델이 구조([한 줄 결론] 등)를 빠뜨려 줄글 덩어리로 왔을 때도 최소한의 스캔 훅을 보장하는 안전망.
+ * 내용은 바꾸지 않고 시각적 구분만 더한다. 이미 목록이 있거나 짧거나 첫 문장이 지나치게 길면 건드리지 않는다.
+ */
+export function extractLeadSentence(raw: string): { lead: string; rest: string } | null {
+  const text = stripMarkdown(raw).trim();
+  if (!text) return null;
+  if (/^\s*[-*+]\s/m.test(text)) return null; // 이미 목록 구조가 있으면 그대로 둔다
+  if (text.length < 80) return null; // 짧은 본문은 굳이 나누지 않는다
+  const m = text.match(/^([\s\S]*?[.!?])\s+([\s\S]+)$/);
+  if (!m) return null;
+  const lead = m[1].trim();
+  const rest = m[2].trim();
+  if (lead.length < 10 || lead.length > 120 || rest.length < 20) return null;
+  return { lead, rest };
+}
+
+/** 소제목 없는 본문 렌더. 월별 흐름은 전용 렌더로, 그 외 긴 줄글은 리드 줄 + 문단으로 나눈다. */
+function TitlelessBody({ body, luckCycles }: { body: string; luckCycles?: LuckCycles }) {
+  if (parseMonthlyFlow(body)) return <MonthlyFlowOrText body={body} luckCycles={luckCycles} />;
+  const split = extractLeadSentence(body);
+  if (!split) return <>{renderTextBlock(body)}</>;
+  return (
+    <>
+      <p className="reading-lead">{split.lead}</p>
+      {renderTextBlock(split.rest)}
+    </>
+  );
+}
+
 export function SectionBody({ body, loading, luckCycles }: { body: string; loading?: boolean; luckCycles?: LuckCycles }) {
   const parts = parseBodyParts(body);
   if (parts.length === 1 && !parts[0].title) {
     return (
       <div className="reading-section__body">
-        <MonthlyFlowOrText body={parts[0].body} luckCycles={luckCycles} />
+        <TitlelessBody body={parts[0].body} luckCycles={luckCycles} />
         {loading && <span className="reading-typing"> ▌</span>}
       </div>
     );

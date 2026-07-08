@@ -2284,6 +2284,17 @@ label {
   overflow-wrap: anywhere;
 }
 
+/* 소제목 없는 통짜 본문에서 떼어낸 첫 문장(리드). 줄글 벽을 최소한 스캔되게 강조한다. */
+.reading-lead {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.72;
+  color: var(--accent-strong, var(--accent));
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 /* ── 첫/마지막 점괘 히어로 ── */
 .reading-oracle {
   border: 1px solid var(--accent);
@@ -3249,6 +3260,13 @@ label {
 
 .chat-input-row input {
   flex: 1;
+  min-width: 0;
+}
+
+/* 버튼이 flex 안에서 0폭으로 찌그러져 '보/내/기'처럼 세로로 줄바꿈되던 문제 방지 */
+.chat-input-row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .chat-followup__hint,

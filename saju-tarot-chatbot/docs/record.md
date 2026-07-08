@@ -1587,3 +1587,12 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
   - `useReadingStore.ts`: 배포 사이트에서 `?model=haiku` / `?model=sonnet` 쿼리로 동일 사주를 각 모델로 뽑아 대조. 캐시 키에 model 포함(A/B 상호 덮어쓰기 방지).
 - **측정 제약**: 이 개발환경엔 `ANTHROPIC_API_KEY` 없음 + 골든 하네스는 LLM 미호출(JudgmentPack 결정론 회귀용)이라 모델 프로즈 비교 불가. **실측은 키가 있는 배포본에서 `?model=` A/B로 사용자가 수행** → 만족 시 Vercel `READING_MODEL=claude-haiku-4-5-20251001`로 기본 플립.
 - 53파일 446테스트 통과, build 통과. ADDITIVE ONLY(기본 동작 불변).
+
+## 리딩 화면 3종 개선 — 검수메모 제거·보내기버튼·구조화 (2026-07-08 추가)
+- **① 검수 메모 노출 제거**: `applyReadingValidationWarning`가 `# 검수 메모`("전문용어 73회" 등 내부 QA)를 리딩 본문에 append하던 것을 중단. 스토어(`useReadingStore.ts`)가 `validateReadingOutput`를 직접 호출해 검증은 로깅용으로만 쓰고, 표시·캐시는 원문(result.reply) 그대로. `readingValidation.ts` 함수/테스트는 불변(회귀 가드 유지). 하단 상시 안전고지는 별개라 유지.
+- **② 보내기 버튼 세로 깨짐**: `.chat-input-row .btn`에 `flex-shrink:0`+`white-space:nowrap`, input에 `min-width:0` 추가. flex에서 버튼이 0폭으로 압축돼 '보/내/기' 세로 줄바꿈되던 문제 해소(`index.css`).
+- **③ 너무 텍스트형(구조 없는 문단 벽)**: 사용자 선택 "구조화(분량 유지)".
+  - 프롬프트(`systemPrompt.ts`): `[구조 강제 — 절대 통짜 문단 금지]` 규칙 추가. 주요 섹션은 반드시 [한 줄 결론]+[쉬운 풀이]+[현실에서 나타나는 모습](목록)+[오늘 바로 할 수 있는 행동](목록), 부드러운 섹션도 예외 없음, 한 문단 3문장 이내, 나열은 '- ' 목록. 분량 축소 아님(정보량 유지).
+  - 렌더 안전망(`readingBlocks.tsx`): 대괄호 소제목이 없는 통짜 본문은 `extractLeadSentence`로 첫 문장을 리드 줄(`reading-lead`)로 분리. 월별 흐름 본문은 기존 전용 렌더 유지. 모델이 구조를 빠뜨려도 최소 스캔 훅 보장(내용 불변). Haiku 등 저모델 전환 시 특히 유효.
+  - 테스트: `readingTemplates.test.tsx`에 `extractLeadSentence` 단위 3케이스 + 통짜 섹션 리드 분리 통합 1케이스 추가.
+- 53파일 450테스트 통과, build 통과. ADDITIVE(기존 잠금 테스트 불변).
