@@ -26,4 +26,21 @@ describe("삼명통회 계열 추가 신살", () => {
     expect(at("태극귀인", "연지 오")).toBe(false);
     expect(names).not.toContain("관귀학관");
   });
+
+  it("복성귀인: 일간의 식신 천간이 드러나면 성립한다", () => {
+    // 일간 임(水)의 식신은 갑(木). 시간 갑 → 복성귀인
+    expect(at("복성귀인", "시간 갑")).toBe(true);
+  });
+
+  it("현침살: 뾰족한 획 글자(갑·오)가 2개 이상이면 성립한다", () => {
+    // 시간 갑 + 연지 오 → 현침살(집계 1건)
+    expect(names).toContain("현침살");
+    expect((chart.sinsal ?? []).filter((s) => s.name === "현침살").length).toBe(1);
+  });
+
+  it("조객살: 년지(오) 기준 -2 지지(진)가 원국에 있으면 성립한다", () => {
+    // 년지 오 → 조객 진. 시지 진 → 조객살. 상문(오+2=신)은 원국에 없어 미성립
+    expect(at("조객살", "시지 진")).toBe(true);
+    expect(names).not.toContain("상문살");
+  });
 });

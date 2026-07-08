@@ -482,6 +482,8 @@ const SAMGI: Array<{ name: string; stems: string[] }> = [
 // 오행별 양간(장생 기준용) / 고지(墓庫)
 const ELEMENT_YANG_GAN: Record<keyof FiveElementBalance, string> = { wood: "갑", fire: "병", earth: "무", metal: "경", water: "임" };
 const ELEMENT_TOMB: Record<keyof FiveElementBalance, string> = { wood: "미", fire: "술", earth: "술", metal: "축", water: "진" };
+// 현침살(懸針殺): 획이 바늘처럼 뾰족한 글자 (천간 갑·신辛 / 지지 묘·오·미·신申). 판본 차이 있어 참고용.
+const HYEONCHIM = new Set(["갑", "신", "묘", "오", "미"]);
 
 const SINSAL_GLOSS: Record<string, string> = {
   겁살: "예기치 못한 손실·강제·빼앗김의 기운. 큰 변동을 조심",
@@ -518,6 +520,10 @@ const SINSAL_GLOSS: Record<string, string> = {
   관귀학관: "학문·관운·승진에 유리한 길신 (관성의 장생지)",
   재고귀인: "재물을 쌓아두는 창고의 기운. 알뜰히 모으는 복",
   격각살: "일지와 시지가 한 칸 어긋나 매듭·지체가 생기기 쉬운 기운 (참고용)",
+  복성귀인: "의식주·재복이 따르는 길신 (일간의 식신이 드러남)",
+  현침살: "바늘처럼 예리한 기운 — 섬세함·날카로움, 말·글·의료·기술에 강하나 구설 조심 (참고용)",
+  상문살: "초상·이별 등 침체된 기운이 스치기 쉬운 때 (년지 기준, 참고용)",
+  조객살: "문상·조문처럼 가라앉은 기운이 스치기 쉬운 때 (년지 기준, 참고용)",
 };
 
 /**
@@ -639,6 +645,25 @@ function computeSinsal(
       const gap = Math.min((di - ti + 12) % 12, (ti - di + 12) % 12);
       if (gap === 2) hits.push({ name: "격각살", position: `일지 ${dayZhiPos.char}–시지 ${timeZhiPos.char}`, gloss: glossOf("격각살") });
     }
+  }
+
+  // 복성귀인 (일간의 식신에 해당하는 천간이 원국 천간에 드러남)
+  for (const g of gans) {
+    if (g.label === "일간") continue;
+    if (tenGodOf(dayGan, g.char) === "식신") hits.push({ name: "복성귀인", position: `${g.label} ${g.char}`, gloss: glossOf("복성귀인") });
+  }
+
+  // 현침살 (뾰족한 획의 글자가 원국에 2개 이상 모이면 성립 — 낱글자 1개는 과다표기라 제외)
+  const hyeonchimPos: string[] = [];
+  for (const g of gans) if (HYEONCHIM.has(g.char)) hyeonchimPos.push(`${g.label} ${g.char}`);
+  for (const z of zhis) if (HYEONCHIM.has(z.char)) hyeonchimPos.push(`${z.label} ${z.char}`);
+  if (hyeonchimPos.length >= 2) hits.push({ name: "현침살", position: hyeonchimPos.join(", "), gloss: glossOf("현침살") });
+
+  // 상문살(년지+2)·조객살(년지-2) — 원국 지지가 그 자리에 있으면 (고신·과숙과 같은 년지 기준)
+  const yi = BRANCH_ORDER.indexOf(yearZhi);
+  if (yi >= 0) {
+    pushZhi("상문살", BRANCH_ORDER[(yi + 2) % 12]);
+    pushZhi("조객살", BRANCH_ORDER[(yi + 10) % 12]);
   }
 
   return hits;
