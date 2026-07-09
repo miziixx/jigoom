@@ -5052,6 +5052,34 @@ label {
   text-align: center;
 }
 
+/* ── 신뢰 배지 (C-3, 재기획안 §7 point 4) ── */
+.trust-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 18px;
+}
+
+.trust-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+
+.trust-badge--link {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--surface);
+  text-decoration: none;
+  cursor: pointer;
+}
+
 /* ── 개인정보 전송 고지 ── */
 .privacy-note {
   margin: 4px 0 0;

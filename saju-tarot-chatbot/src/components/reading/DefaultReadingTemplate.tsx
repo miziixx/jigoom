@@ -4,6 +4,7 @@ import ActionChecklist from "../ActionChecklist";
 import TarotSummaryHero from "../TarotSummaryHero";
 import SummaryCardGrid from "../SummaryCardGrid";
 import EventForecastPanel from "../EventForecastPanel";
+import TrustBadges from "../TrustBadges";
 import GoosebumpCheck from "../GoosebumpCheck";
 import BasicReadingSection from "../BasicReadingSection";
 import PastValidationPanel from "../PastValidationPanel";
@@ -95,6 +96,9 @@ export default function DefaultReadingTemplate({
       )}
 
       <SajuPillarSnapshot sajuChart={session.sajuChart} />
+
+      {/* 신뢰 배지(재기획안 §7 point 4): 이미 계산되는 사실을 원국 바로 아래에서 짧게 보여준다. */}
+      <TrustBadges sajuChart={session.sajuChart} />
 
       {/* 평생사주형: 대운을 "인생 지도"로 원국 바로 아래에 승격 (10년 단위 큰 흐름) */}
       {promoteDaYunLifeMap && session.luckCycles?.daYun && session.luckCycles.daYun.length > 0 && (

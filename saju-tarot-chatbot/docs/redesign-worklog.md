@@ -16,23 +16,20 @@
 
 - **작업 단계:** A → (B ∥ C)  *(기획안 §11)*
 - **지금 진행 중:** A 전체 완료. **사용자 지시로 이번 세션은 C 전체 → B 전체를 연속으로 진행 중.**
-  현재 **C-1·C-2 완료**, 다음은 C-3(신뢰 배지)부터 이어서.
-- **직전 세션이 한 일:** C-2 공유 카드 (재기획안 §7 point 3) —
-  1. `shareImage.ts`의 `wrapText`/`canvasToBlob`/`safeFilePart`를 export해 재사용(동작 변경 없음,
-     기존 "전체 리딩 ZIP" 기능은 그대로 둠 — 재기획 범위 밖이라 손대지 않음).
-  2. `shareGoosebumpImage.ts` 신규: 단일 PNG 카드. **주의:** `shareImage.ts`의 기존 카드는 보라색
-     그라데이션 테마인데, 이건 재기획 불변식(§12 "그라데이션 금지·한지 팔레트 유지") 위반이라
-     새 카드는 그 테마를 따르지 않고 `index.css`의 실제 한지 팔레트 값을 그대로 캔버스에 적용함
-     (단색만, 그라데이션 없음).
-  3. `GoosebumpCheck.tsx`: 모든 소름 카드에 답한 뒤 "결과 카드 저장하기" 버튼 노출, 클릭 시
-     이번 리딩에서 답한 것만 모아 PNG 다운로드.
-  4. 검증: 캔버스 코드는 이 저장소에 테스트 사례가 없어(순수 node 테스트 환경, jsdom 없음 —
-     `shareImage.ts`도 테스트 0개) 같은 컨벤션을 따름, 새 유닛 테스트 추가 안 함. 대신
-     **Playwright로 실제 다운로드 이벤트를 가로채 PNG 저장까지 확인** — 헤드라인이 시안의
-     예시 문구("과거 흐름 3개 중 3개 적중")와 정확히 일치하는 카드가 실제로 나오는 것을 확인.
-     전체 스위트 663/663 통과(신규 없음, 회귀 없음), `tsc --noEmit` 클린, `npm run build` 성공.
-- **다음에 할 일:** C-3(신뢰 배지 표면화) 착수 — 진태양시/서머타임 보정, 계산 근거 공개, 4대 고전
-  교차검증을 사용자에게 보이는 배지/페이지로. 그 다음 C-4(사이드바) → B-1~B-3 순.
+  현재 **C-1·C-2·C-3 완료**, 다음은 C-4(사이드바)부터 이어서.
+- **직전 세션이 한 일:** C-3 신뢰 배지 표면화 (재기획안 §7 point 4) —
+  1. `src/pages/MethodologyPage.tsx` 신규("어떻게 계산하나요?") — 서머타임/진태양시 보정, 4대 고전
+     (자평진전·연해자평·궁통보감·삼명통회) 교차검증, 계산 근거 전체 공개를 쉬운 말로 설명.
+     `docs/four-classics-engine.md`·`saju.ts`의 `correctBirthTime` 주석 내용을 사용자 카피로 번역.
+     **한계도 정직하게 명시**(판본 이견, 참고용 성격) — 과장하지 않음. `/methodology` 라우트 추가,
+     `Layout.tsx` 푸터에 임시 링크(C-4가 정식 사이드바 메뉴로 승격 예정).
+  2. `src/components/TrustBadges.tsx` 신규 — 새 계산 없이 이미 계산된 사실(`sajuChart.timeCorrection`)만
+     배지로 노출. `DefaultReadingTemplate.tsx`에서 `SajuPillarSnapshot` 바로 아래 마운트.
+  3. 검증: 테스트 7개 신규, **전체 670/670 통과**, `tsc --noEmit` 클린, `npm run build` 성공.
+     **+ Playwright로 실제 배지 렌더 + "어떻게 계산하나요?" 클릭 → 새 페이지 이동까지 스크린샷 확인.**
+- **다음에 할 일:** C-4(사이드바, 프로필 전환 포함) 착수 — `Layout.tsx`의 flat 9-링크 nav를 햄버거
+  메뉴로. 저장된 사주 전환은 `profile.ts`(현재 단일 프로필만) 확장 또는 `loadSessions()`의
+  birthInfo dedup 필요. 그 다음 B-1~B-3 순.
   별도로: API 키 있는 환경에서 A-2 토픽 심화 5종 실제 생성물 육안 검증 필요(누적된 항목, 아직 미해결).
 - **설계 결정 (다음 세션 참고):** 기획안 §3 문구는 "JudgmentPack → 한국어 렌더"이지만, 실제
   `JudgmentPack.judgments`를 소비하는 렌더러 대신 **기존 5개 엔진을 그대로 재사용**하는 쪽을
@@ -72,7 +69,8 @@
       `goosebumpEngine.ts`+`GoosebumpCheck.tsx`, 블록 1로 마운트, 브라우저 검증 완료.
 - [x] C-2. 공유 카드 (shareImage 재활용). `shareGoosebumpImage.ts` — 한지 팔레트 단일 PNG,
       실제 다운로드까지 브라우저 검증 완료.
-- [ ] C-3. 신뢰 배지 표면화 (분 단위 보정·4대 고전·근거 공개)
+- [x] C-3. 신뢰 배지 표면화 (분 단위 보정·4대 고전·근거 공개). `MethodologyPage.tsx`+`TrustBadges.tsx`,
+      `/methodology` 라우트, 브라우저 검증 완료.
 - [ ] C-4. 사이드바 (프로필 전환 포함, 기획안 §5)
 
 > A~C 뒤: 토픽 5종 템플릿 확장 · 카드 홈 전면 개편 · 가격 노출.
@@ -93,6 +91,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-09 | Sonnet 5 | C-3 신뢰 배지: `MethodologyPage.tsx`(어떻게 계산하나요, 4대 고전·시간보정·근거공개 설명)+`TrustBadges.tsx`(원국 아래 마운트)+`/methodology` 라우트, 테스트 7개, 670/670 통과, Playwright로 배지·페이지 이동 확인 | C-4(사이드바) → B-1~3, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | C-2 공유 카드: `shareGoosebumpImage.ts` 신규(한지 팔레트 단일 PNG, 그라데이션 없음), shareImage.ts 유틸 export 재사용, GoosebumpCheck에 저장 버튼, Playwright로 실제 PNG 다운로드까지 확인(캔버스라 유닛테스트는 기존 컨벤션대로 없음) | C-3(신뢰 배지) → C-4 → B-1~3, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | C-1 소름 엔진: `goosebumpEngine.ts`(강한 신호만 후보, 빈 배열 허용)+`goosebumpStorage.ts`+`GoosebumpCheck.tsx`(블록 1로 마운트), saju.ts에 `computePastYearRawSignals` 추가, 테스트 22개, 663/663 통과, Playwright로 클릭→답변 전환까지 확인 | C-2(공유 카드) → C-3 → C-4 → B-1~3, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | A-2 파이프라인: analysisMode="topicDeep"+TopicDeepTopic 신규, systemPrompt에 5토픽 전용 5섹션 지시(JudgmentPack domain 필터 재사용, 새 근거 없음), fan-out 제외, 서버측 Haiku 강제, 테스트 10개, 637/637 통과. CTA 클릭 연결·실생성 검증은 미완(제품 결정/API 키 필요) | A-2 UI 연결 또는 A-3 착수 |

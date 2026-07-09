@@ -36,7 +36,7 @@ export default function Layout() {
       </main>
       <footer className="app-footer">
         이 리딩은 자기이해와 판단 보조용입니다. 의학·법률·투자 등 중대한 결정의 근거로 사용하지 마세요.{" "}
-        <Link to="/privacy">개인정보 안내</Link>
+        <Link to="/methodology">어떻게 계산하나요?</Link> · <Link to="/privacy">개인정보 안내</Link>
       </footer>
     </div>
   );

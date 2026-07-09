@@ -12,6 +12,7 @@ import ComparePage from "./pages/ComparePage";
 import CompatibilityPage from "./pages/CompatibilityPage";
 import NamingPage from "./pages/NamingPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import MethodologyPage from "./pages/MethodologyPage";
 import QualityDashboardPage from "./pages/QualityDashboardPage";
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="history" element={<HistoryPage />} />
           <Route path="compare" element={<ComparePage />} />
           <Route path="privacy" element={<PrivacyPage />} />
+          <Route path="methodology" element={<MethodologyPage />} />
           {/* 개발자 전용 운영 화면. 접근 제한은 페이지 내부(isQualityDashboardEnabled)에서 처리 */}
           <Route path="_internal/quality" element={<QualityDashboardPage />} />
         </Route>
