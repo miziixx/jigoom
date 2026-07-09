@@ -1799,3 +1799,53 @@ JudgmentPack Evidence Gate가 실제로 켜지도록 재배선.
 존재해도 한 번도 안 켜졌음), 스테이징에서 실제 사용자 시나리오로 한 번 더 눈으로 확인 권장 —
 특히 재작성(rewrite)이 걸리는 케이스와, `[JudgmentPack 활용 안내]`가 모델에게 "원자료를 새로
 펼치지 마라"고 지시하는 게 실제 출력 품질에 어떤 영향을 주는지.
+
+## 유료(고급) 리딩 신뢰 역전 해결 — JudgmentPack 앵커링 + 용신 참조 + 무료 시기 티저 (2026-07-09)
+
+**배경(핸드오프 스펙):** 유료(고급)가 무료(기본)보다 검증이 느슨하고(원자료+Content Gate) 자유도가
+커서, 같은 사주로 두 깊이를 돌리면 판단 방향이 어긋날 수 있는 "신뢰 역전" 위험. + 용신이 근거엔
+있으나 프롬프트에서 논리축으로 명시 참조되지 않음. + 무료에 시기/택일 궁금증을 여는 훅이 없음.
+
+**0단계 확인 결과:**
+- 용신: 계산·전달은 있음(`saju.ts` 억부 `suggestYongshin` + 조후 `climaticYongshin`/`climaticClassicYongshin`
+  + 통관 `mediatingYongshin`, `compactEvidence.ts`가 `chart.useful_elements` evidence로 직렬화, 고급
+  원자료 `formatSajuChart`에도 "용신 후보 —" 노출). 다만 JudgmentPack 프롬프트 출력엔 항상 뜨지 않았고,
+  직업/재물/[추천]/3개월 섹션이 용신을 논리축으로 삼으라는 명시 지시가 없었음 → 3단계는 "프롬프트 참조 보강" 경로.
+- 고급 분기(`buildReadingUserMessage`의 `else if (facts.sajuChart)`)는 JudgmentPack을 아예 안 받고
+  원자료만 받았음 → 신뢰 역전 구조 확인.
+- 게이트: `api/reading.ts`가 `buildReadingJudgmentPack`(기본에서만 non-null)로 게이트를 라우팅 →
+  기본=Evidence Gate, 고급=Content Gate 확정.
+- 직업/재물 역할 분리는 이미 프롬프트에 있었음(`# 직업과 돈`=일·커리어, `# 재물 흐름`=돈 관리 습관) → 4단계는 경미.
+
+**1단계 — 고급 JudgmentPack 앵커링 (최우선):**
+- `src/prompts/systemPrompt.ts`: `buildAnchorJudgmentPack(facts)` 신설 — 고급 saju/combo에서만 팩을
+  만들어, 고급 분기에 `formatJudgmentPackForPrompt(pack, "anchor")`로 원자료 **앞에** 주입.
+  **`buildReadingJudgmentPack`(기본 전용, 게이트 라우팅용)과 분리**한 이유: 고급에서 non-null 팩이
+  나오면 `api/reading.ts`가 고급을 Evidence Gate로 오라우팅해 심화 확장이 죽기 때문. 게이트는 그대로
+  Content Gate 유지.
+- `src/lib/judgmentPrompt.ts`: `formatJudgmentPackForPrompt(pack, mode)` — `mode: "gate"|"anchor"`.
+  gate=기존 "번역만 해라" 프레이밍(기본), anchor=고급용 "이건 앵커. 원자료로 더 깊게 해석하되 최종
+  방향(길흉·강약·추천/회피)은 앵커와 모순 금지, 원자료는 왜/얼마나/언제를 설명하는 데만" 프레이밍.
+
+**2단계 — 무료 시기 티저:** `DEFAULT_STANDARD_INSTRUCTION`(기본 전용)의 `# 올해의 흐름`에 흐름이 크게
+바뀌는 시점 1~2개를 방향성 수준으로만 언급 허용 + "정밀 택일/3개월 전략/사건 점수는 고급의 몫" 재확인
++ 정보의 연장선 톤으로 딱 한 줄 전환 유도("구체적으로 어느 시기에 무엇을…는 고급 리딩에서 월 단위로").
+과한 세일즈·불안 자극·반복 금지 명시. (CLAUDE.md "결제 유도로 비워둔 느낌 금지"와 균형: 기본 콘텐츠는
+그대로 두고 훅+한 줄 포인터만 추가.)
+
+**3단계 — 용신 참조 보강:** `judgmentPrompt.ts`가 `chart.useful_elements` 근거를 뽑아 gate/anchor 양쪽
+출력에 "보완하면 좋은 기운(용신·희신)…" 라인을 항상 노출. 프롬프트에서 `# 직업과 돈`·`# 재물 흐름`·
+`[추천]`(RECOMMENDATION_PART_INSTRUCTION)·`# 3개월 실행 전략`(DEPTH_INSTRUCTION)이 이 기운을 논리축으로
+삼도록 지시(용어는 표면 금지, 쉬운 말로 번역·전문가 근거에만 용어).
+
+**4단계 — 직업/재물 역할 선명화:** `# 직업과 돈`=원국 기반 '구조적'(적성·직업 방향), `# 재물 흐름`=
+'돈 다루는 습관·성향'으로 레인을 더 또렷이 하고, 대운·세운에 따른 '시점' 판단은 인생의 큰 흐름/올해의
+흐름 담당임을 명시(두 섹션에서 시기 예언 반복 금지).
+
+**검증**: `npx tsc -b` 클린, `npm test` 575 통과, `npm run build` 통과. 임시 스크립트로 실제
+`buildReadingUserMessage` 출력 확인 — 기본: `[JudgmentPack — 계산됨]`만, 고급: `JudgmentPack 앵커`+
+`[상세 계산 근거]` 병행, 양쪽 모두 "보완하면 좋은 기운" 노출.
+
+**남은 것/주의:** 2단계의 유료 전환 한 줄은 CLAUDE.md의 "결제 유도로 비워둔 느낌 절대 금지"와 경계선에
+있으니, 스테이징에서 실제 출력이 세일즈처럼 읽히지 않는지 눈으로 확인 권장. 앵커링이 고급의 "심화 확장"을
+실제로 살리는지(앵커에 갇혀 기본과 똑같아지지 않는지)도 실사용 대조 필요.

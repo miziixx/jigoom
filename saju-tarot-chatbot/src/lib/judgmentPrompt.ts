@@ -36,10 +36,29 @@ function formatJudgment(j: JudgmentCandidate, index: number): string {
   return lines.join("\n");
 }
 
-export function formatJudgmentPackForPrompt(pack: JudgmentPack): string {
-  const role =
-    "[판단 묶음 — 이 리딩은 아래 계산된 판단만 근거로 쓴다] " +
-    "역할: judgments의 결론(plainConclusion)을 상담 문장으로 번역만 한다. judgments에 없는 새 결론 생성, forbiddenClaims에 해당하는 표현, 근거 없는 퇴사·창업·결혼·투자·질병 결론은 쓰지 마라. 확신도가 낮거나 반대 근거가 있으면 그만큼 말투를 낮춰라.";
+// 기본(무료) 리딩용: JudgmentPack만 근거로 삼는 빡센 Evidence Gate 프레이밍.
+const GATE_ROLE =
+  "[판단 묶음 — 이 리딩은 아래 계산된 판단만 근거로 쓴다] " +
+  "역할: judgments의 결론(plainConclusion)을 상담 문장으로 번역만 한다. judgments에 없는 새 결론 생성, forbiddenClaims에 해당하는 표현, 근거 없는 퇴사·창업·결혼·투자·질병 결론은 쓰지 마라. 확신도가 낮거나 반대 근거가 있으면 그만큼 말투를 낮춰라.";
+
+// 고급(유료) 리딩용: 원자료로 더 깊게 확장하되, 결론 방향은 이 판단에 앵커링한다.
+// 기본과 신뢰가 어긋나지 않게 '바닥'을 깔아주는 것이지, 확장을 가두는 게 아니다.
+const ANCHOR_ROLE =
+  "[검증된 판단 — JudgmentPack 앵커] 아래는 이미 계산·검증이 끝난 결론(앵커)이다. " +
+  "원자료로 더 깊고 촘촘하게 해석하되, 각 판단의 최종 방향(길/흉, 강/약, 추천/회피)은 이 앵커와 모순되면 안 된다. " +
+  "원자료는 '왜 / 얼마나 / 언제'를 더 자세히 설명하는 데 쓰고, 결론 자체를 뒤집는 데 쓰지 마라. " +
+  "만약 원자료 해석이 이 앵커와 어긋나면 앵커를 따른다. 확신도가 낮거나 반대 근거가 있는 판단은 그만큼 말투를 낮추고, " +
+  "forbiddenClaims에 해당하는 표현과 근거 없는 퇴사·창업·결혼·투자·질병 단정은 고급에서도 금지다.";
+
+/** pack.evidence에서 용신(보완하면 좋은 기운) 근거를 뽑아 항상 프롬프트에 노출한다. */
+function usefulElementsLine(pack: JudgmentPack): string {
+  const ref = pack.evidence.find((r) => r.id === "chart.useful_elements.candidates");
+  if (!ref) return "";
+  return `\n\n■ 보완하면 좋은 기운(용신·희신)과 과하면 부담되는 기운(기신): ${ref.summary}\n   → 직업·개운 방향, [추천], 재물 습관 조언은 이 '보완하면 좋은 기운'을 논리축으로 삼아 설명하고, 이와 무관한 조언을 지어내지 마라. 단 '용신·기신' 같은 용어는 표면에 쓰지 말고 쉬운 말로 옮겨라.`;
+}
+
+export function formatJudgmentPackForPrompt(pack: JudgmentPack, mode: "gate" | "anchor" = "gate"): string {
+  const role = mode === "anchor" ? ANCHOR_ROLE : GATE_ROLE;
 
   const body =
     pack.judgments.length > 0
@@ -53,5 +72,5 @@ export function formatJudgmentPackForPrompt(pack: JudgmentPack): string {
 
   const globalForbidden = forbidden(pack.globalForbiddenClaims);
 
-  return `${role}\n\n■ 판단들\n${body}${contradictions}\n\n■ 공통 금지 표현: ${globalForbidden}`;
+  return `${role}\n\n■ 판단들\n${body}${contradictions}${usefulElementsLine(pack)}\n\n■ 공통 금지 표현: ${globalForbidden}`;
 }
