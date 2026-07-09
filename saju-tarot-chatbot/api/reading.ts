@@ -569,6 +569,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 tiredStyle: clampText(context.selfCheck.tiredStyle, MAX_CONTEXT_FIELD_LEN) ?? context.selfCheck.tiredStyle,
               }
             : context.selfCheck,
+          partnerCheck: context.partnerCheck
+            ? {
+                whoContacts: clampText(context.partnerCheck.whoContacts, MAX_CONTEXT_FIELD_LEN) ?? context.partnerCheck.whoContacts,
+                onlineOfflineGap: clampText(context.partnerCheck.onlineOfflineGap, MAX_CONTEXT_FIELD_LEN) ?? context.partnerCheck.onlineOfflineGap,
+                makesPlans: clampText(context.partnerCheck.makesPlans, MAX_CONTEXT_FIELD_LEN) ?? context.partnerCheck.makesPlans,
+                wordsMatchActions: clampText(context.partnerCheck.wordsMatchActions, MAX_CONTEXT_FIELD_LEN) ?? context.partnerCheck.wordsMatchActions,
+                publicness: clampText(context.partnerCheck.publicness, MAX_CONTEXT_FIELD_LEN) ?? context.partnerCheck.publicness,
+                knownDuration: clampText(context.partnerCheck.knownDuration, MAX_CONTEXT_FIELD_LEN) ?? context.partnerCheck.knownDuration,
+                recentMood: clampText(context.partnerCheck.recentMood, MAX_CONTEXT_FIELD_LEN) ?? context.partnerCheck.recentMood,
+              }
+            : context.partnerCheck,
+          // 상대 완전분석 근거 블록(클라이언트 조립). 여러 블록이라 개별 필드보다 크게 잡되 상한은 둔다.
+          counterpart: clampText(context.counterpart, 8000) ?? context.counterpart,
         }
       : context;
 

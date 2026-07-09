@@ -3535,6 +3535,40 @@ label {
   margin: 0;
 }
 
+/* 상대 완전분석 토글 (궁합 페이지) — self-deep-toggle과 동일 결 */
+.person-deep-toggle {
+  margin-top: 16px;
+}
+
+.person-deep-toggle .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 상대 완전분석 미리보기(무료 일부 노출) */
+.person-deep-teaser {
+  border: 1px dashed var(--accent-soft, rgba(126, 86, 42, 0.35));
+  margin-top: 16px;
+}
+
+.person-deep-teaser__hook {
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.person-deep-teaser__tiers {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin: 0 0 8px;
+}
+
+.person-deep-teaser__cta {
+  font-size: 0.86rem;
+  color: var(--text-dim);
+  margin: 0;
+}
+
 /* PDF 저장(인쇄): 리딩 내용만 밝은 배경으로 출력 */
 @media print {
   :root {

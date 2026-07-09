@@ -2497,7 +2497,7 @@ function relationToneFromDayBranches(dayA: string, dayB: string): { title: strin
   };
 }
 
-function roleChemistry(chartA: SajuChart, chartB: SajuChart, roleLabels = { first: "나", second: "상대" }): CompatibilityResult["roleChemistry"] {
+export function roleChemistry(chartA: SajuChart, chartB: SajuChart, roleLabels = { first: "나", second: "상대" }): CompatibilityResult["roleChemistry"] {
   const aSeesB = tenGodOf(chartA.dayMasterGan, chartB.dayMasterGan);
   const bSeesA = tenGodOf(chartB.dayMasterGan, chartA.dayMasterGan);
   return [
@@ -2739,7 +2739,7 @@ function compatibilityTiming(birthA: BirthInfo, birthB: BirthInfo, chartA: SajuC
   ];
 }
 
-function compatibilityRepairReport(
+export function compatibilityRepairReport(
   score: number,
   branches: ReturnType<typeof crossBranchRelations>,
   elements: ReturnType<typeof yongshinComplement>,

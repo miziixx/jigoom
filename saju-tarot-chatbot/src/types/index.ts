@@ -21,8 +21,9 @@ export type BirthTimeAccuracy = "exact" | "half-hour" | "over-hour" | "unknown";
  * 완전분석 모드. 표준 섹션 대신 전용 출력 구조를 쓴다.
  * 새 depth/ReadingType를 늘리지 않고 기존 saju 파이프라인 위에 얹기 위한 플래그.
  * - selfDeep: 자기 완전분석(12블록 심층 리포트).
+ * - personDeep: 상대 완전분석(상대 작동방식 16항목 해부). 주체=상대(B), 나(A)는 counterpart 근거로 주입.
  */
-export type AnalysisMode = "selfDeep";
+export type AnalysisMode = "selfDeep" | "personDeep";
 
 /** 자기 완전분석용 행동 체크(선택). 전부 자유입력, 계산에는 영향 없음(해석 정확도 보조). */
 export interface SelfBehaviorCheck {
@@ -38,6 +39,24 @@ export interface SelfBehaviorCheck {
   moneyFeeling?: string;
   /** 지치면 사람을 만나는지 숨는지 */
   tiredStyle?: string;
+}
+
+/** 상대 완전분석용 행동 체크(선택). 전부 자유입력, 계산에는 영향 없음(해석 정확도·말행동 대조 보조). */
+export interface PartnerBehaviorCheck {
+  /** 연락은 주로 누가 먼저 하는지 */
+  whoContacts?: string;
+  /** 직접 만날 때 vs 카톡·문자일 때 태도 차이 */
+  onlineOfflineGap?: string;
+  /** 약속을 먼저 잡는 편인지 */
+  makesPlans?: string;
+  /** 말과 행동이 일치하는 편인지 */
+  wordsMatchActions?: string;
+  /** 관계를 주변에 공개하는지 */
+  publicness?: string;
+  /** 알게 된 기간 */
+  knownDuration?: string;
+  /** 최근 분위기 */
+  recentMood?: string;
 }
 
 export interface ReadingContext {
@@ -61,6 +80,13 @@ export interface ReadingContext {
   analysisMode?: AnalysisMode;
   /** 자기 완전분석용 행동 체크 (선택, 계산 불변) */
   selfCheck?: SelfBehaviorCheck;
+  /** 상대 완전분석용 행동 체크 (선택, 계산 불변) */
+  partnerCheck?: PartnerBehaviorCheck;
+  /**
+   * 상대 완전분석(personDeep) 전용: 나(A) 원국을 상대(B) 리딩에 부가 근거로 넣기 위해
+   * 클라이언트(CompatibilityPage)에서 미리 조립한 근거 블록. buildPersonDeepEvidence 결과 문자열.
+   */
+  counterpart?: string;
 }
 
 // ── 과거 검증 (실제 과거 사건 → 계산 흐름 부합도 → 해석 신뢰도 보정) ──────────

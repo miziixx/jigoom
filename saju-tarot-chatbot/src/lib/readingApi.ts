@@ -111,8 +111,9 @@ function shouldFanOut(body: unknown): body is FanOutBody {
   const b = body as FanOutBody;
   // 자기 완전분석(selfDeep)은 표준 섹션이 아닌 전용 12블록 구조라, 앞/뒤 섹션 분할(front/back)과 맞지 않는다.
   // 통짜 단일 스트림+이어쓰기로 생성한다.
+  // 상대 완전분석(personDeep)도 전용 16항목 구조라 front/back 분할과 안 맞아 통짜 생성한다.
   const analysisMode = (b.context as { analysisMode?: unknown } | undefined)?.analysisMode;
-  if (analysisMode === "selfDeep") return false;
+  if (analysisMode === "selfDeep" || analysisMode === "personDeep") return false;
   // 깊이(기본/고급) 상관없이 saju/combo는 항상 앞/뒤 병렬 fan-out을 탄다. 기본도 advanced와 똑같이
   // 11개 안팎 섹션을 순서대로 다 쓰므로, 병렬화 없이 통짜 스트림+이어쓰기만 타면 체감 지연이 크다.
   // 내용 구조는 systemPrompt.ts 쪽 변경이 없으니 분량·깊이는 그대로이고, 요청 경로만 병렬화된다.

@@ -1918,3 +1918,45 @@ JudgmentPack Evidence Gate가 실제로 켜지도록 재배선.
 
 **주의**: 점수 분포가 이전보다 배우자궁·용신에 민감해짐(일지충 커플은 뚜렷이 하락). `dayMasterRelation`/
 `yongshinComplement`/`johuComplement`는 테스트용으로 export함. 실결제/자기·상대 완전분석은 별건.
+
+### 상대 완전분석(personDeep) 1차 — Phase 2 (2026-07-09)
+
+Phase 1 selfDeep의 상대판. 궁합 엔진 위에 "그 사람의 작동방식"을 16항목으로 해부하는 완전분석
+모드를 추가. **분류기 함정 회피**: 새 taxonomy 엔진을 만들지 않고, 이미 계산된 심리 엔진을 상대
+원국(chartB)에 적용해 나온 신호를 규칙으로 파생(= selfDeep의 deriveShadow와 동일 방식). 결정론
+계산·궁합 점수 로직 불변.
+
+**아키텍처 사실(설계 근거)**: 궁합은 ReadingType이 아니고 AI 파이프라인을 안 탐(computeCompatibility
+직접 호출 후 결정론 렌더). 리딩 파이프라인은 단일 주체(birthInfo 1개). 그래서 상대 완전분석은
+**saju 리딩 + analysisMode:"personDeep"** 으로 얹고, 주체=상대(B), 나(A)는 클라이언트(CompatibilityPage)가
+조립한 근거 블록을 `context.counterpart`로 주입(P2 방식).
+
+**변경 파일**:
+- `src/lib/saju.ts`: `roleChemistry`/`compatibilityRepairReport`를 `export`화(로직 불변).
+- `src/types/index.ts`: `AnalysisMode += "personDeep"`, `PartnerBehaviorCheck`, `ReadingContext.partnerCheck`/`counterpart`.
+- `src/lib/personDeep.ts`(신규): `computePersonProfile`(좋아할때/불안할때/거절/질투/미련·식을때 + 끌림/부담 +
+  말·행동 불일치 — 전부 buildPsychLayer(chartB)/buildCapacityAxes(chartB)/roleChemistry(A,B)에서 규칙 파생),
+  `buildPersonDeepEvidence`(근거+활용안내 직렬화, 타로 주입 자리 스캐폴딩). deriveShadow/buildConfidenceTiers는
+  selfDeep에서 재사용.
+- `src/prompts/systemPrompt.ts`: `PERSON_DEEP_INSTRUCTION`(16항목), `personDeep` 분기(표준/깊이 섹션 미배선),
+  `context.counterpart` 주입.
+- `src/lib/readingApi.ts`: personDeep도 fan-out 제외(통짜 생성).
+- `api/reading.ts`: `partnerCheck`/`counterpart` clampText 방어.
+- `src/pages/CompatibilityPage.tsx`: 완전분석 토글(프리미엄 게이팅) + 상대 행동체크 입력 + saju personDeep
+  리딩 렌더(ReadingResult 재사용). `src/components/PersonDeepTeaser.tsx`(신규) 무료 미리보기.
+- `src/lib/premium.ts`: `PREMIUM_FEATURES += "상대 완전분석"`. `src/index.css`: person-deep 스타일.
+
+**출력 구조(16항목)**: 핵심 기질/겉과 속/감정 구조/무엇을 원하나/좋아할 때/불안할 때/거절·선 긋는 방식/
+질투·집착/미련·식을 때/나에게 끌리는 지점/나에게 부담인 지점/말과 행동 불일치/반복되는 관계 패턴/
+나와 있을 때의 케미/지혜롭게 다루는 법/확실·추정·확인 필요. 차별점은 "말과 행동 불일치"(겉속 대비)와
+"식을 때/미련"(반복 병목). 궁합 점수 환원 금지.
+
+**검증**: `npx tsc -b` 클린, `npm test` 618 통과(606+12 신규), `npm run build` 통과. 임시 스크립트로
+buildPersonDeepEvidence 실제 출력 대조 — taxonomy가 상대 원국별로 다르게 나오고, 행동체크 있으면
+관계 신뢰도 확실로 상향·[상대 행동 체크] 블록 주입, 시기는 hasLuck 없어 확인 필요, 표면 용어/진단명
+미노출 확인.
+
+**남은 것/주의**: (1) 스테이징 실사용 대조(ANTHROPIC_API_KEY 필요) — 16블록이 실제로 나오는지, 상대
+작동방식이 "이 사람만"인지, 무료 미리보기 vs 유료 차이. (2) 타로 오버레이는 buildPersonDeepEvidence의
+`tarotNote` 주입 자리만 있고 카드 뽑기 UI는 미구현(후속). (3) 프리미엄 게이트는 localStorage 스텁(실결제
+별건). (4) personDeep은 상대 출생시간 정확도가 낮으면 confidence가 떨어지므로 UI에서 시간 입력 유도 여지.

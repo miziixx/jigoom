@@ -22,4 +22,4 @@ export function lockPremium(): void {
 }
 
 /** 프리미엄으로 분류된 기능 목록 (수익화 구조의 뼈대) */
-export const PREMIUM_FEATURES = ["AI 리딩 비교 분석", "자기 완전분석"] as const;
+export const PREMIUM_FEATURES = ["AI 리딩 비교 분석", "자기 완전분석", "상대 완전분석"] as const;

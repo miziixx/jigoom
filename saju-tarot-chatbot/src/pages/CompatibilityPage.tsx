@@ -1,10 +1,28 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Gauge, { tierWord } from "../components/Gauge";
 import ArcGauge from "../components/viz/ArcGauge";
 import { VizIcon } from "../components/viz/icons";
+import ReadingResult from "../components/ReadingResult";
+import ReadingActions from "../components/ReadingActions";
+import FeedbackBar from "../components/FeedbackBar";
+import KeywordCloud from "../components/KeywordCloud";
+import ChatFollowUp from "../components/ChatFollowUp";
+import LoadingNotice from "../components/LoadingNotice";
+import PersonDeepTeaser from "../components/PersonDeepTeaser";
 import { BIRTH_PLACES } from "../data/birthPlaces";
-import { computeCompatibility } from "../lib/saju";
-import type { BirthInfo, CalendarType, CompatibilityRelationType, CompatibilityResult, Gender, LateNightZiMode } from "../types";
+import { computeCompatibility, computeSajuChart } from "../lib/saju";
+import { buildPersonDeepEvidence } from "../lib/personDeep";
+import { isPremium, unlockPremium } from "../lib/premium";
+import { useReadingStore } from "../store/useReadingStore";
+import type {
+  BirthInfo,
+  CalendarType,
+  CompatibilityRelationType,
+  CompatibilityResult,
+  Gender,
+  LateNightZiMode,
+  PartnerBehaviorCheck,
+} from "../types";
 
 /**
  * 세부 흐름(breakdown)을 N축 폴리곤 레이더로 요약한다. 꼭짓점 라벨은 점수 대신
@@ -99,6 +117,17 @@ const RELATION_OPTIONS: Array<{ value: CompatibilityRelationType; label: string 
   { value: "bossEmployee", label: "사장·직원" },
   { value: "coworker", label: "업무·협업" },
   { value: "friend", label: "친구·지인" },
+];
+
+// 상대 완전분석용 행동 체크 필드 (전부 선택, 계산 불변, 말·행동 대조 보조)
+const PARTNER_CHECK_FIELDS: Array<{ key: keyof PartnerBehaviorCheck; label: string; placeholder: string }> = [
+  { key: "whoContacts", label: "연락은 주로 누가 먼저", placeholder: "예: 거의 내가 먼저 / 반반 / 상대가 먼저" },
+  { key: "onlineOfflineGap", label: "만날 때 vs 카톡·문자 태도차", placeholder: "예: 만나면 다정한데 톡은 단답" },
+  { key: "makesPlans", label: "약속을 먼저 잡는 편인지", placeholder: "예: 내가 잡아야 만난다 / 상대가 잘 잡는다" },
+  { key: "wordsMatchActions", label: "말과 행동이 일치하는지", placeholder: "예: 말은 잘하는데 약속은 자주 미룬다" },
+  { key: "publicness", label: "관계를 주변에 공개하는지", placeholder: "예: 아직 아무도 모른다 / 다 안다" },
+  { key: "knownDuration", label: "알게 된 기간", placeholder: "예: 3개월 / 2년" },
+  { key: "recentMood", label: "최근 분위기", placeholder: "예: 요즘 연락이 뜸해졌다" },
 ];
 
 interface PersonInput {
@@ -262,6 +291,15 @@ export default function CompatibilityPage() {
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // 상대 완전분석(personDeep): 프리미엄 토글 + 상대 행동체크 → saju AI 리딩(주체=상대)
+  const { currentSession, loading, error: readingError, startReading, sendFollowUp, clearCurrentSession } = useReadingStore();
+  const [personDeepOn, setPersonDeepOn] = useState(false);
+  const [partnerCheck, setPartnerCheck] = useState<PartnerBehaviorCheck>({});
+  const [premium, setPremium] = useState(() => isPremium());
+  const showPersonDeep = currentSession?.type === "saju" && currentSession.context?.analysisMode === "personDeep";
+
+  const setPartner = (patch: Partial<PartnerBehaviorCheck>) => setPartnerCheck((prev) => ({ ...prev, ...patch }));
+
   const filled = (p: PersonInput) => p.year !== "" && p.month !== "" && p.day !== "";
   const canSubmit = filled(personA) && filled(personB);
 
@@ -278,6 +316,73 @@ export default function CompatibilityPage() {
     } catch {
       setError("궁합 계산에 실패했어요. 생년월일을 다시 확인해 주세요.");
     }
+  }
+
+  // 결정론 궁합 결과 아래 미리보기용 원국(입력이 유효할 때만).
+  const teaserCharts = useMemo(() => {
+    if (!result) return null;
+    try {
+      return { chartA: computeSajuChart(toBirthInfo(personA)), chartB: computeSajuChart(toBirthInfo(personB)) };
+    } catch {
+      return null;
+    }
+  }, [result, personA, personB]);
+
+  function handlePersonDeep() {
+    setError(null);
+    try {
+      const birthB = toBirthInfo(personB);
+      const chartA = computeSajuChart(toBirthInfo(personA));
+      const chartB = computeSajuChart(birthB);
+      const timeAccuracy = personB.hour === "unknown" ? "unknown" : "exact";
+      const hasPartnerCheck = Object.values(partnerCheck).some((v) => v && v.trim());
+      const cp = buildPersonDeepEvidence({
+        chartB,
+        chartA,
+        relationType,
+        hasLuck: false,
+        timeAccuracy,
+        partnerCheck: hasPartnerCheck ? partnerCheck : undefined,
+      });
+      const counterpart = cp ? `${cp.evidence}\n\n${cp.instruction}` : undefined;
+      startReading({
+        type: "saju",
+        question: question || "이 사람은 어떤 사람인가요?",
+        birthInfo: birthB,
+        context: {
+          analysisMode: "personDeep",
+          depth: "advanced",
+          counterpart,
+          partnerCheck: hasPartnerCheck ? partnerCheck : undefined,
+          timeAccuracy,
+        },
+        saveToHistory: false,
+      });
+    } catch {
+      setError("상대 완전분석 생성에 실패했어요. 생년월일을 다시 확인해 주세요.");
+    }
+  }
+
+  if (showPersonDeep && currentSession) {
+    return (
+      <section className="page">
+        <h2 className="page-title">상대 완전분석</h2>
+        <p className="page-desc">상대의 사주 원국으로 "그 사람의 작동방식"을 16단계로 해부합니다. 관계 점수가 아니라 실제 행동 기준으로 읽어드려요. (참고용)</p>
+        <ReadingResult session={currentSession} loading={loading} />
+        {!loading && (
+          <>
+            <ReadingActions session={currentSession} />
+            <FeedbackBar session={currentSession} />
+            <KeywordCloud session={currentSession} />
+            <ChatFollowUp session={currentSession} onSend={sendFollowUp} loading={loading} />
+          </>
+        )}
+        {readingError && <p className="error-text">{readingError}</p>}
+        <button className="btn btn--ghost" onClick={clearCurrentSession}>
+          궁합으로 돌아가기
+        </button>
+      </section>
+    );
   }
 
   const meTitle = relationType === "bossEmployee" ? (workRole === "meBoss" ? "나 · 사장" : "나 · 직원") : "나";
@@ -333,6 +438,62 @@ export default function CompatibilityPage() {
         궁합 보기
       </button>
       {error && <p className="error-text">{error}</p>}
+
+      <section className="card person-deep-toggle">
+        <div className="section-heading-row">
+          <label className="checkbox-label">
+            <input type="checkbox" checked={personDeepOn} onChange={() => setPersonDeepOn((v) => !v)} />
+            <b>상대 완전분석</b>
+            <span className="premium-badge">프리미엄</span>
+          </label>
+        </div>
+        <span className="field-hint">
+          궁합 점수 대신 "그 사람의 작동방식"을 16단계로 해부합니다 — 좋아할 때·불안할 때·질투·미련·식을
+          때의 행동, 나에게 끌리는 지점과 부담 지점, 말과 행동이 어긋나는 순간까지.
+        </span>
+
+        {personDeepOn && !premium && (
+          <div className="card premium-gate">
+            <p>
+              <span className="premium-badge">프리미엄</span> 상대 완전분석은 프리미엄 기능입니다. 결제 연동
+              전까지는 아래 버튼으로 체험할 수 있습니다.
+            </p>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => {
+                unlockPremium();
+                setPremium(true);
+              }}
+            >
+              체험으로 잠금 해제
+            </button>
+          </div>
+        )}
+
+        {personDeepOn && premium && (
+          <div className="self-check-grid">
+            <p className="field-hint">
+              아래는 선택입니다. 상대의 실제 행동을 적으면 계산된 성향과 대조해 "말과 행동이 맞는지"까지 짚어드려요.
+            </p>
+            {PARTNER_CHECK_FIELDS.map((f) => (
+              <label className="field-row field-row--column" key={f.key}>
+                <span className="field-label">{f.label}</span>
+                <input
+                  type="text"
+                  placeholder={f.placeholder}
+                  value={partnerCheck[f.key] ?? ""}
+                  onChange={(e) => setPartner({ [f.key]: e.target.value || undefined })}
+                />
+              </label>
+            ))}
+            <button className="btn btn--primary" onClick={handlePersonDeep} disabled={!canSubmit || loading}>
+              상대 완전분석 보기
+            </button>
+          </div>
+        )}
+        {loading && personDeepOn && <LoadingNotice />}
+      </section>
 
       {result && (
         <div className="compat-result">
@@ -695,6 +856,10 @@ export default function CompatibilityPage() {
             </details>
           )}
         </div>
+      )}
+
+      {result && teaserCharts && !personDeepOn && (
+        <PersonDeepTeaser chartA={teaserCharts.chartA} chartB={teaserCharts.chartB} relationType={relationType} />
       )}
 
       <p className="fortune-disclaimer">

@@ -401,10 +401,20 @@ P0 완료 상태:
 1. **스테이징 실사용 대조**: 완전분석 토글로 실제 리딩 생성 → 12블록이 순서대로 나오는지, 무료
    미리보기 대비 유료 전체 해부 차이가 분명한지, 그림자·결핍/반복 패턴이 "이 사람만"으로 읽히는지,
    확실/추정/확인 필요가 실제 신뢰 신호(출생시간·교차검증·과거검증)를 반영하는지.
-2. **상대 완전분석(Phase 2)**: 궁합 엔진 위에 상대 작동방식 taxonomy(좋아할 때/불안할 때/질투/미련/
-   식을 때) + 상대 행동체크 입력 + 타로 오버레이 + `PERSON_DEEP_INSTRUCTION`. 전제: `saju.ts`의
-   `roleChemistry`/`compatibilityRepairReport`를 export화하고 상대 단일 원국에 psych/axes/event 적용.
+2. ~~**상대 완전분석(Phase 2)**~~ → **1차 반영 완료(2026-07-09).** `personDeep.ts`+`PERSON_DEEP_INSTRUCTION`
+   (16항목), CompatibilityPage 완전분석 토글+상대 행동체크, PersonDeepTeaser. 계획서:
+   `docs/phase2_person_deep_plan.md`, 상세: record.md "상대 완전분석(personDeep) 1차". 남은 후속 ↓.
 3. **실결제 연동**: premium.ts localStorage 스텁 → 서버 검증 기반으로 교체(완전분석·비교분석 공통).
+
+### 상대 완전분석(personDeep) 후속
+
+- **스테이징 실사용 대조**(ANTHROPIC_API_KEY 필요): 완전분석 토글로 실제 리딩 생성 → 16블록이 순서대로
+  나오는지, 상대 작동방식(좋아할 때/불안할 때/질투/미련·식을 때·말행동 불일치)이 "이 사람만"으로 읽히는지,
+  행동체크 입력이 '말과 행동 대조'에 실제 반영되는지, 무료 미리보기 vs 유료 차이가 분명한지.
+- **타로 오버레이 노출**: `buildPersonDeepEvidence`의 `tarotNote` 주입 자리만 있음. `tarot.ts` drawSpread로
+  상대 심리 스프레드 뽑기 UI를 CompatibilityPage에 붙이고 근거로 연결(계획서 4-1 잔여).
+- **상대 출생시간 유도**: personDeep은 상대 시간 정확도가 낮으면 신뢰도가 떨어짐 — UI에서 시간 입력을
+  권하는 문구/정확도 선택 추가 여지.
 
 ## 궁합 점수 개선 이후 (2026-07-09)
 

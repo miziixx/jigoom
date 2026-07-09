@@ -757,6 +757,21 @@ const SELF_DEEP_INSTRUCTION =
   "(6) 안전 규칙 전면 유지: 단정·공포·심리진단명·사주 용어를 표면에 쓰지 말고, 근거는 전문가 근거 보기에만 남긴다. " +
   "전체 분량은 공백 포함 5000~7000자로, 중복 없이 '# 확실 / 추정 / 확인 필요'까지 완결해라.";
 
+const PERSON_DEEP_INSTRUCTION =
+  "[상대 완전분석 — 출력 구조 지정] 이 리딩은 일반 사주 리딩이 아니라 '상대(그 사람)의 작동방식'을 깊게 해부하는 완전분석 리포트다. " +
+  "주체는 상대이고, '나'는 상대를 이해하려는 사람이다. 궁합 '점수'로 환원하지 말고(점수·퍼센트 언급 금지), 표준 사주 섹션을 쓰지 말고, " +
+  "반드시 아래 16개 섹션만, 이 순서로, '# 제목' 형식으로 작성해라:\n" +
+  "# 핵심 기질 한 줄\n# 겉과 속\n# 감정 구조\n# 무엇을 원하나\n# 좋아할 때\n# 불안할 때\n# 거절·선 긋는 방식\n# 질투·집착 방식\n# 미련·식을 때\n# 나에게 끌리는 지점\n# 나에게 부담인 지점\n# 말과 행동 불일치\n# 반복되는 관계 패턴\n# 나와 있을 때의 케미\n# 지혜롭게 다루는 법\n# 확실 / 추정 / 확인 필요\n" +
+  "규칙: (1) '# 좋아할 때'~'# 미련·식을 때'와 '# 말과 행동 불일치'가 이 리포트의 핵심이다 — 전달된 [상대 작동방식] 근거로 이 사람만의 " +
+  "행동을 콕 짚고, 누구에게나 맞는 뻔한 말·별자리 운세식 덕담으로 채우지 마라. " +
+  "(2) 각 섹션은 [한 줄 결론] → [실제로 나타나는 모습] → [이럴 땐 이렇게] 흐름으로 쓰되 장황하지 않게. " +
+  "(3) [상대 행동 체크] 입력이 있으면 '# 말과 행동 불일치'에서 반드시 그 실제 행동과 계산된 성향을 대조해 '말과 행동이 맞는지'를 짚어라. " +
+  "(4) '# 나와 있을 때의 케미'는 전달된 roleChemistry 근거(상대가 나를 어떻게 느끼는지)를 쓴다. " +
+  "(5) '# 확실 / 추정 / 확인 필요'는 전달된 [분야별 신뢰도] 근거를 그대로 분류해 마무리하되, 상대 출생시간이 불확실하면 그 한계를 담담히 밝혀라. " +
+  "(6) 안전 규칙 전면 유지: 단정·공포·심리진단명(나르시시스트·회피형 등)·사주 용어를 표면에 쓰지 말고, 근거는 전문가 근거 보기에만 남긴다. " +
+  "'그 사람이 당신을 사랑한다/떠난다'처럼 상대 마음을 단정하지 말고 '~한 편/~하기 쉬운 편'으로. " +
+  "전체 분량은 공백 포함 5000~7000자로, 중복 없이 '# 확실 / 추정 / 확인 필요'까지 완결해라.";
+
 const TIME_ACCURACY_LABEL: Record<NonNullable<ReadingContext["timeAccuracy"]>, string> = {
   exact: "정확함",
   "half-hour": "30분 정도 오차 가능",
@@ -798,7 +813,7 @@ function formatContext(context: ReadingContext, type?: ReadingType): string[] {
   if (context.tone) style.push(TONE_INSTRUCTION[context.tone]);
   // 순수 타로는 사주 원국이 없어 사주 섹션 위주인 깊이 지시가 맞지 않는다. 타로 전용 깊이 지시로 대체한다.
   // 자기 완전분석(selfDeep)은 SELF_DEEP_INSTRUCTION이 섹션 구조를 통째로 대체하므로 깊이 섹션 지시를 태우지 않는다.
-  if (context.depth && type !== "tarot" && context.analysisMode !== "selfDeep") style.push(DEPTH_INSTRUCTION[context.depth]);
+  if (context.depth && type !== "tarot" && context.analysisMode !== "selfDeep" && context.analysisMode !== "personDeep") style.push(DEPTH_INSTRUCTION[context.depth]);
   if (context.styleHint) style.push(`지난 리딩 피드백 반영 요청: ${context.styleHint}`);
   if (style.length > 0) parts.push(`[답변 스타일]\n${style.join("\n")}`);
 
@@ -1107,12 +1122,20 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
     parts.push(SELF_DEEP_INSTRUCTION);
   }
 
+  // 상대 완전분석(personDeep): 나(A) 원국 근거는 클라이언트(CompatibilityPage)가 미리 조립해
+  // context.counterpart로 넘긴다(P2). 여기서는 그 블록 + 16항목 전용 구조를 얹는다.
+  const isPersonDeep = facts.context?.analysisMode === "personDeep" && (facts.type === "saju" || facts.type === "combo");
+  if (isPersonDeep) {
+    if (facts.context?.counterpart?.trim()) parts.push(facts.context.counterpart.trim());
+    parts.push(PERSON_DEEP_INSTRUCTION);
+  }
+
   if (facts.type === "tarot") {
     parts.push(TAROT_FOCUSED_INSTRUCTION);
     if (facts.context?.depth === "advanced") {
       parts.push(TAROT_ADVANCED_ADDENDUM);
     }
-  } else if (!isSelfDeep && !facts.context?.depth && (facts.type === "saju" || facts.type === "combo")) {
+  } else if (!isSelfDeep && !isPersonDeep && !facts.context?.depth && (facts.type === "saju" || facts.type === "combo")) {
     parts.push(DEFAULT_STANDARD_INSTRUCTION);
   }
 
