@@ -1,5 +1,8 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
+import Sidebar from "./Sidebar";
 
+// 상품 진열(핵심 리딩 카드)만 남긴다. 기록·작명·개인정보·계산방법 같은 보조 기능은
+// 사이드바(Sidebar.tsx, C-4)로 옮겼다 — 재기획안 §5 "홈은 상품 진열만, 보조 기능은 사이드바로".
 const NAV_ITEMS = [
   { to: "/", label: "홈", end: true },
   { to: "/saju", label: "사주" },
@@ -9,14 +12,13 @@ const NAV_ITEMS = [
   { to: "/fortune", label: "오늘 운세" },
   { to: "/flow", label: "흐름 캘린더" },
   { to: "/compatibility", label: "궁합" },
-  { to: "/naming", label: "이름 감정·추천" },
-  { to: "/history", label: "기록" },
 ];
 
 export default function Layout() {
   return (
     <div className="app-shell">
       <header className="app-header">
+        <Sidebar />
         <span className="app-title">인사이트 오라클</span>
         <nav className="app-nav">
           {NAV_ITEMS.map((item) => (
@@ -35,8 +37,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="app-footer">
-        이 리딩은 자기이해와 판단 보조용입니다. 의학·법률·투자 등 중대한 결정의 근거로 사용하지 마세요.{" "}
-        <Link to="/methodology">어떻게 계산하나요?</Link> · <Link to="/privacy">개인정보 안내</Link>
+        이 리딩은 자기이해와 판단 보조용입니다. 의학·법률·투자 등 중대한 결정의 근거로 사용하지 마세요.
       </footer>
     </div>
   );

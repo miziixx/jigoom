@@ -15,21 +15,28 @@
 ## 🎯 현재 상태 (Current State)
 
 - **작업 단계:** A → (B ∥ C)  *(기획안 §11)*
-- **지금 진행 중:** A 전체 완료. **사용자 지시로 이번 세션은 C 전체 → B 전체를 연속으로 진행 중.**
-  현재 **C-1·C-2·C-3 완료**, 다음은 C-4(사이드바)부터 이어서.
-- **직전 세션이 한 일:** C-3 신뢰 배지 표면화 (재기획안 §7 point 4) —
-  1. `src/pages/MethodologyPage.tsx` 신규("어떻게 계산하나요?") — 서머타임/진태양시 보정, 4대 고전
-     (자평진전·연해자평·궁통보감·삼명통회) 교차검증, 계산 근거 전체 공개를 쉬운 말로 설명.
-     `docs/four-classics-engine.md`·`saju.ts`의 `correctBirthTime` 주석 내용을 사용자 카피로 번역.
-     **한계도 정직하게 명시**(판본 이견, 참고용 성격) — 과장하지 않음. `/methodology` 라우트 추가,
-     `Layout.tsx` 푸터에 임시 링크(C-4가 정식 사이드바 메뉴로 승격 예정).
-  2. `src/components/TrustBadges.tsx` 신규 — 새 계산 없이 이미 계산된 사실(`sajuChart.timeCorrection`)만
-     배지로 노출. `DefaultReadingTemplate.tsx`에서 `SajuPillarSnapshot` 바로 아래 마운트.
-  3. 검증: 테스트 7개 신규, **전체 670/670 통과**, `tsc --noEmit` 클린, `npm run build` 성공.
-     **+ Playwright로 실제 배지 렌더 + "어떻게 계산하나요?" 클릭 → 새 페이지 이동까지 스크린샷 확인.**
-- **다음에 할 일:** C-4(사이드바, 프로필 전환 포함) 착수 — `Layout.tsx`의 flat 9-링크 nav를 햄버거
-  메뉴로. 저장된 사주 전환은 `profile.ts`(현재 단일 프로필만) 확장 또는 `loadSessions()`의
-  birthInfo dedup 필요. 그 다음 B-1~B-3 순.
+- **지금 진행 중:** A 전체 완료. **C 전체(C-1~C-4) 완료.** 사용자 지시로 이제 B 전체를 연속 진행 중.
+  다음은 B-1(평생사주 문장 밀도)부터.
+- **직전 세션이 한 일:** C-4 사이드바 (재기획안 §5, C 트랙 마지막) —
+  1. `src/lib/profileList.ts` 신규 — **기존 `profile.ts`(단일 "현재 프로필")는 손대지 않고 그 위에
+     이름 붙은 여러 명식 목록만 추가**(회귀 위험 최소화: `BirthInfoForm`·`useFortuneStore`·
+     `TarotTodayPage`·`ComboPage`가 이미 `profile.ts`를 읽고 쓰므로). `activateProfile(id)`는
+     기존 `saveProfile()`을 그대로 호출해 "현재 프로필"을 바꿔치기 — 기존 소비자는 코드 변경 없이
+     전환된 명식을 이어받는다.
+  2. `src/components/Sidebar.tsx` 신규 — 햄버거 토글 + 오버레이 패널. "저장된 사주 전환"(목록·현재
+     사용중 표시·+지금 명식 저장) + 내 기록·이름 감정·작명·어떻게 계산하나요(C-3)·개인정보
+     처리방침 링크. 프로필 전환 시 열려 있는 화면에 확실히 반영되도록 `window.location.reload()`.
+  3. `Layout.tsx`: flat 9-링크 nav에서 "기록"·"이름 감정·추천"을 제거하고 사이드바로 이전, 핵심
+     상품 카드 7개만 남김("홈은 상품 진열만" §5). 푸터의 임시 링크(C-3에서 넣은 것)도 제거 —
+     사이드바가 정식 경로.
+  4. **스코프에서 뺀 것(정직하게 기록):** §5가 언급한 "설정(테마 등)"은 넣지 않음 — 이 앱에 테마
+     기능 자체가 아직 없어서, 빈 설정 페이지를 만드는 대신 없는 채로 둠(반쪽짜리 구현 금지 원칙).
+  5. 검증: 테스트 7개 신규(profileList 6·Sidebar 1, 패널은 상태 기반이라 정적 렌더로는 열린
+     상태를 검증 못해 브라우저로 보완), **전체 677/677 통과**, `tsc --noEmit` 클린, `npm run build`
+     성공. **+ Playwright로 실제: 사이드바 빈 상태 → 사주 제출(저장 체크) → "지금 명식 저장" →
+     이름 입력(prompt) → 목록에 "사용중" 배지로 뜨는 것까지 전 과정 스크린샷 확인.**
+- **다음에 할 일:** B-1(평생사주 문장 밀도 + PDF 품질) 착수. 그 다음 B-2(상대 해부) → B-3(리포트
+  진행 화면).
   별도로: API 키 있는 환경에서 A-2 토픽 심화 5종 실제 생성물 육안 검증 필요(누적된 항목, 아직 미해결).
 - **설계 결정 (다음 세션 참고):** 기획안 §3 문구는 "JudgmentPack → 한국어 렌더"이지만, 실제
   `JudgmentPack.judgments`를 소비하는 렌더러 대신 **기존 5개 엔진을 그대로 재사용**하는 쪽을
@@ -71,7 +78,8 @@
       실제 다운로드까지 브라우저 검증 완료.
 - [x] C-3. 신뢰 배지 표면화 (분 단위 보정·4대 고전·근거 공개). `MethodologyPage.tsx`+`TrustBadges.tsx`,
       `/methodology` 라우트, 브라우저 검증 완료.
-- [ ] C-4. 사이드바 (프로필 전환 포함, 기획안 §5)
+- [x] C-4. 사이드바 (프로필 전환 포함, 기획안 §5). `Sidebar.tsx`+`profileList.ts`(profile.ts는 불변),
+      "설정(테마)"은 테마 기능 자체가 없어 이번 스코프 제외(정직히 기록). 브라우저 검증 완료.
 
 > A~C 뒤: 토픽 5종 템플릿 확장 · 카드 홈 전면 개편 · 가격 노출.
 
@@ -91,6 +99,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-09 | Sonnet 5 | **C 트랙 완료.** C-4 사이드바: `Sidebar.tsx`+`profileList.ts`(기존 profile.ts 불변, 위에 다중 프로필만 추가), Layout.tsx nav 정리(보조 기능→사이드바 이전), 테스트 7개, 677/677 통과, Playwright로 빈 상태→저장→전환 전 과정 확인 | B-1(평생사주 문장 밀도) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | C-3 신뢰 배지: `MethodologyPage.tsx`(어떻게 계산하나요, 4대 고전·시간보정·근거공개 설명)+`TrustBadges.tsx`(원국 아래 마운트)+`/methodology` 라우트, 테스트 7개, 670/670 통과, Playwright로 배지·페이지 이동 확인 | C-4(사이드바) → B-1~3, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | C-2 공유 카드: `shareGoosebumpImage.ts` 신규(한지 팔레트 단일 PNG, 그라데이션 없음), shareImage.ts 유틸 export 재사용, GoosebumpCheck에 저장 버튼, Playwright로 실제 PNG 다운로드까지 확인(캔버스라 유닛테스트는 기존 컨벤션대로 없음) | C-3(신뢰 배지) → C-4 → B-1~3, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | C-1 소름 엔진: `goosebumpEngine.ts`(강한 신호만 후보, 빈 배열 허용)+`goosebumpStorage.ts`+`GoosebumpCheck.tsx`(블록 1로 마운트), saju.ts에 `computePastYearRawSignals` 추가, 테스트 22개, 663/663 통과, Playwright로 클릭→답변 전환까지 확인 | C-2(공유 카드) → C-3 → C-4 → B-1~3, 사용자 지시로 연속 진행 중 |
