@@ -146,6 +146,43 @@ export interface PastValidationReport {
   reliableDomains: LifeDomain[];
 }
 
+// ── 소름 엔진 (C-1, 재기획안 §7 — pastValidation의 반대 방향) ──────────
+
+/** 특정 분야 없이, 연도 하나의 세운·대운 간지와 원국 상호작용만 계산한 순수 값 (saju.ts 산출) */
+export interface PastYearRawSignal {
+  year: number;
+  yearGanZhi: string;
+  daYunGanZhi: string | null;
+  interactions: string[];
+}
+
+/** 소름 엔진이 사용자 확인 전에 먼저 제시하는 과거 추정 하나 */
+export interface GoosebumpGuess {
+  year: number;
+  domain: LifeDomain;
+  domainLabel: string;
+  /** "2023년 무렵, 일·거처에 큰 변화의 흐름 — 맞나요?" 형태의 쉬운 말 문장 */
+  prompt: string;
+  /** 근거 강도(정렬용, 사용자에게는 노출하지 않음) */
+  strength: number;
+  /** 전문가 근거 (세운/대운 십성·상호작용) */
+  evidence: string[];
+}
+
+/** 소름 엔진 종합 결과 — 확신 없는 해는 아예 포함하지 않는다(§7: "빗나감 1개가 적중 3개를 지운다") */
+export interface GoosebumpReport {
+  guesses: GoosebumpGuess[];
+}
+
+export type GoosebumpAnswer = "yes" | "no" | "unsure";
+
+/** 사용자가 하나의 소름 추정에 응답한 기록 (로컬 저장, caseValidation 축적용) */
+export interface GoosebumpConfirmation {
+  guess: GoosebumpGuess;
+  answer: GoosebumpAnswer;
+  answeredAt: string;
+}
+
 // ── 사주·자미두수 교차검증 ──────────
 
 export type CrossValidationLevel = "강일치" | "부분일치" | "불일치";

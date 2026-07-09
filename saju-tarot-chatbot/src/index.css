@@ -4988,6 +4988,62 @@ label {
   }
 }
 
+/* ── 소름 엔진 (C-1, 재기획안 §7) ── */
+.goosebump-check {
+  border: 1px solid var(--accent-strong);
+}
+
+.goosebump-check__note {
+  margin: 8px 0 12px;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+
+.goosebump-check__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.goosebump-check__item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-alt);
+}
+
+.goosebump-check__prompt {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin: 0 0 10px;
+}
+
+.goosebump-check__buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.goosebump-check__answered {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.goosebump-check__summary {
+  margin: 14px 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+}
+
 /* ── 개인정보 전송 고지 ── */
 .privacy-note {
   margin: 4px 0 0;

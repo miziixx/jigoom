@@ -13,8 +13,10 @@ import { buildLifestyleGuide, type LifestyleGuide } from "./lifestyleGuide.js";
  * psychLayer·eventEngine·monthFlowNarrative·lifestyleGuide)을 새로 만들지 않고 재배치만 한다 —
  * 이 다섯 엔진은 이미 골든 테스트로 검증된 계산·판단 층이다.
  *
- * 블록 1(소름 검증)은 §7 "소름 엔진" 신작업(실행 덩어리 C-1)이라 이 렌더러 범위 밖 — gooseBumpCheck는
- * 항상 null이며, C-1에서 채워 넣을 자리만 미리 잡아둔다.
+ * 블록 1(소름 검증)은 C-1에서 구현됐지만, saju.ts 호출(computePastYearRawSignals)이 필요해
+ * 이 가벼운 렌더러(saju.ts 비의존 원칙) 안에는 넣지 않았다 — `GoosebumpCheck.tsx` 컴포넌트가
+ * 별도로 이 블록을 담당하고, `DefaultReadingTemplate.tsx`에서 이 렌더러보다 먼저(블록 1 자리에)
+ * 마운트된다. 그래서 gooseBumpCheck는 이 구조체 안에서는 항상 null로 남는다.
  */
 
 /** types/index.ts의 TopicDeepTopic과 동일 — A-2(토픽 심화 파이프라인)의 analysisMode="topicDeep" topic과 맞춘다. */

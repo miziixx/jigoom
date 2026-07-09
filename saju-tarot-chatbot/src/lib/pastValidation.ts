@@ -26,8 +26,8 @@ import {
  *   - 계산 자체(간지·상호작용)는 saju.ts에서 이미 끝났고, 여기서는 매핑·판정만 한다.
  */
 
-/** 간지의 천간·지지 정기 십성 그룹을 뽑아 분야 집합으로 */
-function domainsOfGanZhi(dayGan: string, ganZhi: string | null): { groups: TenGodGroup[]; domains: Set<LifeDomain> } {
+/** 간지의 천간·지지 정기 십성 그룹을 뽑아 분야 집합으로 (goosebumpEngine.ts와 공용) */
+export function domainsOfGanZhi(dayGan: string, ganZhi: string | null): { groups: TenGodGroup[]; domains: Set<LifeDomain> } {
   const domains = new Set<LifeDomain>();
   const groups: TenGodGroup[] = [];
   if (!ganZhi || ganZhi.length < 2) return { groups, domains };

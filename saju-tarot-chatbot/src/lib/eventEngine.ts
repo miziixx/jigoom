@@ -408,7 +408,7 @@ export function positionDomains(pos: PositionLabel): LifeDomain[] {
   }
 }
 
-function domainVerb(domain: LifeDomain): string {
+export function domainVerb(domain: LifeDomain): string {
   switch (domain) {
     case "career": return "직업·역할이 움직이는";
     case "money": return "돈·성과가 움직이는";

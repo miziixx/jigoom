@@ -1865,27 +1865,67 @@ export function computePastEventCalibrationInputs(
     .filter((dy) => dy.getGanZhi() !== "")
     .map((dy) => ({ startYear: dy.getStartYear(), endYear: dy.getEndYear(), ganZhi: toHangul(dy.getGanZhi()) }));
 
-  return pastEvents.map((ev) => {
-    // 그 해 세운 (입춘 기준, 연중 6/15로 절기 경계 회피)
-    const yLunar = Solar.fromYmdHms(ev.year, 6, 15, 12, 0, 0).getLunar();
-    const yearGanZhi = toHangul(yLunar.getYearInGanZhiByLiChun());
-    const daYun = daYunList.find((d) => d.startYear <= ev.year && ev.year <= d.endYear) ?? null;
-    const daYunGanZhi = daYun?.ganZhi ?? null;
+  return pastEvents.map((ev) => ({ ...yearSignalOf(ev.year, natalGans, natalZhis, daYunList), domain: ev.domain, note: ev.note }));
+}
 
-    const interactions = [
-      ...(daYunGanZhi ? luckVsNatal(`대운 ${daYunGanZhi}`, daYunGanZhi, natalGans, natalZhis) : []),
-      ...luckVsNatal(`세운 ${yearGanZhi}`, yearGanZhi, natalGans, natalZhis),
-    ];
+/** 특정 연도의 세운(입춘 기준)·대운 간지와 원국과의 상호작용만 계산한다 (domain 무관, 소름 엔진 C-1과 공용). */
+function yearSignalOf(
+  year: number,
+  natalGans: PositionedChar[],
+  natalZhis: PositionedChar[],
+  daYunList: { startYear: number; endYear: number; ganZhi: string }[],
+): { year: number; yearGanZhi: string; daYunGanZhi: string | null; interactions: string[] } {
+  // 그 해 세운 (입춘 기준, 연중 6/15로 절기 경계 회피)
+  const yLunar = Solar.fromYmdHms(year, 6, 15, 12, 0, 0).getLunar();
+  const yearGanZhi = toHangul(yLunar.getYearInGanZhiByLiChun());
+  const daYun = daYunList.find((d) => d.startYear <= year && year <= d.endYear) ?? null;
+  const daYunGanZhi = daYun?.ganZhi ?? null;
 
-    return {
-      year: ev.year,
-      domain: ev.domain,
-      note: ev.note,
-      yearGanZhi,
-      daYunGanZhi,
-      interactions,
-    };
-  });
+  const interactions = [
+    ...(daYunGanZhi ? luckVsNatal(`대운 ${daYunGanZhi}`, daYunGanZhi, natalGans, natalZhis) : []),
+    ...luckVsNatal(`세운 ${yearGanZhi}`, yearGanZhi, natalGans, natalZhis),
+  ];
+
+  return { year, yearGanZhi, daYunGanZhi, interactions };
+}
+
+/**
+ * 소름 엔진(C-1, 재기획안 §7)용: 특정 분야를 지정하지 않고, 주어진 연도들의 세운·대운 간지와
+ * 원국 상호작용만 순수 계산한다. domain 매핑·강도 랭킹·"맞나요?" 문구 생성은 saju.ts를 import하지
+ * 않는 goosebumpEngine.ts에서 한다 (pastValidation.ts와 동일한 계산/판정 분리 원칙).
+ */
+export function computePastYearRawSignals(
+  birthInfo: BirthInfo,
+  years: number[],
+): { year: number; yearGanZhi: string; daYunGanZhi: string | null; interactions: string[] }[] {
+  if (years.length === 0) return [];
+  const { lunar } = birthToLunar(birthInfo);
+  const ec = eightCharOf(lunar, birthInfo);
+
+  const yearP = toPillar(ec.getYear());
+  const monthP = toPillar(ec.getMonth());
+  const dayP = toPillar(ec.getDay());
+  const timeP = birthInfo.hour === null ? null : toPillar(ec.getTime());
+  const natalGans: PositionedChar[] = [
+    { label: "연간", char: yearP.gan },
+    { label: "월간", char: monthP.gan },
+    { label: "일간", char: dayP.gan },
+    ...(timeP ? [{ label: "시간", char: timeP.gan }] : []),
+  ];
+  const natalZhis: PositionedChar[] = [
+    { label: "연지", char: yearP.zhi },
+    { label: "월지", char: monthP.zhi },
+    { label: "일지", char: dayP.zhi },
+    ...(timeP ? [{ label: "시지", char: timeP.zhi }] : []),
+  ];
+
+  const yun = ec.getYun(birthInfo.gender === "male" ? 1 : 0);
+  const daYunList = yun
+    .getDaYun()
+    .filter((dy) => dy.getGanZhi() !== "")
+    .map((dy) => ({ startYear: dy.getStartYear(), endYear: dy.getEndYear(), ganZhi: toHangul(dy.getGanZhi()) }));
+
+  return years.map((year) => yearSignalOf(year, natalGans, natalZhis, daYunList));
 }
 
 export function computeLuckCycles(

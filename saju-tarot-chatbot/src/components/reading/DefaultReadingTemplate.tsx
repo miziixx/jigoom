@@ -4,6 +4,7 @@ import ActionChecklist from "../ActionChecklist";
 import TarotSummaryHero from "../TarotSummaryHero";
 import SummaryCardGrid from "../SummaryCardGrid";
 import EventForecastPanel from "../EventForecastPanel";
+import GoosebumpCheck from "../GoosebumpCheck";
 import BasicReadingSection from "../BasicReadingSection";
 import PastValidationPanel from "../PastValidationPanel";
 import TarotFactsPanel from "../TarotFactsPanel";
@@ -144,6 +145,9 @@ export default function DefaultReadingTemplate({
           gender={session.birthInfo?.gender}
         />
       )}
+
+      {/* 무료 기본 리딩 블록 1(재기획안 §7·§8 소름 검증): 과거 흐름을 먼저 맞혀보고 확인받는다. */}
+      {session.sajuChart && <GoosebumpCheck birthInfo={session.birthInfo} sajuChart={session.sajuChart} />}
 
       {/* 무료 기본 리딩(재기획안 §8): 내 사용 설명서 + 올해 흐름 미니 캘린더. API 호출 없이 즉시 조립. */}
       {session.sajuChart && (

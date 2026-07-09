@@ -15,36 +15,28 @@
 ## 🎯 현재 상태 (Current State)
 
 - **작업 단계:** A → (B ∥ C)  *(기획안 §11)*
-- **지금 진행 중:** A-1·A-2·A-3 **모두 완료**. 다음은 B(간판 퀄리티) 또는 C(소름 루프) 착수 — §11에
-  따라 A 끝났으니 이제 B∥C.
-- **직전 세션이 한 일:** A-2 CTA 클릭 연결 + A-3(말풍선 점진 공개 UI) —
-  1. **연결 방식 결정:** 클릭 시 전역 세션(store의 currentSession)을 바꾸지 않는다. 대신
-     `BasicReadingSection` 내부에서 `streamReading()`을 직접 호출해 컴포넌트 로컬 상태로만
-     결과를 들고 있다가 그 자리에 인라인으로 펼친다. 이유: selfDeep처럼 세션 전체를 교체하면
-     지금 보고 있는 종합 리딩을 잃는다 — "깊게 보기" 버튼이 전체를 지우면 안 된다고 판단해
-     더 안전한 쪽을 택함(제품 결정 필요하다고 남겼던 것을 이번에 직접 판단해 처리).
-  2. `src/components/BasicReadingSection.tsx`: 연애/재물/직업/건강/올해 5개 토픽 칩 버튼 추가.
-     클릭 → `streamReading({type, question:"", sajuChart, luckCycles, tarotCards(combo만),
-     context:{analysisMode:"topicDeep", topic}})` 직접 호출, `onText`로 로컬 state 갱신.
-     `DefaultReadingTemplate.tsx`의 마운트 호출에 `type`/`tarotCards` prop 추가로 combo도 지원.
-  3. `src/components/TopicDeepChat.tsx` 신규(A-3): 누적 텍스트를 매 렌더 `parseSections`로 다시
-     파싱해 도착한 섹션만큼 말풍선으로 쌓고, 5섹션 중 아직 안 온 게 있고 loading 중이면 타이핑
-     인디케이터를 붙인다. 별도 스트리밍 상태 추적 없이 순수 함수로 구현(시안 ② 재현).
-  4. `src/index.css`: `.topic-deep-chips`(칩 행) / `.topic-deep-chat`·`.topic-deep-msg`·
-     `.topic-deep-bubble`·`.topic-deep-typing`(말풍선+타이핑 점 애니메이션) 추가 — 기존
-     `--accent`/`--surface`/`--border`/`--text-dim` 변수만 사용, 새 색상·그라데이션 없음.
-  5. 검증: `TopicDeepChat.test.tsx` 6개, `BasicReadingSection.test.tsx`에 3개 추가(총 9개 신규).
-     **전체 스위트 646/646 통과**, `tsc --noEmit` 클린, `npm run build` 성공.
-     **+ Playwright로 실제 `/saju` 폼 제출 → 5개 칩 렌더 확인 → "연애운 더 보기" 클릭 → 실제 요청이
-     나가고("생성 중" → "완료") API 키 없는 이 환경에선 404가 오지만 크래시 없이 "요청 실패 (HTTP 404)"
-     에러 문구가 깔끔하게 표시되는 것까지 스크린샷으로 확인.** 콘솔에 예상 밖 에러 없음.
-  6. **한계(정직하게 기록, A-2 때와 동일):** `ANTHROPIC_API_KEY`가 없는 환경이라 실제 Haiku
-     생성물(말풍선 안에 실제로 뭐가 써지는지)은 못 봄 — 에러 경로만 검증됨. API 키가 있는
-     환경에서 실제 클릭 → 5개 섹션 생성 → 안전 규칙 준수까지 한 번 더 확인 필요
-     (`docs/validation/reading-quality-validation.md` 절차).
-- **다음에 할 일:** API 키 있는 환경에서 토픽 심화 5종 실제 생성물 육안 검증(위 6번) 먼저 권장.
-  그 다음은 B(평생사주·상대해부 문장 밀도) 또는 C(소름 엔진) 중 택1 — §11은 "A → (B ∥ C)"라
-  순서만 정해두고 B/C 사이 우선순위는 안 정함, 다음 세션이 사용자에게 물어볼 것.
+- **지금 진행 중:** A 전체 완료. **사용자 지시로 이번 세션은 C 전체 → B 전체를 연속으로 진행 중.**
+  현재 **C-1(소름 엔진) 완료**, 다음은 C-2(공유 카드)부터 이어서.
+- **직전 세션이 한 일:** C-1 소름 엔진 (재기획안 §7) —
+  1. `saju.ts`: `computePastEventCalibrationInputs`에서 연도별 세운/대운 간지+상호작용 계산 로직을
+     `yearSignalOf()`로 추출·공용화하고, domain 없이 연도만으로 호출 가능한
+     `computePastYearRawSignals(birthInfo, years[])` 신규 export.
+  2. `eventEngine.ts`의 `domainVerb` export화, `pastValidation.ts`의 `domainsOfGanZhi` export화
+     (기존 판정 로직 재사용, 새 계산 로직 중복 작성 안 함).
+  3. `src/lib/goosebumpEngine.ts` 신규: `buildGoosebumpReport(dayMasterGan, rawSignals)` —
+     pastValidation의 "strong" 기준(십성 부합 + 실제 상호작용)에 해당하는 (연도,분야)만 후보로
+     삼고, 강한 신호가 없으면 **빈 배열**(§7: "확신 없는 해는 말하지 않는다 — 빗나감 1개가
+     적중 3개를 지운다"). saju.ts 미의존(판정만).
+  4. `src/lib/goosebumpStorage.ts` 신규: 확인/부인 로컬 저장 + 적중 통계 집계(C-2·C-3에서 재사용 예정).
+  5. `src/components/GoosebumpCheck.tsx` 신규 — 무료 기본 리딩 **블록 1**. saju.ts 호출이 필요해
+     `basicReadingRenderer.ts`(saju.ts 비의존 원칙)에는 안 넣고 별도 컴포넌트로 분리, `DefaultReadingTemplate.tsx`에서
+     `BasicReadingSection` 바로 앞(블록 1 자리)에 마운트.
+  6. 검증: 테스트 22개 신규(엔진 9·스토리지 3·컴포넌트 5·saju.ts 회귀 확인 포함), **전체 663/663 통과**,
+     `tsc --noEmit` 클린, `npm run build` 성공. **+ Playwright로 1970년생 실제 제출 → 소름 카드
+     3개 렌더 → "맞아요" 클릭 → 해당 카드만 답변 완료 상태로 전환되는 것까지 스크린샷 확인.**
+- **다음에 할 일:** C-2(공유 카드, shareImage 재활용) 착수 — C-1의 확인/부인 결과("N개 중 M개 적중")를
+  단일 PNG 공유 카드로 만든다. 그 다음 C-3(신뢰 배지)·C-4(사이드바) → B-1~B-3 순.
+  별도로: API 키 있는 환경에서 A-2 토픽 심화 5종 실제 생성물 육안 검증 필요(누적된 항목, 아직 미해결).
 - **설계 결정 (다음 세션 참고):** 기획안 §3 문구는 "JudgmentPack → 한국어 렌더"이지만, 실제
   `JudgmentPack.judgments`를 소비하는 렌더러 대신 **기존 5개 엔진을 그대로 재사용**하는 쪽을
   선택함(A-1). 근거: 이 5개 엔진은 이미 `SajuChart`/`LuckCycles`의 계산값에서 판단을 도출하므로
@@ -79,7 +71,8 @@
 - [ ] B-3. 리포트 진행 화면 (시안 ③)
 
 ### C. 소름 루프  — 성공 기준: 무료 리딩 → 공유까지 동선 완성
-- [ ] C-1. 소름 엔진 (과거 대운·세운 신호 2~3개 먼저 서술, 기획안 §7)
+- [x] C-1. 소름 엔진 (과거 대운·세운 신호 2~3개 먼저 서술, 기획안 §7).
+      `goosebumpEngine.ts`+`GoosebumpCheck.tsx`, 블록 1로 마운트, 브라우저 검증 완료.
 - [ ] C-2. 공유 카드 (shareImage 재활용)
 - [ ] C-3. 신뢰 배지 표면화 (분 단위 보정·4대 고전·근거 공개)
 - [ ] C-4. 사이드바 (프로필 전환 포함, 기획안 §5)
@@ -102,7 +95,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
-| 2026-07-09 | Sonnet 5 | A-2 CTA 연결(세션 비파괴, 인라인 streamReading) + A-3 `TopicDeepChat.tsx`(말풍선 점진 공개) + 칩 5개, CSS 추가, 테스트 9개, 646/646 통과, Playwright로 클릭→요청→에러 처리까지 확인(API 키 없어 생성물 자체는 미검증) | 실생성 육안 검증(API 키 필요) 후 B 또는 C 착수 |
+| 2026-07-09 | Sonnet 5 | C-1 소름 엔진: `goosebumpEngine.ts`(강한 신호만 후보, 빈 배열 허용)+`goosebumpStorage.ts`+`GoosebumpCheck.tsx`(블록 1로 마운트), saju.ts에 `computePastYearRawSignals` 추가, 테스트 22개, 663/663 통과, Playwright로 클릭→답변 전환까지 확인 | C-2(공유 카드) → C-3 → C-4 → B-1~3, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | A-2 파이프라인: analysisMode="topicDeep"+TopicDeepTopic 신규, systemPrompt에 5토픽 전용 5섹션 지시(JudgmentPack domain 필터 재사용, 새 근거 없음), fan-out 제외, 서버측 Haiku 강제, 테스트 10개, 637/637 통과. CTA 클릭 연결·실생성 검증은 미완(제품 결정/API 키 필요) | A-2 UI 연결 또는 A-3 착수 |
 | 2026-07-09 | Sonnet 5 | A-1 완료: `BasicReadingSection.tsx` 장착(내 사용 설명서·올해 흐름 캘린더 신규 + InstantSummary 승격), 중복 제거, CSS 추가, 테스트 3개, 627/627 통과, Playwright로 실제 화면 렌더 확인 | A-2 토픽 AI 심화 파이프라인 착수 |
 | 2026-07-09 | Sonnet 5 | A-1: `basicReadingRenderer.ts` 신규(무료 기본 리딩 블록 2~6 조립) + 테스트 6개, 전체 624/624 통과·tsc 클린·build 성공 | A-1 UI 장착 또는 A-2 착수 |
