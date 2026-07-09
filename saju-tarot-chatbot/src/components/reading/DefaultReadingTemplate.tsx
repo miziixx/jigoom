@@ -151,6 +151,8 @@ export default function DefaultReadingTemplate({
           sajuChart={session.sajuChart}
           luckCycles={session.luckCycles}
           gender={session.birthInfo?.gender}
+          type={session.type}
+          tarotCards={session.tarotCards}
           loading={loading}
         />
       )}

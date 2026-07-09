@@ -32,4 +32,25 @@ describe("BasicReadingSection (무료 기본 리딩 상단 노출)", () => {
     );
     for (const term of SAJU_JARGON) expect(html).not.toContain(term);
   });
+
+  it("원국이 있으면 토픽 심화 진입 칩 5개(연애/재물/직업/건강/올해)를 보여준다 (A-2 CTA 연결)", () => {
+    const html = renderToStaticMarkup(
+      <BasicReadingSection sajuChart={chart} luckCycles={luck} gender="female" />,
+    );
+    for (const label of ["연애운 더 보기", "재물운 더 보기", "직업운 더 보기", "건강운 더 보기", "올해운 더 보기"]) {
+      expect(html).toContain(label);
+    }
+  });
+
+  it("아직 아무 토픽도 클릭하지 않았으면 토픽 심화 말풍선 영역은 렌더하지 않는다", () => {
+    const html = renderToStaticMarkup(
+      <BasicReadingSection sajuChart={chart} luckCycles={luck} gender="female" />,
+    );
+    expect(html).not.toContain("topic-deep-chat");
+  });
+
+  it("원국이 없으면 토픽 심화 칩도 렌더하지 않는다", () => {
+    const html = renderToStaticMarkup(<BasicReadingSection />);
+    expect(html).not.toContain("topic-deep-chip");
+  });
 });

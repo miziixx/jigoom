@@ -4875,6 +4875,119 @@ label {
   color: var(--text);
 }
 
+/* ── 토픽 심화 진입 칩 + 말풍선 점진 공개 (재기획안 A-2 CTA 연결·A-3, 시안 ②) ── */
+.topic-deep-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 18px;
+}
+
+.topic-deep-chip {
+  font-size: 0.78rem;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.topic-deep-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.topic-deep-chip--active {
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+
+.topic-deep-chat {
+  border: 1px solid var(--accent-strong);
+}
+
+.topic-deep-chat__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.topic-deep-msg {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.topic-deep-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.topic-deep-bubble {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px 14px 14px 14px;
+  padding: 10px 13px;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--text);
+  max-width: 100%;
+}
+
+.topic-deep-bubble__tag {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.topic-deep-bubble--typing {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+}
+
+.topic-deep-typing {
+  display: flex;
+  gap: 4px;
+}
+
+.topic-deep-typing i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  display: block;
+  animation: topic-deep-blink 1.2s infinite;
+}
+
+.topic-deep-typing i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.topic-deep-typing i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes topic-deep-blink {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 /* ── 개인정보 전송 고지 ── */
 .privacy-note {
   margin: 4px 0 0;

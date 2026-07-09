@@ -1,6 +1,18 @@
+import { useState } from "react";
 import InstantSummary from "./InstantSummary";
+import TopicDeepChat, { TOPIC_LABEL } from "./TopicDeepChat";
 import { buildBasicReading } from "../lib/basicReadingRenderer";
-import type { Gender, LuckCycles, SajuChart } from "../types";
+import { streamReading } from "../lib/readingApi";
+import type { DrawnTarotCard, Gender, LuckCycles, ReadingType, SajuChart, TopicDeepTopic } from "../types";
+
+const TOPIC_EMOJI: Record<TopicDeepTopic, string> = {
+  love: "💘",
+  money: "💰",
+  career: "💼",
+  health: "🌿",
+  year: "🎆",
+};
+const ALL_TOPICS: TopicDeepTopic[] = ["love", "money", "career", "health", "year"];
 
 /**
  * 무료 "기본 리딩" 상단 노출 (재기획안 §5·§8). API 호출 없이 즉시 조립되므로
@@ -11,19 +23,60 @@ import type { Gender, LuckCycles, SajuChart } from "../types";
  * EventForecastPanel·SajuFactsPanel이 상단에서 보여주고 있어 여기서 다시 그리지 않는다.
  * 블록 3(내 사용 설명서)·블록 5(올해 흐름 미니 캘린더)만 이 컴포넌트에서 새로 그린다.
  * 블록 1(소름 검증)은 아직 없다(§7·실행 덩어리 C-1에서 채워질 예정).
+ *
+ * 토픽 심화 진입(재기획안 A-2 CTA 연결): 클릭하면 전역 세션(store)을 바꾸지 않고 이 컴포넌트
+ * 안에서만 별도로 streamReading을 호출해 인라인으로 결과를 펼친다 — 그래서 지금 보고 있는
+ * 전체 리딩을 잃지 않는다. 결과는 TopicDeepChat이 말풍선으로 점진 공개한다(A-3, 시안 ②).
  */
 export default function BasicReadingSection({
   sajuChart,
   luckCycles,
   gender,
+  type = "saju",
+  tarotCards,
   loading = false,
 }: {
   sajuChart?: SajuChart;
   luckCycles?: LuckCycles;
   gender?: Gender;
+  /** 토픽 심화 요청 시 type을 결정한다 (combo면 tarotCards도 함께 보낸다). */
+  type?: ReadingType;
+  tarotCards?: DrawnTarotCard[];
   loading?: boolean;
 }) {
   const reading = buildBasicReading({ sajuChart, luckCycles, gender });
+
+  const [activeTopic, setActiveTopic] = useState<TopicDeepTopic | null>(null);
+  const [topicText, setTopicText] = useState("");
+  const [topicLoading, setTopicLoading] = useState(false);
+  const [topicError, setTopicError] = useState<string | null>(null);
+
+  async function handleTopicClick(topic: TopicDeepTopic) {
+    if (!sajuChart || topicLoading) return;
+    setActiveTopic(topic);
+    setTopicText("");
+    setTopicError(null);
+    setTopicLoading(true);
+    try {
+      await streamReading(
+        {
+          type: type === "combo" ? "combo" : "saju",
+          question: "",
+          gender,
+          sajuChart,
+          luckCycles,
+          tarotCards: type === "combo" ? tarotCards : undefined,
+          context: { analysisMode: "topicDeep", topic },
+        },
+        { onText: (accumulated) => setTopicText(accumulated) },
+      );
+    } catch (err) {
+      setTopicError(err instanceof Error ? err.message : "토픽 심화를 불러오지 못했습니다.");
+    } finally {
+      setTopicLoading(false);
+    }
+  }
+
   if (!reading.snapshot && !reading.userManual && !reading.yearFlow) return null;
 
   return (
@@ -90,6 +143,24 @@ export default function BasicReadingSection({
           </div>
         </section>
       )}
+
+      {sajuChart && (
+        <div className="topic-deep-chips">
+          {ALL_TOPICS.map((topic) => (
+            <button
+              key={topic}
+              type="button"
+              className={`topic-deep-chip${activeTopic === topic ? " topic-deep-chip--active" : ""}`}
+              onClick={() => handleTopicClick(topic)}
+              disabled={topicLoading}
+            >
+              {TOPIC_EMOJI[topic]} {TOPIC_LABEL[topic]} 더 보기
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTopic && <TopicDeepChat topic={activeTopic} text={topicText} loading={topicLoading} error={topicError} />}
     </>
   );
 }
