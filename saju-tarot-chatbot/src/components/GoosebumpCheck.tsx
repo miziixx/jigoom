@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { buildGoosebumpReport } from "../lib/goosebumpEngine";
 import { computePastYearRawSignals } from "../lib/saju";
 import { saveGoosebumpConfirmation } from "../lib/goosebumpStorage";
-import type { BirthInfo, GoosebumpAnswer, GoosebumpGuess, SajuChart } from "../types";
+import { downloadGoosebumpShareImage } from "../lib/shareGoosebumpImage";
+import type { BirthInfo, GoosebumpAnswer, GoosebumpConfirmation, GoosebumpGuess, SajuChart } from "../types";
 
 const ANSWER_LABEL: Record<GoosebumpAnswer, string> = {
   yes: "맞아요",
@@ -52,6 +53,16 @@ export default function GoosebumpCheck({
   const allAnswered = answeredEntries.length === guesses.length;
   const yesCount = answeredEntries.filter(([, a]) => a === "yes").length;
 
+  function handleShare() {
+    const confirmations: GoosebumpConfirmation[] = guesses
+      .map((g) => {
+        const answer = answers[g.year];
+        return answer ? { guess: g, answer, answeredAt: new Date().toISOString() } : null;
+      })
+      .filter((c): c is GoosebumpConfirmation => c !== null);
+    void downloadGoosebumpShareImage(confirmations);
+  }
+
   return (
     <section className="card goosebump-check">
       <div className="section-heading-row">
@@ -85,9 +96,14 @@ export default function GoosebumpCheck({
         })}
       </ul>
       {allAnswered && (
-        <p className="goosebump-check__summary">
-          과거 흐름 {guesses.length}개 중 {yesCount}개 적중했어요.
-        </p>
+        <div className="goosebump-check__result">
+          <p className="goosebump-check__summary">
+            과거 흐름 {guesses.length}개 중 {yesCount}개 적중했어요.
+          </p>
+          <button type="button" className="btn btn--primary btn--small" onClick={handleShare}>
+            결과 카드 저장하기
+          </button>
+        </div>
       )}
     </section>
   );

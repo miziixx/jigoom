@@ -29,7 +29,8 @@ interface SharePage {
   totalParts: number;
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+/** shareGoosebumpImage.ts(C-2 공유 카드)에서도 재사용하는 캔버스 줄바꿈 유틸. */
+export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const lines: string[] = [];
   for (const paragraph of text.split("\n")) {
     const trimmed = paragraph.trimEnd();
@@ -207,7 +208,8 @@ function drawPage(session: ReadingSession, page: SharePage, index: number, total
   return canvas;
 }
 
-function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+/** shareGoosebumpImage.ts(C-2 공유 카드)에서도 재사용하는 캔버스→PNG Blob 변환. */
+export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
@@ -216,7 +218,8 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
-function safeFilePart(text: string): string {
+/** shareGoosebumpImage.ts(C-2 공유 카드)에서도 재사용하는 파일명 정제 유틸. */
+export function safeFilePart(text: string): string {
   return text
     .replace(/[\\/:*?"<>|]/g, "")
     .replace(/\s+/g, "-")

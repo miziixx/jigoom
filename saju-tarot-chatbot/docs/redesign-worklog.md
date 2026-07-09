@@ -16,26 +16,23 @@
 
 - **작업 단계:** A → (B ∥ C)  *(기획안 §11)*
 - **지금 진행 중:** A 전체 완료. **사용자 지시로 이번 세션은 C 전체 → B 전체를 연속으로 진행 중.**
-  현재 **C-1(소름 엔진) 완료**, 다음은 C-2(공유 카드)부터 이어서.
-- **직전 세션이 한 일:** C-1 소름 엔진 (재기획안 §7) —
-  1. `saju.ts`: `computePastEventCalibrationInputs`에서 연도별 세운/대운 간지+상호작용 계산 로직을
-     `yearSignalOf()`로 추출·공용화하고, domain 없이 연도만으로 호출 가능한
-     `computePastYearRawSignals(birthInfo, years[])` 신규 export.
-  2. `eventEngine.ts`의 `domainVerb` export화, `pastValidation.ts`의 `domainsOfGanZhi` export화
-     (기존 판정 로직 재사용, 새 계산 로직 중복 작성 안 함).
-  3. `src/lib/goosebumpEngine.ts` 신규: `buildGoosebumpReport(dayMasterGan, rawSignals)` —
-     pastValidation의 "strong" 기준(십성 부합 + 실제 상호작용)에 해당하는 (연도,분야)만 후보로
-     삼고, 강한 신호가 없으면 **빈 배열**(§7: "확신 없는 해는 말하지 않는다 — 빗나감 1개가
-     적중 3개를 지운다"). saju.ts 미의존(판정만).
-  4. `src/lib/goosebumpStorage.ts` 신규: 확인/부인 로컬 저장 + 적중 통계 집계(C-2·C-3에서 재사용 예정).
-  5. `src/components/GoosebumpCheck.tsx` 신규 — 무료 기본 리딩 **블록 1**. saju.ts 호출이 필요해
-     `basicReadingRenderer.ts`(saju.ts 비의존 원칙)에는 안 넣고 별도 컴포넌트로 분리, `DefaultReadingTemplate.tsx`에서
-     `BasicReadingSection` 바로 앞(블록 1 자리)에 마운트.
-  6. 검증: 테스트 22개 신규(엔진 9·스토리지 3·컴포넌트 5·saju.ts 회귀 확인 포함), **전체 663/663 통과**,
-     `tsc --noEmit` 클린, `npm run build` 성공. **+ Playwright로 1970년생 실제 제출 → 소름 카드
-     3개 렌더 → "맞아요" 클릭 → 해당 카드만 답변 완료 상태로 전환되는 것까지 스크린샷 확인.**
-- **다음에 할 일:** C-2(공유 카드, shareImage 재활용) 착수 — C-1의 확인/부인 결과("N개 중 M개 적중")를
-  단일 PNG 공유 카드로 만든다. 그 다음 C-3(신뢰 배지)·C-4(사이드바) → B-1~B-3 순.
+  현재 **C-1·C-2 완료**, 다음은 C-3(신뢰 배지)부터 이어서.
+- **직전 세션이 한 일:** C-2 공유 카드 (재기획안 §7 point 3) —
+  1. `shareImage.ts`의 `wrapText`/`canvasToBlob`/`safeFilePart`를 export해 재사용(동작 변경 없음,
+     기존 "전체 리딩 ZIP" 기능은 그대로 둠 — 재기획 범위 밖이라 손대지 않음).
+  2. `shareGoosebumpImage.ts` 신규: 단일 PNG 카드. **주의:** `shareImage.ts`의 기존 카드는 보라색
+     그라데이션 테마인데, 이건 재기획 불변식(§12 "그라데이션 금지·한지 팔레트 유지") 위반이라
+     새 카드는 그 테마를 따르지 않고 `index.css`의 실제 한지 팔레트 값을 그대로 캔버스에 적용함
+     (단색만, 그라데이션 없음).
+  3. `GoosebumpCheck.tsx`: 모든 소름 카드에 답한 뒤 "결과 카드 저장하기" 버튼 노출, 클릭 시
+     이번 리딩에서 답한 것만 모아 PNG 다운로드.
+  4. 검증: 캔버스 코드는 이 저장소에 테스트 사례가 없어(순수 node 테스트 환경, jsdom 없음 —
+     `shareImage.ts`도 테스트 0개) 같은 컨벤션을 따름, 새 유닛 테스트 추가 안 함. 대신
+     **Playwright로 실제 다운로드 이벤트를 가로채 PNG 저장까지 확인** — 헤드라인이 시안의
+     예시 문구("과거 흐름 3개 중 3개 적중")와 정확히 일치하는 카드가 실제로 나오는 것을 확인.
+     전체 스위트 663/663 통과(신규 없음, 회귀 없음), `tsc --noEmit` 클린, `npm run build` 성공.
+- **다음에 할 일:** C-3(신뢰 배지 표면화) 착수 — 진태양시/서머타임 보정, 계산 근거 공개, 4대 고전
+  교차검증을 사용자에게 보이는 배지/페이지로. 그 다음 C-4(사이드바) → B-1~B-3 순.
   별도로: API 키 있는 환경에서 A-2 토픽 심화 5종 실제 생성물 육안 검증 필요(누적된 항목, 아직 미해결).
 - **설계 결정 (다음 세션 참고):** 기획안 §3 문구는 "JudgmentPack → 한국어 렌더"이지만, 실제
   `JudgmentPack.judgments`를 소비하는 렌더러 대신 **기존 5개 엔진을 그대로 재사용**하는 쪽을
@@ -73,7 +70,8 @@
 ### C. 소름 루프  — 성공 기준: 무료 리딩 → 공유까지 동선 완성
 - [x] C-1. 소름 엔진 (과거 대운·세운 신호 2~3개 먼저 서술, 기획안 §7).
       `goosebumpEngine.ts`+`GoosebumpCheck.tsx`, 블록 1로 마운트, 브라우저 검증 완료.
-- [ ] C-2. 공유 카드 (shareImage 재활용)
+- [x] C-2. 공유 카드 (shareImage 재활용). `shareGoosebumpImage.ts` — 한지 팔레트 단일 PNG,
+      실제 다운로드까지 브라우저 검증 완료.
 - [ ] C-3. 신뢰 배지 표면화 (분 단위 보정·4대 고전·근거 공개)
 - [ ] C-4. 사이드바 (프로필 전환 포함, 기획안 §5)
 
@@ -95,6 +93,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-09 | Sonnet 5 | C-2 공유 카드: `shareGoosebumpImage.ts` 신규(한지 팔레트 단일 PNG, 그라데이션 없음), shareImage.ts 유틸 export 재사용, GoosebumpCheck에 저장 버튼, Playwright로 실제 PNG 다운로드까지 확인(캔버스라 유닛테스트는 기존 컨벤션대로 없음) | C-3(신뢰 배지) → C-4 → B-1~3, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | C-1 소름 엔진: `goosebumpEngine.ts`(강한 신호만 후보, 빈 배열 허용)+`goosebumpStorage.ts`+`GoosebumpCheck.tsx`(블록 1로 마운트), saju.ts에 `computePastYearRawSignals` 추가, 테스트 22개, 663/663 통과, Playwright로 클릭→답변 전환까지 확인 | C-2(공유 카드) → C-3 → C-4 → B-1~3, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | A-2 파이프라인: analysisMode="topicDeep"+TopicDeepTopic 신규, systemPrompt에 5토픽 전용 5섹션 지시(JudgmentPack domain 필터 재사용, 새 근거 없음), fan-out 제외, 서버측 Haiku 강제, 테스트 10개, 637/637 통과. CTA 클릭 연결·실생성 검증은 미완(제품 결정/API 키 필요) | A-2 UI 연결 또는 A-3 착수 |
 | 2026-07-09 | Sonnet 5 | A-1 완료: `BasicReadingSection.tsx` 장착(내 사용 설명서·올해 흐름 캘린더 신규 + InstantSummary 승격), 중복 제거, CSS 추가, 테스트 3개, 627/627 통과, Playwright로 실제 화면 렌더 확인 | A-2 토픽 AI 심화 파이프라인 착수 |
