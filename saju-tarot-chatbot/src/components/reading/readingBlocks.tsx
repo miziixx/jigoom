@@ -6,7 +6,6 @@
 import { useEffect, useState } from "react";
 import ActionCalendar from "../ActionCalendar";
 import EvidenceConfidence from "../EvidenceConfidence";
-import InstantSummary from "../InstantSummary";
 import LifeAreaBars from "../LifeAreaBars";
 import PatternMap from "../PatternMap";
 import PersonalitySpectrum from "../PersonalitySpectrum";
@@ -483,12 +482,10 @@ export function ReadingSectionCard({
 export function CalculationEvidenceZone({
   session,
   dashboard,
-  loading,
   hideTarotFacts = false,
 }: {
   session: ReadingSession;
   dashboard: ReturnType<typeof buildReadingDashboard>;
-  loading: boolean;
   /** 타로형 템플릿이 카드 근거를 위에서 이미 펼쳐 보여줄 때 중복 렌더를 막는다. */
   hideTarotFacts?: boolean;
 }) {
@@ -505,9 +502,7 @@ export function CalculationEvidenceZone({
       <div className="reading-evidence-zone__body">
         {dashboard && <LifeAreaBars areas={dashboard.lifeAreas} />}
         <EvidenceConfidence session={session} />
-        {session.sajuChart && (
-          <InstantSummary sajuChart={session.sajuChart} luckCycles={session.luckCycles} loading={loading} />
-        )}
+        {/* "바로 보는 요약"은 BasicReadingSection(무료 기본 리딩)에서 상단에 이미 펼쳐 보여준다 — 여기서 또 접어 넣지 않는다 */}
         {session.type !== "combo" && hasTarot && !hideTarotFacts && <TarotFactsPanel cards={session.tarotCards!} />}
         {dashboard && <PersonalitySpectrum spectrum={dashboard.spectrum} />}
         {session.sajuChart && <PatternMap sajuChart={session.sajuChart} />}

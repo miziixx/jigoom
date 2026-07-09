@@ -190,7 +190,7 @@ export default function YearlyFlowTemplate({ session, loading = false }: { sessi
         </div>
       )}
 
-      <CalculationEvidenceZone session={session} dashboard={dashboard} loading={loading} />
+      <CalculationEvidenceZone session={session} dashboard={dashboard} />
 
       {session.sajuChart && (
         <section className="reading-basic-report" aria-label="기본 사주 리포트">

@@ -4,6 +4,7 @@ import ActionChecklist from "../ActionChecklist";
 import TarotSummaryHero from "../TarotSummaryHero";
 import SummaryCardGrid from "../SummaryCardGrid";
 import EventForecastPanel from "../EventForecastPanel";
+import BasicReadingSection from "../BasicReadingSection";
 import PastValidationPanel from "../PastValidationPanel";
 import TarotFactsPanel from "../TarotFactsPanel";
 import ReadingNextCta, { type NextCtaItem } from "./ReadingNextCta";
@@ -144,6 +145,16 @@ export default function DefaultReadingTemplate({
         />
       )}
 
+      {/* 무료 기본 리딩(재기획안 §8): 내 사용 설명서 + 올해 흐름 미니 캘린더. API 호출 없이 즉시 조립. */}
+      {session.sajuChart && (
+        <BasicReadingSection
+          sajuChart={session.sajuChart}
+          luckCycles={session.luckCycles}
+          gender={session.birthInfo?.gender}
+          loading={loading}
+        />
+      )}
+
       {/* 과거 검증: 사용자가 과거 사건을 입력했으면 그 시기 흐름과의 부합도를 보여준다. */}
       {session.sajuChart && session.context?.pastEvents && session.context.pastEvents.length > 0 && (
         <PastValidationPanel
@@ -221,12 +232,7 @@ export default function DefaultReadingTemplate({
 
           <ReadingTableOfContents sections={bodySections} />
 
-          <CalculationEvidenceZone
-            session={session}
-            dashboard={dashboard}
-            loading={loading}
-            hideTarotFacts={promoteTarotFacts}
-          />
+          <CalculationEvidenceZone session={session} dashboard={dashboard} hideTarotFacts={promoteTarotFacts} />
 
           {bodySections.map((section, i) => (
             <ReadingSectionCard
