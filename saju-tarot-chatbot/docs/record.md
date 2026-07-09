@@ -1887,3 +1887,34 @@ JudgmentPack Evidence Gate가 실제로 켜지도록 재배선.
 무료 미리보기 vs 유료 전체 차이가 분명한지 눈으로 대조 권장. (2) 프리미엄 게이트는 localStorage 스텁 →
 실결제 연동 별건. (3) Phase 2(상대 완전분석): `roleChemistry`/`compatibilityRepairReport` export화 +
 상대 원국에 psych/axes 적용 + 타로 오버레이 + `PERSON_DEEP_INSTRUCTION` 필요(이번 범위 밖).
+
+### 궁합 점수 계산 정확도 향상 — 명리 이론 정합성 (2026-07-09)
+
+**배경**: 궁합 점수는 만세력과 달리 정답 데이터가 없는 해석 모델(검증 문서에도 궁합 항목 없음).
+"정확도"를 **고전 궁합법(명리 이론) 정합성 + 빠진 핵심 축 반영**으로 정의하고 개선. 결정론 유지.
+
+**핵심**: 필요한 데이터(용신·조후)가 이미 `chart.yongshin`에 계산돼 있는데 궁합 점수만 안 쓰고 단순
+오행 개수만 셌음. 그래서 새 엔진이 아니라 **기존 신호를 궁합 점수에 배선**하는 작업.
+
+**변경(`src/lib/saju.ts`, 궁합 점수 함수만 — 원국/용신/조후 계산은 불변):**
+- `dayMasterRelation`: 상극을 무조건 저점(4) 주던 것을 `tenGodOf` 기반 음양·십성 세분화 —
+  천간합 20 / 정관·정재(음양 다른 극=이상적 배우자) 18 / 편관·편재(음양 같은 극=자극) 10 / 상생 14 /
+  비견 9 / 겁재 7.
+- `crossBranchRelations`: 4×4 지지를 동일 취급하던 것을 궁 위치 가중(년 0.8·월 1.2·일 1.4·시 0.9,
+  일지-일지는 palace 전담). 충>형>파>해 경중 차등. `weighted` 순점수 추가, good/bad 필드 유지.
+- `yongshinComplement`(신규, `elementComplement` 대체): "상대가 내 용신·희신 오행을 넉넉히 채워주나".
+  `chart.yongshin.yongshin/heesin/supportive` 활용(한국어 오행→fiveElements 역매핑). 용신 없으면 폴백.
+- `johuComplement`(신규): `chart.yongshin.climatic`로 계절 치우침 보완(상대가 채우면 +, 둘 다 같은
+  방향 치우침이면 −).
+- `relationToneFromDayBranches`: 배우자궁 가중 상향(일지충 −10→−12, 형파해 −6→−7).
+- `computeCompatibility`: `raw = 48 + 일간 + 지지위치가중(-16~16) + 용신보완(0~20) + 조후(-4~8) +
+  일지궁(-12~14)`. breakdown 4라벨·`CompatibilityResult` 스키마 유지(UI/타입 불변). expertEvidence에
+  용신·조후 근거 라인 추가.
+
+**검증**: 정답이 없으므로 이론 기대 방향으로 골든 테스트(`compatibilityScore.test.ts`, 15개):
+대칭성(A,B↔B,A 동일)·결정론·0~100 범위·일지합>일지충(배우자궁)·천간합 커플 기질 최상위·
+용신 보완 커플>비보완·정관>편관·조후 상보>동일치우침·표면 사주용어 미노출. `npx tsc -b` 클린,
+`npm test` 606 통과(591+15), `npm run build` 통과. 실커플 스크립트 대조로 대칭·용신·배우자궁 반영 확인.
+
+**주의**: 점수 분포가 이전보다 배우자궁·용신에 민감해짐(일지충 커플은 뚜렷이 하락). `dayMasterRelation`/
+`yongshinComplement`/`johuComplement`는 테스트용으로 export함. 실결제/자기·상대 완전분석은 별건.

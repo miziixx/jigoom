@@ -2116,62 +2116,142 @@ export function computeLuckFromPillars(
 // ── 궁합 (두 사주 비교) ──────────
 
 /** 두 사람 기질 사이 관계를 판정한다 (표면은 사주 용어 없이 쉬운 말) */
-function dayMasterRelation(ganA: string, ganB: string): { text: string; score: number } {
+// 일간(두 사람의 본질) 관계. 오행 관계 × 음양(정/편)으로 세분한다.
+// 명리 궁합에서 '상극'은 무조건 나쁜 게 아니라, 음양이 갈리는 극(정관·정재)은 오히려
+// 이상적 배우자 인연으로 보고, 음양이 같은 극(편관·편재)은 자극·끌림으로 본다.
+// 점수 범위 7~20. 표면 text에는 사주 용어를 쓰지 않는다.
+export function dayMasterRelation(ganA: string, ganB: string): { text: string; score: number } {
   const he = GAN_HE[pairKey(ganA, ganB)] ?? GAN_HE[pairKey(ganB, ganA)];
-  if (he) return { text: "두 사람은 기질이 자석처럼 서로 끌리고, 부족한 부분을 채워주는 궁합이에요.", score: 22 };
+  if (he) return { text: "두 사람은 기질이 자석처럼 서로 끌리고, 부족한 부분을 채워주는 궁합이에요.", score: 20 };
   const elA = GAN_WUXING[ganA];
   const elB = GAN_WUXING[ganB];
-  if (elA === elB) return { text: "기본 성향이 비슷해 말이 잘 통해요. 편한 대신 은근한 경쟁이 될 수도 있어요.", score: 10 };
-  if (GENERATES[elA] === elB) return { text: "한 사람이 다른 사람을 북돋아 주고 챙겨주는, 힘이 되는 궁합이에요.", score: 16 };
-  if (GENERATES[elB] === elA) return { text: "서로 힘이 되어주며 기대고 기댈 수 있는 궁합이에요.", score: 16 };
-  return { text: "서로 자극을 주고받는 궁합이에요. 부딪히기도 하지만 다름을 인정하면 함께 성장해요.", score: 4 };
+  const samePolarity = YANG_GAN.has(ganA) === YANG_GAN.has(ganB);
+  if (elA === elB) {
+    return samePolarity
+      ? { text: "기본 성향이 비슷해 말이 잘 통해요. 편한 대신 고집이나 은근한 경쟁이 될 수도 있어요.", score: 9 }
+      : { text: "결은 비슷하면서도 미묘하게 달라 끌리는 관계예요. 주도권만 잘 나누면 편합니다.", score: 7 };
+  }
+  if (GENERATES[elA] === elB || GENERATES[elB] === elA) {
+    return { text: "한 사람이 다른 사람을 북돋아 주고 챙겨주는, 서로 기대고 힘이 되는 궁합이에요.", score: 14 };
+  }
+  // 상극 관계: 음양이 갈리면 이상적 배우자 인연, 같으면 자극·성장형
+  return samePolarity
+    ? { text: "서로 자극을 주고받는 궁합이에요. 부딪히기도 하지만 다름을 인정하면 함께 성장해요.", score: 10 }
+    : { text: "서로에게 기준과 안정감을 주는, 오래 맞춰가기 좋은 궁합이에요.", score: 18 };
 }
 
-/** 두 사람 지지 사이의 인연(합충)을 세되, 표시는 사주 용어 없이 쉬운 말로 묶는다 */
+// 지지 위치별 궁합 가중치. 배열 순서 = [년지, 월지, 일지, 시지].
+// 배우자궁(일지)·가정환경(월지)의 상호작용을 년지·시지보다 무겁게 본다.
+// 일지-일지 짝은 palace(relationToneFromDayBranches)가 전담하므로 여기서는 제외한다.
+const BRANCH_POS_WEIGHT = [0.8, 1.2, 1.4, 0.9];
+
+/**
+ * 두 사람 지지 사이의 인연(합충)을 위치 가중으로 계산한다.
+ * good/bad/goodCount/badCount는 다운스트림 호환을 위해 유지하고, weighted(위치·경중 반영 순점수)를 더한다.
+ * 표시는 사주 용어 없이 쉬운 말로 묶는다.
+ */
 function crossBranchRelations(
   zhisA: string[],
   zhisB: string[],
-): { good: string[]; bad: string[]; goodCount: number; badCount: number } {
+): { good: string[]; bad: string[]; goodCount: number; badCount: number; weighted: number } {
   const goodSet = new Set<string>();
   const badSet = new Set<string>();
   let goodCount = 0;
   let badCount = 0;
-  for (const a of zhisA) {
-    for (const b of zhisB) {
+  let weighted = 0;
+  for (let i = 0; i < zhisA.length; i += 1) {
+    for (let j = 0; j < zhisB.length; j += 1) {
+      if (i === 2 && j === 2) continue; // 일지-일지는 palace 전담
+      const a = zhisA[i];
+      const b = zhisB[j];
+      const w = (BRANCH_POS_WEIGHT[i] ?? 1) * (BRANCH_POS_WEIGHT[j] ?? 1);
       const keys = [a + b, b + a];
-      if (keys.some((k) => ZHI_LIUHE[k] !== undefined)) { goodCount += 1; goodSet.add("서로 잘 맞아 붙는 부분이 있어요"); }
-      if (keys.some((k) => ZHI_CHONG.has(k))) { badCount += 1; badSet.add("가끔 세게 부딪히기 쉬운 부분이 있어요"); }
-      if (keys.some((k) => ZHI_XING.has(k))) { badCount += 1; badSet.add("서로 조율이 필요한 부분이 있어요"); }
-      if (keys.some((k) => ZHI_PO.has(k))) { badCount += 1; badSet.add("계획이 엇갈리기 쉬운 부분이 있어요"); }
-      if (keys.some((k) => ZHI_HAI.has(k))) { badCount += 1; badSet.add("은근히 신경 쓰이는 부분이 있어요"); }
+      if (keys.some((k) => ZHI_LIUHE[k] !== undefined)) { goodCount += 1; weighted += w * 3; goodSet.add("서로 잘 맞아 붙는 부분이 있어요"); }
+      if (keys.some((k) => ZHI_CHONG.has(k))) { badCount += 1; weighted -= w * 3; badSet.add("가끔 세게 부딪히기 쉬운 부분이 있어요"); }
+      if (keys.some((k) => ZHI_XING.has(k))) { badCount += 1; weighted -= w * 2.4; badSet.add("서로 조율이 필요한 부분이 있어요"); }
+      if (keys.some((k) => ZHI_PO.has(k))) { badCount += 1; weighted -= w * 1.8; badSet.add("계획이 엇갈리기 쉬운 부분이 있어요"); }
+      if (keys.some((k) => ZHI_HAI.has(k))) { badCount += 1; weighted -= w * 1.6; badSet.add("은근히 신경 쓰이는 부분이 있어요"); }
     }
   }
-  // 여러 면에서 잘 맞물리는 조합(삼합/반합)
+  // 여러 면에서 잘 맞물리는 조합(삼합/반합) — 강한 인연 신호라 가산
   const present = new Set([...zhisA, ...zhisB]);
   for (const { group, wangZhi } of SANHE) {
     const inA = group.some((g) => zhisA.includes(g));
     const inB = group.some((g) => zhisB.includes(g));
     const hits = group.filter((g) => present.has(g));
-    if (inA && inB && hits.length >= 2 && hits.includes(wangZhi)) { goodCount += 1; goodSet.add("여러 면에서 손발이 잘 맞아요"); }
+    if (inA && inB && hits.length >= 2 && hits.includes(wangZhi)) { goodCount += 1; weighted += 3.5; goodSet.add("여러 면에서 손발이 잘 맞아요"); }
   }
-  return { good: [...goodSet], bad: [...badSet], goodCount, badCount };
+  return { good: [...goodSet], bad: [...badSet], goodCount, badCount, weighted };
 }
 
-/** 두 사람이 서로 부족한 부분을 채워주는 정도 (표면은 사주 용어 없이) */
-function elementComplement(a: FiveElementBalance, b: FiveElementBalance): { text: string; score: number } {
-  const keys = Object.keys(a) as Array<keyof FiveElementBalance>;
-  let complement = 0;
+// 한국어 오행명(용신·조후 필드) → fiveElements 키 역매핑
+const KO_TO_ELEMENT: Record<string, keyof FiveElementBalance> = Object.fromEntries(
+  (Object.entries(ELEMENT_KO) as Array<[keyof FiveElementBalance, string]>).map(([k, ko]) => [ko, k]),
+) as Record<string, keyof FiveElementBalance>;
+
+/** 상대 원국이 그 오행을 넉넉히(2+) 가지고 있어 채워줄 수 있는지 */
+function suppliesElement(chart: SajuChart, koElement: string): boolean {
+  const el = KO_TO_ELEMENT[koElement];
+  return el ? (chart.fiveElements[el] ?? 0) >= 2 : false;
+}
+
+/** 그 사람에게 실제로 필요한 오행(1·2차 용신·희신 우선, 없으면 supportive) */
+function neededElements(chart: SajuChart): string[] {
+  const y = chart.yongshin;
+  if (!y) return [];
+  const primary = [...(y.yongshin ?? []), ...(y.heesin ?? [])];
+  return primary.length > 0 ? primary : y.supportive ?? [];
+}
+
+/**
+ * 오행 보완 — 단순 개수가 아니라 "상대가 내게 *필요한* 기운(용신·희신)을 채워주나"로 본다.
+ * 용신 데이터가 없으면 단순 상호 보완 개수로 폴백. 표면 text에는 사주 용어를 쓰지 않는다. 점수 0~20.
+ */
+export function yongshinComplement(chartA: SajuChart, chartB: SajuChart): { text: string; score: number } {
+  let hits = 0;
+  for (const ko of neededElements(chartA)) if (suppliesElement(chartB, ko)) hits += 1;
+  for (const ko of neededElements(chartB)) if (suppliesElement(chartA, ko)) hits += 1;
+
+  // 폴백/보조: 단순 상호 보완(한쪽 부족·한쪽 넉넉)도 약하게 반영
+  let raw = 0;
+  const keys = Object.keys(chartA.fiveElements) as Array<keyof FiveElementBalance>;
   for (const k of keys) {
-    // 한쪽이 부족(0~1)한데 다른 쪽이 넉넉(2+)하면 보완
-    if (a[k] <= 1 && b[k] >= 2) complement += 1;
-    if (b[k] <= 1 && a[k] >= 2) complement += 1;
+    if (chartA.fiveElements[k] <= 1 && chartB.fiveElements[k] >= 2) raw += 1;
+    if (chartB.fiveElements[k] <= 1 && chartA.fiveElements[k] >= 2) raw += 1;
   }
-  const score = Math.min(20, complement * 5);
+
+  const score = Math.min(20, hits * 6 + Math.min(6, raw * 2));
   const text =
-    complement > 0
-      ? `서로 부족한 부분을 ${complement}가지 방향에서 채워줘요. 함께 있으면 균형이 잘 맞아요.`
-      : "기본 성향이 비슷해 크게 보완되진 않지만, 결이 맞아 편안한 편이에요.";
+    hits > 0
+      ? "상대가 내게 꼭 필요한 기운을 채워주는, 함께 있으면 균형이 잘 잡히는 궁합이에요."
+      : raw > 0
+        ? "서로 부족한 부분을 조금씩 채워줘요. 결이 달라도 함께 있으면 균형이 생겨요."
+        : "기본 성향이 비슷해 크게 보완되진 않지만, 결이 맞아 편안한 편이에요.";
   return { text, score };
+}
+
+/**
+ * 조후 보완 — 계절적으로 치우친 기운(겨울생→화 필요, 여름생→수 필요)을 상대가 채워주는지.
+ * 이미 계산된 chart.yongshin.climatic을 재사용. 점수 대략 -4~+8, 조후 신호 없으면 0(중립).
+ */
+export function johuComplement(chartA: SajuChart, chartB: SajuChart): { score: number; note: string } {
+  const needA = chartA.yongshin?.climatic?.element;
+  const needB = chartB.yongshin?.climatic?.element;
+  if (!needA && !needB) return { score: 0, note: "계절 기운이 크게 치우치지 않아, 조후 보완 부담은 적어요." };
+
+  let score = 0;
+  if (needA && suppliesElement(chartB, needA)) score += 4;
+  if (needB && suppliesElement(chartA, needB)) score += 4;
+  // 둘 다 같은 방향으로 치우쳤는데 서로 못 채우면 감점
+  if (needA && needB && needA === needB && !suppliesElement(chartB, needA) && !suppliesElement(chartA, needB)) score -= 4;
+
+  const note =
+    score > 0
+      ? "계절적으로 한쪽의 치우친 기운을 상대가 채워줘 생활 균형이 잘 맞아요."
+      : score < 0
+        ? "둘 다 비슷하게 치우친 기운이라, 생활 리듬(휴식·활동)으로 균형을 맞추는 노력이 도움이 돼요."
+        : "계절 기운 보완은 크지 않지만, 서로의 리듬을 존중하면 무난해요.";
+  return { score, note };
 }
 
 const ELEMENT_PLAIN: Record<keyof FiveElementBalance, string> = {
@@ -2398,7 +2478,7 @@ function relationToneFromDayBranches(dayA: string, dayB: string): { title: strin
       title: "끌림과 흔들림이 같이 오는 관계",
       body: "서로를 강하게 의식하지만, 가까워질수록 생활 방식이나 감정 반응이 크게 다르게 느껴질 수 있습니다.",
       evidence: `일지 ${dayA}·${dayB} 사이 충 작용`,
-      score: -10,
+      score: -12,
     };
   }
   if (keys.some((k) => ZHI_XING.has(k) || ZHI_PO.has(k) || ZHI_HAI.has(k))) {
@@ -2406,7 +2486,7 @@ function relationToneFromDayBranches(dayA: string, dayB: string): { title: strin
       title: "사소한 불편함을 쌓아두지 않는 게 중요한 관계",
       body: "대놓고 크게 싸우기보다 작은 서운함, 말투, 약속 방식에서 긴장이 쌓이기 쉬우니 초반 기준 정리가 중요합니다.",
       evidence: `일지 ${dayA}·${dayB} 사이 형·파·해 계열 작용`,
-      score: -6,
+      score: -7,
     };
   }
   return {
@@ -2662,7 +2742,7 @@ function compatibilityTiming(birthA: BirthInfo, birthB: BirthInfo, chartA: SajuC
 function compatibilityRepairReport(
   score: number,
   branches: ReturnType<typeof crossBranchRelations>,
-  elements: ReturnType<typeof elementComplement>,
+  elements: ReturnType<typeof yongshinComplement>,
   palace: ReturnType<typeof relationToneFromDayBranches>,
   context: (typeof RELATION_CONTEXT)[CompatibilityRelationType],
 ): CompatibilityResult["repairReport"] {
@@ -2843,7 +2923,7 @@ function includesAny(text: string, words: string[]) {
 function compatibilitySolutionPlan(
   score: number,
   branches: ReturnType<typeof crossBranchRelations>,
-  elements: ReturnType<typeof elementComplement>,
+  elements: ReturnType<typeof yongshinComplement>,
   palace: ReturnType<typeof relationToneFromDayBranches>,
   context: (typeof RELATION_CONTEXT)[CompatibilityRelationType],
   chartA: SajuChart,
@@ -3085,16 +3165,19 @@ export function computeCompatibility(
 
   const dm = dayMasterRelation(chartA.dayMasterGan, chartB.dayMasterGan);
   const branches = crossBranchRelations(zhisA, zhisB);
-  const elements = elementComplement(chartA.fiveElements, chartB.fiveElements);
+  const elements = yongshinComplement(chartA, chartB);
+  const johu = johuComplement(chartA, chartB);
   const palace = relationToneFromDayBranches(chartA.day.zhi, chartB.day.zhi);
   const roles = roleChemistry(chartA, chartB, roleLabels);
 
-  const branchScore = Math.max(-14, Math.min(18, branches.goodCount * 7 - branches.badCount * 5));
-  const raw = 55 + dm.score + branchScore + elements.score + palace.score;
+  // 지지 위치 가중 순점수를 궁합 점수용으로 정규화(범위 -16~16).
+  const branchScore = Math.max(-16, Math.min(16, Math.round(branches.weighted * 1.4)));
+  // BASE(48) + 일간(7~20) + 지지위치가중(-16~16) + 용신보완(0~20) + 조후(-4~8) + 일지궁(-12~14)
+  const raw = 48 + dm.score + branchScore + elements.score + johu.score + palace.score;
   const score = Math.max(0, Math.min(100, Math.round(raw)));
 
   const baseBreakdown = [
-    { label: "두 사람의 기질", score: Math.round((dm.score / 22) * 100), note: dm.text },
+    { label: "두 사람의 기질", score: Math.round((dm.score / 20) * 100), note: dm.text },
     { label: context.palaceLabel, score: Math.max(0, Math.min(100, 55 + palace.score * 3)), note: palace.body },
     {
       label: "함께 있을 때 흐름",
@@ -3103,7 +3186,11 @@ export function computeCompatibility(
         (branches.good.length ? `잘 맞음: ${branches.good.join(", ")}` : "뚜렷하게 붙는 부분은 없어요") +
         (branches.bad.length ? ` / 주의: ${branches.bad.join(", ")}` : " / 큰 충돌은 없어요"),
     },
-    { label: "서로 채워주는 부분", score: Math.round((elements.score / 20) * 100), note: elements.text },
+    {
+      label: "서로 채워주는 부분",
+      score: Math.max(0, Math.min(100, Math.round((elements.score / 20) * 100) + johu.score * 3)),
+      note: `${elements.text} ${johu.score !== 0 ? johu.note : ""}`.trim(),
+    },
   ];
   const breakdown = baseBreakdown.map((item) => ({ ...item, ...compatibilityBreakdownDetails(item.label, item.score, context) }));
 
@@ -3184,8 +3271,9 @@ export function computeCompatibility(
     `일간 관계: ${chartA.dayMasterGan}·${chartB.dayMasterGan} / ${dm.text}`,
     `일지 관계: ${chartA.day.zhi}·${chartB.day.zhi} / ${palace.evidence}`,
     `상대 십성: ${roles?.map((r) => r.evidence).join(" / ")}`,
-    `전체 지지 상호작용: ${[...branches.good, ...branches.bad].join(", ") || "강한 합충형파해 신호 적음"}`,
-    `오행 보완: ${elements.text}`,
+    `전체 지지 상호작용(위치 가중): ${[...branches.good, ...branches.bad].join(", ") || "강한 합충형파해 신호 적음"} (순점수 ${branches.weighted.toFixed(1)})`,
+    `용신 보완: ${chartA.yongshin ? `A 필요 오행 ${neededElements(chartA).join("·") || "-"} / B 필요 오행 ${neededElements(chartB).join("·") || "-"} → ${elements.text}` : elements.text}`,
+    `조후 보완: ${chartA.yongshin?.climatic?.element || chartB.yongshin?.climatic?.element ? `${johu.note} (조후점 ${johu.score})` : johu.note}`,
     `현재 시기 흐름: ${timing?.map((t) => t.evidence).join(" / ")}`,
   ];
 
