@@ -22,8 +22,15 @@ export type BirthTimeAccuracy = "exact" | "half-hour" | "over-hour" | "unknown";
  * 새 depth/ReadingType를 늘리지 않고 기존 saju 파이프라인 위에 얹기 위한 플래그.
  * - selfDeep: 자기 완전분석(12블록 심층 리포트).
  * - personDeep: 상대 완전분석(상대 작동방식 16항목 해부). 주체=상대(B), 나(A)는 counterpart 근거로 주입.
+ * - topicDeep: 토픽 심화(재기획안 §3·§8) — 연애/재물/직업/건강/올해 중 하나만 짧게 심화한다. topic 필드로 지정.
  */
-export type AnalysisMode = "selfDeep" | "personDeep";
+export type AnalysisMode = "selfDeep" | "personDeep" | "topicDeep";
+
+/**
+ * 토픽 심화(topicDeep) 대상 분야. JudgmentPack의 JudgmentDomain(love/money/career/health/year)과
+ * 1:1로 대응한다 — 새 판단 로직 없이 이미 계산된 judgments를 분야로 골라 문장화만 한다(§3).
+ */
+export type TopicDeepTopic = "love" | "money" | "career" | "health" | "year";
 
 /** 자기 완전분석용 행동 체크(선택). 전부 자유입력, 계산에는 영향 없음(해석 정확도 보조). */
 export interface SelfBehaviorCheck {
@@ -78,6 +85,8 @@ export interface ReadingContext {
   pastEvents?: PastEvent[];
   /** 완전분석 모드 (표준 섹션 대신 전용 출력 구조 사용) */
   analysisMode?: AnalysisMode;
+  /** analysisMode가 "topicDeep"일 때만 사용: 심화할 토픽 하나 */
+  topic?: TopicDeepTopic;
   /** 자기 완전분석용 행동 체크 (선택, 계산 불변) */
   selfCheck?: SelfBehaviorCheck;
   /** 상대 완전분석용 행동 체크 (선택, 계산 불변) */

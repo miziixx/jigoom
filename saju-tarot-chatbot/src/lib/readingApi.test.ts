@@ -136,6 +136,31 @@ describe("streamReading 이어쓰기(continue)", () => {
     expect(result.reply).toBe("# 첫 점괘\n앞\n\n# 건강과 컨디션\n뒤");
   });
 
+  it("토픽 심화(topicDeep)는 selfDeep/personDeep처럼 병렬 fan-out을 타지 않고 통짜로 호출한다", async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      if (!init?.body) throw new Error("request body required");
+      calls.push(JSON.parse(init.body as string));
+      return Promise.resolve(
+        ndjsonResponse([
+          JSON.stringify({ text: "# 한 줄 결론\n연애는 지금 고르는 쪽" }),
+          JSON.stringify({ done: true, stopReason: "end_turn" }),
+        ]),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await streamReading({
+      type: "saju",
+      question: "",
+      context: { analysisMode: "topicDeep", topic: "love" },
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(calls[0].sectionGroup).toBeUndefined();
+    expect(result.reply).toBe("# 한 줄 결론\n연애는 지금 고르는 쪽");
+  });
+
   // "light" 깊이는 제거됐다(기본/고급만 남김) — saju/combo는 이제 깊이와 무관하게 항상 병렬 호출한다.
   it("stopReason이 max_tokens면 continueFrom으로 이어서 완결한다", async () => {
     const calls: Array<Record<string, unknown>> = [];

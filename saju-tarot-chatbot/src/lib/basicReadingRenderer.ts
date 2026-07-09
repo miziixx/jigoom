@@ -1,4 +1,4 @@
-import type { EventForecast, Gender, LuckCycles, SajuChart } from "../types/index.js";
+import type { EventForecast, Gender, LuckCycles, SajuChart, TopicDeepTopic } from "../types/index.js";
 import { buildInstantSummary, type InstantSummary } from "./instantSummary.js";
 import { buildPsychLayer, type PsychLayer } from "./psychLayer.js";
 import { buildEventForecast } from "./eventEngine.js";
@@ -17,7 +17,8 @@ import { buildLifestyleGuide, type LifestyleGuide } from "./lifestyleGuide.js";
  * 항상 null이며, C-1에서 채워 넣을 자리만 미리 잡아둔다.
  */
 
-export type BasicReadingTopic = "love" | "money" | "career" | "health" | "year";
+/** types/index.ts의 TopicDeepTopic과 동일 — A-2(토픽 심화 파이프라인)의 analysisMode="topicDeep" topic과 맞춘다. */
+export type BasicReadingTopic = TopicDeepTopic;
 
 /** 블록 7 "이 부분 깊게 보기" — 각 블록이 어느 유료 토픽 심화로 이어지는지. */
 export interface DeepDiveCta {

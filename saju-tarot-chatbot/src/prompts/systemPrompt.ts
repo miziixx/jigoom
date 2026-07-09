@@ -8,6 +8,7 @@ import type {
   ReadingFocus,
   ReadingType,
   SajuChart,
+  TopicDeepTopic,
 } from "../types/index.js";
 import { buildCompactEvidence } from "../lib/compactEvidence.js";
 import { buildJudgmentPack } from "../lib/judgmentEngine.js";
@@ -772,6 +773,45 @@ const PERSON_DEEP_INSTRUCTION =
   "'그 사람이 당신을 사랑한다/떠난다'처럼 상대 마음을 단정하지 말고 '~한 편/~하기 쉬운 편'으로. " +
   "전체 분량은 공백 포함 5000~7000자로, 중복 없이 '# 확실 / 추정 / 확인 필요'까지 완결해라.";
 
+// 토픽 심화(topicDeep, 재기획안 §3·§4·§8): AI를 "책 전체의 집필자"가 아니라 "선택 분야의 심화 작가"로
+// 축소한다. 판단(정확성)은 이미 JudgmentPack이 계산했으므로(domain별로 love/money/career/health/year
+// 태그가 붙어 있다), 이 지시는 그중 한 domain만 골라 짧게 문장화하라는 것뿐 — 새 판단을 만들지 않는다.
+const TOPIC_LABEL: Record<TopicDeepTopic, string> = {
+  love: "연애운",
+  money: "재물운",
+  career: "직업운",
+  health: "건강운",
+  year: "올해운",
+};
+
+const TOPIC_QUESTION_HINT: Record<TopicDeepTopic, string> = {
+  love: "연애·관계에서 지금 흐름이 어떤지, 무엇을 조심해야 하는지",
+  money: "돈이 붙는 방식과 새는 구멍, 지금 재물 흐름이 어떤지",
+  career: "일·직업에서 지금 어떤 변화나 기회가 움직이는지",
+  health: "몸과 컨디션에서 지금 챙겨야 할 신호가 무엇인지",
+  year: "올해 전체 흐름이 어떻게 흘러가는지, 상반기/하반기 톤 차이",
+};
+
+function buildTopicDeepInstruction(topic: TopicDeepTopic): string {
+  const label = TOPIC_LABEL[topic];
+  return (
+    `[토픽 심화 — ${label} — 출력 구조 지정] 이 리딩은 종합 사주 리딩이 아니라 '${label}' 한 가지만 짧고 밀도 있게 심화하는 소형 유료 리포트다. ` +
+    `표준 섹션(첫 점괘/타고난 성격과 기질/직업과 돈/재물 흐름/애정과 관계/건강과 컨디션/인생의 큰 흐름/올해의 흐름 전체/지금 해야 할 것과 피해야 할 것/마지막 점괘)을 쓰지 말고, ` +
+    "반드시 아래 섹션만, 이 순서로, '# 제목' 형식으로 작성해라:\n" +
+    "# 한 줄 결론\n# 지금 흐름\n# 조심할 것\n# 시기\n# 행동\n" +
+    `규칙: (1) 위 [JudgmentPack]의 judgments 중 domain이 "${topic}"인 항목만 근거로 쓴다 — 다른 domain(예: 그 외 분야)의 판단은 이 리포트에 섞지 마라. ` +
+    `해당 domain 판단이 하나도 없으면 "${label} 쪽은 지금 뚜렷하게 움직이는 신호가 적다"는 취지로 담담히 짧게 쓰고, 억지로 지어내지 마라. ` +
+    "(2) '# 한 줄 결론'은 판단형 문장 하나로 이 리포트 전체를 요약한다(질문 요약이 아니다). " +
+    `(3) '# 지금 흐름'은 ${TOPIC_QUESTION_HINT[topic]}를 judgments의 plainConclusion·actionFrame 근거로 구체적으로 쓴다. ` +
+    "(4) '# 조심할 것'은 judgments의 actionFrame.avoid·counterEvidence·forbiddenClaims를 반영해 과장 없이 점검·대비 톤으로 쓴다. " +
+    "(5) '# 시기'는 judgments의 checkSignals·confidence를 근거로 언제 더 뚜렷해지는지·언제 신중해야 하는지를 쓰되, 근거 없는 특정 날짜·달을 지어내지 마라. " +
+    "(6) '# 행동'은 actionFrame.do를 근거로 바로 해볼 수 있는 구체적 행동 2~3개로 마무리한다. " +
+    "(7) 안전 규칙 전면 유지: 단정·공포·심리진단명·사주 용어(십성·세운·통근·신강 등)를 표면에 쓰지 말고, 근거는 전문가 근거 보기에만 남긴다. " +
+    "확신이 낮은 판단은 '~한 편/~하기 쉬운 편'으로 낮춰 쓴다. 의료·법률·투자 결론은 금지. " +
+    "전체 분량은 공백 포함 1000~2500자로, 중복 없이 '# 행동'까지 짧고 밀도 있게 완결해라."
+  );
+}
+
 const TIME_ACCURACY_LABEL: Record<NonNullable<ReadingContext["timeAccuracy"]>, string> = {
   exact: "정확함",
   "half-hour": "30분 정도 오차 가능",
@@ -813,7 +853,14 @@ function formatContext(context: ReadingContext, type?: ReadingType): string[] {
   if (context.tone) style.push(TONE_INSTRUCTION[context.tone]);
   // 순수 타로는 사주 원국이 없어 사주 섹션 위주인 깊이 지시가 맞지 않는다. 타로 전용 깊이 지시로 대체한다.
   // 자기 완전분석(selfDeep)은 SELF_DEEP_INSTRUCTION이 섹션 구조를 통째로 대체하므로 깊이 섹션 지시를 태우지 않는다.
-  if (context.depth && type !== "tarot" && context.analysisMode !== "selfDeep" && context.analysisMode !== "personDeep") style.push(DEPTH_INSTRUCTION[context.depth]);
+  if (
+    context.depth &&
+    type !== "tarot" &&
+    context.analysisMode !== "selfDeep" &&
+    context.analysisMode !== "personDeep" &&
+    context.analysisMode !== "topicDeep"
+  )
+    style.push(DEPTH_INSTRUCTION[context.depth]);
   if (context.styleHint) style.push(`지난 리딩 피드백 반영 요청: ${context.styleHint}`);
   if (style.length > 0) parts.push(`[답변 스타일]\n${style.join("\n")}`);
 
@@ -986,6 +1033,10 @@ function composeInnerPsychology(facts: ReadingFacts): { evidence: string; instru
 export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPack: JudgmentPack | null = buildReadingJudgmentPack(facts)): string {
   const parts: string[] = [];
   const compactMode = usesCompactEvidence(facts);
+  // 토픽 심화(topicDeep)는 5섹션짜리 짧은 리포트라, 뒤에서 표준 섹션용으로 쓰이는 속마음 통합 블록
+  // (첫 점괘·타고난 성격과 기질 등을 겨냥한 지시)을 여기서 미리 걸러 프롬프트를 불리지 않는다.
+  const topicDeepTopic = facts.context?.analysisMode === "topicDeep" ? facts.context.topic : undefined;
+  const isTopicDeep = !!topicDeepTopic && (facts.type === "saju" || facts.type === "combo");
 
   parts.push(`[리딩 종류] ${TYPE_LABEL[facts.type]}`);
   parts.push(`[사용자 질문] ${facts.question || "(특정 질문 없이 전반적인 리딩 요청)"}`);
@@ -1021,7 +1072,7 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
   // 지시 충돌(특히 첫 점괘 쟁탈)을 없앤다. 이 소재들은 모두 앞부분 섹션(첫 점괘~애정과 관계) 담당이라
   // 팬아웃 back 호출에는 싣지 않는다. 기본/고급 모두 4개 소재를 동일하게 받는다(콘텐츠 깊이는 유지,
   // JudgmentPack Evidence Gate는 별도로 [근거 데이터] 직렬화 방식만 바꾼다).
-  if (facts.sajuChart && facts.sectionGroup !== "back") {
+  if (facts.sajuChart && facts.sectionGroup !== "back" && !isTopicDeep) {
     const inner = composeInnerPsychology(facts);
     if (inner) {
       parts.push(inner.evidence);
@@ -1130,12 +1181,19 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
     parts.push(PERSON_DEEP_INSTRUCTION);
   }
 
+  // 토픽 심화(topicDeep, 재기획안 A-2): 표준/깊이 섹션 지시 대신 5섹션짜리 짧은 토픽 전용 구조로 교체한다.
+  // 새 근거 엔진을 만들지 않는다 — usesCompactEvidence가 이미 켜져 있어(depth 미지정) JudgmentPack이
+  // 위에서 그대로 주입돼 있고, 이 지시는 그중 한 domain만 골라 쓰라고 안내할 뿐이다.
+  if (isTopicDeep && topicDeepTopic) {
+    parts.push(buildTopicDeepInstruction(topicDeepTopic));
+  }
+
   if (facts.type === "tarot") {
     parts.push(TAROT_FOCUSED_INSTRUCTION);
     if (facts.context?.depth === "advanced") {
       parts.push(TAROT_ADVANCED_ADDENDUM);
     }
-  } else if (!isSelfDeep && !isPersonDeep && !facts.context?.depth && (facts.type === "saju" || facts.type === "combo")) {
+  } else if (!isSelfDeep && !isPersonDeep && !isTopicDeep && !facts.context?.depth && (facts.type === "saju" || facts.type === "combo")) {
     parts.push(DEFAULT_STANDARD_INSTRUCTION);
   }
 

@@ -493,7 +493,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const anthropic = new Anthropic({ apiKey });
   const streaming = wantsStream(req);
   // A/B·측정용 요청별 모델(허용목록만, 없으면 기본 MODEL). 이 요청의 모든 생성/재작성이 같은 모델을 쓴다.
-  const model = resolveModel(req.body);
+  let model = resolveModel(req.body);
 
   // 이어쓰기(continue): 앞선 응답이 토큰 상한/네트워크 절단으로 잘렸을 때, 지금까지 받은 본문을
   // 사용자 메시지에 합쳐 "반복 없이 이어서" 쓰게 한다. 일부 Claude 모델은 assistant 프리필을
@@ -540,6 +540,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { type, question, focus, context, sectionGroup, gender, sajuChart, luckCycles, tarotCards, spreadNote, pastValidation, crossValidation } = body;
+
+    // 토픽 심화(topicDeep, 재기획안 §6): 원가 통제를 클라이언트가 보낸 body.model에 맡기지 않고
+    // 서버에서 강제한다. 판단(정확성)은 JudgmentPack이 이미 담보하므로 문장화는 Haiku로 충분하다.
+    if (context?.analysisMode === "topicDeep") model = MODEL_ALLOWLIST.haiku;
 
     if ((type === "saju" || type === "combo" || type === "today" || type === "flow") && !sajuChart) {
       res.status(400).json({ error: "sajuChart(계산 결과)가 필요합니다." });

@@ -217,6 +217,93 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
   });
 });
 
+describe("토픽 심화(topicDeep, 재기획안 A-2) 프롬프트", () => {
+  const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
+  const sajuChart = computeSajuChart(birth);
+  const luckCycles = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
+
+  it.each([
+    ["love", "연애운"],
+    ["money", "재물운"],
+    ["career", "직업운"],
+    ["health", "건강운"],
+    ["year", "올해운"],
+  ] as const)("topic=%s면 %s 5섹션 전용 구조로 교체한다", (topic, label) => {
+    const msg = buildReadingUserMessage({
+      type: "saju",
+      question: "",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      context: { analysisMode: "topicDeep", topic },
+    });
+    expect(msg).toContain(`[토픽 심화 — ${label}`);
+    expect(msg).toContain("# 한 줄 결론\n# 지금 흐름\n# 조심할 것\n# 시기\n# 행동");
+    expect(msg).toContain(`domain이 "${topic}"인 항목만 근거로 쓴다`);
+    expect(msg).toContain("1000~2500자");
+    // 새 판단 엔진이 아니라 기존 JudgmentPack을 그대로 재사용한다는 근거
+    expect(msg).toContain("[JudgmentPack — 계산됨]");
+  });
+
+  it("토픽 심화에서는 표준/평생사주 기본 리포트 섹션 지시가 대신 붙지 않는다", () => {
+    const msg = buildReadingUserMessage({
+      type: "saju",
+      question: "",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      context: { analysisMode: "topicDeep", topic: "love" },
+    });
+    expect(msg).not.toContain("평생사주 기본 리포트");
+    expect(msg).not.toContain("# 타고난 성격과 기질");
+    expect(msg).not.toContain("# 인생의 큰 흐름");
+  });
+
+  it("토픽 심화에서는 속마음·현재 심리 통합 블록을 싣지 않는다(불필요한 근거로 프롬프트를 불리지 않음)", () => {
+    const withoutTopic = buildReadingUserMessage({
+      type: "saju",
+      question: "",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+    });
+    const withTopic = buildReadingUserMessage({
+      type: "saju",
+      question: "",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      context: { analysisMode: "topicDeep", topic: "love" },
+    });
+    expect(withoutTopic).toContain("속마음·현재 심리 — 계산됨");
+    expect(withTopic).not.toContain("속마음·현재 심리 — 계산됨");
+  });
+
+  it("topic 없이 analysisMode만 topicDeep이면 안전하게 표준 구조로 돌아간다", () => {
+    const msg = buildReadingUserMessage({
+      type: "saju",
+      question: "",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      context: { analysisMode: "topicDeep" },
+    });
+    expect(msg).not.toContain("토픽 심화");
+    expect(msg).toContain("평생사주 기본 리포트");
+  });
+
+  it("타로 타입에는 토픽 심화 지시가 붙지 않는다", () => {
+    const tarotCards = drawSpread("ppf");
+    const msg = buildReadingUserMessage({
+      type: "tarot",
+      question: "",
+      tarotCards,
+      context: { analysisMode: "topicDeep", topic: "love" },
+    });
+    expect(msg).not.toContain("토픽 심화");
+  });
+});
+
 describe("타로 리딩 프롬프트", () => {
   const tarotCards = drawSpread("ppf");
 
