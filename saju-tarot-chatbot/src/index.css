@@ -3723,6 +3723,15 @@ label {
     display: none !important;
   }
 
+  /* B-1(PDF 품질): 클릭 전제의 인터랙티브 전용 블록은 종이에서 의미가 없다 —
+     리포트 본문(평생사주 등)만 깔끔하게 남긴다. */
+  .goosebump-check,
+  .topic-deep-chips,
+  .sidebar-toggle,
+  .sidebar-overlay {
+    display: none !important;
+  }
+
   .card {
     background: #fff;
     border-color: #ccc;

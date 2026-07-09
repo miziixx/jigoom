@@ -15,29 +15,28 @@
 ## 🎯 현재 상태 (Current State)
 
 - **작업 단계:** A → (B ∥ C)  *(기획안 §11)*
-- **지금 진행 중:** A 전체 완료. **C 전체(C-1~C-4) 완료.** 사용자 지시로 이제 B 전체를 연속 진행 중.
-  다음은 B-1(평생사주 문장 밀도)부터.
-- **직전 세션이 한 일:** C-4 사이드바 (재기획안 §5, C 트랙 마지막) —
-  1. `src/lib/profileList.ts` 신규 — **기존 `profile.ts`(단일 "현재 프로필")는 손대지 않고 그 위에
-     이름 붙은 여러 명식 목록만 추가**(회귀 위험 최소화: `BirthInfoForm`·`useFortuneStore`·
-     `TarotTodayPage`·`ComboPage`가 이미 `profile.ts`를 읽고 쓰므로). `activateProfile(id)`는
-     기존 `saveProfile()`을 그대로 호출해 "현재 프로필"을 바꿔치기 — 기존 소비자는 코드 변경 없이
-     전환된 명식을 이어받는다.
-  2. `src/components/Sidebar.tsx` 신규 — 햄버거 토글 + 오버레이 패널. "저장된 사주 전환"(목록·현재
-     사용중 표시·+지금 명식 저장) + 내 기록·이름 감정·작명·어떻게 계산하나요(C-3)·개인정보
-     처리방침 링크. 프로필 전환 시 열려 있는 화면에 확실히 반영되도록 `window.location.reload()`.
-  3. `Layout.tsx`: flat 9-링크 nav에서 "기록"·"이름 감정·추천"을 제거하고 사이드바로 이전, 핵심
-     상품 카드 7개만 남김("홈은 상품 진열만" §5). 푸터의 임시 링크(C-3에서 넣은 것)도 제거 —
-     사이드바가 정식 경로.
-  4. **스코프에서 뺀 것(정직하게 기록):** §5가 언급한 "설정(테마 등)"은 넣지 않음 — 이 앱에 테마
-     기능 자체가 아직 없어서, 빈 설정 페이지를 만드는 대신 없는 채로 둠(반쪽짜리 구현 금지 원칙).
-  5. 검증: 테스트 7개 신규(profileList 6·Sidebar 1, 패널은 상태 기반이라 정적 렌더로는 열린
-     상태를 검증 못해 브라우저로 보완), **전체 677/677 통과**, `tsc --noEmit` 클린, `npm run build`
-     성공. **+ Playwright로 실제: 사이드바 빈 상태 → 사주 제출(저장 체크) → "지금 명식 저장" →
-     이름 입력(prompt) → 목록에 "사용중" 배지로 뜨는 것까지 전 과정 스크린샷 확인.**
-- **다음에 할 일:** B-1(평생사주 문장 밀도 + PDF 품질) 착수. 그 다음 B-2(상대 해부) → B-3(리포트
-  진행 화면).
-  별도로: API 키 있는 환경에서 A-2 토픽 심화 5종 실제 생성물 육안 검증 필요(누적된 항목, 아직 미해결).
+- **지금 진행 중:** A·C 전체 완료. **B-1 완료.** 사용자 지시로 B 전체를 연속 진행 중. 다음은 B-2(상대 해부).
+- **직전 세션이 한 일:** B-1 평생사주 문장 밀도 + PDF 품질 (재기획안 §11 B 성공 기준) —
+  1. **코드 확인 먼저:** "평생사주 리포트"(9,900원 유료 간판)는 실제로 `DEPTH_INSTRUCTION.advanced`
+     프롬프트다(systemPrompt.ts:740, `ReadingResult.tsx`가 `eyebrow="평생사주 리포트"`로 라우팅).
+     "PDF"는 별도 파일 생성이 아니라 `ReadingActions.tsx`의 `window.print()`(모든 `<details>`를
+     펼친 뒤 인쇄 다이얼로그)다 — `@media print` 스타일시트가 곧 "PDF 품질".
+  2. `systemPrompt.ts` DEPTH_INSTRUCTION.advanced에 **문장 밀도 규칙 추가** — selfDeep/personDeep에는
+     이미 있던 "누구에게나 맞는 뻔한 말 금지" 패턴이 advanced에는 없었다. 매 섹션마다 [근거 데이터]의
+     구체값(오행 분포·용신/희신·강약·신살·대운 시기 등)을 최소 하나 문장 근거로 직접 연결하라는
+     지시 추가(§11 "돈 낼 만한" 기준). 구성(섹션) 추가 아님 — §8 "구성 추가가 아니라 문장 밀도" 원칙 준수.
+  3. `index.css` `@media print`: 이번 세션에서 새로 만든 인터랙티브 전용 블록(`.goosebump-check`
+     버튼들, `.topic-deep-chips`, `.sidebar-toggle`/`.sidebar-overlay`)이 print CSS에 안 걸려
+     있어 인쇄본에 클릭 못 하는 버튼이 그대로 나올 뻔한 걸 발견·수정.
+  4. **한계(정직하게 기록):** API 키가 없어 문장 밀도 지시가 실제 생성물에 얼마나 반영되는지는
+     못 봄(A-2·A-3와 같은 한계) — 프롬프트 텍스트 자체는 테스트로 검증.
+  5. 검증: 테스트 1개 확장(기존 advanced 테스트에 밀도 지시 assertion 추가), 전체 677/677 통과
+     (신규 `it` 없음, 기존 테스트 확장이라 카운트 불변), `tsc --noEmit` 클린, `npm run build` 성공.
+     **+ Playwright `emulateMedia({media:"print"})`로 실제 계산된 CSS 확인** — goosebump-check/
+     topic-deep-chips/sidebar-toggle 모두 `display:none`, trust-badges는 의도대로 계속 보임.
+- **다음에 할 일:** B-2(상대 해부 personDeep 문장 밀도 + PDF 품질) — B-1과 같은 패턴(밀도 규칙 +
+  print CSS 점검)을 PERSON_DEEP_INSTRUCTION에 적용. 그 다음 B-3(리포트 진행 화면, 시안 ③).
+  별도로: API 키 있는 환경에서 A-2 토픽 심화 5종 + B-1 밀도 개선 실제 생성물 육안 검증 필요(누적).
 - **설계 결정 (다음 세션 참고):** 기획안 §3 문구는 "JudgmentPack → 한국어 렌더"이지만, 실제
   `JudgmentPack.judgments`를 소비하는 렌더러 대신 **기존 5개 엔진을 그대로 재사용**하는 쪽을
   선택함(A-1). 근거: 이 5개 엔진은 이미 `SajuChart`/`LuckCycles`의 계산값에서 판단을 도출하므로
@@ -67,7 +66,8 @@
 - [x] A-3. 말풍선 점진 공개 / 도착 순 UI (시안 ②). `TopicDeepChat.tsx` — 토픽 심화 결과 전용.
 
 ### B. 간판 퀄리티  — 성공 기준: "돈 낼 만한" 육안 검증
-- [ ] B-1. 평생사주 문장 밀도 + PDF 품질
+- [x] B-1. 평생사주 문장 밀도 + PDF 품질. DEPTH_INSTRUCTION.advanced에 밀도 규칙 추가,
+      print CSS에 새 인터랙티브 블록 숨김 처리. 프롬프트·CSS 검증 완료, 실생성 육안 검증은 API 키 필요.
 - [ ] B-2. 상대 해부(personDeep) 문장 밀도 + PDF 품질
 - [ ] B-3. 리포트 진행 화면 (시안 ③)
 
@@ -99,6 +99,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-09 | Sonnet 5 | B-1: DEPTH_INSTRUCTION.advanced에 문장 밀도 규칙 추가("뻔한 말 금지+근거 직접 연결"), print CSS에 새 인터랙티브 블록(goosebump/topic-chips/sidebar) 숨김 처리, 677/677 통과, Playwright emulateMedia로 print 계산값 확인 | B-2(상대 해부) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | **C 트랙 완료.** C-4 사이드바: `Sidebar.tsx`+`profileList.ts`(기존 profile.ts 불변, 위에 다중 프로필만 추가), Layout.tsx nav 정리(보조 기능→사이드바 이전), 테스트 7개, 677/677 통과, Playwright로 빈 상태→저장→전환 전 과정 확인 | B-1(평생사주 문장 밀도) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | C-3 신뢰 배지: `MethodologyPage.tsx`(어떻게 계산하나요, 4대 고전·시간보정·근거공개 설명)+`TrustBadges.tsx`(원국 아래 마운트)+`/methodology` 라우트, 테스트 7개, 670/670 통과, Playwright로 배지·페이지 이동 확인 | C-4(사이드바) → B-1~3, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | C-2 공유 카드: `shareGoosebumpImage.ts` 신규(한지 팔레트 단일 PNG, 그라데이션 없음), shareImage.ts 유틸 export 재사용, GoosebumpCheck에 저장 버튼, Playwright로 실제 PNG 다운로드까지 확인(캔버스라 유닛테스트는 기존 컨벤션대로 없음) | C-3(신뢰 배지) → C-4 → B-1~3, 사용자 지시로 연속 진행 중 |

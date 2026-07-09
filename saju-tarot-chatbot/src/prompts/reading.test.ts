@@ -155,6 +155,10 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(deep).toContain("# 선택과 시기 판단");
     expect(deep).toContain("# 3개월 실행 전략");
     expect(deep).toContain("6200~8000자");
+    // B-1(문장 밀도 — 재기획안 §11 "돈 낼 만한" 육안 검증 기준): 뻔한 말 금지 + 근거 직접 연결 지시.
+    expect(deep).toContain("문장 밀도");
+    expect(deep).toContain("이 사람만의 것");
+    expect(deep).toContain("다른 사주에 그대로 갖다 붙여도 어색하지 않을 뻔한 말");
     // 고급은 원자료(지장간·12운성)와 분야별 사건 신호 블록을 그대로 받는다(기본은 JudgmentPack으로 대체).
     expect(deep).toContain("지장간");
     expect(deep).toContain("12운성");
