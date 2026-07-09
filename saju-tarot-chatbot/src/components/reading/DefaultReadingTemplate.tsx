@@ -1,4 +1,5 @@
 import LoadingNotice from "../LoadingNotice";
+import ReportProgress from "../ReportProgress";
 import SajuFactsPanel, { DaYunLifeMap, SajuPillarSnapshot } from "../SajuFactsPanel";
 import ActionChecklist from "../ActionChecklist";
 import TarotSummaryHero from "../TarotSummaryHero";
@@ -27,6 +28,7 @@ import {
   SectionBody,
   extractConclusion,
   parseCategorySummary,
+  sectionAnchor,
 } from "./readingBlocks";
 import type { ReadingSession } from "../../types";
 
@@ -87,6 +89,18 @@ export default function DefaultReadingTemplate({
           hasQuestion={!!session.question?.trim()}
           replyText={reply}
           isInitial={session.messages.length <= 2}
+        />
+      )}
+
+      {/* 리포트 진행 화면(B-3, 시안 ③): 평생사주(promoteDaYunLifeMap) 전용. 도착한 섹션은 목차에서
+          바로 읽을 수 있고, 다 도착하면 스스로 접힌다("멈춘 화면" 대신 "읽으면서 도착"). */}
+      {promoteDaYunLifeMap && session.messages.length <= 2 && (
+        <ReportProgress
+          type={session.type}
+          hasQuestion={!!session.question?.trim()}
+          replyText={reply}
+          depth={session.context?.depth}
+          loading={loading}
         />
       )}
 
@@ -211,7 +225,7 @@ export default function DefaultReadingTemplate({
           </div>
 
           {questionCore && (
-            <section className="card question-core-card">
+            <section className="card question-core-card" id={sectionAnchor(QUESTION_CORE_TITLE)}>
               <span className="question-core-card__tag">
                 <VizIcon name="compass" size={13} />{" "}
                 {session.question?.trim() ? "내 질문에 대한 먼저 답변" : "선택한 관심사 핵심 보기"}
@@ -226,7 +240,7 @@ export default function DefaultReadingTemplate({
           )}
 
           {opening && (
-            <div className="card reading-oracle reading-oracle--opening">
+            <div className="card reading-oracle reading-oracle--opening" id={sectionAnchor(HERO_OPENING)}>
               <CloudPattern id="oracle-cloud-opening" />
               <CornerOrnaments />
               <QuoteMark />
@@ -254,7 +268,7 @@ export default function DefaultReadingTemplate({
           ))}
 
           {closing && (
-            <div className="card reading-oracle reading-oracle--closing">
+            <div className="card reading-oracle reading-oracle--closing" id={sectionAnchor(HERO_CLOSING)}>
               <CloudPattern id="oracle-cloud-closing" />
               <CornerOrnaments />
               <QuoteMark />

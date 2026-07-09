@@ -1,4 +1,4 @@
-import type { ReadingType } from "../types/index.js";
+import type { AnswerDepth, ReadingType } from "../types/index.js";
 
 /**
  * 리딩 타입별 기대 섹션 제목(순서대로). `# 질문 중심 핵심`은 질문이 있을 때만 별도로 끼워 넣는다.
@@ -40,6 +40,23 @@ const BASE_SECTIONS: Record<ReadingType, string[]> = {
   flow: ["첫 점괘", "올해의 흐름", "인생의 큰 흐름", "지금 해야 할 것과 피해야 할 것", "마지막 점괘"],
 };
 
+/**
+ * 고급(advanced) 깊이에서 saju/combo에 추가되는 섹션(systemPrompt.ts DEPTH_INSTRUCTION.advanced와
+ * 동기화). "지금 해야 할 것과 피해야 할 것" 바로 앞에 끼워 넣는다. B-3: 이 목록이 없으면 평생사주
+ * 리포트의 진행률 total이 실제보다 3개 적게 잡혀 100%가 너무 일찍 뜨는 버그가 있었다.
+ */
+const ADVANCED_EXTRA_SECTIONS = ["반복 패턴 정밀 진단", "선택과 시기 판단", "3개월 실행 전략"];
+
+function expectedSections(type: ReadingType, hasQuestion: boolean, depth?: AnswerDepth): string[] {
+  const expected = [...BASE_SECTIONS[type]];
+  if (hasQuestion) expected.splice(1, 0, "질문 중심 핵심");
+  if (depth === "advanced" && (type === "saju" || type === "combo")) {
+    const actionIdx = expected.indexOf("지금 해야 할 것과 피해야 할 것");
+    expected.splice(actionIdx, 0, ...ADVANCED_EXTRA_SECTIONS);
+  }
+  return expected;
+}
+
 export interface ReadingProgress {
   completed: number;
   total: number;
@@ -54,10 +71,8 @@ export interface ReadingProgress {
  * 조건부 섹션(질문 중심 핵심)이 스킵돼도 뒤 섹션이 등장하면 진행률이 계속 올라가도록
  * "지금까지 발견된 것 중 가장 뒤에 있는 섹션"을 기준으로 삼는다(순서 강제 매칭이 아님).
  */
-export function buildReadingProgress(type: ReadingType, hasQuestion: boolean, replyText: string): ReadingProgress {
-  const expected = [...BASE_SECTIONS[type]];
-  if (hasQuestion) expected.splice(1, 0, "질문 중심 핵심");
-
+export function buildReadingProgress(type: ReadingType, hasQuestion: boolean, replyText: string, depth?: AnswerDepth): ReadingProgress {
+  const expected = expectedSections(type, hasQuestion, depth);
   const headers = [...replyText.matchAll(/^#\s+(.+)$/gm)].map((m) => m[1].trim());
 
   let lastFoundIndex = -1;
@@ -71,4 +86,33 @@ export function buildReadingProgress(type: ReadingType, hasQuestion: boolean, re
   const currentTitle = completed < total ? expected[completed] : null;
 
   return { completed, total, percent, currentTitle };
+}
+
+export interface ReadingSectionStatus {
+  title: string;
+  status: "done" | "writing" | "waiting";
+}
+
+/**
+ * 리포트 진행 화면(B-3, 시안 ③)용: 섹션별 상태 목록. buildReadingProgress와 같은 "가장 뒤에서
+ * 발견된 섹션까지 완료" 판정을 재사용해, 조건부 섹션이 스킵돼도 목록이 헛갈리지 않게 한다.
+ */
+export function buildReadingSectionStatuses(
+  type: ReadingType,
+  hasQuestion: boolean,
+  replyText: string,
+  depth?: AnswerDepth,
+): ReadingSectionStatus[] {
+  const expected = expectedSections(type, hasQuestion, depth);
+  const headers = [...replyText.matchAll(/^#\s+(.+)$/gm)].map((m) => m[1].trim());
+
+  let lastFoundIndex = -1;
+  expected.forEach((title, idx) => {
+    if (headers.some((h) => h.startsWith(title))) lastFoundIndex = idx;
+  });
+
+  return expected.map((title, idx) => ({
+    title,
+    status: idx < lastFoundIndex ? "done" : idx === lastFoundIndex ? "writing" : "waiting",
+  }));
 }

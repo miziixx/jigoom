@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReadingProgress } from "./readingProgress.js";
+import { buildReadingProgress, buildReadingSectionStatuses } from "./readingProgress.js";
 
 describe("리딩 진행률 계산", () => {
   it("아직 아무 섹션도 없으면 0%", () => {
@@ -43,5 +43,54 @@ describe("리딩 진행률 계산", () => {
     const p = buildReadingProgress("today", false, reply);
     expect(p.completed).toBe(2);
     expect(p.currentTitle).toBe("지금 해야 할 것과 피해야 할 것");
+  });
+
+  it("B-3: depth advanced면 고급 전용 3섹션이 total에 포함된다(버그였던 부분)", () => {
+    const basic = buildReadingProgress("saju", false, "");
+    const advanced = buildReadingProgress("saju", false, "", "advanced");
+    expect(basic.total).toBe(11);
+    expect(advanced.total).toBe(14);
+  });
+
+  it("B-3: 고급 전용 섹션은 '지금 해야 할 것과 피해야 할 것' 바로 앞에 들어간다", () => {
+    const reply = [
+      "# 첫 점괘",
+      "# 분야별 요약",
+      "# 타고난 성격과 기질",
+      "# 직업과 돈",
+      "# 재물 흐름",
+      "# 애정과 관계",
+      "# 건강과 컨디션",
+      "# 인생의 큰 흐름",
+      "# 올해의 흐름",
+      "# 반복 패턴 정밀 진단",
+    ].join("\n\n");
+    const p = buildReadingProgress("saju", false, reply, "advanced");
+    expect(p.currentTitle).toBe("선택과 시기 판단");
+  });
+});
+
+describe("buildReadingSectionStatuses (B-3, 시안 ③ 리포트 진행 화면 목차)", () => {
+  it("아직 아무 섹션도 없으면 전부 waiting", () => {
+    const statuses = buildReadingSectionStatuses("saju", false, "");
+    expect(statuses.every((s) => s.status === "waiting")).toBe(true);
+    expect(statuses).toHaveLength(11);
+  });
+
+  it("도착한 섹션은 done, 가장 최근 도착한 것은 writing, 나머지는 waiting", () => {
+    const reply = ["# 첫 점괘", "...", "", "# 분야별 요약", "..."].join("\n");
+    const statuses = buildReadingSectionStatuses("saju", false, reply);
+    expect(statuses[0]).toEqual({ title: "첫 점괘", status: "done" });
+    expect(statuses[1]).toEqual({ title: "분야별 요약", status: "writing" });
+    expect(statuses[2].status).toBe("waiting");
+  });
+
+  it("advanced 깊이면 고급 전용 섹션도 목차에 포함된다", () => {
+    const statuses = buildReadingSectionStatuses("saju", false, "", "advanced");
+    const titles = statuses.map((s) => s.title);
+    expect(titles).toContain("반복 패턴 정밀 진단");
+    expect(titles).toContain("선택과 시기 판단");
+    expect(titles).toContain("3개월 실행 전략");
+    expect(titles.indexOf("3개월 실행 전략")).toBeLessThan(titles.indexOf("지금 해야 할 것과 피해야 할 것"));
   });
 });

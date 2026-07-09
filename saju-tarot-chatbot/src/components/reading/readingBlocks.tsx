@@ -366,7 +366,7 @@ export function CategoryTally({ items }: { items: CategorySummary[] }) {
 /** 분야별 요약 카드 묶음 (헤딩 + 집계 + 그리드). */
 export function CategorySummarySection({ items }: { items: CategorySummary[] }) {
   return (
-    <section className="card">
+    <section className="card" id={sectionAnchor(CATEGORY_SECTION_TITLE)}>
       <div className="section-heading-row">
         <h3 className="card-title">분야별 요약</h3>
         <CategoryTally items={items} />

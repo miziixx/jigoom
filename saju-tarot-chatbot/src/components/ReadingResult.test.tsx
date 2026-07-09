@@ -163,7 +163,9 @@ describe("ReadingResult 견고성", () => {
     const pillarIdx = html.indexOf("내 사주 원국");
     const tocIdx = html.indexOf("reading-toc__link");
     const evidenceIdx = html.indexOf("reading-evidence-zone");
-    const bodyIdx = html.indexOf('id="reading-');
+    // 본문 섹션 카드만 특정한다("id=\"reading-"는 B-3에서 첫/마지막 점괘·질문 핵심에도
+    // 앵커(sectionAnchor)를 붙여 더 이상 본문 섹션 전용 접두어가 아니게 됐다).
+    const bodyIdx = html.indexOf("reading-section reading-section--open");
 
     expect(pillarIdx).toBeGreaterThan(-1);
     expect(tocIdx).toBeGreaterThan(-1);

@@ -344,7 +344,7 @@ export default function LoadingNotice({ depth, type, hasQuestion = false, replyT
     return () => window.clearInterval(id);
   }, []);
 
-  const progress = isInitial && type && replyText !== undefined ? buildReadingProgress(type, hasQuestion, replyText) : null;
+  const progress = isInitial && type && replyText !== undefined ? buildReadingProgress(type, hasQuestion, replyText, depth) : null;
 
   return (
     <div className="loading-notice">

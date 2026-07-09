@@ -14,22 +14,37 @@
 
 ## 🎯 현재 상태 (Current State)
 
-- **작업 단계:** A → (B ∥ C)  *(기획안 §11)*
-- **지금 진행 중:** A·C 전체 완료. **B-1·B-2 완료.** 사용자 지시로 B 전체를 연속 진행 중. 다음은 B-3(리포트 진행 화면).
-- **직전 세션이 한 일:** B-2 상대 해부(personDeep) 문장 밀도 + PDF 품질 —
-  1. **B-1과 똑같이 복붙하지 않음:** `PERSON_DEEP_INSTRUCTION`을 다시 읽어보니 "뻔한 말 금지" 규칙이
-     이미 있었지만, 16개 섹션 중 **3개 섹션에만** 적용되고 있었다(좋아할 때~미련·식을 때, 말과 행동
-     불일치). 나머지 13개 섹션(핵심 기질 한 줄·겉과 속·감정 구조 등)은 밀도 지시가 없어 이 부분만
-     새 규칙 (7)로 확장 적용.
-  2. **PDF 쪽은 이미 해결돼 있었음:** `CompatibilityPage.tsx`의 상대 해부 결과 화면도 동일하게
-     `ReadingResult`/`ReadingActions`(전역 `@media print`)를 재사용한다는 걸 코드로 확인 —
-     B-1의 print CSS 수정이 이미 여기도 적용됨. 중복 작업 없이 확인만 하고 넘어감.
-  3. 검증: `reading.test.ts`에 personDeep 밀도 규칙 테스트 1개 신규, **전체 678/678 통과**,
-     `tsc --noEmit` 클린, `npm run build` 성공. 새 UI가 없어(프롬프트 텍스트만 변경) 별도
-     브라우저 검증은 생략 — B-1에서 이미 print CSS를 실측 확인했고 이 페이지도 같은 CSS를 씀.
-- **다음에 할 일:** B-3(리포트 진행 화면, 시안 ③) 착수 — 평생사주 리포트 생성 중 섹션 도착 순 공개 UI.
-  §11 완료 시 A·B·C 전부 끝 — 이후 §11의 "A~C 뒤" 항목(토픽 5종 확장·카드 홈 개편·가격 노출)이 남음.
-  별도로: API 키 있는 환경에서 A-2·B-1·B-2 실제 생성물 육안 검증 필요(누적, 아직 미해결).
+- **작업 단계:** A·B·C **전부 완료** (기획안 §11 "A → (B ∥ C)" 끝). 다음은 §11 "A~C 뒤" 항목
+  (토픽 5종 템플릿 확장 · 카드 홈 전면 개편 · 가격 노출) — 아직 시작 안 함, 사용자 지시 필요.
+- **지금 진행 중:** 없음(B-3 완료로 이번 연속 작업 지시 완결). 다음 작업은 사용자가 A~C 뒤 항목 중
+  뭘 먼저 할지, 혹은 아래 "실생성 육안 검증"부터 할지 정해야 함.
+- **직전 세션이 한 일:** B-3 리포트 진행 화면 (재기획안 §11·시안 ③) —
+  1. **버그 발견·수정:** `src/lib/readingProgress.ts`의 `buildReadingProgress`가 `depth`를 받지
+     않아, advanced(평생사주)에서도 항상 기본 11섹션 기준으로 total을 계산하고 있었다(고급 전용
+     3섹션 — 반복 패턴 정밀 진단·선택과 시기 판단·3개월 실행 전략 — 누락). `depth` 파라미터
+     추가로 advanced면 14섹션 기준이 되도록 수정. `LoadingNotice.tsx`도 같은 버그가 있어 함께 고침.
+  2. `buildReadingSectionStatuses()` 신규 — 섹션별 done/writing/waiting 상태 목록(기존
+     `buildReadingProgress`와 같은 "가장 뒤에서 발견된 섹션까지 완료" 판정 재사용, 새 계산 로직 아님).
+  3. `src/components/ReportProgress.tsx` 신규 — 시안 ③ 재현(정성껏 뽑는 중 히어로 + 진행률 바 +
+     섹션별 목차 ✅/✍️/◌ + CTA). 평생사주(`promoteDaYunLifeMap`) 전용으로 `DefaultReadingTemplate.tsx`에
+     마운트, 모든 섹션 도착 시 스스로 접힘(null 반환).
+  4. `DefaultReadingTemplate.tsx`: "읽기 ›" 링크가 실제로 작동하려면 첫/마지막 점괘·질문 중심 핵심·
+     분야별 요약 블록에도 `id={sectionAnchor(...)}`가 필요해서 추가(기존엔 본문 섹션 카드에만 있었음).
+  5. **회귀 발견·수정:** 위 4번 변경으로 `ReadingResult.test.tsx`의 기존 테스트 하나가 깨짐 —
+     `html.indexOf('id="reading-')`로 "본문 섹션 시작 위치"를 찾던 셀렉터가, 이제 첫 점괘 앵커도
+     `id="reading-...` 패턴이라 더 이른 위치를 잘못 집게 됨. 셀렉터를 `reading-section reading-section--open`
+     (본문 카드 전용 className)으로 좁혀서 수정 — 회귀를 놓치지 않고 잡음.
+  6. 검증: 테스트 12개 신규(readingProgress 6·ReportProgress 5·회귀 수정 1), **전체 688/688 통과**,
+     `tsc --noEmit` 클린, `npm run build` 성공. **+ Playwright로 `/api/reading`을 3초 지연시켜
+     실제 로딩 화면 확보 → "14개 섹션 중 0개 도착"(고급 전용 3섹션 포함 확인) + 시안과 거의 동일한
+     레이아웃 스크린샷 확인 + `emulateMedia({media:"print"})`로 `.report-progress` 인쇄 시
+     숨김(`display:none`) 확인.**
+- **다음에 할 일:** §11 "A~C 뒤" 항목 착수 여부를 사용자에게 확인 — 토픽 5종 템플릿 확장·카드 홈
+  전면 개편·가격 노출. 또는 아래 누적된 실생성 검증부터.
+  **누적 미해결(API 키 필요):** A-2 토픽 심화 5종·B-1 평생사주 밀도·B-2 상대 해부 밀도 — 전부
+  프롬프트 텍스트/파이프라인은 테스트로 검증됐지만, 실제 Haiku/Sonnet 생성물을 육안으로 본 적은
+  없다(`ANTHROPIC_API_KEY`가 이 환경에 없음). API 키 있는 환경에서
+  `docs/validation/reading-quality-validation.md` 절차로 한 번 더 확인 필요.
 - **설계 결정 (다음 세션 참고):** 기획안 §3 문구는 "JudgmentPack → 한국어 렌더"이지만, 실제
   `JudgmentPack.judgments`를 소비하는 렌더러 대신 **기존 5개 엔진을 그대로 재사용**하는 쪽을
   선택함(A-1). 근거: 이 5개 엔진은 이미 `SajuChart`/`LuckCycles`의 계산값에서 판단을 도출하므로
@@ -63,7 +78,8 @@
       print CSS에 새 인터랙티브 블록 숨김 처리. 프롬프트·CSS 검증 완료, 실생성 육안 검증은 API 키 필요.
 - [x] B-2. 상대 해부(personDeep) 문장 밀도 + PDF 품질. 밀도 규칙을 16섹션 전부로 확장(기존엔 3개만
       적용), print CSS는 B-1에서 이미 해결됨을 확인. 프롬프트 검증 완료, 실생성 육안 검증은 API 키 필요.
-- [ ] B-3. 리포트 진행 화면 (시안 ③)
+- [x] B-3. 리포트 진행 화면 (시안 ③). `ReportProgress.tsx` + `readingProgress.ts`의 depth 버그 수정
+      (advanced에서 total 3개 누락되던 것). 브라우저 검증 완료(API 지연시켜 로딩 화면 확보).
 
 ### C. 소름 루프  — 성공 기준: 무료 리딩 → 공유까지 동선 완성
 - [x] C-1. 소름 엔진 (과거 대운·세운 신호 2~3개 먼저 서술, 기획안 §7).
@@ -93,6 +109,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-09 | Sonnet 5 | **B-3 완료 — A·B·C 트랙 전부 완료.** `ReportProgress.tsx`(시안 ③) + `readingProgress.ts` depth 버그 수정(advanced total 11→14) + 섹션 앵커 보강 + 회귀 1건 발견·수정, 테스트 12개, 688/688 통과, Playwright로 API 지연시켜 실제 로딩 화면·print 숨김 확인 | §11 "A~C 뒤" 항목 착수 여부 확인 필요, 실생성 육안 검증 누적 |
 | 2026-07-09 | Sonnet 5 | B-2: PERSON_DEEP_INSTRUCTION 밀도 규칙을 3섹션→16섹션 전체로 확장, print CSS는 CompatibilityPage가 ReadingActions/전역 CSS 재사용해 B-1에서 이미 해결됨 확인, 678/678 통과 | B-3(리포트 진행 화면) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | B-1: DEPTH_INSTRUCTION.advanced에 문장 밀도 규칙 추가("뻔한 말 금지+근거 직접 연결"), print CSS에 새 인터랙티브 블록(goosebump/topic-chips/sidebar) 숨김 처리, 677/677 통과, Playwright emulateMedia로 print 계산값 확인 | B-2(상대 해부) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | **C 트랙 완료.** C-4 사이드바: `Sidebar.tsx`+`profileList.ts`(기존 profile.ts 불변, 위에 다중 프로필만 추가), Layout.tsx nav 정리(보조 기능→사이드바 이전), 테스트 7개, 677/677 통과, Playwright로 빈 상태→저장→전환 전 과정 확인 | B-1(평생사주 문장 밀도) 착수, 사용자 지시로 연속 진행 중 |

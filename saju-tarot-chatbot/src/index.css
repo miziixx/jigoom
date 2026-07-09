@@ -3728,7 +3728,8 @@ label {
   .goosebump-check,
   .topic-deep-chips,
   .sidebar-toggle,
-  .sidebar-overlay {
+  .sidebar-overlay,
+  .report-progress {
     display: none !important;
   }
 
@@ -5221,6 +5222,120 @@ label {
   background: var(--surface);
   text-decoration: none;
   cursor: pointer;
+}
+
+/* ── 리포트 진행 화면 (B-3, 시안 ③) ── */
+.report-progress {
+  border: 1px solid var(--accent-strong);
+}
+
+.report-progress__hero {
+  text-align: center;
+  padding: 6px 4px 14px;
+}
+
+.report-progress__emoji {
+  font-size: 2.1rem;
+}
+
+.report-progress__hero .card-title {
+  margin: 8px 0 0;
+}
+
+.report-progress__desc {
+  font-size: 0.84rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin: 6px 0 14px;
+}
+
+.report-progress__track {
+  height: 7px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin: 0 auto 6px;
+  max-width: 320px;
+  overflow: hidden;
+}
+
+.report-progress__fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.report-progress__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0;
+}
+
+.report-progress__toc {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.report-progress__item a,
+.report-progress__item span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 13px;
+  font-size: 0.86rem;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--surface);
+}
+
+.report-progress__item--done a {
+  border-color: var(--wood);
+  background: var(--wood-soft);
+}
+
+.report-progress__item--writing span {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.report-progress__status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.report-progress__item--done .report-progress__status {
+  color: var(--wood);
+}
+
+.report-progress__item--writing .report-progress__status {
+  color: var(--accent);
+}
+
+.report-progress__note {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.55;
+  margin: 14px 0 0;
+}
+
+.report-progress__cta {
+  display: block;
+  text-align: center;
+  margin: 12px auto 0;
+  width: fit-content;
+  text-decoration: none;
 }
 
 /* ── 개인정보 전송 고지 ── */
