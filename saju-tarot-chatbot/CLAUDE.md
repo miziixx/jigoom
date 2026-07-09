@@ -171,8 +171,9 @@ Long saju/combo readings use client-side fan-out:
 - Each call still uses the existing continuation logic if it hits `max_tokens` or a stream ends early.
 - `sectionGroup` is only a generation instruction. The stored `userMessage`/follow-up history must not keep the front/back-only directive.
 - Follow-up, compare, today, and flow calls are not fan-out by default.
-- `light` depth is also not fan-out. It is treated as a fast supplement to the API-free instant summary.
+- **All `saju`/`combo` depths fan out except `light`** (`shouldFanOut()` in `readingApi.ts` excludes only `depth === "light"`). This includes the default/`기본` depth (depth `undefined`) — it writes the same full section structure as `advanced`/`expert` (no content is trimmed for speed, per the "don't reduce information for a short mode" rule below), so it gets the same parallel front/back split to cut wall-clock latency. `light` stays single-call: it's a fast supplement to the API-free instant summary, not a full structured reading.
 - The Anthropic API call must end with a user message. Do not reintroduce assistant prefill messages for continuation.
+- Evidence Gate / Content Gate rewrites (`api/reading.ts`, triggered when validation fails on the first pass) stream the rewrite call instead of blocking on `completeMessages`. The rewrite resets the client's accumulated text via `{text: "", replace: true}` then streams deltas, so a rare gate failure doesn't look like the UI has frozen. `src/lib/readingApi.ts`'s NDJSON line parser checks `typeof obj.text === "string"` (not truthy) so an empty-string reset isn't silently dropped.
 
 ### Follow-up Chat
 

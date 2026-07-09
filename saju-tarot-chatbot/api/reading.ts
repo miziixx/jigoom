@@ -245,6 +245,66 @@ async function rewriteAfterFailedGate(
   return { reply: fallbackReply, gate };
 }
 
+/**
+ * rewriteAfterFailedGate의 스트리밍판. NDJSON 스트림 경로(streamJudgmentGatedReply)에서만 쓴다.
+ * 재작성 호출을 completeMessages(블로킹)로 기다리는 대신 그대로 스트리밍해서, 드물게 게이트에
+ * 걸리는 경우에도 화면이 멈춘 것처럼 보이지 않고 텍스트가 계속 흐르게 한다.
+ * 클라이언트에는 먼저 {text:"", replace:true}로 1차 응답을 비우고, 그 뒤 델타를 이어붙이게 한다.
+ * 재작성도 검증에 실패하면 결정론적 fallback(API 호출 없음)으로 즉시 교체한다.
+ */
+async function streamRewriteAfterFailedGate(
+  res: VercelResponse,
+  anthropic: Anthropic,
+  firstReply: string,
+  firstValidation: JudgmentValidationResult,
+  judgmentPack: JudgmentPack,
+  model: string = MODEL,
+): Promise<{ reply: string; gate: JudgmentGateResult }> {
+  const rewritePrompt = buildJudgmentRewritePrompt({ originalReply: firstReply, validation: firstValidation, pack: judgmentPack });
+  res.write(JSON.stringify({ text: "", replace: true }) + "\n");
+
+  let rewriteReply = "";
+  const stream = anthropic.messages.stream({
+    model,
+    max_tokens: 7000,
+    system: [{ type: "text", text: READING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+    messages: [{ role: "user", content: rewritePrompt }],
+  });
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      rewriteReply += event.delta.text;
+      res.write(JSON.stringify({ text: event.delta.text }) + "\n");
+    }
+  }
+
+  const rewriteValidation = validateOutputAgainstJudgmentPack({ reply: rewriteReply, pack: judgmentPack });
+  if (rewriteValidation.ok) {
+    const gate: JudgmentGateResult = {
+      status: "rewrite",
+      reply: rewriteReply,
+      validation: rewriteValidation,
+      firstValidation,
+      rewriteAttempted: true,
+      fallbackUsed: false,
+    };
+    return { reply: rewriteReply, gate };
+  }
+
+  const fallbackReply = buildJudgmentFallback(judgmentPack);
+  const fallbackValidation = validateOutputAgainstJudgmentPack({ reply: fallbackReply, pack: judgmentPack });
+  res.write(JSON.stringify({ text: fallbackReply, replace: true }) + "\n");
+  const gate: JudgmentGateResult = {
+    status: "fallback",
+    reply: fallbackReply,
+    validation: fallbackValidation,
+    firstValidation,
+    rewriteValidation,
+    rewriteAttempted: true,
+    fallbackUsed: true,
+  };
+  return { reply: fallbackReply, gate };
+}
+
 async function completeJudgmentGatedReply(
   anthropic: Anthropic,
   messages: Anthropic.Messages.MessageParam[],
@@ -312,8 +372,7 @@ async function streamJudgmentGatedReply(
     if (firstPass.status === "pass") {
       res.write(JSON.stringify({ done: true, stopReason, gate: gateSignal(firstPass) }) + "\n");
     } else {
-      const gated = await rewriteAfterFailedGate(anthropic, reply, firstPass.validation, judgmentPack, model);
-      res.write(JSON.stringify({ text: gated.reply, replace: true }) + "\n");
+      const gated = await streamRewriteAfterFailedGate(res, anthropic, reply, firstPass.validation, judgmentPack, model);
       res.write(JSON.stringify({ done: true, stopReason: "end_turn", gate: gateSignal(gated.gate) }) + "\n");
     }
   } catch (err) {
@@ -376,10 +435,23 @@ async function streamContentGatedReply(
     if (!contentNeedsRewrite(issues)) {
       res.write(JSON.stringify({ done: true, stopReason, contentGate: { status: "pass", codes: issues.map((i) => i.code) } }) + "\n");
     } else {
+      // 재작성도 completeMessages(블로킹) 대신 스트리밍해서, 걸리는 드문 경우에도 화면이 멈추지 않게 한다.
       const rewritePrompt = buildContentRewritePrompt({ originalReply: reply, issues, evidenceUserMessage });
-      const corrected = await completeMessages(anthropic, [{ role: "user", content: rewritePrompt }], { maxTokens: MAX_TOKENS_STREAM, model });
+      res.write(JSON.stringify({ text: "", replace: true }) + "\n");
+      let corrected = "";
+      const rewriteStream = anthropic.messages.stream({
+        model,
+        max_tokens: MAX_TOKENS_STREAM,
+        system: [{ type: "text", text: READING_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: rewritePrompt }],
+      });
+      for await (const event of rewriteStream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          corrected += event.delta.text;
+          res.write(JSON.stringify({ text: event.delta.text }) + "\n");
+        }
+      }
       const remaining = validateReadingContent(corrected);
-      res.write(JSON.stringify({ text: corrected, replace: true }) + "\n");
       res.write(
         JSON.stringify({
           done: true,

@@ -110,7 +110,10 @@ function shouldFanOut(body: unknown): body is FanOutBody {
   if (!body || typeof body !== "object") return false;
   const b = body as FanOutBody;
   const depth = b.context && typeof b.context === "object" ? (b.context as { depth?: unknown }).depth : undefined;
-  if (depth !== "advanced" && depth !== "expert") return false;
+  // "light"만 제외한다(빠른 API-free 보완용 모드). 기본(depth undefined)도 advanced/expert와 똑같이
+  // 11개 안팎 섹션을 순서대로 다 쓰므로, 병렬 fan-out 없이 통짜 스트림+이어쓰기만 타면 체감 지연이 크다.
+  // 내용 구조는 systemPrompt.ts 쪽 변경이 없으니 분량·깊이는 그대로이고, 요청 경로만 병렬화된다.
+  if (depth === "light") return false;
   return (b.type === "saju" || b.type === "combo") && !b.continueFrom && !b.sectionGroup;
 }
 
@@ -289,7 +292,8 @@ async function streamReadingInner(body: unknown, handlers: StreamHandlers): Prom
       meta = obj.meta;
       handlers.onMeta?.(obj.meta);
     }
-    if (obj.text) {
+    if (typeof obj.text === "string") {
+      // 빈 문자열 + replace는 "재작성 시작, 1차 응답 비우기" 신호이므로 falsy라고 무시하면 안 된다.
       reply = obj.replace ? obj.text : reply + obj.text;
       handlers.onText?.(reply);
     }

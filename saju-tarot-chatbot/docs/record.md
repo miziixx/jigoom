@@ -1708,3 +1708,42 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
 **검증**: `viz.test.tsx`에 "같은 개수여도 관계·자리가 다르면 문구가 달라진다" 케이스 추가.
 `npm test` 515 통과(신규 monthFlowNarrative 관련 케이스 포함, `eventEngine.test.ts`의 "표면 문구에
 사주 전문용어 미노출" 테스트도 그대로 통과), `npm run build` 통과.
+
+## 기본 리딩 체감 지연 개선 — 내용은 그대로, 받는 방식만 병렬화 (2026-07-09)
+
+**배경**: 사용자가 "기본 리딩도 120초 넘게 걸리는데 그동안 계산 결과만 보며 대기해야 한다"고 지적.
+원인 분석 결과:
+1. `saju`/`combo` 타입은 깊이(기본/고급) 상관없이 11~13개 섹션(각 섹션 `[한 줄 결론]~[전문가 근거 보기]`
+   8개 서브구조)을 전부 쓴다 — 기본이라고 섹션 수가 줄지 않는다(`systemPrompt.ts`의 출력 형식은
+   depth로 분기하지 않고, `advanced`/`expert`만 섹션을 더 얹는다).
+2. 그런데 앞/뒤 병렬 fan-out(`src/lib/readingApi.ts`의 `shouldFanOut`)은 `depth === "advanced"|"expert"`
+   일 때만 적용되고 있었다. 기본은 이 방대한 분량을 통짜 1개 스트림 + 최대 6회 순차 이어쓰기
+   (continuation)로 생성해, 병렬화 혜택 없이 가장 느린 경로를 탔다.
+3. Evidence/Content Gate가 검증 실패로 재작성할 때(`api/reading.ts`) `completeMessages`(스트리밍 아님)로
+   블로킹 호출을 했다 — 이 구간엔 클라이언트로 텍스트 델타가 전혀 안 가서, 걸리면 화면이 멈춘 것처럼
+   보였다(사용자가 말한 증상과 일치).
+
+**중요**: CLAUDE.md의 "짧은 모드에서는 분량만 줄이고 항목 자체를 삭제하지 마라" / "정보량을 줄이지
+않는다" 원칙 때문에, 기본 depth의 섹션·서브구조를 줄여서 속도를 올리는 방향은 채택하지 않았다.
+**내용은 한 글자도 안 줄이고, 어떻게 병렬로 받아오는지만 바꿨다.**
+
+**변경**:
+- `src/lib/readingApi.ts` `shouldFanOut()`: `depth === "advanced"|"expert"` 제한을 없애고
+  `depth === "light"`만 제외하도록 바꿈. 기본(depth undefined)도 advanced/expert와 동일하게
+  앞/뒤 2-way 병렬 스트림을 탄다. `light`는 CLAUDE.md에 이미 문서화된 대로 API-free 즉시 요약의
+  빠른 보완 모드라 그대로 제외.
+- `api/reading.ts`: Evidence Gate(`streamJudgmentGatedReply`)와 Content Gate(`streamContentGatedReply`)의
+  재작성 경로를 `completeMessages`(블로킹) 대신 스트리밍으로 바꿨다. 재작성 시작 시
+  `{text:"", replace:true}`로 1차 응답을 비우고, 재작성 델타를 그대로 흘려보낸다(재작성도 검증
+  실패하면 결정론적 fallback으로 즉시 교체, API 호출 없음). 신규 `streamRewriteAfterFailedGate`.
+  기존 블로킹 `rewriteAfterFailedGate`/`completeJudgmentGatedReply`는 구버전(비스트리밍) 클라이언트
+  경로용으로 그대로 둠.
+- `src/lib/readingApi.ts` 클라이언트 파서: `if (obj.text)` truthy 체크를 `typeof obj.text === "string"`로
+  고침. 빈 문자열 `{text:"", replace:true}`가 falsy라 무시되던 버그 수정(위 재작성 리셋 신호가 이
+  체크를 통과해야 동작함).
+
+**검증**: `src/lib/readingApi.test.ts`의 "기본은 병렬 호출 안 함" 테스트를 새 동작(기본도 병렬 호출)에
+맞게 교체하고, "light는 병렬 호출 안 함" 테스트를 추가. `npm test` 576 통과, `npm run build` 통과.
+
+**남은 것**: 자가교정(Gate) 재작성은 드문 경로라 수동 검증이 어려움 — 실제 재작성이 걸리는 케이스를
+스테이징에서 한 번 더 확인 권장. 병렬 호출이 늘어난 만큼(기본도 2회 API 호출) 비용은 증가한다.

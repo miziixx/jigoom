@@ -104,22 +104,54 @@ describe("streamReading 이어쓰기(continue)", () => {
     expect(result.reply).toBe("후속 답변");
   });
 
-  it("기본 무료 리딩은 짧은 미리보기라 병렬 호출하지 않는다", async () => {
+  it("기본(depth 미지정) saju도 고급과 똑같이 앞/뒤 섹션을 병렬 호출한다", async () => {
+    // 기본 리딩도 advanced/expert와 같은 전체 섹션 구조를 그대로 쓰므로(내용 축소 없음),
+    // 체감 지연을 줄이려면 병렬 fan-out을 똑같이 적용해야 한다.
+    const calls: Array<Record<string, unknown>> = [];
+    const fetchMock = vi.fn((_, init: RequestInit) => {
+      const parsed = JSON.parse(init.body as string) as Record<string, unknown>;
+      calls.push(parsed);
+      if (parsed.sectionGroup === "front") {
+        return Promise.resolve(
+          ndjsonResponse([
+            JSON.stringify({ meta: { userMessage: "front-user" } }),
+            JSON.stringify({ text: "# 첫 점괘\n앞" }),
+            JSON.stringify({ done: true, stopReason: "end_turn" }),
+          ]),
+        );
+      }
+      return Promise.resolve(
+        ndjsonResponse([
+          JSON.stringify({ text: "# 건강과 컨디션\n뒤" }),
+          JSON.stringify({ done: true, stopReason: "end_turn" }),
+        ]),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await streamReading({ type: "saju", question: "전체" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(calls.map((c) => c.sectionGroup).sort()).toEqual(["back", "front"]);
+    expect(result.reply).toBe("# 첫 점괘\n앞\n\n# 건강과 컨디션\n뒤");
+  });
+
+  it("light 깊이는 API-free 요약 보완용 빠른 모드라 병렬 호출하지 않는다", async () => {
     const fetchMock = vi.fn(() =>
       Promise.resolve(
         ndjsonResponse([
-          JSON.stringify({ meta: { userMessage: "basic-user" } }),
-          JSON.stringify({ text: "기본 리딩" }),
+          JSON.stringify({ meta: { userMessage: "light-user" } }),
+          JSON.stringify({ text: "라이트 리딩" }),
           JSON.stringify({ done: true, stopReason: "end_turn" }),
         ]),
       ),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await streamReading({ type: "saju", question: "전체" });
+    const result = await streamReading({ type: "saju", question: "전체", context: { depth: "light" } });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.reply).toBe("기본 리딩");
+    expect(result.reply).toBe("라이트 리딩");
   });
 
   it("stopReason이 max_tokens면 continueFrom으로 이어서 완결한다", async () => {
