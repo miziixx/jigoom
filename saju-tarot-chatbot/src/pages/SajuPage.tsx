@@ -5,6 +5,7 @@ import ChatFollowUp from "../components/ChatFollowUp";
 import ReadingActions from "../components/ReadingActions";
 import FeedbackBar from "../components/FeedbackBar";
 import KeywordCloud from "../components/KeywordCloud";
+import SelfDeepTeaser from "../components/SelfDeepTeaser";
 import { useReadingStore } from "../store/useReadingStore";
 import type { BirthInfo, ReadingContext, ReadingFocus } from "../types";
 
@@ -34,6 +35,7 @@ export default function SajuPage() {
       {showResult && currentSession && (
         <>
           <ReadingResult session={currentSession} loading={loading} />
+          {!loading && <SelfDeepTeaser session={currentSession} />}
           <ReadingActions session={currentSession} />
           <FeedbackBar session={currentSession} />
           <KeywordCloud session={currentSession} />

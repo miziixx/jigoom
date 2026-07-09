@@ -1,6 +1,16 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { buildStyleHintFromFeedback } from "../lib/feedback";
-import type { AnswerDepth, AnswerTone, BirthTimeAccuracy, LifeDomain, PastEvent, ReadingContext, SituationStage } from "../types";
+import { isPremium, unlockPremium } from "../lib/premium";
+import type {
+  AnswerDepth,
+  AnswerTone,
+  BirthTimeAccuracy,
+  LifeDomain,
+  PastEvent,
+  ReadingContext,
+  SelfBehaviorCheck,
+  SituationStage,
+} from "../types";
 
 const PAST_DOMAIN_OPTIONS: Array<{ value: LifeDomain; label: string }> = [
   { value: "career", label: "직업·일" },
@@ -40,6 +50,16 @@ const TIME_ACCURACIES: Array<{ value: BirthTimeAccuracy; label: string }> = [
 
 const CONCERN_AREAS = ["일·커리어", "돈·수입", "연애·관계", "가족", "인간관계", "건강·컨디션", "진로·공부", "사업·브랜드", "마음상태"];
 
+// 자기 완전분석용 행동 체크 필드 (전부 선택, 계산 불변)
+const SELF_CHECK_FIELDS: Array<{ key: keyof SelfBehaviorCheck; label: string; placeholder: string }> = [
+  { key: "recentThought", label: "최근 2주 가장 많이 한 생각", placeholder: "예: 이대로 계속 가도 되나 하는 생각" },
+  { key: "procrastinating", label: "요즘 제일 미루는 일", placeholder: "예: 병원 예약, 정리, 연락" },
+  { key: "angerStyle", label: "화날 때는", placeholder: "예: 바로 말한다 / 참았다 나중에 터진다" },
+  { key: "hurtStyle", label: "서운하면", placeholder: "예: 티 안 내고 거리를 둔다" },
+  { key: "moneyFeeling", label: "돈 쓸 때 감정", placeholder: "예: 사고 나면 불안하다 / 아끼다 한 번에 지른다" },
+  { key: "tiredStyle", label: "지치면", placeholder: "예: 사람을 만난다 / 혼자 숨는다" },
+];
+
 interface Props {
   value: ReadingContext;
   onChange: (context: ReadingContext) => void;
@@ -51,6 +71,24 @@ interface Props {
 export default function ContextPicker({ value, onChange, showTimeAccuracy = false }: Props) {
   // 지난 피드백에서 뽑을 수 있는 스타일 조정 힌트 (없으면 체크박스를 숨긴다)
   const availableStyleHint = useMemo(() => buildStyleHintFromFeedback(), []);
+
+  const [premium, setPremium] = useState(() => isPremium());
+  const selfDeepOn = value.analysisMode === "selfDeep";
+
+  // 완전분석 토글: 켜면 analysisMode=selfDeep + depth=advanced(깊이 확보). 끄면 둘 다 해제.
+  const toggleSelfDeep = () => {
+    if (selfDeepOn) {
+      onChange({ ...value, analysisMode: undefined, depth: undefined, selfCheck: undefined });
+    } else {
+      onChange({ ...value, analysisMode: "selfDeep", depth: "advanced" });
+    }
+  };
+
+  const setSelfCheck = (patch: Partial<SelfBehaviorCheck>) => {
+    const next = { ...(value.selfCheck ?? {}), ...patch };
+    const hasAny = Object.values(next).some((v) => v && v.trim());
+    onChange({ ...value, selfCheck: hasAny ? next : undefined });
+  };
 
   const pastEvents = value.pastEvents ?? [];
   const updatePastEvents = (next: PastEvent[]) =>
@@ -205,6 +243,7 @@ export default function ContextPicker({ value, onChange, showTimeAccuracy = fals
         <select
           value={value.depth ?? ""}
           onChange={(e) => onChange({ ...value, depth: (e.target.value || undefined) as AnswerDepth | undefined })}
+          disabled={selfDeepOn}
         >
           <option value="">기본</option>
           {DEPTHS.map((d) => (
@@ -213,6 +252,58 @@ export default function ContextPicker({ value, onChange, showTimeAccuracy = fals
             </option>
           ))}
         </select>
+        {selfDeepOn && <span className="field-hint">완전 분석은 항상 고급 깊이로 봅니다.</span>}
+      </div>
+
+      <div className="field-row field-row--column self-deep-toggle">
+        <label className="checkbox-label">
+          <input type="checkbox" checked={selfDeepOn} onChange={toggleSelfDeep} />
+          <b>자기 완전분석</b>
+          <span className="premium-badge">프리미엄</span>
+        </label>
+        <span className="field-hint">
+          일반 풀이 대신 "나의 작동방식"을 12단계로 해부합니다 — 겉과 속, 감정 구조, 반복 패턴, 그림자·결핍,
+          확실/추정/확인 필요까지.
+        </span>
+
+        {selfDeepOn && !premium && (
+          <div className="card premium-gate">
+            <p>
+              <span className="premium-badge">프리미엄</span> 자기 완전분석은 프리미엄 기능입니다. 결제 연동
+              전까지는 아래 버튼으로 체험할 수 있습니다.
+            </p>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => {
+                // 결제 연동 전 체험용 스텁 — 실제 결제 성공 콜백에서 unlockPremium() 호출
+                unlockPremium();
+                setPremium(true);
+              }}
+            >
+              체험으로 잠금 해제
+            </button>
+          </div>
+        )}
+
+        {selfDeepOn && premium && (
+          <div className="self-check-grid">
+            <p className="field-hint">
+              아래는 선택입니다. 실제 행동을 적으면 계산된 성향과 대조해 훨씬 더 "내 얘기"처럼 짚어드려요.
+            </p>
+            {SELF_CHECK_FIELDS.map((f) => (
+              <label className="field-row field-row--column" key={f.key}>
+                <span className="field-label">{f.label}</span>
+                <input
+                  type="text"
+                  placeholder={f.placeholder}
+                  value={value.selfCheck?.[f.key] ?? ""}
+                  onChange={(e) => setSelfCheck({ [f.key]: e.target.value || undefined })}
+                />
+              </label>
+            ))}
+          </div>
+        )}
       </div>
 
       {showTimeAccuracy && (

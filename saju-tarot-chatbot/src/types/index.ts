@@ -17,6 +17,29 @@ export type AnswerDepth = "advanced";
 /** 출생 시간 정확도 (신뢰도 계산에 반영) */
 export type BirthTimeAccuracy = "exact" | "half-hour" | "over-hour" | "unknown";
 
+/**
+ * 완전분석 모드. 표준 섹션 대신 전용 출력 구조를 쓴다.
+ * 새 depth/ReadingType를 늘리지 않고 기존 saju 파이프라인 위에 얹기 위한 플래그.
+ * - selfDeep: 자기 완전분석(12블록 심층 리포트).
+ */
+export type AnalysisMode = "selfDeep";
+
+/** 자기 완전분석용 행동 체크(선택). 전부 자유입력, 계산에는 영향 없음(해석 정확도 보조). */
+export interface SelfBehaviorCheck {
+  /** 최근 2주 가장 많이 한 생각 */
+  recentThought?: string;
+  /** 요즘 제일 미루는 일 */
+  procrastinating?: string;
+  /** 화날 때 바로 말하는 편인지 */
+  angerStyle?: string;
+  /** 서운하면 어떻게 하는지 */
+  hurtStyle?: string;
+  /** 돈 쓸 때 감정 */
+  moneyFeeling?: string;
+  /** 지치면 사람을 만나는지 숨는지 */
+  tiredStyle?: string;
+}
+
 export interface ReadingContext {
   situation?: SituationStage;
   tone?: AnswerTone;
@@ -34,6 +57,10 @@ export interface ReadingContext {
   styleHint?: string;
   /** 과거 검증 입력: 실제로 있었던 과거 사건들 (해석 신뢰도 보정용) */
   pastEvents?: PastEvent[];
+  /** 완전분석 모드 (표준 섹션 대신 전용 출력 구조 사용) */
+  analysisMode?: AnalysisMode;
+  /** 자기 완전분석용 행동 체크 (선택, 계산 불변) */
+  selfCheck?: SelfBehaviorCheck;
 }
 
 // ── 과거 검증 (실제 과거 사건 → 계산 흐름 부합도 → 해석 신뢰도 보정) ──────────

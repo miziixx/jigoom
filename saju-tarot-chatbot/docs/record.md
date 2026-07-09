@@ -1849,3 +1849,41 @@ JudgmentPack Evidence Gate가 실제로 켜지도록 재배선.
 **남은 것/주의:** 2단계의 유료 전환 한 줄은 CLAUDE.md의 "결제 유도로 비워둔 느낌 절대 금지"와 경계선에
 있으니, 스테이징에서 실제 출력이 세일즈처럼 읽히지 않는지 눈으로 확인 권장. 앵커링이 고급의 "심화 확장"을
 실제로 살리는지(앵커에 갇혀 기본과 똑같아지지 않는지)도 실사용 대조 필요.
+
+### 자기 완전분석(selfDeep) 1차 — 자기 해부 리포트 (2026-07-09)
+
+**방향**: "그 사람은 어떤 사람인가"를 넘어 "그 사람의 작동방식"을 해부하는 완전분석. 자기분석 1차만
+(상대분석은 후속). 무료 기본은 유지 + 일부 미리보기 노출, 전체 12블록 해부는 유료 전용.
+
+**핵심 설계**: 새 ReadingType/depth를 늘리지 않는다(CLAUDE.md 경고 준수). `ReadingContext.analysisMode?:
+"selfDeep"` 플래그만 추가해 기존 `depth:"advanced"` saju 파이프라인 위에 얹고 **섹션 템플릿만 교체**.
+결정론 계산은 불변 — 새로 만든 건 조립·프롬프트·입력·표면화뿐.
+
+**변경 파일**:
+- `src/types/index.ts`: `AnalysisMode`, `SelfBehaviorCheck`, `ReadingContext.analysisMode`/`selfCheck`.
+- `src/lib/selfDeep.ts`(신규): `deriveShadow`(그림자·결핍 — psych `defense`/`repeatedPattern` +
+  capacityAxis 재료강·출력약 간극에서 규칙 파생, 신규 계산 없음), `buildConfidenceTiers`(분야별
+  확실/추정/확인 필요 — 출생시간 정확도·교차검증·과거검증 취합), `buildSelfDeepEvidence`(프롬프트 근거).
+- `src/prompts/systemPrompt.ts`: `SELF_DEEP_INSTRUCTION`(12블록 구조로 교체), `formatSelfCheck`(자기
+  행동체크 주입), selfDeep일 때 `DEPTH_INSTRUCTION`/`DEFAULT_STANDARD_INSTRUCTION` 미배선(충돌 방지),
+  `buildSelfDeepEvidence` 배선.
+- `src/lib/readingApi.ts`: `shouldFanOut`에서 selfDeep 제외(12블록은 front/back 분할과 안 맞음 → 통짜 생성).
+- `api/reading.ts`: `selfCheck` 필드 clampText 방어.
+- `src/components/ContextPicker.tsx`: 완전분석 토글(프리미엄 게이팅) + 행동체크 입력.
+- `src/components/SelfDeepTeaser.tsx`(신규) + `SajuPage.tsx`: 무료 미리보기(그림자 한 줄 + 신뢰도 요약).
+- `src/lib/premium.ts`: `PREMIUM_FEATURES`에 "자기 완전분석" 등록(단, isPremium은 localStorage 스텁 —
+  실결제 강제 아님, 별건).
+- `src/index.css`: 토글·행동체크·미리보기 스타일.
+
+**출력 구조(12블록)**: 핵심 기질 한 줄 → 겉과 속 → 감정 구조 → 반복 패턴 → 관계 속의 나 → 일과 재능
+→ 돈과 현실감각 → 몸·생활 리듬 → 그림자·결핍·방어 → 현재 상태 → 행동 처방 → 확실/추정/확인 필요.
+차별점은 "반복 패턴"과 "그림자·결핍·방어"(이 사람만의 재료-출력 간극).
+
+**검증**: `npx tsc -b` 클린, `npm test` 591 통과(575+16 신규), `npm run build` 통과. 임시 스크립트로
+`buildReadingUserMessage` 실제 출력 확인 — 12블록 순서대로, 신뢰도 티어가 출생시간 오차를 반영(성격→추정,
+시기→확인 필요), `[고급 리딩]`/`병렬 생성` 미배선(충돌 없음), 행동체크 별도 블록 주입. 컴포넌트 스모크 렌더 통과.
+
+**남은 것/주의**: (1) 실제 AI 리딩 생성은 ANTHROPIC_API_KEY 필요 — 스테이징에서 12블록이 실제로 나오고
+무료 미리보기 vs 유료 전체 차이가 분명한지 눈으로 대조 권장. (2) 프리미엄 게이트는 localStorage 스텁 →
+실결제 연동 별건. (3) Phase 2(상대 완전분석): `roleChemistry`/`compatibilityRepairReport` export화 +
+상대 원국에 psych/axes 적용 + 타로 오버레이 + `PERSON_DEEP_INSTRUCTION` 필요(이번 범위 밖).

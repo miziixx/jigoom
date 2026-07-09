@@ -559,6 +559,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           recentContext: clampText(context.recentContext, MAX_CONTEXT_FIELD_LEN) ?? context.recentContext,
           fearPoint: clampText(context.fearPoint, MAX_CONTEXT_FIELD_LEN) ?? context.fearPoint,
           styleHint: clampText(context.styleHint, MAX_CONTEXT_FIELD_LEN) ?? context.styleHint,
+          selfCheck: context.selfCheck
+            ? {
+                recentThought: clampText(context.selfCheck.recentThought, MAX_CONTEXT_FIELD_LEN) ?? context.selfCheck.recentThought,
+                procrastinating: clampText(context.selfCheck.procrastinating, MAX_CONTEXT_FIELD_LEN) ?? context.selfCheck.procrastinating,
+                angerStyle: clampText(context.selfCheck.angerStyle, MAX_CONTEXT_FIELD_LEN) ?? context.selfCheck.angerStyle,
+                hurtStyle: clampText(context.selfCheck.hurtStyle, MAX_CONTEXT_FIELD_LEN) ?? context.selfCheck.hurtStyle,
+                moneyFeeling: clampText(context.selfCheck.moneyFeeling, MAX_CONTEXT_FIELD_LEN) ?? context.selfCheck.moneyFeeling,
+                tiredStyle: clampText(context.selfCheck.tiredStyle, MAX_CONTEXT_FIELD_LEN) ?? context.selfCheck.tiredStyle,
+              }
+            : context.selfCheck,
         }
       : context;
 

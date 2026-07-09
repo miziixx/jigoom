@@ -19,6 +19,7 @@ import { buildNowMind, formatNowMind } from "../lib/nowMind.js";
 import { buildPsychLayer, formatPsychLayer } from "../lib/psychLayer.js";
 import { buildCapacityAxes, formatCapacityAxes } from "../lib/capacityAxis.js";
 import { buildDeliberation, formatDeliberation } from "../lib/deliberation.js";
+import { buildSelfDeepEvidence } from "../lib/selfDeep.js";
 import { describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 
 /**
@@ -741,6 +742,21 @@ const DEPTH_INSTRUCTION: Record<NonNullable<ReadingContext["depth"]>, string> = 
     " 전체 분량은 공백 포함 6200~8000자로 하되, 중복 문장 없이 반드시 '마지막 점괘'까지 완결해라.",
 };
 
+// 자기 완전분석(selfDeep): 표준 생애 섹션 대신 "그 사람의 작동방식" 12블록 해부 구조로 교체한다.
+// 이 지시가 있으면 DEFAULT/DEPTH 섹션 지시는 태우지 않는다(중복·충돌 방지). fan-out도 타지 않는다.
+const SELF_DEEP_INSTRUCTION =
+  "[자기 완전분석 — 출력 구조 지정] 이 리딩은 일반 사주 리딩이 아니라 이 사람의 '작동방식'을 깊게 해부하는 완전분석 리포트다. " +
+  "표준 섹션(첫 점괘/분야별 요약/타고난 성격과 기질/직업과 돈/재물 흐름/애정과 관계/건강과 컨디션/인생의 큰 흐름/올해의 흐름/지금 해야 할 것과 피해야 할 것/마지막 점괘)을 쓰지 말고, " +
+  "반드시 아래 12개 섹션만, 이 순서로, '# 제목' 형식으로 작성해라:\n" +
+  "# 핵심 기질 한 줄 진단\n# 겉과 속\n# 감정 구조\n# 반복 패턴\n# 관계 속의 나\n# 일과 재능\n# 돈과 현실감각\n# 몸·생활 리듬\n# 그림자·결핍·방어\n# 현재 상태\n# 행동 처방\n# 확실 / 추정 / 확인 필요\n" +
+  "규칙: (1) '# 반복 패턴'과 '# 그림자·결핍·방어'가 이 리포트의 핵심이다 — 반드시 이 사람만의 재료-출력 간극과 반복 병목을 콕 짚고, 누구에게나 맞는 뻔한 말·덕담으로 채우지 마라. " +
+  "(2) 각 섹션은 [한 줄 결론] → [쉬운 풀이] → [현실에서 나타나는 모습] → [어떻게 다룰지] 흐름으로 쓰되 장황하지 않게. " +
+  "(3) '# 현재 상태'는 [지금 올라오는 마음] 근거로, '# 행동 처방'은 개인 생활 처방(색·행동·회복)과 보완하면 좋은 기운 근거로 쓴다. " +
+  "(4) '# 확실 / 추정 / 확인 필요'는 전달된 [분야별 신뢰도] 근거를 그대로 분류해 마무리한다. " +
+  "(5) 앞의 다른 활용 안내들이 표준 섹션명(첫 점괘·타고난 성격과 기질·애정과 관계·직업과 돈·건강과 컨디션 등)으로 배치를 지시하더라도, 그 소재는 여기 12블록의 대응 섹션으로 옮겨 반영한다 — 첫 점괘→핵심 기질/현재 상태, 성격·기질→겉과 속·감정 구조, 애정과 관계→관계 속의 나, 직업과 돈→일과 재능·돈과 현실감각, 건강→몸·생활 리듬. 표준 섹션 제목은 만들지 마라. " +
+  "(6) 안전 규칙 전면 유지: 단정·공포·심리진단명·사주 용어를 표면에 쓰지 말고, 근거는 전문가 근거 보기에만 남긴다. " +
+  "전체 분량은 공백 포함 5000~7000자로, 중복 없이 '# 확실 / 추정 / 확인 필요'까지 완결해라.";
+
 const TIME_ACCURACY_LABEL: Record<NonNullable<ReadingContext["timeAccuracy"]>, string> = {
   exact: "정확함",
   "half-hour": "30분 정도 오차 가능",
@@ -758,6 +774,7 @@ function formatContext(context: ReadingContext, type?: ReadingType): string[] {
   if (context.recentContext) info.push(`최근 1~3개월 실제 상황: ${context.recentContext}`);
   if (context.fearPoint) info.push(`가장 두려운 결과: ${context.fearPoint}`);
   if (context.timeAccuracy) info.push(`출생 시간 정확도(사용자 응답): ${TIME_ACCURACY_LABEL[context.timeAccuracy]}`);
+  const selfCheck = formatSelfCheck(context.selfCheck);
   if (info.length > 0) {
     parts.push(
       `[개인화 정보]\n${info.join("\n")}` +
@@ -770,14 +787,37 @@ function formatContext(context: ReadingContext, type?: ReadingType): string[] {
     );
   }
 
+  // 자기 행동 체크: recentContext/fearPoint/pastEvents와 역할이 겹치지 않게 별도 블록으로 넘긴다.
+  if (selfCheck) {
+    parts.push(
+      `[자기 행동 체크 — 사용자 입력]\n${selfCheck}\n(이 항목은 사용자가 스스로 적은 실제 행동·감정 패턴이다. 계산된 성향과 대조해 '계산상 이렇게 나오는데 실제로도 이렇게 하시죠?'처럼 검증하듯 연결하되, 위 개인화 정보와 같은 말을 반복하지 마라.)`,
+    );
+  }
+
   const style: string[] = [];
   if (context.tone) style.push(TONE_INSTRUCTION[context.tone]);
   // 순수 타로는 사주 원국이 없어 사주 섹션 위주인 깊이 지시가 맞지 않는다. 타로 전용 깊이 지시로 대체한다.
-  if (context.depth && type !== "tarot") style.push(DEPTH_INSTRUCTION[context.depth]);
+  // 자기 완전분석(selfDeep)은 SELF_DEEP_INSTRUCTION이 섹션 구조를 통째로 대체하므로 깊이 섹션 지시를 태우지 않는다.
+  if (context.depth && type !== "tarot" && context.analysisMode !== "selfDeep") style.push(DEPTH_INSTRUCTION[context.depth]);
   if (context.styleHint) style.push(`지난 리딩 피드백 반영 요청: ${context.styleHint}`);
   if (style.length > 0) parts.push(`[답변 스타일]\n${style.join("\n")}`);
 
   return parts;
+}
+
+/** 자기 행동 체크 입력을 근거 블록 문자열로 직렬화한다. 빈 값이면 null. */
+function formatSelfCheck(check: ReadingContext["selfCheck"]): string | null {
+  if (!check) return null;
+  const rows: Array<[string, string | undefined]> = [
+    ["최근 2주 가장 많이 한 생각", check.recentThought],
+    ["요즘 제일 미루는 일", check.procrastinating],
+    ["화날 때", check.angerStyle],
+    ["서운할 때", check.hurtStyle],
+    ["돈 쓸 때 감정", check.moneyFeeling],
+    ["지치면", check.tiredStyle],
+  ];
+  const lines = rows.filter(([, v]) => v && v.trim()).map(([k, v]) => `- ${k}: ${v!.trim()}`);
+  return lines.length > 0 ? lines.join("\n") : null;
 }
 
 // 포커스별로 반드시 다루도록 요구하는 상세 항목 (마스터 프롬프트의 D/E/F 섹션 반영)
@@ -1049,12 +1089,30 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
   // 순수 타로 리딩은 사주 원국이 없으므로 종합 생애 리딩을 강요하지 않고 질문·카드에 집중한다.
   // (깊이를 골랐더라도 사주 섹션을 억지로 채우지 않도록 항상 타로 전용 지시를 적용한다.)
   // 그 외 saju/combo는 깊이 미선택 시 종합 기본 프로필 적용. (today/flow는 자체 섹션 안내가 있으므로 제외)
+  // 자기 완전분석(selfDeep): 표준/깊이 섹션 지시 대신 12블록 전용 구조로 교체한다.
+  // (사주/통합에서만. 그림자·신뢰도 근거는 SELF_DEEP_INSTRUCTION이 참조하므로 지시보다 먼저 싣는다.)
+  const isSelfDeep = facts.context?.analysisMode === "selfDeep" && (facts.type === "saju" || facts.type === "combo");
+  if (isSelfDeep) {
+    const selfDeep = buildSelfDeepEvidence({
+      chart: facts.sajuChart,
+      hasLuck: Boolean(facts.luckCycles),
+      context: facts.context,
+      crossValidation: facts.crossValidation,
+      pastValidation: facts.pastValidation,
+    });
+    if (selfDeep) {
+      parts.push(selfDeep.evidence);
+      parts.push(selfDeep.instruction);
+    }
+    parts.push(SELF_DEEP_INSTRUCTION);
+  }
+
   if (facts.type === "tarot") {
     parts.push(TAROT_FOCUSED_INSTRUCTION);
     if (facts.context?.depth === "advanced") {
       parts.push(TAROT_ADVANCED_ADDENDUM);
     }
-  } else if (!facts.context?.depth && (facts.type === "saju" || facts.type === "combo")) {
+  } else if (!isSelfDeep && !facts.context?.depth && (facts.type === "saju" || facts.type === "combo")) {
     parts.push(DEFAULT_STANDARD_INSTRUCTION);
   }
 

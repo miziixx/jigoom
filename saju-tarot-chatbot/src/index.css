@@ -3486,6 +3486,55 @@ label {
   margin-right: 6px;
 }
 
+/* 자기 완전분석 — 토글·행동체크 입력 */
+.self-deep-toggle {
+  border-top: 1px solid var(--border, rgba(126, 86, 42, 0.16));
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.self-deep-toggle .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.self-check-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(126, 86, 42, 0.04);
+}
+
+.self-check-grid input[type="text"] {
+  width: 100%;
+}
+
+/* 자기 완전분석 미리보기(무료 일부 노출) */
+.self-deep-teaser {
+  border: 1px dashed var(--accent-soft, rgba(126, 86, 42, 0.35));
+}
+
+.self-deep-teaser__shadow {
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.self-deep-teaser__tiers {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin: 0 0 8px;
+}
+
+.self-deep-teaser__cta {
+  font-size: 0.86rem;
+  color: var(--text-dim);
+  margin: 0;
+}
+
 /* PDF 저장(인쇄): 리딩 내용만 밝은 배경으로 출력 */
 @media print {
   :root {
