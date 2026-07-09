@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>인사이트 오라클 — 재기획 화면 시안 (현재 앱 색감)</title>
+<style>
+  /* 현재 앱(src/index.css)의 실제 팔레트 그대로 사용 */
+  :root {
+    --bg: #f4ead9;
+    --surface: #fffaf1;
+    --surface-alt: #f2e5cf;
+    --border: #dac4a0;
+    --text: #2f2518;
+    --dim: #765f42;
+    --accent: #a97638;
+    --accent-strong: #b98246;
+    --accent-soft: #ead6b8;
+    --wood: #7d8d58;      --wood-soft: rgba(125, 141, 88, 0.16);
+    --fire: #c76f48;      --fire-soft: rgba(199, 111, 72, 0.16);
+    --earth: #c5a05a;     --earth-soft: rgba(197, 160, 90, 0.18);
+    --metal: #a69b89;     --metal-soft: rgba(166, 155, 137, 0.18);
+    --water: #6f8d86;     --water-soft: rgba(111, 141, 134, 0.16);
+    --plum: #8f7475;      --plum-soft: rgba(143, 116, 117, 0.16);
+    --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", -apple-system, sans-serif;
+    padding: 40px 20px 80px;
+  }
+  h1 { text-align: center; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .sub { text-align: center; color: var(--dim); font-size: 13px; margin: 8px 0 36px; }
+  .frames { display: flex; flex-wrap: wrap; gap: 36px; justify-content: center; align-items: flex-start; }
+  .frame-wrap { text-align: center; }
+  .frame-label { font-size: 13px; color: var(--accent); font-weight: 800; margin-bottom: 12px; letter-spacing: 0.5px; }
+  .frame-note { font-size: 11.5px; color: var(--dim); margin-top: 10px; max-width: 340px; line-height: 1.5; }
+  .phone {
+    width: 350px; height: 720px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 34px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 24px 48px rgba(90, 66, 32, 0.18);
+    text-align: left;
+  }
+  .screen { flex: 1; overflow-y: auto; padding: 18px 16px 16px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+  /* ---------- 공통 ---------- */
+  .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; letter-spacing: 0.3px; }
+  .b-free { background: var(--wood-soft); color: var(--wood); }
+  .b-time { background: var(--water-soft); color: var(--water); }
+  .b-report { background: var(--earth-soft); color: var(--accent); }
+  .price { font-size: 12px; color: var(--accent); font-weight: 800; }
+
+  /* ---------- 화면 1: 카드 홈 ---------- */
+  .home-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .logo { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
+  .logo em { font-style: normal; color: var(--accent); }
+  .top-link { font-size: 11px; color: var(--dim); }
+  .hello-date { font-size: 11px; color: var(--dim); margin: 14px 2px 6px; letter-spacing: 0.2px; }
+  .hello { font-size: 19px; font-weight: 800; line-height: 1.4; margin: 0 2px 16px; letter-spacing: -0.5px; }
+  .hello span { color: var(--accent-strong); }
+
+  .today-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex; gap: 12px; align-items: center;
+    margin-bottom: 22px;
+    box-shadow: 0 2px 8px rgba(90, 66, 32, 0.06);
+  }
+  .today-card .emoji { font-size: 26px; }
+  .today-card .t { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+  .today-card .d { font-size: 12px; color: var(--dim); line-height: 1.45; }
+
+  .sec-title { display: flex; justify-content: space-between; align-items: baseline; margin: 0 2px 10px; }
+  .sec-title .t { font-size: 14px; font-weight: 800; }
+  .sec-title .hint { font-size: 10.5px; color: var(--dim); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+  .topic {
+    border-radius: var(--radius);
+    padding: 13px 12px 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    min-height: 92px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(90, 66, 32, 0.05);
+  }
+  .topic .e { font-size: 21px; }
+  .topic .n { font-size: 13.5px; font-weight: 800; margin: 6px 0 5px; }
+  .t-love   { background: var(--plum-soft); }
+  .t-money  { background: var(--earth-soft); }
+  .t-work   { background: var(--metal-soft); }
+  .t-health { background: var(--wood-soft); }
+  .t-year   { background: var(--fire-soft); }
+  .t-date   { background: var(--water-soft); }
+
+  .report {
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 14px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(90, 66, 32, 0.07);
+  }
+  .report .e { font-size: 24px; }
+  .report .body { flex: 1; }
+  .report .n { font-size: 13.5px; font-weight: 800; }
+  .report .d { font-size: 11px; color: var(--dim); margin-top: 3px; line-height: 1.4; }
+  .report .right { text-align: right; }
+
+  .rel-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+
+  .home-foot { font-size: 10.5px; color: #a48c68; text-align: center; margin: 4px 0 10px; }
+  .tabbar {
+    display: flex; border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .tabbar div { flex: 1; text-align: center; padding: 11px 0 13px; font-size: 10.5px; color: var(--dim); }
+  .tabbar .on { color: var(--accent); font-weight: 800; }
+  .tabbar .ico { display: block; font-size: 16px; margin-bottom: 2px; }
+
+  /* ---------- 화면 2: 말풍선 결과 ---------- */
+  .read-head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+  .read-head .back { color: var(--dim); font-size: 16px; }
+  .read-head .t { font-size: 15px; font-weight: 800; }
+  .read-head .badge { margin-left: auto; }
+
+  .rule-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 13px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(90, 66, 32, 0.06);
+  }
+  .rule-card .cap { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .rule-card .cap .t { font-size: 12.5px; font-weight: 800; color: var(--accent); }
+  .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+  .pillar { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 10px; text-align: center; padding: 8px 0 7px; }
+  .pillar .h { font-size: 17px; font-weight: 800; line-height: 1.25; }
+  .pillar .k { font-size: 9px; color: var(--dim); margin-top: 3px; }
+  .rule-sum { font-size: 12px; color: var(--text); line-height: 1.55; }
+  .rule-more { font-size: 11px; color: var(--dim); margin-top: 9px; }
+
+  .chat { display: flex; flex-direction: column; gap: 12px; }
+  .msg { display: flex; gap: 9px; align-items: flex-start; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .bubble {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px 16px 16px 16px;
+    padding: 11px 13px;
+    font-size: 12.5px; line-height: 1.65; color: var(--text);
+    max-width: 250px;
+    box-shadow: 0 2px 6px rgba(90, 66, 32, 0.05);
+  }
+  .bubble b { color: var(--accent); }
+  .bubble .tag { display: block; font-size: 10px; color: var(--water); font-weight: 800; margin-bottom: 4px; letter-spacing: 0.4px; }
+  .typing { display: flex; gap: 4px; align-items: center; padding: 13px 15px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); display: block; animation: blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: .2s; }
+  .typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+  .typing-note { font-size: 10.5px; color: var(--dim); margin: -4px 0 0 39px; }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .chip {
+    font-size: 11.5px; color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 999px; padding: 7px 12px;
+    background: var(--surface);
+  }
+  .chips-note { font-size: 10px; color: #a48c68; margin-top: 8px; }
+
+  /* ---------- 화면 3: 프리미엄 리포트 진행 ---------- */
+  .rep-hero {
+    text-align: center; padding: 22px 10px 18px;
+    background: var(--accent-soft);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(90, 66, 32, 0.07);
+  }
+  .rep-hero .e { font-size: 34px; }
+  .rep-hero .t { font-size: 15px; font-weight: 800; margin-top: 8px; }
+  .rep-hero .d { font-size: 11.5px; color: var(--dim); margin-top: 6px; line-height: 1.5; }
+  .prog { height: 7px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 999px; margin: 14px 18px 6px; overflow: hidden; }
+  .prog i { display: block; height: 100%; width: 42%; border-radius: 999px;
+    background: var(--accent); }
+  .prog-label { font-size: 10.5px; color: var(--accent); font-weight: 700; }
+
+  .toc { display: flex; flex-direction: column; gap: 8px; }
+  .toc-item {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface); padding: 11px 13px;
+    font-size: 12.5px;
+  }
+  .toc-item .st { margin-left: auto; font-size: 10.5px; }
+  .done { color: var(--wood); font-weight: 800; }
+  .doing { color: var(--accent); font-weight: 800; }
+  .wait { color: #b3a184; }
+  .toc-item.readable { border-color: var(--wood); background: var(--wood-soft); }
+  .toc-item.current { border-color: var(--accent); background: var(--accent-soft); }
+  .toc-note { font-size: 10.5px; color: var(--dim); margin-top: 12px; line-height: 1.55; text-align: center; }
+  .cta {
+    margin-top: 14px; text-align: center;
+    background: var(--accent);
+    color: #fffaf1;
+    border-radius: 12px; padding: 12px;
+    font-size: 13px; font-weight: 800;
+    box-shadow: 0 4px 10px rgba(169, 118, 56, 0.3);
+  }
+
+  /* ---------- 화면 4: 평생사주 리딩 본문 ---------- */
+  .zone-title { display: flex; align-items: center; gap: 8px; margin: 18px 2px 10px; }
+  .zone-title .t { font-size: 13px; font-weight: 800; color: var(--accent); }
+  .zone-title .line { flex: 1; height: 1px; background: var(--border); }
+  .base-sec {
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface); padding: 11px 13px; margin-bottom: 8px;
+  }
+  .base-sec .h { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; font-weight: 800; margin-bottom: 4px; }
+  .base-sec .b { font-size: 12px; color: var(--text); line-height: 1.6; }
+  .base-sec .more { font-size: 10.5px; color: var(--accent); font-weight: 700; margin-top: 6px; }
+  .deep-sec {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); border-left: 3px solid var(--accent);
+    padding: 13px 14px; margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(90, 66, 32, 0.06);
+  }
+  .deep-sec .h { font-size: 13.5px; font-weight: 800; margin-bottom: 6px; }
+  .deep-sec .one { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+  .deep-sec .b { font-size: 12px; line-height: 1.7; color: var(--text); }
+  .deep-sec .ev { font-size: 10.5px; color: var(--dim); margin-top: 8px; }
+  .deep-writing {
+    border: 1px dashed var(--border); border-radius: var(--radius);
+    background: var(--surface-alt); padding: 13px 14px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--dim);
+  }
+  .float-toc {
+    position: sticky; bottom: 8px;
+    margin-top: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 999px; padding: 8px 14px;
+    font-size: 11px; color: var(--accent); font-weight: 800;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 4px 12px rgba(90, 66, 32, 0.12);
+  }
+</style>
+</head>
+<body>
+
+<h1>🔮 인사이트 오라클 — 재기획 화면 시안</h1>
+<p class="sub">현재 앱의 한지 팔레트(src/index.css) 그대로 · 포스텔러형 카드 홈 · 헬로우봇형 말풍선 리딩 — docs/redesign-2026-07.md 참조</p>
+
+<div class="frames">
+
+  <!-- ============ 화면 1: 카드 홈 ============ -->
+  <div class="frame-wrap">
+    <div class="frame-label">① 홈 — 카드 진열대</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="home-top">
+          <div class="logo">인사이트 <em>오라클</em></div>
+          <div class="top-link">내 기록 ›</div>
+        </div>
+        <div class="hello-date">7월 9일 목요일 · 丙午일 · 소서(小暑) 무렵</div>
+        <div class="hello">더위가 여무는 날,<br>벌이기보다 <span>고르기 좋은 날</span>이에요.</div>
+
+        <div class="today-card">
+          <div class="emoji">☀️</div>
+          <div>
+            <div class="t">오늘의 흐름 자세히 <span class="badge b-free">무료 · 즉시</span></div>
+            <div class="d">내 사주 기준으로 오늘 하루의 리듬 + 타로 한 장 →</div>
+          </div>
+        </div>
+
+        <div class="sec-title"><span class="t">궁금한 운만 골라보기</span><span class="hint">약 30초 · 원국 저장 시 입력 생략</span></div>
+        <div class="grid2">
+          <div class="topic t-love"><span class="e">💘</span><div class="n">연애운</div><span class="badge b-time">약 30초</span></div>
+          <div class="topic t-money"><span class="e">💰</span><div class="n">재물운</div><span class="badge b-time">약 30초</span></div>
+          <div class="topic t-work"><span class="e">💼</span><div class="n">직업운</div><span class="badge b-time">약 30초</span></div>
+          <div class="topic t-health"><span class="e">🌿</span><div class="n">건강운</div><span class="badge b-time">약 30초</span></div>
+          <div class="topic t-year"><span class="e">🎆</span><div class="n">올해운</div><span class="badge b-time">약 30초</span></div>
+          <div class="topic t-date"><span class="e">📅</span><div class="n">택일 — 좋은 날 찾기</div><span class="badge b-free">무료 · 즉시</span></div>
+        </div>
+
+        <div class="sec-title"><span class="t">깊게 보기</span><span class="hint">정성 리포트 · PDF 포함</span></div>
+        <div class="report">
+          <div class="e">📜</div>
+          <div class="body"><div class="n">평생사주 리포트</div><div class="d">타고난 구조부터 대운 인생 지도까지</div></div>
+          <div class="right"><span class="badge b-report">정성 리포트</span><br><span class="price">9,900</span></div>
+        </div>
+        <div class="report">
+          <div class="e">🔬</div>
+          <div class="body"><div class="n">나 해부 리포트</div><div class="d">반복 패턴 · 그림자와 결핍까지 12블록 해부</div></div>
+          <div class="right"><span class="badge b-report">정성 리포트</span><br><span class="price">9,900</span></div>
+        </div>
+        <div class="report">
+          <div class="e">🔮</div>
+          <div class="body"><div class="n">고민상담 리딩</div><div class="d">질문+선택지를 사주·타로로 비교 판단</div></div>
+          <div class="right"><span class="badge b-report">질문 먼저</span><br><span class="price">5,900</span></div>
+        </div>
+
+        <div class="sec-title" style="margin-top:20px"><span class="t">관계</span></div>
+        <div class="rel-row">
+          <div class="topic t-love"><span class="e">💞</span><div class="n">정밀 궁합</div><span class="price">7,900</span></div>
+          <div class="topic t-work"><span class="e">🕵️</span><div class="n">상대 해부</div><span class="price">9,900</span></div>
+        </div>
+
+        <div class="home-foot">이름 감정·작명 › &nbsp;·&nbsp; 결과는 참고용이에요</div>
+      </div>
+      <div class="tabbar">
+        <div class="on"><span class="ico">🏠</span>홈</div>
+        <div><span class="ico">🗂️</span>내 기록</div>
+        <div><span class="ico">⚙️</span>설정</div>
+      </div>
+    </div>
+    <div class="frame-note">⚠️ 모든 멘트는 배치 확인용 예시 — 실제 카피는 별도 작업. 단, 첫인사는 일진·절기 계산으로 매일 자동 생성하는 방향(첫 문장부터 "진짜 계산" 증명). 카드 색은 현재 앱 오행 색 그대로.</div>
+  </div>
+
+  <!-- ============ 화면 2: 말풍선 리딩 ============ -->
+  <div class="frame-wrap">
+    <div class="frame-label">② 결과 — 말풍선 점진 공개 (연애운)</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="read-head">
+          <span class="back">‹</span>
+          <span class="t">💘 연애운 리딩</span>
+          <span class="badge b-time">생성 중 · 12초</span>
+        </div>
+
+        <div class="rule-card">
+          <div class="cap"><span class="t">내 기본 구조</span><span class="badge b-free">⚡ 계산 완료</span></div>
+          <div class="pillars">
+            <div class="pillar"><div class="h">辛<br>丑</div><div class="k">연주</div></div>
+            <div class="pillar"><div class="h">庚<br>寅</div><div class="k">월주</div></div>
+            <div class="pillar"><div class="h">丙<br>午</div><div class="k">일주</div></div>
+            <div class="pillar"><div class="h">戊<br>子</div><div class="k">시주</div></div>
+          </div>
+          <div class="rule-sum">표현력이 강하고 관계에서 먼저 움직이는 구조. 올해는 관계 자리에 새 흐름이 들어오는 해예요.</div>
+          <div class="rule-more">계산 근거 자세히 보기 ▸</div>
+        </div>
+
+        <div class="chat">
+          <div class="msg">
+            <div class="avatar">🔮</div>
+            <div class="bubble"><span class="tag">한 줄 결론</span>올해 연애는 <b>기다리는 쪽보다 고르는 쪽</b>이에요. 기회가 없는 게 아니라, 걸러야 할 사람이 섞여 들어오는 해예요.</div>
+          </div>
+          <div class="msg">
+            <div class="avatar">🔮</div>
+            <div class="bubble"><span class="tag">지금 흐름</span>3월부터 관계 자리가 움직이기 시작했고, 특히 <b>7~9월</b>에 끌림이 강해져요. 다만 이 시기의 끌림은 속도가 빨라서, 상대를 확인하기 전에 마음이 먼저 가기 쉬워요.</div>
+          </div>
+          <div class="msg">
+            <div class="avatar">🔮</div>
+            <div class="bubble typing"><i></i><i></i><i></i></div>
+          </div>
+        </div>
+        <div class="typing-note">조심할 상대 유형을 쓰는 중… 읽는 동안 도착해요</div>
+
+        <div class="chips">
+          <div class="chip">올해 연애 시기 더 자세히</div>
+          <div class="chip">지금 만나는 사람이랑은?</div>
+        </div>
+        <div class="chips-note">이어서 질문 5회까지 무료</div>
+      </div>
+    </div>
+    <div class="frame-note">룰 기반 "내 기본 구조"가 0초에 먼저 → 첫 AI 말풍선 10초 내 → 읽는 속도보다 생성이 빠르면 대기 체감 0.</div>
+  </div>
+
+  <!-- ============ 화면 3: 프리미엄 리포트 진행 ============ -->
+  <div class="frame-wrap">
+    <div class="frame-label">③ 프리미엄 — 기다림의 재해석 (평생사주)</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="read-head">
+          <span class="back">‹</span>
+          <span class="t">📜 평생사주 리포트</span>
+        </div>
+
+        <div class="rep-hero">
+          <div class="e">📜</div>
+          <div class="t">리포트를 정성껏 뽑는 중이에요</div>
+          <div class="d">완성된 부분부터 먼저 읽을 수 있어요.<br>다 되면 알려드릴게요.</div>
+          <div class="prog"><i></i></div>
+          <div class="prog-label">12개 섹션 중 5개 도착</div>
+        </div>
+
+        <div class="toc">
+          <div class="toc-item readable">✅ 첫 점괘 <span class="st done">읽기 ›</span></div>
+          <div class="toc-item readable">✅ 타고난 성격과 기질 <span class="st done">읽기 ›</span></div>
+          <div class="toc-item readable">✅ 직업과 돈 <span class="st done">읽기 ›</span></div>
+          <div class="toc-item readable">✅ 재물 흐름 <span class="st done">읽기 ›</span></div>
+          <div class="toc-item readable">✅ 애정과 관계 <span class="st done">읽기 ›</span></div>
+          <div class="toc-item current">✍️ 건강과 컨디션 <span class="st doing">쓰는 중…</span></div>
+          <div class="toc-item">◌ 인생의 큰 흐름 <span class="st wait">대기</span></div>
+          <div class="toc-item">◌ 올해의 흐름 (1~12월) <span class="st wait">대기</span></div>
+          <div class="toc-item">◌ 지금 해야 할 것 <span class="st wait">대기</span></div>
+          <div class="toc-item">◌ 마지막 점괘 <span class="st wait">대기</span></div>
+        </div>
+
+        <div class="toc-note">긴 리포트는 원래 오래 걸려요 — 대신 멈춘 화면 대신<br>도착한 섹션부터 읽는 구조로 바꿉니다.</div>
+        <div class="cta">첫 점괘부터 읽기 시작 →</div>
+      </div>
+    </div>
+    <div class="frame-note">3분이 "멈춘 화면"이면 스트레스, "읽으면서 도착"이면 콘텐츠. 섹션 그룹 병렬 생성 + 도착 순 공개.</div>
+  </div>
+
+  <!-- ============ 화면 4: 평생사주 리딩 본문 ============ -->
+  <div class="frame-wrap">
+    <div class="frame-label">④ 평생사주 — 리딩 본문 페이지</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="read-head">
+          <span class="back">‹</span>
+          <span class="t">📜 평생사주 리포트</span>
+          <span class="badge b-report">저장 · PDF</span>
+        </div>
+
+        <div class="rule-card">
+          <div class="cap"><span class="t">내 기본 구조</span><span class="badge b-free">⚡ 계산 완료</span></div>
+          <div class="pillars">
+            <div class="pillar"><div class="h">辛<br>丑</div><div class="k">연주</div></div>
+            <div class="pillar"><div class="h">庚<br>寅</div><div class="k">월주</div></div>
+            <div class="pillar"><div class="h">丙<br>午</div><div class="k">일주</div></div>
+            <div class="pillar"><div class="h">戊<br>子</div><div class="k">시주</div></div>
+          </div>
+          <div class="rule-sum">불(火) 기운이 중심, 표현하고 드러내는 힘이 강한 구조.</div>
+          <div class="rule-more">계산 근거 자세히 보기 ▸</div>
+        </div>
+
+        <div class="zone-title"><span class="t">기본 리딩</span><span class="line"></span><span class="badge b-free">무료 · 즉시</span></div>
+        <div class="base-sec">
+          <div class="h">🌱 타고난 기질</div>
+          <div class="b">먼저 움직이고 먼저 말하는 사람. 대신 시작한 일을 마무리하는 힘은 따로 챙겨야 해요.</div>
+        </div>
+        <div class="base-sec">
+          <div class="h">💼 일과 돈</div>
+          <div class="b">드러나는 자리에서 성과가 나는 구조. 돈은 버는 힘보다 새는 구멍 관리가 관건.</div>
+        </div>
+        <div class="base-sec">
+          <div class="h">🎆 올해의 큰 흐름</div>
+          <div class="b">상반기는 정리, 하반기부터 관계·기회의 문이 열리는 리듬이에요.</div>
+          <div class="more">전 영역 기본 리딩 8개 모두 보기 ▾</div>
+        </div>
+
+        <div class="zone-title"><span class="t">AI 심화 리딩</span><span class="line"></span><span class="badge b-report">12섹션 · 도착 순</span></div>
+        <div class="deep-sec">
+          <div class="h"># 타고난 성격과 기질</div>
+          <div class="one">[한 줄 결론] 뜨겁게 시작하고 스스로 데이는 타입 — 불씨 관리가 평생 과제예요.</div>
+          <div class="b">겉으로는 밝고 시원시원하다는 말을 듣지만, 속에서는 "이 정도면 됐나?"를 계속 재고 있어요. 특히 인정받지 못한다고 느끼는 순간…</div>
+          <div class="ev">왜 그렇게 보는지 ▸ · 전문가 근거 보기 ▸</div>
+        </div>
+        <div class="deep-sec">
+          <div class="h"># 직업과 돈</div>
+          <div class="one">[한 줄 결론] 조직 안의 에이스보다, 판을 벌이는 자리가 맞아요.</div>
+          <div class="b">기획하고 알리는 일에서 힘이 나는 구조예요. 다만 수입의 리듬이…</div>
+          <div class="ev">왜 그렇게 보는지 ▸ · 전문가 근거 보기 ▸</div>
+        </div>
+        <div class="deep-writing">
+          <span>✍️</span>
+          <span><b># 재물 흐름</b>을 쓰는 중… 읽는 동안 도착해요</span>
+        </div>
+
+        <div class="float-toc"><span>📑 목차</span><span>12섹션 중 5 도착 · 다음: 재물 흐름</span></div>
+      </div>
+    </div>
+    <div class="frame-note">전체사주는 없어지지 않음: 위 = 룰 기반 "기본 리딩"(즉시·무료 뼈대), 아래 = AI 12섹션 심화가 도착 순으로 채워짐. 화면 ③은 이 페이지의 진행 요약 뷰.</div>
+  </div>
+
+</div>
+</body>
+</html>
