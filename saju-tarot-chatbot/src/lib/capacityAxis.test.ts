@@ -82,9 +82,15 @@ describe("systemPrompt 배선: 재료-출력 대비", () => {
     expect(msg).toContain("▸ 재료 vs 실제 쓸 힘");
   });
 
-  it("가벼운(light) 리딩에서는 재료-출력이 빠진다(압축 유지)", () => {
-    const msg = buildReadingUserMessage({ type: "saju", question: "요즘 어때요?", gender: birth.gender, sajuChart: chart, context: { depth: "light" } });
-    expect(msg).not.toContain("▸ 재료 vs 실제 쓸 힘");
+  it("고급 리딩에도 재료-출력이 그대로 들어간다(깊이와 무관하게 콘텐츠는 동일)", () => {
+    const msg = buildReadingUserMessage({
+      type: "saju",
+      question: "요즘 어때요?",
+      gender: birth.gender,
+      sajuChart: chart,
+      context: { depth: "advanced" },
+    });
+    expect(msg).toContain("▸ 재료 vs 실제 쓸 힘");
   });
 
   it("순수 타로(원국 없음)에는 붙지 않는다", () => {

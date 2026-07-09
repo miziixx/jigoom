@@ -299,13 +299,15 @@ AI 사주가 뭉뚱그려진다는 불만을 줄이기 위해 새로 넣은 상�
 
 P0 완료 상태:
 
-- light 사주/combo 리딩에서 JudgmentPack 생성 → 프롬프트 전달 → 출력 후 검증 warning 연결.
+- 기본(depth 미지정) 사주/combo 리딩에서 JudgmentPack 생성 → 프롬프트 전달 → 출력 후 검증 warning 연결.
+  (2026-07-09: 기존엔 UI에서 고를 수 없던 `light` depth에서만 켜졌던 걸, "기본/고급만 남긴다" 정리와
+  함께 기본으로 옮겼다 — `light`/`expert`는 타입에서 완전히 제거. `docs/record.md` 참고.)
 - Rule/Judgment/Confidence/Contradiction/Validation/Prompt Builder 테스트 추가.
 - 계산 엔진과 eventEngine 산식은 변경하지 않음.
 
 다음 우선순위:
 
-1. P1: basic/advanced/expert 경로까지 JudgmentPack 적용 범위 확대 여부 결정.
+1. ~~P1: basic/advanced/expert 경로까지 JudgmentPack 적용 범위 확대 여부 결정.~~ → 2026-07-09 결정 완료: 기본은 JudgmentPack(Evidence Gate), 고급은 원자료 그대로(Content Gate). `light`/`basic`/`expert` depth 자체를 없애 기본/고급 2단계로 정리.
 2. P1: JudgmentPack을 UI/저장 기록에 노출할지, 내부 audit log로만 보관할지 결정.
 3. P1: validation 결과를 사용자에게 그대로 붙일지, 개발자 로그/품질 플래그로만 둘지 UX 결정.
 4. P2: 실제 리딩 샘플 20~50개로 forbidden claim/unsupported claim 오탐률 측정.

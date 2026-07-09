@@ -169,14 +169,14 @@ describe("실제 엔진 JudgmentPack 대상 검증 (PII 미저장)", () => {
   const question = "회사를그만두고이직해야할까요"; // 질문 원문도 남으면 안 된다
   const chart = computeSajuChart(birth);
   const luck = computeLuckCycles(birth, new Date("2026-07-06"));
-  // light depth라야 compactEvidence 경로로 실제 JudgmentPack이 생성된다
+  // depth 미지정(기본)이라야 compactEvidence 경로로 실제 JudgmentPack이 생성된다
   const pack = buildReadingJudgmentPack({
     type: "saju",
     question,
     gender: birth.gender,
     sajuChart: chart,
     luckCycles: luck,
-    context: { depth: "light" },
+    context: {},
   });
 
   it("실제 엔진이 JudgmentPack을 생성한다", () => {

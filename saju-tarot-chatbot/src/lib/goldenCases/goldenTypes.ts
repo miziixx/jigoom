@@ -21,7 +21,7 @@ export interface GoldenInput {
   birth: BirthInfo;
   /** 세운·대운을 결정론적으로 만들기 위한 기준일 (양력 ISO 또는 YYYY-MM-DD) */
   referenceDate: string;
-  /** 현재 JudgmentPack은 saju/combo + depth:"light"에서만 생성된다 */
+  /** 현재 JudgmentPack은 saju/combo + depth 미지정(기본)에서만 생성된다 */
   type: ReadingType;
   question?: string;
   focus?: ReadingFocus;

@@ -136,24 +136,7 @@ describe("streamReading 이어쓰기(continue)", () => {
     expect(result.reply).toBe("# 첫 점괘\n앞\n\n# 건강과 컨디션\n뒤");
   });
 
-  it("light 깊이는 API-free 요약 보완용 빠른 모드라 병렬 호출하지 않는다", async () => {
-    const fetchMock = vi.fn(() =>
-      Promise.resolve(
-        ndjsonResponse([
-          JSON.stringify({ meta: { userMessage: "light-user" } }),
-          JSON.stringify({ text: "라이트 리딩" }),
-          JSON.stringify({ done: true, stopReason: "end_turn" }),
-        ]),
-      ),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await streamReading({ type: "saju", question: "전체", context: { depth: "light" } });
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.reply).toBe("라이트 리딩");
-  });
-
+  // "light" 깊이는 제거됐다(기본/고급만 남김) — saju/combo는 이제 깊이와 무관하게 항상 병렬 호출한다.
   it("stopReason이 max_tokens면 continueFrom으로 이어서 완결한다", async () => {
     const calls: Array<Record<string, unknown>> = [];
     const fetchMock = vi.fn((_, init: RequestInit) => {

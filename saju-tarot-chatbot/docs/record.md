@@ -1747,3 +1747,55 @@ Evidence Gate(`JudgmentPack` 검증) 도입 이후, 새 리딩(연속 생성이 
 
 **남은 것**: 자가교정(Gate) 재작성은 드문 경로라 수동 검증이 어려움 — 실제 재작성이 걸리는 케이스를
 스테이징에서 한 번 더 확인 권장. 병렬 호출이 늘어난 만큼(기본도 2회 API 호출) 비용은 증가한다.
+
+## light/expert depth 완전 제거 + JudgmentPack Evidence Gate를 기본에 흡수 (2026-07-09)
+
+**배경**: 사용자가 "기본과 고급만 남기고 나머지 다 제거하라고 했는데 계속 남아있다"고 지적. 확인해보니
+이전 세션이 `docs/record.md`(1474줄 근방)에 남긴 기록대로 **UI 노출만** 정리하고(`ContextPicker`/
+`DepthChoice`에서 고급 값을 `expert`→`advanced`로 통일) `AnswerDepth` 타입·`DEPTH_INSTRUCTION`·
+golden/quality 테스트에는 `light`/`basic`/`expert`를 "JudgmentPack 품질 하네스가 light를 씀"이라는
+이유로 의도적으로 남겨뒀던 상태였다. `docs/next_steps.md` 13절에도 "P1: basic/advanced/expert 경로까지
+JudgmentPack 적용 범위 확대 여부 결정"이 미결 항목으로 남아 있었다 — 이번이 그 결정을 완료한 것이다.
+
+**핵심 발견**: `light`는 단순 죽은 값이 아니라 `usesCompactEvidence()`(→ `buildReadingJudgmentPack`
+Evidence Gate 전체를 켜는 유일한 조건)였다. 그런데 어떤 화면에서도 `depth`를 `"light"`로 설정하는
+곳이 없어서(golden 테스트 fixture 기본값에만 존재), **실제 사용자 리딩에서는 이 JudgmentPack
+Evidence Gate가 한 번도 실행된 적이 없었다** — 실제 사용자는 전부 더 단순한 별도 검증
+(`streamContentGatedReply`/`validateReadingContent`, "Content Gate")만 거쳐왔다. `READING_SYSTEM_PROMPT`
+자체에는 이미 "[상세 계산 근거]가 있는 고급/전문가 모드에서만... 세부 근거를 폭넓게 활용한다"는
+줄이 있어, 원래 설계 의도가 "기본=JudgmentPack 압축 근거, 고급=원자료 그대로"였음을 확인했다
+(다만 코드가 `light`라는, 어디서도 도달 못 하는 이름으로 묶여 있어 그 설계가 완성되지 못한 상태였다).
+`expert`는 정말 단순 죽은 값(DepthChoice가 advanced와 동급 취급, 실제 UI에서 선택 불가)이었다.
+
+**사용자 결정**: "light 깊이를 지우면 물려있는 JudgmentPack(Evidence Gate) 서브시스템은 어떻게
+할까요?" 질문에 **"기본에 흡수시켜서 활성화"**를 선택 — depth undefined(기본) 리딩에서
+JudgmentPack Evidence Gate가 실제로 켜지도록 재배선.
+
+**변경**:
+- `src/types/index.ts`: `AnswerDepth`를 `"light" | "basic" | "advanced" | "expert"` → `"advanced"`로 좁힘
+  (기본은 여전히 `depth` 미지정으로 표현). 이후 `tsc -b`로 깨지는 모든 참조를 컴파일러 안내로 정리.
+- `src/prompts/systemPrompt.ts`:
+  - `usesCompactEvidence()`: `depth === "light"` → `!facts.context?.depth`(기본)로 트리거 변경.
+  - `DEPTH_INSTRUCTION`: `light`/`basic`/`expert` 항목(모두 죽은 텍스트였음) 삭제, `advanced`만 유지.
+  - 타로 advanced-only 분기 2곳(`|| depth === "expert"`) 단순화.
+  - **`composeInnerPsychology()`를 compactMode에서 분리**: 원래 `heavy = !compactMode && isLife`였던
+    걸 `isLife`로 바꿔, 지금 마음/타고난 속마음/재료-출력/저울질 4개 심리 레이어가 기본/고급 상관없이
+    항상 계산되게 함. (compactMode를 기본 트리거로 바꾸면서 이 4개 중 3개가 기본에서 자동으로
+    빠지는 걸 발견 — CLAUDE.md "기본도 정보량을 줄이지 않는다" 규칙과 충돌해서 별도로 분리했다.)
+- `src/lib/readingApi.ts`: `shouldFanOut()`에서 `depth === "light"` 제외 분기 제거(더 이상 그런 값이
+  없으므로) — saju/combo는 깊이 무관하게 항상 fan-out.
+- `src/lib/goldenCases/goldenRunner.ts`, `goldenCases.ts`: 기본 컨텍스트를 `{ depth: "light" }` →
+  `{}`로 변경(빈 컨텍스트가 이제 JudgmentPack 트리거이므로 golden 테스트 의도 그대로 유지됨).
+- 테스트 대량 수정: `capacityAxis.test.ts`/`nowMind.test.ts`/`psychLayer.test.ts`의 "light에서는
+  빠진다" 테스트를 "고급에도 그대로 들어간다"로 재작성(위 분리 반영), `quality.test.ts`/
+  `reading.test.ts`의 `depth: "light"`/`"expert"` 리터럴을 새 값으로 교체, `reading.test.ts`의
+  "기본 리딩" 테스트 2개를 JudgmentPack 근거를 기대하도록 재작성하고 "고급" 테스트에 원자료
+  (지장간/12운성/분야별 사건 신호) 기대를 추가해 커버리지를 depth별로 재배치.
+
+**검증**: `npx tsc -b` 클린, `npm test` 575 통과, `npm run build` 통과.
+
+**남은 것**: `docs/next_steps.md` 13절의 P1 두 번째 항목("JudgmentPack을 UI에 노출할지")은 여전히
+미결. 기본 리딩이 실제로 JudgmentPack Evidence Gate를 타는 건 이번이 처음이라(이전엔 코드상
+존재해도 한 번도 안 켜졌음), 스테이징에서 실제 사용자 시나리오로 한 번 더 눈으로 확인 권장 —
+특히 재작성(rewrite)이 걸리는 케이스와, `[JudgmentPack 활용 안내]`가 모델에게 "원자료를 새로
+펼치지 마라"고 지시하는 게 실제 출력 품질에 어떤 영향을 주는지.

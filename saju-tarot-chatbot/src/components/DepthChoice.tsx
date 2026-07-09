@@ -11,7 +11,7 @@ interface Props {
  * 기본은 표준 리딩, 고급은 더 깊고 정밀한 확장 리딩. 사주·타로·통합에서 공통으로 쓴다.
  */
 export default function DepthChoice({ value, onChange }: Props) {
-  const isAdvanced = value === "advanced" || value === "expert";
+  const isAdvanced = value === "advanced";
   return (
     <div className="field-row field-row--column">
       <span className="field-label">해석 깊이</span>

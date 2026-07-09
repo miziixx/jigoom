@@ -65,13 +65,15 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
   const luckCycles = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
   const msg = buildReadingUserMessage({ type: "saju", question: "요즘 지쳐요", gender: birth.gender, sajuChart, luckCycles });
 
-  it("기본 리딩은 평생사주 기본 리포트에 필요한 상세 계산 근거를 전달한다", () => {
-    expect(msg).toContain("상세 계산 근거 — 사주 원국");
-    expect(msg).toContain("상세 계산 근거 — 대운/세운/월운/일진");
+  it("기본 리딩은 JudgmentPack 압축 판단 근거(Evidence Gate)를 전달한다", () => {
+    // 기본(depth 미지정)은 원자료를 그대로 펼치지 않고, 판단 엔진이 미리 계산·검증한 JudgmentPack만
+    // 근거로 받는다(마스터 프롬프트: "가벼운 리딩에서는 긴 계산 원문을 펼치지 않는다"). 고급은
+    // 아래 "깊이를 고르면..." 테스트에서 원자료(상세 계산 근거)를 그대로 받는 걸 확인한다.
+    expect(msg).toContain("[JudgmentPack — 계산됨]");
+    expect(msg).toContain("JudgmentPack 활용 안내");
     expect(msg).toContain(sajuChart.day.ganZhi);
-    expect(msg).toContain("지장간");
-    expect(msg).toContain("12운성");
-    expect(msg).not.toContain("압축 판단 근거 — 계산됨");
+    expect(msg).not.toContain("상세 계산 근거 — 사주 원국");
+    expect(msg).not.toContain("[상세 계산 근거 — 대운/세운/월운/일진]");
   });
 
   it("개인정보 보호: 생년월일 원본은 AI 메시지에 담지 않는다", () => {
@@ -81,10 +83,10 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(msg).toContain("성별");
   });
 
-  it("사건화 근거 블록과 활용 안내를 전달한다 (원국 있는 리딩)", () => {
-    expect(msg).toContain("분야별 사건 신호 — 계산됨");
-    expect(msg).toContain("사건 신호 활용 안내");
-    // 분야 라벨이 근거로 들어간다
+  it("기본 리딩에서는 분야별 사건 신호가 별도 블록 대신 JudgmentPack 판단 안에 녹아 들어간다", () => {
+    expect(msg).not.toContain("분야별 사건 신호 — 계산됨");
+    expect(msg).not.toContain("사건 신호 활용 안내");
+    // 분야 라벨은 JudgmentPack의 judgment 근거 줄 안에 그대로 남아 있다
     expect(msg).toContain("직업·일");
     expect(msg).toContain("건강·컨디션");
   });
@@ -153,6 +155,12 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(deep).toContain("# 선택과 시기 판단");
     expect(deep).toContain("# 3개월 실행 전략");
     expect(deep).toContain("6200~8000자");
+    // 고급은 원자료(지장간·12운성)와 분야별 사건 신호 블록을 그대로 받는다(기본은 JudgmentPack으로 대체).
+    expect(deep).toContain("지장간");
+    expect(deep).toContain("12운성");
+    expect(deep).toContain("분야별 사건 신호 — 계산됨");
+    expect(deep).toContain("사건 신호 활용 안내");
+    expect(deep).not.toContain("[JudgmentPack — 계산됨]");
   });
 
   it("병렬 생성을 위해 지정 섹션만 쓰라는 지시를 붙일 수 있다", () => {
@@ -232,7 +240,7 @@ describe("타로 리딩 프롬프트", () => {
       type: "tarot",
       question: "이직해도 될까요?",
       tarotCards,
-      context: { depth: "expert" },
+      context: { depth: "advanced" },
     });
     expect(msg).toContain("타로 리딩 — 질문 집중");
     expect(msg).not.toContain("기본 리딩 — 종합");

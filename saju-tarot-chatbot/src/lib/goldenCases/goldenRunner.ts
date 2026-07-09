@@ -39,7 +39,8 @@ export function buildPackForCase(input: GoldenCase["input"]): JudgmentPack | nul
     type: input.type,
     question: input.question ?? "",
     focus: input.focus,
-    context: input.context ?? { depth: "light" },
+    // depth 미지정(기본)이 JudgmentPack Evidence Gate를 켜는 조건이라 빈 컨텍스트를 기본값으로 쓴다.
+    context: input.context ?? {},
     gender: input.birth.gender,
     sajuChart: chart,
     luckCycles,

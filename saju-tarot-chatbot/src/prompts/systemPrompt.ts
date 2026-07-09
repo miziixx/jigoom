@@ -723,19 +723,12 @@ const RECOMMENDATION_PART_INSTRUCTION =
   "'[활용 방법 / 보완 방법]'이나 '[오늘 바로 할 수 있는 행동]'과 겹치지 않게, 나열이 아니라 '당신이라면 이걸 먼저 하세요' 식의 콕 집은 추천으로 쓴다. " +
   "분량은 2~3줄로 밀도 있게. 사주 용어는 표면에 쓰지 말고, 단정·과장 없이 제안형으로 쓴다.";
 
+// 기본(depth 미지정)은 이 지시를 타지 않는다 — DEFAULT_STANDARD_INSTRUCTION + JudgmentPack Evidence Gate가 그 역할을 한다.
 const DEPTH_INSTRUCTION: Record<NonNullable<ReadingContext["depth"]>, string> = {
-  light:
-    "[가벼운 리딩] 계산 기반 즉시 요약이 이미 화면에 보이는 전제다. API 응답은 그 요약을 반복하지 말고 핵심 판단과 보완 조언만 빠르게 덧붙여라. 표준 출력 형식은 유지하되 각 주요 섹션은 1문단+행동 1~2개 중심으로 압축한다. 타고난 성격과 기질, 직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션, 인생의 큰 흐름, 올해의 흐름은 모두 포함하되 짧게 쓴다. 올해의 흐름은 1월~12월을 한 줄씩만 쓴다. 전체 공백 포함 1800~2600자.",
-  basic:
-    "[기본 리딩] 평생사주 기본 리포트다. 성격·기질, 직업과 돈, 재물 흐름, 애정과 관계, 건강과 컨디션, 인생의 큰 흐름, 올해의 흐름, 현실 행동을 모두 포함한다. 계산 기반 카드가 화면에 함께 보이므로 AI 문장은 장황하지 않게, 그러나 각 분야의 핵심 베이스는 빠짐없이 쓴다. 올해의 흐름은 1월~12월을 각 달 기회/주의/조언까지 구체적으로 포함한다. 전체 공백 포함 4200~6000자.",
   advanced:
     "[고급 리딩] 기본 리딩을 대체하지 말고, 기본 리딩의 모든 섹션을 그대로 포함한 뒤 더 깊게 확장하는 정밀 리포트다. 기본에 있는 성격·기질, 직업과 돈, 재물 흐름, 애정·관계, 건강·컨디션, 인생의 큰 흐름, 올해 1월~12월 흐름을 절대 줄이지 마라. 대신 기본과 차이가 분명히 보이도록 '# 반복 패턴 정밀 진단', '# 선택과 시기 판단', '# 3개월 실행 전략' 섹션을 '지금 해야 할 것과 피해야 할 것' 앞에 추가한다. '# 반복 패턴 정밀 진단'은 이 사람이 자주 빠지는 생각·관계·돈·일의 반복을 원국과 운 흐름 근거로 생활어로 짚고, '# 선택과 시기 판단'은 질문이 있으면 그 질문의 선택 기준을, 질문이 없으면 올해 중요한 선택 기준을 정리한다. '# 3개월 실행 전략'은 이번 달/다음 달/그다음 달로 나누어 해야 할 일, 피해야 할 일, 확인할 현실 신호를 쓴다. 올해의 흐름은 각 월의 기회와 부담을 원국 근거와 함께 구체적으로 분리하고, 전문가 근거는 더 충실히 보존한다. " +
     RECOMMENDATION_PART_INSTRUCTION +
     " 전체 분량은 공백 포함 6200~8000자로 하되, 중복 문장 없이 반드시 '마지막 점괘'까지 완결해라.",
-  expert:
-    "[전문가 리딩] 고급 리딩의 모든 섹션을 포함하고, 근거 연결과 시기 판단을 더 세밀하게 한다. '# 반복 패턴 정밀 진단', '# 선택과 시기 판단', '# 3개월 실행 전략'을 반드시 포함한다. 정곡을 짚는 강도를 최대로 올리되 모든 문장을 근거에 묶고, 인생의 큰 흐름을 시기별로 더 세밀하게 나누고, 올해의 흐름은 1월~12월을 반드시 모두 쓰며 월별 키워드·기회·부담·활용법을 가장 상세하게(각 필드 2~3문장) 분리한다. " +
-    RECOMMENDATION_PART_INSTRUCTION +
-    " 전체 분량은 공백 포함 7400~9200자 사이로 밀도 있게 쓰되, 같은 말을 반복해 분량을 늘리지 말고 반드시 마지막 섹션까지 완결해라. (여전히 사주 전문용어는 표면 문장에 쓰지 않는다.)",
 };
 
 const TIME_ACCURACY_LABEL: Record<NonNullable<ReadingContext["timeAccuracy"]>, string> = {
@@ -816,11 +809,11 @@ const TYPE_LABEL: Record<ReadingType, string> = {
   flow: "월간/연간 운 흐름",
 };
 
+// 기본(depth 미지정)에서 JudgmentPack Evidence Gate를 켠다. 고급은 원자료를 그대로 근거로 받아 더 깊게 확장한다.
 function usesCompactEvidence(facts: ReadingFacts): boolean {
   if (!facts.sajuChart) return false;
   if (facts.type !== "saju" && facts.type !== "combo") return false;
-  const depth = facts.context?.depth;
-  return depth === "light";
+  return !facts.context?.depth;
 }
 
 export interface ReadingFacts {
@@ -860,21 +853,18 @@ export function buildReadingJudgmentPack(facts: ReadingFacts): JudgmentPack | nu
  * 묶는다. 예전엔 4개가 각각 "첫 점괘를 내 걸로 열어라"라고 경쟁해 서로 무시됐다. 여기서 각 소재의
  * 담당 섹션을 한 번만 지정해 충돌을 없앤다.
  * - 순수 타로(원국 없음)에는 붙지 않는다.
- * - 압축(light) 모드는 무거운 3개를 빼고 '지금 마음' 훅만 싣는다(압축 유지).
  * - 종합 생애 소재(속마음·재료출력·저울질)는 사주/통합에서만. 오늘/흐름은 '지금 마음'만.
+ * - JudgmentPack Evidence Gate(기본) 여부와 무관하게 4개 소재 전부 계산한다. 근거 직렬화 방식이
+ *   바뀌는 것과 콘텐츠 깊이는 별개 — "기본도 정보량을 줄이지 않는다"(CLAUDE.md) 원칙 때문.
  */
-function composeInnerPsychology(
-  facts: ReadingFacts,
-  compactMode: boolean,
-): { evidence: string; instruction: string } | null {
+function composeInnerPsychology(facts: ReadingFacts): { evidence: string; instruction: string } | null {
   if (!facts.sajuChart) return null;
   const isLife = facts.type === "saju" || facts.type === "combo";
-  const heavy = !compactMode && isLife;
 
   const nowMind = facts.luckCycles ? buildNowMind(facts.sajuChart, facts.luckCycles) : null;
-  const psych = heavy ? buildPsychLayer(facts.sajuChart) : null;
-  const axes = heavy ? buildCapacityAxes(facts.sajuChart) : null;
-  const deliberation = heavy ? buildDeliberation(facts.sajuChart, facts.luckCycles, facts.gender) : null;
+  const psych = isLife ? buildPsychLayer(facts.sajuChart) : null;
+  const axes = isLife ? buildCapacityAxes(facts.sajuChart) : null;
+  const deliberation = isLife ? buildDeliberation(facts.sajuChart, facts.luckCycles, facts.gender) : null;
 
   const sections: string[] = [];
   if (nowMind) sections.push(`▸ 지금 올라오는 마음 (세운·월운 기준)\n${formatNowMind(nowMind)}`);
@@ -938,9 +928,10 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
 
   // 속마음·현재 심리 통합 블록: 지금 마음/타고난 속마음/재료-출력/저울질 4개 엔진을 하나로 묶어
   // 지시 충돌(특히 첫 점괘 쟁탈)을 없앤다. 이 소재들은 모두 앞부분 섹션(첫 점괘~애정과 관계) 담당이라
-  // 팬아웃 back 호출에는 싣지 않는다. 압축(light) 모드는 composer 안에서 '지금 마음'만 남긴다.
+  // 팬아웃 back 호출에는 싣지 않는다. 기본/고급 모두 4개 소재를 동일하게 받는다(콘텐츠 깊이는 유지,
+  // JudgmentPack Evidence Gate는 별도로 [근거 데이터] 직렬화 방식만 바꾼다).
   if (facts.sajuChart && facts.sectionGroup !== "back") {
-    const inner = composeInnerPsychology(facts, compactMode);
+    const inner = composeInnerPsychology(facts);
     if (inner) {
       parts.push(inner.evidence);
       parts.push(inner.instruction);
@@ -1024,7 +1015,7 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
   // 그 외 saju/combo는 깊이 미선택 시 종합 기본 프로필 적용. (today/flow는 자체 섹션 안내가 있으므로 제외)
   if (facts.type === "tarot") {
     parts.push(TAROT_FOCUSED_INSTRUCTION);
-    if (facts.context?.depth === "advanced" || facts.context?.depth === "expert") {
+    if (facts.context?.depth === "advanced") {
       parts.push(TAROT_ADVANCED_ADDENDUM);
     }
   } else if (!facts.context?.depth && (facts.type === "saju" || facts.type === "combo")) {
@@ -1039,7 +1030,7 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
     );
   } else if (facts.sectionGroup === "back") {
     parts.push(
-      facts.context?.depth === "advanced" || facts.context?.depth === "expert"
+      facts.context?.depth === "advanced"
         ? "[병렬 생성 — 뒷부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라.\n# 건강과 컨디션\n# 인생의 큰 흐름\n# 올해의 흐름\n# 반복 패턴 정밀 진단\n# 선택과 시기 판단\n# 3개월 실행 전략\n# 지금 해야 할 것과 피해야 할 것\n# 마지막 점괘\n다른 섹션(첫 점괘, 질문 중심 핵심, 분야별 요약, 타고난 성격과 기질, 직업과 돈, 재물 흐름, 애정과 관계)은 절대 쓰지 마라."
         : "[병렬 생성 — 뒷부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라.\n# 건강과 컨디션\n# 인생의 큰 흐름\n# 올해의 흐름\n# 지금 해야 할 것과 피해야 할 것\n# 마지막 점괘\n다른 섹션(첫 점괘, 질문 중심 핵심, 분야별 요약, 타고난 성격과 기질, 직업과 돈, 재물 흐름, 애정과 관계)은 절대 쓰지 마라.",
     );

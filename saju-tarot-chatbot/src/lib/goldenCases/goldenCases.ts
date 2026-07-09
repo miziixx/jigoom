@@ -88,7 +88,8 @@ function mk(spec: CaseSpec): GoldenCase {
       type: "saju",
       question: spec.question,
       focus: spec.focus,
-      context: spec.context ?? { depth: "light" },
+      // depth 미지정(기본)이 JudgmentPack Evidence Gate를 켜는 조건이라 빈 컨텍스트를 기본값으로 쓴다.
+      context: spec.context ?? {},
     },
     expect: buildExpectation(spec),
   };

@@ -11,8 +11,8 @@ export type SituationStage = "before" | "ongoing" | "waiting" | "closing";
 /** 원하는 답변 톤 */
 export type AnswerTone = "realistic" | "warm" | "blunt" | "detailed" | "action";
 
-/** 원하는 해석 깊이 */
-export type AnswerDepth = "light" | "basic" | "advanced" | "expert";
+/** 원하는 해석 깊이. 기본은 depth 미지정(undefined)으로 표현하고, 고급만 별도 값을 가진다. */
+export type AnswerDepth = "advanced";
 
 /** 출생 시간 정확도 (신뢰도 계산에 반영) */
 export type BirthTimeAccuracy = "exact" | "half-hour" | "over-hour" | "unknown";

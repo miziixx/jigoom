@@ -108,16 +108,16 @@ describe("systemPrompt 배선: 속마음 레이어가 통합 심리 블록에 �
     expect(msg).toContain("속마음·현재 심리 활용 안내");
   });
 
-  it("가벼운(light) 리딩에서는 타고난 속마음이 빠진다(압축 유지)", () => {
+  it("고급 리딩에도 타고난 속마음이 그대로 들어간다(깊이와 무관하게 콘텐츠는 동일)", () => {
     const msg = buildReadingUserMessage({
       type: "saju",
       question: "요즘 지쳐요",
       gender: birth.gender,
       sajuChart: chart,
       luckCycles: luck,
-      context: { depth: "light" },
+      context: { depth: "advanced" },
     });
-    expect(msg).not.toContain("▸ 타고난 속마음·반복 패턴");
+    expect(msg).toContain("▸ 타고난 속마음·반복 패턴");
   });
 
   it("순수 타로(원국 없음)에는 심리 블록이 붙지 않는다", () => {

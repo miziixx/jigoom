@@ -3,10 +3,7 @@ import type { ReadingContext, ReadingType } from "../types";
 import { buildReadingProgress } from "../lib/readingProgress";
 
 const DEPTH_ETA: Record<NonNullable<ReadingContext["depth"]>, string> = {
-  light: "핵심만 먼저 정리하는 모드예요. 보통 금방 첫 문장이 떠요.",
-  basic: "전체 흐름을 압축해서 쓰는 중이에요. 보통 10~20초 정도 걸려요.",
   advanced: "근거와 행동 조언을 함께 엮는 중이에요. 30~60초 정도 걸릴 수 있어요.",
-  expert: "가장 자세한 리딩이라 1~2분 정도 걸릴 수 있어요. 먼저 뜨는 내용부터 읽어도 괜찮아요.",
 };
 
 interface LoadingNoticeProps {

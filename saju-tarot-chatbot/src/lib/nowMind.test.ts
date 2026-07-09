@@ -85,17 +85,17 @@ describe("systemPrompt 배선: 지금 마음이 통합 심리 블록에 들어�
     expect(msg).toContain("속마음·현재 심리 활용 안내");
   });
 
-  it("가벼운(light) 리딩에도 '지금 올라오는 마음'은 남는다(무거운 소재는 제외)", () => {
+  it("고급 리딩에도 '지금 올라오는 마음'이 그대로 들어간다(깊이와 무관하게 콘텐츠는 동일)", () => {
     const msg = buildReadingUserMessage({
       type: "saju",
       question: "요즘 지쳐요",
       gender: birth.gender,
       sajuChart: chart,
       luckCycles: luck,
-      context: { depth: "light" },
+      context: { depth: "advanced" },
     });
     expect(msg).toContain("▸ 지금 올라오는 마음");
-    expect(msg).not.toContain("▸ 재료 vs 실제 쓸 힘");
+    expect(msg).toContain("▸ 재료 vs 실제 쓸 힘");
   });
 
   it("팬아웃 back 호출에는 심리 블록이 붙지 않는다", () => {
