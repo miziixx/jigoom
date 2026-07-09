@@ -308,6 +308,29 @@ describe("토픽 심화(topicDeep, 재기획안 A-2) 프롬프트", () => {
   });
 });
 
+describe("상대 완전분석(personDeep) 프롬프트 — B-2 문장 밀도", () => {
+  const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
+  const sajuChart = computeSajuChart(birth);
+  const luckCycles = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
+
+  it("16개 섹션 전부에 뻔한 말 금지·근거 직접 연결 규칙을 요구한다(핵심 3섹션에만 그치지 않는다)", () => {
+    const msg = buildReadingUserMessage({
+      type: "saju",
+      question: "",
+      gender: birth.gender,
+      sajuChart,
+      luckCycles,
+      context: { analysisMode: "personDeep" },
+    });
+    expect(msg).toContain("[상대 완전분석 — 출력 구조 지정]");
+    expect(msg).toContain("문장 밀도");
+    expect(msg).toContain("16개 섹션 전부에서 뻔한 말·별자리 운세식 덕담을 금지");
+    expect(msg).toContain("# 핵심 기질 한 줄");
+    expect(msg).toContain("# 지혜롭게 다루는 법");
+    expect(msg).toContain("5000~7000자");
+  });
+});
+
 describe("타로 리딩 프롬프트", () => {
   const tarotCards = drawSpread("ppf");
 

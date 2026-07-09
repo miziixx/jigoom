@@ -15,28 +15,21 @@
 ## 🎯 현재 상태 (Current State)
 
 - **작업 단계:** A → (B ∥ C)  *(기획안 §11)*
-- **지금 진행 중:** A·C 전체 완료. **B-1 완료.** 사용자 지시로 B 전체를 연속 진행 중. 다음은 B-2(상대 해부).
-- **직전 세션이 한 일:** B-1 평생사주 문장 밀도 + PDF 품질 (재기획안 §11 B 성공 기준) —
-  1. **코드 확인 먼저:** "평생사주 리포트"(9,900원 유료 간판)는 실제로 `DEPTH_INSTRUCTION.advanced`
-     프롬프트다(systemPrompt.ts:740, `ReadingResult.tsx`가 `eyebrow="평생사주 리포트"`로 라우팅).
-     "PDF"는 별도 파일 생성이 아니라 `ReadingActions.tsx`의 `window.print()`(모든 `<details>`를
-     펼친 뒤 인쇄 다이얼로그)다 — `@media print` 스타일시트가 곧 "PDF 품질".
-  2. `systemPrompt.ts` DEPTH_INSTRUCTION.advanced에 **문장 밀도 규칙 추가** — selfDeep/personDeep에는
-     이미 있던 "누구에게나 맞는 뻔한 말 금지" 패턴이 advanced에는 없었다. 매 섹션마다 [근거 데이터]의
-     구체값(오행 분포·용신/희신·강약·신살·대운 시기 등)을 최소 하나 문장 근거로 직접 연결하라는
-     지시 추가(§11 "돈 낼 만한" 기준). 구성(섹션) 추가 아님 — §8 "구성 추가가 아니라 문장 밀도" 원칙 준수.
-  3. `index.css` `@media print`: 이번 세션에서 새로 만든 인터랙티브 전용 블록(`.goosebump-check`
-     버튼들, `.topic-deep-chips`, `.sidebar-toggle`/`.sidebar-overlay`)이 print CSS에 안 걸려
-     있어 인쇄본에 클릭 못 하는 버튼이 그대로 나올 뻔한 걸 발견·수정.
-  4. **한계(정직하게 기록):** API 키가 없어 문장 밀도 지시가 실제 생성물에 얼마나 반영되는지는
-     못 봄(A-2·A-3와 같은 한계) — 프롬프트 텍스트 자체는 테스트로 검증.
-  5. 검증: 테스트 1개 확장(기존 advanced 테스트에 밀도 지시 assertion 추가), 전체 677/677 통과
-     (신규 `it` 없음, 기존 테스트 확장이라 카운트 불변), `tsc --noEmit` 클린, `npm run build` 성공.
-     **+ Playwright `emulateMedia({media:"print"})`로 실제 계산된 CSS 확인** — goosebump-check/
-     topic-deep-chips/sidebar-toggle 모두 `display:none`, trust-badges는 의도대로 계속 보임.
-- **다음에 할 일:** B-2(상대 해부 personDeep 문장 밀도 + PDF 품질) — B-1과 같은 패턴(밀도 규칙 +
-  print CSS 점검)을 PERSON_DEEP_INSTRUCTION에 적용. 그 다음 B-3(리포트 진행 화면, 시안 ③).
-  별도로: API 키 있는 환경에서 A-2 토픽 심화 5종 + B-1 밀도 개선 실제 생성물 육안 검증 필요(누적).
+- **지금 진행 중:** A·C 전체 완료. **B-1·B-2 완료.** 사용자 지시로 B 전체를 연속 진행 중. 다음은 B-3(리포트 진행 화면).
+- **직전 세션이 한 일:** B-2 상대 해부(personDeep) 문장 밀도 + PDF 품질 —
+  1. **B-1과 똑같이 복붙하지 않음:** `PERSON_DEEP_INSTRUCTION`을 다시 읽어보니 "뻔한 말 금지" 규칙이
+     이미 있었지만, 16개 섹션 중 **3개 섹션에만** 적용되고 있었다(좋아할 때~미련·식을 때, 말과 행동
+     불일치). 나머지 13개 섹션(핵심 기질 한 줄·겉과 속·감정 구조 등)은 밀도 지시가 없어 이 부분만
+     새 규칙 (7)로 확장 적용.
+  2. **PDF 쪽은 이미 해결돼 있었음:** `CompatibilityPage.tsx`의 상대 해부 결과 화면도 동일하게
+     `ReadingResult`/`ReadingActions`(전역 `@media print`)를 재사용한다는 걸 코드로 확인 —
+     B-1의 print CSS 수정이 이미 여기도 적용됨. 중복 작업 없이 확인만 하고 넘어감.
+  3. 검증: `reading.test.ts`에 personDeep 밀도 규칙 테스트 1개 신규, **전체 678/678 통과**,
+     `tsc --noEmit` 클린, `npm run build` 성공. 새 UI가 없어(프롬프트 텍스트만 변경) 별도
+     브라우저 검증은 생략 — B-1에서 이미 print CSS를 실측 확인했고 이 페이지도 같은 CSS를 씀.
+- **다음에 할 일:** B-3(리포트 진행 화면, 시안 ③) 착수 — 평생사주 리포트 생성 중 섹션 도착 순 공개 UI.
+  §11 완료 시 A·B·C 전부 끝 — 이후 §11의 "A~C 뒤" 항목(토픽 5종 확장·카드 홈 개편·가격 노출)이 남음.
+  별도로: API 키 있는 환경에서 A-2·B-1·B-2 실제 생성물 육안 검증 필요(누적, 아직 미해결).
 - **설계 결정 (다음 세션 참고):** 기획안 §3 문구는 "JudgmentPack → 한국어 렌더"이지만, 실제
   `JudgmentPack.judgments`를 소비하는 렌더러 대신 **기존 5개 엔진을 그대로 재사용**하는 쪽을
   선택함(A-1). 근거: 이 5개 엔진은 이미 `SajuChart`/`LuckCycles`의 계산값에서 판단을 도출하므로
@@ -68,7 +61,8 @@
 ### B. 간판 퀄리티  — 성공 기준: "돈 낼 만한" 육안 검증
 - [x] B-1. 평생사주 문장 밀도 + PDF 품질. DEPTH_INSTRUCTION.advanced에 밀도 규칙 추가,
       print CSS에 새 인터랙티브 블록 숨김 처리. 프롬프트·CSS 검증 완료, 실생성 육안 검증은 API 키 필요.
-- [ ] B-2. 상대 해부(personDeep) 문장 밀도 + PDF 품질
+- [x] B-2. 상대 해부(personDeep) 문장 밀도 + PDF 품질. 밀도 규칙을 16섹션 전부로 확장(기존엔 3개만
+      적용), print CSS는 B-1에서 이미 해결됨을 확인. 프롬프트 검증 완료, 실생성 육안 검증은 API 키 필요.
 - [ ] B-3. 리포트 진행 화면 (시안 ③)
 
 ### C. 소름 루프  — 성공 기준: 무료 리딩 → 공유까지 동선 완성
@@ -99,6 +93,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-09 | Sonnet 5 | B-2: PERSON_DEEP_INSTRUCTION 밀도 규칙을 3섹션→16섹션 전체로 확장, print CSS는 CompatibilityPage가 ReadingActions/전역 CSS 재사용해 B-1에서 이미 해결됨 확인, 678/678 통과 | B-3(리포트 진행 화면) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | B-1: DEPTH_INSTRUCTION.advanced에 문장 밀도 규칙 추가("뻔한 말 금지+근거 직접 연결"), print CSS에 새 인터랙티브 블록(goosebump/topic-chips/sidebar) 숨김 처리, 677/677 통과, Playwright emulateMedia로 print 계산값 확인 | B-2(상대 해부) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | **C 트랙 완료.** C-4 사이드바: `Sidebar.tsx`+`profileList.ts`(기존 profile.ts 불변, 위에 다중 프로필만 추가), Layout.tsx nav 정리(보조 기능→사이드바 이전), 테스트 7개, 677/677 통과, Playwright로 빈 상태→저장→전환 전 과정 확인 | B-1(평생사주 문장 밀도) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | C-3 신뢰 배지: `MethodologyPage.tsx`(어떻게 계산하나요, 4대 고전·시간보정·근거공개 설명)+`TrustBadges.tsx`(원국 아래 마운트)+`/methodology` 라우트, 테스트 7개, 670/670 통과, Playwright로 배지·페이지 이동 확인 | C-4(사이드바) → B-1~3, 사용자 지시로 연속 진행 중 |
