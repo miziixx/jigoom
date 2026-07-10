@@ -778,6 +778,22 @@ export interface CompatibilityResult {
       evidence: string;
     };
   };
+  /**
+   * 고전 보완 서술 (엔진 업그레이드 C-2). 통관용신·궁통보감 조후를 **점수 변경 없이** 서술로만 반영한다.
+   * 표면(headline/plain/together)은 사주 용어를 쓰지 않고, 근거(evidence)에만 남긴다. 보완 신호가 없으면 undefined.
+   */
+  classicComplement?: {
+    /** 쉬운 말 한 줄 요약 */
+    headline: string;
+    /** 계절적 치우침(궁통보감 조후)을 상대가 채워주는 서술. 해당 없으면 null */
+    johu: { plain: string; evidence: string } | null;
+    /** 대립하는 두 기운 사이를 상대가 이어주는(통관) 서술. 해당 없으면 null */
+    mediating: { plain: string; evidence: string } | null;
+    /** 둘이 같이 해보면 좋은 것 (서술 톤, 사주 용어 없음) */
+    together: string[];
+    /** 근거(고전·오행) */
+    evidence: string[];
+  };
   /** 전문가 근거 */
   expertEvidence?: string[];
   /** 두 사람 원국 요약 */

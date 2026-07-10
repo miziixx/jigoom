@@ -46,7 +46,7 @@
 
 ### Track 3 — 궁합
 - [x] C-1. 🔧 `CompatibilityResult.timingDetail?` — crossHits(A 세운지지↔B 일지/월지 상호), outlook(향후 3년), dayunPhase(대운 favor 동조/엇갈림, S-4 재사용). **점수 불변**. `compatibilityTimingDetail`(saju.ts) 신설, `branchPairRelation` 지지쌍 분류기, 대운 favor는 각 원국 용신/기신을 `computeLuckCycles` 옵션으로 넘겨 산출(useReadingStore와 동일 규칙). CompatibilityPage에 "다가오는 흐름 — 교차 타이밍" 블록·expertEvidence 2줄. 표면 용어 금지 유지. 테스트 5개, 741 그린.
-- [ ] C-2. 🧠 통관용신·궁통보감 조후를 점수 변경 없이 repairReport/solutionPlan 서술·evidence에 반영.
+- [x] C-2. 🧠 통관용신·궁통보감 조후를 점수 변경 없이 repairReport/solutionPlan 서술·evidence에 반영. `CompatibilityResult.classicComplement`(headline/johu/mediating/together/evidence) 신설 — `compatibilityClassicComplement`가 이미 계산된 `chart.yongshin.climaticClassic`(1순위 조후 결핍)·`mediating`(통관 bridge)을 상대 fiveElements와 대조. `repairReport.byPerson.together`에 '둘이 같이' 서술 append + expertEvidence 근거 한 줄. 점수 산식 미접촉(간이 johuComplement는 점수용 그대로). CompatibilityPage 렌더, `docs/validation/compat-classic-complement-c2.md` 검수 덤프(V-1 대상 표시). 테스트 5개, 746 그린.
 - [ ] C-3. 🔧 (후순위·잠금 예외) 실사용 샘플 10~20쌍 대조 후 가중치 1회 조정, 전후 분포 기록. 피드백 전이면 보류.
 - [ ] C-4. (선택) 자미 synastry — 부처궁 주성 대조 1축, Z-3 이후.
 

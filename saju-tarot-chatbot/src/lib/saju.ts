@@ -2956,6 +2956,99 @@ function compatibilityTimingDetail(
   return { crossHits, outlook, dayunPhase };
 }
 
+/**
+ * 고전 보완 서술 (엔진 업그레이드 C-2). 통관용신·궁통보감 조후를 **점수 변경 없이** 서술로만 반영한다.
+ * - 조후: 한쪽의 계절적 치우침(궁통보감 1순위 조후 오행 결핍)을 상대가 넉넉히 채워주는지.
+ * - 통관: 한쪽 안에서 강하게 대립하는 두 기운 사이를 잇는 오행(통관용신)을 상대가 지녔는지.
+ * 이미 계산된 chart.yongshin.climaticClassic/mediating + 상대 fiveElements만 읽는다(새 계산·점수 변경 없음).
+ * 표면(headline/plain/together)에는 사주 용어를 쓰지 않고, 근거(evidence)에만 남긴다. 보완 신호가 없으면 undefined.
+ */
+function compatibilityClassicComplement(
+  chartA: SajuChart,
+  chartB: SajuChart,
+  roleLabels: { first: string; second: string },
+): CompatibilityResult["classicComplement"] {
+  const nameA = roleLabels.first;
+  const nameB = roleLabels.second;
+  const elementPhrase = (ko: string) => ELEMENT_PLAIN[KO_TO_ELEMENT[ko]] ?? "필요한 기운";
+
+  // 궁통보감 조후: self의 1순위 조후 오행이 원국에 부족한데 other가 그 오행을 넉넉히 지니면 보완.
+  const johuOneWay = (self: SajuChart, other: SajuChart, selfName: string, otherName: string) => {
+    const cc = self.yongshin?.climaticClassic;
+    if (!cc || cc.satisfied) return null;
+    const need = cc.primaryElement;
+    if (!need || !suppliesElement(other, need)) return null;
+    return {
+      selfName,
+      otherName,
+      phrase: elementPhrase(need),
+      evidence: `${selfName} 궁통보감 조후 1순위 ${need}(${cc.priorityStems.join("·")}) 결핍 → ${otherName}이(가) ${need} 기운 넉넉히 보유`,
+    };
+  };
+  const johuHits = [johuOneWay(chartA, chartB, nameA, nameB), johuOneWay(chartB, chartA, nameB, nameA)].filter(
+    (x): x is NonNullable<typeof x> => x !== null,
+  );
+
+  // 통관용신: self 안에서 대립하는 두 기운을 잇는 오행을 other가 넉넉히 지니면 보완.
+  const mediatingOneWay = (self: SajuChart, other: SajuChart, selfName: string, otherName: string) => {
+    const m = self.yongshin?.mediating;
+    if (!m?.element || !suppliesElement(other, m.element)) return null;
+    return {
+      selfName,
+      otherName,
+      phrase: elementPhrase(m.element),
+      evidence: `${selfName} 통관용신 ${m.element}(강한 두 기운 대립을 잇는 오행) 필요 → ${otherName}이(가) ${m.element} 기운 보유`,
+    };
+  };
+  const mediatingHits = [
+    mediatingOneWay(chartA, chartB, nameA, nameB),
+    mediatingOneWay(chartB, chartA, nameB, nameA),
+  ].filter((x): x is NonNullable<typeof x> => x !== null);
+
+  if (johuHits.length === 0 && mediatingHits.length === 0) return undefined;
+
+  const johu =
+    johuHits.length > 0
+      ? {
+          plain:
+            johuHits.length === 2
+              ? "두 사람 다 계절처럼 한쪽으로 치우친 리듬이 있는데, 서로에게 부족한 기운을 채워줘서 함께 있으면 컨디션과 분위기가 데워지고 식혀지며 균형이 잡히는 편이에요."
+              : `${johuHits[0].otherName}은(는) ${johuHits[0].selfName}에게 부족한 '${johuHits[0].phrase}'을(를) 넉넉히 지녀서, 계절처럼 치우치기 쉬운 리듬을 곁에서 자연스럽게 채워주는 편이에요.`,
+          evidence: johuHits.map((h) => h.evidence).join(" / "),
+        }
+      : null;
+
+  const mediating =
+    mediatingHits.length > 0
+      ? {
+          plain:
+            mediatingHits.length === 2
+              ? "두 사람 다 마음속에서 강한 두 기운이 부딪히기 쉬운데, 서로가 그 사이를 이어주는 기운을 지녀서 곁에 있으면 팽팽하던 긴장이 순환으로 풀리는 편이에요."
+              : `${mediatingHits[0].selfName}은(는) 마음속에서 두 가지 강한 기운이 부딪히기 쉬운데, ${mediatingHits[0].otherName}이(가) 그 사이를 이어주는 '${mediatingHits[0].phrase}'을(를) 지녀서 곁에 있으면 갈등이 순환으로 풀리기 쉬워요.`,
+          evidence: mediatingHits.map((h) => h.evidence).join(" / "),
+        }
+      : null;
+
+  const together: string[] = [];
+  if (johu) together.push("한 사람이 처지거나 예민해지는 시기에 다른 사람이 페이스를 맞춰주면, 서로의 치우친 리듬이 자연스럽게 균형을 찾습니다.");
+  if (mediating) together.push("의견이 팽팽할 때 중간에서 이어주는 사람의 역할을 서로 인정해 주면, 다툼이 오래 가지 않고 방향이 잡힙니다.");
+
+  const headline =
+    johu && mediating
+      ? "서로의 치우친 기운을 채워주고 부딪히는 기운 사이를 이어주는, 고전적으로도 잘 맞물리는 보완이 있는 궁합이에요."
+      : johu
+        ? "계절처럼 치우친 리듬을 서로 채워주는 보완이 있는 궁합이에요."
+        : "부딪히기 쉬운 기운 사이를 서로 이어주는 보완이 있는 궁합이에요.";
+
+  const evidence = [
+    ...(johu ? [`조후 보완(궁통보감): ${johu.evidence}`] : []),
+    ...(mediating ? [`통관 보완: ${mediating.evidence}`] : []),
+    "근거 고전: 궁통보감(조후) · 통관용신(억부 보조)",
+  ];
+
+  return { headline, johu, mediating, together, evidence };
+}
+
 export function compatibilityRepairReport(
   score: number,
   branches: ReturnType<typeof crossBranchRelations>,
@@ -3481,7 +3574,10 @@ export function computeCompatibility(
   const purposes = purposeFits(score, branchScore, elements.score, palace.score, context);
   const timing = compatibilityTiming(birthA, birthB, chartA, chartB);
   const timingDetail = compatibilityTimingDetail(birthA, birthB, chartA, chartB, roleLabels);
+  const classicComplement = compatibilityClassicComplement(chartA, chartB, roleLabels);
   const repairReport = compatibilityRepairReport(score, branches, elements, palace, context);
+  // C-2: 고전 보완(조후·통관) '둘이 같이' 서술을 기존 리포트에 반영(점수 불변, 서술만 추가).
+  if (repairReport && classicComplement) repairReport.byPerson.together.push(...classicComplement.together);
   const questionInsight = compatibilityQuestionInsight(question, score, branches, palace, context);
   const solutionPlan = compatibilitySolutionPlan(score, branches, elements, palace, context, chartA, chartB, questionInsight, roleLabels);
   const expertEvidence = [
@@ -3499,6 +3595,7 @@ export function computeCompatibility(
         ? timingDetail.crossHits.map((c) => `${c.mover} 세운→${c.target} ${c.targetSpot} ${c.kind}`).join(" / ")
         : "두 사람 세운↔상대 원국 일지·월지 사이 강한 신호 적음"
     }`,
+    ...(classicComplement ? [`고전 보완: ${classicComplement.evidence.join(" / ")}`] : []),
   ];
 
   return {
@@ -3522,6 +3619,7 @@ export function computeCompatibility(
     purposeFits: purposes,
     timing,
     timingDetail,
+    classicComplement,
     expertEvidence,
     people: [personSummary(roleLabels.first, chartA), personSummary(roleLabels.second, chartB)],
   };

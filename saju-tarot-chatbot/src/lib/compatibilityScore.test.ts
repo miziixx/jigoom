@@ -212,3 +212,69 @@ describe("computeCompatibility.timingDetail — C-1 교차 타이밍", () => {
     }
   });
 });
+
+// ── C-2: 고전 보완 서술 (classicComplement) — 통관용신·궁통보감 조후, 점수 불변 ──────────
+
+/** 넓은 생일 범위를 훑어 classicComplement가 실제로 발동하는 첫 쌍을 찾는다(데이터 의존적이므로). */
+function findComplementPair(): { a: BirthInfo; b: BirthInfo } | null {
+  const start = new Date(Date.UTC(1980, 0, 1));
+  for (let i = 0; i < 120; i += 1) {
+    const da = new Date(start.getTime() + i * 37 * 86400000);
+    const a: BirthInfo = { ...baseBirth, year: da.getUTCFullYear(), month: da.getUTCMonth() + 1, day: da.getUTCDate() };
+    for (let j = 0; j < 120; j += 1) {
+      const db = new Date(start.getTime() + j * 41 * 86400000);
+      const b: BirthInfo = { ...otherBirth, year: db.getUTCFullYear(), month: db.getUTCMonth() + 1, day: db.getUTCDate() };
+      if (computeCompatibility(a, b, "romantic").classicComplement) return { a, b };
+    }
+  }
+  return null;
+}
+
+describe("computeCompatibility.classicComplement — C-2 고전 보완", () => {
+  it("결정론: 같은 입력이면 classicComplement도 동일", () => {
+    const r1 = computeCompatibility(baseBirth, otherBirth, "romantic");
+    const r2 = computeCompatibility(baseBirth, otherBirth, "romantic");
+    expect(JSON.stringify(r1.classicComplement)).toBe(JSON.stringify(r2.classicComplement));
+  });
+
+  it("고전 보완은 점수를 바꾸지 않는다(발동 쌍이어도 대칭·범위 유지)", () => {
+    const pair = findComplementPair();
+    expect(pair).not.toBeNull();
+    const r = computeCompatibility(pair!.a, pair!.b, "romantic");
+    // 발동했는데도 점수는 정상 범위·대칭이어야 한다(서술만 추가, 점수 로직 미접촉).
+    expect(r.classicComplement).toBeDefined();
+    expect(r.score).toBeGreaterThanOrEqual(0);
+    expect(r.score).toBeLessThanOrEqual(100);
+    expect(computeCompatibility(pair!.b, pair!.a, "romantic").score).toBe(r.score);
+  });
+
+  it("발동 시 구조가 유효하다(headline·evidence·together, johu/mediating 중 최소 1개)", () => {
+    const pair = findComplementPair();
+    const cc = computeCompatibility(pair!.a, pair!.b, "romantic").classicComplement!;
+    expect(cc.headline.length).toBeGreaterThan(0);
+    expect(cc.evidence.length).toBeGreaterThan(0);
+    expect(Boolean(cc.johu) || Boolean(cc.mediating)).toBe(true);
+    // together 항목 수 = 발동한 축(조후/통관) 수와 일치
+    const axisCount = (cc.johu ? 1 : 0) + (cc.mediating ? 1 : 0);
+    expect(cc.together.length).toBe(axisCount);
+  });
+
+  it("고전 보완 '둘이 같이' 서술이 repairReport에 반영된다(기존 잠금 count는 유지)", () => {
+    const pair = findComplementPair();
+    const r = computeCompatibility(pair!.a, pair!.b, "romantic");
+    // 기존 sajuFeatures.test의 잠금(together >= 3)은 그대로, 고전 서술이 그 안에 포함돼야 한다.
+    expect(r.repairReport!.byPerson.together.length).toBeGreaterThanOrEqual(3);
+    for (const line of r.classicComplement!.together) {
+      expect(r.repairReport!.byPerson.together).toContain(line);
+    }
+  });
+
+  it("표면 문장(headline·johu.plain·mediating.plain·together)에 사주 용어를 노출하지 않는다", () => {
+    const pair = findComplementPair();
+    const cc = computeCompatibility(pair!.a, pair!.b, "romantic").classicComplement!;
+    const surface = [cc.headline, cc.johu?.plain ?? "", cc.mediating?.plain ?? "", ...cc.together].join(" ");
+    for (const term of ["조후", "통관", "용신", "기신", "궁통보감", "일간", "월지", "십성", "억부", "신강", "신약", "지장간"]) {
+      expect(surface).not.toContain(term);
+    }
+  });
+});

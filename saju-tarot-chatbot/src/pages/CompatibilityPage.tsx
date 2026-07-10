@@ -840,6 +840,36 @@ export default function CompatibilityPage() {
             </section>
           )}
 
+          {result.classicComplement && (
+            <section className="card compat-feature-card">
+              <h3 className="card-title">서로 채워주는 기운 (고전 보완)</h3>
+              <p className="reading-body">{result.classicComplement.headline}</p>
+              <div className="compat-advice-grid">
+                {result.classicComplement.johu && (
+                  <article className="compat-highlight">
+                    <span>계절처럼 치우친 리듬</span>
+                    <p>{result.classicComplement.johu.plain}</p>
+                    <b>{result.classicComplement.johu.evidence}</b>
+                  </article>
+                )}
+                {result.classicComplement.mediating && (
+                  <article className="compat-highlight">
+                    <span>부딪히는 기운 잇기</span>
+                    <p>{result.classicComplement.mediating.plain}</p>
+                    <b>{result.classicComplement.mediating.evidence}</b>
+                  </article>
+                )}
+              </div>
+              {result.classicComplement.together.length > 0 && (
+                <ul className="compat-list">
+                  {result.classicComplement.together.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
           {(result.cautionPoints || result.actionPlan) && (
             <div className="compat-advice-grid">
               {result.cautionPoints && (
