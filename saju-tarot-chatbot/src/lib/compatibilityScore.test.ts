@@ -150,3 +150,65 @@ describe("computeCompatibility — 점수 불변식·이론 방향성", () => {
     }
   });
 });
+
+// ── C-1: 궁합 교차 타이밍 상세 (timingDetail) — 점수 불변·구조·톤 ──────────
+
+describe("computeCompatibility.timingDetail — C-1 교차 타이밍", () => {
+  it("timingDetail은 항상 채워지고, 점수는 그대로 결정론적이다(점수 불변식)", () => {
+    const r1 = computeCompatibility(baseBirth, otherBirth, "romantic");
+    const r2 = computeCompatibility(baseBirth, otherBirth, "romantic");
+    expect(r1.timingDetail).toBeDefined();
+    // 새 필드가 추가돼도 점수는 두 번 계산이 동일해야 한다.
+    expect(r1.score).toBe(r2.score);
+    // 전체 timingDetail도 결정론적.
+    expect(JSON.stringify(r1.timingDetail)).toBe(JSON.stringify(r2.timingDetail));
+  });
+
+  it("outlook은 최대 3년, 연도는 오름차순, tone은 3종 중 하나", () => {
+    const td = computeCompatibility(baseBirth, otherBirth, "romantic").timingDetail!;
+    expect(td.outlook.length).toBeGreaterThanOrEqual(1);
+    expect(td.outlook.length).toBeLessThanOrEqual(3);
+    for (let i = 1; i < td.outlook.length; i += 1) {
+      expect(td.outlook[i].year).toBeGreaterThan(td.outlook[i - 1].year);
+    }
+    for (const o of td.outlook) {
+      expect(["순한 편", "무난한 편", "조율이 필요한 편"]).toContain(o.tone);
+    }
+  });
+
+  it("crossHits kind/valence 일관성(합=good, 충·형·파·해=bad)", () => {
+    const td = computeCompatibility(baseBirth, otherBirth, "romantic").timingDetail!;
+    for (const c of td.crossHits) {
+      expect(["합", "충", "형", "파", "해"]).toContain(c.kind);
+      expect(c.valence).toBe(c.kind === "합" ? "good" : "bad");
+      expect(c.plain.length).toBeGreaterThan(0);
+      expect(c.mover.length).toBeGreaterThan(0);
+      expect(c.target.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("dayunPhase.sync는 두 사람 대운 favor와 규칙이 맞는다(S-4 favor 재사용)", () => {
+    const td = computeCompatibility(baseBirth, otherBirth, "romantic").timingDetail!;
+    const { aFavor, bFavor, sync } = td.dayunPhase;
+    if (aFavor === "boost" && bFavor === "boost") expect(sync).toBe("aligned-good");
+    else if (aFavor === "drain" && bFavor === "drain") expect(sync).toBe("aligned-hard");
+    else if ((aFavor === "boost" && bFavor === "drain") || (aFavor === "drain" && bFavor === "boost"))
+      expect(sync).toBe("diverging");
+    else expect(sync).toBe("neutral");
+    expect(td.dayunPhase.headline.length).toBeGreaterThan(0);
+  });
+
+  it("표면 문장(dayunPhase.headline·outlook.body·tone·crossHits.plain)에 사주 용어를 노출하지 않는다", () => {
+    const td = computeCompatibility(baseBirth, otherBirth, "romantic").timingDetail!;
+    const surface = [
+      td.dayunPhase.headline,
+      ...td.outlook.map((o) => `${o.tone} ${o.body}`),
+      ...td.crossHits.map((c) => c.plain),
+    ].join(" ");
+    // 간지·자리명·용어는 evidence 전용이므로 표면 문자열엔 없어야 한다.
+    // (합/충/형/파/해 단일 글자는 '해예요' 등 일상어와 겹쳐 substring 검사 대상에서 제외 — 기존 컨벤션 동일)
+    for (const term of ["세운", "대운", "용신", "기신", "조후", "일지", "월지", "천간", "지지", "신강", "신약"]) {
+      expect(surface).not.toContain(term);
+    }
+  });
+});

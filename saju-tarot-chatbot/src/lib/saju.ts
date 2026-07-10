@@ -9,6 +9,7 @@ import type {
   GyeokgukInfo,
   HiddenTenGodBreakdown,
   LuckCycles,
+  LuckFavor,
   LuckOverlap,
   MonthCommand,
   MonthFlowInfo,
@@ -2812,6 +2813,149 @@ function compatibilityTiming(birthA: BirthInfo, birthB: BirthInfo, chartA: SajuC
   ];
 }
 
+/** 한 지지 쌍의 관계 유형·쉬운 말·좋고 나쁨. 궁합 교차 타이밍(C-1)용. */
+function branchPairRelation(a: string, b: string): { kind: string; plain: string; valence: "good" | "bad" } | null {
+  const keys = [a + b, b + a];
+  if (keys.some((k) => ZHI_LIUHE[k] !== undefined)) return { kind: "합", plain: "가까워지고 손발이 맞기 쉬운 신호", valence: "good" };
+  if (keys.some((k) => ZHI_CHONG.has(k))) return { kind: "충", plain: "부딪히거나 마음이 흔들리기 쉬운 신호", valence: "bad" };
+  if (keys.some((k) => ZHI_XING.has(k))) return { kind: "형", plain: "속으로 긴장이 쌓이기 쉬운 신호", valence: "bad" };
+  if (keys.some((k) => ZHI_PO.has(k))) return { kind: "파", plain: "계획이나 약속이 어긋나기 쉬운 신호", valence: "bad" };
+  if (keys.some((k) => ZHI_HAI.has(k))) return { kind: "해", plain: "은근히 신경 쓰이는 신호", valence: "bad" };
+  return null;
+}
+
+/** 그 사람 원국의 용신/기신 오행(운 favor 판정용). useReadingStore와 동일 규칙. */
+function luckElementsOf(chart: SajuChart): { yong: string[]; avoid: string[] } {
+  return {
+    yong: chart.yongshin?.supportive ?? chart.yongshin?.yongshin ?? [],
+    avoid: chart.yongshin?.unfavorable ?? [],
+  };
+}
+
+/**
+ * 궁합 교차 타이밍 상세 (엔진 업그레이드 C-1). 점수·기존 `timing` 불변, 새 optional 필드만 채운다.
+ * - crossHits: 한 사람의 올해 세운 지지가 상대 원국 일지(가까운 관계 자리)·월지(생활 자리)와 새로 맺는 신호.
+ * - outlook: 향후 3년, 두 사람 세운 신호 + 교차 신호를 합쳐 관계 톤을 잡는다.
+ * - dayunPhase: 두 사람 현재 대운의 용신/기신 방향(S-4 favor)이 동조하는지 엇갈리는지.
+ * 표면(plain/body/headline/tone)에는 사주 용어를 쓰지 않고, 근거(evidence·kind)에만 남긴다.
+ */
+function compatibilityTimingDetail(
+  birthA: BirthInfo,
+  birthB: BirthInfo,
+  chartA: SajuChart,
+  chartB: SajuChart,
+  roleLabels: { first: string; second: string },
+): NonNullable<CompatibilityResult["timingDetail"]> {
+  const now = new Date();
+  const elA = luckElementsOf(chartA);
+  const elB = luckElementsOf(chartB);
+  const luckA = computeLuckCycles(birthA, now, { yongElements: elA.yong, avoidElements: elA.avoid });
+  const luckB = computeLuckCycles(birthB, now, { yongElements: elB.yong, avoidElements: elB.avoid });
+  const nameA = roleLabels.first;
+  const nameB = roleLabels.second;
+
+  const spotsOf = (chart: SajuChart) => [
+    { zhi: chart.day.zhi, label: "일지(가까운 관계 자리)" },
+    { zhi: chart.month.zhi, label: "월지(생활·직업 자리)" },
+  ];
+
+  type CrossHit = NonNullable<CompatibilityResult["timingDetail"]>["crossHits"][number];
+  // 한 사람의 특정 해 세운 지지 ↔ 상대 원국 일지·월지 신호를 모은다.
+  const hitsFor = (yearGanZhi: string | undefined, moverName: string, targetChart: SajuChart, targetName: string): CrossHit[] => {
+    const yearZhi = yearGanZhi?.[1];
+    if (!yearGanZhi || !yearZhi) return [];
+    const out: CrossHit[] = [];
+    for (const spot of spotsOf(targetChart)) {
+      const rel = branchPairRelation(yearZhi, spot.zhi);
+      if (rel) {
+        out.push({
+          mover: moverName,
+          moverGanZhi: yearGanZhi,
+          target: targetName,
+          targetSpot: spot.label,
+          kind: rel.kind,
+          plain: rel.plain,
+          valence: rel.valence,
+        });
+      }
+    }
+    return out;
+  };
+
+  const flowA = luckA.yearlyFlow ?? [];
+  const flowB = luckB.yearlyFlow ?? [];
+  const currentYearA = flowA.find((y) => y.current) ?? flowA[0];
+  const currentYearB = flowB.find((y) => y.current) ?? flowB[0];
+  const crossHits = [
+    ...hitsFor(currentYearA?.ganZhi, nameA, chartB, nameB),
+    ...hitsFor(currentYearB?.ganZhi, nameB, chartA, nameA),
+  ];
+
+  // 향후 3년: 두 사람 세운 신호 수 + 교차 신호 valence를 합쳐 톤을 잡는다.
+  type Outlook = NonNullable<CompatibilityResult["timingDetail"]>["outlook"][number];
+  const outlook: Outlook[] = [];
+  for (let i = 0; i < 3; i += 1) {
+    const ya = flowA[i];
+    const yb = flowB[i];
+    if (!ya && !yb) break;
+    const year = ya?.year ?? yb!.year;
+    const cross = [
+      ...hitsFor(ya?.ganZhi, nameA, chartB, nameB),
+      ...hitsFor(yb?.ganZhi, nameB, chartA, nameA),
+    ];
+    const goodCross = cross.filter((c) => c.valence === "good").length;
+    const badCross = cross.filter((c) => c.valence === "bad").length;
+    const selfSignals = (ya?.interactions.length ?? 0) + (yb?.interactions.length ?? 0);
+    const net = goodCross - badCross;
+    const tone: Outlook["tone"] = badCross - goodCross >= 2 ? "조율이 필요한 편" : net >= 2 ? "순한 편" : "무난한 편";
+    const body =
+      tone === "조율이 필요한 편"
+        ? "서로의 일정·감정 변화가 관계에 영향을 주기 쉬운 해예요. 큰 결정은 서두르지 않는 편이 좋아요."
+        : tone === "순한 편"
+          ? "두 사람 흐름이 비교적 맞아, 관계를 다지거나 함께 계획을 세우기 좋은 해예요."
+          : "관계를 크게 흔드는 신호보다, 기본 리듬을 유지하는 게 중요한 해예요.";
+    const evidence = [
+      ya ? `${nameA} ${year}년 ${ya.ganZhi}` : "",
+      yb ? `${nameB} ${year}년 ${yb.ganZhi}` : "",
+      cross.length > 0 ? `교차 ${cross.map((c) => `${c.mover}→${c.target} ${c.kind}`).join(", ")}` : "교차 신호 적음",
+      `세운 상호작용 ${selfSignals}건`,
+    ]
+      .filter(Boolean)
+      .join(" / ");
+    outlook.push({ year, tone, body, evidence });
+  }
+
+  // 대운 방향 동조/엇갈림 (S-4 favor 재사용)
+  const favorWord = (f?: LuckFavor) => (f === "boost" ? "보완 흐름" : f === "drain" ? "부담 흐름" : "중립 흐름");
+  const daYunA = luckA.daYun.find((d) => d.current);
+  const daYunB = luckB.daYun.find((d) => d.current);
+  const aFavor = daYunA?.favor;
+  const bFavor = daYunB?.favor;
+  let sync: NonNullable<CompatibilityResult["timingDetail"]>["dayunPhase"]["sync"] = "neutral";
+  let headline = "두 사람 모두 큰 흐름이 뚜렷이 한쪽으로 기울지 않아, 지금은 각자의 리듬을 존중하기 좋은 시기예요.";
+  if (aFavor === "boost" && bFavor === "boost") {
+    sync = "aligned-good";
+    headline = "두 사람 모두 큰 흐름이 채워지는 방향이라, 함께 무언가를 시작하거나 관계를 키우기 좋은 시기예요.";
+  } else if (aFavor === "drain" && bFavor === "drain") {
+    sync = "aligned-hard";
+    headline = "두 사람 모두 큰 흐름이 조금 버거운 방향이라, 서로에게 기대기보다 각자 컨디션을 먼저 챙기면 관계도 편해져요.";
+  } else if ((aFavor === "boost" && bFavor === "drain") || (aFavor === "drain" && bFavor === "boost")) {
+    sync = "diverging";
+    headline = "한 사람은 채워지는 흐름, 다른 한 사람은 버거운 흐름이라 속도 차이가 날 수 있어요. 여유 있는 쪽이 조금 더 배려하면 균형이 맞아요.";
+  }
+  const dayunPhase = {
+    aGanZhi: daYunA?.ganZhi ?? null,
+    bGanZhi: daYunB?.ganZhi ?? null,
+    aFavor,
+    bFavor,
+    sync,
+    headline,
+    evidence: `${nameA} 대운 ${daYunA?.ganZhi ?? "시작 전"}(${favorWord(aFavor)}) · ${nameB} 대운 ${daYunB?.ganZhi ?? "시작 전"}(${favorWord(bFavor)})`,
+  };
+
+  return { crossHits, outlook, dayunPhase };
+}
+
 export function compatibilityRepairReport(
   score: number,
   branches: ReturnType<typeof crossBranchRelations>,
@@ -3336,6 +3480,7 @@ export function computeCompatibility(
   ];
   const purposes = purposeFits(score, branchScore, elements.score, palace.score, context);
   const timing = compatibilityTiming(birthA, birthB, chartA, chartB);
+  const timingDetail = compatibilityTimingDetail(birthA, birthB, chartA, chartB, roleLabels);
   const repairReport = compatibilityRepairReport(score, branches, elements, palace, context);
   const questionInsight = compatibilityQuestionInsight(question, score, branches, palace, context);
   const solutionPlan = compatibilitySolutionPlan(score, branches, elements, palace, context, chartA, chartB, questionInsight, roleLabels);
@@ -3348,6 +3493,12 @@ export function computeCompatibility(
     `용신 보완: ${chartA.yongshin ? `A 필요 오행 ${neededElements(chartA).join("·") || "-"} / B 필요 오행 ${neededElements(chartB).join("·") || "-"} → ${elements.text}` : elements.text}`,
     `조후 보완: ${chartA.yongshin?.climatic?.element || chartB.yongshin?.climatic?.element ? `${johu.note} (조후점 ${johu.score})` : johu.note}`,
     `현재 시기 흐름: ${timing?.map((t) => t.evidence).join(" / ")}`,
+    `대운 방향 대조: ${timingDetail.dayunPhase.evidence}`,
+    `올해 교차 신호: ${
+      timingDetail.crossHits.length > 0
+        ? timingDetail.crossHits.map((c) => `${c.mover} 세운→${c.target} ${c.targetSpot} ${c.kind}`).join(" / ")
+        : "두 사람 세운↔상대 원국 일지·월지 사이 강한 신호 적음"
+    }`,
   ];
 
   return {
@@ -3370,6 +3521,7 @@ export function computeCompatibility(
     roleChemistry: roles,
     purposeFits: purposes,
     timing,
+    timingDetail,
     expertEvidence,
     people: [personSummary(roleLabels.first, chartA), personSummary(roleLabels.second, chartB)],
   };

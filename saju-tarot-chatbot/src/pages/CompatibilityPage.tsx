@@ -809,6 +809,37 @@ export default function CompatibilityPage() {
             </section>
           )}
 
+          {result.timingDetail && (
+            <section className="card">
+              <h3 className="card-title">다가오는 흐름 — 교차 타이밍</h3>
+              <article className="compat-highlight">
+                <span>두 사람의 큰 흐름</span>
+                <p>{result.timingDetail.dayunPhase.headline}</p>
+                <b>{result.timingDetail.dayunPhase.evidence}</b>
+              </article>
+              <div className="compat-advice-grid">
+                {result.timingDetail.outlook.map((o) => (
+                  <article className="compat-highlight" key={o.year}>
+                    <span>
+                      {o.year}년 · {o.tone}
+                    </span>
+                    <p>{o.body}</p>
+                    <b>{o.evidence}</b>
+                  </article>
+                ))}
+              </div>
+              {result.timingDetail.crossHits.length > 0 && (
+                <ul className="compat-list">
+                  {result.timingDetail.crossHits.map((c, i) => (
+                    <li key={`${c.mover}-${c.targetSpot}-${i}`}>
+                      {c.mover}의 올해 흐름이 {c.target}의 {c.targetSpot}에 닿아요 — {c.plain}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
           {(result.cautionPoints || result.actionPlan) && (
             <div className="compat-advice-grid">
               {result.cautionPoints && (

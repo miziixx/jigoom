@@ -739,6 +739,45 @@ export interface CompatibilityResult {
     body: string;
     evidence: string;
   }>;
+  /**
+   * 두 사람 운 흐름 교차 타이밍 상세 (엔진 업그레이드 C-1). 점수·기존 `timing` 불변, 새 optional 필드만 채운다.
+   * 표면 문장(plain/body/headline/tone)은 사주 용어를 쓰지 않고, 근거(evidence·kind)에만 남긴다.
+   */
+  timingDetail?: {
+    /** 한 사람의 올해 세운 지지가 상대 원국 일지·월지와 새로 맺는 신호 */
+    crossHits: Array<{
+      /** 이 신호를 움직이는 사람(올해 흐름 주인)의 역할 라벨 */
+      mover: string;
+      /** 그 사람의 올해 세운 간지 */
+      moverGanZhi: string;
+      /** 신호를 받는 상대의 역할 라벨 */
+      target: string;
+      /** 상대 원국에서 신호가 닿는 자리(일지/월지) 설명 */
+      targetSpot: string;
+      /** 관계 유형(합/충/형/파/해) — 근거 전용 */
+      kind: string;
+      /** 쉬운 말 설명(사주 용어 없음) */
+      plain: string;
+      valence: "good" | "bad";
+    }>;
+    /** 향후 3년 관계 전망 (두 사람 세운 신호 + 교차 신호 종합) */
+    outlook: Array<{
+      year: number;
+      tone: "순한 편" | "무난한 편" | "조율이 필요한 편";
+      body: string;
+      evidence: string;
+    }>;
+    /** 두 사람 현재 대운 방향(용신/기신)의 동조·엇갈림 (S-4 favor 재사용) */
+    dayunPhase: {
+      aGanZhi: string | null;
+      bGanZhi: string | null;
+      aFavor?: LuckFavor;
+      bFavor?: LuckFavor;
+      sync: "aligned-good" | "aligned-hard" | "diverging" | "neutral";
+      headline: string;
+      evidence: string;
+    };
+  };
   /** 전문가 근거 */
   expertEvidence?: string[];
   /** 두 사람 원국 요약 */

@@ -22,16 +22,19 @@
   [`engine-upgrade-2026-07.md`](./engine-upgrade-2026-07.md), 체크리스트는 아래 "🔮 엔진 업그레이드 트랙".
   사용자가 "계산 엔진 변경 금지"를 이 트랙에 한해 해제(ADDITIVE ONLY로 진행). (참고: main에서 사주 폼·
   리딩 결과 카드의 "박스 안에 박스" 중첩 CSS 완화가 별도로 완료됨 — 커밋 `5515c69`, 이 병합에 포함.)
-- **지금 진행 중:** 엔진 업그레이드 트랙. **Track 1(사주) + Track 2(자미두수) 전부 완료: E-0·S-1·
-  S-2a·S-2b·S-3·S-4·S-5·Z-1·Z-2·Z-3·Z-4** (브랜치 `claude/fortune-reading-accuracy-update-ht4pat`,
-  736/736 그린, S-5 시점까지 main 병합·푸시 완료). **다음: C-1(궁합 교차 타이밍) → C-2(용신 궁합 서술)
-  → V-1(전문가 검수 패킷) → V-2(golden 확장) → T-1/T-2(타로) → A-1(점성술) …** 순서는 기획안 §4.
-- **직전 세션이 한 일:** 엔진 업그레이드 Track 1(사주) 전부 + Track 2 착수(자미두수 운한). 상세는
-  아래 "🔮 엔진 업그레이드 트랙" 체크리스트와 세션 로그 참조. 사주는 4대 고전 심화 필드를 기본 리딩
-  경로에 노출→심화 판단 규칙 4종→golden 확장, 상문·조객 세운 연동, 대운 순역·용신방향·원국 상호작용
-  추가, 프롬프트 반영 검증까지. 자미두수는 iztro `horoscope()`로 대한·유년 계산·해석 레이어 신설.
-- **다음에 할 일:** Z-3(자미 동궁 성계 조합 KB ~50엔트리)부터. 재기획(§11)의 가격 노출은 **사용자
-  지시로 스코프 제외**(다시 묻지 말 것). 그 외 남은 건 아래 누적 실생성 검증뿐.
+- **지금 진행 중:** 엔진 업그레이드 트랙. **Track 1(사주) + Track 2(자미두수) 완료 + Track 3 착수:
+  E-0·S-1·S-2a·S-2b·S-3·S-4·S-5·Z-1·Z-2·Z-3·Z-4·C-1** (작업 브랜치 `claude/fortune-reading-engine-upgrade-ik50ji`
+  — main·ht4pat와 동일 지점에서 이어받음, 741/741 그린). **다음: C-2(통관용신·조후 궁합 서술) → V-1(전문가
+  검수 패킷) → V-2(golden 확장) → T-1/T-2(타로) → A-1(점성술) …** 순서는 기획안 §4.
+- **직전 세션이 한 일:** C-1(궁합 교차 타이밍) — `CompatibilityResult.timingDetail`(crossHits: 한 사람
+  올해 세운지지↔상대 원국 일지·월지 신호 / outlook: 향후 3년 관계 톤 / dayunPhase: 두 사람 현재 대운
+  favor 동조·엇갈림, S-4 재사용) 신설. `compatibilityTimingDetail`+`branchPairRelation`(지지쌍 분류기),
+  대운 favor는 각 원국 용신/기신을 `computeLuckCycles` 옵션으로 넘겨 산출(useReadingStore 규칙 동일).
+  CompatibilityPage에 "다가오는 흐름 — 교차 타이밍" 블록·expertEvidence 2줄 배선. **점수·기존 timing
+  불변**(additive), 표면 용어 금지 유지. 테스트 5개, 741 그린, tsc/build 클린.
+- **다음에 할 일:** C-2(통관용신·궁통보감 조후를 점수 변경 없이 repairReport/solutionPlan/evidence 서술에
+  반영, 🧠)부터. 재기획(§11)의 가격 노출은 **사용자 지시로 스코프 제외**(다시 묻지 말 것). 그 외 남은
+  건 아래 누적 실생성 검증뿐.
   **누적 미해결(API 키 필요):** A-2 토픽 심화 5종·B-1 평생사주 밀도·B-2 상대 해부 밀도·이번 세션의
   후속 질문 채팅 — 전부 프롬프트 텍스트/파이프라인은 테스트로 검증됐지만, 실제 Haiku/Sonnet 생성물을
   육안으로 본 적은 없다(`ANTHROPIC_API_KEY`가 이 환경에 없음). API 키 있는 환경에서
@@ -129,7 +132,10 @@
       기존 matches 불변), `buildCrossValidation`에 `ziweiLuck` 인자 추가, formatCrossValidation에
       '올해 운한 대조' 블록(표면 금지 안내), useReadingStore에서 `computeZiweiHoroscope` 호출·전달.
       테스트 4개, 736 그린. **Track 2(자미두수) 완료.**
-- [ ] C-1. 궁합 교차 타이밍 엔진 (점수 불변)
+- [x] C-1. 궁합 교차 타이밍 엔진 (점수 불변). `CompatibilityResult.timingDetail`(crossHits: 올해 세운지지↔상대
+      일지·월지 / outlook: 향후 3년 톤 / dayunPhase: 두 사람 대운 favor 동조·엇갈림, S-4 재사용) 신설,
+      `compatibilityTimingDetail`+`branchPairRelation`, CompatibilityPage 렌더+expertEvidence 배선. 점수 불변,
+      표면 용어 금지 유지. 테스트 5개, 741 그린.
 - [ ] C-2. 통관용신·조후 궁합 서술 반영 🧠
 - [ ] V-1. 전문가 검수 패킷 문서 🧠
 - [ ] V-2. golden 21 → 30+
@@ -160,6 +166,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-10 | Opus 4.8 | **엔진 업그레이드 Track 3 착수 — C-1(궁합 교차 타이밍).** `CompatibilityResult.timingDetail` 신설(crossHits: 한 사람 올해 세운지지↔상대 원국 일지·월지 신호 / outlook: 향후 3년 톤 / dayunPhase: 두 사람 현재 대운 favor 동조·엇갈림, S-4 재사용). `compatibilityTimingDetail`+`branchPairRelation`(지지쌍 분류기) 신설, 대운 favor는 각 원국 용신/기신을 `computeLuckCycles` 옵션으로 넘겨 산출. CompatibilityPage "다가오는 흐름 — 교차 타이밍" 블록+expertEvidence 2줄. **점수·기존 timing 불변**, 표면 용어 금지 유지. 테스트 5개, 741/741, tsc/build 클린. (작업 브랜치 ik50ji = main·ht4pat 동일 지점) | C-2(통관용신·조후 궁합 서술 🧠) → V-1 → V-2 → T-1/T-2 |
 | 2026-07-10 | Fable 5 / Opus 4.8 | **엔진 업그레이드 Track 1(사주) 완료 + Track 2 착수 — S-3·S-4·S-5(커밋 3개).** S-3 상문·조객 세운 연동(`YearFlowInfo.sinsalHits`), S-4 대운 심화(`daYunDirection` 순역·`DaYunInfo.favor`·대운별 `interactions`, natal 블록 이동), S-5 프롬프트 반영 검증(심화 근거가 기본 JudgmentPack·고급 raw 양쪽에 실리고 공포금지 gloss 부착 확인, reading.test 2개+검증문서). 725/725, tsc/build 클린. 이후 main 병합·푸시 | Z-3(자미 성계 조합 KB)→Z-4(운한 배선)→C-1(궁합 교차 타이밍) |
 | 2026-07-10 | Fable 5 / Opus 4.8 | **엔진 업그레이드 트랙 착수 — E-0·S-1·S-2a·S-2b·Z-1·Z-2 완료(커밋 6개).** 기획안 신규(`engine-upgrade-2026-07.md`, 22항목·모델 권장). 사주: CompactEvidence에 4대 고전 심화 필드(격국classic·십성분포·궁통보감조후·핵심신살) 노출→ruleEngine 심화 규칙 4종(structure.solid/broken·climate.unmet·tengod.skew)+JudgmentCode 4개→golden 21→26(심화 회귀+네거티브). 자미: iztro horoscope() 스파이크+`computeZiweiHoroscope`(대한·유년, ziweiHoroscope.test 잠금)+`deriveZiweiLuckVerdicts`(운한 명궁 무대+사화 도메인 가감). 715/715, tsc/build 클린 | S-3(상문·조객 세운 연동)→S-4(대운 심화)→S-5→Z-3→Z-4 |
 | 2026-07-10 | Sonnet 5 | **입력 폼·리딩 결과 카드 중첩 완화(사용자 스크린샷 신고).** `/saju` 폼의 "선택 설정"/"분야·말투·해석 깊이"(`.consultation-panel`, `BirthInfoForm`/`ContextPicker`/`TarotSpreadPicker`/`ComboPage` 공유)를 박스→상단 구분선으로, 리딩 결과 섹션 카드 내부 `[한 줄 결론]` 등 하위 파트(`.reading-part`, `readingBlocks.tsx`)를 박스→점선 구분선으로 CSS만 변경(구조·계산·색감 불변). 손볼 범위는 AskUserQuestion으로 "가볍게 CSS만" 확인 후 진행. 693/693 통과, build 성공, 커밋 `5515c69`, main에 fast-forward 병합·푸시(`19fe62c`) | (이후 엔진 업그레이드 트랙이 이 위에서 이어짐) |
