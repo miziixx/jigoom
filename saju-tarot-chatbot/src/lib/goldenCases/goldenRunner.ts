@@ -2,6 +2,7 @@ import { computeLuckCycles, computeSajuChart } from "../saju.js";
 import { buildReadingJudgmentPack } from "../../prompts/systemPrompt.js";
 import { validateJudgmentPack } from "../judgmentValidation.js";
 import type { JudgmentPack } from "../judgmentTypes.js";
+import type { LuckCycles } from "../../types/index.js";
 import type {
   ConfidenceRange,
   GoldenCase,
@@ -25,17 +26,21 @@ function round(n: number, digits = 0): number {
   return Math.round(n * f) / f;
 }
 
-/** 케이스 입력으로 실제 JudgmentPack을 결정론적으로 만든다 */
-export function buildPackForCase(input: GoldenCase["input"]): JudgmentPack | null {
+/**
+ * 케이스 입력으로 실제 JudgmentPack + luckCycles를 결정론적으로 만든다.
+ * luckCycles는 pack에 실리지 않는 신호(S-3 세운 상문·조객, S-4 대운 방향·운한 중첩)를 golden이
+ * 관찰하기 위해 함께 반환한다. 계산 로직은 호출만 하고 수정하지 않는다.
+ */
+export function buildObservationForCase(input: GoldenCase["input"]): { pack: JudgmentPack | null; luck: LuckCycles } {
   const chart = computeSajuChart(input.birth);
   const refDate = new Date(input.referenceDate);
   const includeMonthlyFlow = input.type === "saju" || input.type === "combo";
-  const luckCycles = computeLuckCycles(input.birth, refDate, {
+  const luck = computeLuckCycles(input.birth, refDate, {
     includeMonthlyFlow,
     yongElements: chart.yongshin?.supportive ?? chart.yongshin?.yongshin,
     avoidElements: chart.yongshin?.unfavorable,
   });
-  return buildReadingJudgmentPack({
+  const pack = buildReadingJudgmentPack({
     type: input.type,
     question: input.question ?? "",
     focus: input.focus,
@@ -43,11 +48,27 @@ export function buildPackForCase(input: GoldenCase["input"]): JudgmentPack | nul
     context: input.context ?? {},
     gender: input.birth.gender,
     sajuChart: chart,
-    luckCycles,
+    luckCycles: luck,
   });
+  return { pack, luck };
 }
 
-export function summarizeJudgmentPack(pack: JudgmentPack | null): GoldenSummary {
+/** 케이스 입력으로 실제 JudgmentPack을 결정론적으로 만든다 (하위호환: pack만 필요할 때) */
+export function buildPackForCase(input: GoldenCase["input"]): JudgmentPack | null {
+  return buildObservationForCase(input).pack;
+}
+
+/** luck에서 pack 밖 관찰값(S-3/S-4)을 뽑는다. luck 미전달 시 빈/null */
+function observeLuck(luck?: LuckCycles): Pick<GoldenSummary, "currentYearSinsalHits" | "daYunDirection" | "luckOverlapCombo"> {
+  const currentYear = luck?.yearlyFlow?.find((y) => y.current);
+  return {
+    currentYearSinsalHits: currentYear?.sinsalHits ?? [],
+    daYunDirection: luck?.daYunDirection ?? null,
+    luckOverlapCombo: luck?.daYunYearOverlap?.combo ?? null,
+  };
+}
+
+export function summarizeJudgmentPack(pack: JudgmentPack | null, luck?: LuckCycles): GoldenSummary {
   if (!pack) {
     return {
       packGenerated: false,
@@ -61,6 +82,7 @@ export function summarizeJudgmentPack(pack: JudgmentPack | null): GoldenSummary 
       forbiddenClaimCodes: [],
       structurallyValid: false,
       validationIssueCodes: [],
+      ...observeLuck(luck),
     };
   }
   const confidenceByCode: Record<string, number> = {};
@@ -92,6 +114,7 @@ export function summarizeJudgmentPack(pack: JudgmentPack | null): GoldenSummary 
     forbiddenClaimCodes,
     structurallyValid: validation.ok,
     validationIssueCodes: uniq(validation.issues.map((i) => i.code)),
+    ...observeLuck(luck),
   };
 }
 
@@ -107,8 +130,8 @@ function rangeText(range: ConfidenceRange): string {
 
 /** 케이스를 검사해 실패 사유 목록을 만든다 (빈 배열 = 통과) */
 export function checkGoldenCase(def: GoldenCase): GoldenCheckResult {
-  const pack = buildPackForCase(def.input);
-  const summary = summarizeJudgmentPack(pack);
+  const { pack, luck } = buildObservationForCase(def.input);
+  const summary = summarizeJudgmentPack(pack, luck);
   const e = def.expect;
   const failures: string[] = [];
 
@@ -185,6 +208,21 @@ export function checkGoldenCase(def: GoldenCase): GoldenCheckResult {
   // 필수 evidence id
   for (const id of e.requiredEvidenceIds ?? []) {
     if (!evidenceSet.has(id)) failures.push(`필수 evidence id 누락: ${id}`);
+  }
+
+  // ── V-2: pack 밖(luck) 신호 검사 (S-3 세운 상문·조객 / S-4 대운 방향·운한 중첩) ──
+  const yearSinsalSet = new Set(summary.currentYearSinsalHits);
+  for (const name of e.requiredYearSinsal ?? []) {
+    if (!yearSinsalSet.has(name)) failures.push(`필수 세운 상문·조객 누락: ${name} (관찰: ${summary.currentYearSinsalHits.join(", ") || "없음"})`);
+  }
+  for (const name of e.forbiddenYearSinsal ?? []) {
+    if (yearSinsalSet.has(name)) failures.push(`나오면 안 되는 세운 상문·조객 발생: ${name}`);
+  }
+  if (e.expectDaYunDirection != null && summary.daYunDirection !== e.expectDaYunDirection) {
+    failures.push(`대운 방향 불일치: ${summary.daYunDirection ?? "없음"} ≠ ${e.expectDaYunDirection}`);
+  }
+  if (e.expectLuckOverlapCombo != null && summary.luckOverlapCombo !== e.expectLuckOverlapCombo) {
+    failures.push(`대운·세운 중첩 combo 불일치: ${summary.luckOverlapCombo ?? "없음"} ≠ ${e.expectLuckOverlapCombo}`);
   }
 
   return { id: def.id, ok: failures.length === 0, failures, summary };

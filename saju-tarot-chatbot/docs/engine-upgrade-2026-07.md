@@ -58,7 +58,7 @@
 
 ### Track 5 — 검증·캘리브레이션
 - [x] V-1. 🧠 전문가 검수 패킷: 궁통보감 하위순위 셀 + 자미 조합 gloss + 확장 신살 판정 기준 + C-2 조후·통관 서술 → `docs/validation/expert-review-packet-2026-08.md`(4범주·항목별 확신도 상/중/하 컬럼·우선 검수 표시·점수 관여 여부 명시·기존 덤프 3문서 링크). 코드 변경 없음, 746 그린 유지.
-- [ ] V-2. 🔧 golden 21 → 30+ (파격·조후 미충족·운한 교차검증·세운 상문조객 + 네거티브 컨트롤).
+- [x] V-2. 🔧 golden 21 → 31 (파격·조후 미충족은 S-2b에서, V-2는 운한 교차검증·세운 상문조객 5케이스 g27~g31 + 네거티브 컨트롤). 세운 상문·조객(S-3)·대운 방향/운한 중첩(S-4)은 pack 밖 신호라 golden 러너를 additive 확장(`buildObservationForCase`가 luck 동반 반환, `summarizeJudgmentPack(pack, luck?)`, 새 expectation `requiredYearSinsal`/`forbiddenYearSinsal`/`expectDaYunDirection`/`expectLuckOverlapCombo`)해 관찰. 기대값은 실제 엔진 프로브서 도출(잠금 갱신 예외 미사용, 밴드 내 통과). 네거티브 컨트롤 4종으로 비공허 증명. 755 그린.
 - [ ] V-3. 🔧 (잠금 예외) caseValidation 픽스처 22→40+, matchRate·캘리브레이션 리포트 근거 수동 조정 1회, 전후 비교표.
 
 ### Track 6 — 점성술

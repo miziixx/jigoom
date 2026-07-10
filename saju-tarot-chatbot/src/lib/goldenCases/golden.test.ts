@@ -10,8 +10,8 @@ import { checkGoldenCase, summarizeJudgmentPack, buildPackForCase } from "./gold
  */
 
 describe("Golden Test Cases — 리딩 엔진 회귀", () => {
-  it("케이스가 20개 이상이다", () => {
-    expect(goldenCases.length).toBeGreaterThanOrEqual(20);
+  it("케이스가 30개 이상이다 (V-2 확장)", () => {
+    expect(goldenCases.length).toBeGreaterThanOrEqual(30);
   });
 
   it("케이스 id는 유일하다", () => {
@@ -80,6 +80,30 @@ describe("Golden Test Cases — 리딩 엔진 회귀", () => {
       const broken = goldenCases.find((c) => c.id === "g22-m1972-broken");
       expect(broken).toBeDefined();
       const r = checkGoldenCase({ ...broken!, expect: { forbiddenJudgmentCodes: ["STRUCTURE_BROKEN_CAUTION"] } });
+      expect(r.ok).toBe(false);
+    });
+
+    // V-2: pack 밖(luck) 신호 검사도 공허하지 않음을 증명한다.
+    const sangmun = goldenCases.find((c) => c.id === "g27-m1988-sangmun")!;
+
+    it("실제 발동한 세운 상문살을 금지하면 실패한다 (S-3 세운 신살 관찰)", () => {
+      const r = checkGoldenCase({ ...sangmun, expect: { forbiddenYearSinsal: ["상문살"] } });
+      expect(r.ok).toBe(false);
+      expect(r.failures.some((f) => f.includes("상문살"))).toBe(true);
+    });
+
+    it("발동하지 않는 세운 신살을 필수로 요구하면 실패한다", () => {
+      const r = checkGoldenCase({ ...sangmun, expect: { requiredYearSinsal: ["조객살"] } });
+      expect(r.ok).toBe(false);
+    });
+
+    it("대운 방향을 반대로 기대하면 실패한다 (S-4 순역 관찰)", () => {
+      const r = checkGoldenCase({ ...sangmun, expect: { expectDaYunDirection: "reverse" } }); // 실제 forward
+      expect(r.ok).toBe(false);
+    });
+
+    it("운한 중첩 combo를 틀리게 기대하면 실패한다 (운한 교차 관찰)", () => {
+      const r = checkGoldenCase({ ...sangmun, expect: { expectLuckOverlapCombo: "quiet" } }); // 실제 mixed
       expect(r.ok).toBe(false);
     });
   });

@@ -3,7 +3,8 @@ import type { JudgmentCode } from "../judgmentTypes.js";
 import type { GoldenCase, GoldenExpectation } from "./goldenTypes.js";
 
 /**
- * Golden Test Cases — 21개 고정 케이스 (실제 엔진 출력에서 도출, 허용범위 회귀검사).
+ * Golden Test Cases — 31개 고정 케이스 (실제 엔진 출력에서 도출, 허용범위 회귀검사).
+ * 구성: 기본 21(g01~g21) + S-2b 4대 고전 심화 5(g22~g26) + V-2 운 흐름 관찰 5(g27~g31).
  *
  * 기대값은 현재 결정론 엔진 출력을 기준으로 하되, 정확값이 아니라 "허용 범위"로 고정한다:
  *   - judgment code: 부분집합(필수)/배타(금지)만 검사 → 무해한 추가는 통과
@@ -217,4 +218,59 @@ const DEEP_SPECS: DeepCaseSpec[] = [
   },
 ];
 
-export const goldenCases: GoldenCase[] = [...SPECS.map(mk), ...DEEP_SPECS.map(mkDeep)];
+/**
+ * 운 흐름 관찰 케이스 (엔진 업그레이드 V-2, docs/engine-upgrade-2026-07.md).
+ * JudgmentPack 밖 신호 — S-3 세운 상문·조객(`YearFlowInfo.sinsalHits`), S-4 대운 방향(`daYunDirection`)·
+ * 운한 중첩(`daYunYearOverlap.combo`) — 을 golden 러너가 luck에서 직접 관찰해 회귀로 고정한다.
+ * 기준일 2026-07-06(세운 병오). 상문살=년지+2, 조객살=년지+10 자리에 세운 지지(오)가 들면 발동:
+ * 진년생→상문, 신년생→조객, 오년생→미발동(네거티브). 기대값은 2026-07-10 실제 엔진 프로브에서 도출.
+ */
+interface LuckCaseSpec {
+  id: string;
+  description: string;
+  birth: BirthInfo;
+  money: Money;
+  startup: Startup;
+  minDomainCoverage: number;
+  maxContradictions: number;
+  requiredYearSinsal?: string[];
+  forbiddenYearSinsal?: string[];
+  daYunDirection?: "forward" | "reverse";
+  overlapCombo?: string;
+}
+
+function mkLuck(spec: LuckCaseSpec): GoldenCase {
+  const base = buildExpectation({
+    id: spec.id,
+    description: spec.description,
+    birth: spec.birth,
+    money: spec.money,
+    startup: spec.startup,
+    maxContradictions: spec.maxContradictions,
+    minDomainCoverage: spec.minDomainCoverage,
+  });
+  return {
+    id: spec.id,
+    description: spec.description,
+    input: { birth: spec.birth, referenceDate: REF, type: "saju", context: {} },
+    expect: {
+      ...base,
+      // 운한 근거가 pack에 실려야 함(운한 교차검증 관찰 지점)
+      requiredEvidenceIds: [...CORE_EVIDENCE, "luck.current.summary", "luck.overlap.daeyun_year", "luck.interactions.current"],
+      requiredYearSinsal: spec.requiredYearSinsal,
+      forbiddenYearSinsal: spec.forbiddenYearSinsal,
+      expectDaYunDirection: spec.daYunDirection,
+      expectLuckOverlapCombo: spec.overlapCombo,
+    },
+  };
+}
+
+const LUCK_SPECS: LuckCaseSpec[] = [
+  { id: "g27-m1988-sangmun", description: "남 1988(진년) · 세운 병오=상문살 발동 + 대운 순행 · 운한 중첩 mixed", birth: { calendarType: "solar", year: 1988, month: 5, day: 5, hour: 14, minute: 0, gender: "male" }, money: "risk", startup: "notrec", minDomainCoverage: 6, maxContradictions: 1, requiredYearSinsal: ["상문살"], forbiddenYearSinsal: ["조객살"], daYunDirection: "forward", overlapCombo: "mixed" },
+  { id: "g28-f2000-sangmun-rev", description: "여 2000(진년) · 세운 상문살 + 대운 역행 · 창업 검증우선", birth: { calendarType: "solar", year: 2000, month: 6, day: 10, hour: 9, minute: 0, gender: "female" }, money: "risk", startup: "test", minDomainCoverage: 6, maxContradictions: 1, requiredYearSinsal: ["상문살"], daYunDirection: "reverse" },
+  { id: "g29-f1992-jogaek", description: "여 1992(신년) · 세운 병오=조객살 발동 + 대운 역행", birth: { calendarType: "solar", year: 1992, month: 3, day: 20, hour: 7, minute: 0, gender: "female" }, money: "risk", startup: "notrec", minDomainCoverage: 6, maxContradictions: 1, requiredYearSinsal: ["조객살"], forbiddenYearSinsal: ["상문살"], daYunDirection: "reverse" },
+  { id: "g30-m1980-jogaek-fwd", description: "남 1980(신년) · 세운 조객살 + 대운 순행", birth: { calendarType: "solar", year: 1980, month: 10, day: 15, hour: 20, minute: 0, gender: "male" }, money: "risk", startup: "notrec", minDomainCoverage: 6, maxContradictions: 1, requiredYearSinsal: ["조객살"], daYunDirection: "forward" },
+  { id: "g31-f1990-nosinsal", description: "여 1990(오년, g02 동일 원국) · 세운 상문·조객 미발동 + 운한 중첩 amplify-good — 세운 신살 네거티브 컨트롤", birth: { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" }, money: "risk", startup: "notrec", minDomainCoverage: 6, maxContradictions: 1, forbiddenYearSinsal: ["상문살", "조객살"], overlapCombo: "amplify-good" },
+];
+
+export const goldenCases: GoldenCase[] = [...SPECS.map(mk), ...DEEP_SPECS.map(mkDeep), ...LUCK_SPECS.map(mkLuck)];

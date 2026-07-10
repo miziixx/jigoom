@@ -63,6 +63,15 @@ export interface GoldenExpectation {
    * 실제 LLM rewrite/fallback 발생은 결정론 범위 밖이므로 optional LLM 단계로 분리한다.
    */
   expectGateWouldNotForceRewrite?: boolean;
+  // ── 엔진 업그레이드 V-2: pack 밖(luck) 신호 관찰 (S-3 세운 상문·조객 / S-4 대운 방향·운한 중첩) ──
+  /** 현재(기준일) 세운이 반드시 발동시켜야 하는 상문·조객 (S-3 세운 연동). 부분집합 검사 */
+  requiredYearSinsal?: string[];
+  /** 현재 세운에서 나오면 안 되는 상문·조객 (네거티브 컨트롤용) */
+  forbiddenYearSinsal?: string[];
+  /** 기대 대운 진행 방향 (S-4: 양남음녀=순행). 지정 시 정확히 일치해야 함 */
+  expectDaYunDirection?: "forward" | "reverse";
+  /** 기대 대운·세운 중첩 combo (운한 교차: amplify-good/amplify-bad/mixed/quiet). 지정 시 정확히 일치 */
+  expectLuckOverlapCombo?: string;
 }
 
 export interface GoldenCase {
@@ -85,6 +94,13 @@ export interface GoldenSummary {
   forbiddenClaimCodes: string[];
   structurallyValid: boolean;
   validationIssueCodes: string[];
+  // ── V-2: pack 밖(luck) 관찰값 (S-3/S-4). luck 미전달 시 빈/null ──
+  /** 현재(기준일) 세운이 발동시킨 상문·조객 (S-3) */
+  currentYearSinsalHits: string[];
+  /** 대운 진행 방향 (S-4) */
+  daYunDirection: "forward" | "reverse" | null;
+  /** 대운·세운 중첩 combo (운한 교차) */
+  luckOverlapCombo: string | null;
 }
 
 /** 한 케이스 검사 결과 */

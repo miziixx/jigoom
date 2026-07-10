@@ -21,14 +21,16 @@ LLM 문장 전체를 고정하지 않는다. 계산→근거→룰→판단으�
 | contradiction | 알려진 집합 밖이면 실패 + 개수 상한 |
 | rewrite/fallback | 구조상 rewrite 강제 안 됨(`structurallyValid`) |
 | evidence ids | 안정적 핵심 id 소수만 필수 |
+| 세운 상문·조객 (S-3) | pack 밖 luck 신호 — 현재 세운 `sinsalHits` 필수/금지 검사 (V-2) |
+| 대운 방향·운한 중첩 (S-4) | `daYunDirection`(순역) / `daYunYearOverlap.combo` 일치 검사 (V-2) |
 
 엄격한 snapshot이 아니라 **허용 범위를 둔 regression check**다. 미세 튜닝은 통과, 퇴보는 감지.
 
 ## 파일
 
 - `goldenTypes.ts` — GoldenCase 스키마
-- `goldenRunner.ts` — pack 생성 + 요약 + 검사 (순수, 계산 로직 미수정)
-- `goldenCases.ts` — 21개 케이스 (실제 엔진 출력에서 도출)
+- `goldenRunner.ts` — pack + luck 관찰 생성 + 요약 + 검사 (순수, 계산 로직 미수정)
+- `goldenCases.ts` — 31개 케이스 (기본 21 + 고전 심화 5 + 운 흐름 관찰 5, 실제 엔진 출력에서 도출)
 - `golden.test.ts` — vitest 드라이버 + 네거티브 컨트롤
 
 ## 실행
