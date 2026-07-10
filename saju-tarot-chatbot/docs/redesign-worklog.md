@@ -122,7 +122,9 @@
 - [x] S-2b. golden 확장 21→26 (g22 파격+조후 / g23 종강격+편중 / g24 관인상생 solid만 /
       g25 조후만+층위모순회피 / g26 심화 전부 미발동 네거티브) + 심화 네거티브 컨트롤 1개.
       기존 21케이스 기대값은 갱신 불필요(밴드 내)여서 잠금 예외 미사용. 707/707 그린.
-- [ ] S-3. 상문·조객 세운 연동
+- [x] S-3. 상문·조객 세운 연동. `YearFlowInfo.sinsalHits?` 추가, computeLuckCycles 세운 루프에서
+      원국 년지 기준 상문(+2)·조객(-2) 판정(원국 위치판정과 별개), formatLuckCycles 태그·공포금지 gloss.
+      테스트 3개, 718 그린.
 - [ ] S-4. 대운 심화 (순역·favor·원국 상호작용)
 - [ ] S-5. 프롬프트 반영 정리 + reading-quality 체크리스트
 - [x] Z-1. iztro horoscope() 스파이크 완료(2.5.8: decadal/yearly = {index=본명궁 인덱스, 간지, mutagen=록권과기

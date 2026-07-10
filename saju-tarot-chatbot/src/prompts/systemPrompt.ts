@@ -620,13 +620,22 @@ function formatLuckCycles(luck: LuckCycles): string {
   if (luck.yearlyFlow && luck.yearlyFlow.length > 0) {
     const yearLines = luck.yearlyFlow.map(
       (yf) => {
-        const tags = [yf.tenGod && `십성 ${yf.tenGod}`, yf.twelveStage && `운성 ${yf.twelveStage}`, yf.samjae]
+        const tags = [
+          yf.tenGod && `십성 ${yf.tenGod}`,
+          yf.twelveStage && `운성 ${yf.twelveStage}`,
+          yf.samjae,
+          yf.sinsalHits && yf.sinsalHits.length > 0 && yf.sinsalHits.join("·"),
+        ]
           .filter(Boolean)
           .join(", ");
         return `${yf.year}년(${yf.age}세) ${yf.ganZhi}${yf.current ? " ← 올해" : ""}${tags ? ` [${tags}]` : ""}${yf.interactions.length > 0 ? ` — ${yf.interactions.join(", ")}` : " — 원국과 새 상호작용 없음"}`;
       },
     );
-    lines.push(`앞으로 10년 세운 흐름 (입춘 기준, 계산됨):\n${yearLines.join("\n")}`);
+    const hasSangJo = luck.yearlyFlow.some((yf) => yf.sinsalHits && yf.sinsalHits.length > 0);
+    const sangJoNote = hasSangJo
+      ? " 상문살·조객살이 표시된 해는 '주변 경조사가 늘거나 기운이 가라앉기 쉬운 참고 시기'로만 부드럽게 옮겨라(년지 기준·참고용). 초상·죽음·불행 같은 공포 단정은 절대 금지."
+      : "";
+    lines.push(`앞으로 10년 세운 흐름 (입춘 기준, 계산됨):\n${yearLines.join("\n")}${sangJoNote}`);
   }
   if (luck.samjae && (luck.samjae.currentPhase || luck.samjae.years.length > 0)) {
     lines.push(

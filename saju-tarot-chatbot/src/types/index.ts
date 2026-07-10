@@ -556,6 +556,12 @@ export interface YearFlowInfo {
   twelveStage?: string;
   /** 이 해 삼재 여부 (들삼재/눌삼재/날삼재), 아니면 undefined */
   samjae?: string;
+  /**
+   * 이 해 세운 지지가 원국 년지 기준으로 드는 신살 (상문살·조객살).
+   * 원국 위치판정(SajuChart.sinsal)과 별개로, "그 해 세운이 발동시키는" 신살이다.
+   * 엔진 업그레이드 S-3 (docs/engine-upgrade-2026-07.md). 없으면 undefined.
+   */
+  sinsalHits?: string[];
 }
 
 export interface LuckCycles {

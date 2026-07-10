@@ -178,6 +178,39 @@ describe("세운 다년", () => {
   });
 });
 
+describe("세운 상문·조객 (엔진 업그레이드 S-3)", () => {
+  // 원국 년지 오(午) → 상문살 = 년지+2 = 신(申), 조객살 = 년지-2 = 진(辰)
+  const chart = computeSajuChart(female1990);
+  const luck = computeLuckCycles(female1990, new Date("2026-07-03T03:00:00Z"));
+
+  it("원국 년지 기준 상문(+2)·조객(-2) 자리에 오는 세운에만 신살이 붙는다", () => {
+    const idx = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
+    const yi = idx.indexOf(chart.year.zhi);
+    const sangmun = idx[(yi + 2) % 12];
+    const jogaek = idx[(yi + 10) % 12];
+
+    for (const yf of luck.yearlyFlow!) {
+      const zhi = yf.ganZhi[1];
+      if (zhi === sangmun) expect(yf.sinsalHits).toEqual(["상문살"]);
+      else if (zhi === jogaek) expect(yf.sinsalHits).toEqual(["조객살"]);
+      else expect(yf.sinsalHits).toBeUndefined();
+    }
+  });
+
+  it("10년 창(지지 12주기 미만)에서 상문·조객은 각각 최대 한 번만 나타난다", () => {
+    const flat = luck.yearlyFlow!.flatMap((yf) => yf.sinsalHits ?? []);
+    expect(flat.filter((s) => s === "상문살").length).toBeLessThanOrEqual(1);
+    expect(flat.filter((s) => s === "조객살").length).toBeLessThanOrEqual(1);
+    // female1990(년지 오)는 10년 창에 상문(신)이 한 번 든다
+    expect(flat).toContain("상문살");
+  });
+
+  it("결정론: 같은 입력은 같은 세운 신살 배치를 낸다", () => {
+    const again = computeLuckCycles(female1990, new Date("2026-07-03T03:00:00Z"));
+    expect(again.yearlyFlow!.map((y) => y.sinsalHits)).toEqual(luck.yearlyFlow!.map((y) => y.sinsalHits));
+  });
+});
+
 describe("윤달·야자시", () => {
   it("윤달 여부에 따라 다른 원국이 나온다", () => {
     // 1987년은 음력 윤6월이 있는 해

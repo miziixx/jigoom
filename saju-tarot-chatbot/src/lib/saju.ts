@@ -2030,6 +2030,12 @@ export function computeLuckCycles(
     }
   }
 
+  // 상문·조객 세운 판정용 자리 (원국 년지 기준, S-3). 원국 위치판정(computeSinsal)과 같은 규칙:
+  // 상문살 = 년지+2, 조객살 = 년지-2(=+10). 세운 지지가 이 자리에 오는 해에 발동한다.
+  const yearZhiIdx = BRANCH_ORDER.indexOf(yearZhi);
+  const sangmunZhi = yearZhiIdx >= 0 ? BRANCH_ORDER[(yearZhiIdx + 2) % 12] : null;
+  const jogaekZhi = yearZhiIdx >= 0 ? BRANCH_ORDER[(yearZhiIdx + 10) % 12] : null;
+
   // 올해부터 10년치 세운 흐름 (입춘 기준, 연중 6/15로 경계 회피)
   const yearlyFlow: YearFlowInfo[] = [];
   for (let i = 0; i < 10; i++) {
@@ -2038,6 +2044,9 @@ export function computeLuckCycles(
     const ganZhi = toHangul(yLunar.getYearInGanZhiByLiChun());
     const gan = ganZhi[0];
     const zhi = ganZhi[1];
+    const sinsalHits: string[] = [];
+    if (zhi && zhi === sangmunZhi) sinsalHits.push("상문살");
+    if (zhi && zhi === jogaekZhi) sinsalHits.push("조객살");
     yearlyFlow.push({
       year: y,
       age: y - birthSolarYear,
@@ -2047,6 +2056,7 @@ export function computeLuckCycles(
       tenGod: gan ? tenGodOf(dayGan, gan) : undefined,
       twelveStage: zhi ? twelveStageOf(dayGan, zhi) : undefined,
       samjae: zhi ? samjaeCalc.phaseOf(zhi) ?? undefined : undefined,
+      sinsalHits: sinsalHits.length > 0 ? sinsalHits : undefined,
     });
   }
 
