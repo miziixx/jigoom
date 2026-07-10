@@ -7,8 +7,11 @@
 ## 📌 기준 문서 (작업 전 필독)
 - 기획안: [`docs/redesign-2026-07.md`](./redesign-2026-07.md)
 - 화면 시안(4화면): [`docs/mockups/redesign-mockup.html`](./mockups/redesign-mockup.html)
+- **엔진 업그레이드 기획안(2026-07-10 신규 트랙): [`docs/engine-upgrade-2026-07.md`](./engine-upgrade-2026-07.md)**
 - 전체 작업 이력(대용량): [`docs/record.md`](./record.md)
-- 불변식은 기획안 §12 및 루트 `CLAUDE.md` 참조 — **재기획으로 계산 엔진/검증 게이트 변경 금지.**
+- 불변식은 기획안 §12 및 루트 `CLAUDE.md` 참조. **주의: "계산 엔진 변경 금지"는 재기획(UI/제품) 작업에만
+  계속 적용되고, 엔진 업그레이드 트랙에서는 사용자가 명시적으로 해제함**(2026-07-10) — 대신 ADDITIVE ONLY
+  (잠금 테스트 그린 유지, 새 optional 필드만) 원칙을 따른다. 상세는 엔진 업그레이드 기획안 §2.
 
 ---
 
@@ -103,8 +106,40 @@
 
 ---
 
+## 🔮 엔진 업그레이드 트랙 체크리스트 (기획안: [`engine-upgrade-2026-07.md`](./engine-upgrade-2026-07.md))
+
+> 진행 원칙·항목 상세·모델 권장(🧠 Opus급 / 🔧 Sonnet)은 기획안 §2~§3 참조. 여기는 진행 표시만.
+
+- [x] E-0. 기획 문서 + worklog 스캐폴드 (이 커밋)
+- [ ] S-1. CompactEvidence 심화 필드 노출 (ruleEngine 미연결)
+- [ ] S-2a. ruleEngine 심화 규칙 + JudgmentCode 4종 🧠
+- [ ] S-2b. golden 리뷰 갱신 + 신규 케이스 (잠금 예외 ①)
+- [ ] S-3. 상문·조객 세운 연동
+- [ ] S-4. 대운 심화 (순역·favor·원국 상호작용)
+- [ ] S-5. 프롬프트 반영 정리 + reading-quality 체크리스트
+- [ ] Z-1. iztro horoscope() 스파이크 + computeZiweiHoroscope
+- [ ] Z-2. 자미 운한 해석 레이어 🧠
+- [ ] Z-3. 동궁 주성 조합 KB ~50 엔트리 🧠
+- [ ] Z-4. 운한 교차검증·프롬프트 배선
+- [ ] C-1. 궁합 교차 타이밍 엔진 (점수 불변)
+- [ ] C-2. 통관용신·조후 궁합 서술 반영 🧠
+- [ ] V-1. 전문가 검수 패킷 문서 🧠
+- [ ] V-2. golden 21 → 30+
+- [ ] T-1. 타로 코트 페르소나 16종 🧠
+- [ ] T-2. 타로 조합 KB + 감지기 🧠
+- [ ] A-1. 점성술 Phase A (기존 astrology_upgrade_plan 편입) 🧠
+- [ ] T-3a/b. 마이너 56장 개별 심화 🧠
+- [ ] V-3. rule weight 캘리브레이션 (잠금 예외 ②, 피드백 후)
+- [ ] C-3. 궁합 점수 캘리브레이션 (잠금 예외 ②, 피드백 후)
+- 보류: C-4 자미 synastry, 사화비성, astrology Phase C/D
+
+---
+
 ## 🚫 불변식 (건드리면 안 되는 것 — 기획안 §12)
 - 계산 엔진(`saju.ts`·eventEngine)·궁합 점수·검증 게이트 로직은 변경 금지.
+  ※ 단, **엔진 업그레이드 트랙(2026-07-10~)에 한해 사용자 지시로 해제** — ADDITIVE ONLY(새 optional 필드만,
+  잠금 테스트 `sajuPrecision`/`sajuCalculationValidation`/`golden`/`johuClassicAudit`/`sinsalClassic` 그린 유지).
+  UI/제품(재기획) 목적의 엔진 변경은 여전히 금지.
 - Evidence Gate: 스트리밍 1차 + 실패 시에만 재생성 (버퍼링 복귀 금지).
 - 쉬운 말 우선 + 전문가 근거 접힘 보존 / 공포·단정·의료·법률·투자 결론 금지.
 - 원국 스냅샷 즉시 노출 유지 (재접힘 금지).
