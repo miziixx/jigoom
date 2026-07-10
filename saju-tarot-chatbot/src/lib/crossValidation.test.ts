@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildCrossValidation } from "./crossValidation.js";
-import { computeZiweiChart } from "./ziwei.js";
+import { computeZiweiChart, computeZiweiHoroscope } from "./ziwei.js";
 import { computeSajuChart, computeLuckCycles } from "./saju.js";
 import { buildReadingUserMessage } from "../prompts/systemPrompt.js";
 import type { BirthInfo } from "../types/index.js";
@@ -9,6 +9,7 @@ const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23
 const saju = computeSajuChart(birth);
 const luck = computeLuckCycles(birth, new Date("2026-07-08T03:00:00Z"));
 const ziwei = computeZiweiChart(birth);
+const ziweiLuck = computeZiweiHoroscope(birth, new Date("2026-07-08T03:00:00Z"));
 
 describe("buildCrossValidation (사주·자미두수 교차검증)", () => {
   it("자미두수 차트가 없으면 null", () => {
@@ -41,6 +42,25 @@ describe("buildCrossValidation (사주·자미두수 교차검증)", () => {
     const strong = r.matches.filter((m) => m.level === "강일치").length;
     expect(r.agreementScore).toBe(Math.round((strong / r.matches.length) * 100));
   });
+
+  it("ziweiLuck을 주면 운한(올해) 대조 축 luckMatches를 만든다 (엔진 업그레이드 Z-4)", () => {
+    const r = buildCrossValidation(saju, ziwei, luck, "female", ziweiLuck)!;
+    expect(r.luckMatches).toBeDefined();
+    expect(r.luckMatches!.length).toBeGreaterThan(0);
+    expect(r.luckHeadline).toBeTruthy();
+    for (const m of r.luckMatches!) {
+      expect(["강일치", "부분일치", "불일치"]).toContain(m.level);
+      expect(m.summary).toContain("올해");
+    }
+  });
+
+  it("ziweiLuck을 주지 않으면 luckMatches는 미표기(하위호환)", () => {
+    const r = buildCrossValidation(saju, ziwei, luck, "female")!;
+    expect(r.luckMatches).toBeUndefined();
+    expect(r.luckHeadline).toBeUndefined();
+    // 기존 원식 matches는 그대로
+    expect(r.matches.length).toBeGreaterThan(0);
+  });
 });
 
 describe("systemPrompt 배선: 교차검증 블록", () => {
@@ -60,6 +80,14 @@ describe("systemPrompt 배선: 교차검증 블록", () => {
   it("crossValidation이 없으면 블록이 없다(자미두수 미계산 시 무해)", () => {
     const msg = buildReadingUserMessage({ type: "saju", question: "요즘 어때요?", gender: "female", sajuChart: saju, luckCycles: luck });
     expect(msg).not.toContain("[교차검증 — 사주·자미두수 — 계산됨");
+  });
+
+  it("운한 대조(luckMatches)가 있으면 프롬프트에 '올해 운한 대조' 블록이 실린다 (Z-4)", () => {
+    const cv = buildCrossValidation(saju, ziwei, luck, "female", ziweiLuck)!;
+    const msg = buildReadingUserMessage({ type: "saju", question: "올해 어때요?", gender: "female", sajuChart: saju, luckCycles: luck, crossValidation: cv });
+    expect(msg).toContain("[올해 운한 대조]");
+    // 표면 금지 안내가 함께 실린다
+    expect(msg).toContain("별 이름·궁 이름 같은 용어는 표면에 쓰지 마라");
   });
 
   it("교차검증 블록은 압축적이다(<1500자)", () => {

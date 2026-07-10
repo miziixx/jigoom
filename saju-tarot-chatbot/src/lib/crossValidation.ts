@@ -7,8 +7,8 @@ import type {
   SajuChart,
 } from "../types/index.js";
 import { buildEventForecast } from "./eventEngine.js";
-import { deriveZiweiDomainVerdicts } from "./ziweiInterpretation.js";
-import type { ZiweiChart } from "./ziwei.js";
+import { deriveZiweiDomainVerdicts, deriveZiweiLuckVerdicts } from "./ziweiInterpretation.js";
+import type { ZiweiChart, ZiweiLuck } from "./ziwei.js";
 
 /**
  * 사주 ↔ 자미두수 교차검증 (무 API·결정론).
@@ -57,6 +57,7 @@ export function buildCrossValidation(
   ziweiChart: ZiweiChart | null | undefined,
   luck?: LuckCycles,
   gender?: Gender,
+  ziweiLuck?: ZiweiLuck | null,
 ): CrossValidationReport | null {
   if (!ziweiChart) return null;
 
@@ -97,5 +98,41 @@ export function buildCrossValidation(
     headline = `사주와 자미두수가 ${clashLabels.slice(0, 2).join("·")}에서 갈립니다 — 이 축은 조심스럽게 다룹니다.`;
   else headline = "사주와 자미두수가 대체로 담담하게, 큰 충돌 없이 봅니다.";
 
-  return { headline, agreementScore, matches };
+  // ── 운한 대조 축 (Z-4): 사주 종합 흐름(forecast, 대운·세운 반영) ↔ 자미 올해(유년) 흐름 ──────────
+  let luckMatches: CrossValidationMatch[] | undefined;
+  let luckHeadline: string | undefined;
+  if (ziweiLuck?.year) {
+    const yearVerdicts = deriveZiweiLuckVerdicts(ziweiChart, { ...ziweiLuck, decade: null }); // 유년만
+    const lm: CrossValidationMatch[] = [];
+    for (const zv of yearVerdicts) {
+      const sajuDomain = sajuByDomain.get(zv.domain);
+      if (!sajuDomain) continue;
+      const sajuTone = SAJU_TONE[sajuDomain.scores.balance] ?? "보통";
+      const level = levelOf(sajuTone, zv.tone);
+      lm.push({
+        domain: zv.domain,
+        label: zv.label,
+        level,
+        sajuTone,
+        ziweiTone: zv.tone,
+        summary: `올해 ${zv.label}: ${summaryOf(zv.label, level, sajuTone)}`,
+        evidence: [`사주 흐름: ${sajuDomain.label} ${sajuTone}`, `자미 유년: ${zv.evidence}`],
+      });
+    }
+    if (lm.length > 0) {
+      luckMatches = lm;
+      const agree = lm.filter((m) => m.level === "강일치").map((m) => m.label);
+      const clash = lm.filter((m) => m.level === "불일치").map((m) => m.label);
+      luckHeadline =
+        agree.length > 0 && clash.length > 0
+          ? `올해는 ${agree.slice(0, 2).join("·")}에서 두 방식이 같은 방향, ${clash.slice(0, 2).join("·")}에서는 갈립니다.`
+          : agree.length > 0
+            ? `올해는 ${agree.slice(0, 3).join("·")}에서 두 방식이 같은 방향으로 모입니다.`
+            : clash.length > 0
+              ? `올해는 ${clash.slice(0, 2).join("·")}에서 두 방식이 갈리니 조심스럽게 봅니다.`
+              : "올해는 두 방식 모두 큰 충돌 없이 담담하게 봅니다.";
+    }
+  }
+
+  return { headline, agreementScore, matches, luckMatches, luckHeadline };
 }

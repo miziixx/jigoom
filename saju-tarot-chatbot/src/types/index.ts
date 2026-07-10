@@ -207,6 +207,13 @@ export interface CrossValidationReport {
   /** 강일치 비율 0-100 (두 방식이 같은 방향인 정도) */
   agreementScore: number;
   matches: CrossValidationMatch[];
+  /**
+   * 운한 대조 축 (엔진 업그레이드 Z-4): 사주 종합 흐름(대운·세운 반영) ↔ 자미두수 올해(유년) 흐름의
+   * 분야별 방향 대조. 자미 운한이 계산됐을 때만. 기존 matches(원식 대조)와 별도 필드로 둔다.
+   */
+  luckMatches?: CrossValidationMatch[];
+  /** 운한 대조 한 줄 요지 (luckMatches가 있을 때만) */
+  luckHeadline?: string;
 }
 
 // ── 리딩 후 피드백 ──────────

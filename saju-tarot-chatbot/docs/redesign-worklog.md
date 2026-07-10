@@ -22,10 +22,10 @@
   [`engine-upgrade-2026-07.md`](./engine-upgrade-2026-07.md), 체크리스트는 아래 "🔮 엔진 업그레이드 트랙".
   사용자가 "계산 엔진 변경 금지"를 이 트랙에 한해 해제(ADDITIVE ONLY로 진행). (참고: main에서 사주 폼·
   리딩 결과 카드의 "박스 안에 박스" 중첩 CSS 완화가 별도로 완료됨 — 커밋 `5515c69`, 이 병합에 포함.)
-- **지금 진행 중:** 엔진 업그레이드 트랙. **Track 1(사주) 전부 완료: E-0·S-1·S-2a·S-2b·S-3·S-4·S-5**
-  + **Track 2 착수: Z-1·Z-2 완료** (커밋 9개, 브랜치 `claude/fortune-reading-accuracy-update-ht4pat`,
-  725/725 그린, main 병합·푸시 완료). **다음: Z-3(자미 성계 조합 KB) → Z-4(운한 배선) → C-1(궁합 교차
-  타이밍) …** 순서는 기획안 §4.
+- **지금 진행 중:** 엔진 업그레이드 트랙. **Track 1(사주) + Track 2(자미두수) 전부 완료: E-0·S-1·
+  S-2a·S-2b·S-3·S-4·S-5·Z-1·Z-2·Z-3·Z-4** (브랜치 `claude/fortune-reading-accuracy-update-ht4pat`,
+  736/736 그린, S-5 시점까지 main 병합·푸시 완료). **다음: C-1(궁합 교차 타이밍) → C-2(용신 궁합 서술)
+  → V-1(전문가 검수 패킷) → V-2(golden 확장) → T-1/T-2(타로) → A-1(점성술) …** 순서는 기획안 §4.
 - **직전 세션이 한 일:** 엔진 업그레이드 Track 1(사주) 전부 + Track 2 착수(자미두수 운한). 상세는
   아래 "🔮 엔진 업그레이드 트랙" 체크리스트와 세션 로그 참조. 사주는 4대 고전 심화 필드를 기본 리딩
   경로에 노출→심화 판단 규칙 4종→golden 확장, 상문·조객 세운 연동, 대운 순역·용신방향·원국 상호작용
@@ -125,7 +125,10 @@
       단성 14+동궁 24=38 엔트리(통용 통설, 참고용). scorePalace가 동궁 2주성일 때 조합 gloss를
       근거에만 덧붙임(valence 불변→tone 스냅샷 불변). 완결성 audit(KB=iztro 실존 집합) + 해석 테스트,
       `docs/validation/ziwei-combo-table.md` 검수 덤프. 733 그린.
-- [ ] Z-4. 운한 교차검증·프롬프트 배선
+- [x] Z-4. 운한 교차검증·프롬프트·facts 배선. `CrossValidationReport.luckMatches`(세운↔유년 대조,
+      기존 matches 불변), `buildCrossValidation`에 `ziweiLuck` 인자 추가, formatCrossValidation에
+      '올해 운한 대조' 블록(표면 금지 안내), useReadingStore에서 `computeZiweiHoroscope` 호출·전달.
+      테스트 4개, 736 그린. **Track 2(자미두수) 완료.**
 - [ ] C-1. 궁합 교차 타이밍 엔진 (점수 불변)
 - [ ] C-2. 통관용신·조후 궁합 서술 반영 🧠
 - [ ] V-1. 전문가 검수 패킷 문서 🧠

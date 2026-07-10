@@ -533,6 +533,14 @@ function formatCrossValidation(report: CrossValidationReport): string {
     lines.push(`- ${m.label} [${m.level}] 사주 ${m.sajuTone} / 자미두수 ${m.ziweiTone} — ${m.summary}`);
   }
   lines.push(`(근거) ${report.matches.flatMap((m) => m.evidence).join("; ")}`);
+  // 운한 대조 축 (Z-4): 올해(유년) 흐름 vs 사주 종합 흐름. '올해의 흐름' 섹션에서 확신 조절 근거로.
+  if (report.luckMatches && report.luckMatches.length > 0) {
+    lines.push(`\n[올해 운한 대조] ${report.luckHeadline ?? ""}`);
+    for (const m of report.luckMatches) {
+      lines.push(`- ${m.label} [${m.level}] 사주 ${m.sajuTone} / 자미 유년 ${m.ziweiTone} — ${m.summary}`);
+    }
+    lines.push("  → '올해의 흐름' 섹션에서만 이 운한 대조를 확신 조절 근거로 써라. 강일치는 더 또렷하게, 불일치는 '방식에 따라 갈릴 수 있다'고 조심스럽게. 별 이름·궁 이름 같은 용어는 표면에 쓰지 마라.");
+  }
   return lines.join("\n");
 }
 

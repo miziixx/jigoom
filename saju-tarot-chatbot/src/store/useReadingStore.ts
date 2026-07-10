@@ -215,11 +215,14 @@ export const useReadingStore = create<ReadingStore>((set, get) => ({
     let crossValidation: CrossValidationReport | undefined;
     if (birthInfo && sajuChart && (type === "saju" || type === "combo")) {
       try {
-        const [{ computeZiweiChart }, { buildCrossValidation }] = await Promise.all([
+        const [{ computeZiweiChart, computeZiweiHoroscope }, { buildCrossValidation }] = await Promise.all([
           import("../lib/ziwei"),
           import("../lib/crossValidation"),
         ]);
-        crossValidation = buildCrossValidation(sajuChart, computeZiweiChart(birthInfo), luckCycles, birthInfo.gender) ?? undefined;
+        // 운한(대한·유년)도 함께 계산해 올해 흐름 교차검증 축(Z-4)을 만든다. 실패는 조용히 생략.
+        const ziweiChart = computeZiweiChart(birthInfo);
+        const ziweiLuck = ziweiChart ? computeZiweiHoroscope(birthInfo) : null;
+        crossValidation = buildCrossValidation(sajuChart, ziweiChart, luckCycles, birthInfo.gender, ziweiLuck) ?? undefined;
       } catch {
         crossValidation = undefined;
       }
