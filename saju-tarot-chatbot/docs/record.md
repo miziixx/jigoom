@@ -2000,3 +2000,20 @@ buildPersonDeepEvidence 실제 출력 대조 — taxonomy가 상대 원국별로
 
 **주의/남은 것:** 라우터가 비보안 자유 텍스트마다 haiku 1콜을 추가(지연·비용 소폭↑, `BOT_SMART_ROUTER=0`로 끔).
 실제 텔레그램 왕복 육안 검증은 봇 토큰/ANTHROPIC_API_KEY 있는 환경에서 필요. 타로는 생일 불필요(사주 등록과 무관).
+
+### 후속 수정 (같은 날) — "기억해?"(질문)를 저장 명령으로 오인하던 버그
+
+사용자 스크린샷: `"내 사주기억해?"`(기억하고 있냐는 질문)에 봇이 `기억해뒀어요 ✅ (userPreference)
+"기억해달라고 명시적으로 요청한 내용이 없음"`이라고 답함 — greedy 키워드 `/기억해\s*(줘|둬|주세요)?/`가
+어미 없는 "기억해?"까지 저장 명령으로 매치한 게 원인.
+
+- `intentDetector.ts`: 기억 규칙을 **질문/명령으로 분리**. memoryLookup(조회 질문: `기억해?`·`기억하고 있어?`
+  등, 물음표/‘있어·나·니’ 요구)을 memorySave보다 먼저 검사하고, memorySave는 `기억해줘/둬/놔`·`저장해줘`처럼
+  **명시적 저장 명령**만 매치(어미 없는 `기억해?` 제외).
+- **파괴적 동작만 키워드로 선처리**: `smartRouter`의 `RoutableIntent`에 memorySave·memoryLookup·privacyCheck를
+  추가해 라우터가 맥락으로 판단(질문 vs 명령 구분)하고, 되돌릴 수 없는 memoryDelete·resetContext만
+  messageHandler가 명시적 키워드로 먼저 확정. 라우터 프롬프트에 "‘기억해?’는 질문이지 저장 명령이 아니다"를 명시.
+- `messageHandler.ts`: 라우팅 후 privacyCheck·memoryLookup·memorySave를 route.intent로 디스패치.
+
+검증: `"내 사주 기억해?"·"기억해?"·"기억하고 있어?"`→memoryLookup, `"기억해줘"·"기억해둬"`→memorySave 확인.
+bot 테스트 95 통과, 전체 build 클린.

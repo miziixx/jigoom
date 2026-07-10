@@ -11,6 +11,10 @@ import type { ChatTurn } from "./storeTypes.js";
 import type { DetectedIntent } from "./intentDetector.js";
 import { logError } from "./logSafe.js";
 
+// 라우터가 반환할 수 있는 의도. 파괴적 동작(memoryDelete=기억 삭제, resetContext=대화 초기화)은
+// 여기 포함하지 않는다 — 그건 messageHandler가 명시적 키워드로 먼저 확정하고, LLM 오판으로
+// 데이터가 지워지지 않게 한다. 반면 저장(추가)·조회·보안 확인은 되돌릴 수 있거나 읽기 전용이라
+// 맥락을 봐야 정확한 만큼 라우터가 판단한다("기억해?"=질문 vs "기억해줘"=명령 구분 등).
 export type RoutableIntent =
   | "sajuReading"
   | "astrologyReading"
@@ -21,6 +25,9 @@ export type RoutableIntent =
   | "planning"
   | "writing"
   | "decision"
+  | "memorySave"
+  | "memoryLookup"
+  | "privacyCheck"
   | "generalChat";
 
 const ROUTABLE: readonly RoutableIntent[] = [
@@ -33,6 +40,9 @@ const ROUTABLE: readonly RoutableIntent[] = [
   "planning",
   "writing",
   "decision",
+  "memorySave",
+  "memoryLookup",
+  "privacyCheck",
   "generalChat",
 ];
 
@@ -88,7 +98,7 @@ function getClient(): Anthropic {
 const SYSTEM = `너는 사주·타로·점성술·개인비서 챗봇의 "의도 라우터"다. 사용자의 마지막 메시지가 지금 무엇을 원하는지, 최근 대화 맥락까지 보고 정확히 하나로 분류한다. 설명 없이 JSON만 출력한다.
 
 가능한 intent (반드시 이 중 하나):
-- sajuReading: 사주/명리(신강신약·격국·오행·대운·일주 등) 또는 "내 사주 성격/재물/연애" 같은 개인 사주 해석
+- sajuReading: 사주/명리(신강신약·격국·오행·대운·일주 등) 또는 "내 사주 성격/재물/연애" 같은 개인 사주 해석. "내 사주 등록됐어?/기억해?/갖고 있어?"처럼 사주 데이터 보유·등록 여부를 묻는 것도 여기.
 - astrologyReading: 서양·베딕 점성술(별자리·행성·하우스·트랜짓·새턴리턴 등)
 - tarotReading: 타로 카드로 봐달라거나, 이미 뽑은 카드에 대한 질문
 - combinedReading: 사주와 점성술을 함께 보자는 명시적 요청
@@ -97,12 +107,16 @@ const SYSTEM = `너는 사주·타로·점성술·개인비서 챗봇의 "의도
 - planning: 기획/개발/구조/MVP/작업지시서
 - writing: 글 다듬기/이메일/카피/"AI티 빼줘"
 - decision: "뭐부터 할까", "이거 밀어붙여도 돼?" 같은 선택/우선순위 판단
+- memorySave: 사용자가 어떤 내용을 "기억해둬/저장해줘/메모해줘"라고 *저장을 명령*할 때만. 되묻지 말고 저장.
+- memoryLookup: 봇이 뭘 기억하고 있는지 *묻는 질문*("뭐 기억해?", "기억하고 있는 거 보여줘").
+- privacyCheck: 개인정보·보안 처리 방식을 묻는 질문("내 데이터 어떻게 보관돼?", "로그 남겨?")
 - generalChat: 위 어디에도 안 맞는 잡담·인사·일반 질문
 
 핵심 규칙:
 - 맥락을 봐라. 직전 대화가 타로였고 사용자가 "그럼 연애는?", "한 장 더", "그 카드 무슨 뜻?"이라고 하면 tarotReading이다. 직전이 사주였고 "그럼 돈은?"이면 sajuReading이다.
 - 짧은 후속 질문("그럼?", "왜?", "더 자세히")은 직전 주제를 이어간다.
-- 애매하면 keywordHint를 존중해라. 확신이 없으면 keywordHint를 그대로 써라.
+- **질문과 명령을 절대 헷갈리지 마라.** "기억해?", "내 사주 기억해?", "기억하고 있어?"는 *저장 명령이 아니라 질문*이다 — 절대 memorySave로 분류하지 마라. 사주 데이터를 갖고 있냐는 뜻이면 sajuReading, 저장된 메모가 뭐냐는 뜻이면 memoryLookup이다. memorySave는 "이거 기억해둬"처럼 새로 저장하라는 *명령*일 때만.
+- 애매하면 keywordHint를 존중해라. 확신이 없으면 keywordHint를 그대로 써라. (단, keywordHint가 memorySave인데 메시지가 물음표로 끝나는 질문이면 저장이 아니다.)
 - tarot일 때만: newDraw(새 카드를 뽑아야 하는가), tarotFollowUp(이미 뽑은 카드 얘기인가)을 정한다. 아직 뽑은 카드가 없으면(hasTarot=false) tarot이면 newDraw=true. "다시/한 장 더/새로 뽑아"는 newDraw=true. 이미 뽑은 카드를 묻기만 하면 tarotFollowUp=true, newDraw=false. tarot이 아니면 둘 다 false.
 
 출력 형식(JSON, 이것만):

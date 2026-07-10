@@ -31,9 +31,15 @@ describe("fallbackRoute", () => {
     expect(fallbackRoute(baseInput({ keywordHint: "sajuReading" })).intent).toBe("sajuReading");
   });
 
-  it("보안/기억 계열 힌트는 방어적으로 generalChat으로 좁힌다", () => {
-    expect(fallbackRoute(baseInput({ keywordHint: "memorySave" })).intent).toBe("generalChat");
-    expect(fallbackRoute(baseInput({ keywordHint: "privacyCheck" })).intent).toBe("generalChat");
+  it("파괴적(삭제/초기화) 힌트만 방어적으로 generalChat으로 좁힌다", () => {
+    expect(fallbackRoute(baseInput({ keywordHint: "memoryDelete" })).intent).toBe("generalChat");
+    expect(fallbackRoute(baseInput({ keywordHint: "resetContext" })).intent).toBe("generalChat");
+  });
+
+  it("저장/조회/보안 힌트는 라우터가 판단하므로 폴백에서도 그대로 통과한다", () => {
+    expect(fallbackRoute(baseInput({ keywordHint: "memorySave" })).intent).toBe("memorySave");
+    expect(fallbackRoute(baseInput({ keywordHint: "memoryLookup" })).intent).toBe("memoryLookup");
+    expect(fallbackRoute(baseInput({ keywordHint: "privacyCheck" })).intent).toBe("privacyCheck");
   });
 
   it("타로 힌트면 뽑기 플래그를 규칙으로 채운다", () => {

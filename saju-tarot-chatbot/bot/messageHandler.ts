@@ -514,13 +514,11 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         "제가 다음 메시지로 답하면 그때 채점하고, 틀렸거나 애매하면 원리를 다시 짚어 설명해주세요.";
     } else {
       // ── 자연어 의도 분류. 슬래시 명령이 아닌 자유 텍스트는 전부 여기를 거친다 ──
-      // 1단계: 보안·기억 계열은 100% 결정론적 키워드로만 처리한다(LLM 판단에 맡기지 않는다).
+      // 1단계: *파괴적* 동작(기억 삭제·대화 초기화)만 명시적 키워드로 먼저 확정한다.
+      //   되돌릴 수 없는 데이터 삭제는 LLM 오판에 맡기지 않는다. 저장(추가)·조회·보안확인은
+      //   되돌릴 수 있거나 읽기 전용이라, 질문/명령 구분이 중요한 만큼 2단계 라우터가 맥락으로 판단한다.
       const keywordIntent = detectIntent(text);
 
-      if (keywordIntent === "privacyCheck") {
-        await sendMessage(chatId, PRIVACY_TEXT);
-        return;
-      }
       if (keywordIntent === "resetContext") {
         await store.clearHistory(chatId);
         await sendMessage(chatId, "대화 기록을 초기화했어요. 사주 등록은 유지됩니다.");
@@ -532,17 +530,37 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         await sendMessage(chatId, removed > 0 ? `기억 ${removed}건 지웠어요 ✅` : "지울 만한 저장된 기억이 없었어요.");
         return;
       }
-      if (keywordIntent === "memoryLookup") {
+
+      // 2단계: 나머지는 맥락 인지 라우터로 의도를 확정한다. 최근 대화 + 등록 상태를 함께 보고
+      // "그럼 연애는?", "한 장 더", "아까 그 카드", "기억해?(질문)" vs "기억해둬(명령)"까지 자연어로 이해한다.
+      const route = await routeMessage({
+        text,
+        history: user.history,
+        keywordHint: keywordIntent,
+        hasSaju: Boolean(source),
+        hasBirth: Boolean(user.birthInfo),
+        hasTarot: Boolean(user.lastTarot),
+      });
+      const intent = route.intent;
+
+      // ── 보안 정책 확인 ──
+      if (intent === "privacyCheck") {
+        await sendMessage(chatId, PRIVACY_TEXT);
+        return;
+      }
+      // ── 기억 조회(무엇을 기억하고 있는지 묻는 질문) ──
+      if (intent === "memoryLookup") {
         const memories = user.memories ?? [];
         if (memories.length === 0) {
-          await sendMessage(chatId, "아직 기억해둔 게 없어요. \"기억해줘\"라고 말하면 그때부터 요약해서 기억할게요.");
+          await sendMessage(chatId, "아직 따로 기억해둔 메모는 없어요. \"이거 기억해둬\"라고 말하면 그때부터 요약해서 기억할게요.");
           return;
         }
         const lines = memories.slice(-10).map((m) => `• [${m.category}] ${m.summary}`);
         await sendMessage(chatId, `기억하고 있는 것들:\n${lines.join("\n")}`);
         return;
       }
-      if (keywordIntent === "memorySave") {
+      // ── 기억 저장(저장해달라는 명령일 때만) ──
+      if (intent === "memorySave") {
         const typing = setInterval(() => void sendTyping(chatId), 5000);
         void sendTyping(chatId);
         try {
@@ -554,18 +572,6 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         }
         return;
       }
-
-      // 2단계: 나머지는 맥락 인지 라우터로 의도를 확정한다. 최근 대화 + 등록 상태를 함께 보고
-      // "그럼 연애는?", "한 장 더", "아까 그 카드" 같은 맥락 의존 표현까지 자연어로 이해한다.
-      const route = await routeMessage({
-        text,
-        history: user.history,
-        keywordHint: keywordIntent,
-        hasSaju: Boolean(source),
-        hasBirth: Boolean(user.birthInfo),
-        hasTarot: Boolean(user.lastTarot),
-      });
-      const intent = route.intent;
 
       // ── 타로 리딩 (사주 등록과 무관) ──
       if (intent === "tarotReading") {

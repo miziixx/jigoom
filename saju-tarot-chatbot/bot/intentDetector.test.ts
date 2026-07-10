@@ -82,6 +82,16 @@ describe("detectIntent", () => {
     expect(detectIntent("뭐 기억하고 있어?")).toBe("memoryLookup");
   });
 
+  it("'기억해?'처럼 묻는 질문은 저장 명령(memorySave)으로 오인하지 않는다", () => {
+    // 스크린샷 버그: "내 사주 기억해?"(질문)가 memorySave로 오분류돼 엉뚱하게 저장되던 문제
+    expect(detectIntent("내 사주 기억해?")).toBe("memoryLookup");
+    expect(detectIntent("기억해?")).toBe("memoryLookup");
+    expect(detectIntent("내 사주 기억하고 있어?")).toBe("memoryLookup");
+    // 반대로 명시적 저장 명령은 그대로 memorySave
+    expect(detectIntent("이거 기억해줘")).toBe("memorySave");
+    expect(detectIntent("기억해둬")).toBe("memorySave");
+  });
+
   it("보안/초기화 트리거를 인식한다", () => {
     expect(detectIntent("보안 상태 알려줘")).toBe("privacyCheck");
     expect(detectIntent("대화 초기화해줘")).toBe("resetContext");
