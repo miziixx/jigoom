@@ -142,7 +142,7 @@ describe("정적 리딩 품질 감사 — 토픽 심화 domain 제한", () => {
     expect(msg).toContain(`[토픽 심화 — ${label}`);
     expect(msg).toContain(`domain이 "${topic}"인 항목만 근거로 쓴다`);
     expect(msg).toContain("다른 domain");
-    expect(msg).toContain("새 판단을 만들지 않는다");
+    expect(msg).toContain("억지로 지어내지 마라");
     expect(msg).toContain("# 한 줄 결론\n# 지금 흐름\n# 조심할 것\n# 시기\n# 행동");
     expect(msg).not.toContain("평생사주 기본 리포트");
   });
