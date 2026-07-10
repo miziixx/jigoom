@@ -21,7 +21,7 @@ import { buildPsychLayer, formatPsychLayer } from "../lib/psychLayer.js";
 import { buildCapacityAxes, formatCapacityAxes } from "../lib/capacityAxis.js";
 import { buildDeliberation, formatDeliberation } from "../lib/deliberation.js";
 import { buildSelfDeepEvidence } from "../lib/selfDeep.js";
-import { describeCourtPersona, describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
+import { describeCourtPersona, describeElementalDignities, describeMinorDepth, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 import { detectCardCombos } from "../data/tarotCombos.js";
 
 /**
@@ -570,6 +570,11 @@ function formatTarotCards(cards: DrawnTarotCard[]): string {
           `  코트 관계 모습: ${court.relationship}`,
         );
         if (c.reversed) lines.push(`  역방향 왜곡: ${court.reversedDistortion}`);
+      }
+      const depth = describeMinorDepth(c.card);
+      if (depth) {
+        // T-3 마이너 심화: 장면·그늘·조언(참고용). 마이너 56장 전용.
+        lines.push(`  현실 장면: ${depth.scene}`, `  그늘/조심: ${depth.shadow}`, `  조언: ${depth.advice}`);
       }
       return lines.join("\n");
     })

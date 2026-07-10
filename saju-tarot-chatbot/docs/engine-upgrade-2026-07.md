@@ -53,7 +53,7 @@
 ### Track 4 — 타로
 - [x] T-1. 🧠 `COURT_PERSONA` 16종(인물상·성숙단계·관계 모습·역방향 왜곡상, 웨이트 전통 통설). `src/data/tarotCourtPersona.ts`(4슈트×4계급, courtKey 조회) + `describeCourtPersona`(tarotSymbolism). `formatTarotCards` 프롬프트에 코트 블록(역방향이면 왜곡상) + TarotFactsPanel 인물상 라인. 완결성 audit(KB=덱 코트 16장) + 서술 안전성(공포·단정 금지, Page=시작/King=완성) 테스트 7개, `docs/validation/tarot-court-persona-table.md` 검수 덤프. 점수·계산 불변. 762 그린.
 - [x] T-2. 🧠 `src/data/tarotCombos.ts` 51조합(카드 id 쌍·label·signal, 웨이트 통설·참고용) + `detectCardCombos()`(뽑힌 카드 쌍 감지, 정·역 무관) → `formatTarotDiagnostics`에 "카드 조합 신호" 라인 + TarotFactsPanel UI. 완결성 audit(실존 카드 0~77·오름차순·중복 0·감지기 정확성)+서술 안전성 테스트 9개, `docs/validation/tarot-combos-table.md` 검수 덤프. 점수·계산 불변. 771 그린.
-- [ ] T-3a. 🧠 마이너 심화 1/2: 완드·컵 28장 `depth?: { scene; shadow; advice }`.
+- [x] T-3a. 🧠 마이너 심화 1/2: 완드·컵 28장 `depth: { scene; shadow; advice }`. `src/data/tarotMinorDepth.ts`(MINOR_DEPTH id 22~49) + `describeMinorDepth`(tarotSymbolism) → `formatTarotCards` 프롬프트에 현실 장면·그늘·조언 라인 + TarotFactsPanel 장면 라인. 공통 audit(비지 않음·공포금지·메이저 null)+완드컵 28장 매핑 테스트. 점수·계산 불변. 780 그린.
 - [ ] T-3b. 🧠 마이너 심화 2/2: 소드·펜타클 28장. 56장 완결성 테스트.
 
 ### Track 5 — 검증·캘리브레이션

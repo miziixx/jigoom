@@ -1,5 +1,6 @@
 import type { DrawnTarotCard, TarotCardDefinition } from "../types";
 import { COURT_PERSONA, courtKey, type CourtPersonaEntry, type CourtRank, type CourtSuit } from "../data/tarotCourtPersona";
+import { minorDepthOf, type MinorDepth } from "../data/tarotMinorDepth";
 
 export interface TarotSymbolism {
   archetype: string;
@@ -123,6 +124,12 @@ export function describeCourtPersona(card: TarotCardDefinition): CourtPersonaEnt
   const rank = rankOf(card);
   if (!COURT_SUITS.has(suit) || !COURT_RANKS.has(rank)) return null;
   return COURT_PERSONA[courtKey(suit as CourtSuit, rank as CourtRank)] ?? null;
+}
+
+/** 마이너 카드면 T-3 심화(장면·그늘·조언), 아니면 null. */
+export function describeMinorDepth(card: TarotCardDefinition): MinorDepth | null {
+  if (card.arcana !== "minor") return null;
+  return minorDepthOf(card.id) ?? null;
 }
 
 export function describeTarotSymbolism(card: TarotCardDefinition): TarotSymbolism {

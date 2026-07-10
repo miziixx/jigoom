@@ -1,5 +1,6 @@
 import {
   describeCourtPersona,
+  describeMinorDepth,
   describeTarotSymbolism,
   elementalRelation,
   tarotElementOf,
@@ -128,6 +129,7 @@ export default function TarotFactsPanel({ cards }: Props) {
             const symbolism = describeTarotSymbolism(c.card);
             const element = tarotElementOf(c.card);
             const court = describeCourtPersona(c.card);
+            const depth = describeMinorDepth(c.card);
             return (
               <article className="tarot-evidence-card" key={`${c.position}-${c.card.id}`}>
                 <TarotCardVisual card={c.card} reversed={c.reversed} />
@@ -146,6 +148,7 @@ export default function TarotFactsPanel({ cards }: Props) {
                     {c.reversed ? ` (역방향: ${court.reversedDistortion})` : ""}
                   </small>
                 )}
+                {depth && <small className="tarot-evidence-card__court">장면: {depth.scene}</small>}
               </article>
             );
           })}
