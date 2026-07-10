@@ -119,4 +119,102 @@ const SPECS: CaseSpec[] = [
   { id: "g21-f1992-relationship", description: "여 1992 축시생 · 관계 focus", birth: { calendarType: "solar", year: 1992, month: 6, day: 15, hour: 2, minute: 0, gender: "female" }, focus: "relationship", question: "지금 만나는 사람과 잘 맞을까요", money: "risk", startup: "notrec", maxContradictions: 1, minDomainCoverage: 6 },
 ];
 
-export const goldenCases: GoldenCase[] = SPECS.map(mk);
+/**
+ * 4대 고전 심화 판단 케이스 (엔진 업그레이드 S-2b, docs/engine-upgrade-2026-07.md).
+ * STRUCTURE_SOLID_SUPPORT / STRUCTURE_BROKEN_CAUTION / CLIMATE_BALANCE_NEEDED / TENGOD_SKEW_TRAIT가
+ * "나와야 할 원국에서 나오고, 나오면 안 되는 원국에서는 안 나오는지"를 회귀로 고정한다.
+ * 기대값은 2026-07-10 실제 엔진 출력 프로브에서 도출 (허용범위 원칙은 기존과 동일).
+ */
+interface DeepCaseSpec {
+  id: string;
+  description: string;
+  birth: BirthInfo;
+  requiredCodes: JudgmentCode[];
+  forbiddenCodes: JudgmentCode[];
+  requiredDomains: GoldenExpectation["requiredDomains"];
+  extraEvidenceIds: string[];
+  maxContradictions: number;
+}
+
+function mkDeep(spec: DeepCaseSpec): GoldenCase {
+  return {
+    id: spec.id,
+    description: spec.description,
+    input: {
+      birth: spec.birth,
+      referenceDate: REF,
+      type: "saju",
+      context: {},
+    },
+    expect: {
+      requiredJudgmentCodes: [...CORE_CODES, ...spec.requiredCodes],
+      forbiddenJudgmentCodes: spec.forbiddenCodes,
+      requiredDomains: spec.requiredDomains,
+      minDomainCoverage: 6,
+      structurallyValid: true,
+      expectNoForbiddenClaimViolation: true,
+      expectGateWouldNotForceRewrite: true,
+      overallConfidence: { min: 55, max: 88 },
+      allowedContradictionIds: KNOWN_CONTRADICTIONS,
+      maxContradictions: spec.maxContradictions,
+      requiredEvidenceIds: [...CORE_EVIDENCE, ...spec.extraEvidenceIds],
+    },
+  };
+}
+
+const DEEP_SPECS: DeepCaseSpec[] = [
+  {
+    id: "g22-m1972-broken",
+    description: "남 1972 묘시생 · 탐재괴인 파격(career) + 조후 미충족 · solid/skew 금지",
+    birth: { calendarType: "solar", year: 1972, month: 1, day: 30, hour: 6, minute: 0, gender: "male" },
+    requiredCodes: ["MONEY_RISK_MEDIUM", "STRUCTURE_BROKEN_CAUTION", "CLIMATE_BALANCE_NEEDED"],
+    forbiddenCodes: ["STRUCTURE_SOLID_SUPPORT", "TENGOD_SKEW_TRAIT", "MONEY_OPPORTUNITY"],
+    requiredDomains: ["career", "move", "family", "health"],
+    extraEvidenceIds: ["chart.gyeokguk.classic", "chart.climate.classic"],
+    maxContradictions: 1,
+  },
+  {
+    id: "g23-f1993-skew",
+    description: "여 1993 유시생 · 종강격 solid + 십성 편중(식상·재성 공백, 60% 점유) + 조후 미충족",
+    birth: { calendarType: "solar", year: 1993, month: 9, day: 28, hour: 18, minute: 0, gender: "female" },
+    requiredCodes: ["STRUCTURE_SOLID_SUPPORT", "CLIMATE_BALANCE_NEEDED", "TENGOD_SKEW_TRAIT"],
+    forbiddenCodes: ["STRUCTURE_BROKEN_CAUTION"],
+    requiredDomains: ["career", "move", "family", "personality"],
+    extraEvidenceIds: ["chart.gyeokguk.classic", "chart.tengods.profile", "chart.climate.classic"],
+    maxContradictions: 1,
+  },
+  {
+    id: "g24-f1995-solid",
+    description: "여 1995 신시생 · 관인상생 성격 패턴 solid만 · 조후 충족이라 climate 금지",
+    birth: { calendarType: "solar", year: 1995, month: 3, day: 17, hour: 16, minute: 0, gender: "female" },
+    requiredCodes: ["STRUCTURE_SOLID_SUPPORT", "STARTUP_TEST_FIRST"],
+    forbiddenCodes: ["STRUCTURE_BROKEN_CAUTION", "CLIMATE_BALANCE_NEEDED", "TENGOD_SKEW_TRAIT"],
+    requiredDomains: ["career", "move", "family", "personality"],
+    extraEvidenceIds: ["chart.gyeokguk.classic"],
+    maxContradictions: 1,
+  },
+  {
+    id: "g25-f1996-climate",
+    description: "여 1996 해시생 · 조후 미충족만 · est=성격이어도 간이 성패 파격 경향이라 solid 금지(층위 모순 회피)",
+    birth: { calendarType: "solar", year: 1996, month: 7, day: 15, hour: 22, minute: 0, gender: "female" },
+    requiredCodes: ["CLIMATE_BALANCE_NEEDED"],
+    forbiddenCodes: ["STRUCTURE_SOLID_SUPPORT", "STRUCTURE_BROKEN_CAUTION", "TENGOD_SKEW_TRAIT"],
+    requiredDomains: ["career", "move", "family", "health"],
+    extraEvidenceIds: ["chart.climate.classic"],
+    maxContradictions: 1,
+  },
+  {
+    // g02와 같은 원국 — 심화 판단이 "하나도 안 나와야" 하는 네거티브 컨트롤.
+    // (est=성격이지만 간이 성패 파격 경향 + 패턴/종격 없음, 조후 충족, 십성 고른 분포)
+    id: "g26-f1990-nodeep",
+    description: "여 1990 진시생(g02 동일 원국) · 심화 판단 4종 전부 미발동 — 변별력 네거티브 컨트롤",
+    birth: { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" },
+    requiredCodes: ["MONEY_RISK_MEDIUM"],
+    forbiddenCodes: ["STRUCTURE_SOLID_SUPPORT", "STRUCTURE_BROKEN_CAUTION", "CLIMATE_BALANCE_NEEDED", "TENGOD_SKEW_TRAIT"],
+    requiredDomains: ["career", "move", "family"],
+    extraEvidenceIds: [],
+    maxContradictions: 1,
+  },
+];
+
+export const goldenCases: GoldenCase[] = [...SPECS.map(mk), ...DEEP_SPECS.map(mkDeep)];

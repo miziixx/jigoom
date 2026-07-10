@@ -75,5 +75,12 @@ describe("Golden Test Cases — 리딩 엔진 회귀", () => {
       const r = checkGoldenCase({ ...good, expect: { requiredEvidenceIds: ["chart.does.not.exist"] } });
       expect(r.ok).toBe(false);
     });
+
+    it("실제로 발동하는 심화 판단(파격)을 금지하면 실패한다 — S-2 심화 케이스도 공허하지 않음", () => {
+      const broken = goldenCases.find((c) => c.id === "g22-m1972-broken");
+      expect(broken).toBeDefined();
+      const r = checkGoldenCase({ ...broken!, expect: { forbiddenJudgmentCodes: ["STRUCTURE_BROKEN_CAUTION"] } });
+      expect(r.ok).toBe(false);
+    });
   });
 });
