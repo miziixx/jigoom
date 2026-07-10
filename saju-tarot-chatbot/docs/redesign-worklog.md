@@ -22,19 +22,18 @@
   [`engine-upgrade-2026-07.md`](./engine-upgrade-2026-07.md), 체크리스트는 아래 "🔮 엔진 업그레이드 트랙".
   사용자가 "계산 엔진 변경 금지"를 이 트랙에 한해 해제(ADDITIVE ONLY로 진행). (참고: main에서 사주 폼·
   리딩 결과 카드의 "박스 안에 박스" 중첩 CSS 완화가 별도로 완료됨 — 커밋 `5515c69`, 이 병합에 포함.)
-- **지금 진행 중:** 엔진 업그레이드 트랙. **Track 1(사주)·2(자미)·3(궁합)·검증(V-1·V-2) 완료 + Track 4(타로)
-  T-1·T-2 완료: …·C-2·V-1·V-2·T-1·T-2** (작업 브랜치 `claude/fortune-reading-engine-upgrade-ik50ji` —
-  main·ht4pat 동일 지점에서 이어받아 T-1까지 main 병합·푸시 완료, T-2는 브랜치 커밋 후 main 예정, 771/771
-  그린). **다음: A-1(점성술 Phase A) → T-3a/b(마이너 56장 심화) …** 순서는 기획안 §4. (C-3 궁합·V-3 rule
-  weight 캘리브레이션은 잠금 예외라 피드백 후 보류.)
-- **직전 세션이 한 일:** …·T-1·T-2. T-2: 타로 카드 조합 KB `src/data/tarotCombos.ts` 51조합(카드 id 쌍→조합
-  신호, 웨이트 통설·참고용) + `detectCardCombos()`(뽑힌 카드 쌍 감지, 정·역 무관), `formatTarotDiagnostics`에
-  '카드 조합 신호' 라인 + TarotFactsPanel UI. 완결성 audit(실존 카드 0~77·중복 0·감지기 정확성)+서술 안전성
-  테스트 9, 검수 덤프 `docs/validation/tarot-combos-table.md`. T-1은 코트 페르소나 16종. 점수·계산 불변. 771 그린.
-- **다음에 할 일:** A-1(점성술 Phase A — `astrology_upgrade_plan.md` Phase A만 편입: 전체 프로파일 evidence
-  전달 + 행성×별자리/하우스/각도/나크샤트라 gloss KB, 🧠)부터. 새 KB이므로 완결성 audit + `docs/validation/`
-  검수 덤프 동시 산출 필수(§6). 먼저 `astrology_upgrade_plan.md`와 기존 점성술 코드 구조 확인 필요.
-  재기획(§11) 가격 노출은 **사용자 지시로 스코프 제외**(다시 묻지 말 것).
+- **지금 진행 중:** 엔진 업그레이드 트랙. **Track 1~4 + 검증(V-1·V-2) + 점성술(A-1) 완료: …·T-1·T-2·A-1.**
+  남은 항목은 **T-3a/b(타로 마이너 56장 심화)** 뿐(그 뒤 잠금 예외 C-3·V-3은 피드백 후 보류). (작업 브랜치
+  `claude/fortune-reading-engine-upgrade-ik50ji` — main·ht4pat 동일 지점에서 이어받아 T-2까지 main 병합·푸시
+  완료, A-1은 브랜치 커밋 후 main 예정, 776/776 그린). 순서는 기획안 §4.
+- **직전 세션이 한 일:** …·T-2·A-1. A-1(점성술 Phase A): 전체 프로파일 evidence 전달·gloss KB는 봇 경로에
+  기구현 확인(`buildAstrologyEvidenceText`+`astrologyInterpretation.ts`), 추가로 ① `placementHint`에 고전 품위
+  인라인 결합(도미사일/폴 등을 배치 힌트에 바로), ② KB↔엔진 교차검증 audit(NAKSHATRA_GLOSS=엔진 NAKSHATRAS
+  27·HOUSE_THEME 1~12·DIGNITY 5·모든 산출 행성 role), ③ 검수 덤프 `docs/validation/astrology-gloss-kb.md`.
+  C/D(외행성 앵글·트랜짓·나밤샤·차트휠 viz)는 astrology_upgrade_plan 문서로 복귀. 점수·계산 불변. 776 그린.
+- **다음에 할 일:** T-3a(타로 마이너 심화 1/2 — 완드·컵 28장 `depth?: { scene; shadow; advice }`, 🧠)부터.
+  T-3b(소드·펜타클 28장 + 56장 완결성 테스트). 새 필드이므로 완결성 audit + 필요시 검수 덤프. 기존 tarotDeck·
+  tarotSymbolism 구조 위에 마이너 카드별 심화 필드를 얹는 방식 검토. 재기획(§11) 가격 노출은 **스코프 제외**.
   **누적 미해결(API 키 필요):** A-2 토픽 심화 5종·B-1 평생사주 밀도·B-2 상대 해부 밀도·이번 세션의
   후속 질문 채팅 — 전부 프롬프트 텍스트/파이프라인은 테스트로 검증됐지만, 실제 Haiku/Sonnet 생성물을
   육안으로 본 적은 없다(`ANTHROPIC_API_KEY`가 이 환경에 없음). API 키 있는 환경에서
@@ -155,7 +154,10 @@
       + `detectCardCombos()`(정·역 무관 쌍 감지), `formatTarotDiagnostics` '카드 조합 신호' 라인 + TarotFactsPanel
       UI 배선. 완결성 audit(실존 카드·중복 0·감지기 정확성)+서술 안전성 테스트 9, `docs/validation/tarot-combos-table.md`
       검수 덤프. 점수·계산 불변. 771 그린.
-- [ ] A-1. 점성술 Phase A (기존 astrology_upgrade_plan 편입) 🧠
+- [x] A-1. 점성술 Phase A (기존 astrology_upgrade_plan 편입) 🧠. 전체 프로파일 evidence 전달·gloss KB는 봇
+      경로에 기구현(`buildAstrologyEvidenceText`+`astrologyInterpretation.ts`). A-1 추가: 고전 품위 인라인 결합
+      (`placementHint`), KB↔엔진 교차검증 audit(NAKSHATRA=엔진 27·하우스 1~12·품위 5·모든 산출 행성 role),
+      `docs/validation/astrology-gloss-kb.md` 검수 덤프. C/D는 그 문서 복귀. 점수·계산 불변. 776 그린.
 - [ ] T-3a/b. 마이너 56장 개별 심화 🧠
 - [ ] V-3. rule weight 캘리브레이션 (잠금 예외 ②, 피드백 후)
 - [ ] C-3. 궁합 점수 캘리브레이션 (잠금 예외 ②, 피드백 후)
@@ -180,6 +182,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-10 | Opus 4.8 | **엔진 업그레이드 A-1 — 점성술 Phase A 편입·강화.** 전체 프로파일 evidence 전달·gloss KB(PLANET_ROLE·SIGN_STYLE·HOUSE_THEME·ASPECT_GLOSS·DIGNITY_GLOSS·NAKSHATRA_GLOSS)는 봇 경로(`buildAstrologyEvidenceText`+`astrologyInterpretation.ts`)에 기구현 확인. A-1 추가: ① `placementHint`가 고전 품위(도미사일/엑잘/디트리먼트/폴)를 배치 힌트에 인라인 결합(별도 dignities 목록 유지), ② KB↔엔진 교차검증 audit 5종(NAKSHATRA_GLOSS=엔진 NAKSHATRAS 27 정확 일치·HOUSE_THEME 1~12·DIGNITY 5상태·계산 프로파일 모든 행성 PLANET_ROLE·품위 인라인 실림), ③ 검수 덤프 `docs/validation/astrology-gloss-kb.md`. NAKSHATRAS export. C/D(외행성 앵글·트랜짓·나밤샤·차트휠)는 astrology_upgrade_plan 복귀. 점수·계산 불변. 776/776, tsc/build 클린 | T-3a/b(타로 마이너 56장 심화 🧠) |
 | 2026-07-10 | Opus 4.8 | **엔진 업그레이드 T-2 — 타로 카드 조합 KB 51종.** `src/data/tarotCombos.ts` 신설(카드 id 쌍→조합 신호 51개, 관계·전환·회복·시작·갈등·판단·코트 카테고리, 라이더-웨이트 통설·참고용) + `detectCardCombos()`(뽑힌 카드들 안 실존 쌍 감지, 정·역 무관·자리순 결정론). `formatTarotDiagnostics`에 '카드 조합 신호(참고용)' 라인 + TarotFactsPanel 조합 리스트 UI 배선. 완결성 audit(모든 조합 실존 카드 0~77·서로 다름·오름차순·중복 0 + 감지기 있는쌍/없는쌍/복수/단일 + 서술 안전성) 테스트 9개, 검수 덤프 `docs/validation/tarot-combos-table.md`. 점수·계산 불변(설명 텍스트 전용). 771/771, tsc/build 클린 | A-1(점성술 Phase A 🧠) → T-3a/b(마이너 심화) |
 | 2026-07-10 | Opus 4.8 | **엔진 업그레이드 T-1 — 타로 코트 페르소나 16종(Track 4 착수).** `src/data/tarotCourtPersona.ts` 신설(COURT_PERSONA 4슈트×4계급=16, 인물상·성숙단계·관계 모습·역방향 왜곡상, 라이더-웨이트 통설·참고용). `describeCourtPersona`(tarotSymbolism)로 `formatTarotCards` 프롬프트에 코트 블록(역방향이면 왜곡상)+TarotFactsPanel 인물상 라인 배선. 완결성 audit(KB=덱 코트 16장, 허수·누락 0)+서술 안전성(공포·단정 금지, Page=시작/King=완성 성숙 축) 테스트 7개, 검수 덤프 `docs/validation/tarot-court-persona-table.md`. 점수·계산 불변(설명 텍스트 전용). 762/762, tsc/build 클린 | T-2(타로 조합 KB+감지기 🧠) → A-1(점성술) |
 | 2026-07-10 | Opus 4.8 | **엔진 업그레이드 V-2 — golden 26→31 확장.** 운한 교차검증·세운 상문조객 5케이스(g27 진년 상문·순행 / g28 진년 상문·역행 / g29 신년 조객·역행 / g30 신년 조객·순행 / g31 오년 미발동+운한 amplify-good 네거티브). S-3 세운 상문·조객·S-4 대운 방향/운한 중첩은 JudgmentPack 밖 신호라 golden 러너를 **additive 확장**: `buildObservationForCase`(pack+luck 동반 반환)·`summarizeJudgmentPack(pack, luck?)`(currentYearSinsalHits/daYunDirection/luckOverlapCombo 관찰)·새 expectation 4종(`requiredYearSinsal`/`forbiddenYearSinsal`/`expectDaYunDirection`/`expectLuckOverlapCombo`). 기대값은 실제 엔진 프로브서 도출(잠금 갱신 예외 미사용). 네거티브 컨트롤 4로 비공허 증명, README 갱신. 755/755, tsc/build 클린 | T-1(타로 코트 페르소나 16 🧠) → T-2(타로 조합 KB) |

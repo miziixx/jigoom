@@ -62,7 +62,7 @@
 - [ ] V-3. 🔧 (잠금 예외) caseValidation 픽스처 22→40+, matchRate·캘리브레이션 리포트 근거 수동 조정 1회, 전후 비교표.
 
 ### Track 6 — 점성술
-- [ ] A-1. 🧠 `astrology_upgrade_plan.md` Phase A만: 전체 프로파일 evidence 전달 + 행성×별자리/하우스/각도/나크샤트라 gloss KB. C/D는 그 문서로 복귀.
+- [x] A-1. 🧠 `astrology_upgrade_plan.md` Phase A만: 전체 프로파일 evidence 전달(봇 `buildAstrologyEvidenceText`가 이미 전체 프로파일+각도+트랜짓+힌트 통째 전달) + gloss KB(`astrologyInterpretation.ts`: PLANET_ROLE·SIGN_STYLE·HOUSE_THEME·ASPECT_GLOSS·DIGNITY_GLOSS·NAKSHATRA_GLOSS). A-1 추가분: ① `placementHint`에 고전 품위 인라인 결합(도미사일/폴 등 → 배치 힌트에 바로), ② KB↔엔진 교차검증 audit(NAKSHATRA_GLOSS=엔진 NAKSHATRAS 27·HOUSE_THEME 1~12·DIGNITY 5상태·모든 산출 행성 PLANET_ROLE), ③ `docs/validation/astrology-gloss-kb.md` 검수 덤프. C/D(외행성 앵글·트랜짓·나밤샤·차트휠 viz)는 그 문서로 복귀. 점수·계산 불변. 776 그린.
 
 ## §4. 권장 순서
 

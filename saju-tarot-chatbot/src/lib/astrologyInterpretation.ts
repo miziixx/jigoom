@@ -124,11 +124,14 @@ export interface AstrologyInterpretationHints {
   integrationNote: string;
 }
 
-function placementHint(body: string, sign: ZodiacSign, house?: number): string {
+function placementHint(body: string, sign: ZodiacSign, house?: number, dignity?: string): string {
   const role = PLANET_ROLE[body] ?? `${body}의 작용`;
   const style = SIGN_STYLE[sign] ?? "";
   const where = house ? ` · ${house}하우스(${HOUSE_THEME[house]}) 영역에서` : "";
-  return `${body}: ${role}을(를) ${style} 씀${where}`;
+  // 엔진 업그레이드 A-1: 고전 품위가 뚜렷하면(중립=페레그린 제외) 그 행성이 이 별자리에서
+  // 얼마나 힘을 편히 쓰는지를 배치 힌트에 바로 붙인다(별도 목록과 별개, 인라인 근거 강화).
+  const power = dignity && dignity !== "페레그린" && DIGNITY_GLOSS[dignity] ? ` [${dignity}: ${DIGNITY_GLOSS[dignity]}]` : "";
+  return `${body}: ${role}을(를) ${style} 씀${where}${power}`;
 }
 
 /**
@@ -140,25 +143,27 @@ export function buildAstrologyInterpretationHints(
   aspects: AstrologyAspect[],
 ): AstrologyInterpretationHints {
   const placements: string[] = [];
+  // 고전 품위를 행성명으로 조회(현대 포인트에도 인라인으로 품위를 붙이기 위해)
+  const dignityByBody = new Map(profile.classical.placements.map((p) => [p.body, p.dignity]));
 
   // 현대 5대 포인트 (있는 것만)
   const modern = profile.modern;
   const modernPoints = [modern.sun, modern.moon, modern.ascendant, modern.venus, modern.mars].filter(
     (p): p is NonNullable<typeof p> => Boolean(p),
   );
-  for (const p of modernPoints) placements.push(placementHint(p.body, p.sign, p.house));
+  for (const p of modernPoints) placements.push(placementHint(p.body, p.sign, p.house, dignityByBody.get(p.body)));
 
   // 고전 행성 중 현대에서 안 다룬 수·목·토
   const already = new Set(modernPoints.map((p) => p.body));
   for (const p of profile.classical.placements) {
     if (already.has(p.body)) continue;
-    placements.push(placementHint(p.body, p.sign, p.house));
+    placements.push(placementHint(p.body, p.sign, p.house, p.dignity));
     already.add(p.body);
   }
   // 세대 행성(천왕·해왕·명왕): 별자리는 세대 공유라 하우스가 있을 때 특히 개인 의미가 있다.
   for (const p of profile.modern.outer) {
     if (already.has(p.body)) continue;
-    placements.push(placementHint(p.body, p.sign, p.house));
+    placements.push(placementHint(p.body, p.sign, p.house, dignityByBody.get(p.body)));
     already.add(p.body);
   }
 

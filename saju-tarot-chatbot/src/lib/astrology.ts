@@ -71,7 +71,7 @@ const MODERN_KEYWORD: Record<string, string> = {
   화성: "욕망과 추진력",
 };
 
-const NAKSHATRAS = [
+export const NAKSHATRAS = [
   "아슈위니",
   "바라니",
   "크리티카",
