@@ -919,6 +919,11 @@ label {
   color: var(--accent);
 }
 
+.tarot-evidence-card__court {
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
 .tarot-evidence-card b {
   display: block;
   margin: 5px 0;

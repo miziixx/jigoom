@@ -51,7 +51,7 @@
 - [ ] C-4. (선택) 자미 synastry — 부처궁 주성 대조 1축, Z-3 이후.
 
 ### Track 4 — 타로
-- [ ] T-1. 🧠 `COURT_PERSONA` 16종(인물상·성숙단계·관계 모습·역방향 왜곡상, 웨이트 전통 통설).
+- [x] T-1. 🧠 `COURT_PERSONA` 16종(인물상·성숙단계·관계 모습·역방향 왜곡상, 웨이트 전통 통설). `src/data/tarotCourtPersona.ts`(4슈트×4계급, courtKey 조회) + `describeCourtPersona`(tarotSymbolism). `formatTarotCards` 프롬프트에 코트 블록(역방향이면 왜곡상) + TarotFactsPanel 인물상 라인. 완결성 audit(KB=덱 코트 16장) + 서술 안전성(공포·단정 금지, Page=시작/King=완성) 테스트 7개, `docs/validation/tarot-court-persona-table.md` 검수 덤프. 점수·계산 불변. 762 그린.
 - [ ] T-2. 🧠 `src/data/tarotCombos.ts` ~40-60 조합 + `detectCardCombos()` → `formatTarotDiagnostics`에 "카드 조합 신호" 라인.
 - [ ] T-3a. 🧠 마이너 심화 1/2: 완드·컵 28장 `depth?: { scene; shadow; advice }`.
 - [ ] T-3b. 🧠 마이너 심화 2/2: 소드·펜타클 28장. 56장 완결성 테스트.

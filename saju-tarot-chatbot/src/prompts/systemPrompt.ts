@@ -21,7 +21,7 @@ import { buildPsychLayer, formatPsychLayer } from "../lib/psychLayer.js";
 import { buildCapacityAxes, formatCapacityAxes } from "../lib/capacityAxis.js";
 import { buildDeliberation, formatDeliberation } from "../lib/deliberation.js";
 import { buildSelfDeepEvidence } from "../lib/selfDeep.js";
-import { describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
+import { describeCourtPersona, describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
 
 /**
  * 리딩 엔진 시스템 프롬프트.
@@ -551,7 +551,8 @@ function formatTarotCards(cards: DrawnTarotCard[]): string {
       const meaning = c.reversed ? c.card.reversedMeaning : c.card.uprightMeaning;
       const label = c.positionLabel ? ` [${c.positionLabel}]` : "";
       const symbolism = describeTarotSymbolism(c.card);
-      return [
+      const court = describeCourtPersona(c.card);
+      const lines = [
         `${c.position}번째 자리${label}: ${c.card.name} (${orientation}, ${c.card.arcana === "major" ? "메이저" : "마이너"}) — ${meaning}`,
         `  상징 원형: ${symbolism.archetype}`,
         `  상징 키워드: ${symbolism.symbols.join(" · ")}`,
@@ -559,7 +560,17 @@ function formatTarotCards(cards: DrawnTarotCard[]): string {
         `  숫자/단계 의미: ${symbolism.numberTone}`,
         `  슈트 의미: ${symbolism.suitTone}`,
         `  관계 적용: ${symbolism.relationshipTone}`,
-      ].join("\n");
+      ];
+      if (court) {
+        // T-1 코트 페르소나: 인물상·성숙 단계·관계 모습(+역방향이면 왜곡상). 웨이트 통설·참고용.
+        lines.push(
+          `  코트 인물상: ${court.persona}`,
+          `  성숙 단계: ${court.maturity}`,
+          `  코트 관계 모습: ${court.relationship}`,
+        );
+        if (c.reversed) lines.push(`  역방향 왜곡: ${court.reversedDistortion}`);
+      }
+      return lines.join("\n");
     })
     .join("\n");
 }

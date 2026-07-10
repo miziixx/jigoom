@@ -1,4 +1,5 @@
 import type { DrawnTarotCard, TarotCardDefinition } from "../types";
+import { COURT_PERSONA, courtKey, type CourtPersonaEntry, type CourtRank, type CourtSuit } from "../data/tarotCourtPersona";
 
 export interface TarotSymbolism {
   archetype: string;
@@ -107,6 +108,21 @@ export function tarotSuitOf(card: TarotCardDefinition): string {
 
 function rankOf(card: TarotCardDefinition): string {
   return englishName(card).split(" of ")[0];
+}
+
+const COURT_RANKS = new Set(["Page", "Knight", "Queen", "King"]);
+const COURT_SUITS = new Set(["완드", "컵", "소드", "펜타클"]);
+
+/**
+ * 코트(궁정) 카드면 T-1 페르소나 엔트리를, 아니면 null을 반환한다.
+ * describeTarotSymbolism(슈트/숫자 톤)보다 한 층 구체적인 '인물 해석' 근거. 웨이트 통설·참고용.
+ */
+export function describeCourtPersona(card: TarotCardDefinition): CourtPersonaEntry | null {
+  if (card.arcana !== "minor") return null;
+  const suit = tarotSuitOf(card);
+  const rank = rankOf(card);
+  if (!COURT_SUITS.has(suit) || !COURT_RANKS.has(rank)) return null;
+  return COURT_PERSONA[courtKey(suit as CourtSuit, rank as CourtRank)] ?? null;
 }
 
 export function describeTarotSymbolism(card: TarotCardDefinition): TarotSymbolism {
