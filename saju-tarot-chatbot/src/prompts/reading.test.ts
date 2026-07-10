@@ -167,6 +167,43 @@ describe("근거 직렬화(LLM 내부용)는 계산값을 담는다", () => {
     expect(deep).not.toContain("[JudgmentPack — 계산됨]");
   });
 
+  it("4대 고전 심화 근거가 기본 JudgmentPack에 실린다 (엔진 업그레이드 S-1·S-2·S-5)", () => {
+    // 파격·조후 미충족이 확실히 발동하는 원국으로 검증
+    const b: BirthInfo = { calendarType: "solar", year: 1972, month: 1, day: 30, hour: 6, minute: 0, gender: "male" };
+    const chart = computeSajuChart(b);
+    const luck = computeLuckCycles(b, new Date("2026-07-03T03:00:00Z"), {
+      yongElements: chart.yongshin?.supportive,
+      avoidElements: chart.yongshin?.unfavorable,
+    });
+    const basic = buildReadingUserMessage({ type: "saju", question: "", context: {}, gender: b.gender, sajuChart: chart, luckCycles: luck });
+    // S-2 판단 코드가 JudgmentPack 근거로 프롬프트에 등장
+    expect(basic).toContain("STRUCTURE_BROKEN_CAUTION");
+    expect(basic).toContain("CLIMATE_BALANCE_NEEDED");
+    // 근거 문자열(자평진전 격국 심화·궁통보감 조후)이 근거 줄에 실림
+    expect(basic).toContain("격국 심화(자평진전)");
+    expect(basic).toContain("조후(궁통보감)");
+  });
+
+  it("고급 원자료에 대운 심화(순역·favor·상호작용)와 세운 상문·조객이 실리고 공포 금지 gloss가 붙는다 (S-3·S-4·S-5)", () => {
+    const b: BirthInfo = { calendarType: "solar", year: 1972, month: 1, day: 30, hour: 6, minute: 0, gender: "male" };
+    const chart = computeSajuChart(b);
+    const luck = computeLuckCycles(b, new Date("2026-07-03T03:00:00Z"), {
+      yongElements: chart.yongshin?.supportive,
+      avoidElements: chart.yongshin?.unfavorable,
+    });
+    const adv = buildReadingUserMessage({ type: "saju", question: "", context: { depth: "advanced" }, gender: b.gender, sajuChart: chart, luckCycles: luck });
+    // S-4: 대운 순역·시기별 강약 해석 안내
+    expect(adv).toMatch(/대운 (순행|역행)/);
+    expect(adv).toContain("힘이 실리는 10년");
+    // S-3: 상문·조객이 세운 타임라인에 뜨면 공포 금지 gloss가 함께 실린다
+    if (/상문살|조객살/.test(adv)) {
+      expect(adv).toContain("주변 경조사가 늘거나 기운이 가라앉기 쉬운 참고 시기");
+      expect(adv).toContain("초상·죽음·불행 같은 공포 단정은 절대 금지");
+    }
+    // 안전: 심화 근거를 넣어도 표면 용어 미노출·공포 금지 지시가 유지된다
+    expect(adv).toContain("표면");
+  });
+
   it("병렬 생성을 위해 지정 섹션만 쓰라는 지시를 붙일 수 있다", () => {
     const front = buildReadingUserMessage({
       type: "saju",

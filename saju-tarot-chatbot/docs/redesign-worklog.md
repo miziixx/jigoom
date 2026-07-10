@@ -21,9 +21,9 @@
   업그레이드"(사주·자미두수·궁합·타로·점성술 정확도/지식 심화) 진행 중** — 기획안
   [`engine-upgrade-2026-07.md`](./engine-upgrade-2026-07.md), 체크리스트는 아래 "🔮 엔진 업그레이드 트랙".
   사용자가 "계산 엔진 변경 금지"를 이 트랙에 한해 해제(ADDITIVE ONLY로 진행).
-- **지금 진행 중:** 엔진 업그레이드 트랙. **완료: E-0·S-1·S-2a·S-2b·Z-1·Z-2** (커밋 6개, 브랜치
-  `claude/fortune-reading-accuracy-update-ht4pat`, 715/715 그린). **다음: S-3(상문·조객 세운 연동) →
-  S-4(대운 심화) → S-5 → Z-3(성계 조합 KB) → Z-4(배선) → C-1 …** 순서는 기획안 §4.
+- **지금 진행 중:** 엔진 업그레이드 트랙. **Track 1(사주) 전부 완료: E-0·S-1·S-2a·S-2b·S-3·S-4·S-5**
+  + **Track 2 착수: Z-1·Z-2 완료** (커밋 9개, 브랜치 `claude/fortune-reading-accuracy-update-ht4pat`,
+  725/725 그린). **다음: Z-3(자미 성계 조합 KB) → Z-4(운한 배선) → C-1(궁합 교차 타이밍) …** 순서는 기획안 §4.
 - **직전 세션이 한 일 (이번 세션, 2개 단위):**
   1. **토픽 5종 템플릿 확장 — 후속 질문 채팅**: `TopicDeepChat.tsx`를 전면 재작성해 초기 5섹션 응답
      이후 최대 5회 후속 질문까지 컴포넌트 로컬 상태로 자체 관리(전역 세션 불변, `useReadingStore`
@@ -128,7 +128,10 @@
 - [x] S-4. 대운 심화. `LuckCycles.daYunDirection`(양남음녀 순역, 월간↔첫대운 천간 이동으로 판정),
       `DaYunInfo.favor`(luckFavorOf 재사용), `DaYunInfo.interactions`(각 대운 간지 vs 원국, 그동안 current만
       있던 것). natal 블록을 대운 매핑 앞으로 이동. formatLuckCycles 타임라인 보강. 테스트 5개, 723 그린.
-- [ ] S-5. 프롬프트 반영 정리 + reading-quality 체크리스트
+- [x] S-5. 프롬프트 반영 정리 + reading-quality 체크리스트. S-1~S-4 심화 근거가 기본(JudgmentPack)·
+      고급(raw) 양쪽에 실리고 안전 gloss(상문·조객 공포 금지, 대운 충 '바뀌기 쉬운')가 붙는 것을 렌더링
+      확인 → reading.test.ts 프롬프트 테스트 2개로 고정 + `docs/validation/engine-upgrade-s5-prompt-check.md`
+      기록. **Track 1(사주) 완료.** 725 그린. (실생성 육안 검증만 API 키 환경 백로그)
 - [x] Z-1. iztro horoscope() 스파이크 완료(2.5.8: decadal/yearly = {index=본명궁 인덱스, 간지, mutagen=록권과기
       순 별 4개}, palaces[index].decadal.range=나이구간) + `computeZiweiHoroscope(birth, at)` 래퍼(대한·유년
       간지·명궁 소재궁·사화 붙는 별과 본명 소재궁). `ziweiHoroscope.test.ts` 스냅샷 2생일 lock, 711 그린.
@@ -168,6 +171,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-10 | Fable 5 / Opus 4.8 | **엔진 업그레이드 Track 1(사주) 완료 + Track 2 착수 — S-3·S-4·S-5(커밋 3개).** S-3 상문·조객 세운 연동(`YearFlowInfo.sinsalHits`), S-4 대운 심화(`daYunDirection` 순역·`DaYunInfo.favor`·대운별 `interactions`, natal 블록 이동), S-5 프롬프트 반영 검증(심화 근거가 기본 JudgmentPack·고급 raw 양쪽에 실리고 공포금지 gloss 부착 확인, reading.test 2개+검증문서). 725/725, tsc/build 클린 | Z-3(자미 성계 조합 KB)→Z-4(운한 배선)→C-1(궁합 교차 타이밍) |
 | 2026-07-10 | Fable 5 / Opus 4.8 | **엔진 업그레이드 트랙 착수 — E-0·S-1·S-2a·S-2b·Z-1·Z-2 완료(커밋 6개).** 기획안 신규(`engine-upgrade-2026-07.md`, 22항목·모델 권장). 사주: CompactEvidence에 4대 고전 심화 필드(격국classic·십성분포·궁통보감조후·핵심신살) 노출→ruleEngine 심화 규칙 4종(structure.solid/broken·climate.unmet·tengod.skew)+JudgmentCode 4개→golden 21→26(심화 회귀+네거티브). 자미: iztro horoscope() 스파이크+`computeZiweiHoroscope`(대한·유년, ziweiHoroscope.test 잠금)+`deriveZiweiLuckVerdicts`(운한 명궁 무대+사화 도메인 가감). 715/715, tsc/build 클린 | S-3(상문·조객 세운 연동)→S-4(대운 심화)→S-5→Z-3→Z-4 |
 | 2026-07-10 | Sonnet 5 | **카드 홈 전면 개편(시안 ①) — §11 "A~C 뒤" 항목 완료.** `dailyGreeting.ts` 신규(출생정보 없이 일진·절기 계산, lunar-javascript 한자 절기명을 24종 한글 변환표로 보완, 타입 선언에 `getPrevJieQi` 추가), `LandingPage.tsx` 전면 재작성(인사말/오늘의 흐름/토픽5/깊게보기3/관계2, 택일·가격 제외), 테스트 9개, 693/693 통과, Playwright로 실제 홈 화면·라우팅 확인 | 가격 노출은 사용자 지시로 스코프 제외(다시 묻지 말 것), 남은 건 실생성 육안 검증뿐 |
 | 2026-07-10 | Sonnet 5 | **토픽 5종 템플릿 확장 — 후속 질문 채팅.** `TopicDeepChat.tsx` 전면 재작성(초기 5섹션 후 최대 5회 후속 질문을 컴포넌트 로컬 상태로 자체 관리, 전역 세션 비파괴), 토픽별 추천 칩+자유 입력, `BasicReadingSection.tsx` 단순화, Playwright로 5섹션 도착→후속 칩 클릭→말풍선→카운터 감소 전 과정 확인 | 카드 홈 전면 개편(시안 ①) 착수, 사용자 지시로 연속 진행 중 |
