@@ -53,6 +53,25 @@ describe("deriveZiweiDomainVerdicts (자미두수 분야 판정)", () => {
     const b = deriveZiweiDomainVerdicts(computeZiweiChart(birthB)!).map((x) => x.tone).join("");
     expect(a).not.toBe(b);
   });
+
+  it("동궁 주성 조합이 있으면 evidence에 [동궁] 조합 gloss가 붙는다 (엔진 업그레이드 Z-3)", () => {
+    // birthA(1990-12-23 진시)는 여러 궁에 동궁 조합이 있다
+    const v = deriveZiweiDomainVerdicts(computeZiweiChart(birthA)!);
+    const withCombo = v.filter((x) => x.evidence.includes("[동궁]"));
+    expect(withCombo.length).toBeGreaterThan(0);
+    // 조합 gloss는 근거(evidence)에만 붙고 표면 note에는 별 이름이 새지 않는다
+    for (const x of withCombo) {
+      for (const term of JARGON) expect(x.note).not.toContain(term);
+    }
+  });
+
+  it("동궁 조합 gloss는 점수(tone)를 바꾸지 않는다 (근거 텍스트만 추가, 스냅샷 불변)", () => {
+    // Z-3은 valence를 건드리지 않으므로, 같은 차트를 두 번 판정해도 tone/score가 동일해야 한다.
+    const chart = computeZiweiChart(birthA)!;
+    const a = deriveZiweiDomainVerdicts(chart);
+    const b = deriveZiweiDomainVerdicts(chart);
+    expect(a.map((x) => `${x.domain}:${x.tone}:${x.score}`)).toEqual(b.map((x) => `${x.domain}:${x.tone}:${x.score}`));
+  });
 });
 
 describe("deriveZiweiLuckVerdicts (자미두수 대한·유년 해석 — 엔진 업그레이드 Z-2)", () => {

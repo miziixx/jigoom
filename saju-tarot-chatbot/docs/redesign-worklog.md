@@ -121,7 +121,10 @@
 - [x] Z-2. 자미 운한 해석 레이어. `deriveZiweiLuckVerdicts(chart, luck)` — 운한 명궁 소재 본명궁
       =중심 무대(scorePalace 재사용 절반가중) + 사화 붙는 별의 본명 소재궁에 도메인 가감(록권과+/기−).
       표면 '~한 편'·용어 근거만 유지. 테스트 4개, 715 그린.
-- [ ] Z-3. 동궁 주성 조합 KB ~50 엔트리 🧠
+- [x] Z-3. 동궁 주성 조합 KB. `src/data/ziweiCombos.ts` — iztro 전수 스캔으로 확정한 실존 조합
+      단성 14+동궁 24=38 엔트리(통용 통설, 참고용). scorePalace가 동궁 2주성일 때 조합 gloss를
+      근거에만 덧붙임(valence 불변→tone 스냅샷 불변). 완결성 audit(KB=iztro 실존 집합) + 해석 테스트,
+      `docs/validation/ziwei-combo-table.md` 검수 덤프. 733 그린.
 - [ ] Z-4. 운한 교차검증·프롬프트 배선
 - [ ] C-1. 궁합 교차 타이밍 엔진 (점수 불변)
 - [ ] C-2. 통관용신·조후 궁합 서술 반영 🧠

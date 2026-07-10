@@ -1,3 +1,4 @@
+import { lookupZiweiCombo } from "../data/ziweiCombos.js";
 import type { ZiweiChart, ZiweiLuck, ZiweiLuckScope, ZiweiPalace } from "./ziwei.js";
 
 /**
@@ -94,6 +95,13 @@ function scorePalace(palace: ZiweiPalace): { score: number; stars: string[]; glo
       if (STAR_GLOSS[s.name]) glosses.push(`${s.name}${brightnessTag(s.brightness)}(${STAR_GLOSS[s.name]})`);
     }
     if (s.mutagen && s.mutagen in MUTAGEN_VALENCE) score += MUTAGEN_VALENCE[s.mutagen];
+  }
+  // 동궁 주성 조합 gloss (Z-3): 두 주성이 함께 앉는 실존 조합이면 그 조합의 성격 근거를 덧붙인다.
+  // 점수(score)는 건드리지 않고 근거 텍스트만 풍부하게 한다(기존 tone 스냅샷 불변).
+  const majorNames = palace.majorStars.map((s) => s.name);
+  if (majorNames.length === 2) {
+    const combo = lookupZiweiCombo(majorNames);
+    if (combo) glosses.push(`[동궁] ${combo.stars.join("·")}: ${combo.gloss}`);
   }
   // 보좌·살성(minor): 밝기 정보 없어 기본값의 0.7배
   for (const name of palace.minorStars) {
