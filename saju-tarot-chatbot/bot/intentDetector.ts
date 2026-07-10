@@ -5,6 +5,7 @@
 export type DetectedIntent =
   | "sajuReading"
   | "astrologyReading"
+  | "tarotReading"
   | "combinedReading"
   | "todayFlow"
   | "selfAnalysis"
@@ -44,6 +45,19 @@ const RULES: IntentRule[] = [
   {
     intent: "memoryLookup",
     patterns: [/뭐\s*기억하고\s*있어/, /저장된\s*(거|것).*보여/, /기억\s*목록/, /기억하고\s*있는\s*거/],
+  },
+  {
+    intent: "tarotReading",
+    // "타로"는 명확하다. "카드"만으론 신용카드 등과 헷갈려, 뽑기/점/리딩 맥락이 붙을 때만 잡는다.
+    patterns: [
+      /타로/,
+      /카드\s*(뽑|점|리딩|봐|보고|한\s*장|세\s*장|세장)/,
+      /카드\s*(로|를)\s*(뽑|봐|보|점)/,
+      /(뽑아|뽑아줘|뽑아주|한\s*장\s*뽑|세\s*장\s*뽑)/,
+      /스프레드/,
+      /아르카나/,
+      /원\s*카드|쓰리\s*카드|켈틱\s*크로스|celtic/i,
+    ],
   },
   {
     intent: "combinedReading",
@@ -160,6 +174,7 @@ export function isDeterministicIntent(
 export const INTENT_LABEL: Record<DetectedIntent, string> = {
   sajuReading: "사주 질문",
   astrologyReading: "점성술 질문",
+  tarotReading: "타로 리딩",
   combinedReading: "사주+점성술 통합 질문",
   todayFlow: "오늘 흐름 질문",
   selfAnalysis: "자기분석 질문",

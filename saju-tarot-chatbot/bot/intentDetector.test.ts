@@ -20,6 +20,19 @@ describe("detectIntent", () => {
     expect(detectIntent("어센던트가 뭔지 궁금해")).toBe("astrologyReading");
   });
 
+  it("타로 관련 질문은 tarotReading으로 분류한다", () => {
+    expect(detectIntent("타로로 이번 연애 봐줘")).toBe("tarotReading");
+    expect(detectIntent("카드 한 장 뽑아줘")).toBe("tarotReading");
+    expect(detectIntent("타로 카드로 이직운 봐줘")).toBe("tarotReading");
+    expect(detectIntent("켈틱크로스로 깊게 봐줘")).toBe("tarotReading");
+    expect(detectIntent("스프레드 뭐가 좋아?")).toBe("tarotReading");
+  });
+
+  it("타로 규칙이 신용카드 등 일반 '카드'를 오분류하지 않는다", () => {
+    expect(detectIntent("신용카드 추천해줘")).not.toBe("tarotReading");
+    expect(detectIntent("교통카드 어디서 충전해?")).not.toBe("tarotReading");
+  });
+
   it("점성술 규칙이 사주 질문을 가로채지 않는다", () => {
     expect(detectIntent("나 왜 신약사주야?")).toBe("sajuReading");
     expect(detectIntent("내 격국이 뭔지 알려줘")).toBe("sajuReading");

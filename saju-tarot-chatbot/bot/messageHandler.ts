@@ -5,17 +5,20 @@ import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationT
 import { looksLikeFourPillars, looksLikePartialPillars, parseFourPillars, describePillars } from "./parseFourPillars.js";
 import { formatChartSummary, buildCompatibilityEvidence, chartSourceOf, computePack, pillarsSource, birthSource, type ChartSource } from "./evidence.js";
 import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
-import { askTeacher, askCompatibility } from "./teacher.js";
+import { askTeacher, askCompatibility, askTarot } from "./teacher.js";
 import { extractVerbosityHint } from "./extractVerbosityHint.js";
 import { logError } from "./logSafe.js";
 import { detectIntent, isSecretaryIntent } from "./intentDetector.js";
+import { routeMessage } from "./smartRouter.js";
+import { drawForQuestion, buildTarotEvidenceText, describeDrawnCardsShort } from "./tarotReading.js";
 import { buildAssistantContext } from "./assistantContext.js";
 import { buildAstrologyEvidenceText } from "./astrologyEvidence.js";
 import { askSecretary, type SecretaryIntent } from "./secretary.js";
 import { summarizeForMemory, detectMemoryDeleteScope } from "./memoryOps.js";
 import type { StoredPillars } from "./parseFourPillars.js";
-import type { Store } from "./storeTypes.js";
-import type { BirthInfo } from "../src/types/index.js";
+import type { Store, UserRecord } from "./storeTypes.js";
+import type { SpreadId } from "../src/lib/tarot.js";
+import type { BirthInfo, DrawnTarotCard } from "../src/types/index.js";
 
 /**
  * 새로 파싱된 생년월일시가 이미 등록된 사주와 사실상 같은 사람인지 판단한다.
@@ -82,6 +85,9 @@ const START_GUIDE = [
   "사주 등록 없이 바로 이런 것도 물어볼 수 있어요:",
   "• 지장간이 뭐야? 왜 그렇게 배당돼?",
   "• 신강신약이 뭔지 원리부터 설명해줘",
+  "• 타로로 이번 달 연애 흐름 봐줘 (사주 등록 없이 바로 가능)",
+  "",
+  "명령어 몰라도 돼요 — 사주·타로·점성술 뭐든 그냥 말로 물어보면 알아서 골라 답해요.",
   "",
   "*내 사주 기반*으로 답을 받고 싶으면 먼저 등록해주세요 (한 줄, 형식 자유):",
   "",
@@ -92,7 +98,7 @@ const START_GUIDE = [
   "• 오늘 일진이 왜 이렇게 흘러가?",
   "• 내 격국이 뭔지, 왜 그렇게 잡히는지 알려줘",
   "",
-  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /궁합 상대와 궁합 보기 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
+  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /타로 타로 리딩 · /궁합 상대와 궁합 보기 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
 ].join("\n");
 
 const PRIVACY_TEXT = [
@@ -108,7 +114,9 @@ const PRIVACY_TEXT = [
 ].join("\n");
 
 const HELP_TEXT = [
-  "이 봇은 명령어 없이 그냥 말로 걸어도 알아들어요. 예:",
+  "이 봇은 명령어 없이 그냥 말로 걸어도 알아들어요. 사주·타로·점성술 다 자연어로:",
+  "• \"타로로 이번 연애 어떻게 될지 봐줘\" → 타로 (질문에 맞는 스프레드 자동 선택)",
+  "• \"한 장 더 뽑아줘\" / \"그 카드 무슨 뜻이야?\" → 방금 뽑은 타로 이어서",
   "• \"나 오늘 왜 이렇게 의욕이 없지?\" → 오늘 흐름/자기분석",
   "• \"이거 기획 좀 정리해줘\" → 기획 정리",
   "• \"이 글 좀 자연스럽게 고쳐줘\" → 글쓰기 도움",
@@ -117,7 +125,7 @@ const HELP_TEXT = [
   "• \"방금 얘기한 거 기억해둬\" / \"이건 저장하지 마\" → 기억 저장/삭제",
   "• \"보안 상태 알려줘\" → /privacy",
   "",
-  "명령어(선택): /start · /birth · /saju · /today · /궁합 · /reset · /delete · /privacy · /help",
+  "명령어(선택): /start · /birth · /saju · /today · /타로 · /궁합 · /reset · /delete · /privacy · /help",
 ].join("\n");
 
 const COMPAT_GUIDE = [
@@ -132,6 +140,18 @@ const COMPAT_GUIDE = [
   "명령어 없이도 돼요 — 두 사람 사주를 한 줄에 같이 넣으면 바로 궁합을 봐드려요:",
   "• `1993-03-15 14:30 여 서울, 1995-06-20 09:30 남 부산 연인`",
   "그만두려면 /reset",
+].join("\n");
+
+const TAROT_GUIDE = [
+  "🃏 *타로*를 봐드릴게요. 그냥 뭐가 궁금한지 편하게 말해주세요 — 스프레드는 질문에 맞게 알아서 골라 뽑아요.",
+  "",
+  "• \"타로로 이번 연애 어떻게 흘러갈지 봐줘\" → 관계 스프레드",
+  "• \"이직할까 말까 타로로 봐줘\" → 두 선택지 비교",
+  "• \"이번 달 흐름 타로로 봐줘\" → 한 달 흐름",
+  "• \"고민 있는데 카드 한 장만 뽑아줘\" → 핵심 1장",
+  "• \"제대로 깊게 봐줘\" → 켈틱크로스 10장",
+  "",
+  "뽑은 뒤엔 \"그 카드 무슨 뜻이야?\", \"한 장 더 뽑아줘\"처럼 이어서 물어도 돼요.",
 ].join("\n");
 
 /** 팔자 → 실제 생일 되짚기 성공 시 등록 안내 문구를 만든다. */
@@ -160,6 +180,57 @@ function extractQuestion(remainder?: string): string | null {
   if (!/[가-힣]/.test(q)) return null;
   if (q.replace(/\s/g, "").length < 2) return null;
   return q;
+}
+
+/**
+ * 타로 리딩 처리. 새로 뽑기(newDraw)면 질문 결에 맞는 스프레드를 골라 카드를 뽑아 보여주고,
+ * 후속 질문이면 방금 뽑은 카드(user.lastTarot)를 그대로 근거로 이어서 답한다.
+ * 사주 등록과 무관하게 동작한다(타로는 생일이 필요 없음).
+ */
+async function handleTarotIntent(
+  chatId: number,
+  text: string,
+  user: UserRecord,
+  store: Store,
+  opts: { newDraw: boolean },
+): Promise<void> {
+  const { cleanQuestion, override } = extractVerbosityHint(text);
+  const isFreshDraw = opts.newDraw || !user.lastTarot;
+
+  let spreadId: SpreadId;
+  let cards: DrawnTarotCard[];
+  let evidenceQuestion: string;
+
+  if (isFreshDraw) {
+    const drawn = drawForQuestion(cleanQuestion);
+    spreadId = drawn.spreadId;
+    cards = drawn.cards;
+    evidenceQuestion = cleanQuestion;
+    // 어떤 카드가 나왔는지 먼저 보여준 뒤, 해석을 스트리밍한다.
+    await sendMessage(chatId, describeDrawnCardsShort(spreadId, cards));
+    await store.setLastTarot(chatId, { spreadId, question: cleanQuestion, cards, drawnAt: new Date().toISOString() });
+  } else {
+    spreadId = user.lastTarot!.spreadId;
+    cards = user.lastTarot!.cards;
+    evidenceQuestion = user.lastTarot!.question; // 이 스프레드를 뽑았던 원래 질문(자리 맥락)
+  }
+
+  const tarotEvidence = buildTarotEvidenceText(spreadId, cards, evidenceQuestion);
+  const typing = setInterval(() => void sendTyping(chatId), 5000);
+  void sendTyping(chatId);
+  try {
+    const answer = await askTarot({
+      tarotEvidence,
+      question: cleanQuestion,
+      history: user.history,
+      chatId,
+      verbosityOverride: override,
+      isFollowUp: !isFreshDraw,
+    });
+    await store.appendHistory(chatId, { role: "user", content: cleanQuestion }, { role: "assistant", content: answer });
+  } finally {
+    clearInterval(typing);
+  }
 }
 
 export async function handleMessage(msg: TgMessage, store: Store): Promise<void> {
@@ -214,6 +285,15 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     }
     if (text === "/today" && !source) {
       await sendMessage(chatId, "오늘 일진은 내 사주와 오늘 간지를 대조해야 해서, 먼저 등록이 필요해요.\n\n" + BIRTH_GUIDE);
+      return;
+    }
+    if (text === "/타로" || text === "/tarot") {
+      await sendMessage(chatId, TAROT_GUIDE);
+      return;
+    }
+    if (text.startsWith("/타로 ") || text.startsWith("/tarot ")) {
+      const q = text.replace(/^\/(타로|tarot)\s+/, "").trim();
+      await handleTarotIntent(chatId, q, user, store, { newDraw: true });
       return;
     }
     if (text === "/궁합" || text === "/compat" || text === "/궁합보기") {
@@ -433,25 +513,26 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         "정답을 바로 알려주지 말고, 문제만 먼저 주고 제가 답해볼 수 있게 기다려주세요. " +
         "제가 다음 메시지로 답하면 그때 채점하고, 틀렸거나 애매하면 원리를 다시 짚어 설명해주세요.";
     } else {
-      // ── 자연어 의도 분류 (Step 3). 슬래시 명령이 아닌 자유 텍스트는 전부 여기를 거친다 ──
-      const intent = detectIntent(text);
+      // ── 자연어 의도 분류. 슬래시 명령이 아닌 자유 텍스트는 전부 여기를 거친다 ──
+      // 1단계: 보안·기억 계열은 100% 결정론적 키워드로만 처리한다(LLM 판단에 맡기지 않는다).
+      const keywordIntent = detectIntent(text);
 
-      if (intent === "privacyCheck") {
+      if (keywordIntent === "privacyCheck") {
         await sendMessage(chatId, PRIVACY_TEXT);
         return;
       }
-      if (intent === "resetContext") {
+      if (keywordIntent === "resetContext") {
         await store.clearHistory(chatId);
         await sendMessage(chatId, "대화 기록을 초기화했어요. 사주 등록은 유지됩니다.");
         return;
       }
-      if (intent === "memoryDelete") {
+      if (keywordIntent === "memoryDelete") {
         const scope = detectMemoryDeleteScope(text);
         const removed = await store.deleteMemory(chatId, scope);
         await sendMessage(chatId, removed > 0 ? `기억 ${removed}건 지웠어요 ✅` : "지울 만한 저장된 기억이 없었어요.");
         return;
       }
-      if (intent === "memoryLookup") {
+      if (keywordIntent === "memoryLookup") {
         const memories = user.memories ?? [];
         if (memories.length === 0) {
           await sendMessage(chatId, "아직 기억해둔 게 없어요. \"기억해줘\"라고 말하면 그때부터 요약해서 기억할게요.");
@@ -461,7 +542,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         await sendMessage(chatId, `기억하고 있는 것들:\n${lines.join("\n")}`);
         return;
       }
-      if (intent === "memorySave") {
+      if (keywordIntent === "memorySave") {
         const typing = setInterval(() => void sendTyping(chatId), 5000);
         void sendTyping(chatId);
         try {
@@ -471,6 +552,24 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         } finally {
           clearInterval(typing);
         }
+        return;
+      }
+
+      // 2단계: 나머지는 맥락 인지 라우터로 의도를 확정한다. 최근 대화 + 등록 상태를 함께 보고
+      // "그럼 연애는?", "한 장 더", "아까 그 카드" 같은 맥락 의존 표현까지 자연어로 이해한다.
+      const route = await routeMessage({
+        text,
+        history: user.history,
+        keywordHint: keywordIntent,
+        hasSaju: Boolean(source),
+        hasBirth: Boolean(user.birthInfo),
+        hasTarot: Boolean(user.lastTarot),
+      });
+      const intent = route.intent;
+
+      // ── 타로 리딩 (사주 등록과 무관) ──
+      if (intent === "tarotReading") {
+        await handleTarotIntent(chatId, text, user, store, { newDraw: route.newDraw });
         return;
       }
 

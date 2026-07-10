@@ -1960,3 +1960,43 @@ buildPersonDeepEvidence 실제 출력 대조 — taxonomy가 상대 원국별로
 작동방식이 "이 사람만"인지, 무료 미리보기 vs 유료 차이. (2) 타로 오버레이는 buildPersonDeepEvidence의
 `tarotNote` 주입 자리만 있고 카드 뽑기 UI는 미구현(후속). (3) 프리미엄 게이트는 localStorage 스텁(실결제
 별건). (4) personDeep은 상대 출생시간 정확도가 낮으면 confidence가 떨어지므로 UI에서 시간 입력 유도 여지.
+
+---
+
+## 2026-07-10 — 텔레그램 봇: 타로 추가 + 100% 자연어 맥락 라우팅
+
+**요청:** "텔레그램 챗봇에 사주·타로·점성학 등등을 자유롭게 100% 자연어로 쓰게 하고, 문맥 이해도를 확 높여줘."
+
+**한 일 (bot/ 한정, 웹앱 계산/프롬프트 불변):**
+
+1. **타로 리딩을 봇에 신규 추가** (기존엔 사주·점성술·궁합·비서만 있고 타로는 웹앱에만 있었음):
+   - `bot/tarotReading.ts`: 질문 자연어에서 스프레드 자동 선택(`selectSpread`: 관계→relation, 선택비교→ab,
+     한 달→month, 깊게→celtic, 문제해결→soa, 한 장→one, 기본 ppf), `drawForQuestion`(웹앱 `src/lib/tarot.ts`
+     `drawSpread` 재사용, 무작위+50% 역방향), `buildTarotEvidenceText`(뽑힌 카드 정/역 의미+상징 원형/키워드+
+     자리 의미+정역·메이저·반복 슈트 진단+엘리멘탈 디그니티까지 직렬화 — 웹앱 systemPrompt와 동일 밀도),
+     `describeDrawnCardsShort`(사용자에게 먼저 보여줄 카드 헤더).
+   - `bot/teacher.ts`: `askTarot()` + 타로 전용 시스템 프롬프트(자리·정역 함께 읽기, 디그니티로 배열 결 먼저,
+     이별/재회/결혼 단정 금지, 텔레그램 톤). `runStream()` 재사용(호출 지점 단일 유지).
+   - `/타로`(안내) · `/타로 <질문>`(바로 뽑기) 명령 추가.
+
+2. **맥락 유지(후속 질문):** `UserRecord.lastTarot`(StoredTarot: spreadId·question·cards·drawnAt) 추가.
+   새로 뽑으면 저장하고, `"그 카드 무슨 뜻?"·"한 장 더"` 같은 후속은 저장된 카드를 그대로 근거로 이어 답한다.
+   history TTL 만료·사주 재등록·`/reset` 시 함께 비운다. storeTypes/fileStore/kvStore 3곳 반영.
+
+3. **맥락 인지 스마트 라우터** (`bot/smartRouter.ts`) — 문맥 이해도의 핵심:
+   - 자유 텍스트는 먼저 결정론적 키워드 분류를 거치고, **보안 민감(기억 저장/삭제/조회·보안·초기화)은 키워드로만
+     확정**(LLM 판단 금지). 그 외 리딩/대화 계열만 라우터가 **최근 대화 6턴 + 등록 상태(사주/생일/타로)** 를 함께
+     보고 의도 확정 → `"그럼 연애는?"`, `"한 장 더"`, `"아까 그 카드"` 등 맥락 의존 표현·짧은 후속 이해.
+   - 빠른 모델(기본 haiku)로 돌고, 실패/`BOT_SMART_ROUTER=0` 이면 키워드 폴백. tarot일 때 newDraw/tarotFollowUp
+     플래그도 반환(상태와 모순되면 규칙으로 교정).
+   - `intentDetector.ts`에 `tarotReading` 의도·키워드 규칙·라벨 추가("타로"는 명확, "카드"만으론 신용카드 등과
+     구분 위해 뽑기/점/리딩 맥락 필요).
+
+4. **문서/환경:** `bot/README.md`(타로·맥락 라우팅 절), `.env.example`(`BOT_SMART_ROUTER`·`BOT_ROUTER_MODEL`),
+   `START_GUIDE`/`HELP_TEXT`에 타로·자연어 안내.
+
+**검증:** `npm test` 756 통과(신규 bot 테스트 18개: tarotReading 11 + smartRouter 7, intentDetector에 타로 6),
+`npm run build` 성공, `tsc -p tsconfig.bot.json` 클린.
+
+**주의/남은 것:** 라우터가 비보안 자유 텍스트마다 haiku 1콜을 추가(지연·비용 소폭↑, `BOT_SMART_ROUTER=0`로 끔).
+실제 텔레그램 왕복 육안 검증은 봇 토큰/ANTHROPIC_API_KEY 있는 환경에서 필요. 타로는 생일 불필요(사주 등록과 무관).

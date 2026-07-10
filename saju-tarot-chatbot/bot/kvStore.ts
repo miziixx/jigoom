@@ -12,6 +12,7 @@ import {
   type MemoryCategory,
   type MemoryEntry,
   type PendingCompat,
+  type StoredTarot,
   type Store,
   type UserRecord,
 } from "./storeTypes.js";
@@ -57,6 +58,7 @@ async function readUser(chatId: number): Promise<UserRecord> {
       history: parsed.history ?? [],
       historyExpiresAt: parsed.historyExpiresAt ?? null,
       pending: parsed.pending ?? null,
+      lastTarot: parsed.lastTarot ?? null,
       memories: parsed.memories ?? [],
       updatedAt: parsed.updatedAt,
     };
@@ -82,6 +84,7 @@ export const kvStore: Store = {
     user.pillars = null; // 생년월일시로 등록하면 팔자 직접입력은 해제
     user.history = []; // 사주가 바뀌면 이전 해석 맥락은 무효
     user.pending = null;
+    user.lastTarot = null;
     await writeUser(chatId, user);
   },
 
@@ -91,6 +94,7 @@ export const kvStore: Store = {
     user.birthInfo = null; // 팔자 직접입력으로 등록하면 생년월일시는 해제
     user.history = [];
     user.pending = null;
+    user.lastTarot = null;
     await writeUser(chatId, user);
   },
 
@@ -109,12 +113,19 @@ export const kvStore: Store = {
     user.history = [];
     user.historyExpiresAt = null;
     user.pending = null;
+    user.lastTarot = null;
     await writeUser(chatId, user);
   },
 
   async setPending(chatId: number, pending: PendingCompat | null): Promise<void> {
     const user = await readUser(chatId);
     user.pending = pending;
+    await writeUser(chatId, user);
+  },
+
+  async setLastTarot(chatId: number, tarot: StoredTarot | null): Promise<void> {
+    const user = await readUser(chatId);
+    user.lastTarot = tarot;
     await writeUser(chatId, user);
   },
 

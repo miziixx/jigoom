@@ -14,6 +14,7 @@ import {
   type MemoryCategory,
   type MemoryEntry,
   type PendingCompat,
+  type StoredTarot,
   type Store,
   type UserRecord,
 } from "./storeTypes.js";
@@ -67,6 +68,7 @@ export const fileStore: Store = {
     user.pillars = null; // 생년월일시로 등록하면 팔자 직접입력은 해제
     user.history = []; // 사주가 바뀌면 이전 해석 맥락은 무효
     user.pending = null;
+    user.lastTarot = null;
     user.updatedAt = new Date().toISOString();
     save();
   },
@@ -77,6 +79,7 @@ export const fileStore: Store = {
     user.birthInfo = null; // 팔자 직접입력으로 등록하면 생년월일시는 해제
     user.history = [];
     user.pending = null;
+    user.lastTarot = null;
     user.updatedAt = new Date().toISOString();
     save();
   },
@@ -84,6 +87,13 @@ export const fileStore: Store = {
   async setPending(chatId: number, pending: PendingCompat | null): Promise<void> {
     const user = getUserSync(chatId);
     user.pending = pending;
+    user.updatedAt = new Date().toISOString();
+    save();
+  },
+
+  async setLastTarot(chatId: number, tarot: StoredTarot | null): Promise<void> {
+    const user = getUserSync(chatId);
+    user.lastTarot = tarot;
     user.updatedAt = new Date().toISOString();
     save();
   },
@@ -104,6 +114,7 @@ export const fileStore: Store = {
     user.history = [];
     user.historyExpiresAt = null;
     user.pending = null;
+    user.lastTarot = null;
     user.updatedAt = new Date().toISOString();
     save();
   },

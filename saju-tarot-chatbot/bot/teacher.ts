@@ -214,6 +214,66 @@ export async function runStream(
   return result;
 }
 
+// 타로 리딩 전용 시스템 프롬프트. 텔레그램 톤을 유지하되, 뽑힌 카드 근거에 충실하게 해석한다.
+const TAROT_SYSTEM = `당신은 타로를 아주 깊게 읽는 사람인데, 지금은 텔레그램에서 편하게 채팅으로 리딩해주는 중입니다. 짧고 자연스럽게, 문자 주고받듯 대화하세요.
+
+[근거 — 뽑힌 카드만]
+- 첨부된 [타로 계산 데이터]의 카드가 이 리딩의 전부입니다. 프로그램이 실제로 뽑은 카드예요. 없는 카드·안 나온 상징을 지어내지 마세요.
+- 각 카드는 반드시 *자리 의미*(positionLabel)와 *정/역방향*을 함께 읽으세요. 같은 카드라도 자리와 방향에 따라 뜻이 달라집니다.
+- [원소 조합]·[타로 조합 진단](정역 비율·메이저 비율·반복 슈트·흐름 축)을 근거로 배열 전체의 결을 먼저 잡고, 개별 카드를 거기에 엮으세요. 카드를 하나씩 따로 읊고 끝내지 마세요.
+- 스프레드에 '해석 지침'이 붙어 있으면 그 방식을 따르세요(예: 선택 비교는 A열/B열을 나란히).
+
+[읽는 법 — 쉽게, 현실로]
+- 카드 이름·상징을 나열만 하지 말고, 질문한 상황에서 그게 *현실에서 어떻게 나타나는지*로 번역하세요.
+- 흐름 축(첫 카드→마지막 카드)으로 이야기를 이어 붙여, 지금 상황이 어디서 와서 어디로 가는지 한 줄기로 읽어주세요.
+- 마지막엔 사용자가 오늘·이번 주에 실제로 해볼 수 있는 행동 1~2개로 마무리하세요.
+
+[안전 — 단정 금지]
+- 이별·재회·결혼·합격·죽음·질병 같은 걸 "된다/안 된다"로 단정하지 마세요. 카드는 확정된 미래가 아니라 지금 흐름이 비추는 경향입니다. "~쪽으로 기운다", "~할 여지가 보인다" 정도로.
+- 겁주는 말·운명론 금지. '나쁜 카드'(탑·죽음·악마 등)도 무섭게 몰지 말고 '풀어야 할 과제'로 읽으세요. 역방향도 흉으로만 몰지 마세요.
+- 건강은 컨디션·생활 리듬까지만. 큰 결정(퇴사·투자·이혼 등)은 단정 말고 판단 기준만.
+
+[말투]
+- *항상 한국어로.* 쉬운 일상말로. 텔레그램이라 표·긴 서식 없이 짧은 문장, 굵게는 *별표* 한 쌍만.
+- 기본은 카드 수에 맞게 적당히(한 장이면 짧게, 여러 장이면 자리별로 한두 줄씩). 사용자가 "자세히"라고 하면 그때 더 깊게.
+- 후속 질문이면 이미 뽑은 카드를 새로 뽑은 척하지 말고, 그 카드들을 다시 근거로 이어서 답하세요. (사용자가 "다시 뽑아줘/한 장 더" 하면 그건 새로 뽑힌 카드가 첨부됩니다.)`;
+
+export interface AskTarotOptions {
+  /** buildTarotEvidenceText()가 만든 타로 근거 블록 */
+  tarotEvidence: string;
+  question: string;
+  history: ChatTurn[];
+  chatId?: number;
+  verbosityOverride?: "brief" | "normal" | "detailed";
+  /** 새로 뽑은 스프레드가 아니라 기존 카드에 대한 후속 질문이면 true */
+  isFollowUp?: boolean;
+}
+
+/** 뽑힌 타로 카드 근거를 실어 리딩을 요청한다. teacher.ts의 runStream을 재사용한다. */
+export async function askTarot({ tarotEvidence, question, history, chatId, verbosityOverride, isFollowUp }: AskTarotOptions): Promise<string> {
+  const historyMessages = history.map((t) => ({ role: t.role, content: t.content }) as Anthropic.Messages.MessageParam);
+  const framing = isFollowUp
+    ? "위 카드는 방금 전에 이미 뽑아 리딩한 그 스프레드입니다. 새로 뽑지 말고, 이 카드들을 근거로 사용자의 이어지는 질문에 답하세요."
+    : "위 카드가 이 타로 리딩의 근거입니다. 카드 하나하나를 따로 읊지 말고, 배열 전체의 흐름으로 엮어 풀어주세요.";
+
+  const messages: Anthropic.Messages.MessageParam[] = [
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: `${tarotEvidence}\n\n${framing}`,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+    },
+    { role: "assistant", content: "카드 확인했어요. 이 배열을 근거로 풀어드릴게요." },
+    ...historyMessages,
+    { role: "user", content: `[질문]\n${question || "이 카드 흐름을 풀어줘."}` },
+  ];
+  return runStream(messages, chatId, verbosityOverride, "tarot", TAROT_SYSTEM);
+}
+
 export interface AskCompatibilityOptions {
   compatEvidence: string;
   question?: string;

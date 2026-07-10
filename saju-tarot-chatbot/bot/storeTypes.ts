@@ -1,6 +1,7 @@
 // 롱폴링(fileStore)과 웹훅(kvStore) 두 저장소 구현이 공유하는 타입/인터페이스.
-import type { BirthInfo, CompatibilityRelationType } from "../src/types/index.js";
+import type { BirthInfo, CompatibilityRelationType, DrawnTarotCard } from "../src/types/index.js";
 import type { StoredPillars } from "./parseFourPillars.js";
+import type { SpreadId } from "../src/lib/tarot.js";
 
 export interface ChatTurn {
   role: "user" | "assistant";
@@ -30,11 +31,26 @@ export interface MemoryEntry {
   createdAt: string;
 }
 
+/**
+ * 마지막으로 뽑은 타로 스프레드. 후속 질문("그 카드 무슨 뜻이야?", "한 장 더")에서
+ * 같은 카드를 근거로 이어 풀어주기 위해 유지한다. 새 스프레드를 뽑으면 통째로 덮어쓴다.
+ * TTL은 대화 맥락(history)과 함께 초기화된다.
+ */
+export interface StoredTarot {
+  spreadId: SpreadId;
+  /** 이 스프레드를 뽑을 때의 질문(자리·해석의 맥락) */
+  question: string;
+  cards: DrawnTarotCard[];
+  drawnAt: string;
+}
+
 export interface UserRecord {
   birthInfo: BirthInfo | null;
   /** 생년월일시 대신 만세력 사주팔자(여덟 글자)를 직접 등록한 경우. birthInfo 와 상호배타. */
   pillars?: StoredPillars | null;
   history: ChatTurn[];
+  /** 마지막으로 뽑은 타로 스프레드(후속 질문 맥락용). 없으면 아직 안 뽑음. */
+  lastTarot?: StoredTarot | null;
   /**
    * history 세션 만료 시각. 이 시각이 지나면 history는 자동으로 빈 배열 취급된다
    * (짧은 대화 맥락은 유지하되, 민감한 대화 원문이 서버에 무기한 쌓이지 않게 함).
@@ -64,6 +80,8 @@ export interface Store {
   deleteUser(chatId: number): Promise<void>;
   /** 궁합 등 다단계 흐름의 대기 상태를 저장/해제 (null이면 해제) */
   setPending(chatId: number, pending: PendingCompat | null): Promise<void>;
+  /** 마지막 타로 스프레드 저장/해제 (후속 질문 맥락용, null이면 해제) */
+  setLastTarot(chatId: number, tarot: StoredTarot | null): Promise<void>;
   /** 사용자가 명시적으로 요청한 요약만 기억에 추가한다 (원문 저장 금지) */
   addMemory(chatId: number, entry: Omit<MemoryEntry, "id" | "createdAt">): Promise<MemoryEntry>;
   /** 기억 삭제. mode "recent"면 가장 최근 N개, "all"이면 전부(옵션으로 카테고리 한정) */
@@ -77,6 +95,7 @@ export function emptyUser(): UserRecord {
     history: [],
     historyExpiresAt: null,
     pending: null,
+    lastTarot: null,
     memories: [],
     updatedAt: new Date().toISOString(),
   };
@@ -86,5 +105,6 @@ export function emptyUser(): UserRecord {
 export function applyHistoryExpiry(user: UserRecord): UserRecord {
   if (!user.historyExpiresAt) return user;
   if (new Date(user.historyExpiresAt).getTime() > Date.now()) return user;
-  return { ...user, history: [], historyExpiresAt: null };
+  // 맥락이 만료되면 타로 후속 질문 맥락(lastTarot)도 함께 비운다.
+  return { ...user, history: [], historyExpiresAt: null, lastTarot: null };
 }
