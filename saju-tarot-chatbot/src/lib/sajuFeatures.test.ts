@@ -130,6 +130,55 @@ describe("대운·세운 중첩", () => {
   });
 });
 
+describe("대운 심화 — 순역·favor·원국 상호작용 (엔진 업그레이드 S-4)", () => {
+  const male1984: BirthInfo = { calendarType: "solar", year: 1984, month: 2, day: 20, hour: 14, minute: 30, gender: "male" };
+
+  it("양남음녀=순행, 음남양녀=역행 규칙대로 daYunDirection을 계산한다", () => {
+    // 1984 남자: 년간 갑(양간) → 양남 → 순행
+    const male = computeLuckCycles(male1984, new Date("2026-07-03T03:00:00Z"));
+    expect(male.daYunDirection).toBe("forward");
+    // 1990 여자: 년간 경(양간) → 양녀 → 역행
+    const female = computeLuckCycles(female1990, new Date("2026-07-03T03:00:00Z"));
+    expect(female.daYunDirection).toBe("reverse");
+  });
+
+  it("순행/역행에 따라 대운 천간이 월간에서 한 칸씩 이동한다", () => {
+    const GAN = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"];
+    for (const [birth, dir] of [[male1984, "forward"], [female1990, "reverse"]] as const) {
+      const chart = computeSajuChart(birth);
+      const luck = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
+      const monthGanIdx = GAN.indexOf(chart.month.ganZhi[0]);
+      const firstDaYunGanIdx = GAN.indexOf(luck.daYun[0].ganZhi[0]);
+      const expected = dir === "forward" ? (monthGanIdx + 1) % 10 : (monthGanIdx + 9) % 10;
+      expect(firstDaYunGanIdx).toBe(expected);
+    }
+  });
+
+  it("yong/avoid 오행을 주면 각 대운에 favor(boost/drain/neutral)가 붙는다", () => {
+    const chart = computeSajuChart(female1990);
+    const luck = computeLuckCycles(female1990, new Date("2026-07-03T03:00:00Z"), {
+      yongElements: chart.yongshin!.supportive,
+      avoidElements: chart.yongshin!.unfavorable,
+    });
+    expect(luck.daYun.length).toBeGreaterThan(0);
+    for (const dy of luck.daYun) expect(["boost", "drain", "neutral"]).toContain(dy.favor);
+  });
+
+  it("yong/avoid를 주지 않으면 대운 favor는 미표기(undefined)", () => {
+    const luck = computeLuckCycles(female1990, new Date("2026-07-03T03:00:00Z"));
+    for (const dy of luck.daYun) expect(dy.favor).toBeUndefined();
+  });
+
+  it("각 대운의 원국 상호작용은 그 대운 간지 기준으로 계산된다(있으면 대운 라벨 포함)", () => {
+    const luck = computeLuckCycles(female1990, new Date("2026-07-03T03:00:00Z"));
+    const withInteractions = luck.daYun.filter((dy) => dy.interactions && dy.interactions.length > 0);
+    expect(withInteractions.length).toBeGreaterThan(0);
+    for (const dy of withInteractions) {
+      for (const s of dy.interactions!) expect(s).toContain("대운");
+    }
+  });
+});
+
 describe("통근·투출", () => {
   const chart = computeSajuChart(female1990); // 경오 무자 임술 갑진
   it("각 천간의 통근을 계산한다", () => {

@@ -528,6 +528,13 @@ export interface DaYunInfo {
   gongmang?: boolean;
   /** 이 대운 구간이 삼재에 걸리는지 (걸리는 해가 있으면 표기) */
   samjae?: string;
+  /**
+   * 이 대운 간지가 용신/기신 방향인지 (boost=보완, drain=부담, neutral=중립).
+   * 엔진 업그레이드 S-4. yong/avoid 오행이 없으면 undefined.
+   */
+  favor?: LuckFavor;
+  /** 이 대운 지지·천간이 원국과 새로 맺는 합충형파해. 엔진 업그레이드 S-4. */
+  interactions?: string[];
 }
 
 /** 올해 특정 달의 월운 흐름 (연간 12개월 흐름 계산용) */
@@ -586,6 +593,8 @@ export interface LuckCycles {
   daYunYearOverlap?: LuckOverlap;
   /** 삼재 정보 (년지 삼합국 기준) */
   samjae?: SamjaeInfo;
+  /** 대운 진행 방향 (순행/역행). 양남음녀=순행, 음남양녀=역행. 엔진 업그레이드 S-4. */
+  daYunDirection?: "forward" | "reverse";
 }
 
 /** 삼재(三災) 정보 — 년지 삼합국 기준 3년 주기 */

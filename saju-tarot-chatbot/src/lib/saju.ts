@@ -1947,44 +1947,7 @@ export function computeLuckCycles(
   const gongmangZhis = gongmangOf(dayGan, dayZhi); // 공망 지지 2글자
   const samjaeCalc = samjaeBranchesOf(yearZhi);
 
-  // 첫 항목은 대운 시작 전 구간이라 간지가 비어 있을 수 있음 → 제외
-  const daYun = yun
-    .getDaYun()
-    .filter((dy) => dy.getGanZhi() !== "")
-    .slice(0, 8)
-    .map((dy) => {
-      const ganZhi = toHangul(dy.getGanZhi());
-      const gan = ganZhi[0];
-      const zhi = ganZhi[1];
-      // 이 대운 10년 구간에 삼재가 드는 해가 있으면 표기
-      const samjaeYears: string[] = [];
-      for (let y = dy.getStartYear(); y <= dy.getEndYear(); y++) {
-        const yz = toHangul(Solar.fromYmdHms(y, 6, 15, 12, 0, 0).getLunar().getYearInGanZhiByLiChun())[1];
-        const phase = samjaeCalc.phaseOf(yz);
-        if (phase) samjaeYears.push(`${y} ${phase}`);
-      }
-      return {
-        startAge: dy.getStartAge(),
-        endAge: dy.getEndAge(),
-        startYear: dy.getStartYear(),
-        endYear: dy.getEndYear(),
-        ganZhi,
-        current: dy.getStartYear() <= nowYear && nowYear <= dy.getEndYear(),
-        tenGod: gan ? tenGodOf(dayGan, gan) : undefined,
-        twelveStage: zhi ? twelveStageOf(dayGan, zhi) : undefined,
-        sibiSinsal: zhi ? sibiSinsalOf(dayZhi, zhi) : undefined,
-        gongmang: zhi ? gongmangZhis.includes(zhi) : undefined,
-        samjae: samjaeYears.length > 0 ? samjaeYears.join(", ") : undefined,
-      };
-    });
-
-  const nowLunar = Solar.fromDate(now).getLunar();
-  const currentDaYun = daYun.find((dy) => dy.current)?.ganZhi ?? null;
-  const yearGanZhi = toHangul(nowLunar.getYearInGanZhiByLiChun());
-  const monthGanZhi = toHangul(nowLunar.getMonthInGanZhi());
-  const dayGanZhi = toHangul(nowLunar.getDayInGanZhi());
-
-  // 원국 기둥 (운과의 상호작용 계산용)
+  // 원국 기둥 (운과의 상호작용 계산용) — 대운 favor/interactions(S-4)에서도 쓰므로 대운 매핑보다 먼저 만든다.
   const yearP = toPillar(ec.getYear());
   const monthP = toPillar(ec.getMonth());
   const dayP = toPillar(ec.getDay());
@@ -2001,6 +1964,65 @@ export function computeLuckCycles(
     { label: "일지", char: dayP.zhi },
     ...(timeP ? [{ label: "시지", char: timeP.zhi }] : []),
   ];
+
+  // 대운 용신/기신 방향 판정용 오행 집합 (S-4). yong/avoid 없으면 favor 미표기.
+  const daYunYong = new Set(options.yongElements ?? []);
+  const daYunAvoid = new Set(options.avoidElements ?? []);
+  const hasFavorInput = daYunYong.size > 0 || daYunAvoid.size > 0;
+
+  // 첫 항목은 대운 시작 전 구간이라 간지가 비어 있을 수 있음 → 제외
+  const daYun = yun
+    .getDaYun()
+    .filter((dy) => dy.getGanZhi() !== "")
+    .slice(0, 8)
+    .map((dy) => {
+      const ganZhi = toHangul(dy.getGanZhi());
+      const gan = ganZhi[0];
+      const zhi = ganZhi[1];
+      // 이 대운 10년 구간에 삼재가 드는 해가 있으면 표기
+      const samjaeYears: string[] = [];
+      for (let y = dy.getStartYear(); y <= dy.getEndYear(); y++) {
+        const yz = toHangul(Solar.fromYmdHms(y, 6, 15, 12, 0, 0).getLunar().getYearInGanZhiByLiChun())[1];
+        const phase = samjaeCalc.phaseOf(yz);
+        if (phase) samjaeYears.push(`${y} ${phase}`);
+      }
+      // 대운 간지가 원국과 새로 맺는 합충형파해 (S-4). 그동안 current 대운만 luckInteractions에 있었다.
+      const interactions = luckVsNatal(`대운 ${ganZhi}`, ganZhi, natalGans, natalZhis);
+      return {
+        startAge: dy.getStartAge(),
+        endAge: dy.getEndAge(),
+        startYear: dy.getStartYear(),
+        endYear: dy.getEndYear(),
+        ganZhi,
+        current: dy.getStartYear() <= nowYear && nowYear <= dy.getEndYear(),
+        tenGod: gan ? tenGodOf(dayGan, gan) : undefined,
+        twelveStage: zhi ? twelveStageOf(dayGan, zhi) : undefined,
+        sibiSinsal: zhi ? sibiSinsalOf(dayZhi, zhi) : undefined,
+        gongmang: zhi ? gongmangZhis.includes(zhi) : undefined,
+        samjae: samjaeYears.length > 0 ? samjaeYears.join(", ") : undefined,
+        favor: hasFavorInput ? luckFavorOf(ganZhi, daYunYong, daYunAvoid) : undefined,
+        interactions: interactions.length > 0 ? interactions : undefined,
+      };
+    });
+
+  // 대운 진행 방향 (S-4): 첫 대운 천간이 월간 다음이면 순행, 이전이면 역행. (양남음녀=순행 규칙의 결과)
+  let daYunDirection: "forward" | "reverse" | undefined;
+  if (daYun.length > 0) {
+    const monthGan = monthP.gan;
+    const firstDaYunGan = daYun[0].ganZhi[0];
+    const mi = GAN_ORDER.indexOf(monthGan);
+    const fi = GAN_ORDER.indexOf(firstDaYunGan);
+    if (mi >= 0 && fi >= 0) {
+      const step = (fi - mi + 10) % 10;
+      daYunDirection = step === 1 ? "forward" : step === 9 ? "reverse" : undefined;
+    }
+  }
+
+  const nowLunar = Solar.fromDate(now).getLunar();
+  const currentDaYun = daYun.find((dy) => dy.current)?.ganZhi ?? null;
+  const yearGanZhi = toHangul(nowLunar.getYearInGanZhiByLiChun());
+  const monthGanZhi = toHangul(nowLunar.getMonthInGanZhi());
+  const dayGanZhi = toHangul(nowLunar.getDayInGanZhi());
 
   const luckInteractions = [
     ...(currentDaYun ? luckVsNatal(`대운 ${currentDaYun}`, currentDaYun, natalGans, natalZhis) : []),
@@ -2096,6 +2118,7 @@ export function computeLuckCycles(
     luckInteractions,
     daYunYearOverlap,
     samjae,
+    daYunDirection,
   };
 }
 

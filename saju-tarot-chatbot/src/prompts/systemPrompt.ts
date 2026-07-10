@@ -583,6 +583,8 @@ function formatTarotDiagnostics(cards: DrawnTarotCard[]): string {
 }
 
 function formatLuckCycles(luck: LuckCycles): string {
+  const favorWord = (f: LuckCycles["daYun"][number]["favor"]) =>
+    f === "boost" ? "보완 방향" : f === "drain" ? "부담 방향" : f === "neutral" ? "중립" : undefined;
   const daYunLines = luck.daYun
     .map((dy) => {
       const extra = [
@@ -591,14 +593,23 @@ function formatLuckCycles(luck: LuckCycles): string {
         dy.sibiSinsal && dy.sibiSinsal !== "?" && `신살 ${dy.sibiSinsal}`,
         dy.gongmang && "공망",
         dy.samjae && `삼재 ${dy.samjae}`,
+        favorWord(dy.favor),
+        dy.interactions && dy.interactions.length > 0 && `원국과 ${dy.interactions.join("·")}`,
       ]
         .filter(Boolean)
         .join(", ");
       return `${dy.startAge}세~${dy.endAge}세 ${dy.ganZhi} (${dy.startYear}~${dy.endYear})${dy.current ? " ← 현재" : ""}${extra ? ` [${extra}]` : ""}`;
     })
     .join(" / ");
+  const directionNote =
+    luck.daYunDirection === "forward"
+      ? " (대운 순행)"
+      : luck.daYunDirection === "reverse"
+        ? " (대운 역행)"
+        : "";
   const lines = [
-    `대운 흐름: ${daYunLines}`,
+    `대운 흐름${directionNote}: ${daYunLines}`,
+    "  → 대운 타임라인의 '보완 방향/부담 방향'과 '원국과 충·합' 표시는 '인생의 큰 흐름' 섹션에서 시기별 강약을 짚는 근거로 써라. 보완 방향 대운은 '힘이 실리는 10년', 부담 방향은 '지키고 다지는 10년', 원국과 충이 있는 대운은 '자리·환경이 한 번 크게 바뀌기 쉬운 구간'으로 쉬운 말로 옮기되, 사주 용어와 공포·단정은 쓰지 마라.",
     `현재 대운: ${luck.currentDaYun ?? "대운 시작 전"}`,
     `세운(올해 ${luck.year}년, 입춘 기준): ${luck.yearGanZhi}`,
     `월운(이번 달 ${luck.month}월, 절기 기준): ${luck.monthGanZhi}`,

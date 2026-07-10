@@ -125,7 +125,9 @@
 - [x] S-3. 상문·조객 세운 연동. `YearFlowInfo.sinsalHits?` 추가, computeLuckCycles 세운 루프에서
       원국 년지 기준 상문(+2)·조객(-2) 판정(원국 위치판정과 별개), formatLuckCycles 태그·공포금지 gloss.
       테스트 3개, 718 그린.
-- [ ] S-4. 대운 심화 (순역·favor·원국 상호작용)
+- [x] S-4. 대운 심화. `LuckCycles.daYunDirection`(양남음녀 순역, 월간↔첫대운 천간 이동으로 판정),
+      `DaYunInfo.favor`(luckFavorOf 재사용), `DaYunInfo.interactions`(각 대운 간지 vs 원국, 그동안 current만
+      있던 것). natal 블록을 대운 매핑 앞으로 이동. formatLuckCycles 타임라인 보강. 테스트 5개, 723 그린.
 - [ ] S-5. 프롬프트 반영 정리 + reading-quality 체크리스트
 - [x] Z-1. iztro horoscope() 스파이크 완료(2.5.8: decadal/yearly = {index=본명궁 인덱스, 간지, mutagen=록권과기
       순 별 4개}, palaces[index].decadal.range=나이구간) + `computeZiweiHoroscope(birth, at)` 래퍼(대한·유년
