@@ -20,35 +20,18 @@
 - **작업 단계:** 재기획(A·B·C + A~C 뒤)은 가격 노출만 남기고 완결. **2026-07-10부터 새 트랙 "엔진
   업그레이드"(사주·자미두수·궁합·타로·점성술 정확도/지식 심화) 진행 중** — 기획안
   [`engine-upgrade-2026-07.md`](./engine-upgrade-2026-07.md), 체크리스트는 아래 "🔮 엔진 업그레이드 트랙".
-  사용자가 "계산 엔진 변경 금지"를 이 트랙에 한해 해제(ADDITIVE ONLY로 진행).
+  사용자가 "계산 엔진 변경 금지"를 이 트랙에 한해 해제(ADDITIVE ONLY로 진행). (참고: main에서 사주 폼·
+  리딩 결과 카드의 "박스 안에 박스" 중첩 CSS 완화가 별도로 완료됨 — 커밋 `5515c69`, 이 병합에 포함.)
 - **지금 진행 중:** 엔진 업그레이드 트랙. **Track 1(사주) 전부 완료: E-0·S-1·S-2a·S-2b·S-3·S-4·S-5**
   + **Track 2 착수: Z-1·Z-2 완료** (커밋 9개, 브랜치 `claude/fortune-reading-accuracy-update-ht4pat`,
-  725/725 그린). **다음: Z-3(자미 성계 조합 KB) → Z-4(운한 배선) → C-1(궁합 교차 타이밍) …** 순서는 기획안 §4.
-- **직전 세션이 한 일 (이번 세션, 2개 단위):**
-  1. **토픽 5종 템플릿 확장 — 후속 질문 채팅**: `TopicDeepChat.tsx`를 전면 재작성해 초기 5섹션 응답
-     이후 최대 5회 후속 질문까지 컴포넌트 로컬 상태로 자체 관리(전역 세션 불변, `useReadingStore`
-     건드리지 않음). 토픽별 추천 후속 질문 칩(`FOLLOW_UP_CHIPS`) + 자유 입력 폼. `BasicReadingSection.tsx`는
-     "어느 토픽이 활성인지"만 관리하도록 단순화(자체 스트리밍 상태 제거, `TopicDeepChat`에 위임).
-     `useEffect`는 `renderToStaticMarkup`에서 실행되지 않아 정적 테스트는 "요청 전 초기 렌더"만 검증
-     가능 — 말풍선 도착·후속 질문 UI는 Playwright로 `/api/reading` 목킹해 5섹션 순차 도착 → 후속 칩
-     클릭 → 사용자/AI 말풍선 → 카운터 감소까지 스크린샷으로 실제 확인함.
-  2. **카드 홈 전면 개편 (시안 ①)**: `src/lib/dailyGreeting.ts` 신규 — 출생정보 없이 "오늘 날짜만"으로
-     일진·절기를 계산(`ganzhiForKstDate`/`kstDateOf` 재사용, 새 계산 로직 아님). lunar-javascript가
-     절기 이름을 한자로만 반환함을 확인(`getPrevJieQi(true).getName()` → "小暑" 등, 라이브러리 내
-     한글 로케일 없음 — I18n 메시지 테이블에 중국어/영어만 존재) → 24절기 한자→한글 변환표
-     (`SOLAR_TERM_KO`)로 보완. `src/types/lunar-javascript.d.ts`에 `getPrevJieQi` 타입 선언 추가
-     (기존엔 없어 타입 에러 발생). `LandingPage.tsx` 전면 재작성: 오늘 인사말 헤더(일진·절기 계산 +
-     절기별 24종 짧은 안내문, 접수처식 멘트 금지) → 오늘의 흐름 무료 카드(`/fortune`) → 토픽 5종
-     그리드(연애/재물/직업/건강/올해, 오행 색상, `/saju`로 연결 — **택일 카드는 계산 엔진이 없어
-     의도적으로 제외**, 기존 결정 유지) → 깊게 보기 3종(평생사주 리포트·나 해부 리포트·고민상담
-     리딩, 기존 라우트 재사용: `/saju`의 고급 깊이/완전분석 토글, `/combo` — **새 직접진입 라우팅은
-     만들지 않고 폼 안내 문구로 대체**, 가격 숫자 없음) → 관계 2종(정밀 궁합·상대 해부, `/compatibility`)
-     → 하단 이름 감정·작명 링크. 테스트 신규 9개(dailyGreeting 3 + LandingPage 6), **전체 693/693
-     통과**, `tsc --noEmit` 클린, `npm run build` 성공. Playwright로 실제 홈 화면 스크린샷 확인(한지
-     팔레트·오행 색상·그라데이션 없음·가격 노출 없음 확인) + "오늘의 흐름" 카드 클릭 → `/fortune`
-     실제 이동 확인.
-- **다음에 할 일:** §11 "A~C 뒤"의 가격 노출은 **사용자 지시로 이번 스코프 제외**(다시 묻지 말 것,
-  단 향후 사용자가 명시적으로 요청하면 진행). 그 외 남은 건 아래 누적 실생성 검증뿐.
+  725/725 그린, main 병합·푸시 완료). **다음: Z-3(자미 성계 조합 KB) → Z-4(운한 배선) → C-1(궁합 교차
+  타이밍) …** 순서는 기획안 §4.
+- **직전 세션이 한 일:** 엔진 업그레이드 Track 1(사주) 전부 + Track 2 착수(자미두수 운한). 상세는
+  아래 "🔮 엔진 업그레이드 트랙" 체크리스트와 세션 로그 참조. 사주는 4대 고전 심화 필드를 기본 리딩
+  경로에 노출→심화 판단 규칙 4종→golden 확장, 상문·조객 세운 연동, 대운 순역·용신방향·원국 상호작용
+  추가, 프롬프트 반영 검증까지. 자미두수는 iztro `horoscope()`로 대한·유년 계산·해석 레이어 신설.
+- **다음에 할 일:** Z-3(자미 동궁 성계 조합 KB ~50엔트리)부터. 재기획(§11)의 가격 노출은 **사용자
+  지시로 스코프 제외**(다시 묻지 말 것). 그 외 남은 건 아래 누적 실생성 검증뿐.
   **누적 미해결(API 키 필요):** A-2 토픽 심화 5종·B-1 평생사주 밀도·B-2 상대 해부 밀도·이번 세션의
   후속 질문 채팅 — 전부 프롬프트 텍스트/파이프라인은 테스트로 검증됐지만, 실제 Haiku/Sonnet 생성물을
   육안으로 본 적은 없다(`ANTHROPIC_API_KEY`가 이 환경에 없음). API 키 있는 환경에서
@@ -171,8 +154,9 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
-| 2026-07-10 | Fable 5 / Opus 4.8 | **엔진 업그레이드 Track 1(사주) 완료 + Track 2 착수 — S-3·S-4·S-5(커밋 3개).** S-3 상문·조객 세운 연동(`YearFlowInfo.sinsalHits`), S-4 대운 심화(`daYunDirection` 순역·`DaYunInfo.favor`·대운별 `interactions`, natal 블록 이동), S-5 프롬프트 반영 검증(심화 근거가 기본 JudgmentPack·고급 raw 양쪽에 실리고 공포금지 gloss 부착 확인, reading.test 2개+검증문서). 725/725, tsc/build 클린 | Z-3(자미 성계 조합 KB)→Z-4(운한 배선)→C-1(궁합 교차 타이밍) |
+| 2026-07-10 | Fable 5 / Opus 4.8 | **엔진 업그레이드 Track 1(사주) 완료 + Track 2 착수 — S-3·S-4·S-5(커밋 3개).** S-3 상문·조객 세운 연동(`YearFlowInfo.sinsalHits`), S-4 대운 심화(`daYunDirection` 순역·`DaYunInfo.favor`·대운별 `interactions`, natal 블록 이동), S-5 프롬프트 반영 검증(심화 근거가 기본 JudgmentPack·고급 raw 양쪽에 실리고 공포금지 gloss 부착 확인, reading.test 2개+검증문서). 725/725, tsc/build 클린. 이후 main 병합·푸시 | Z-3(자미 성계 조합 KB)→Z-4(운한 배선)→C-1(궁합 교차 타이밍) |
 | 2026-07-10 | Fable 5 / Opus 4.8 | **엔진 업그레이드 트랙 착수 — E-0·S-1·S-2a·S-2b·Z-1·Z-2 완료(커밋 6개).** 기획안 신규(`engine-upgrade-2026-07.md`, 22항목·모델 권장). 사주: CompactEvidence에 4대 고전 심화 필드(격국classic·십성분포·궁통보감조후·핵심신살) 노출→ruleEngine 심화 규칙 4종(structure.solid/broken·climate.unmet·tengod.skew)+JudgmentCode 4개→golden 21→26(심화 회귀+네거티브). 자미: iztro horoscope() 스파이크+`computeZiweiHoroscope`(대한·유년, ziweiHoroscope.test 잠금)+`deriveZiweiLuckVerdicts`(운한 명궁 무대+사화 도메인 가감). 715/715, tsc/build 클린 | S-3(상문·조객 세운 연동)→S-4(대운 심화)→S-5→Z-3→Z-4 |
+| 2026-07-10 | Sonnet 5 | **입력 폼·리딩 결과 카드 중첩 완화(사용자 스크린샷 신고).** `/saju` 폼의 "선택 설정"/"분야·말투·해석 깊이"(`.consultation-panel`, `BirthInfoForm`/`ContextPicker`/`TarotSpreadPicker`/`ComboPage` 공유)를 박스→상단 구분선으로, 리딩 결과 섹션 카드 내부 `[한 줄 결론]` 등 하위 파트(`.reading-part`, `readingBlocks.tsx`)를 박스→점선 구분선으로 CSS만 변경(구조·계산·색감 불변). 손볼 범위는 AskUserQuestion으로 "가볍게 CSS만" 확인 후 진행. 693/693 통과, build 성공, 커밋 `5515c69`, main에 fast-forward 병합·푸시(`19fe62c`) | (이후 엔진 업그레이드 트랙이 이 위에서 이어짐) |
 | 2026-07-10 | Sonnet 5 | **카드 홈 전면 개편(시안 ①) — §11 "A~C 뒤" 항목 완료.** `dailyGreeting.ts` 신규(출생정보 없이 일진·절기 계산, lunar-javascript 한자 절기명을 24종 한글 변환표로 보완, 타입 선언에 `getPrevJieQi` 추가), `LandingPage.tsx` 전면 재작성(인사말/오늘의 흐름/토픽5/깊게보기3/관계2, 택일·가격 제외), 테스트 9개, 693/693 통과, Playwright로 실제 홈 화면·라우팅 확인 | 가격 노출은 사용자 지시로 스코프 제외(다시 묻지 말 것), 남은 건 실생성 육안 검증뿐 |
 | 2026-07-10 | Sonnet 5 | **토픽 5종 템플릿 확장 — 후속 질문 채팅.** `TopicDeepChat.tsx` 전면 재작성(초기 5섹션 후 최대 5회 후속 질문을 컴포넌트 로컬 상태로 자체 관리, 전역 세션 비파괴), 토픽별 추천 칩+자유 입력, `BasicReadingSection.tsx` 단순화, Playwright로 5섹션 도착→후속 칩 클릭→말풍선→카운터 감소 전 과정 확인 | 카드 홈 전면 개편(시안 ①) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | **B-3 완료 — A·B·C 트랙 전부 완료.** `ReportProgress.tsx`(시안 ③) + `readingProgress.ts` depth 버그 수정(advanced total 11→14) + 섹션 앵커 보강 + 회귀 1건 발견·수정, 테스트 12개, 688/688 통과, Playwright로 API 지연시켜 실제 로딩 화면·print 숨김 확인 | §11 "A~C 뒤" 항목 착수 여부 확인 필요, 실생성 육안 검증 누적 |
