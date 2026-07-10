@@ -36,7 +36,9 @@
     `ReadingResult`를 `renderToStaticMarkup`해 임시 정적 HTML을 만들고(`public/`에 임시로 썼다가 작업
     후 삭제, 커밋 안 됨) Playwright로 전/후 스크린샷을 비교해 실제로 박스가 사라진 것을 눈으로 확인.
     폼 페이지도 Playwright로 전/후 스크린샷 비교 확인. 테스트 693/693 통과, `npm run build` 성공.
-    커밋 `5515c69`, 브랜치 `claude/nested-layout-issues-lihrfm`에 푸시 완료.
+    커밋 `5515c69`, 브랜치 `claude/nested-layout-issues-lihrfm`에 푸시 완료. 사용자가 "메인에 올려줘"
+    요청 → `main`이 이 브랜치의 바로 이전 지점이라 fast-forward만으로 병합 가능함을 확인하고
+    `git merge --ff-only`로 병합 후 `main`에 푸시 완료(새 머지 커밋 없이 `19fe62c`가 `main` HEAD).
 - **다음에 할 일:** §11 "A~C 뒤"의 가격 노출은 **사용자 지시로 이번 스코프 제외**(다시 묻지 말 것,
   단 향후 사용자가 명시적으로 요청하면 진행). 이번 중첩 CSS 정리는 완료됐고 후속 작업 없음. 그 외
   남은 건 아래 누적 실생성 검증뿐.
@@ -114,7 +116,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
-| 2026-07-10 | Sonnet 5 | **입력 폼·리딩 결과 카드 중첩 완화(사용자 스크린샷 신고).** `/saju` 폼의 "선택 설정"/"분야·말투·해석 깊이"(`.consultation-panel`, `BirthInfoForm`/`ContextPicker`/`TarotSpreadPicker`/`ComboPage` 공유)를 박스→상단 구분선으로, 리딩 결과 섹션 카드 내부 `[한 줄 결론]` 등 하위 파트(`.reading-part`, `readingBlocks.tsx`)를 박스→점선 구분선으로 CSS만 변경(구조·계산·색감 불변). 손볼 범위는 AskUserQuestion으로 "가볍게 CSS만" 확인 후 진행. API 키 없어 `ReadingResult.test.tsx`와 같은 방식으로 `computeSajuChart`/`computeLuckCycles`를 직접 호출해 정적 HTML을 만들고 Playwright로 전/후 스크린샷 비교해 실제로 박스가 사라졌는지 확인(임시 파일은 커밋 안 됨). 693/693 통과, build 성공, 커밋 `5515c69` 푸시 완료 | 없음 — 이번 요청은 완결. §11은 가격 노출만 사용자 지시로 스코프 제외 상태 유지 |
+| 2026-07-10 | Sonnet 5 | **입력 폼·리딩 결과 카드 중첩 완화(사용자 스크린샷 신고).** `/saju` 폼의 "선택 설정"/"분야·말투·해석 깊이"(`.consultation-panel`, `BirthInfoForm`/`ContextPicker`/`TarotSpreadPicker`/`ComboPage` 공유)를 박스→상단 구분선으로, 리딩 결과 섹션 카드 내부 `[한 줄 결론]` 등 하위 파트(`.reading-part`, `readingBlocks.tsx`)를 박스→점선 구분선으로 CSS만 변경(구조·계산·색감 불변). 손볼 범위는 AskUserQuestion으로 "가볍게 CSS만" 확인 후 진행. API 키 없어 `ReadingResult.test.tsx`와 같은 방식으로 `computeSajuChart`/`computeLuckCycles`를 직접 호출해 정적 HTML을 만들고 Playwright로 전/후 스크린샷 비교해 실제로 박스가 사라졌는지 확인(임시 파일은 커밋 안 됨). 693/693 통과, build 성공, 커밋 `5515c69` 푸시 완료. 이후 사용자 요청으로 `main`에 fast-forward 병합·푸시(`19fe62c`) | 없음 — 이번 요청은 완결. §11은 가격 노출만 사용자 지시로 스코프 제외 상태 유지 |
 | 2026-07-10 | Sonnet 5 | **카드 홈 전면 개편(시안 ①) — §11 "A~C 뒤" 항목 완료.** `dailyGreeting.ts` 신규(출생정보 없이 일진·절기 계산, lunar-javascript 한자 절기명을 24종 한글 변환표로 보완, 타입 선언에 `getPrevJieQi` 추가), `LandingPage.tsx` 전면 재작성(인사말/오늘의 흐름/토픽5/깊게보기3/관계2, 택일·가격 제외), 테스트 9개, 693/693 통과, Playwright로 실제 홈 화면·라우팅 확인 | 가격 노출은 사용자 지시로 스코프 제외(다시 묻지 말 것), 남은 건 실생성 육안 검증뿐 |
 | 2026-07-10 | Sonnet 5 | **토픽 5종 템플릿 확장 — 후속 질문 채팅.** `TopicDeepChat.tsx` 전면 재작성(초기 5섹션 후 최대 5회 후속 질문을 컴포넌트 로컬 상태로 자체 관리, 전역 세션 비파괴), 토픽별 추천 칩+자유 입력, `BasicReadingSection.tsx` 단순화, Playwright로 5섹션 도착→후속 칩 클릭→말풍선→카운터 감소 전 과정 확인 | 카드 홈 전면 개편(시안 ①) 착수, 사용자 지시로 연속 진행 중 |
 | 2026-07-09 | Sonnet 5 | **B-3 완료 — A·B·C 트랙 전부 완료.** `ReportProgress.tsx`(시안 ③) + `readingProgress.ts` depth 버그 수정(advanced total 11→14) + 섹션 앵커 보강 + 회귀 1건 발견·수정, 테스트 12개, 688/688 통과, Playwright로 API 지연시켜 실제 로딩 화면·print 숨김 확인 | §11 "A~C 뒤" 항목 착수 여부 확인 필요, 실생성 육안 검증 누적 |
