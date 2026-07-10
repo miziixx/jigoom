@@ -43,3 +43,22 @@ describe("마이너 심화 KB — 완드·컵 28장 (T-3a)", () => {
     }
   });
 });
+
+describe("마이너 심화 KB — 마이너 56장 전수 완결성 (T-3b)", () => {
+  it("MINOR_DEPTH가 마이너 56장 id(22~77)와 정확히 일치한다 (허수·누락 0)", () => {
+    const deckMinorIds = new Set(MINOR_CARDS.map((c) => c.id));
+    const kbIds = new Set(Object.keys(MINOR_DEPTH).map(Number));
+    expect(kbIds).toEqual(deckMinorIds);
+    expect(MINOR_CARDS).toHaveLength(56);
+    expect(Object.keys(MINOR_DEPTH)).toHaveLength(56);
+  });
+
+  it("덱의 모든 마이너 카드가 describeMinorDepth로 매핑되고, 코트도 포함한다", () => {
+    for (const card of MINOR_CARDS) {
+      expect(describeMinorDepth(card), card.name).not.toBeNull();
+    }
+    // 코트 카드(예: King of Pentacles id 77)도 심화가 있다
+    const king = MINOR_CARDS.find((c) => c.id === 77)!;
+    expect(describeMinorDepth(king)).not.toBeNull();
+  });
+});

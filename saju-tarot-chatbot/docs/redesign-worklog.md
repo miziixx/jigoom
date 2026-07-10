@@ -22,19 +22,19 @@
   [`engine-upgrade-2026-07.md`](./engine-upgrade-2026-07.md), 체크리스트는 아래 "🔮 엔진 업그레이드 트랙".
   사용자가 "계산 엔진 변경 금지"를 이 트랙에 한해 해제(ADDITIVE ONLY로 진행). (참고: main에서 사주 폼·
   리딩 결과 카드의 "박스 안에 박스" 중첩 CSS 완화가 별도로 완료됨 — 커밋 `5515c69`, 이 병합에 포함.)
-- **지금 진행 중:** 엔진 업그레이드 트랙. **Track 1~4 + 검증(V-1·V-2) + 점성술(A-1) 완료: …·T-1·T-2·A-1.**
-  남은 항목은 **T-3a/b(타로 마이너 56장 심화)** 뿐(그 뒤 잠금 예외 C-3·V-3은 피드백 후 보류). (작업 브랜치
-  `claude/fortune-reading-engine-upgrade-ik50ji` — main·ht4pat 동일 지점에서 이어받아 T-2까지 main 병합·푸시
-  완료, A-1은 브랜치 커밋 후 main 예정, 776/776 그린). 순서는 기획안 §4.
-- **직전 세션이 한 일:** …·T-2·A-1. A-1(점성술 Phase A): 전체 프로파일 evidence 전달·gloss KB는 봇 경로에
-  기구현 확인(`buildAstrologyEvidenceText`+`astrologyInterpretation.ts`), 추가로 ① `placementHint`에 고전 품위
-  인라인 결합(도미사일/폴 등을 배치 힌트에 바로), ② KB↔엔진 교차검증 audit(NAKSHATRA_GLOSS=엔진 NAKSHATRAS
-  27·HOUSE_THEME 1~12·DIGNITY 5·모든 산출 행성 role), ③ 검수 덤프 `docs/validation/astrology-gloss-kb.md`.
-  C/D(외행성 앵글·트랜짓·나밤샤·차트휠 viz)는 astrology_upgrade_plan 문서로 복귀. 점수·계산 불변. 776 그린.
-- **다음에 할 일:** T-3b(마이너 심화 2/2 — 소드 50~63·펜타클 64~77 28장을 `src/data/tarotMinorDepth.ts`에
-  추가 + 56장 완결성 테스트로 MINOR_DEPTH=마이너 전수 잠금, 🧠)부터. T-3a에서 완드·컵 28장·배선·accessor는
-  완료됨. T-3b 이후 엔진 업그레이드 신규 항목은 없음(잠금 예외 C-3·V-3만 피드백 후 보류). 재기획(§11) 가격
-  노출은 **스코프 제외**.
+- **지금 진행 중:** 엔진 업그레이드 트랙 — **신규 구현 항목 전부 완료.** E-0·S-1·S-2a·S-2b·S-3·S-4·S-5·
+  Z-1·Z-2·Z-3·Z-4·C-1·C-2·V-1·V-2·T-1·T-2·A-1·T-3a·T-3b (커밋 다수, 782/782 그린, 전부 main 병합·푸시).
+  **남은 것은 잠금 예외 2개(C-3 궁합 점수 캘리브레이션·V-3 rule weight 캘리브레이션)뿐 — 둘 다 "실사용
+  피드백 후" 착수 조건이라 지금은 보류.** 그 외 누적된 건 아래 실생성(LLM) 육안 검증(API 키 필요)뿐.
+  작업 브랜치 `claude/fortune-reading-engine-upgrade-ik50ji` = main = ht4pat 동일 지점.
+- **직전 세션이 한 일:** …·A-1·T-3a·T-3b. T-3a/b: 타로 마이너 56장 개별 심화 `src/data/tarotMinorDepth.ts`
+  (MINOR_DEPTH: 카드 id→{scene·shadow·advice}, 완드·컵 28 + 소드·펜타클 28 = 56장, 웨이트 통설·참고용) +
+  `describeMinorDepth`, `formatTarotCards` 프롬프트·TarotFactsPanel UI 배선. 56장 전수 완결성 audit + 검수 덤프
+  `docs/validation/tarot-minor-depth-table.md`. A-1은 점성술 Phase A(품위 인라인·KB 교차검증·덤프). 점수·계산 불변.
+- **다음에 할 일:** 엔진 업그레이드 신규 항목 없음. 남은 **C-3·V-3은 실사용 피드백을 받은 뒤** 착수(잠금 예외라
+  전후 분포·매치율 기록 필수). 그 전까지 우선순위: **누적 실생성 육안 검증**(A-2 토픽 심화·B-1/B-2 밀도·엔진
+  업그레이드 각 항목의 실제 Haiku/Sonnet 생성물)을 `ANTHROPIC_API_KEY` 있는 환경에서
+  `docs/validation/reading-quality-validation.md` 절차로 확인. 재기획(§11) 가격 노출은 **스코프 제외**.
   **누적 미해결(API 키 필요):** A-2 토픽 심화 5종·B-1 평생사주 밀도·B-2 상대 해부 밀도·이번 세션의
   후속 질문 채팅 — 전부 프롬프트 텍스트/파이프라인은 테스트로 검증됐지만, 실제 Haiku/Sonnet 생성물을
   육안으로 본 적은 없다(`ANTHROPIC_API_KEY`가 이 환경에 없음). API 키 있는 환경에서
@@ -162,7 +162,9 @@
 - [x] T-3a. 마이너 심화 1/2 — 완드·컵 28장 🧠. `src/data/tarotMinorDepth.ts`(MINOR_DEPTH id 22~49, scene/
       shadow/advice) + `describeMinorDepth`, `formatTarotCards` 프롬프트·TarotFactsPanel UI 배선. audit(안전성
       +완드컵 28 매핑). 점수·계산 불변. 780 그린.
-- [ ] T-3b. 마이너 심화 2/2 — 소드·펜타클 28장 + 56장 완결성 테스트 🧠
+- [x] T-3b. 마이너 심화 2/2 — 소드·펜타클 28장 + 56장 완결성 테스트 🧠. `MINOR_DEPTH`에 소드(50~63)·펜타클
+      (64~77) 추가 → 마이너 56장 완비. 전수 완결성 테스트(MINOR_DEPTH=덱 마이너 id 정확 일치·코트 포함),
+      검수 덤프 `docs/validation/tarot-minor-depth-table.md`. 점수·계산 불변. 782 그린.
 - [ ] V-3. rule weight 캘리브레이션 (잠금 예외 ②, 피드백 후)
 - [ ] C-3. 궁합 점수 캘리브레이션 (잠금 예외 ②, 피드백 후)
 - 보류: C-4 자미 synastry, 사화비성, astrology Phase C/D
@@ -186,6 +188,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-10 | Opus 4.8 | **엔진 업그레이드 T-3b — 타로 마이너 심화 2/2(소드·펜타클 28장), 마이너 56장 완비 → 엔진 업그레이드 신규 항목 전부 완료.** `MINOR_DEPTH`에 소드(50~63)·펜타클(64~77) 추가로 마이너 56장 scene/shadow/advice 완비. 56장 전수 완결성 테스트(MINOR_DEPTH=덱 마이너 id 22~77 정확 일치·허수/누락 0·코트 포함) 2개, 검수 덤프 `docs/validation/tarot-minor-depth-table.md`(56장 표). 점수·계산 불변. 782/782, tsc/build 클린. 남은 것은 잠금 예외 C-3·V-3(피드백 후)뿐 | (피드백 후) C-3·V-3 캘리브레이션 / 그 전엔 실생성 육안 검증 |
 | 2026-07-10 | Opus 4.8 | **엔진 업그레이드 T-3a — 타로 마이너 심화 1/2(완드·컵 28장).** `src/data/tarotMinorDepth.ts` 신설(MINOR_DEPTH: 카드 id→{scene 현실장면·shadow 그늘·advice 조언}, 완드 22~35+컵 36~49 = 28장, 웨이트 통설·참고용) + `describeMinorDepth`(tarotSymbolism, 마이너만). `formatTarotCards` 프롬프트에 현실 장면·그늘·조언 라인, TarotFactsPanel에 장면 라인 배선. audit(scene/shadow/advice 비지않음·공포금지·메이저 null·완드컵 28 전수 매핑) 테스트 4개. 점수·계산 불변. 780/780, tsc/build 클린 | T-3b(소드·펜타클 28 + 56장 완결성) |
 | 2026-07-10 | Opus 4.8 | **엔진 업그레이드 A-1 — 점성술 Phase A 편입·강화.** 전체 프로파일 evidence 전달·gloss KB(PLANET_ROLE·SIGN_STYLE·HOUSE_THEME·ASPECT_GLOSS·DIGNITY_GLOSS·NAKSHATRA_GLOSS)는 봇 경로(`buildAstrologyEvidenceText`+`astrologyInterpretation.ts`)에 기구현 확인. A-1 추가: ① `placementHint`가 고전 품위(도미사일/엑잘/디트리먼트/폴)를 배치 힌트에 인라인 결합(별도 dignities 목록 유지), ② KB↔엔진 교차검증 audit 5종(NAKSHATRA_GLOSS=엔진 NAKSHATRAS 27 정확 일치·HOUSE_THEME 1~12·DIGNITY 5상태·계산 프로파일 모든 행성 PLANET_ROLE·품위 인라인 실림), ③ 검수 덤프 `docs/validation/astrology-gloss-kb.md`. NAKSHATRAS export. C/D(외행성 앵글·트랜짓·나밤샤·차트휠)는 astrology_upgrade_plan 복귀. 점수·계산 불변. 776/776, tsc/build 클린 | T-3a/b(타로 마이너 56장 심화 🧠) |
 | 2026-07-10 | Opus 4.8 | **엔진 업그레이드 T-2 — 타로 카드 조합 KB 51종.** `src/data/tarotCombos.ts` 신설(카드 id 쌍→조합 신호 51개, 관계·전환·회복·시작·갈등·판단·코트 카테고리, 라이더-웨이트 통설·참고용) + `detectCardCombos()`(뽑힌 카드들 안 실존 쌍 감지, 정·역 무관·자리순 결정론). `formatTarotDiagnostics`에 '카드 조합 신호(참고용)' 라인 + TarotFactsPanel 조합 리스트 UI 배선. 완결성 audit(모든 조합 실존 카드 0~77·서로 다름·오름차순·중복 0 + 감지기 있는쌍/없는쌍/복수/단일 + 서술 안전성) 테스트 9개, 검수 덤프 `docs/validation/tarot-combos-table.md`. 점수·계산 불변(설명 텍스트 전용). 771/771, tsc/build 클린 | A-1(점성술 Phase A 🧠) → T-3a/b(마이너 심화) |
