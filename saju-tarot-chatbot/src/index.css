@@ -924,6 +924,24 @@ label {
   line-height: 1.4;
 }
 
+.tarot-facts__combos {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tarot-facts__combos li {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.tarot-facts__combos b {
+  color: var(--text);
+}
+
 .tarot-evidence-card b {
   display: block;
   margin: 5px 0;

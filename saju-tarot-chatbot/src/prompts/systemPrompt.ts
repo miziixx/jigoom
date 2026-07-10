@@ -22,6 +22,7 @@ import { buildCapacityAxes, formatCapacityAxes } from "../lib/capacityAxis.js";
 import { buildDeliberation, formatDeliberation } from "../lib/deliberation.js";
 import { buildSelfDeepEvidence } from "../lib/selfDeep.js";
 import { describeCourtPersona, describeElementalDignities, describeTarotSymbolism, tarotSuitOf } from "../lib/tarotSymbolism.js";
+import { detectCardCombos } from "../data/tarotCombos.js";
 
 /**
  * 리딩 엔진 시스템 프롬프트.
@@ -575,6 +576,11 @@ function formatTarotCards(cards: DrawnTarotCard[]): string {
     .join("\n");
 }
 
+/** "The Lovers (연인)" → "연인"; 없으면 영문명 그대로 */
+function koTarotName(card: DrawnTarotCard["card"]): string {
+  return card.name.match(/\((.+)\)/)?.[1] ?? card.name;
+}
+
 function formatTarotDiagnostics(cards: DrawnTarotCard[]): string {
   const upright = cards.filter((c) => !c.reversed).length;
   const reversed = cards.length - upright;
@@ -589,6 +595,14 @@ function formatTarotDiagnostics(cards: DrawnTarotCard[]): string {
     .map(([suit, count]) => `${suit} ${count}장`);
   const first = cards[0];
   const last = cards[cards.length - 1];
+  // T-2: 전통 카드 조합 신호 (참고용). 뽑힌 카드 안에 존재하는 쌍만.
+  const combos = detectCardCombos(cards);
+  const comboLine =
+    combos.length > 0
+      ? `카드 조합 신호(참고용): ${combos
+          .map((c) => `${koTarotName(c.a.card)}+${koTarotName(c.b.card)} — ${c.entry.signal}`)
+          .join(" / ")}`
+      : "";
   return [
     `정/역 비율: 정방향 ${upright}장 / 역방향 ${reversed}장`,
     `메이저 비율: ${major}장 / 전체 ${cards.length}장`,
@@ -596,6 +610,7 @@ function formatTarotDiagnostics(cards: DrawnTarotCard[]): string {
     first && last
       ? `흐름 축: 시작/핵심 ${first.card.name}(${first.reversed ? "역" : "정"}) → 마지막/조언 ${last.card.name}(${last.reversed ? "역" : "정"})`
       : "",
+    comboLine,
   ]
     .filter(Boolean)
     .join("\n");

@@ -7,8 +7,14 @@ import {
   type DignityRelation,
   type TarotElement,
 } from "../lib/tarotSymbolism";
-import type { DrawnTarotCard } from "../types";
+import { detectCardCombos } from "../data/tarotCombos";
+import type { DrawnTarotCard, TarotCardDefinition } from "../types";
 import TarotCardArt, { tarotSuitKeyOf } from "./viz/TarotCardArt";
+
+/** "The Lovers (연인)" → "연인" */
+function koName(card: TarotCardDefinition): string {
+  return card.name.match(/\((.+)\)/)?.[1] ?? card.name;
+}
 
 interface Props {
   cards: DrawnTarotCard[];
@@ -78,6 +84,9 @@ export default function TarotFactsPanel({ cards }: Props) {
   const upright = cards.filter((c) => !c.reversed).length;
   const reversed = cards.length - upright;
   const major = cards.filter((c) => c.card.arcana === "major").length;
+
+  // T-2: 전통 카드 조합 신호 (참고용)
+  const combos = detectCardCombos(cards);
 
   // 원소 분포
   const counts = new Map<TarotElement, number>();
@@ -178,6 +187,16 @@ export default function TarotFactsPanel({ cards }: Props) {
               <>빠진 에너지 <b>{missing.map((el) => `${el}(${ELEMENT_GLOSS[el]})`).join(", ")}</b> — 지금 놓치기 쉬운 영역.</>
             )}
           </p>
+        )}
+
+        {combos.length > 0 && (
+          <ul className="tarot-facts__combos">
+            {combos.map((c, i) => (
+              <li key={i}>
+                <b>{koName(c.a.card)} + {koName(c.b.card)}</b> — {c.entry.signal}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
