@@ -1,5 +1,5 @@
-import type { EventForecast, EventScenario, Gender, LuckCycles, SajuChart } from "../types/index.js";
-import { buildEventForecast } from "./eventEngine.js";
+import type { EventForecast, EventScenario, Gender, LuckCycles, SajuChart, SinsalHit } from "../types/index.js";
+import { buildEventForecast, groupOf, type TenGodGroup } from "./eventEngine.js";
 
 type FiveElementKey = keyof SajuChart["fiveElements"];
 
@@ -13,6 +13,41 @@ export interface CompactDomainScore {
   risk: number;
   summary: string;
   evidenceIds: string[];
+}
+
+/** 자평진전 격국 심화 요약 (chart.gyeokguk / gyeokguk.classic 읽기 전용 압축) */
+export interface CompactStructure {
+  name: string;
+  status?: string;
+  /** 상신: 격을 완성시키는 핵심 십성. 예: "정관(금) — 원국에 있음" */
+  sangshin?: string;
+  /** 성격 패턴 이름 (예: "식신생재(食神生財)") */
+  pattern?: string;
+  /** 파격 요인 이름 목록 (예: "상관견관(傷官見官)") */
+  failures: string[];
+  /** 종격 이름 (일반격이면 없음) */
+  jonggyeok?: string;
+  established?: "성격" | "파격" | "미형성";
+  note: string;
+}
+
+/** 연해자평 십성 세기 분포 요약 (chart.tenGodDistribution 그룹 집계) */
+export interface CompactTenGodProfile {
+  groups: Record<TenGodGroup, number>;
+  /** 가장 강한 그룹(들) */
+  dominant: TenGodGroup[];
+  /** 원국(지장간 포함)에 아예 없는 그룹(들) */
+  missing: TenGodGroup[];
+}
+
+/** 궁통보감 조후 요약 (chart.yongshin.climaticClassic 읽기 전용 압축) */
+export interface CompactClimateClassic {
+  /** 우선순위 조후 천간 (예: ["계","정"]) */
+  priorityStems: string[];
+  primaryElement: string;
+  satisfied: boolean;
+  missingStems: string[];
+  note: string;
 }
 
 export interface CompactEvidence {
@@ -36,6 +71,16 @@ export interface CompactEvidence {
   domainScores: CompactDomainScore[];
   riskFlags: string[];
   evidenceIds: Record<string, string>;
+  /**
+   * 이하 4대 고전 심화 필드 (엔진 업그레이드 S-1, docs/engine-upgrade-2026-07.md).
+   * chart의 기존 계산값을 읽기 전용으로 압축해 노출만 한다 — evidenceIds/ruleEngine에는
+   * 의도적으로 연결하지 않음(JudgmentPack·golden 케이스 불변, 룰 연결은 S-2에서).
+   */
+  structure?: CompactStructure;
+  tenGodProfile?: CompactTenGodProfile;
+  climateClassic?: CompactClimateClassic;
+  /** 핵심 신살 최대 6개 (중요도 순) */
+  sinsalTop?: SinsalHit[];
 }
 
 const ELEMENT_LABEL: Record<FiveElementKey, string> = {
@@ -131,6 +176,70 @@ function riskFlags(chart: SajuChart, forecast: EventForecast | null, luck?: Luck
   return Array.from(new Set(flags)).slice(0, 5);
 }
 
+function buildStructure(chart: SajuChart): CompactStructure | undefined {
+  const gyeokguk = chart.gyeokguk;
+  if (!gyeokguk) return undefined;
+  const classic = gyeokguk.classic;
+  return {
+    name: gyeokguk.name,
+    status: gyeokguk.status,
+    sangshin: classic?.sangshin
+      ? `${classic.sangshin.tenGod}(${classic.sangshin.element}) — ${classic.sangshin.present ? "원국에 있음" : "원국에 뚜렷하지 않음"}`
+      : undefined,
+    pattern: classic?.pattern,
+    failures: classic?.failures.map((f) => f.name) ?? [],
+    jonggyeok: classic?.jonggyeok?.name,
+    established: classic?.established,
+    note: classic?.note ?? gyeokguk.gloss,
+  };
+}
+
+function buildTenGodProfile(chart: SajuChart): CompactTenGodProfile | undefined {
+  const dist = chart.tenGodDistribution;
+  if (!dist || Object.keys(dist).length === 0) return undefined;
+  const groups: Record<TenGodGroup, number> = { 비겁: 0, 식상: 0, 재성: 0, 관성: 0, 인성: 0 };
+  for (const [tenGod, value] of Object.entries(dist)) {
+    const group = groupOf(tenGod);
+    if (group) groups[group] += value;
+  }
+  for (const key of Object.keys(groups) as TenGodGroup[]) groups[key] = Math.round(groups[key] * 100) / 100;
+  const entries = Object.entries(groups) as Array<[TenGodGroup, number]>;
+  const max = Math.max(...entries.map(([, value]) => value));
+  return {
+    groups,
+    dominant: max > 0 ? entries.filter(([, value]) => value === max).map(([key]) => key) : [],
+    missing: entries.filter(([, value]) => value === 0).map(([key]) => key),
+  };
+}
+
+function buildClimateClassic(chart: SajuChart): CompactClimateClassic | undefined {
+  const classic = chart.yongshin?.climaticClassic;
+  if (!classic) return undefined;
+  return {
+    priorityStems: classic.priorityStems,
+    primaryElement: classic.primaryElement,
+    satisfied: classic.satisfied,
+    missingStems: classic.missingStems,
+    note: classic.note,
+  };
+}
+
+/** 기본 리딩에서 우선 언급할 가치가 큰 신살 순서 (앞일수록 중요) */
+const KEY_SINSAL_ORDER = [
+  "천을귀인", "괴강", "백호", "양인", "역마", "도화", "화개",
+  "원진", "귀문", "문창", "천덕", "월덕", "고신", "과숙",
+];
+
+function buildSinsalTop(chart: SajuChart, limit = 6): SinsalHit[] | undefined {
+  const hits = chart.sinsal;
+  if (!hits || hits.length === 0) return undefined;
+  const rank = (hit: SinsalHit) => {
+    const idx = KEY_SINSAL_ORDER.findIndex((name) => hit.name.includes(name));
+    return idx === -1 ? KEY_SINSAL_ORDER.length : idx;
+  };
+  return [...hits].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
+}
+
 export function buildCompactEvidence(chart: SajuChart, luck?: LuckCycles, gender?: Gender): CompactEvidence {
   const forecast = buildEventForecast(chart, luck, gender);
   const ids = evidenceMap(chart, luck);
@@ -152,6 +261,10 @@ export function buildCompactEvidence(chart: SajuChart, luck?: LuckCycles, gender
     domainScores: domainScores(forecast, ids),
     riskFlags: riskFlags(chart, forecast, luck),
     evidenceIds: ids,
+    structure: buildStructure(chart),
+    tenGodProfile: buildTenGodProfile(chart),
+    climateClassic: buildClimateClassic(chart),
+    sinsalTop: buildSinsalTop(chart),
   };
 }
 

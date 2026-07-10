@@ -27,6 +27,43 @@ describe("compactEvidence", () => {
     expect(Object.keys(evidence.evidenceIds)).toContain("current_luck");
   });
 
+  it("4대 고전 심화 필드를 노출하되 evidenceIds에는 연결하지 않는다 (엔진 업그레이드 S-1)", () => {
+    const chart = computeSajuChart(birth);
+    const luck = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
+    const evidence = buildCompactEvidence(chart, luck, birth.gender);
+
+    // 격국 심화: 기존 계산값의 읽기 전용 압축
+    expect(evidence.structure?.name).toBe(chart.gyeokguk?.name);
+    expect(evidence.structure?.established).toBe(chart.gyeokguk?.classic?.established);
+    expect(evidence.structure?.failures).toEqual(chart.gyeokguk?.classic?.failures.map((f) => f.name) ?? []);
+
+    // 십성 그룹 분포: 5그룹 전부 + 합계 > 0
+    expect(evidence.tenGodProfile).toBeDefined();
+    const groups = evidence.tenGodProfile!.groups;
+    expect(Object.keys(groups).sort()).toEqual(["관성", "비겁", "식상", "인성", "재성"].sort());
+    expect(Object.values(groups).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
+    expect(evidence.tenGodProfile!.dominant.length).toBeGreaterThan(0);
+
+    // 궁통보감 조후: 우선 천간과 1순위 오행이 원본과 일치
+    expect(evidence.climateClassic?.priorityStems.length).toBeGreaterThan(0);
+    expect(evidence.climateClassic?.primaryElement).toBe(chart.yongshin?.climaticClassic?.primaryElement);
+    expect(evidence.climateClassic?.satisfied).toBe(chart.yongshin?.climaticClassic?.satisfied);
+
+    // 핵심 신살: 최대 6개, 전부 원본 sinsal에 존재하는 항목
+    expect(evidence.sinsalTop!.length).toBeGreaterThan(0);
+    expect(evidence.sinsalTop!.length).toBeLessThanOrEqual(6);
+    for (const hit of evidence.sinsalTop!) {
+      expect(chart.sinsal?.some((s) => s.name === hit.name && s.position === hit.position)).toBe(true);
+    }
+
+    // S-1 불변식: 심화 필드는 "노출만" — evidenceIds(EvidenceRef 원천)에 새 키를 만들지 않는다.
+    // (룰/JudgmentPack 연결은 S-2에서 golden 갱신과 함께 진행)
+    const deepKeys = Object.keys(evidence.evidenceIds).filter(
+      (key) => key.includes("classic") || key.includes("sinsal") || key.includes("tengod") || key.includes("climate"),
+    );
+    expect(deepKeys).toEqual([]);
+  });
+
   it("직렬화 결과에는 원자료 전체 대신 판단 JSON 필드가 중심이 된다", () => {
     const chart = computeSajuChart(birth);
     const luck = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));

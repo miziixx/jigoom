@@ -111,7 +111,8 @@
 > 진행 원칙·항목 상세·모델 권장(🧠 Opus급 / 🔧 Sonnet)은 기획안 §2~§3 참조. 여기는 진행 표시만.
 
 - [x] E-0. 기획 문서 + worklog 스캐폴드 (이 커밋)
-- [ ] S-1. CompactEvidence 심화 필드 노출 (ruleEngine 미연결)
+- [x] S-1. CompactEvidence 심화 필드 노출 (ruleEngine 미연결). `structure`/`tenGodProfile`/`climateClassic`/`sinsalTop`
+      optional 추가, evidenceIds 비연결 불변식 테스트 포함, 694/694 그린.
 - [ ] S-2a. ruleEngine 심화 규칙 + JudgmentCode 4종 🧠
 - [ ] S-2b. golden 리뷰 갱신 + 신규 케이스 (잠금 예외 ①)
 - [ ] S-3. 상문·조객 세운 연동
