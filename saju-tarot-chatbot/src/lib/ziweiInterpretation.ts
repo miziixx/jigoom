@@ -1,4 +1,4 @@
-import type { ZiweiChart, ZiweiPalace } from "./ziwei.js";
+import type { ZiweiChart, ZiweiLuck, ZiweiLuckScope, ZiweiPalace } from "./ziwei.js";
 
 /**
  * 자미두수 해석 레이어 (Phase 1).
@@ -156,6 +156,101 @@ const TONE_NOTE: Record<string, Record<ZiweiTone, string>> = {
     주의: "가족 자리에 부담·거리감이 끼기 쉬워, 역할과 선을 정리하는 편이 낫습니다.",
   },
 };
+
+// ── 운한(대한·유년) 해석 — 엔진 업그레이드 Z-2 (docs/engine-upgrade-2026-07.md) ──────────
+// 원식 valence(위 STAR_VALENCE/scorePalace)를 그대로 재사용하는 '거친 근사'다. 새 근거 계산이
+// 아니라, Z-1의 iztro 운한 데이터를 같은 방식으로 방향(좋음/보통/주의)만 잡는다.
+// 판정 논리:
+//   1) 운한 명궁이 앉는 본명 궁이 6개 도메인 궁 중 하나면 → 그 도메인이 "이 기간의 중심 무대"
+//      + 그 본명 궁 자체 점수를 절반 가중으로 얹는다(scorePalace 재사용).
+//   2) 운한 사화(록/권/과/기)가 붙는 별의 본명 소재궁이 도메인 궁이면 → 그 도메인에 사화값 가감
+//      (록·권·과 = +, 기 = 주의).
+
+/** 본명 궁 이름 → 앱 도메인 (DOMAIN_PALACE 역매핑) */
+const PALACE_DOMAIN: Record<string, { domain: string; label: string }> = Object.fromEntries(
+  Object.entries(DOMAIN_PALACE).map(([domain, { label, palace }]) => [palace, { domain, label }]),
+);
+
+const LUCK_TONE_WORD: Record<ZiweiTone, string> = {
+  좋음: "힘이 실리는",
+  보통: "담담하게 흘러가는",
+  주의: "마찰·변동이 끼기 쉬운",
+};
+
+export interface ZiweiLuckVerdict {
+  scope: "decade" | "year";
+  scopeLabel: string;
+  domain: string;
+  label: string;
+  tone: ZiweiTone;
+  score: number;
+  /** 이 기간 이 도메인이 '중심 무대'인지 (운한 명궁이 이 본명 궁에 앉음) */
+  isStage: boolean;
+  note: string;
+  /** 전문가 근거 (표면 금지 용어 포함) */
+  evidence: string;
+}
+
+function scopeVerdicts(chart: ZiweiChart, scope: ZiweiLuckScope, kind: "decade" | "year"): ZiweiLuckVerdict[] {
+  const scopeLabel = kind === "decade" ? "이번 10년(대한)" : "올해(유년)";
+  const byName = new Map(chart.palaces.map((p) => [p.name, p]));
+  const acc = new Map<string, { score: number; stage: boolean; reasons: string[] }>();
+  const bump = (palaceName: string | null, delta: number, stage: boolean, reason: string) => {
+    if (!palaceName) return;
+    const entry = PALACE_DOMAIN[palaceName];
+    if (!entry) return;
+    const cur = acc.get(entry.domain) ?? { score: 0, stage: false, reasons: [] };
+    cur.score += delta;
+    cur.stage = cur.stage || stage;
+    cur.reasons.push(reason);
+    acc.set(entry.domain, cur);
+  };
+
+  // 1) 운한 명궁이 앉는 본명 궁 = 이 기간의 중심 무대
+  if (scope.palaceOfSoul) {
+    const natal = byName.get(scope.palaceOfSoul.name);
+    if (natal) {
+      const { score } = scorePalace(natal);
+      bump(scope.palaceOfSoul.name, score * 0.5, true, `운한 명궁이 본명 ${scope.palaceOfSoul.name}궁에 듦(무대) ${Math.round(score * 10) / 10 >= 0 ? "+" : ""}${Math.round(score * 5) / 10}`);
+    }
+  }
+  // 2) 운한 사화 → 붙는 별의 본명 소재궁 도메인에 가감
+  for (const m of scope.mutagens) {
+    const delta = MUTAGEN_VALENCE[m.type] ?? 0;
+    bump(m.natalPalace, delta, false, `${m.star} 화${m.type}${m.natalPalace ? ` (본명 ${m.natalPalace}궁)` : ""}`);
+  }
+
+  const verdicts: ZiweiLuckVerdict[] = [];
+  for (const [domain, { score, stage, reasons }] of acc.entries()) {
+    const { label } = DOMAIN_PALACE[domain];
+    const tone = toneOf(score);
+    const rounded = Math.round(score * 10) / 10;
+    verdicts.push({
+      scope: kind,
+      scopeLabel,
+      domain,
+      label,
+      tone,
+      score: rounded,
+      isStage: stage,
+      note: `${scopeLabel}은 ${label} 자리가 ${stage ? "중심에 오며 " : ""}${LUCK_TONE_WORD[tone]} 편입니다.`,
+      evidence: `${scopeLabel} ${DOMAIN_PALACE[domain].palace}궁 신호: ${reasons.join(" / ")} → ${tone}(${rounded})`,
+    });
+  }
+  // 무대(명궁 소재) 도메인을 먼저, 그다음 점수 절대값 큰 순
+  return verdicts.sort((a, b) => Number(b.isStage) - Number(a.isStage) || Math.abs(b.score) - Math.abs(a.score));
+}
+
+/**
+ * 자미두수 대한·유년을 앱 도메인별 경향으로 정규화한다 (교차검증·프롬프트 근거용).
+ * 원식 verdict와 같은 '방향 신호' 성격 — 표면 문장은 항상 '~한 편', 용어는 근거에만.
+ */
+export function deriveZiweiLuckVerdicts(chart: ZiweiChart, luck: ZiweiLuck): ZiweiLuckVerdict[] {
+  const out: ZiweiLuckVerdict[] = [];
+  if (luck.decade) out.push(...scopeVerdicts(chart, luck.decade, "decade"));
+  if (luck.year) out.push(...scopeVerdicts(chart, luck.year, "year"));
+  return out;
+}
 
 /** 원식을 앱 분야별 좋음/보통/주의 경향으로 정규화한다. */
 export function deriveZiweiDomainVerdicts(chart: ZiweiChart): ZiweiDomainVerdict[] {

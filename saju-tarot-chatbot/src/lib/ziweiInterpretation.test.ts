@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { computeZiweiChart } from "./ziwei.js";
-import { deriveZiweiDomainVerdicts } from "./ziweiInterpretation.js";
+import { computeZiweiChart, computeZiweiHoroscope } from "./ziwei.js";
+import { deriveZiweiDomainVerdicts, deriveZiweiLuckVerdicts } from "./ziweiInterpretation.js";
 import type { BirthInfo } from "../types/index.js";
 
 const birthA: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
@@ -52,5 +52,48 @@ describe("deriveZiweiDomainVerdicts (자미두수 분야 판정)", () => {
     const a = deriveZiweiDomainVerdicts(computeZiweiChart(birthA)!).map((x) => x.tone).join("");
     const b = deriveZiweiDomainVerdicts(computeZiweiChart(birthB)!).map((x) => x.tone).join("");
     expect(a).not.toBe(b);
+  });
+});
+
+describe("deriveZiweiLuckVerdicts (자미두수 대한·유년 해석 — 엔진 업그레이드 Z-2)", () => {
+  const REF = new Date("2026-07-06T03:00:00Z");
+
+  it("여 1990-12-23: 유년 부처궁이 무대(운한 명궁 소재) + 문창 화과로 애정 도메인 신호", () => {
+    const chart = computeZiweiChart(birthA)!;
+    const luck = computeZiweiHoroscope(birthA, REF)!;
+    const verdicts = deriveZiweiLuckVerdicts(chart, luck);
+
+    const yearLove = verdicts.find((v) => v.scope === "year" && v.domain === "love");
+    expect(yearLove).toBeDefined();
+    expect(yearLove!.isStage).toBe(true); // 유년 명궁이 본명 부처궁에 듦
+    expect(yearLove!.evidence).toContain("부처궁");
+    expect(["좋음", "보통", "주의"]).toContain(yearLove!.tone);
+
+    // 대한·유년 각각 신호가 나온다
+    expect(verdicts.some((v) => v.scope === "decade")).toBe(true);
+    expect(verdicts.some((v) => v.scope === "year")).toBe(true);
+  });
+
+  it("표면 note에는 자미두수 용어(궁·별·사화)를 노출하지 않는다", () => {
+    const chart = computeZiweiChart(birthA)!;
+    const luck = computeZiweiHoroscope(birthA, REF)!;
+    const surface = deriveZiweiLuckVerdicts(chart, luck).map((v) => v.note).join(" ");
+    for (const term of JARGON) expect(surface).not.toContain(term);
+    // 화록/화기 같은 사화 용어도 표면 금지
+    for (const term of ["화록", "화권", "화과", "화기"]) expect(surface).not.toContain(term);
+  });
+
+  it("evidence(근거)에는 사화·소재궁을 남긴다", () => {
+    const chart = computeZiweiChart(birthA)!;
+    const luck = computeZiweiHoroscope(birthA, REF)!;
+    const verdicts = deriveZiweiLuckVerdicts(chart, luck);
+    expect(verdicts.some((v) => v.evidence.includes("화"))).toBe(true);
+    expect(verdicts.every((v) => v.evidence.includes("궁"))).toBe(true);
+  });
+
+  it("결정론: 같은 입력이면 같은 운한 판정", () => {
+    const chart = computeZiweiChart(birthA)!;
+    const luck = computeZiweiHoroscope(birthA, REF)!;
+    expect(deriveZiweiLuckVerdicts(chart, luck)).toEqual(deriveZiweiLuckVerdicts(chart, luck));
   });
 });
