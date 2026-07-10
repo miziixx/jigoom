@@ -51,6 +51,8 @@ declare module "lunar-javascript" {
     /** 직전 절(節): 현재 월주가 시작된 절입. 월률분야(사령) 경과일 계산에 쓴다. */
     getPrevJie(): JieQi;
     getNextJie(): JieQi;
+    /** 직전 절기(節氣, 절+중기 포함) — wholeDay=true면 하루 단위로 반올림. */
+    getPrevJieQi(wholeDay: boolean): JieQi;
   }
 
   export class Solar {

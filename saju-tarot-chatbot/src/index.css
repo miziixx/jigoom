@@ -336,6 +336,193 @@ body {
   font-size: 0.84rem;
 }
 
+.landing-hero__date {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  letter-spacing: 0.2px;
+}
+
+.landing-today-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+
+.landing-today-card:hover {
+  border-color: var(--accent);
+}
+
+.landing-today-card__emoji {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.landing-today-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.landing-today-card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.landing-today-card__desc {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.landing-section-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 22px 0 12px;
+}
+
+.landing-section-row .landing-section-title {
+  margin: 0;
+}
+
+.landing-section-hint {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.landing-topic-grid,
+.landing-relation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.landing-topic {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 92px;
+  padding: 13px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+
+.landing-topic:hover {
+  border-color: var(--accent);
+}
+
+.landing-topic__emoji {
+  font-size: 1.3rem;
+}
+
+.landing-topic__name {
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.landing-topic__badge {
+  color: var(--water);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.landing-relation__desc {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.landing-topic--love {
+  background: var(--plum-soft);
+}
+
+.landing-topic--money {
+  background: var(--earth-soft);
+}
+
+.landing-topic--career {
+  background: var(--metal-soft);
+}
+
+.landing-topic--health {
+  background: var(--wood-soft);
+}
+
+.landing-topic--year {
+  background: var(--fire-soft);
+}
+
+.landing-report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.landing-report {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+
+.landing-report:hover {
+  border-color: var(--accent);
+}
+
+.landing-report__emoji {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.landing-report__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.landing-report__title {
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.landing-report__desc {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.landing-report__badge {
+  flex-shrink: 0;
+  margin-right: 0;
+}
+
+.landing-foot {
+  text-align: center;
+  margin: 4px 0 10px;
+  font-size: 0.78rem;
+}
+
+.landing-foot a {
+  color: var(--text-dim);
+}
+
 .form {
   display: flex;
   flex-direction: column;
@@ -5130,6 +5317,21 @@ label {
   50% {
     opacity: 1;
   }
+}
+
+.topic-deep-chat__followups {
+  margin-top: 12px;
+}
+
+.topic-deep-chat__followup-typing {
+  opacity: 0.7;
+}
+
+.topic-deep-chat__note {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  margin: 10px 0 8px;
+  text-align: center;
 }
 
 /* ── 소름 엔진 (C-1, 재기획안 §7) ── */

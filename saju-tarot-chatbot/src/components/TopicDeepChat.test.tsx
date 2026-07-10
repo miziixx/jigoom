@@ -1,52 +1,45 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import TopicDeepChat from "./TopicDeepChat";
+import { computeSajuChart, computeLuckCycles } from "../lib/saju.js";
+import type { BirthInfo } from "../types";
 
-const FULL_TEXT =
-  "# 한 줄 결론\n올해 연애는 기다리기보다 고르는 쪽이에요.\n\n" +
-  "# 지금 흐름\n관계 자리가 움직이기 시작했어요.\n\n" +
-  "# 조심할 것\n속도가 빠른 끌림은 한 번 더 확인하세요.\n\n" +
-  "# 시기\n가을 무렵 신호가 더 뚜렷해질 수 있어요.\n\n" +
-  "# 행동\n먼저 연락해보고, 대화 패턴을 기록해보세요.";
+const birth: BirthInfo = { calendarType: "solar", year: 1990, month: 12, day: 23, hour: 8, minute: 0, gender: "female" };
+const chart = computeSajuChart(birth);
+const luck = computeLuckCycles(birth, new Date("2026-07-03T03:00:00Z"));
 
-describe("TopicDeepChat (토픽 심화 말풍선 점진 공개, A-3·시안 ②)", () => {
-  it("완성된 텍스트는 5개 섹션을 모두 말풍선으로, 타이핑 인디케이터 없이 보여준다", () => {
-    const html = renderToStaticMarkup(<TopicDeepChat topic="love" text={FULL_TEXT} loading={false} error={null} />);
-    for (const tag of ["한 줄 결론", "지금 흐름", "조심할 것", "시기", "행동"]) {
-      expect(html).toContain(tag);
-    }
-    expect(html).toContain("완료");
-    expect(html).not.toContain("topic-deep-bubble--typing");
-  });
-
-  it("스트리밍 도중(섹션 일부만 도착)에는 도착한 만큼만 보여주고 타이핑 인디케이터를 더한다", () => {
-    const partial = "# 한 줄 결론\n올해 연애는 기다리기보다 고르는 쪽이에요.\n\n# 지금 흐름\n관계 자리가 움직이";
-    const html = renderToStaticMarkup(<TopicDeepChat topic="love" text={partial} loading={true} error={null} />);
-    expect(html).toContain("한 줄 결론");
-    expect(html).toContain("지금 흐름");
-    expect(html).not.toContain("조심할 것");
+/**
+ * TopicDeepChat은 마운트 시 useEffect로 첫 요청을 스스로 시작한다(후속 질문 상태까지 로컬로
+ * 관리하기 위한 설계, BasicReadingSection.tsx 참고). renderToStaticMarkup은 effect를 실행하지
+ * 않으므로(React SSR 규칙) 여기서 확인 가능한 건 "요청 시작 전 초기 렌더"뿐이다 — 요청 이후
+ * 상태(말풍선 도착·후속 질문 UI)는 Playwright 브라우저 검증으로 확인한다.
+ */
+describe("TopicDeepChat (토픽 심화 + 후속 질문, A-3·토픽 템플릿 확장)", () => {
+  it("초기 렌더에서는 생성 중 배지와 타이핑 인디케이터만 보여준다(아직 요청 전)", () => {
+    const html = renderToStaticMarkup(
+      <TopicDeepChat topic="love" sajuChart={chart} luckCycles={luck} gender="female" type="saju" />,
+    );
+    expect(html).toContain("연애운 심화");
     expect(html).toContain("생성 중");
     expect(html).toContain("topic-deep-bubble--typing");
+    expect(html).not.toContain("이어서 질문");
+    expect(html).not.toContain("chat-input-row");
   });
 
-  it("텍스트가 아직 하나도 없으면 타이핑 인디케이터만 보여준다", () => {
-    const html = renderToStaticMarkup(<TopicDeepChat topic="money" text="" loading={true} error={null} />);
-    expect(html).toContain("topic-deep-bubble--typing");
-    expect(html).not.toContain("한 줄 결론");
-  });
-
-  it("5개 섹션이 다 도착하면 loading이어도 타이핑 인디케이터를 더 보여주지 않는다", () => {
-    const html = renderToStaticMarkup(<TopicDeepChat topic="career" text={FULL_TEXT} loading={true} error={null} />);
-    expect(html).not.toContain("topic-deep-bubble--typing");
-  });
-
-  it("에러가 있으면 에러 문구를 보여준다", () => {
-    const html = renderToStaticMarkup(<TopicDeepChat topic="health" text="" loading={false} error="네트워크 오류" />);
-    expect(html).toContain("네트워크 오류");
-  });
-
-  it("토픽 라벨(한국어)이 제목에 들어간다", () => {
-    const html = renderToStaticMarkup(<TopicDeepChat topic="year" text="" loading={false} error={null} />);
-    expect(html).toContain("올해운 심화");
+  it("토픽 라벨(한국어)이 5개 모두 올바르다", () => {
+    const cases: [string, string][] = [
+      ["love", "연애운"],
+      ["money", "재물운"],
+      ["career", "직업운"],
+      ["health", "건강운"],
+      ["year", "올해운"],
+    ];
+    for (const [topic, label] of cases) {
+      const html = renderToStaticMarkup(
+        // @ts-expect-error 테스트용 리터럴 순회
+        <TopicDeepChat topic={topic} sajuChart={chart} luckCycles={luck} gender="female" type="saju" />,
+      );
+      expect(html).toContain(`${label} 심화`);
+    }
   });
 });

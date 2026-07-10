@@ -2,7 +2,6 @@ import { useState } from "react";
 import InstantSummary from "./InstantSummary";
 import TopicDeepChat, { TOPIC_LABEL } from "./TopicDeepChat";
 import { buildBasicReading } from "../lib/basicReadingRenderer";
-import { streamReading } from "../lib/readingApi";
 import type { DrawnTarotCard, Gender, LuckCycles, ReadingType, SajuChart, TopicDeepTopic } from "../types";
 
 const TOPIC_EMOJI: Record<TopicDeepTopic, string> = {
@@ -45,37 +44,7 @@ export default function BasicReadingSection({
   loading?: boolean;
 }) {
   const reading = buildBasicReading({ sajuChart, luckCycles, gender });
-
   const [activeTopic, setActiveTopic] = useState<TopicDeepTopic | null>(null);
-  const [topicText, setTopicText] = useState("");
-  const [topicLoading, setTopicLoading] = useState(false);
-  const [topicError, setTopicError] = useState<string | null>(null);
-
-  async function handleTopicClick(topic: TopicDeepTopic) {
-    if (!sajuChart || topicLoading) return;
-    setActiveTopic(topic);
-    setTopicText("");
-    setTopicError(null);
-    setTopicLoading(true);
-    try {
-      await streamReading(
-        {
-          type: type === "combo" ? "combo" : "saju",
-          question: "",
-          gender,
-          sajuChart,
-          luckCycles,
-          tarotCards: type === "combo" ? tarotCards : undefined,
-          context: { analysisMode: "topicDeep", topic },
-        },
-        { onText: (accumulated) => setTopicText(accumulated) },
-      );
-    } catch (err) {
-      setTopicError(err instanceof Error ? err.message : "토픽 심화를 불러오지 못했습니다.");
-    } finally {
-      setTopicLoading(false);
-    }
-  }
 
   if (!reading.snapshot && !reading.userManual && !reading.yearFlow) return null;
 
@@ -151,8 +120,7 @@ export default function BasicReadingSection({
               key={topic}
               type="button"
               className={`topic-deep-chip${activeTopic === topic ? " topic-deep-chip--active" : ""}`}
-              onClick={() => handleTopicClick(topic)}
-              disabled={topicLoading}
+              onClick={() => setActiveTopic(topic)}
             >
               {TOPIC_EMOJI[topic]} {TOPIC_LABEL[topic]} 더 보기
             </button>
@@ -160,7 +128,17 @@ export default function BasicReadingSection({
         </div>
       )}
 
-      {activeTopic && <TopicDeepChat topic={activeTopic} text={topicText} loading={topicLoading} error={topicError} />}
+      {activeTopic && (
+        <TopicDeepChat
+          key={activeTopic}
+          topic={activeTopic}
+          sajuChart={sajuChart}
+          luckCycles={luckCycles}
+          gender={gender}
+          type={type}
+          tarotCards={tarotCards}
+        />
+      )}
     </>
   );
 }
