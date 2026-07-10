@@ -218,5 +218,109 @@ export function triggerRules(input: RuleEngineInput): TriggeredRule[] {
     if (rule) rules.push(rule);
   }
 
+  // ── 4대 고전 심화 판단 (엔진 업그레이드 S-2, docs/engine-upgrade-2026-07.md) ──────────
+  // 사건(event) 규칙이 아니라 구조·기질·조후 판단이므로, 위의 GENERAL_MIXED_FLOW 판정
+  // ("사건 분야가 조용한가")에는 관여하지 않도록 그 뒤에 덧붙인다.
+  rules.push(...deepClassicRules(compactEvidence, evidence));
+
+  return rules;
+}
+
+/** 파격 요인 이름 → 주로 흔들리는 현실 도메인 (자평진전 통설 기준, 없으면 personality) */
+const FAILURE_DOMAIN: Array<{ match: string; domain: TriggeredRule["domain"] }> = [
+  { match: "재다신약", domain: "money" },
+  { match: "효신탈식", domain: "money" },
+  { match: "상관견관", domain: "career" },
+  { match: "정관봉상관", domain: "career" },
+  { match: "탐재괴인", domain: "career" },
+];
+
+function structureFailureDomain(failures: string[]): TriggeredRule["domain"] {
+  for (const failure of failures) {
+    const hit = FAILURE_DOMAIN.find((f) => failure.includes(f.match));
+    if (hit) return hit.domain;
+  }
+  return "personality";
+}
+
+function deepClassicRules(compactEvidence: CompactEvidence, evidence: EvidenceRef[]): TriggeredRule[] {
+  const rules: TriggeredRule[] = [];
+  const base = chartLuckEvidence(evidence);
+
+  // 격국 심화 (자평진전): 상신이 갖춰진 성격 → 강점 지지 / 파격 요인 → 보완 조건
+  const structure = compactEvidence.structure;
+  const structureRefs = findEvidence(evidence, "chart.gyeokguk.classic");
+  if (structure && structureRefs.length > 0) {
+    // 상신 판정(assessGyeokgukClassic)은 "필요 그룹 중 있는 것"을 고르는 방식이라 est=성격이 매우 흔하다.
+    // 변별력을 위해: 이름 있는 성격 패턴·종격·간이 성패(월지 투출)의 성격 경향 중 하나가 더 있고,
+    // 간이 성패가 "파격 경향"(월지 충)으로 어긋나지 않을 때만 지지 판단을 낸다.
+    const solidExtra = Boolean(structure.pattern || structure.jonggyeok || structure.status === "성격 경향");
+    if (structure.established === "성격" && structure.status !== "파격 경향" && solidExtra) {
+      const highlight = structure.pattern ?? structure.jonggyeok ?? structure.name;
+      const rule = buildRule({
+        id: "rule.structure.solid",
+        domain: "personality",
+        code: "structure.solid",
+        evidence: [...structureRefs, ...base].slice(0, 5),
+        weight: 0.7,
+        result: "support",
+        summary: `타고난 구조(${highlight})가 비교적 뚜렷하게 성립하는 편이라, 그 강점 패턴을 살리는 방향이 유리하다.`,
+      });
+      if (rule) rules.push(rule);
+    } else if (structure.established === "파격" || structure.failures.length > 0) {
+      const rule = buildRule({
+        id: "rule.structure.broken",
+        domain: structureFailureDomain(structure.failures),
+        code: "structure.broken",
+        evidence: [...structureRefs, ...base].slice(0, 5),
+        weight: 0.7,
+        result: "constraint",
+        summary: `타고난 구조에 흔들리는 요인(${structure.failures.join("·") || "상신 미비"})이 있어, 강점을 쓰기 전에 보완 조건을 먼저 본다.`,
+      });
+      if (rule) rules.push(rule);
+    }
+  }
+
+  // 조후 심화 (궁통보감): 1순위 조후가 원국에 없으면 컨디션·환경 보완 조건
+  const climate = compactEvidence.climateClassic;
+  const climateRefs = findEvidence(evidence, "chart.climate.classic");
+  if (climate && !climate.satisfied && climateRefs.length > 0) {
+    const rule = buildRule({
+      id: "rule.climate.unmet",
+      domain: "health",
+      code: "climate.unmet",
+      evidence: [...climateRefs, ...base].slice(0, 5),
+      weight: 0.55,
+      result: "constraint",
+      summary: `궁통보감 기준 1순위 조후 기운(${climate.primaryElement})이 원국에 뚜렷하지 않아, 계절·환경·생활 리듬 보완을 조건으로 본다.`,
+    });
+    if (rule) rules.push(rule);
+  }
+
+  // 십성 편중 (연해자평 지장간 가중 분포): 한 축 점유 50%+ 또는 두 그룹 이상 공백 → 기질 판단
+  const profile = compactEvidence.tenGodProfile;
+  const profileRefs = findEvidence(evidence, "chart.tengods.profile");
+  if (profile && profileRefs.length > 0) {
+    const values = Object.values(profile.groups);
+    const total = values.reduce((sum, v) => sum + v, 0);
+    const maxShare = total > 0 ? Math.max(...values) / total : 0;
+    if (total > 0 && (profile.missing.length >= 2 || maxShare >= 0.5)) {
+      const skewText =
+        maxShare >= 0.5
+          ? `${profile.dominant.join("·")} 축에 기운의 절반 이상이 몰려 있고`
+          : `${profile.dominant.join("·")} 축이 강하고`;
+      const rule = buildRule({
+        id: "rule.tengod.skew",
+        domain: "personality",
+        code: "tengod.skew",
+        evidence: [...profileRefs, ...base].slice(0, 5),
+        weight: 0.6,
+        result: "support",
+        summary: `십성 분포가 뚜렷하게 치우침 — ${skewText}, ${profile.missing.join("·") || "없음"} 축이 비어 있다. 강한 축은 살리고 빈 축은 작게 보완하는 전략이 맞다.`,
+      });
+      if (rule) rules.push(rule);
+    }
+  }
+
   return rules;
 }

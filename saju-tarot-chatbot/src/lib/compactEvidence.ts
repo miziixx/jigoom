@@ -72,9 +72,9 @@ export interface CompactEvidence {
   riskFlags: string[];
   evidenceIds: Record<string, string>;
   /**
-   * 이하 4대 고전 심화 필드 (엔진 업그레이드 S-1, docs/engine-upgrade-2026-07.md).
-   * chart의 기존 계산값을 읽기 전용으로 압축해 노출만 한다 — evidenceIds/ruleEngine에는
-   * 의도적으로 연결하지 않음(JudgmentPack·golden 케이스 불변, 룰 연결은 S-2에서).
+   * 이하 4대 고전 심화 필드 (엔진 업그레이드 S-1~S-2, docs/engine-upgrade-2026-07.md).
+   * chart의 기존 계산값을 읽기 전용으로 압축한 것. S-2에서 evidenceIds(structure_classic·
+   * tengod_profile·climate_classic·sinsal_key)와 ruleEngine 심화 규칙 4종에 연결됨.
    */
   structure?: CompactStructure;
   tenGodProfile?: CompactTenGodProfile;
@@ -112,6 +112,31 @@ function evidenceMap(chart: SajuChart, luck?: LuckCycles): Record<string, string
   }
   if (chart.interactions && chart.interactions.length > 0) ids.natal_interactions = chart.interactions.slice(0, 4).join(", ");
   if (chart.gyeokguk) ids.structure = `${chart.gyeokguk.name}${chart.gyeokguk.status ? ` (${chart.gyeokguk.status})` : ""}`;
+  // 엔진 업그레이드 S-2: 4대 고전 심화 근거 (S-1에서 노출한 필드를 EvidenceRef로 연결)
+  const classic = chart.gyeokguk?.classic;
+  if (classic) {
+    const parts = [
+      `격국 심화(자평진전): ${chart.gyeokguk?.name ?? ""} ${classic.established}`,
+      classic.sangshin ? `상신 ${classic.sangshin.tenGod}(${classic.sangshin.element}) ${classic.sangshin.present ? "갖춰짐" : "미비"}` : "",
+      classic.pattern ? `패턴 ${classic.pattern}` : "",
+      classic.failures.length > 0 ? `파격 요인 ${classic.failures.map((f) => f.name).join("·")}` : "",
+      classic.jonggyeok ? `종격 ${classic.jonggyeok.name}` : "",
+    ].filter(Boolean);
+    ids.structure_classic = parts.join(" / ");
+  }
+  const profile = buildTenGodProfile(chart);
+  if (profile) {
+    const groupText = (Object.entries(profile.groups) as Array<[TenGodGroup, number]>).map(([k, v]) => `${k}:${v}`).join(" ");
+    ids.tengod_profile = `십성 세기 분포(연해자평 가중 합산): ${groupText} / 강한 축 ${profile.dominant.join("·") || "없음"} / 빈 축 ${profile.missing.join("·") || "없음"}`;
+  }
+  const climate = chart.yongshin?.climaticClassic;
+  if (climate) {
+    ids.climate_classic = `조후(궁통보감): 우선 천간 ${climate.priorityStems.join("→")} / 1순위 ${climate.primaryElement} ${climate.satisfied ? "충족" : "미충족"}${climate.missingStems.length > 0 ? ` / 부족 ${climate.missingStems.join("·")}` : ""}`;
+  }
+  const keySinsal = buildSinsalTop(chart);
+  if (keySinsal && keySinsal.length > 0) {
+    ids.sinsal_key = `핵심 신살: ${keySinsal.map((s) => `${s.name}(${s.position})`).join(", ")}`;
+  }
   if (luck) {
     ids.current_luck = `현재 대운 ${luck.currentDaYun ?? "시작 전"} / 세운 ${luck.yearGanZhi} / 월운 ${luck.monthGanZhi}`;
     if (luck.daYunYearOverlap) ids.luck_overlap = luck.daYunYearOverlap.evidence.join(" / ");

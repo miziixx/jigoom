@@ -38,6 +38,11 @@ export const CODE_EXPECTATION: Record<JudgmentCode, CodeExpectation> = {
   MOVE_CAUTION: { domain: "move", predicted: "risk" },
   FAMILY_RESPONSIBILITY: { domain: "family", predicted: "event" },
   GENERAL_MIXED_FLOW: { domain: "general", predicted: "none" },
+  // 엔진 업그레이드 S-2: 구조·기질·조후 판단은 사건 예측이 아니므로 대조 대상에서 제외한다.
+  STRUCTURE_SOLID_SUPPORT: { domain: "general", predicted: "none" },
+  STRUCTURE_BROKEN_CAUTION: { domain: "general", predicted: "none" },
+  CLIMATE_BALANCE_NEEDED: { domain: "general", predicted: "none" },
+  TENGOD_SKEW_TRAIT: { domain: "general", predicted: "none" },
 };
 
 /** 판단 code → RuleId (엔진 codeForRule의 역매핑). 없으면 null */
@@ -53,6 +58,10 @@ export const RULE_FOR_CODE: Partial<Record<JudgmentCode, RuleId>> = {
   MOVE_CAUTION: "rule.move.caution",
   FAMILY_RESPONSIBILITY: "rule.family.responsibility",
   GENERAL_MIXED_FLOW: "rule.general.mixed_flow",
+  STRUCTURE_SOLID_SUPPORT: "rule.structure.solid",
+  STRUCTURE_BROKEN_CAUTION: "rule.structure.broken",
+  CLIMATE_BALANCE_NEEDED: "rule.climate.unmet",
+  TENGOD_SKEW_TRAIT: "rule.tengod.skew",
 };
 
 export function expectationFor(code: JudgmentCode): CodeExpectation {

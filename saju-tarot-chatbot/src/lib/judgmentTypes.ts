@@ -40,7 +40,13 @@ export type JudgmentCode =
   | "STARTUP_TEST_FIRST"
   | "MOVE_CAUTION"
   | "FAMILY_RESPONSIBILITY"
-  | "GENERAL_MIXED_FLOW";
+  | "GENERAL_MIXED_FLOW"
+  // 엔진 업그레이드 S-2 (docs/engine-upgrade-2026-07.md): 4대 고전 심화 판단.
+  // 사건 예측이 아닌 구조·기질·조후 판단이라 caseValidation에서는 predicted "none"으로 다룬다.
+  | "STRUCTURE_SOLID_SUPPORT"
+  | "STRUCTURE_BROKEN_CAUTION"
+  | "CLIMATE_BALANCE_NEEDED"
+  | "TENGOD_SKEW_TRAIT";
 
 export interface ConfidenceBreakdown {
   chart: number;

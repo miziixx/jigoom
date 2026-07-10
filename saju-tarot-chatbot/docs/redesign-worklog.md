@@ -113,7 +113,9 @@
 - [x] E-0. 기획 문서 + worklog 스캐폴드 (이 커밋)
 - [x] S-1. CompactEvidence 심화 필드 노출 (ruleEngine 미연결). `structure`/`tenGodProfile`/`climateClassic`/`sinsalTop`
       optional 추가, evidenceIds 비연결 불변식 테스트 포함, 694/694 그린.
-- [ ] S-2a. ruleEngine 심화 규칙 + JudgmentCode 4종 🧠
+- [x] S-2a. ruleEngine 심화 규칙 + JudgmentCode 4종. structure.solid/broken·climate.unmet·tengod.skew,
+      solid는 변별 조건(패턴·종격·투출 성격 경향 + 간이 성패 모순 회피) 부여. golden 기대값 갱신 없이
+      밴드 내 통과, 701/701 그린.
 - [ ] S-2b. golden 리뷰 갱신 + 신규 케이스 (잠금 예외 ①)
 - [ ] S-3. 상문·조객 세운 연동
 - [ ] S-4. 대운 심화 (순역·favor·원국 상호작용)

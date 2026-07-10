@@ -9,6 +9,11 @@ const COMPACT_ID_MAP: Record<string, { id: string; source: EvidenceSource; direc
   useful_elements: { id: "chart.useful_elements.candidates", source: "chart", direction: "constraint", strength: 3 },
   natal_interactions: { id: "chart.interactions.natal", source: "chart", direction: "support", strength: 3 },
   structure: { id: "chart.gyeokguk.structure", source: "chart", direction: "support", strength: 2 },
+  // 엔진 업그레이드 S-2: 4대 고전 심화 근거
+  structure_classic: { id: "chart.gyeokguk.classic", source: "chart", direction: "support", strength: 3 },
+  tengod_profile: { id: "chart.tengods.profile", source: "chart", direction: "support", strength: 3 },
+  climate_classic: { id: "chart.climate.classic", source: "chart", direction: "constraint", strength: 3 },
+  sinsal_key: { id: "chart.sinsal.key", source: "chart", direction: "neutral", strength: 2 },
   current_luck: { id: "luck.current.summary", source: "luck", direction: "support", strength: 4 },
   luck_overlap: { id: "luck.overlap.daeyun_year", source: "luck", direction: "support", strength: 4 },
   luck_interactions: { id: "luck.interactions.current", source: "luck", direction: "support", strength: 4 },

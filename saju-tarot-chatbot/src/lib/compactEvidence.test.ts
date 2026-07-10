@@ -56,12 +56,12 @@ describe("compactEvidence", () => {
       expect(chart.sinsal?.some((s) => s.name === hit.name && s.position === hit.position)).toBe(true);
     }
 
-    // S-1 불변식: 심화 필드는 "노출만" — evidenceIds(EvidenceRef 원천)에 새 키를 만들지 않는다.
-    // (룰/JudgmentPack 연결은 S-2에서 golden 갱신과 함께 진행)
-    const deepKeys = Object.keys(evidence.evidenceIds).filter(
-      (key) => key.includes("classic") || key.includes("sinsal") || key.includes("tengod") || key.includes("climate"),
-    );
-    expect(deepKeys).toEqual([]);
+    // S-2: 심화 필드가 evidenceIds(EvidenceRef 원천)에도 연결된다.
+    // (S-1에서는 의도적으로 비연결이었고, S-2에서 룰 4종과 함께 연결됨 — engine-upgrade-2026-07.md)
+    expect(evidence.evidenceIds.structure_classic).toContain("자평진전");
+    expect(evidence.evidenceIds.tengod_profile).toContain("십성 세기 분포");
+    expect(evidence.evidenceIds.climate_classic).toContain("궁통보감");
+    expect(evidence.evidenceIds.sinsal_key).toContain("핵심 신살");
   });
 
   it("직렬화 결과에는 원자료 전체 대신 판단 JSON 필드가 중심이 된다", () => {

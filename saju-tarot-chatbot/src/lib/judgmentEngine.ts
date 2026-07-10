@@ -81,6 +81,10 @@ function codeForRule(rule: TriggeredRule): JudgmentCode {
     case "rule.startup.test_first": return "STARTUP_TEST_FIRST";
     case "rule.move.caution": return "MOVE_CAUTION";
     case "rule.family.responsibility": return "FAMILY_RESPONSIBILITY";
+    case "rule.structure.solid": return "STRUCTURE_SOLID_SUPPORT";
+    case "rule.structure.broken": return "STRUCTURE_BROKEN_CAUTION";
+    case "rule.climate.unmet": return "CLIMATE_BALANCE_NEEDED";
+    case "rule.tengod.skew": return "TENGOD_SKEW_TRAIT";
     default: return "GENERAL_MIXED_FLOW";
   }
 }
@@ -98,6 +102,10 @@ const CONCLUSION_BY_CODE: Record<JudgmentCode, string> = {
   MOVE_CAUTION: "이사·이동은 가능성보다 계약 조건과 시기 확인을 붙여 조심스럽게 다뤄야 합니다.",
   FAMILY_RESPONSIBILITY: "가족·집안 문제는 혼자 떠안는 결론보다 역할 분담과 경계 설정 중심으로 봐야 합니다.",
   GENERAL_MIXED_FLOW: "두드러진 사건 결론은 제한하고, 확인된 기질과 현재 흐름 안에서만 조언해야 합니다.",
+  STRUCTURE_SOLID_SUPPORT: "타고난 구조의 강점 패턴이 비교적 뚜렷하게 성립해 있어, 그 강점을 살리는 선택이 자연스럽습니다.",
+  STRUCTURE_BROKEN_CAUTION: "타고난 구조에 흔들리는 요인이 있어, 강점을 쓰되 그 약점이 드러나는 조건을 먼저 보완하는 쪽이 안전합니다.",
+  CLIMATE_BALANCE_NEEDED: "계절 기운의 치우침을 환경과 생활 리듬으로 보완하면 컨디션이 살아나는 구조입니다.",
+  TENGOD_SKEW_TRAIT: "성향 에너지가 한쪽으로 뚜렷하게 몰려 있어, 강한 축은 살리고 빈 축은 작게 보완하는 전략이 맞습니다.",
 };
 
 function actionFrame(code: JudgmentCode): JudgmentCandidate["actionFrame"] {
@@ -131,6 +139,30 @@ function actionFrame(code: JudgmentCode): JudgmentCandidate["actionFrame"] {
         avoid: ["질병명이나 진단처럼 말하지 마세요."],
         checkSignals: ["수면 질", "소화 리듬", "피로 회복 속도"],
       };
+    case "STRUCTURE_SOLID_SUPPORT":
+      return {
+        do: ["구조의 강점 패턴이 실제로 통했던 경험을 정리해 다음 선택의 기준으로 쓰세요."],
+        avoid: ["구조가 좋다는 이유만으로 조건 확인 없이 크게 확장하지 마세요."],
+        checkSignals: ["강점이 성과로 이어진 반복 사례", "강점이 통하는 환경인지"],
+      };
+    case "STRUCTURE_BROKEN_CAUTION":
+      return {
+        do: ["구조의 약점이 드러나는 상황(규칙과의 충돌, 감당 범위를 넘는 확장 등)을 기록해 반복 조건을 확인하세요."],
+        avoid: ["약점 요인을 성격 결함이나 정해진 운명처럼 말하지 마세요."],
+        checkSignals: ["같은 유형의 갈등 반복", "감당 범위를 넘는 일의 누적"],
+      };
+    case "CLIMATE_BALANCE_NEEDED":
+      return {
+        do: ["계절·온도 변화에 따라 컨디션이 달라지는 패턴을 2주간 기록해 보세요.", "부족한 기운을 빛·활동량·휴식 같은 환경·습관으로 보완하세요."],
+        avoid: ["질병 예측이나 체질 진단처럼 말하지 마세요."],
+        checkSignals: ["환절기 컨디션 변화", "수면·회복 리듬"],
+      };
+    case "TENGOD_SKEW_TRAIT":
+      return {
+        do: ["강한 축이 통하는 역할·환경을 우선 선택하세요.", "빈 축이 필요한 일은 도구·시스템·사람의 도움으로 보완하세요."],
+        avoid: ["빈 축을 의지 부족이나 결함으로 몰아붙이지 마세요."],
+        checkSignals: ["강점이 통하는 환경인지", "빈 축 때문에 반복되는 어려움"],
+      };
     default:
       return common;
   }
@@ -149,7 +181,14 @@ function judgmentFromRule(rule: TriggeredRule, index: number, context?: ReadingC
     id: `judgment.${index + 1}.${code.toLowerCase()}`,
     code,
     domain: rule.domain,
-    kind: rule.result === "risk" || rule.result === "constraint" ? "caution" : code.includes("STARTUP") ? "strategy" : "timing",
+    kind:
+      rule.result === "risk" || rule.result === "constraint"
+        ? "caution"
+        : code.includes("STARTUP")
+          ? "strategy"
+          : code === "STRUCTURE_SOLID_SUPPORT" || code === "TENGOD_SKEW_TRAIT"
+            ? "trait"
+            : "timing",
     plainConclusion: CONCLUSION_BY_CODE[code],
     evidence: rule.evidence,
     counterEvidence: rule.counterEvidence,
