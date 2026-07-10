@@ -122,7 +122,9 @@
 - [ ] S-3. 상문·조객 세운 연동
 - [ ] S-4. 대운 심화 (순역·favor·원국 상호작용)
 - [ ] S-5. 프롬프트 반영 정리 + reading-quality 체크리스트
-- [ ] Z-1. iztro horoscope() 스파이크 + computeZiweiHoroscope
+- [x] Z-1. iztro horoscope() 스파이크 완료(2.5.8: decadal/yearly = {index=본명궁 인덱스, 간지, mutagen=록권과기
+      순 별 4개}, palaces[index].decadal.range=나이구간) + `computeZiweiHoroscope(birth, at)` 래퍼(대한·유년
+      간지·명궁 소재궁·사화 붙는 별과 본명 소재궁). `ziweiHoroscope.test.ts` 스냅샷 2생일 lock, 711 그린.
 - [ ] Z-2. 자미 운한 해석 레이어 🧠
 - [ ] Z-3. 동궁 주성 조합 KB ~50 엔트리 🧠
 - [ ] Z-4. 운한 교차검증·프롬프트 배선
