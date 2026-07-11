@@ -555,8 +555,8 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
           await sendMessage(chatId, "아직 따로 기억해둔 메모는 없어요. \"이거 기억해둬\"라고 말하면 그때부터 요약해서 기억할게요.");
           return;
         }
-        const lines = memories.slice(-10).map((m) => `• [${m.category}] ${m.summary}`);
-        await sendMessage(chatId, `기억하고 있는 것들:\n${lines.join("\n")}`);
+        const lines = memories.slice(-10).map((m) => `• ${m.summary}`);
+        await sendMessage(chatId, `지금 기억하고 있는 건 이런 거예요 👇\n${lines.join("\n")}`);
         return;
       }
       // ── 기억 저장(저장해달라는 명령일 때만) ──
@@ -566,7 +566,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         try {
           const { category, summary, sensitive } = await summarizeForMemory(user.history, text);
           await store.addMemory(chatId, { category, summary, sensitive });
-          await sendMessage(chatId, `기억해뒀어요 ✅ (${category})\n"${summary}"`);
+          await sendMessage(chatId, `ㅇㅋ 기억해뒀어요 👌\n${summary}`);
         } finally {
           clearInterval(typing);
         }
