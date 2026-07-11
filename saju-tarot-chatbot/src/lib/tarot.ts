@@ -1,4 +1,4 @@
-import { TAROT_DECK } from "../data/tarotDeck";
+import { TAROT_DECK } from "../data/tarotDeck.js";
 import type { DrawnTarotCard } from "../types";
 
 export type SpreadId = "one" | "ppf" | "soa" | "five" | "ab" | "month" | "relation" | "celtic";

@@ -1,6 +1,6 @@
 import type { DrawnTarotCard, TarotCardDefinition } from "../types";
-import { COURT_PERSONA, courtKey, type CourtPersonaEntry, type CourtRank, type CourtSuit } from "../data/tarotCourtPersona";
-import { minorDepthOf, type MinorDepth } from "../data/tarotMinorDepth";
+import { COURT_PERSONA, courtKey, type CourtPersonaEntry, type CourtRank, type CourtSuit } from "../data/tarotCourtPersona.js";
+import { minorDepthOf, type MinorDepth } from "../data/tarotMinorDepth.js";
 
 export interface TarotSymbolism {
   archetype: string;

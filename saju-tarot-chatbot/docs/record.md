@@ -2101,3 +2101,41 @@ limit·stopReason 버그를 고쳐도 이 근본 원인(느린 생성 → 함수
 `src/lib/readingApi.test.ts`. 검증: `npm test` 814 통과(테스트 개수 동일, 기존 테스트 갱신), `tsc -b`
 클린, `npm run build` 클린. 실제 계산 근거 생성(`buildReadingUserMessage`)을 saju/combo × front/mid/
 back으로 직접 호출해 섹션 배정이 겹치거나 빠지지 않는지, 예외 없이 동작하는지 스크립트로 재현·확인함.
+
+### ⚠ 진단 정정 + 진짜 원인 핫픽스: `/api/reading` 전면 500 — ESM import 확장자 누락 (2026-07-11)
+
+위 두 항목의 "함수 duration 타임아웃" 추정은 **틀렸다.** 사용자가 Vercel Functions 로그를 직접 확인해
+줬고, 진짜 원인이 로그에 그대로 찍혀 있었다:
+
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module
+'/var/task/saju-tarot-chatbot/src/data/tarotCourtPersona'
+imported from /var/task/saju-tarot-chatbot/src/lib/tarotSymbolism.js
+Node.js process exited with exit status: 1.
+```
+
+즉 **`/api/reading`이 모든 요청에서 500으로 즉사**하고 있었다(고급/자기완전분석만이 아니라 전부 —
+빨리 끝나는 기본 리딩이 멀쩡해 보였다면 그건 `resultCache` 캐시 히트였을 것). 사용자 화면의
+"A server error occurred"는 Vercel이 함수 크래시(FUNCTION_INVOCATION_FAILED) 시 내려보내는 JSON
+message가 `serverErrorText()`를 그대로 통과해 표면화된 것.
+
+원인: 엔진 업그레이드 T-1(타로 코트 페르소나)·T-3a(마이너 심화)에서 추가된 데이터 파일 import가
+`.js` 확장자 없이 들어갔다. **Vite(브라우저 번들)와 vitest는 확장자 없는 상대 import를 해석해주지만,
+Vercel의 Node ESM 런타임은 `ERR_MODULE_NOT_FOUND`로 모듈 로드 단계에서 죽는다.** 그래서 로컬
+테스트 782개·빌드가 전부 그린이어도 배포만 하면 죽는, 로컬에서 잡을 수 없는 회귀였다.
+
+수정 (3곳, api/*.ts 도달 그래프 전수 조사로 확인):
+- `src/lib/tarotSymbolism.ts`: `../data/tarotCourtPersona` → `.js`, `../data/tarotMinorDepth` → `.js`
+- `src/lib/tarot.ts`: `../data/tarotDeck` → `.js`
+
+재발 방지: `src/lib/serverEsmImports.test.ts` 신설 — api/*.ts에서 시작해 상대 import 그래프를 걸으며
+런타임(값) import에 `.js`/`.json` 확장자가 없으면 실패하는 회귀 테스트. pure `import type`은 컴파일
+시 지워지므로 허용. 이 테스트가 있었으면 T-1 커밋 시점에 CI에서 잡혔다.
+
+참고: 직전 두 항목의 변경(rate limit 40 상향, 재작성 stopReason 오보 수정, 고급 3분할 fan-out)은
+이번 장애의 원인은 아니었지만 각각 독립적으로 유효한 수정/보강이라 되돌리지 않고 유지한다.
+추가로 검토했던 "자기 완전분석(selfDeep) 2분할 fan-out"은 원인이 아님이 확인돼 **적용하지 않았다**
+(selfDeep은 기존대로 통짜 생성 — 실제로 타임아웃이 관측되면 그때 다시 꺼낼 것).
+
+검증: `npm test` 815 통과(신규 1), `tsc -b`·`npm run build` 클린. 변경 파일:
+`src/lib/tarotSymbolism.ts`, `src/lib/tarot.ts`, `src/lib/serverEsmImports.test.ts`(신규).

@@ -27,6 +27,12 @@
   **남은 것은 잠금 예외 2개(C-3 궁합 점수 캘리브레이션·V-3 rule weight 캘리브레이션)뿐 — 둘 다 "실사용
   피드백 후" 착수 조건이라 지금은 보류.** 그 외 누적된 건 아래 실생성(LLM) 육안 검증(API 키 필요)뿐.
   작업 브랜치 `claude/fortune-reading-engine-upgrade-ik50ji` = main = ht4pat 동일 지점.
+  ⚠ **2026-07-11 프로덕션 장애 & 핫픽스:** T-1(코트 페르소나)·T-3a(마이너 심화)에서 추가된 타로 데이터
+  import가 `.js` 확장자 없이 들어가(`tarotSymbolism.ts`→`tarotCourtPersona`/`tarotMinorDepth`,
+  `tarot.ts`→`tarotDeck`), Vercel Node ESM 런타임에서 `ERR_MODULE_NOT_FOUND`로 **`/api/reading` 전체가
+  500으로 죽는 장애** 발생(사용자 화면 "A server error occurred", Vercel 로그로 확정). Vite·vitest는
+  확장자 없이도 해석돼 로컬 테스트·빌드로는 안 잡혔음. `.js` 부여 + api 그래프 전수 검사 회귀 테스트
+  (`src/lib/serverEsmImports.test.ts`) 추가로 수정, main 배포. 상세 `docs/record.md`.
 - **직전 세션이 한 일:** …·A-1·T-3a·T-3b. T-3a/b: 타로 마이너 56장 개별 심화 `src/data/tarotMinorDepth.ts`
   (MINOR_DEPTH: 카드 id→{scene·shadow·advice}, 완드·컵 28 + 소드·펜타클 28 = 56장, 웨이트 통설·참고용) +
   `describeMinorDepth`, `formatTarotCards` 프롬프트·TarotFactsPanel UI 배선. 56장 전수 완결성 audit + 검수 덤프
@@ -188,6 +194,7 @@
 
 | 날짜 | 작업자(계정/모델) | 한 일 | 다음 할 일 |
 |---|---|---|---|
+| 2026-07-11 | Fable 5 | **프로덕션 핫픽스: `/api/reading` 전면 500 장애 수정.** 원인은 T-1/T-3a에서 추가된 타로 데이터 상대 import 3곳(`tarotSymbolism.ts`→`tarotCourtPersona`·`tarotMinorDepth`, `tarot.ts`→`tarotDeck`)의 `.js` 확장자 누락 → Vercel Node ESM에서 `ERR_MODULE_NOT_FOUND`로 함수가 뜨자마자 크래시(사용자 화면 "A server error occurred", Vercel 로그로 확정). `.js` 부여 + api/*.ts 도달 그래프 전수 검사 회귀 테스트 `serverEsmImports.test.ts` 추가. 앞선 두 커밋(rate limit 40·재작성 stopReason 수정·고급 3분할 fan-out)은 진짜 원인은 아니었지만 유효한 보강이라 유지. 815/815, tsc/build 클린, main 배포 | 배포 후 기본·고급·자기완전분석 실제 생성 육안 확인 |
 | 2026-07-10 | Opus 4.8 | **[별개 트랙: 텔레그램 봇] 응답 톤 "사람이랑 채팅하듯" 전면 개선.** 비서 모드 강제 템플릿(결론/이유/오늘할일)·의도 고지("이건 ~질문으로 보고 정리할게") 삭제, MODE_PROMPTS 4종 대화체 재작성. teacher/타로 프롬프트에 "친구랑 톡하듯·상대 말투 맞추기(반말↔존댓말)·소제목/번호목록 금지" 강화. 기억 저장/조회 문구에서 카테고리 코드·따옴표 제거. 계산·안전 불변, 프롬프트/문구만. 814 통과·build 클린. main | 배포 후 톤 실제 왕복 육안검증 |
 | 2026-07-10 | Opus 4.8 | **[별개 트랙: 텔레그램 봇] 기능 명세 문서화.** 봇 타로+맥락 라우팅+"기억해?" 수정 전체를 `docs/telegram-bot-features.md`로 상세 정리(메시지 흐름·타로 스프레드/근거/후속맥락·스마트 라우터 안전설계·의도 목록·버그 수정·명령·상태모델·환경변수·검증). 코드 변경 없음(docs-only). main 반영 | 봇 실제 텔레그램 왕복 육안검증 |
 | 2026-07-10 | Opus 4.8 | **[별개 트랙: 텔레그램 봇] 타로 추가 + 100% 자연어 맥락 라우팅 + "기억해?" 오인 수정.** (재기획 UI/엔진 트랙과 무관 — "현재 상태" 미변경) `bot/`에 타로 리딩 신규(`tarotReading.ts` 스프레드 자동선택·카드 뽑기·근거 직렬화, teacher `askTarot`, `/타로`), 후속 질문 맥락용 `UserRecord.lastTarot`(store 3곳), 맥락 인지 라우터(`smartRouter.ts`: 최근 대화+등록상태로 의도 확정, 파괴적 삭제·초기화만 키워드 선처리, haiku 폴백), intentDetector `tarotReading` 규칙. 후속: "내 사주 기억해?"(질문)가 memorySave로 오인되던 버그 수정(질문/명령 분리). 상세 `docs/record.md` "텔레그램 봇" 절. bot 95 통과·build 클린. main 병합 | 봇 실제 텔레그램 왕복 육안검증(토큰/API키 필요) |
