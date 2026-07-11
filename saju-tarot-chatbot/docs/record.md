@@ -2035,3 +2035,69 @@ bot 테스트 95 통과, 전체 build 클린.
   "..."` → `ㅇㅋ 기억해뒀어요 👌\n요약`), 기억 조회도 `[category]` 태그 빼고 자연스럽게.
 
 검증: `npm test` 814 통과(프롬프트 문구를 검증하는 테스트 없음 확인), build 클린. 톤은 배포 후 실제 왕복 육안 검증 권장.
+
+### 고급 리딩 "대기만 걸리고 안 나옴" 신고 — rate limit 상향 + stopReason 오보 수정
+
+사용자 신고: 고급(advanced) 리딩에서 "리포트를 정성껏 뽑는 중" 화면에 항목별 대기만 뜨고, 결국 화면
+하단에 빨간 글씨로 `A server error occurred`(Vercel 플랫폼이 서버리스 함수 크래시/타임아웃 시 그대로
+내려보내는 문구 — 우리 앱 코드에는 이 문구가 없음, `serverErrorText` 헬퍼가 Vercel의 에러 JSON
+`{error:{message:...}}`을 그대로 표면화한 것으로 추정)가 뜸.
+
+원인 후보로 두 가지를 코드에서 확인·수정:
+
+1. **`api/_security.ts` rate limit 과소 설정**: `MAX_REQ_PER_WINDOW = 12`(IP당 분당 12회)였는데, 주석상
+   "fan-out 2회 + 여유"만 가정한 값이었다. 실제로는 `src/lib/readingApi.ts`의 `MAX_CONTINUATIONS = 6`
+   때문에 앞/뒤 파트 각각 최대 7회(초기 1 + 이어쓰기 6)까지 별도 HTTP 호출이 가능해, 리딩 하나가
+   정상적으로 최대 14회를 쓸 수 있다. 최근 엔진 업그레이드 트랙(격국 심화·통근/투출·개고·코트
+   페르소나·마이너 타로 심화·카드 조합 등)으로 **고급 모드에서만** 쓰이는 원자료 근거
+   (`formatSajuChart`/`formatTarotCards`, JudgmentPack으로 압축되지 않음)가 크게 늘어, 고급 리딩이
+   이어쓰기를 필요로 하는 빈도가 기본보다 훨씬 높아졌을 것으로 추정 — 12회 제한에 정상 흐름조차
+   걸렸을 가능성. `MAX_REQ_PER_WINDOW`를 40으로 상향.
+2. **재작성(rewrite) 스트림의 `stopReason` 하드코딩 버그**: `streamContentGatedReply`(콘텐츠 게이트,
+   고급이 쓰는 경로)와 `streamRewriteAfterFailedGate`(판단 게이트, 기본이 쓰는 경로) 둘 다, 검증
+   실패로 재작성 스트림을 한 번 더 돌릴 때 실제 `message_delta.stop_reason`을 추적하지 않고
+   `"end_turn"`으로 고정해서 `done` 라인에 실어 보냈다. 재작성 자체가 `max_tokens`로 잘려도
+   클라이언트(`readingApi.ts`)는 완결로 오판해 이어쓰기를 하지 않고 잘린 채로 표시했다. 두 함수
+   모두 실제 `stop_reason`을 반환하도록 수정.
+
+재작성(2차 생성)은 원본과 같은 길이만큼 한 번 더 스트리밍하므로, 같은 서버리스 호출 안에서 생성
+시간이 최대 두 배로 늘어날 수 있다는 점도 확인함 — 고급 백파트(8개 섹션, `formatSajuChart` 근거만
+단독 메시지 길이 약 3만자)에서 특히 위험. Vercel 함수 duration/플랜 한도(계정 쪽이라 이 세션에서
+직접 확인 불가)를 넘겨 플랫폼이 함수를 강제 종료했을 가능성이 가장 유력한 근본 원인으로 남아있음 —
+사용자에게 Vercel 대시보드에서 `api/reading` 함수 로그/플랜 확인을 요청함.
+
+변경 파일: `api/_security.ts`, `api/reading.ts`. 검증: `npm test` 814 통과, `npm run build` 클린.
+
+### 후속 조치: 고급 리딩 fan-out을 2분할 → 3분할로 (Vercel 계정 확인 없이 코드로 근본 원인 완화)
+
+위 진단에서 "확정하려면 Vercel 대시보드 확인 필요"로 남겨뒀던 부분을, 사용자가 직접 확인하지 않아도
+되도록 코드 레벨에서 선제적으로 완화했다. 핵심 아이디어: **재작성(rewrite)까지 가지 않아도, 고급의
+파트 하나(뒷부분 8섹션·통합 앞부분 10섹션)가 원래도 너무 길어서 생성 시간이 오래 걸린다** — rate
+limit·stopReason 버그를 고쳐도 이 근본 원인(느린 생성 → 함수 duration 한도 근접/초과)은 그대로
+남는다.
+
+- `src/prompts/systemPrompt.ts`: `ADVANCED_FANOUT_SECTIONS` 신설(saju/combo × front/mid/back 섹션
+  배정표) + `buildAdvancedFanOutInstruction()`. `facts.context?.depth === "advanced"`이고
+  `sectionGroup`이 front/mid/back 중 하나면 이 3분할 지시를 쓴다. 기본(depth 미지정)은 기존 앞/뒤
+  2분할 지시를 그대로 유지(안 건드림 — 기본은 신고 대상이 아니었음).
+  - saju: front(첫 점괘~직업과 돈, 5섹션) / mid(재물 흐름~올해의 흐름, 5섹션) / back(반복 패턴 정밀
+    진단~마지막 점괘, 5섹션). 총 15섹션.
+  - combo: front(첫 점괘~분야별 요약, 6섹션) / mid(타고난 성격과 기질~인생의 큰 흐름, 6섹션) /
+    back(올해의 흐름~마지막 점괘, 6섹션). 총 18섹션.
+  - `sectionGroup` 타입에 `"mid"` 추가(`ReadingFacts`, `api/reading.ts`의 `NewReadingBody`).
+- `src/lib/readingApi.ts`: fan-out을 front/back 하드코딩에서 `fanOutGroups(body)`(depth advanced면
+  `["front","mid","back"]`, 아니면 `["front","back"]`) 기반 N-way로 일반화. `combineParts`도
+  2개 문자열 전용에서 배열을 받아 순서대로 이어붙이는 형태로 바꿈(빈 파트 스킵, 이음매만 다듬고
+  바깥쪽 끝은 안 건드리는 기존 규칙 유지). `streamReadingFanOut`도 front/back 변수 2개 대신
+  `texts: string[]`로 일반화 — 메타(계산 결과)는 여전히 첫 파트(front)에서만 옴.
+- 테스트: `readingApi.test.ts`의 "고급 saju 새 리딩은 앞/뒤 섹션을 병렬 호출" 테스트를 3콜(front/mid/
+  back) 기준으로 갱신. 기본(depth 미지정) 테스트는 2콜 그대로라 안 건드림.
+- 효과: 고급 리딩 파트당 출력 요구량이 기존 대비 약 1/3(8~10섹션 → 5~6섹션)로 줄어 파트 하나의
+  생성 시간이 짧아지고, `max_tokens`에 걸려 이어쓰기(continue)가 필요해질 확률도 낮아진다. 총
+  내용/섹션 수는 그대로(정보 축소 없음), 병렬 호출 수만 2→3으로 늘었다. rate limit(위 항목에서
+  40으로 올림)도 3×7=21회까지 여유가 있어 문제 없음.
+
+변경 파일: `src/prompts/systemPrompt.ts`, `src/lib/readingApi.ts`, `api/reading.ts`(타입만),
+`src/lib/readingApi.test.ts`. 검증: `npm test` 814 통과(테스트 개수 동일, 기존 테스트 갱신), `tsc -b`
+클린, `npm run build` 클린. 실제 계산 근거 생성(`buildReadingUserMessage`)을 saju/combo × front/mid/
+back으로 직접 호출해 섹션 배정이 겹치거나 빠지지 않는지, 예외 없이 동작하는지 스크립트로 재현·확인함.

@@ -116,27 +116,46 @@ function shouldFanOut(body: unknown): body is FanOutBody {
   // 토픽 심화(topicDeep)도 전용 5섹션 구조라 front/back 분할과 안 맞고, 짧아서(1000~2500자) 굳이
   // 병렬화할 필요도 없다 — 통짜 단일 스트림+이어쓰기로 생성한다.
   if (analysisMode === "selfDeep" || analysisMode === "personDeep" || analysisMode === "topicDeep") return false;
-  // 깊이(기본/고급) 상관없이 saju/combo는 항상 앞/뒤 병렬 fan-out을 탄다. 기본도 advanced와 똑같이
+  // 깊이(기본/고급) 상관없이 saju/combo는 항상 병렬 fan-out을 탄다. 기본도 advanced와 똑같이
   // 11개 안팎 섹션을 순서대로 다 쓰므로, 병렬화 없이 통짜 스트림+이어쓰기만 타면 체감 지연이 크다.
   // 내용 구조는 systemPrompt.ts 쪽 변경이 없으니 분량·깊이는 그대로이고, 요청 경로만 병렬화된다.
   return (b.type === "saju" || b.type === "combo") && !b.continueFrom && !b.sectionGroup;
 }
 
-function combineParts(front: string, back: string): string {
-  if (!front) return back;
-  if (!back) return front;
-  return `${front.trimEnd()}\n\n${back.trimStart()}`;
+/**
+ * fan-out 파트 목록. 고급(advanced)은 표준 섹션이 15~18개라 앞/뒤 2분할만으로는 파트 하나가
+ * 너무 길어져(특히 뒷부분) 생성 시간이 늘고 서버리스 함수 타임아웃 위험이 커진다("고급 리딩만
+ * 대기 걸리고 안 나옴" 신고, docs/record.md 참고). 3분할(front/mid/back)로 파트당 생성량을 줄인다.
+ * 섹션 배정은 systemPrompt.ts의 ADVANCED_FANOUT_SECTIONS와 반드시 짝이 맞아야 한다.
+ */
+function fanOutGroups(body: FanOutBody): Array<"front" | "mid" | "back"> {
+  const depth = (body.context as { depth?: unknown } | undefined)?.depth;
+  return depth === "advanced" ? ["front", "mid", "back"] : ["front", "back"];
+}
+
+/** front→mid→back 순서로 텍스트를 이어붙인다. 빈 파트는 건너뛰고, 이어붙는 경계만 다듬는다. */
+function combineParts(parts: string[]): string {
+  const nonEmpty = parts.filter((p) => p.length > 0);
+  if (nonEmpty.length <= 1) return nonEmpty[0] ?? "";
+  return nonEmpty
+    .map((p, i) => {
+      let s = p;
+      if (i > 0) s = s.trimStart();
+      if (i < nonEmpty.length - 1) s = s.trimEnd();
+      return s;
+    })
+    .join("\n\n");
 }
 
 async function streamReadingFanOut(body: FanOutBody, handlers: StreamHandlers): Promise<StreamResult> {
-  let frontReply = "";
-  let backReply = "";
+  const groups = fanOutGroups(body);
+  const texts: string[] = groups.map(() => "");
   let meta: ReadingMeta | undefined;
   let metaDelivered = false;
   let pendingText: string | null = null;
 
   const emitCombined = () => {
-    const combined = combineParts(frontReply, backReply);
+    const combined = combineParts(texts);
     if (!metaDelivered) {
       pendingText = combined;
       return;
@@ -155,33 +174,27 @@ async function streamReadingFanOut(body: FanOutBody, handlers: StreamHandlers): 
     }
   };
 
-  const front = streamReadingWithContinuations(
-    { ...body, sectionGroup: "front" },
-    {
-      onMeta: deliverMeta,
-      onText: (text) => {
-        frontReply = text;
-        emitCombined();
+  const calls = groups.map((group, index) =>
+    streamReadingWithContinuations(
+      { ...body, sectionGroup: group },
+      {
+        // 계산 메타(사주 원국 등)는 첫 파트(front) 호출에서만 넘어온다
+        onMeta: index === 0 ? deliverMeta : undefined,
+        onText: (text) => {
+          texts[index] = text;
+          emitCombined();
+        },
       },
-    },
-  );
-  const back = streamReadingWithContinuations(
-    { ...body, sectionGroup: "back" },
-    {
-      onText: (text) => {
-        backReply = text;
-        emitCombined();
-      },
-    },
+    ),
   );
 
-  const [frontResult, backResult] = await Promise.all([front, back]);
-  meta = meta ?? frontResult.meta ?? backResult.meta;
-  const reply = combineParts(frontResult.reply, backResult.reply);
+  const results = await Promise.all(calls);
+  meta = meta ?? results.find((r) => r.meta)?.meta;
+  const reply = combineParts(results.map((r) => r.reply));
   if (meta && !metaDelivered) handlers.onMeta?.(meta);
   handlers.onText?.(reply);
   // 게이트 신호는 계산 메타를 실어보내는 front 호출에 실린다
-  return { meta, reply, gate: frontResult.gate ?? backResult.gate };
+  return { meta, reply, gate: results.find((r) => r.gate)?.gate };
 }
 
 async function streamReadingWithContinuations(body: unknown, handlers: StreamHandlers = {}): Promise<StreamResult> {

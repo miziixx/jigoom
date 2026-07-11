@@ -35,7 +35,11 @@ export interface SecurityDecision {
 
 // ── 튜닝 값 ─────────────────────────────────────────────────
 const WINDOW_MS = 60_000; // 1분 창
-const MAX_REQ_PER_WINDOW = 12; // IP당 1분 12회 (리딩 앞/뒤 fan-out 2회 + 여유)
+// IP당 1분 허용 횟수. 리딩 하나가 앞/뒤 fan-out 2회 + 각 파트별 이어쓰기(continue) 최대 6회
+// (readingApi.ts MAX_CONTINUATIONS)까지 별도 HTTP 호출을 낼 수 있어, 이론상 한 번의 고급(advanced)
+// 리딩만으로도 최대 (1+6)*2 = 14회까지 소모될 수 있다. 12로는 그 정상 흐름조차 429로 막을 수 있어
+// 여유를 두고 40으로 올린다.
+const MAX_REQ_PER_WINDOW = 40;
 export const MAX_QUESTION_LEN = 2000; // 질문/고민 텍스트 상한
 export const MAX_CONTEXT_FIELD_LEN = 1000; // 상담 컨텍스트 개별 필드 상한
 export const MAX_BODY_BYTES = 200_000; // 요청 본문 전체 상한(≈200KB)

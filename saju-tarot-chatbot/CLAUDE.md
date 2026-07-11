@@ -165,10 +165,10 @@ The app uses Claude through `api/reading.ts`.
 
 Long saju/combo readings use client-side fan-out:
 
-- `src/lib/readingApi.ts` sends two simultaneous streaming calls for new `saju` and `combo` readings.
-- Front call writes: `# 첫 점괘`, `# 질문 중심 핵심`, `# 분야별 요약`, `# 타고난 성격과 기질`, `# 직업과 돈`, `# 재물 흐름`, `# 애정과 관계`.
-- Back call writes: `# 건강과 컨디션`, `# 인생의 큰 흐름`, `# 올해의 흐름`, `# 지금 해야 할 것과 피해야 할 것`, `# 마지막 점괘`.
-- The UI combines front/back text in the original section order.
+- `src/lib/readingApi.ts` sends simultaneous streaming calls for new `saju` and `combo` readings — 2-way (front/back) for 기본, **3-way (front/mid/back) for 고급(advanced)**.
+- 기본 front call writes: `# 첫 점괘`, `# 질문 중심 핵심`, `# 분야별 요약`, `# 타고난 성격과 기질`, `# 직업과 돈`, `# 재물 흐름`, `# 애정과 관계`. 기본 back call writes: `# 건강과 컨디션`, `# 인생의 큰 흐름`, `# 올해의 흐름`, `# 지금 해야 할 것과 피해야 할 것`, `# 마지막 점괘`.
+- 고급(advanced) saju/combo has 15~18 standard sections (5 more than 기본: `# 반복 패턴 정밀 진단`, `# 선택과 시기 판단`, `# 3개월 실행 전략`), so it fans out 3 ways instead of 2 — see `ADVANCED_FANOUT_SECTIONS` in `systemPrompt.ts` and `fanOutGroups()` in `readingApi.ts` for the exact per-part section assignment. This was added 2026-07-11 after a "고급 리딩만 대기 걸리고 안 나옴" report traced to `api/reading`'s serverless invocation likely exceeding its duration limit — 2-way split left the back/front parts too long (esp. combined with the content-gate rewrite, which reruns a full-length generation in the same invocation). See `docs/record.md` for the diagnosis. If you touch either the section list in `systemPrompt.ts` or the group list in `readingApi.ts`, keep both in sync — they must assign the exact same sections to each of front/mid/back.
+- The UI combines front/(mid/)back text in the original section order via `combineParts()`, which now accepts any number of parts.
 - Each call still uses the existing continuation logic if it hits `max_tokens` or a stream ends early.
 - `sectionGroup` is only a generation instruction. The stored `userMessage`/follow-up history must not keep the front/back-only directive.
 - Follow-up, compare, today, and flow calls are not fan-out by default.

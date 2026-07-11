@@ -60,7 +60,7 @@ interface NewReadingBody {
   question: string;
   focus?: ReadingFocus;
   context?: ReadingContext;
-  sectionGroup?: "front" | "back";
+  sectionGroup?: "front" | "mid" | "back";
   // 개인정보 보호: 생년월일 원본(birthInfo)은 서버로 보내지 않는다. 사주 계산은 클라이언트에서
   // 끝내고, 그 계산 결과와 성별만 전달한다.
   gender?: Gender;
@@ -259,11 +259,12 @@ async function streamRewriteAfterFailedGate(
   firstValidation: JudgmentValidationResult,
   judgmentPack: JudgmentPack,
   model: string = MODEL,
-): Promise<{ reply: string; gate: JudgmentGateResult }> {
+): Promise<{ reply: string; gate: JudgmentGateResult; stopReason: string | null }> {
   const rewritePrompt = buildJudgmentRewritePrompt({ originalReply: firstReply, validation: firstValidation, pack: judgmentPack });
   res.write(JSON.stringify({ text: "", replace: true }) + "\n");
 
   let rewriteReply = "";
+  let stopReason: string | null = null;
   const stream = anthropic.messages.stream({
     model,
     max_tokens: 7000,
@@ -274,7 +275,23 @@ async function streamRewriteAfterFailedGate(
     if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
       rewriteReply += event.delta.text;
       res.write(JSON.stringify({ text: event.delta.text }) + "\n");
+    } else if (event.type === "message_delta" && event.delta.stop_reason) {
+      stopReason = event.delta.stop_reason;
     }
+  }
+
+  // 재작성이 max_tokens로 잘렸으면 아직 미완성이므로 fallback으로 덮어쓰지 않고 그대로 올려보내
+  // 클라이언트가 stopReason을 보고 이어쓰기(continue)하게 한다.
+  if (stopReason === "max_tokens") {
+    const gate: JudgmentGateResult = {
+      status: "rewrite",
+      reply: rewriteReply,
+      validation: firstValidation,
+      firstValidation,
+      rewriteAttempted: true,
+      fallbackUsed: false,
+    };
+    return { reply: rewriteReply, gate, stopReason };
   }
 
   const rewriteValidation = validateOutputAgainstJudgmentPack({ reply: rewriteReply, pack: judgmentPack });
@@ -287,7 +304,7 @@ async function streamRewriteAfterFailedGate(
       rewriteAttempted: true,
       fallbackUsed: false,
     };
-    return { reply: rewriteReply, gate };
+    return { reply: rewriteReply, gate, stopReason };
   }
 
   const fallbackReply = buildJudgmentFallback(judgmentPack);
@@ -302,7 +319,7 @@ async function streamRewriteAfterFailedGate(
     rewriteAttempted: true,
     fallbackUsed: true,
   };
-  return { reply: fallbackReply, gate };
+  return { reply: fallbackReply, gate, stopReason: "end_turn" };
 }
 
 async function completeJudgmentGatedReply(
@@ -373,7 +390,7 @@ async function streamJudgmentGatedReply(
       res.write(JSON.stringify({ done: true, stopReason, gate: gateSignal(firstPass) }) + "\n");
     } else {
       const gated = await streamRewriteAfterFailedGate(res, anthropic, reply, firstPass.validation, judgmentPack, model);
-      res.write(JSON.stringify({ done: true, stopReason: "end_turn", gate: gateSignal(gated.gate) }) + "\n");
+      res.write(JSON.stringify({ done: true, stopReason: gated.stopReason, gate: gateSignal(gated.gate) }) + "\n");
     }
   } catch (err) {
     console.error(err);
@@ -439,6 +456,7 @@ async function streamContentGatedReply(
       const rewritePrompt = buildContentRewritePrompt({ originalReply: reply, issues, evidenceUserMessage });
       res.write(JSON.stringify({ text: "", replace: true }) + "\n");
       let corrected = "";
+      let rewriteStopReason: string | null = null;
       const rewriteStream = anthropic.messages.stream({
         model,
         max_tokens: MAX_TOKENS_STREAM,
@@ -449,13 +467,17 @@ async function streamContentGatedReply(
         if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
           corrected += event.delta.text;
           res.write(JSON.stringify({ text: event.delta.text }) + "\n");
+        } else if (event.type === "message_delta" && event.delta.stop_reason) {
+          rewriteStopReason = event.delta.stop_reason;
         }
       }
-      const remaining = validateReadingContent(corrected);
+      // 재작성이 max_tokens로 잘렸다면 아직 미완성이므로, stopReason을 그대로 전달해
+      // 클라이언트가 완결로 오판하지 않고 이어쓰기(continue)하게 한다.
+      const remaining = rewriteStopReason === "max_tokens" ? [] : validateReadingContent(corrected);
       res.write(
         JSON.stringify({
           done: true,
-          stopReason: "end_turn",
+          stopReason: rewriteStopReason,
           contentGate: { status: contentNeedsRewrite(remaining) ? "rewrite-partial" : "rewrite", codes: issues.map((i) => i.code) },
         }) + "\n",
       );

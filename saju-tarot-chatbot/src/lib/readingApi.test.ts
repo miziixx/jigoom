@@ -47,7 +47,9 @@ afterEach(() => {
 });
 
 describe("streamReading 이어쓰기(continue)", () => {
-  it("고급 saju 새 리딩은 앞/뒤 섹션을 병렬 호출해 순서대로 합친다", async () => {
+  it("고급 saju 새 리딩은 앞/중간/뒤 섹션을 3분할 병렬 호출해 순서대로 합친다", async () => {
+    // 고급은 표준 섹션이 15개라 앞/뒤 2분할이 아니라 앞/중간/뒤 3분할로 fan-out한다
+    // (파트당 생성량을 줄여 서버리스 함수 타임아웃 위험을 낮춘다).
     const calls: Array<Record<string, unknown>> = [];
     const fetchMock = vi.fn((_, init: RequestInit) => {
       const parsed = JSON.parse(init.body as string) as Record<string, unknown>;
@@ -61,10 +63,18 @@ describe("streamReading 이어쓰기(continue)", () => {
           ]),
         );
       }
+      if (parsed.sectionGroup === "mid") {
+        return Promise.resolve(
+          ndjsonResponse([
+            JSON.stringify({ text: "# 재물 흐름\n중간" }),
+            JSON.stringify({ done: true, stopReason: "end_turn" }),
+          ]),
+        );
+      }
       return Promise.resolve(
         ndjsonResponse([
           JSON.stringify({ meta: { userMessage: "back-user" } }),
-          JSON.stringify({ text: "# 건강과 컨디션\n뒤" }),
+          JSON.stringify({ text: "# 마지막 점괘\n뒤" }),
           JSON.stringify({ done: true, stopReason: "end_turn" }),
         ]),
       );
@@ -73,9 +83,9 @@ describe("streamReading 이어쓰기(continue)", () => {
 
     const result = await streamReading({ type: "saju", question: "전체", context: { depth: "advanced" } });
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(calls.map((c) => c.sectionGroup).sort()).toEqual(["back", "front"]);
-    expect(result.reply).toBe("# 첫 점괘\n앞\n\n# 건강과 컨디션\n뒤");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(calls.map((c) => c.sectionGroup).sort()).toEqual(["back", "front", "mid"]);
+    expect(result.reply).toBe("# 첫 점괘\n앞\n\n# 재물 흐름\n중간\n\n# 마지막 점괘\n뒤");
     expect(result.meta?.userMessage).toBe("front-user");
   });
 

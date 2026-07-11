@@ -992,13 +992,43 @@ function usesCompactEvidence(facts: ReadingFacts): boolean {
   return !facts.context?.depth;
 }
 
+// 고급(advanced) saju/combo 3분할 fan-out용 섹션 배정. 총 섹션·순서는 기존과 동일하고,
+// 병렬 호출 경계만 앞/뒤 2분할에서 앞/중간/뒤 3분할로 늘려 파트당 생성량을 줄인다.
+const ADVANCED_FANOUT_SECTIONS: Record<"saju" | "combo", Record<"front" | "mid" | "back", string[]>> = {
+  saju: {
+    front: ["첫 점괘", "질문 중심 핵심", "분야별 요약", "타고난 성격과 기질", "직업과 돈"],
+    mid: ["재물 흐름", "애정과 관계", "건강과 컨디션", "인생의 큰 흐름", "올해의 흐름"],
+    back: ["반복 패턴 정밀 진단", "선택과 시기 판단", "3개월 실행 전략", "지금 해야 할 것과 피해야 할 것", "마지막 점괘"],
+  },
+  combo: {
+    front: ["첫 점괘", "질문 중심 핵심", "사주로 보는 장기 흐름", "타로로 보는 현재 흐름", "통합 판단", "분야별 요약"],
+    mid: ["타고난 성격과 기질", "직업과 돈", "재물 흐름", "애정과 관계", "건강과 컨디션", "인생의 큰 흐름"],
+    back: ["올해의 흐름", "반복 패턴 정밀 진단", "선택과 시기 판단", "3개월 실행 전략", "지금 해야 할 것과 피해야 할 것", "마지막 점괘"],
+  },
+};
+
+const FANOUT_PHASE_LABEL: Record<"front" | "mid" | "back", string> = { front: "앞부분", mid: "중간부분", back: "뒷부분" };
+
+function buildAdvancedFanOutInstruction(type: "saju" | "combo", group: "front" | "mid" | "back"): string {
+  const groups = ADVANCED_FANOUT_SECTIONS[type];
+  const mine = groups[group];
+  const others = (["front", "mid", "back"] as const).filter((g) => g !== group).flatMap((g) => groups[g]);
+  const questionNote =
+    type === "combo" && group === "front"
+      ? " 통합 리딩에서는 질문이 없어도 '# 질문 중심 핵심'을 생략하지 말고 전반 핵심 판단으로 작성한다."
+      : "";
+  return `[병렬 생성 — ${FANOUT_PHASE_LABEL[group]}만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라.${questionNote}\n${mine
+    .map((s) => `# ${s}`)
+    .join("\n")}\n다른 섹션(${others.join(", ")})은 절대 쓰지 마라.`;
+}
+
 export interface ReadingFacts {
   type: ReadingType;
   question: string;
   focus?: ReadingFocus;
   context?: ReadingContext;
   /** 긴 종합 리딩을 병렬 생성할 때 담당할 섹션 묶음 */
-  sectionGroup?: "front" | "back";
+  sectionGroup?: "front" | "mid" | "back";
   /** 성별만 전달한다. 개인정보 보호를 위해 생년월일 원본은 AI로 보내지 않는다. */
   gender?: Gender;
   sajuChart?: SajuChart;
@@ -1261,17 +1291,22 @@ export function buildReadingUserMessage(facts: ReadingFacts, prebuiltJudgmentPac
     parts.push(DEFAULT_STANDARD_INSTRUCTION);
   }
 
-  if (facts.sectionGroup === "front") {
+  // 고급(advanced) saju/combo는 표준 섹션이 15~18개라 앞/뒤 2분할로는 파트 하나가 너무 길어져
+  // 생성 시간이 늘고 서버리스 함수 타임아웃 위험이 커진다(고급 리딩 "대기만 걸리고 안 나옴" 신고,
+  // docs/record.md 참고). 3분할(front/mid/back)로 파트당 생성량을 더 줄인다. 총 섹션·내용은 동일하고
+  // 병렬 호출 수만 늘어난다.
+  const advancedFanOut = facts.context?.depth === "advanced" && (facts.type === "saju" || facts.type === "combo");
+  if (advancedFanOut && (facts.sectionGroup === "front" || facts.sectionGroup === "mid" || facts.sectionGroup === "back")) {
+    parts.push(buildAdvancedFanOutInstruction(facts.type as "saju" | "combo", facts.sectionGroup));
+  } else if (facts.sectionGroup === "front") {
     parts.push(
       facts.type === "combo"
-        ? "[병렬 생성 — 앞부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라. 통합 리딩에서는 질문이 없어도 '# 질문 중심 핵심'을 생략하지 말고 전반 핵심 판단으로 작성한다.\n# 첫 점괘\n# 질문 중심 핵심\n# 사주로 보는 장기 흐름\n# 타로로 보는 현재 흐름\n# 통합 판단\n# 분야별 요약\n# 타고난 성격과 기질\n# 직업과 돈\n# 재물 흐름\n# 애정과 관계\n다른 섹션(건강과 컨디션, 인생의 큰 흐름, 올해의 흐름, 반복 패턴 정밀 진단, 선택과 시기 판단, 3개월 실행 전략, 지금 해야 할 것과 피해야 할 것, 마지막 점괘)은 절대 쓰지 마라."
+        ? "[병렬 생성 — 앞부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라. 통합 리딩에서는 질문이 없어도 '# 질문 중심 핵심'을 생략하지 말고 전반 핵심 판단으로 작성한다.\n# 첫 점괘\n# 질문 중심 핵심\n# 사주로 보는 장기 흐름\n# 타로로 보는 현재 흐름\n# 통합 판단\n# 분야별 요약\n# 타고난 성격과 기질\n# 직업과 돈\n# 재물 흐름\n# 애정과 관계\n다른 섹션(건강과 컨디션, 인생의 큰 흐름, 올해의 흐름, 지금 해야 할 것과 피해야 할 것, 마지막 점괘)은 절대 쓰지 마라."
         : "[병렬 생성 — 앞부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라.\n# 첫 점괘\n# 질문 중심 핵심\n# 분야별 요약\n# 타고난 성격과 기질\n# 직업과 돈\n# 재물 흐름\n# 애정과 관계\n다른 섹션(건강과 컨디션, 인생의 큰 흐름, 올해의 흐름, 지금 해야 할 것과 피해야 할 것, 마지막 점괘)은 절대 쓰지 마라.",
     );
   } else if (facts.sectionGroup === "back") {
     parts.push(
-      facts.context?.depth === "advanced"
-        ? "[병렬 생성 — 뒷부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라.\n# 건강과 컨디션\n# 인생의 큰 흐름\n# 올해의 흐름\n# 반복 패턴 정밀 진단\n# 선택과 시기 판단\n# 3개월 실행 전략\n# 지금 해야 할 것과 피해야 할 것\n# 마지막 점괘\n다른 섹션(첫 점괘, 질문 중심 핵심, 분야별 요약, 타고난 성격과 기질, 직업과 돈, 재물 흐름, 애정과 관계)은 절대 쓰지 마라."
-        : "[병렬 생성 — 뒷부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라.\n# 건강과 컨디션\n# 인생의 큰 흐름\n# 올해의 흐름\n# 지금 해야 할 것과 피해야 할 것\n# 마지막 점괘\n다른 섹션(첫 점괘, 질문 중심 핵심, 분야별 요약, 타고난 성격과 기질, 직업과 돈, 재물 흐름, 애정과 관계)은 절대 쓰지 마라.",
+      "[병렬 생성 — 뒷부분만 작성]\n이번 호출에서는 반드시 아래 섹션만, 아래 순서대로 작성해라.\n# 건강과 컨디션\n# 인생의 큰 흐름\n# 올해의 흐름\n# 지금 해야 할 것과 피해야 할 것\n# 마지막 점괘\n다른 섹션(첫 점괘, 질문 중심 핵심, 분야별 요약, 타고난 성격과 기질, 직업과 돈, 재물 흐름, 애정과 관계)은 절대 쓰지 마라.",
     );
   }
 
