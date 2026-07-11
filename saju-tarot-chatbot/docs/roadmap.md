@@ -70,6 +70,7 @@
 | **`docs/roadmap.md` (이 문서)** | 전체 지도 — 순서·규칙. 항상 여기서 시작 |
 | [`redesign-worklog.md`](./redesign-worklog.md) | 세션 간 인수인계 (현재 상태 5줄 + 세션 로그) — 훅으로 자동 주입됨 |
 | [`next_steps.md`](./next_steps.md) | 상품·가격·검증 체크리스트 상세 |
+| [`features.md`](./features.md) | **기능 총람** — 전체 기능 × 구현 방식 (메뉴별 "무엇→어떤 기법→어느 파일") |
 | [`record.md`](./record.md) | 전체 작업 이력 (대용량, 검색용) |
 | [`redesign-2026-07.md`](./redesign-2026-07.md) / [`engine-upgrade-2026-07.md`](./engine-upgrade-2026-07.md) | 완료된 트랙의 기획안 (참조용) |
 | `../CLAUDE.md` | 불변 규칙 (안전 문구·계산 불변식·검증 명령) |
