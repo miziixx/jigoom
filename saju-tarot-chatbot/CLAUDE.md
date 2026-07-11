@@ -6,10 +6,11 @@ This file records the current product direction, implementation choices, and saf
 
 Every Claude Code/Codex session must start by reading:
 
-1. `CLAUDE.md`
-2. `docs/record.md`
-3. `docs/next_steps.md`
-4. **`docs/redesign-worklog.md`** — 인사이트 오라클 재기획(2026-07)의 강제 확인/기록 파일. 리포 루트의 `.claude/settings.json` SessionStart 훅이 매 세션 이 파일을 자동으로 열어 컨텍스트에 주입합니다. 재기획 관련 작업이라면 **작업 전 이 파일의 "현재 상태"를 읽고, 작업 후 "세션 로그"에 한 줄을 append + 커밋/푸시**해야 합니다. 계정이 달라도 이 흐름은 동일하게 강제됩니다. 기획안은 `docs/redesign-2026-07.md`, 시안은 `docs/mockups/redesign-mockup.html`.
+1. **`docs/roadmap.md`** — 전체 지도(태스크 트리·워크플로우, 2026-07-11 신설). "뭐부터 해야 하지?"의 답은 항상 이 문서 태스크 트리의 최상단 미완료 항목이다. 우선순위 변경 = 이 문서 수정. 새 기능은 반드시 프리뷰 확인 후 main, 버그는 반드시 Vercel 로그부터.
+2. `CLAUDE.md`
+3. `docs/record.md`
+4. `docs/next_steps.md`
+5. **`docs/redesign-worklog.md`** — 인사이트 오라클 재기획(2026-07)의 강제 확인/기록 파일. 리포 루트의 `.claude/settings.json` SessionStart 훅이 매 세션 이 파일을 자동으로 열어 컨텍스트에 주입합니다. 재기획 관련 작업이라면 **작업 전 이 파일의 "현재 상태"를 읽고, 작업 후 "세션 로그"에 한 줄을 append + 커밋/푸시**해야 합니다. 계정이 달라도 이 흐름은 동일하게 강제됩니다. 기획안은 `docs/redesign-2026-07.md`, 시안은 `docs/mockups/redesign-mockup.html`.
 
 Codex-oriented startup instructions are also mirrored in `AGENTS.md`.
 
