@@ -8,6 +8,8 @@ import type {
   GyeokgukClassicInfo,
   GyeokgukInfo,
   HiddenTenGodBreakdown,
+  InteractionDetail,
+  TwelveStageDetail,
   LuckCycles,
   LuckFavor,
   LuckOverlap,
@@ -338,6 +340,30 @@ export function tenGodOf(dayGan: string, targetGan: string): string {
 
 // ── 12운성 (일간 기준: 양간 순행, 음간 역행) ──────────
 const TWELVE_STAGES = ["장생", "목욕", "관대", "건록", "제왕", "쇠", "병", "사", "묘", "절", "태", "양"];
+
+// 12운성 단계별 쉬운 뜻 (엔진 업그레이드 #3). 길흉 단정 없이 기운의 국면만 설명.
+const TWELVE_STAGE_GLOSS: Record<string, string> = {
+  장생: "새로 태어나 자라나는 기운 — 시작·성장",
+  목욕: "다듬어지는 불안정기 — 변덕·시행착오",
+  관대: "사회로 나서는 성장기 — 자기 주장이 서는 때",
+  건록: "제 힘으로 서는 왕성기 — 자립·실력",
+  제왕: "기운이 절정 — 강한 추진력, 과하면 고집",
+  쇠: "정점을 지나 누그러짐 — 안정·노련",
+  병: "힘이 약해지는 시기 — 예민, 돌봄이 필요",
+  사: "활동이 멈춘 정적기 — 사색·정리",
+  묘: "갈무리·저장의 때 — 묻어두고 마무리",
+  절: "끊기고 비는 전환점 — 단절 뒤 재정비",
+  태: "새 기운이 잉태됨 — 준비·가능성",
+  양: "길러지는 성장 직전 — 보살핌 속에 자람",
+};
+
+/** 지지들의 12운성을 구조화 (일간 기준, 자리별 단계+쉬운 뜻). 엔진 업그레이드 #3. */
+function computeTwelveStageDetails(dayGan: string, zhis: PositionedChar[]): TwelveStageDetail[] {
+  return zhis.map((z) => {
+    const stage = twelveStageOf(dayGan, z.char);
+    return { position: z.label, zhi: z.char, stage, gloss: TWELVE_STAGE_GLOSS[stage] ?? "" };
+  });
+}
 const BRANCH_ORDER = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
 const GAN_ORDER = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"];
 // 각 일간의 장생 지지
@@ -767,6 +793,75 @@ function computeInteractions(gans: PositionedChar[], zhis: PositionedChar[]): st
   return found;
 }
 
+// ── 합충형파해 구조화 (엔진 업그레이드 #4) ──────────
+// computeInteractions와 같은 관계를 객체로 낸다. 기존 문자열 함수는 잠금 테스트 보호를 위해
+// 손대지 않고, 여기서 같은 순서·같은 라벨 포맷으로 구조화만 병행한다.
+const RELATION_GLOSS: Record<InteractionDetail["relation"], string> = {
+  합: "끌림·묶임·관계 형성",
+  충: "부딪힘·변화·흔들림",
+  형: "속으로 쌓이는 압박·긴장",
+  파: "깨짐·어긋남·계획 수정",
+  해: "은근한 방해·오해·미묘한 불편함",
+};
+
+/** 4주(또는 3주)의 합충형파해를 구조화 목록으로 반환 (interactions와 동일 관계·순서). */
+function computeInteractionDetails(gans: PositionedChar[], zhis: PositionedChar[]): InteractionDetail[] {
+  const out: InteractionDetail[] = [];
+  const add = (
+    kind: InteractionDetail["kind"],
+    relation: InteractionDetail["relation"],
+    chars: string,
+    positions: string[],
+    label: string,
+    resultElement?: string,
+  ) => {
+    out.push({ kind, relation, chars, positions, ...(resultElement ? { resultElement } : {}), gloss: RELATION_GLOSS[relation], label });
+  };
+
+  for (let i = 0; i < gans.length; i++) {
+    for (let j = i + 1; j < gans.length; j++) {
+      const a = gans[i];
+      const b = gans[j];
+      const he = GAN_HE[pairKey(a.char, b.char)] ?? GAN_HE[pairKey(b.char, a.char)];
+      if (he) add("천간합", "합", `${a.char}${b.char}`, [a.label, b.label], `${a.label}-${b.label} ${a.char}${b.char}합(${he})`, he);
+    }
+  }
+
+  const matchKey = (set: Set<string>, keys: string[]) => keys.find((k) => set.has(k));
+  for (let i = 0; i < zhis.length; i++) {
+    for (let j = i + 1; j < zhis.length; j++) {
+      const a = zhis[i];
+      const b = zhis[j];
+      const pos = [a.label, b.label];
+      const keys = [pairKey(a.char, b.char), pairKey(b.char, a.char)];
+      const liuheKey = keys.find((k) => ZHI_LIUHE[k] !== undefined);
+      if (liuheKey) add("지지육합", "합", liuheKey, pos, `${a.label}-${b.label} ${liuheKey}합(${ZHI_LIUHE[liuheKey]})`, ZHI_LIUHE[liuheKey]);
+      const chong = matchKey(ZHI_CHONG, keys);
+      if (chong) add("충", "충", chong, pos, `${a.label}-${b.label} ${chong}충`);
+      const xing = matchKey(ZHI_XING, keys);
+      if (xing) add("형", "형", xing, pos, `${a.label}-${b.label} ${xing}형`);
+      if (a.char === b.char && ZHI_SELF_XING.has(a.char)) add("자형", "형", `${a.char}${a.char}`, pos, `${a.label}-${b.label} ${a.char}${a.char} 자형`);
+      const po = matchKey(ZHI_PO, keys);
+      if (po) add("파", "파", po, pos, `${a.label}-${b.label} ${po}파`);
+      const hai = matchKey(ZHI_HAI, keys);
+      if (hai) add("해", "해", hai, pos, `${a.label}-${b.label} ${hai}해`);
+    }
+  }
+
+  const posOf = (chars: string[]) => zhis.filter((z) => chars.includes(z.char)).map((z) => z.label);
+  const present = new Set(zhis.map((z) => z.char));
+  for (const { group, wangZhi, element } of SANHE) {
+    const hits = group.filter((g) => present.has(g));
+    if (hits.length === 3) add("삼합", "합", group.join(""), posOf(group), `지지 ${group.join("")} 삼합(${element})`, element);
+    else if (hits.length === 2 && hits.includes(wangZhi)) add("반합", "합", hits.join(""), posOf(hits), `지지 ${hits.join("")} 반합(${element})`, element);
+  }
+  for (const { group, element } of FANGHE) {
+    if (group.every((g) => present.has(g))) add("방합", "합", group.join(""), posOf(group), `지지 ${group.join("")} 방합(${element})`, element);
+  }
+
+  return out;
+}
+
 // ── 개고(開庫): 창고 지지가 충/형으로 열림 ──────────
 // 진·술·축·미는 오행의 묘고(墓庫)다. 평소엔 안의 기운이 잠겨 못 쓰지만, 충(진술충·축미충)이나
 // 삼형(축술미)으로 열리면(개고) 갈무리된 중기(中氣)가 쓸 수 있게 드러난다. 재고가 열리면 숨은
@@ -841,23 +936,30 @@ function assessStrength(
   let supportScore = 0;
   let totalScore = 0;
   const supporters: string[] = [];
+  const contribList: NonNullable<StrengthAssessment["transparency"]>["contributions"] = [];
 
   for (const { label, char } of gans) {
     if (label === "일간") continue;
     const w = STRENGTH_WEIGHTS[label as keyof typeof STRENGTH_WEIGHTS] ?? 1;
     totalScore += w;
-    if (helpsDay(GAN_WUXING[char])) {
+    const el = GAN_WUXING[char];
+    const supports = helpsDay(el);
+    if (supports) {
       supportScore += w;
       supporters.push(`${label} ${char}`);
     }
+    contribList.push({ position: label, char, element: el ?? "?", weight: w, supportsDay: supports });
   }
   for (const { label, char } of zhis) {
     const w = STRENGTH_WEIGHTS[label as keyof typeof STRENGTH_WEIGHTS] ?? 1;
     totalScore += w;
-    if (helpsDay(ZHI_WUXING[char])) {
+    const el = ZHI_WUXING[char];
+    const supports = helpsDay(el);
+    if (supports) {
       supportScore += w;
       supporters.push(`${label} ${char}`);
     }
+    contribList.push({ position: label, char, element: el ?? "?", weight: w, supportsDay: supports });
   }
 
   const ratio = supportScore / totalScore;
@@ -871,7 +973,17 @@ function assessStrength(
     `점수 ${supportScore.toFixed(1)}/${totalScore.toFixed(1)} (위치 가중치 기반 간이 판정)`,
   ].join(" · ");
 
-  return { supportScore, totalScore, label, detail };
+  // #1 판정 투명화: 어떤 관법·자리별 가중치·임계값으로 이 결론이 나왔는지 공개 (additive).
+  const transparency: StrengthAssessment["transparency"] = {
+    method: "억부론 — 자리별 위치 가중치 기반 간이 판정 (일간을 돕는 비겁·인성 세력의 비율로 신강/중화/신약 판정)",
+    weights: { ...STRENGTH_WEIGHTS },
+    contributions: contribList,
+    deukryeong: deLing,
+    ratio,
+    thresholds: { strong: 0.5, weak: 0.35 },
+  };
+
+  return { supportScore, totalScore, label, detail, transparency };
 }
 
 function suggestYongshin(dayGan: string, strength: StrengthAssessment, fiveElements: FiveElementBalance): YongshinCandidates {
@@ -1650,6 +1762,7 @@ function assembleChart(
   const tenGodDistribution = computeTenGodDistribution(dayGan, gans, zhis);
 
   const interactions = computeInteractions(gans, zhis);
+  const interactionDetails = computeInteractionDetails(gans, zhis);
   const strength = assessStrength(dayGan, gans, zhis);
   const yongshin = suggestYongshin(dayGan, strength, fiveElements);
   // 용신 체계 확장: 억부(기존) + 조후(계절) + 통관(대립 오행 잇기)
@@ -1666,6 +1779,7 @@ function assembleChart(
   const transparency = computeTransparency(dayGan, monthPillar.zhi, gans);
 
   const twelveStages = zhis.map((z) => `${z.label} ${z.char}: ${twelveStageOf(dayGan, z.char)}`);
+  const twelveStageDetails = computeTwelveStageDetails(dayGan, zhis);
   const gongmangZhis = gongmangOf(dayGan, dayPillar.zhi);
   const gongmangHits = zhis.filter((z) => gongmangZhis.includes(z.char)).map((z) => `${z.label} ${z.char}`);
   const gongmang = `${gongmangZhis} 공망${gongmangHits.length > 0 ? ` (원국 내 해당: ${gongmangHits.join(", ")})` : " (원국 내 해당 지지 없음)"}`;
@@ -1697,6 +1811,7 @@ function assembleChart(
     hiddenTenGods,
     tenGodDistribution,
     interactions,
+    interactionDetails,
     strength,
     yongshin,
     rootedness,
@@ -1704,6 +1819,7 @@ function assembleChart(
     storageOpenings: computeStorageOpenings(zhis, dayGan),
     monthCommand: monthCommand ?? undefined,
     twelveStages,
+    twelveStageDetails,
     gongmang,
     seasonNote: seasonNoteOf(monthPillar.zhi, dayGan),
     sinsal,

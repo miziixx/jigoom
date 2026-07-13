@@ -321,3 +321,16 @@
 ## 메모
 
 -
+
+## 엔진 심화 additive 필드 (2026-07-13, #4·#3·#1)
+
+기존 연월일시주·오행·십성·대운·기존 문자열 필드는 불변. 아래는 새 optional 필드만 추가(ADDITIVE ONLY).
+
+- **#4 합충형파해 구조화 `SajuChart.interactionDetails`**: 기존 `interactions`(문자열)와 같은 관계를
+  객체로. 회귀 테스트 `interactionDetails.test.ts`가 `interactionDetails.map(d=>d.label) === interactions`를
+  고정(두 함수 동기화 보장). `computeInteractions`(문자열)는 손대지 않고 `computeInteractionDetails` 병행.
+- **#3 십이운성 구조화 `SajuChart.twelveStageDetails`**: 자리별 stage+쉬운 뜻. 기존 `twelveStages`(문자열)
+  불변, `twelveStageOf` 재사용. 테스트 `engineUpgradeAdditive.test.ts`가 문자열판과 단계 일치 고정.
+- **#1 신강신약 투명화 `StrengthAssessment.transparency`**: 관법 라벨(억부론)·자리별 가중치 테이블
+  (월지 2.5 등)·자리별 기여 내역·득령·ratio·임계값(strong 0.5/weak 0.35) 공개. supportScore/totalScore/
+  label 산식은 불변, 기여 합이 기존 점수와 일치함을 테스트로 고정.

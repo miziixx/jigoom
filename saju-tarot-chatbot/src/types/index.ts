@@ -294,6 +294,38 @@ export interface StrengthAssessment {
   label: "신강" | "중화" | "신약";
   /** 득령(월지가 일간을 돕는지) 여부 등 판정 근거 */
   detail: string;
+  /**
+   * 판정 투명화 (엔진 업그레이드 #1). 어떤 관법·자리별 가중치·기준으로 이 결론이 나왔는지 공개.
+   * 기존 필드는 그대로 두고 additive로 추가한다.
+   */
+  transparency?: StrengthTransparency;
+}
+
+/** 신강신약 판정의 투명화 데이터 (엔진 업그레이드 #1). */
+export interface StrengthTransparency {
+  /** 적용 관법 라벨 (예: "억부론 — 자리별 위치 가중치 기반 간이 판정") */
+  method: string;
+  /** 자리별 가중치 테이블 (연간/연지/월간/월지/일지/시간/시지) */
+  weights: Record<string, number>;
+  /** 자리별 기여 내역 (일간 자신 제외) */
+  contributions: Array<{
+    /** 자리 (예: "월지") */
+    position: string;
+    /** 그 자리의 글자 */
+    char: string;
+    /** 그 글자의 오행 */
+    element: string;
+    /** 이 자리의 가중치 */
+    weight: number;
+    /** 일간을 돕는지(비겁·인성 방향) */
+    supportsDay: boolean;
+  }>;
+  /** 득령(월지가 일간을 돕는지) */
+  deukryeong: boolean;
+  /** 신강/신약 경계 비율 (support/total) */
+  ratio: number;
+  /** 판정 임계값 (ratio ≥ strong=신강, ≤ weak=신약, 그 사이=중화) */
+  thresholds: { strong: number; weak: number };
 }
 
 export interface YongshinCandidates {
@@ -387,6 +419,42 @@ export interface StorageOpening {
   trigger: string;
   /** 쉬운 말 설명 */
   note: string;
+}
+
+/**
+ * 합충형파해 관계 하나를 구조화한 데이터 (엔진 업그레이드 #4).
+ * 기존 `SajuChart.interactions`(사람용 문자열)는 그대로 두고, 같은 관계를 구조화해 추가한다.
+ */
+export interface InteractionDetail {
+  /** 세부 종류 */
+  kind: "천간합" | "지지육합" | "삼합" | "반합" | "방합" | "충" | "형" | "자형" | "파" | "해";
+  /** 상위 관계 묶음 (오행별/관계별 그룹핑용) */
+  relation: "합" | "충" | "형" | "파" | "해";
+  /** 관여한 글자 (예: "자오", "인오술") */
+  chars: string;
+  /** 관여한 자리 (예: ["월지","연지"]). 삼합·방합 등 그룹은 3자리 이상일 수 있다. */
+  positions: string[];
+  /** 합류(합/삼합/방합/육합/천간합)의 결과 오행. 충형파해는 없음 */
+  resultElement?: string;
+  /** 쉬운 말 뜻 (충=부딪힘·변화, 합=끌림·묶임, 형=쌓이는 압박, 파=깨짐·수정, 해=은근한 방해) */
+  gloss: string;
+  /** 사람용 라벨 (기존 interactions 문자열과 동일 포맷) */
+  label: string;
+}
+
+/**
+ * 십이운성 한 자리 (엔진 업그레이드 #3). 일간 기준, 각 지지의 12운성 단계와 쉬운 뜻.
+ * 기존 `SajuChart.twelveStages`(문자열)는 그대로 두고 구조화해 추가한다.
+ */
+export interface TwelveStageDetail {
+  /** 지지 위치 (연지/월지/일지/시지) */
+  position: string;
+  /** 지지 (예: "자") */
+  zhi: string;
+  /** 12운성 단계 (장생·목욕·관대·건록·제왕·쇠·병·사·묘·절·태·양) */
+  stage: string;
+  /** 그 단계의 쉬운 뜻 */
+  gloss: string;
 }
 
 /** 지지 하나의 지장간 기반 십성 분해 (여기/중기/정기 위상별) */
@@ -490,6 +558,8 @@ export interface SajuChart {
   tenGodDistribution?: Record<string, number>;
   /** 합충형파해 목록 (예: "월지-연지 자오충") */
   interactions?: string[];
+  /** 합충형파해 구조화 데이터 (엔진 업그레이드 #4). interactions와 같은 관계를 객체로. */
+  interactionDetails?: InteractionDetail[];
   strength?: StrengthAssessment;
   yongshin?: YongshinCandidates;
   /** 통근(通根): 각 천간이 지지 지장간에 뿌리를 두는지 */
@@ -502,6 +572,8 @@ export interface SajuChart {
   monthCommand?: MonthCommand;
   /** 12운성 (일간 기준 기둥별) */
   twelveStages?: string[];
+  /** 12운성 구조화 (엔진 업그레이드 #3). 자리별 단계+쉬운 뜻. */
+  twelveStageDetails?: TwelveStageDetail[];
   /** 공망 (일주 순중공망 지지 2개) */
   gongmang?: string;
   /** 조후(계절) 관점 노트 */

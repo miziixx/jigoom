@@ -2220,3 +2220,20 @@ Content Gate 경로)에도 같은 점검을 붙일지 검토. 용신 오행·12�
 부르던 문제 수정.)
 
 검증: bot tsc·전체 840 테스트·build 클린.
+
+## 2026-07-13 — 계산 엔진 심화 1차 (#4 합충형파해 구조화 · #3 십이운성 · #1 신강신약 투명화)
+
+사용자 요청(계산 엔진 업데이트, 우선순위 4→3→1). 전부 ADDITIVE ONLY — 기존 계산값·잠금 테스트 불변,
+새 optional 필드만. 봇/웹 근거는 chart를 JSON.stringify하므로 새 필드가 자동으로 LLM 근거에 포함됨.
+
+- **#4** `types/index.ts` `InteractionDetail`(kind·relation·chars·positions·resultElement·gloss·label),
+  `SajuChart.interactionDetails`. `saju.ts` `computeInteractionDetails`(기존 `computeInteractions` 문자열
+  함수는 잠금 보호로 미변경, 같은 순서·라벨로 구조화 병행), `assembleChart` 배선. 테스트
+  `interactionDetails.test.ts`(라벨=기존 문자열 목록 고정 + 구조 불변식).
+- **#3** `TwelveStageDetail`, `SajuChart.twelveStageDetails`. `TWELVE_STAGE_GLOSS`(12단계 쉬운 뜻) +
+  `computeTwelveStageDetails`(기존 `twelveStageOf` 재사용).
+- **#1** `StrengthTransparency`, `StrengthAssessment.transparency`. `assessStrength`가 관법 라벨·가중치
+  테이블·자리별 기여·득령·ratio·임계값을 공개(산식 불변). 테스트 `engineUpgradeAdditive.test.ts`.
+
+849 테스트·tsc·build 클린. **남은 요청: #2(격국/용신 경쟁후보 근거)·#5(궁위 레이어)·#6(대운-세운 생극합충
+세분)·#7(유파별 병렬) — 이어서 진행.**
