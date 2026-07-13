@@ -41,7 +41,7 @@ Vercel 대시보드 → 이 프로젝트 → **Settings → Environment Variable
 | `UPSTASH_REDIS_REST_URL` | Upstash 대시보드에서 복사 |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash 대시보드에서 복사 |
 | `TELEGRAM_ALLOWED_USER_IDS` | 내 텔레그램 ID (권장 — [@userinfobot](https://t.me/userinfobot)으로 확인) |
-| `BOT_MODEL` | (선택) 기본 `claude-opus-4-8`. 비용 아끼려면 `claude-sonnet-5` |
+| `BOT_MODEL` | (선택) 기본 `claude-sonnet-5`. 더 깊게: `claude-opus-4-8` / 더 싸게: `claude-haiku-4-5` |
 | `ANTHROPIC_API_KEY` | 이미 설정돼 있으면 그대로 두면 됨 |
 
 등록 후 **재배포**(Redeploy)해서 반영하세요.
@@ -102,7 +102,7 @@ npm run bot
 | `TELEGRAM_WEBHOOK_SECRET` | 권장 | — | 웹훅 위조 방지용 랜덤 문자열 |
 | `UPSTASH_REDIS_REST_URL` | ✅ | — | Upstash Redis REST URL |
 | `UPSTASH_REDIS_REST_TOKEN` | ✅ | — | Upstash Redis REST 토큰 |
-| `BOT_MODEL` | 선택 | 선택 | 기본 `claude-opus-4-8` (가장 깊은 해석). 비용을 아끼려면 `claude-sonnet-5` |
+| `BOT_MODEL` | 선택 | 선택 | 기본 `claude-sonnet-5` (비용 대비 품질). 더 깊게 `claude-opus-4-8` / 더 싸게 `claude-haiku-4-5` |
 | `BOT_VERBOSITY` | 선택 | 선택 | 기본 `normal` (8000 토큰). `brief`(4000), `detailed`(12000) 옵션. 자연어 힌트로도 제어 가능 |
 | `TELEGRAM_ALLOWED_USER_IDS` | 권장 | 권장 | 쉼표 구분 텔레그램 사용자 ID. 지정하면 그 사람만 사용 가능 (개인 봇 보호). 내 ID는 [@userinfobot](https://t.me/userinfobot) 으로 확인 |
 | `BOT_DATA_DIR` | — | 선택 | 롱폴링 전용 — 프로필/대화 저장 위치 (기본 `bot/data/`) |

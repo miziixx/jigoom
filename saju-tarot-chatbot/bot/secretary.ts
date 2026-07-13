@@ -87,7 +87,7 @@ export async function askSecretary({
         {
           type: "text",
           text: `[비서 컨텍스트]\n${JSON.stringify(assistantContext)}\n\n위 데이터가 이 답변의 유일한 근거입니다. 없는 사실을 지어내지 마세요.`,
-          cache_control: { type: "ephemeral" },
+          cache_control: { type: "ephemeral", ttl: "1h" },
         },
       ],
     },

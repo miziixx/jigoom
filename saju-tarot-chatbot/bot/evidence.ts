@@ -102,15 +102,22 @@ function kstNow(): Date {
   );
 }
 
-export function computePack(source: ChartSource): ComputedPack {
+/**
+ * 원국 + 운의 흐름 계산.
+ * `includeMonthlyFlow`는 기본 false다 — 1~12월 월운 흐름은 토큰이 큰데(대화당 ~2천 토큰)
+ * 흐름/월운을 실제로 물을 때만 필요하다. 필요하면 `buildFlowEvidence`가 켜서 그 턴에만 붙인다.
+ * (원국 근거 블록을 작고 고정된 상태로 유지해 프롬프트 캐시 적중률을 높인다.)
+ */
+export function computePack(source: ChartSource, opts: { includeMonthlyFlow?: boolean } = {}): ComputedPack {
+  const includeMonthlyFlow = opts.includeMonthlyFlow ?? false;
   if (source.kind === "pillars") {
     const chart = computeChartFromPillars(toFourPillarsInput(source.pillars));
-    const luck = computeLuckFromPillars(chart, kstNow(), { includeMonthlyFlow: true });
+    const luck = computeLuckFromPillars(chart, kstNow(), { includeMonthlyFlow });
     return { chart, luck };
   }
   const chart = computeSajuChart(source.birthInfo);
   const luck = computeLuckCycles(source.birthInfo, kstNow(), {
-    includeMonthlyFlow: true,
+    includeMonthlyFlow,
     yongElements: chart.yongshin?.supportive,
     avoidElements: chart.yongshin?.unfavorable,
   });
@@ -169,6 +176,19 @@ export function buildCompatibilityEvidence(
     "",
     "[궁합 계산 데이터 — 두 원국의 일간 관계·지지 합충·오행 보완·일지(배우자궁)·역할 궁합·점수를 프로그램이 계산한 값]",
     JSON.stringify(result),
+  ].join("\n");
+}
+
+/**
+ * 올해 1~12월 월운 흐름 근거 (질문이 흐름/월운/올해를 물을 때만 현재 턴에 첨부).
+ * 원국 근거 블록에서 분리해, 평소엔 이 큰 배열을 프롬프트에 싣지 않는다.
+ */
+export function buildFlowEvidence(source: ChartSource): string {
+  const { luck } = computePack(source, { includeMonthlyFlow: true });
+  const flow = luck.monthlyFlow ?? [];
+  return [
+    "[올해 1~12월 월운 흐름 계산 데이터 — 각 달 월주 간지와 내 원국의 상호작용]",
+    flow.length > 0 ? JSON.stringify(flow) : "월별 흐름 계산 없음",
   ].join("\n");
 }
 

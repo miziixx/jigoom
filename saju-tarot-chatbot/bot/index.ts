@@ -11,7 +11,7 @@ import { fileStore } from "./fileStore.js";
 import { logError } from "./logSafe.js";
 
 async function main(): Promise<void> {
-  console.log("사주 선생님 봇 시작 (롱폴링, 로컬 테스트용). 모델:", process.env.BOT_MODEL ?? "claude-opus-4-8");
+  console.log("사주 선생님 봇 시작 (롱폴링, 로컬 테스트용). 모델:", process.env.BOT_MODEL ?? "claude-sonnet-5");
   let offset = 0;
   for (;;) {
     try {

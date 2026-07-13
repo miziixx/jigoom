@@ -1,12 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ChatTurn } from "./storeTypes.js";
-import { buildNatalEvidence, buildTodayEvidence, type ChartSource } from "./evidence.js";
+import { buildNatalEvidence, buildTodayEvidence, buildFlowEvidence, type ChartSource } from "./evidence.js";
 import { emitPartial, finalizeStream } from "./streamToTelegram.js";
 import { logError, logRequest } from "./logSafe.js";
 import { detectUngroundedSajuClaims, formatGroundingWarning } from "../src/lib/factGrounding.js";
 
-// BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.
-const MODEL = process.env.BOT_MODEL ?? "claude-opus-4-8";
+// BOT_MODEL 환경변수로 교체 가능. 기본은 비용 대비 해석 품질이 좋은 Sonnet 5.
+// (더 깊게: BOT_MODEL=claude-opus-4-8 / 더 싸게: claude-haiku-4-5. Fable 5는
+//  thinking:{type:"disabled"}를 거부하므로 아래 thinking 처리와 호환되지 않는다.)
+const MODEL = process.env.BOT_MODEL ?? "claude-sonnet-5";
 // BOT_VERBOSITY로 답변 길이 상한 제어. 기본은 채팅답게 짧게(normal).
 // 텔레그램은 수다처럼 짧게 티키타카가 원칙이라 상한을 낮게 둔다. detailed만 깊은 설명용.
 const BOT_VERBOSITY = (process.env.BOT_VERBOSITY ?? "normal") as "brief" | "normal" | "detailed";
@@ -15,7 +17,7 @@ const BOT_TEMPERATURE = process.env.BOT_TEMPERATURE ? Number(process.env.BOT_TEM
 const VERBOSITY_TOKENS = {
   brief: 900,
   normal: 1800,
-  detailed: 8000,
+  detailed: 6000,
 } as const;
 type Verbosity = "brief" | "normal" | "detailed";
 
@@ -87,6 +89,14 @@ function questionAsksAboutToday(question: string): boolean {
   return /오늘|일진|지금\s*(어때|어떄|운|흐름|뭐)|오늘의|하루\s*운/.test(question);
 }
 
+/**
+ * 올해 월별 흐름 데이터를 이 질문에 붙일지 판단한다.
+ * 흐름·월운·올해·몇 월 등을 물을 때만 붙여, 평소 대화엔 큰 월별 배열을 싣지 않는다.
+ */
+function questionAsksAboutFlow(question: string): boolean {
+  return /흐름|올해|한\s*해|월별|달별|몇\s*월|[1-9]\s*월|이번\s*달|다음\s*달|상반기|하반기|월운|연운|세운/.test(question);
+}
+
 /** 계산 근거 + 대화 맥락을 실어 Claude에게 해석을 요청한다 */
 export async function askTeacher({ source, history, question, chatId, verbosityOverride, astrologyEvidence }: AskOptions): Promise<string> {
   const historyMessages = history.map((t) => ({ role: t.role, content: t.content }) as Anthropic.Messages.MessageParam);
@@ -94,6 +104,7 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
   // 오늘 일진은 사용자가 오늘을 직접 물었을 때만 첨부한다(평소엔 원국 데이터만).
   const evidenceBlocks: string[] = [];
   if (source && questionAsksAboutToday(question)) evidenceBlocks.push(buildTodayEvidence(source));
+  if (source && questionAsksAboutFlow(question)) evidenceBlocks.push(buildFlowEvidence(source));
   if (astrologyEvidence) evidenceBlocks.push(astrologyEvidence);
   const finalUserContent = evidenceBlocks.length > 0 ? `${evidenceBlocks.join("\n\n")}\n\n[질문]\n${question}` : `[질문]\n${question}`;
 
@@ -112,7 +123,7 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
             {
               type: "text",
               text: `${natalEvidence}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 사용자가 실제로 물어본 것에만 답하고, 안 물어본 항목(오늘 운세·대운 등)은 먼저 꺼내지 마세요.`,
-              cache_control: { type: "ephemeral" },
+              cache_control: { type: "ephemeral", ttl: "1h" },
             },
           ],
         },
@@ -167,14 +178,16 @@ export async function runStream(
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
 
-  // 짧은 채팅 답변엔 확장 사고를 끄고 바로 답하게 해 속도를 높인다.
+  // 짧은 채팅 답변엔 확장 사고를 끄고 바로 답하게 해 속도·비용을 아낀다.
   // 깊은 설명(detailed)일 때만 adaptive thinking을 켠다.
+  // 주의: Sonnet 5·Opus 4.8 등은 thinking을 '생략'하면 adaptive가 켜지므로(비용↑),
+  // 짧은 답에서는 명시적으로 disabled로 꺼야 한다. (Fable 5는 disabled를 거부 — BOT_MODEL 미지원)
   const stream = client.messages.stream({
     model: MODEL,
     max_tokens: maxTokens,
     ...(BOT_TEMPERATURE !== undefined ? { temperature: BOT_TEMPERATURE } : {}),
-    ...(level === "detailed" ? { thinking: { type: "adaptive" as const } } : {}),
-    system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
+    thinking: level === "detailed" ? { type: "adaptive" as const } : { type: "disabled" as const },
+    system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral", ttl: "1h" } }],
     messages,
   });
 

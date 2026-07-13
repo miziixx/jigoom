@@ -64,8 +64,10 @@ export interface UserRecord {
   updatedAt: string;
 }
 
-// 오래된 맥락은 잘라 토큰을 아끼고 최근 대화 흐름만 유지한다
-export const MAX_HISTORY = 40;
+// 오래된 맥락은 잘라 토큰을 아끼고 최근 대화 흐름만 유지한다.
+// history는 프롬프트 캐시가 안 되는(고정 근거·시스템만 캐시됨) 부분이라 매 턴 입력 원가로
+// 쌓인다 → 상한을 낮춰 긴 대화의 입력 토큰을 줄인다. 더 오래된 맥락은 memory 요약이 담당.
+export const MAX_HISTORY = 16;
 
 // history 세션 TTL(분). BOT_HISTORY_TTL_MINUTES env로 조정 가능. 기본 45분.
 export const HISTORY_TTL_MINUTES = Number(process.env.BOT_HISTORY_TTL_MINUTES ?? "45") || 45;

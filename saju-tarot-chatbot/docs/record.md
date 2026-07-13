@@ -2175,3 +2175,28 @@ Vercel의 Node ESM 런타임은 `ERR_MODULE_NOT_FOUND`로 모듈 로드 단계�
 **남은 것:** 실제 텔레그램 왕복으로 경고 꼬리 오탐/미탐 육안 확인. 웹 리딩(고급 raw-evidence
 Content Gate 경로)에도 같은 점검을 붙일지 검토. 용신 오행·12운성 주장 검증은 텍스트 매칭으로는
 오탐이 커서 v1에서 제외(구조화된 chart 객체 대조가 필요한 후속 과제).
+
+## 2026-07-13 — 텔레그램 봇 토큰 비용 절감 5종 (계산·안전 불변)
+
+사용자 요청으로 봇 토큰 비용을 줄이는 5가지를 순서대로 적용. 전부 계산 엔진·안전장치·
+근거 게이트는 그대로 두고 모델/프롬프트 페이로드/캐시/히스토리만 조정.
+
+1. **기본 모델 Opus 4.8 → Sonnet 5** (`bot/teacher.ts` MODEL, `index.ts` 로그, `bot/README.md`).
+   BOT_MODEL 환경변수로 계속 오버라이드 가능(opus/ haiku). 출력 단가 $25→$15(프로모 $10)로
+   리딩 1건당 비용 대략 절반. **함께 thinking 처리 수정:** Sonnet 5·Opus 4.8은 thinking을
+   '생략'하면 adaptive가 켜져(비용↑) 짧은 답이 비싸진다 → detailed만 adaptive, 나머지는
+   명시적 `{type:"disabled"}`로 끔. (Fable 5는 disabled를 거부하므로 BOT_MODEL로 미지원 — 주석 명시.)
+2. **월별 흐름을 원국 근거에서 분리** (`bot/evidence.ts`). `computePack`에 `includeMonthlyFlow`
+   플래그(기본 false) 추가 → 캐시되는 원국 블록에서 1~12월 배열(~450토큰) 제거해 매 대화 경량화.
+   `buildFlowEvidence` 신규 + `teacher.ts` `questionAsksAboutFlow`로 흐름/월운/올해를 물을 때만
+   그 턴에 첨부(오늘 일진 게이트와 동일 방식). grounding 근거에도 합쳐 월 간지 오탐 방지.
+3. **프롬프트 캐시 TTL 5분 → 1시간** (`teacher.ts` 3곳·`secretary.ts` 1곳 `cache_control.ttl:"1h"`).
+   텔레그램 대화가 5분 넘게 끊겨도 원국/시스템 근거 캐시가 살아남아 재청구 방지.
+4. **MAX_HISTORY 40 → 16** (`bot/storeTypes.ts`). history는 캐시 안 되는 부분이라 매 턴 입력
+   원가로 쌓임 → 상한을 낮춰 긴 대화 입력 토큰 절감. 더 오래된 맥락은 memory 요약이 담당.
+5. **detailed max_tokens 8000 → 6000** (`teacher.ts` VERBOSITY_TOKENS). 최악 출력 스파이크 완화.
+   (너무 낮추면 truncation→"계속" 재호출로 역효과라 6000으로 절충.)
+
+검증: bot tsc·전체 836 테스트·build 클린. buildNatalEvidence에 monthlyFlow 없음/ buildFlowEvidence에
+있음 런타임 확인. 참고: BOT_TEMPERATURE를 설정하면 Sonnet 5/Opus 4.8은 400(비default 샘플링 거부)
+— 기본은 미설정이라 무해하나 후속 정리 대상.
