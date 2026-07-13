@@ -5,7 +5,7 @@ import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationT
 import { looksLikeFourPillars, looksLikePartialPillars, parseFourPillars, describePillars } from "./parseFourPillars.js";
 import { formatChartSummary, buildCompatibilityEvidence, chartSourceOf, computePack, pillarsSource, birthSource, type ChartSource } from "./evidence.js";
 import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
-import { askTeacher, askCompatibility, askTarot } from "./teacher.js";
+import { askTeacher, askCompatibility, askTarot, pickTeacherModel } from "./teacher.js";
 import { extractVerbosityHint } from "./extractVerbosityHint.js";
 import { logError } from "./logSafe.js";
 import { detectIntent, isSecretaryIntent } from "./intentDetector.js";
@@ -503,6 +503,8 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     let question = text;
     let verbosityOverride: "brief" | "normal" | "detailed" | undefined;
     let astrologyEvidence: string | undefined;
+    // 잡담(generalChat)만 값싼 모델로. 슬래시 명령·사주 질문은 기본 모델 유지.
+    let teacherModel: string | undefined;
 
     if (text === "/today") {
       // 오늘 일진만 짧게. "오늘/일진"이 들어 있어 teacher가 오늘 데이터를 자동 첨부한다.
@@ -616,6 +618,8 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
       if ((intent === "astrologyReading" || intent === "combinedReading") && user.birthInfo) {
         astrologyEvidence = buildAstrologyEvidenceText(user.birthInfo);
       }
+      // 순수 잡담이면 값싼 모델로 태운다(사주 용어 섞이면 pickTeacherModel이 기본 모델 유지).
+      teacherModel = pickTeacherModel(intent, cleanQuestion);
     }
 
     const typing = setInterval(() => void sendTyping(chatId), 5000);
@@ -629,6 +633,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         chatId,
         verbosityOverride,
         astrologyEvidence,
+        modelOverride: teacherModel,
       });
       await store.appendHistory(chatId, { role: "user", content: question }, { role: "assistant", content: answer });
     } finally {

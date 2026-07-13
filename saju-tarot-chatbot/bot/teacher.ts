@@ -4,11 +4,25 @@ import { buildNatalEvidence, buildTodayEvidence, buildFlowEvidence, type ChartSo
 import { emitPartial, finalizeStream } from "./streamToTelegram.js";
 import { logError, logRequest } from "./logSafe.js";
 import { detectUngroundedSajuClaims, formatGroundingWarning } from "../src/lib/factGrounding.js";
+import { shouldUseChatModel } from "./chatModelPolicy.js";
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 비용 대비 해석 품질이 좋은 Sonnet 5.
 // (더 깊게: BOT_MODEL=claude-opus-4-8 / 더 싸게: claude-haiku-4-5. Fable 5는
 //  thinking:{type:"disabled"}를 거부하므로 아래 thinking 처리와 호환되지 않는다.)
 const MODEL = process.env.BOT_MODEL ?? "claude-sonnet-5";
+
+// 순수 잡담(generalChat)은 값싼 모델로 태워 비용을 아낀다. 사주/타로 해석은 MODEL 그대로.
+// BOT_CHAT_MODEL로 교체 가능(같은 값으로 두면 분리 해제).
+const CHAT_MODEL = process.env.BOT_CHAT_MODEL ?? "claude-haiku-4-5-20251001";
+
+/**
+ * teacher 경로에서 이 질문에 쓸 모델을 고른다.
+ * generalChat(순수 잡담)이고 사주 용어가 없으면 값싼 CHAT_MODEL, 그 외엔 기본 MODEL.
+ * 판단부는 chatModelPolicy.ts(순수)에 있다.
+ */
+export function pickTeacherModel(intent: string, question: string): string {
+  return shouldUseChatModel(intent, question) ? CHAT_MODEL : MODEL;
+}
 // BOT_VERBOSITY로 답변 길이 상한 제어. 기본은 채팅답게 짧게(normal).
 // 텔레그램은 수다처럼 짧게 티키타카가 원칙이라 상한을 낮게 둔다. detailed만 깊은 설명용.
 const BOT_VERBOSITY = (process.env.BOT_VERBOSITY ?? "normal") as "brief" | "normal" | "detailed";
@@ -42,6 +56,7 @@ const buildTeacherSystem = (verbosity: Verbosity = "normal"): string => {
 [제일 중요 — 진짜 사람처럼]
 ${lengthRule}
 - 상대 말투에 맞추세요. 반말로 오면 반말, 존댓말로 오면 존댓말. 기본은 편한 반말~해요체.
+- 사용자를 부를 땐 반드시 *"선생님"*이라고 호칭하세요. "누나·오빠·형·언니·님" 같은 호칭이나 성별을 추측한 호칭은 절대 쓰지 마세요.
 - 먼저 상대 말에 짧게 반응(맞장구·공감·"오 그건~")하고 이어가세요. 인사엔 인사로, 농담엔 농담으로. 곧장 사주 분석부터 들이대지 마세요.
 - 물어본 것 딱 그것만. 안 물어본 사주 얘기(대운·격국·신살·오늘 운세 등)를 스스로 줄줄이 붙이지 마세요. 한 답에 개념 하나면 충분.
 - 결론→근거→현실→조언 같은 정해진 틀, 소제목, 번호 목록으로 각 잡지 마세요. 그냥 말로 풀어서 대화하세요.
@@ -78,6 +93,8 @@ export interface AskOptions {
   verbosityOverride?: "brief" | "normal" | "detailed"; // 자연어 힌트에서 추출됨
   /** astrologyReading/combinedReading일 때만 첨부하는 점성술 근거 텍스트 블록 */
   astrologyEvidence?: string;
+  /** 이 답변에 쓸 모델(생략 시 기본 MODEL). 잡담은 pickTeacherModel로 값싼 모델을 넘긴다. */
+  modelOverride?: string;
 }
 
 /**
@@ -98,7 +115,7 @@ function questionAsksAboutFlow(question: string): boolean {
 }
 
 /** 계산 근거 + 대화 맥락을 실어 Claude에게 해석을 요청한다 */
-export async function askTeacher({ source, history, question, chatId, verbosityOverride, astrologyEvidence }: AskOptions): Promise<string> {
+export async function askTeacher({ source, history, question, chatId, verbosityOverride, astrologyEvidence, modelOverride }: AskOptions): Promise<string> {
   const historyMessages = history.map((t) => ({ role: t.role, content: t.content }) as Anthropic.Messages.MessageParam);
 
   // 오늘 일진은 사용자가 오늘을 직접 물었을 때만 첨부한다(평소엔 원국 데이터만).
@@ -148,7 +165,7 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
         { role: "user", content: question },
       ];
 
-  return runStream(messages, chatId, verbosityOverride, "teacher", undefined, groundingEvidence);
+  return runStream(messages, chatId, verbosityOverride, "teacher", undefined, groundingEvidence, modelOverride);
 }
 
 /**
@@ -171,22 +188,31 @@ export async function runStream(
    * 차단이 아니라 표시다 — 공부용 대화에서 할루시네이션을 사용자가 알아채게 한다.
    */
   groundingEvidence?: string,
+  /** 이 호출에 쓸 모델(생략 시 기본 MODEL). 잡담은 값싼 CHAT_MODEL을 넘긴다. */
+  modelOverride?: string,
 ): Promise<string> {
   const level = verbosityOverride ?? BOT_VERBOSITY;
   const maxTokens = VERBOSITY_TOKENS[level];
   const systemPrompt = systemPromptOverride ?? buildTeacherSystem(level);
+  const model = modelOverride ?? MODEL;
   const requestId = crypto.randomUUID();
   const startedAt = Date.now();
 
   // 짧은 채팅 답변엔 확장 사고를 끄고 바로 답하게 해 속도·비용을 아낀다.
   // 깊은 설명(detailed)일 때만 adaptive thinking을 켠다.
   // 주의: Sonnet 5·Opus 4.8 등은 thinking을 '생략'하면 adaptive가 켜지므로(비용↑),
-  // 짧은 답에서는 명시적으로 disabled로 꺼야 한다. (Fable 5는 disabled를 거부 — BOT_MODEL 미지원)
+  // 짧은 답에서는 명시적으로 disabled로 꺼야 한다.
+  // haiku(구형)는 disabled/adaptive 파라미터를 안전하게 안 받을 수 있어 thinking을 생략한다
+  // (생략 시 사고 없음 — 잡담엔 그게 맞다). Fable 5도 disabled를 거부하므로 여기서 제외된다.
+  const supportsThinkingToggle = /sonnet|opus/.test(model);
+  const thinkingParam = supportsThinkingToggle
+    ? { thinking: (level === "detailed" ? { type: "adaptive" as const } : { type: "disabled" as const }) }
+    : {};
   const stream = client.messages.stream({
-    model: MODEL,
+    model,
     max_tokens: maxTokens,
     ...(BOT_TEMPERATURE !== undefined ? { temperature: BOT_TEMPERATURE } : {}),
-    thinking: level === "detailed" ? { type: "adaptive" as const } : { type: "disabled" as const },
+    ...thinkingParam,
     system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral", ttl: "1h" } }],
     messages,
   });
@@ -277,6 +303,7 @@ const TAROT_SYSTEM = `당신은 타로를 아주 깊게 읽는 사람인데, 지
 
 [말투 — 친구가 카드 봐주듯]
 - *항상 한국어로.* 점집 상담사 톤 말고, 친한 친구가 카드 펼쳐놓고 "오 이거 봐" 하며 얘기해 주는 느낌으로. 상대 말투에 맞춰(반말엔 반말, 존댓말엔 존댓말) 편하게.
+- 사용자를 부를 땐 *"선생님"*이라고 호칭하세요. "누나·오빠·형·언니" 같은 호칭이나 성별 추측 호칭은 쓰지 마세요.
 - 소제목·번호 목록·표로 각 잡지 말고 말로 풀어서. 텔레그램이라 짧은 문장, 굵게는 *별표* 한 쌍만.
 - 기본은 카드 수에 맞게 적당히(한 장이면 짧게, 여러 장이면 흐름으로 엮어서). "자세히"라고 하면 그때 더 깊게.
 - 후속 질문이면 이미 뽑은 카드를 새로 뽑은 척하지 말고, 그 카드들을 다시 근거로 이어서 답하세요. (사용자가 "다시 뽑아줘/한 장 더" 하면 그건 새로 뽑힌 카드가 첨부됩니다.)`;

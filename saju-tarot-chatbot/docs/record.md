@@ -2200,3 +2200,23 @@ Content Gate 경로)에도 같은 점검을 붙일지 검토. 용신 오행·12�
 검증: bot tsc·전체 836 테스트·build 클린. buildNatalEvidence에 monthlyFlow 없음/ buildFlowEvidence에
 있음 런타임 확인. 참고: BOT_TEMPERATURE를 설정하면 Sonnet 5/Opus 4.8은 400(비default 샘플링 거부)
 — 기본은 미설정이라 무해하나 후속 정리 대상.
+
+## 2026-07-13 — 텔레그램 봇: 잡담만 하이쿠 분리 + 호칭 '선생님' 고정
+
+**잡담-하이쿠 분리 (비용 절감, 정확도 불변):**
+- `bot/chatModelPolicy.ts`(신규, 순수): `shouldUseChatModel(intent, q)` = intent==="generalChat"이고
+  사주/타로 용어(SAJU_HINT) 없을 때만 true. 테스트 `chatModelPolicy.test.ts`.
+  주의: 합/충/형/파/해 단일 글자는 합정·충전·이해·파일 등 일상어를 사주로 오인해 잡담을
+  비싼 모델로 보내므로 사전에서 제외(실제 사주 질문은 다른 명리 용어가 같이 들어와 잡힘).
+- `bot/teacher.ts`: `CHAT_MODEL`(기본 haiku, BOT_CHAT_MODEL로 교체) + `pickTeacherModel()`.
+  `runStream`에 `modelOverride` 인자 추가, `AskOptions.modelOverride` 추가. **haiku는 thinking
+  파라미터(disabled/adaptive) 호환이 불확실해 생략**(생략=사고 없음, 잡담에 적합) —
+  `supportsThinkingToggle = /sonnet|opus/.test(model)`로 분기.
+- `bot/messageHandler.ts`: teacher 경로에서 `teacherModel = pickTeacherModel(intent, cleanQuestion)`,
+  `askTeacher({..., modelOverride: teacherModel})`. 슬래시 명령·사주/타로/궁합 해석은 전부 기본 MODEL(Sonnet).
+
+**호칭 '선생님' 고정:** teacher(사주)·tarot·secretary(비서) 세 페르소나 프롬프트에
+"사용자를 부를 땐 '선생님', 누나·오빠·형·언니·성별 추측 호칭 금지" 추가. (봇이 사용자를 '누나'로
+부르던 문제 수정.)
+
+검증: bot tsc·전체 840 테스트·build 클린.
