@@ -5,11 +5,14 @@ import type {
   CompatibilityResult,
   CompatibilityRelationType,
   FiveElementBalance,
+  GyeokgukCandidate,
   GyeokgukClassicInfo,
   GyeokgukInfo,
   HiddenTenGodBreakdown,
   InteractionDetail,
   TwelveStageDetail,
+  PalaceLayer,
+  LuckOverlapRefined,
   LuckCycles,
   LuckFavor,
   LuckOverlap,
@@ -363,6 +366,39 @@ function computeTwelveStageDetails(dayGan: string, zhis: PositionedChar[]): Twel
     const stage = twelveStageOf(dayGan, z.char);
     return { position: z.label, zhi: z.char, stage, gloss: TWELVE_STAGE_GLOSS[stage] ?? "" };
   });
+}
+
+// ── 궁위(자리) 해석 레이어 (엔진 업그레이드 #5) ──────────
+// 연/월/일/시주가 각각 대응하는 삶의 영역. 표준 궁위론 기준. 길흉 단정 없이 '어느 영역을 보는 자리'만.
+const PALACE_MEANING: Record<string, { domains: string[]; gloss: string }> = {
+  연주: { domains: ["조상·가문", "부모·유년", "초년운(0~15세경)"], gloss: "뿌리와 초년을 보는 자리. 물려받은 환경·집안 배경·어린 시절의 흐름이 드러난다." },
+  월주: { domains: ["부모·형제", "직업·사회 환경", "청년기(16~30세경)"], gloss: "성장과 사회 진출의 자리. 부모·형제 관계, 직업 환경, 청년기 흐름. 월지는 사주 전체의 중심(계절·세력)이다." },
+  일주: { domains: ["본인(일간=나)", "배우자·가까운 관계(일지=배우자궁)", "중년기(31~45세경)"], gloss: "나 자신과 배우자를 보는 자리. 일간은 '나', 일지는 배우자·가장 가까운 관계다." },
+  시주: { domains: ["자식·아랫사람", "말년·결실", "노후(46세~)"], gloss: "결실과 말년을 보는 자리. 자식·후배, 노후 흐름, 인생의 마무리가 드러난다." },
+};
+
+/** 연/월/일/시주별 삶의 영역·십신·오행 매핑. 엔진 업그레이드 #5. */
+function computePalaces(dayGan: string, pillars: Array<{ label: string; pillar: SajuPillar | null }>): PalaceLayer[] {
+  const out: PalaceLayer[] = [];
+  for (const { label, pillar } of pillars) {
+    if (!pillar) continue;
+    const stems = HIDDEN_STEMS[pillar.zhi] ?? [];
+    const mainStem = stems[stems.length - 1] ?? "";
+    const isDayGan = label === "일주";
+    const meaning = PALACE_MEANING[label] ?? { domains: [], gloss: "" };
+    out.push({
+      pillar: label,
+      gan: pillar.gan,
+      zhi: pillar.zhi,
+      ganTenGod: isDayGan ? "일간(나 자신)" : tenGodOf(dayGan, pillar.gan),
+      zhiTenGod: mainStem ? tenGodOf(dayGan, mainStem) : "?",
+      ganElement: ELEMENT_KO[GAN_WUXING[pillar.gan]] ?? "?",
+      zhiElement: ELEMENT_KO[ZHI_WUXING[pillar.zhi]] ?? "?",
+      domains: meaning.domains,
+      gloss: meaning.gloss,
+    });
+  }
+  return out;
 }
 const BRANCH_ORDER = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
 const GAN_ORDER = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"];
@@ -1137,6 +1173,41 @@ function hiddenStemStrength(stems: string[], idx: number): "정기" | "중기" |
   return "여기";
 }
 
+// ── 격국 후보 점수화 (엔진 업그레이드 #2) ──────────
+// 월지 지장간(여기/중기/정기) 각각을 격 후보로 보고 점수를 매긴다. 위상(정기>중기>여기)에
+// 투출 여부 보너스를 더해, 어느 후보가 왜 뽑혔는지·무엇과 경쟁했는지를 드러낸다.
+function computeGyeokgukCandidates(
+  dayGan: string,
+  monthZhi: string,
+  transparency: TransparencyInfo,
+  chosenStem: string | undefined,
+): GyeokgukCandidate[] {
+  const stems = HIDDEN_STEMS[monthZhi] ?? [];
+  const revealed = new Set(transparency.revealed.map((r) => r.stem));
+  return stems.map((stem, idx) => {
+    const phase = hiddenStemStrength(stems, idx);
+    const isRevealed = revealed.has(stem);
+    const phaseScore = phase === "정기" ? 3 : phase === "중기" ? 2 : 1;
+    const tenGod = tenGodOf(dayGan, stem);
+    return {
+      stem,
+      phase,
+      revealed: isRevealed,
+      tenGod,
+      gyeokName: GYEOKGUK_BY_TENGOD[tenGod]?.name ?? "일반격",
+      score: phaseScore + (isRevealed ? 2 : 0),
+      chosen: stem === chosenStem,
+    };
+  });
+}
+
+const GYEOKGUK_AMBIGUITY: Record<NonNullable<GyeokgukInfo["basisKind"]>, string> = {
+  "정기 투출": "월지 정기가 천간에 투출해 격이 비교적 뚜렷하게 잡힙니다.",
+  "지장간 투출": "월지 정기는 투출하지 않고 다른 지장간이 투출해, 어느 격으로 볼지 후보가 갈립니다(투출한 지장간 우선).",
+  "사령 투출": "사령한 기운이 투출해 그 기준으로 격을 잡습니다.",
+  "사령(잠복)": "천간에 투출한 월지 지장간이 없어 사령(월령)으로 격을 잡은 잠복격 — 격이 약하게 잡혀 관법에 따라 달라질 수 있습니다.",
+};
+
 /**
  * 통근(通根): 각 천간이 지지의 지장간에 같은 오행으로 뿌리를 두는지 판정한다.
  * 정기에 통근하면 강하고, 여기에만 걸치면 약하다. 특히 일간의 통근은 뿌리의 힘을 뜻한다.
@@ -1780,6 +1851,12 @@ function assembleChart(
 
   const twelveStages = zhis.map((z) => `${z.label} ${z.char}: ${twelveStageOf(dayGan, z.char)}`);
   const twelveStageDetails = computeTwelveStageDetails(dayGan, zhis);
+  const palaces = computePalaces(dayGan, [
+    { label: "연주", pillar: yearPillar },
+    { label: "월주", pillar: monthPillar },
+    { label: "일주", pillar: dayPillar },
+    { label: "시주", pillar: timePillar },
+  ]);
   const gongmangZhis = gongmangOf(dayGan, dayPillar.zhi);
   const gongmangHits = zhis.filter((z) => gongmangZhis.includes(z.char)).map((z) => `${z.label} ${z.char}`);
   const gongmang = `${gongmangZhis} 공망${gongmangHits.length > 0 ? ` (원국 내 해당: ${gongmangHits.join(", ")})` : " (원국 내 해당 지지 없음)"}`;
@@ -1795,6 +1872,9 @@ function assembleChart(
   const baseTenGod = gyeokguk.basisStem ? tenGodOf(dayGan, gyeokguk.basisStem) : "";
   const groupTotals = tenGodGroupTotals(tenGodDistribution);
   gyeokguk.classic = assessGyeokgukClassic(dayGan, baseTenGod, strength, tenGodDistribution, groupTotals);
+  // #2 격 판정 근거: 월지 지장간 후보 점수 + 애매한 이유 (additive).
+  gyeokguk.candidates = computeGyeokgukCandidates(dayGan, monthPillar.zhi, transparency, gyeokguk.basisStem);
+  if (gyeokguk.basisKind) gyeokguk.ambiguityReason = GYEOKGUK_AMBIGUITY[gyeokguk.basisKind];
   const iljuTrait = iljuTraitOf(dayPillar.ganZhi);
 
   return {
@@ -1820,6 +1900,7 @@ function assembleChart(
     monthCommand: monthCommand ?? undefined,
     twelveStages,
     twelveStageDetails,
+    palaces,
     gongmang,
     seasonNote: seasonNoteOf(monthPillar.zhi, dayGan),
     sinsal,
@@ -1938,7 +2019,42 @@ function computeLuckOverlap(
     ...(interactions.length > 0 ? [`대운-세운 상호작용: ${interactions.join(", ")}`] : ["대운-세운 직접 상호작용 없음"]),
   ];
 
-  return { daYunGanZhi, yearGanZhi, interactions, daYunFavor, yearFavor, combo, headline, evidence };
+  // #6 생극합충 세분: 두 천간 오행의 상생상극 + 지지 합충 구조화 (additive).
+  const refined = computeLuckOverlapRefined(daYunGanZhi, yearGanZhi, gans, zhis);
+
+  return { daYunGanZhi, yearGanZhi, interactions, daYunFavor, yearFavor, combo, headline, evidence, refined };
+}
+
+// 대운-세운 천간 오행의 생극 관계 라벨 + 쉬운 뜻 (엔진 업그레이드 #6).
+const STEM_RELATION_GLOSS: Record<LuckOverlapRefined["stemRelation"], string> = {
+  비화: "같은 기운끼리 힘을 보태는 관계 — 경쟁이자 협력",
+  대운생세운: "큰 흐름이 올해 흐름을 밀어주는 관계 — 기운이 흘러 나가며 씀",
+  세운생대운: "올해 흐름이 큰 흐름을 채워주는 관계 — 안으로 힘이 모임",
+  대운극세운: "큰 흐름이 올해 흐름을 누르는 관계 — 제어·부담이 걸림",
+  세운극대운: "올해 흐름이 큰 흐름을 치는 관계 — 변수·충돌이 생김",
+};
+
+function computeLuckOverlapRefined(
+  daYunGanZhi: string,
+  yearGanZhi: string,
+  gans: PositionedChar[],
+  zhis: PositionedChar[],
+): LuckOverlapRefined {
+  const a = GAN_WUXING[daYunGanZhi[0]];
+  const b = GAN_WUXING[yearGanZhi[0]];
+  let stemRelation: LuckOverlapRefined["stemRelation"];
+  if (a === b) stemRelation = "비화";
+  else if (GENERATES[a] === b) stemRelation = "대운생세운";
+  else if (GENERATES[b] === a) stemRelation = "세운생대운";
+  else if (OVERCOMES[a] === b) stemRelation = "대운극세운";
+  else stemRelation = "세운극대운"; // 남은 경우는 세운이 대운을 극
+  return {
+    daYunElement: ELEMENT_KO[a] ?? "?",
+    yearElement: ELEMENT_KO[b] ?? "?",
+    stemRelation,
+    stemRelationGloss: STEM_RELATION_GLOSS[stemRelation],
+    interactionDetails: computeInteractionDetails(gans, zhis),
+  };
 }
 
 type LuckFavorLocal = "boost" | "drain" | "neutral";

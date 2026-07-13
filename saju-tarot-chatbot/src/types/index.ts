@@ -457,6 +457,29 @@ export interface TwelveStageDetail {
   gloss: string;
 }
 
+/**
+ * 궁위(자리) 해석 레이어 한 기둥 (엔진 업그레이드 #5).
+ * 연/월/일/시주가 각각 어떤 삶의 영역에 대응하고, 그 궁에 어떤 십신·오행이 있는지 매핑.
+ */
+export interface PalaceLayer {
+  /** 기둥 (연주/월주/일주/시주) */
+  pillar: string;
+  gan: string;
+  zhi: string;
+  /** 천간 십성 (일간 자리는 "일간(나 자신)") */
+  ganTenGod: string;
+  /** 지지 십성 (지장간 정기 기준) */
+  zhiTenGod: string;
+  /** 천간 오행 (목/화/토/금/수) */
+  ganElement: string;
+  /** 지지 오행 */
+  zhiElement: string;
+  /** 이 궁이 대응하는 삶의 영역 */
+  domains: string[];
+  /** 쉬운 말 설명 */
+  gloss: string;
+}
+
 /** 지지 하나의 지장간 기반 십성 분해 (여기/중기/정기 위상별) */
 export interface HiddenTenGodBreakdown {
   /** 지지 위치 (예: "월지") */
@@ -517,6 +540,28 @@ export interface GyeokgukInfo {
   statusReason?: string;
   /** 자평진전(子平眞詮) 심화: 상신·성격/파격·종격 판정 */
   classic?: GyeokgukClassicInfo;
+  /** 격 후보와 점수 (엔진 업그레이드 #2). 왜 이 격이 뽑혔는지·무엇과 경쟁했는지 근거. */
+  candidates?: GyeokgukCandidate[];
+  /** 격이 애매한 이유 (투출 상황). 뚜렷하면 그 취지로 표기. */
+  ambiguityReason?: string;
+}
+
+/** 격국 후보 하나 (엔진 업그레이드 #2). 월지 지장간 각각을 격 후보로 점수화. */
+export interface GyeokgukCandidate {
+  /** 월지 지장간 글자 */
+  stem: string;
+  /** 지장간 위상 (여기/중기/정기) */
+  phase: "여기" | "중기" | "정기";
+  /** 이 지장간이 천간에 투출했는지 */
+  revealed: boolean;
+  /** 이 지장간의 십성 (일간 기준) */
+  tenGod: string;
+  /** 이 지장간으로 잡을 때의 격 이름 */
+  gyeokName: string;
+  /** 후보 점수 (위상 가중 + 투출 보너스). 높을수록 격을 잡을 우선순위가 높다. */
+  score: number;
+  /** 실제로 이 후보가 채택됐는지 */
+  chosen: boolean;
 }
 
 /** 자평진전(子平眞詮) 격국 심화 판정: 상신(相神)·성격/파격·종격 */
@@ -574,6 +619,8 @@ export interface SajuChart {
   twelveStages?: string[];
   /** 12운성 구조화 (엔진 업그레이드 #3). 자리별 단계+쉬운 뜻. */
   twelveStageDetails?: TwelveStageDetail[];
+  /** 궁위(자리) 해석 레이어 (엔진 업그레이드 #5). 연/월/일/시주 × 삶의 영역·십신·오행. */
+  palaces?: PalaceLayer[];
   /** 공망 (일주 순중공망 지지 2개) */
   gongmang?: string;
   /** 조후(계절) 관점 노트 */
@@ -706,6 +753,22 @@ export interface LuckOverlap {
   headline: string;
   /** 전문가 근거 */
   evidence: string[];
+  /** 생극합충 세분 (엔진 업그레이드 #6). 기존 필드 불변, additive. */
+  refined?: LuckOverlapRefined;
+}
+
+/** 대운-세운 상호작용의 생극합충 세분 (엔진 업그레이드 #6). */
+export interface LuckOverlapRefined {
+  /** 대운 천간 오행 (목/화/토/금/수) */
+  daYunElement: string;
+  /** 세운 천간 오행 */
+  yearElement: string;
+  /** 두 천간 오행의 생극 관계 */
+  stemRelation: "비화" | "대운생세운" | "세운생대운" | "대운극세운" | "세운극대운";
+  /** 생극 관계 쉬운 뜻 */
+  stemRelationGloss: string;
+  /** 대운-세운 지지 간 합충형파해 구조화 (InteractionDetail 형태) */
+  interactionDetails: InteractionDetail[];
 }
 
 export type CompatibilityRelationType =

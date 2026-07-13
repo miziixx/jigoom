@@ -2237,3 +2237,18 @@ Content Gate 경로)에도 같은 점검을 붙일지 검토. 용신 오행·12�
 
 849 테스트·tsc·build 클린. **남은 요청: #2(격국/용신 경쟁후보 근거)·#5(궁위 레이어)·#6(대운-세운 생극합충
 세분)·#7(유파별 병렬) — 이어서 진행.**
+
+## 2026-07-13 — 계산 엔진 심화 2차 (#5 궁위 · #6 대운-세운 생극합충 · #2 격국 후보 근거)
+
+이어서 ADDITIVE ONLY. 기존 계산값·잠금 테스트 불변, 새 optional 필드만.
+
+- **#5** `PalaceLayer`, `SajuChart.palaces`. 연/월/일/시주 × 삶의 영역(조상·부모/청년·본인/배우자·자식·말년)
+  + 궁별 천간/지지 십성·오행 매핑(`computePalaces`, `PALACE_MEANING`). 일주 천간은 "일간(나 자신)".
+- **#6** `LuckOverlapRefined`, `LuckOverlap.refined`. 대운·세운 천간 오행의 생극 관계(비화/대운생세운/
+  세운생대운/대운극세운/세운극대운) + 지지 합충 구조화(InteractionDetail 재사용). `computeLuckOverlapRefined`.
+- **#2** `GyeokgukCandidate`, `GyeokgukInfo.candidates`·`ambiguityReason`. 월지 지장간(여기/중기/정기)을
+  격 후보로 점수화(위상 가중 + 투출 보너스), 채택 후보·경쟁 후보·왜 애매한지 노출(`computeGyeokgukCandidates`).
+
+854 테스트·tsc·build 클린. **남은 요청: #7(신강신약/용신 억부·조후 유파별 병렬) — 용신은 이미
+yongshin.yongshin(억부)/climatic(조후)/climaticClassic(궁통보감)/mediating(통관) 병렬 존재. 소비자 확인 후
+consolidated perspectives 필드 추가 여부 결정.**
