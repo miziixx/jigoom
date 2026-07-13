@@ -28,6 +28,9 @@ export function pickTeacherModel(intent: string, question: string): string {
 const BOT_VERBOSITY = (process.env.BOT_VERBOSITY ?? "normal") as "brief" | "normal" | "detailed";
 // (선택) 온도 오버라이드. 미설정 시 SDK 기본값 사용.
 const BOT_TEMPERATURE = process.env.BOT_TEMPERATURE ? Number(process.env.BOT_TEMPERATURE) : undefined;
+// LLM 스트림 상한(ms). Vercel 웹훅 maxDuration(300s)보다 훨씬 짧게 잡아, 스트림이 멈춰도
+// 함수가 5분 통째로 매달렸다 죽는 것(FUNCTION_INVOCATION_TIMEOUT → 텔레그램 무한 재시도)을 막는다.
+const BOT_STREAM_TIMEOUT_MS = Number(process.env.BOT_STREAM_TIMEOUT_MS ?? "120000") || 120000;
 const VERBOSITY_TOKENS = {
   brief: 900,
   normal: 1800,
@@ -215,7 +218,7 @@ export async function runStream(
     ...thinkingParam,
     system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral", ttl: "1h" } }],
     messages,
-  });
+  }, { signal: AbortSignal.timeout(BOT_STREAM_TIMEOUT_MS) });
 
   let streamedText = "";
   // 토큰이 도착하는 대로 누적하고, chatId가 있으면 그때그때 화면에 반영한다.
@@ -228,9 +231,23 @@ export async function runStream(
       }
     }
   } catch (err) {
+    // 타임아웃(AbortSignal)·네트워크·API 오류. 여기서 삼키지 않으면 웹훅 함수가 그대로 매달려
+    // Vercel maxDuration(5분)까지 죽고 텔레그램이 같은 메시지를 무한 재시도한다(=먹통).
+    // → 안내 메시지를 보내고 빠르게 반환해, 함수가 곧장 200을 돌려주게 한다.
+    const aborted = (err as { name?: string })?.name === "TimeoutError" || (err as { name?: string })?.name === "AbortError";
     logError("teacher.runStream", err);
-    logRequest({ requestId, mode, latencyMs: Date.now() - startedAt, errorCode: "stream_error" });
-    throw err;
+    logRequest({ requestId, mode, latencyMs: Date.now() - startedAt, errorCode: aborted ? "stream_timeout" : "stream_error" });
+    const fallback = aborted
+      ? "지금 답을 만드는 데 시간이 너무 걸려서 멈췄어요 😢 잠시 뒤 다시 물어봐 주세요. (짧게 물어보면 더 빨라요.)"
+      : "지금 답을 만드는 데 문제가 생겼어요 😢 잠시 뒤 다시 물어봐 주세요.";
+    if (chatId) {
+      try {
+        await finalizeStream(chatId, fallback);
+      } catch (e) {
+        logError("teacher.runStream.fallback", e);
+      }
+    }
+    return fallback;
   }
 
   const final = await stream.finalMessage();
