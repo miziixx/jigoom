@@ -3,6 +3,7 @@ import type { ChatTurn } from "./storeTypes.js";
 import { buildNatalEvidence, buildTodayEvidence, type ChartSource } from "./evidence.js";
 import { emitPartial, finalizeStream } from "./streamToTelegram.js";
 import { logError, logRequest } from "./logSafe.js";
+import { detectUngroundedSajuClaims, formatGroundingWarning } from "../src/lib/factGrounding.js";
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 가장 깊은 해석 품질을 위해 Opus.
 const MODEL = process.env.BOT_MODEL ?? "claude-opus-4-8";
@@ -96,6 +97,11 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
   if (astrologyEvidence) evidenceBlocks.push(astrologyEvidence);
   const finalUserContent = evidenceBlocks.length > 0 ? `${evidenceBlocks.join("\n\n")}\n\n[질문]\n${question}` : `[질문]\n${question}`;
 
+  const natalEvidence = source ? buildNatalEvidence(source) : null;
+  // 근거 점검용 텍스트: 원국 + 이번 턴에 첨부된 추가 근거(오늘 일진 등).
+  // 일진 간지처럼 이번 턴 근거에만 있는 값이 오탐되지 않도록 합쳐서 넘긴다.
+  const groundingEvidence = natalEvidence ? [natalEvidence, ...evidenceBlocks].join("\n\n") : undefined;
+
   const messages: Anthropic.Messages.MessageParam[] = source
     ? [
         {
@@ -105,7 +111,7 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
           content: [
             {
               type: "text",
-              text: `${buildNatalEvidence(source)}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 사용자가 실제로 물어본 것에만 답하고, 안 물어본 항목(오늘 운세·대운 등)은 먼저 꺼내지 마세요.`,
+              text: `${natalEvidence}\n\n위 데이터가 이 대화 전체에서 해석의 근거가 되는 내 사주입니다. 사용자가 실제로 물어본 것에만 답하고, 안 물어본 항목(오늘 운세·대운 등)은 먼저 꺼내지 마세요.`,
               cache_control: { type: "ephemeral" },
             },
           ],
@@ -131,7 +137,7 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
         { role: "user", content: question },
       ];
 
-  return runStream(messages, chatId, verbosityOverride, "teacher");
+  return runStream(messages, chatId, verbosityOverride, "teacher", undefined, groundingEvidence);
 }
 
 /**
@@ -148,6 +154,12 @@ export async function runStream(
   verbosityOverride?: "brief" | "normal" | "detailed",
   mode = "teacher",
   systemPromptOverride?: string,
+  /**
+   * 계산 근거 직렬화 텍스트 (buildNatalEvidence 출력 등). 주어지면 최종 답변에서
+   * 근거에 없는 사주 사실 주장(신살·간지·십성·격국)을 감지해 경고 꼬리를 붙인다.
+   * 차단이 아니라 표시다 — 공부용 대화에서 할루시네이션을 사용자가 알아채게 한다.
+   */
+  groundingEvidence?: string,
 ): Promise<string> {
   const level = verbosityOverride ?? BOT_VERBOSITY;
   const maxTokens = VERBOSITY_TOKENS[level];
@@ -207,6 +219,21 @@ export async function runStream(
     result = `${assembled}\n\n_(답이 길어져 여기서 끊겼어요. "계속" 또는 "이어서 설명해줘"라고 보내주세요.)_`;
   } else {
     result = assembled;
+  }
+
+  // 근거 점검: 계산 데이터에 없는 사주 사실 주장이 있으면 경고 꼬리를 붙인다.
+  // 점검 실패가 답변 실패가 되면 안 되므로 통째로 try/catch.
+  if (groundingEvidence && assembled) {
+    try {
+      const groundingHits = detectUngroundedSajuClaims(assembled, groundingEvidence);
+      const warning = formatGroundingWarning(groundingHits);
+      if (warning) {
+        result = `${result}\n\n${warning}`;
+        logRequest({ requestId, mode: `${mode}:grounding-warning`, latencyMs: 0, tokenCount: groundingHits.length });
+      }
+    } catch (err) {
+      logError("teacher.groundingCheck", err);
+    }
   }
 
   // 스트리밍 모드면 최종본을 여기서 확정 표시한다(호출부는 재전송하지 않음).
@@ -300,5 +327,5 @@ export async function askCompatibility({ compatEvidence, question, chatId }: Ask
     },
     { role: "user", content: ask },
   ];
-  return runStream(messages, chatId, undefined, "compatibility");
+  return runStream(messages, chatId, undefined, "compatibility", undefined, compatEvidence);
 }

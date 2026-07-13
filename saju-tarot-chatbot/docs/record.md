@@ -2139,3 +2139,39 @@ Vercel의 Node ESM 런타임은 `ERR_MODULE_NOT_FOUND`로 모듈 로드 단계�
 
 검증: `npm test` 815 통과(신규 1), `tsc -b`·`npm run build` 클린. 변경 파일:
 `src/lib/tarotSymbolism.ts`, `src/lib/tarot.ts`, `src/lib/serverEsmImports.test.ts`(신규).
+
+## 2026-07-13 — 텔레그램 봇: 근거 점검(fact grounding) 레이어 — 공부용 할루시네이션 감지
+
+**배경:** 사용자가 봇으로 사주 공부를 하고 싶다고 함. 공부용에서 가장 위험한 것은 LLM이 계산
+데이터에 없는 신살·간지·십성·격국을 "네 사주에 있다"고 자신 있게 지어내는 것(할루시네이션) —
+틀린 이론을 그대로 외우게 된다. 기존에는 프롬프트 지시("지어내지 마세요")만 있었고 봇 쪽에는
+출력 검증이 없었다(웹의 JudgmentPack Evidence Gate는 `api/reading.ts` 전용).
+
+**구현 (additive — 계산·프롬프트 불변):**
+
+- `src/lib/factGrounding.ts` 신규. `detectUngroundedSajuClaims(reply, evidenceText)`가 답변을
+  문장 단위로 훑어, 닫힌 어휘 사전(신살 35종+별칭, 십성 10+칠살, 60갑자, OO격 패턴)의 용어가
+  근거 직렬화 텍스트에 없는데 등장하면 감지한다.
+- **이론 설명은 건드리지 않는다.** "도화살은 매력을 뜻하는 살이야"(정의문), "사주에 괴강이
+  있으면 ~"(조건문), "예를 들어 ~"(예시)는 제외. 귀속 주장(차트 단어+존재 동사)만 본다 —
+  봇은 공부 대화가 많아서 일반 이론 문장을 막으면 안 된다.
+- **일상어 오탐 방지:** 갑자기(갑자), 상관없다(상관), 성격/합격/파격(OO격), 임신·병자·정사류
+  간지 동음어(간지는 일주/대운 등 기둥 문맥이 있는 문장에서만 검사).
+- **별칭 매핑:** 엔진 명칭과 통용 명칭이 다른 경우 대응 — 도화(살)=년살, 백호살=백호대살,
+  귀문(살)=귀문관살, 칠살=편관 등.
+- `bot/teacher.ts` `runStream`에 `groundingEvidence` 인자 추가. 사주(askTeacher)·궁합
+  (askCompatibility) 답변에서 감지되면 답변 끝에 "⚠️ 자동 근거 점검: ~ 언급이 계산된 원국
+  데이터에서 확인되지 않아요" 꼬리를 붙인다. **차단·재생성이 아니라 표시** — 오탐 가능성이
+  0이 아니고, 공부용에서는 "여기를 의심해라"를 배우는 것 자체가 가치라서. 점검 실패가 답변
+  실패가 되지 않게 통째로 try/catch. 감지 시 `logRequest(mode: "*:grounding-warning")` 로깅.
+- 오늘 일진 근거가 첨부되는 턴은 그 근거도 grounding 텍스트에 합쳐 일진 간지 오탐을 막았다.
+- 테스트 13개(`factGrounding.test.ts`) — 실제 엔진 출력(1990-12-23 픽스처)을 근거로 사용.
+  전체 836/836, bot tsc, build 클린.
+
+**같은 세션 앞부분(정확도 검증 트랙, 커밋 `958765d`):** 외부 만세력 대조 케이스 4(윤달)·6(조자시)
+채움, lunar-javascript와 무관한 독립 검산(JDN 60갑자+五鼠遁) 추가 — 케이스 1~7 일주·시주 전부
+일치, `manseIndependentCheck.test.ts` 8개. 상세는 `docs/validation/external-manse-comparison.md`.
+
+**남은 것:** 실제 텔레그램 왕복으로 경고 꼬리 오탐/미탐 육안 확인. 웹 리딩(고급 raw-evidence
+Content Gate 경로)에도 같은 점검을 붙일지 검토. 용신 오행·12운성 주장 검증은 텍스트 매칭으로는
+오탐이 커서 v1에서 제외(구조화된 chart 객체 대조가 필요한 후속 과제).
