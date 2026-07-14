@@ -9,6 +9,14 @@
 //
 // 주의: 텔레그램은 웹훅과 롱폴링을 동시에 못 쓴다. 웹훅이 등록된 상태(setWebhook)면
 // getUpdates가 409로 계속 실패한다 — 롱폴링으로 옮길 땐 먼저 deleteWebhook 하자.
+import { webcrypto } from "node:crypto";
+// 일부 Node 런타임(예: Railway의 Node 18)엔 전역 crypto(Web Crypto)가 없어서, 이를
+// 참조하는 코드(예: 예전 teacher.ts, 일부 src/lib 유틸)가 'crypto is not defined'로
+// 죽을 수 있다. 프로세스 시작 시 한 번 폴리필해, 어떤 경로에서도 이 에러가 안 나게 한다.
+if (!(globalThis as { crypto?: unknown }).crypto) {
+  (globalThis as { crypto?: unknown }).crypto = webcrypto;
+}
+
 import { getUpdates } from "./telegram.js";
 import { handleMessage } from "./messageHandler.js";
 import { fileStore } from "./fileStore.js";
