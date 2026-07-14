@@ -44,6 +44,24 @@ export interface StoredTarot {
   drawnAt: string;
 }
 
+/**
+ * 학습모드 진도. 구조는 bot/studyMode.ts의 StudyState와 동일하지만,
+ * 저장소 계층이 studyMode 구현을 몰라도 되게 여기서는 형태만 느슨하게 둔다.
+ * history TTL·/reset과 무관하게 유지된다("배운 건 늘 기억") — /delete 때만 지워진다.
+ */
+export interface StudyRecord {
+  chapter: number;
+  passed: number[];
+  quiz: Array<{ chapter: number; prompt: string; answers: string[]; explain: string; isReview?: boolean }> | null;
+  qIndex: number;
+  correctInQuiz: number;
+  wrongNotes: Array<{ chapter: number; prompt: string; answers: string[]; explain: string }>;
+  stats: { answered: number; correct: number };
+  startedAt: string;
+  /** true면 지금 들어오는 일반 텍스트를 퀴즈 답으로 처리한다 */
+  active: boolean;
+}
+
 export interface UserRecord {
   birthInfo: BirthInfo | null;
   /** 생년월일시 대신 만세력 사주팔자(여덟 글자)를 직접 등록한 경우. birthInfo 와 상호배타. */
@@ -61,6 +79,8 @@ export interface UserRecord {
   pending?: PendingCompat | null;
   /** 사용자가 명시적으로 "기억해줘"라고 요청한 요약들. TTL 없음. */
   memories?: MemoryEntry[];
+  /** 학습모드 진도·오답노트. TTL 없음 — /delete 때만 삭제. */
+  study?: StudyRecord | null;
   updatedAt: string;
 }
 
@@ -88,6 +108,8 @@ export interface Store {
   addMemory(chatId: number, entry: Omit<MemoryEntry, "id" | "createdAt">): Promise<MemoryEntry>;
   /** 기억 삭제. mode "recent"면 가장 최근 N개, "all"이면 전부(옵션으로 카테고리 한정) */
   deleteMemory(chatId: number, opts: { mode: "recent" | "all"; category?: MemoryCategory; count?: number }): Promise<number>;
+  /** 학습모드 진도 저장/해제 (null이면 진도 삭제) */
+  setStudy(chatId: number, study: StudyRecord | null): Promise<void>;
 }
 
 export function emptyUser(): UserRecord {
@@ -99,6 +121,7 @@ export function emptyUser(): UserRecord {
     pending: null,
     lastTarot: null,
     memories: [],
+    study: null,
     updatedAt: new Date().toISOString(),
   };
 }

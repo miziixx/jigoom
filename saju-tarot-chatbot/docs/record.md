@@ -2252,3 +2252,18 @@ Content Gate 경로)에도 같은 점검을 붙일지 검토. 용신 오행·12�
 854 테스트·tsc·build 클린. **남은 요청: #7(신강신약/용신 억부·조후 유파별 병렬) — 용신은 이미
 yongshin.yongshin(억부)/climatic(조후)/climaticClassic(궁통보감)/mediating(통관) 병렬 존재. 소비자 확인 후
 consolidated perspectives 필드 추가 여부 결정.**
+
+## 2026-07-14 — 텔레그램 봇 학습모드 (/학습) + 엔진 21장 보강
+
+- **엔진 보강(오전, main 병합 완료)**: GPT 지적 감사 결과 대부분 기구현 확인. 실제 누락 3개만 ADDITIVE 추가 —
+  육친(`SixRelation`/`computeSixRelations`), 생목·사목(`LivingStateInfo`/`computeLivingState`),
+  천간충(`stemClashes`, interactions와 분리해 사건 규칙 불변). 미노출이던 궁위(palaces)도 프롬프트 직렬화.
+- **봇 학습모드(신규)**: `bot/studyMode.ts` — 21장 커리큘럼(음양오행~기타신살)을 고정 교재 사주
+  *임진년 기묘월 갑술일 경오시*(누구의 사주도 아닌 임의 원국, 합·충·천간충·개고·건록격·신살 13종 보유)로 학습.
+  강의→문제 5개(+오답 복습 2)→80% 통과제→재시험. 출제·채점·해설 **완전 규칙 기반 = Claude API 호출 0회**
+  (적용 문제 정답은 엔진 실시간 계산으로 이론-엔진 일치 보장). 명령: `/학습`(`/학습 N` 점프)·`/진도`·`/학습종료`.
+- **저장**: `UserRecord.study`(`StudyRecord`) — history TTL·`/reset`과 무관하게 영구 유지, `/delete`만 삭제.
+  fileStore·kvStore 양쪽 `setStudy` 구현(kvStore readUser에 study 필드 통과 필수 — 빠지면 매 쓰기마다 증발).
+- messageHandler: 학습 active 중 일반 텍스트=퀴즈 답, 슬래시 명령은 통과, 퀴즈 세트 끝나면 자동 비활성화.
+
+872 테스트(신규 studyMode 13 + 엔진 커버리지 4)·tsc(bot 포함)·build 클린.

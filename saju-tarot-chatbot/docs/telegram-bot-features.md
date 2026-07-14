@@ -232,6 +232,8 @@
 | `/타로 <질문>`, `/tarot <질문>` | 질문 결로 즉시 뽑기 |
 | `/궁합`, `/compat` | 궁합 시작(상대 사주 대기) |
 | `/퀴즈` | 배운 개념 복습 문제 |
+| `/학습`, `/study` | **사주 학습모드** — 21장 커리큘럼(음양오행~기타신살)을 고정 교재 사주(임진·기묘·갑술·경오)로 학습. 강의→문제 5개→80% 통과제. **완전 규칙 기반 = LLM 호출 0회.** `/학습 <장번호>`로 점프. 진행 중엔 일반 텍스트가 퀴즈 답으로 처리되고, `패스`=정답 공개, `/학습종료`·"그만"=일시 중단(진도 유지) |
+| `/진도` | 학습 진도·오답노트 요약 |
 | `/reset` | 대화 맥락 초기화(등록 유지, `lastTarot`도 비움) |
 | `/delete` | 사주·기억·대화 전체 삭제 |
 | `/privacy` | 보안/개인정보 정책 |
@@ -254,6 +256,7 @@
 | `pending` | 다단계 흐름 대기(궁합) |
 | **`lastTarot`** | **마지막 타로 스프레드(후속 질문 맥락용). `StoredTarot{spreadId, question, cards, drawnAt}`** |
 | `memories` | "기억해줘"로 저장된 짧은 요약(원문 저장 금지, TTL 없음) |
+| `study` | 학습모드 진도(`StudyRecord`: 현재 장·통과 장·진행 중 퀴즈·오답노트·누적 정답률·active). **TTL 없음, `/reset`에도 유지** — `/delete` 때만 삭제 |
 
 저장소 구현 2종(같은 인터페이스): 롱폴링 = `fileStore.ts`(로컬 JSON), 웹훅 = `kvStore.ts`(Upstash Redis).
 새 메서드 `setLastTarot(chatId, tarot|null)` 양쪽에 구현. `setBirthInfo`/`setPillars`/`clearHistory`가 `lastTarot`도 초기화.
