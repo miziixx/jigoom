@@ -25,12 +25,27 @@ import {
   setStudyTone,
   formatToneStatus,
   TEXTBOOK_PILLARS,
+  STUDY_PRACTICE_BIRTHS,
   type StudyState,
 } from "./studyMode.js";
 import type { StoredPillars } from "./parseFourPillars.js";
 import type { Store, UserRecord } from "./storeTypes.js";
 import type { SpreadId } from "../src/lib/tarot.js";
 import type { BirthInfo, DrawnTarotCard } from "../src/types/index.js";
+
+/**
+ * 학습 딥다이브·톤 강의가 근거로 쓸 사주 근거 텍스트.
+ * 1~21장은 교재 사주(팔자 입력)만, 22장 이상(대운·세운·실전)은 대운이 계산되는
+ * 연습 사주(생년월일시)까지 합쳐 넘긴다 — LLM이 연습 사주 간지를 인용해도 근거 점검에서
+ * 오탐(없는 값 주장)으로 잡히지 않게 한다.
+ */
+function buildStudyEvidence(chapter: number): string {
+  const parts = [buildNatalEvidence(pillarsSource({ ...TEXTBOOK_PILLARS }))];
+  if (chapter >= 22) {
+    for (const birth of STUDY_PRACTICE_BIRTHS) parts.push(buildNatalEvidence(birthSource(birth)));
+  }
+  return parts.join("\n\n");
+}
 
 /**
  * 새로 파싱된 생년월일시가 이미 등록된 사주와 사실상 같은 사람인지 판단한다.
@@ -316,7 +331,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         const typing = setInterval(() => void sendTyping(chatId), 5000);
         void sendTyping(chatId);
         try {
-          const textbookEvidence = buildNatalEvidence(pillarsSource({ ...TEXTBOOK_PILLARS }));
+          const textbookEvidence = buildStudyEvidence(reply.state.chapter);
           const retoned = await askStudyLesson({
             lesson: reply.lesson,
             tone: reply.state.tone,
@@ -373,7 +388,7 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
       const typing = setInterval(() => void sendTyping(chatId), 5000);
       void sendTyping(chatId);
       try {
-        const textbookEvidence = buildNatalEvidence(pillarsSource({ ...TEXTBOOK_PILLARS }));
+        const textbookEvidence = buildStudyEvidence(ctx.chapter);
         // 답은 askStudyExplain이 스트리밍으로 화면에 직접 표시한다(여기서 재전송하지 않음).
         await askStudyExplain({
           chapterTitle: ctx.chapterTitle,

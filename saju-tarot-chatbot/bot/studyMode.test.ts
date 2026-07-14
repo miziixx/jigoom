@@ -72,6 +72,28 @@ describe("학습모드 — 톤 설정", () => {
   });
 });
 
+describe("학습모드 — 대운·세운·실전 (22~24장)", () => {
+  it("커리큘럼이 24장으로 늘어났다", () => {
+    expect(TOTAL_CHAPTERS).toBe(24);
+  });
+
+  it("22~24장 문제가 엔진 계산값으로 만들어지고, 대표 정답으로 통과된다", () => {
+    for (const n of [22, 23, 24]) {
+      let { state } = startStudy(null, n);
+      expect(state.chapter).toBe(n);
+      expect(state.quiz && state.quiz.length).toBeGreaterThanOrEqual(5);
+      // 각 문제의 대표 정답으로 답하면 모두 정답 처리 → 엔진 계산값과 채점이 일치
+      while (state.quiz && state.qIndex < state.quiz.length) {
+        const cur = state.quiz[state.qIndex];
+        const before = state.correctInQuiz;
+        state = answerStudy(state, cur.answers[0]).state;
+        // qIndex는 항상 전진하고, 대표 정답은 정답으로 인정돼야 한다
+        expect(state.correctInQuiz).toBe(before + 1);
+      }
+    }
+  });
+});
+
 describe("학습모드 — 진행 흐름", () => {
   it("시작하면 1장 강의 + 첫 문제가 나온다", () => {
     const { state, message } = startStudy(null);
@@ -154,7 +176,7 @@ describe("학습모드 — 진행 흐름", () => {
       state = reply.state;
     }
     expect(reply.message).toContain("수료");
-    expect(state.chapter).toBe(22);
+    expect(state.chapter).toBeGreaterThan(TOTAL_CHAPTERS); // 수료 = 가상 GRAD_CHAPTER로 이동
     // 수료 후 /학습 → 무작위 복습 퀴즈
     const again = startStudy(state);
     expect(again.state.quiz!.length).toBeGreaterThan(0);
@@ -163,7 +185,7 @@ describe("학습모드 — 진행 흐름", () => {
 });
 
 describe("학습모드 — 문제 은행 무결성", () => {
-  it("1~21장 전 장의 모든 문제가 유효하다(정답 존재, 자기 정답으로 채점 통과)", () => {
+  it("전 장의 모든 문제가 유효하다(정답 존재, 자기 정답으로 채점 통과)", () => {
     for (let ch = 1; ch <= TOTAL_CHAPTERS; ch++) {
       // 각 장을 여러 번 뽑아 랜덤 생성 문제도 검증
       for (let rep = 0; rep < 3; rep++) {
@@ -232,7 +254,7 @@ describe("학습모드 — 보조", () => {
     const s = emptyStudyState();
     s.passed = [1, 2];
     s.chapter = 3;
-    expect(formatProgress(s)).toContain("2/21");
+    expect(formatProgress(s)).toContain(`2/${TOTAL_CHAPTERS}`);
   });
 
   it("종료 의사 판단", () => {

@@ -9,8 +9,8 @@
 //
 // 이 파일의 이론 상수(합충형파해 표 등)는 명리학의 보편 상수라 엔진(src/lib/saju.ts)과 값이 같다.
 // 엔진 내부 상수를 export로 노출하지 않기 위해 학습용으로만 여기 중복 정의한다(변하지 않는 값).
-import { computeChartFromPillars, tenGodOf, twelveStageOf, gongmangOf, sibiSinsalOf } from "../src/lib/saju.js";
-import type { SajuChart } from "../src/types/index.js";
+import { computeChartFromPillars, computeSajuChart, computeLuckCycles, tenGodOf, twelveStageOf, gongmangOf, sibiSinsalOf } from "../src/lib/saju.js";
+import type { SajuChart, BirthInfo, LuckCycles } from "../src/types/index.js";
 
 // ── 상태 ──────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ export interface StudyQuestion {
 }
 
 export interface StudyState {
-  /** 현재 학습 중인 장 (1~21). 22 = 전 과정 수료(자유 복습 모드) */
+  /** 현재 학습 중인 장 (1~TOTAL_CHAPTERS). GRAD_CHAPTER = 전 과정 수료(자유 복습 모드) */
   chapter: number;
   /** 통과한 장 번호들 */
   passed: number[];
@@ -71,7 +71,8 @@ const QUIZ_SIZE = 5; // 새 문제 수 (복습 문제는 여기에 +α)
 const REVIEW_PER_QUIZ = 2; // 퀴즈당 오답노트 복습 최대 문항
 const PASS_RATIO = 0.8;
 const MAX_WRONG_NOTES = 20;
-const GRAD_CHAPTER = 22;
+// 전 과정 수료 뒤 자유 복습 모드로 쓰는 가상 장 번호. 실제 장 수(TOTAL_CHAPTERS)보다 커야 한다.
+const GRAD_CHAPTER = 25;
 const GRAD_QUIZ_SIZE = 10;
 
 // ── 교재 사주 (모듈 로드 시 1회 계산, 이후 재사용) ──────────
@@ -87,6 +88,63 @@ export function getTextbookChart(): SajuChart {
 }
 
 const TEXTBOOK_LABEL = "교재 사주(임진년 기묘월 갑술일 경오시, 일간 갑)";
+
+// ── 실전 연습 사주 (대운·세운·다양한 사주 학습용) ────────────
+// 교재 사주는 팔자 직접입력이라 대운이 없다. 대운/세운을 배우려면 생년월일시가 필요하므로,
+// 여기서는 고정된 연습용 생년월일시 몇 개를 두고 엔진(computeSajuChart/computeLuckCycles)이
+// 대운까지 실시간 계산한다. 성별·일간·강약·대운 방향이 서로 달라 "다양한 사주" 실전 감각도 준다.
+// 정답은 하드코딩이 아니라 엔진 계산값을 그대로 쓴다(이론과 엔진이 항상 일치).
+
+export interface PracticeCase {
+  key: string;
+  /** 문제·강의에 노출할 짧은 소개 (누구의 사주도 아닌 연습용) */
+  desc: string;
+  birth: BirthInfo;
+}
+
+/** 학습 전용 연습 사주. 개인 사주가 아니라 커리큘럼 고정 예시다. */
+export const STUDY_PRACTICE_CASES: PracticeCase[] = [
+  { key: "A", desc: "연습 사주 A(1988년 양력 7월 15일 오후 1시 30분생 남성)", birth: { calendarType: "solar", year: 1988, month: 7, day: 15, hour: 13, minute: 30, gender: "male", birthPlace: "none" } },
+  { key: "B", desc: "연습 사주 B(1995년 양력 3월 22일 오전 8시생 여성)", birth: { calendarType: "solar", year: 1995, month: 3, day: 22, hour: 8, minute: 0, gender: "female", birthPlace: "none" } },
+  { key: "C", desc: "연습 사주 C(2001년 양력 11월 5일 오후 10시생 남성)", birth: { calendarType: "solar", year: 2001, month: 11, day: 5, hour: 22, minute: 0, gender: "male", birthPlace: "none" } },
+];
+
+/** deepExplain/톤 강의가 근거로 쓸, 연습 사주들의 생년월일시(ChartSource는 messageHandler에서 조립). */
+export const STUDY_PRACTICE_BIRTHS: BirthInfo[] = STUDY_PRACTICE_CASES.map((p) => p.birth);
+
+const practiceCache = new Map<string, { chart: SajuChart; luck: LuckCycles }>();
+function practice(key: string): { chart: SajuChart; luck: LuckCycles; desc: string } {
+  const pc = STUDY_PRACTICE_CASES.find((p) => p.key === key)!;
+  if (!practiceCache.has(key)) {
+    const chart = computeSajuChart(pc.birth);
+    // 대운의 구조적 값(방향·대운수·각 대운 간지/십성/12운성)은 생년월일시로 고정된다(오늘 날짜와 무관).
+    // current 플래그·세운은 오늘 기준이라 출제에 쓰지 않는다.
+    const luck = computeLuckCycles(pc.birth, new Date(), {});
+    practiceCache.set(key, { chart, luck });
+  }
+  const { chart, luck } = practiceCache.get(key)!;
+  return { chart, luck, desc: pc.desc };
+}
+
+const EL_LABEL: Array<[El, (fe: SajuChart["fiveElements"]) => number]> = [
+  ["목", (fe) => fe.wood], ["화", (fe) => fe.fire], ["토", (fe) => fe.earth], ["금", (fe) => fe.metal], ["수", (fe) => fe.water],
+];
+/** 오행 분포에서 가장 많은 오행(동점이면 목화토금수 순 첫째). */
+function topElement(chart: SajuChart): El {
+  let best: El = "목";
+  let bestN = -1;
+  for (const [el, get] of EL_LABEL) {
+    const n = get(chart.fiveElements);
+    if (n > bestN) { bestN = n; best = el; }
+  }
+  return best;
+}
+/** 격국 이름의 허용 답(전체·괄호 제거형·'격' 제거형). */
+function gyeokAnswers(name: string): string[] {
+  const stripped = name.replace(/\(.+?\)/g, "").trim();
+  const base = stripped.replace(/격$/, "");
+  return [...new Set([name, stripped, base].filter(Boolean))];
+}
 
 // ── 이론 상수 (보편 상수 — 학습 출제용) ──────────────────
 
@@ -767,6 +825,73 @@ const CHAPTERS: Chapter[] = [
       return out;
     },
   },
+  {
+    n: 22,
+    title: "대운(大運) — 10년의 큰 흐름",
+    lesson: [
+      "*22장 대운* — 원국이 '타고난 지도'라면, 대운은 그 위를 10년마다 바뀌며 지나가는 '큰 날씨'예요.",
+      "방향: *양남·음녀는 순행*, *음남·양녀는 역행*. (연간의 음양 × 성별로 정함)",
+      "대운수(첫 대운이 드는 나이): 출생일부터 (순행이면 다음, 역행이면 이전) 절입일까지의 날수를 *3*으로 나눠 정한다.",
+      "각 대운의 간지도 일간과 십성·12운성을 맺어 그 10년의 색깔(무슨 기운이 들어오는지)을 만든다.",
+      "※ 대운은 생년월일시가 있어야 계산돼요. 팔자만 입력한 교재 사주엔 대운이 없어서, 여기선 연습용 생년월일시로 배웁니다.",
+    ].join("\n"),
+    pool: () => {
+      const { chart: c, luck: l, desc } = practice("A");
+      const dir = l.daYunDirection === "forward" ? "순행" : "역행";
+      const d0 = l.daYun[0];
+      const out: StudyQuestion[] = [
+        q(22, "대운은 몇 년 단위의 흐름인가? (숫자)", ["10", "10년", "십"], "대운 = 10년 단위의 큰 흐름."),
+        q(22, "대운의 순행/역행은 무엇으로 정하나? (한 줄)", ["연간 음양과 성별", "년간 음양과 성별", "음양과 성별", "양남음녀", "성별과 연간"], "연간(년의 천간) 음양 × 성별. 양남·음녀는 순행, 음남·양녀는 역행."),
+        q(22, "양의 해에 태어난 남자(양남)의 대운은? (순행/역행)", ["순행"], "양남·음녀 = 순행."),
+        q(22, "음의 해에 태어난 남자(음남)의 대운은? (순행/역행)", ["역행"], "음남·양녀 = 역행."),
+        q(22, "대운수를 구할 때, 절입일까지의 날수를 몇으로 나누나? (숫자)", ["3", "삼"], "날수 ÷ 3 ≈ 첫 대운이 드는 나이(대운수)."),
+        q(22, `${desc}, 일간 ${c.dayMasterGan} — 이 사주의 대운 방향은? (순행/역행)`, [dir], `연간 ${c.year.gan}·성별로 판정 → ${dir}. (엔진 계산)`),
+        q(22, `${desc} — 첫 대운이 드는 나이(대운수)는? (숫자)`, [String(d0.startAge)], `엔진 계산: ${d0.startAge}세부터 첫 대운 ${d0.ganZhi}.`),
+        q(22, `${desc} — 첫 대운의 간지는? (예: 갑자)`, [d0.ganZhi], `엔진 계산: ${d0.startAge}~${d0.endAge}세 대운 = ${d0.ganZhi}.`),
+      ];
+      if (d0.tenGod) out.push(q(22, `${desc} — 첫 대운 천간 ${d0.ganZhi[0]}이(가) 일간 ${c.dayMasterGan}과(와) 맺는 십신은?`, [d0.tenGod], `일간 ${c.dayMasterGan} 기준 ${d0.ganZhi[0]} = ${d0.tenGod}. (엔진 계산)`));
+      return out;
+    },
+  },
+  {
+    n: 23,
+    title: "세운·월운·일진 — 지금 들어오는 흐름",
+    lesson: [
+      "*23장 세운·월운·일진* — 대운(10년) 위에 더 짧은 흐름들이 겹쳐 돌아요.",
+      "*세운*=올해 1년 흐름(연운) / *월운*=이번 달 / *일진*=오늘 하루.",
+      "세운의 간지는 *입춘* 기준으로 바뀐다(연주와 같은 기준). 월운은 절기(절입) 기준.",
+      "실전 '올해 운 어때?'는 큰 배경인 *대운*과 그 해의 *세운*을 겹쳐 보고, 이 흐름이 원국·대운과 맺는 합충으로 그 해의 변화를 읽는다.",
+    ].join("\n"),
+    pool: () => [
+      q(23, "올해 들어오는 1년 흐름을 뭐라 하나?", ["세운", "연운"], "세운(연운) = 그 해 1년의 흐름."),
+      q(23, "이번 달의 흐름을 뭐라 하나?", ["월운"], "월운 = 그 달의 흐름(절기 기준 월주)."),
+      q(23, "오늘 하루의 흐름을 뭐라 하나?", ["일진"], "일진 = 오늘 하루의 간지 흐름."),
+      q(23, "세운(연운)의 간지는 무엇을 기준으로 바뀌나?", ["입춘"], "세운도 연주처럼 입춘부터 새 간지."),
+      q(23, "10년 큰 배경(대운) 위에 얹혀 그 해의 사건을 촉발하는 1년 흐름은?", ["세운", "연운"], "대운=배경, 세운=그 해 방아쇠."),
+      q(23, "'올해 운세'를 볼 때 기본으로 겹쳐 보는 두 흐름은? (예: ○○과 ○○)", ["대운과 세운", "대운 세운", "세운과 대운", "세운 대운"], "큰 흐름(대운) + 그 해(세운)를 함께 본다."),
+      q(23, "흐름(운)이 원국과 만나 그 시기의 변화를 만들 때 보는 관계는? (합충형파해 중 통칭)", ["합충", "합충형파해", "충"], "운의 간지가 원국과 맺는 합·충·형·파·해로 그 시기의 사건을 읽는다."),
+    ],
+  },
+  {
+    n: 24,
+    title: "실전 원국 읽기 — 다양한 사주",
+    lesson: [
+      "*24장 실전 원국 읽기* — 한 사주만 보면 감이 안 잡혀요. 배운 걸 낯선 사주 여러 개에 적용해 봅니다.",
+      "읽는 순서: ① 일간(나) 확인 → ② 월지로 강약(신강/신약/중화) → ③ 오행 분포에서 넘치고 모자란 것 → ④ 격국으로 사주의 큰 틀.",
+      "같은 이론도 사주마다 답이 달라져요. 아래 연습 사주 A·B·C(누구의 사주도 아닌 예시)의 실제 계산값으로 확인합니다.",
+    ].join("\n"),
+    pool: () => {
+      const out: StudyQuestion[] = [];
+      for (const key of ["A", "B", "C"]) {
+        const { chart: c, desc } = practice(key);
+        out.push(q(24, `${desc} — 일간(나)은?`, [c.dayMasterGan], `일주 ${c.day.ganZhi}의 천간 = ${c.dayMasterGan}. (엔진 계산)`));
+        if (c.strength) out.push(q(24, `${desc} — 신강/신약/중화 판정은?`, [c.strength.label], `엔진 판정: ${c.strength.label}. ${c.strength.detail}`));
+        out.push(q(24, `${desc} — 오행 중 가장 많은 것은?`, [topElement(c)], `오행 분포 목${c.fiveElements.wood}·화${c.fiveElements.fire}·토${c.fiveElements.earth}·금${c.fiveElements.metal}·수${c.fiveElements.water} → 최다 ${topElement(c)}.`));
+        if (c.gyeokguk) out.push(q(24, `${desc} — 격국은? (예: 편재격)`, gyeokAnswers(c.gyeokguk.name), `엔진 판정: ${c.gyeokguk.name} — ${c.gyeokguk.gloss}.`));
+      }
+      return out;
+    },
+  },
 ];
 
 export const TOTAL_CHAPTERS = CHAPTERS.length; // 21
@@ -842,7 +967,7 @@ export function startStudy(existing: StudyState | null, jumpTo?: number): StudyR
 
   const lines: string[] = [];
   if (!existing) {
-    lines.push("📚 *사주 학습모드*를 시작해요! (전 과정 21장, 문제·채점은 계산 엔진 기반)");
+    lines.push(`📚 *사주 학습모드*를 시작해요! (전 과정 ${TOTAL_CHAPTERS}장, 문제·채점은 계산 엔진 기반)`);
     lines.push(`교재 사주는 고정이에요 — 누구의 사주도 아닌 연습용: *임진년 기묘월 갑술일 경오시* (일간 갑)`);
     lines.push("규칙: 장마다 강의 → 문제 5개 → *80% 이상*이면 다음 장. 틀린 문제는 오답노트로 계속 따라와요.");
     lines.push("답은 그냥 채팅으로 보내면 돼요. 모르겠으면 `패스`, 그만두려면 `/학습종료`.");
@@ -943,7 +1068,7 @@ export function answerStudy(prev: StudyState, userText: string): StudyReply {
       if (state.chapter > TOTAL_CHAPTERS) {
         state.chapter = GRAD_CHAPTER;
         lines.push("");
-        lines.push("🎓🎓 *21장 전 과정 수료!* 축하해요. 이제 /학습 은 전 장 무작위 복습 모드로 돌아가요.");
+        lines.push(`🎓🎓 *${TOTAL_CHAPTERS}장 전 과정 수료!* 축하해요. 이제 /학습 은 전 장 무작위 복습 모드로 돌아가요.`);
       } else {
         lines.push(`🎉 통과! 다음은 *${state.chapter}장 ${chapterOf(state.chapter)!.title}* — 이어서 하려면 /학습`);
       }
@@ -1010,8 +1135,8 @@ export function isDeepExplainRequest(text: string): boolean {
 }
 
 /** 딥다이브 프롬프트에 넘길 컨텍스트. lastShown이 없으면(퀴즈 시작 전) null. */
-export function deepExplainContext(state: StudyState): { chapterTitle: string; concept: string; baseExplain: string } | null {
+export function deepExplainContext(state: StudyState): { chapter: number; chapterTitle: string; concept: string; baseExplain: string } | null {
   if (!state.lastShown) return null;
   const ch = chapterOf(state.lastShown.chapter);
-  return { chapterTitle: ch ? `${ch.n}장 ${ch.title}` : `${state.lastShown.chapter}장`, concept: state.lastShown.concept, baseExplain: state.lastShown.explain };
+  return { chapter: state.lastShown.chapter, chapterTitle: ch ? `${ch.n}장 ${ch.title}` : `${state.lastShown.chapter}장`, concept: state.lastShown.concept, baseExplain: state.lastShown.explain };
 }
