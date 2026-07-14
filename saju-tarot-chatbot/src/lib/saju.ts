@@ -431,11 +431,33 @@ const SIX_RELATION_MAP: Record<
   },
 };
 
-/** 육친(六親): 십성 세기 분포를 실제 가족·인간관계 레이어로 옮긴다. */
-function computeSixRelations(groupTotals: Record<string, number>): SixRelation[] {
+// 각 육친의 대표 궁위(자리). presence(세기)와 별개로, 그 자리 지지가 충·형으로 흔들리면
+// 십성 세기는 강해도 그 인연에 마찰·이동수가 실린다는 보조 근거를 준다.
+const SIX_RELATION_PALACE: Record<
+  "비겁" | "식상" | "재성" | "관성" | "인성",
+  { label: string; pos: "month" | "day" | "hour" }
+> = {
+  비겁: { label: "형제궁(월주)", pos: "month" },
+  식상: { label: "자녀궁(시주)", pos: "hour" },
+  재성: { label: "배우자궁(일지)", pos: "day" },
+  관성: { label: "배우자궁(일지)", pos: "day" },
+  인성: { label: "부모궁(월주)", pos: "month" },
+};
+
+/**
+ * 육친(六親): 십성 세기 분포를 실제 가족·인간관계 레이어로 옮긴다.
+ * presence/strength/note(기존 리딩·테스트 의존값)는 십성 세기만으로 그대로 내고,
+ * 궁위(자리)의 충·형·파·해 손상은 판정을 바꾸지 않는 *추가 근거*(palace/palaceDamaged/palaceNote)로만 붙인다.
+ */
+function computeSixRelations(
+  groupTotals: Record<string, number>,
+  palaceCtx?: { dayZhi?: string; monthZhi?: string; hourZhi?: string; damagedBranches?: Set<string> },
+): SixRelation[] {
   const groups: Array<"비겁" | "식상" | "재성" | "관성" | "인성"> = ["비겁", "식상", "재성", "관성", "인성"];
   const values = groups.map((g) => groupTotals[g] ?? 0);
   const max = Math.max(1, ...values);
+  const branchOf = (pos: "month" | "day" | "hour"): string | undefined =>
+    pos === "month" ? palaceCtx?.monthZhi : pos === "day" ? palaceCtx?.dayZhi : palaceCtx?.hourZhi;
   return groups.map((group) => {
     const strength = groupTotals[group] ?? 0;
     const ratio = strength / max;
@@ -448,12 +470,26 @@ function computeSixRelations(groupTotals: Record<string, number>): SixRelation[]
         : presence === "강함"
           ? " 원국에서 이 기운이 두드러져, 그 인연·역할이 삶에서 크게 작동한다."
           : "";
+    // ── (additive) 궁위 손상 보조 근거 ──
+    const palaceSpec = SIX_RELATION_PALACE[group];
+    const palaceBranch = palaceCtx ? branchOf(palaceSpec.pos) : undefined;
+    let palaceDamaged: boolean | undefined;
+    let palaceNote: string | undefined;
+    if (palaceBranch) {
+      palaceDamaged = palaceCtx?.damagedBranches?.has(palaceBranch) ?? false;
+      palaceNote = palaceDamaged
+        ? `${palaceSpec.label} 지지 ${palaceBranch}이(가) 원국의 충·형·파·해로 흔들려, 세기와 별개로 이 인연엔 마찰·변동수가 더 실릴 수 있다.`
+        : `${palaceSpec.label} 지지 ${palaceBranch}은(는) 원국에서 충·형 손상 없이 비교적 안정적인 자리다.`;
+    }
     return {
       group,
       relatives: info.relatives,
       strength: Math.round(strength * 10) / 10,
       presence,
       note: info.note + presenceNote,
+      palace: palaceSpec.label,
+      palaceDamaged,
+      palaceNote,
     };
   });
 }
@@ -478,8 +514,27 @@ const LIVING_STATE_MAP: Record<
   계: { image: "이슬·빗물·시냇물", needs: [{ element: "metal", role: "금(끊임없는 수원)" }, { element: "wood", role: "나무(물을 흘려 쓰이게 함)" }], caution: "불(화)이 지나치면 증발해 마르고, 수원(금)이 없으면 곧 스러진다." },
 };
 
-/** 생목·사목 계열: 일간 물상이 원국 안에서 살아 있는 상태인지 판정한다. */
-function computeLivingState(dayGan: string, fiveElements: FiveElementBalance): LivingStateInfo | null {
+/** 어떤 오행이 지지들의 지장간에 뿌리(통근)를 두고 있는지. */
+function elementRootedInBranches(el: keyof FiveElementBalance, branches: string[]): boolean {
+  for (const zhi of branches) {
+    for (const stem of HIDDEN_STEMS[zhi] ?? []) {
+      if (GAN_WUXING[stem] === el) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 생목·사목 계열: 일간 물상이 원국 안에서 살아 있는 상태인지 판정한다.
+ * verdict/satisfied/missing/note(기존 리딩·테스트가 의존하는 값)는 오행 유무만으로 그대로 내고,
+ * 통근(지지 뿌리)·계절(월령)은 판정을 바꾸지 않는 *추가 근거*(dayRooted/…/depthNote)로만 덧붙인다.
+ */
+function computeLivingState(
+  dayGan: string,
+  fiveElements: FiveElementBalance,
+  branches: string[] = [],
+  monthZhi?: string,
+): LivingStateInfo | null {
   const spec = LIVING_STATE_MAP[dayGan];
   if (!spec) return null;
   const satisfied: string[] = [];
@@ -499,7 +554,55 @@ function computeLivingState(dayGan: string, fiveElements: FiveElementBalance): L
       : verdict === "사(死)"
         ? `일간 ${dayGan}(${spec.image})이 활력에 필요한 기운이 부족해 ${isWood ? "사목(死木)처럼 " : ""}눌리거나 메마르기 쉬운 상태다. ${spec.caution} 부족한 기운(${missing.join(", ")})을 생활·환경·시기로 보완하면 힘이 살아난다. 단정적 흉으로 읽지 말 것.`
         : `일간 ${dayGan}(${spec.image})이 일부 기운은 갖췄으나(${satisfied.join(", ")}) 일부가 부족해(${missing.join(", ")}), 조건이 맞을 때 힘이 살아나는 상태다. ${spec.caution}`;
-  return { dayGan, element: ELEMENT_KO[el] ?? "?", image: `${spec.image}${isWood ? ` — ${label} 관점` : ""}`, verdict, satisfied, missing, note };
+
+  // ── (additive) 통근·계절 심화 근거 — verdict/note는 위에서 확정됐고 아래는 근거만 보탠다 ──
+  const rootedNeeds: string[] = [];
+  const floatingNeeds: string[] = [];
+  for (const need of spec.needs) {
+    if ((fiveElements[need.element] ?? 0) <= 0) continue; // 갖춰진 것만 뿌리 유무를 구분
+    if (elementRootedInBranches(need.element, branches)) rootedNeeds.push(need.role);
+    else floatingNeeds.push(need.role);
+  }
+  const dayRooted = branches.length > 0 ? elementRootedInBranches(el, branches) : undefined;
+  let seasonalSupport: string | undefined;
+  if (monthZhi && ZHI_WUXING[monthZhi]) {
+    const monthEl = ZHI_WUXING[monthZhi];
+    const monthKo = ELEMENT_KO[monthEl];
+    const dayKo = ELEMENT_KO[el];
+    if (monthEl === el || GENERATES[monthEl] === el) {
+      seasonalSupport = `월지 ${monthZhi}(${monthKo})가 일간 ${dayKo}을(를) 돕는 계절 — 활력의 바탕이 있다.`;
+    } else if (GENERATES[el] === monthEl) {
+      seasonalSupport = `월지 ${monthZhi}(${monthKo})로 기운이 새어나가는(설기) 계절 — 힘을 쓰되 소모도 크다.`;
+    } else if (OVERCOMES[monthEl] === el) {
+      seasonalSupport = `월지 ${monthZhi}(${monthKo})가 일간 ${dayKo}을(를) 극하는 계절 — 눌리기 쉬워 보완이 중요하다.`;
+    } else if (OVERCOMES[el] === monthEl) {
+      seasonalSupport = `월지 ${monthZhi}(${monthKo})를 일간이 극하는 계절 — 기운을 밖으로 쓰는 자리.`;
+    } else {
+      seasonalSupport = `월지 ${monthZhi}(${monthKo}) 계절.`;
+    }
+  }
+  const depthParts: string[] = [];
+  if (dayRooted !== undefined) {
+    depthParts.push(dayRooted ? "일간이 지지에 뿌리를 둬(통근) 힘이 실물로 받쳐진다." : "일간이 지지에 뿌리가 없어(무근) 같은 판정이라도 기운이 뜨기 쉽다.");
+  }
+  if (floatingNeeds.length > 0) depthParts.push(`필요 기운 중 ${floatingNeeds.join(", ")}은(는) 있으나 지지 뿌리가 없어 다소 약하게 작동한다.`);
+  if (seasonalSupport) depthParts.push(seasonalSupport);
+  const depthNote = depthParts.length > 0 ? depthParts.join(" ") : undefined;
+
+  return {
+    dayGan,
+    element: ELEMENT_KO[el] ?? "?",
+    image: `${spec.image}${isWood ? ` — ${label} 관점` : ""}`,
+    verdict,
+    satisfied,
+    missing,
+    note,
+    dayRooted,
+    rootedNeeds,
+    floatingNeeds,
+    seasonalSupport,
+    depthNote,
+  };
 }
 
 const BRANCH_ORDER = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
@@ -2003,10 +2106,22 @@ function assembleChart(
   gyeokguk.candidates = computeGyeokgukCandidates(dayGan, monthPillar.zhi, transparency, gyeokguk.basisStem);
   if (gyeokguk.basisKind) gyeokguk.ambiguityReason = GYEOKGUK_AMBIGUITY[gyeokguk.basisKind];
   const iljuTrait = iljuTraitOf(dayPillar.ganZhi);
-  // 육친(六親): 십성 그룹 세기를 실제 가족·인간관계로 옮긴다.
-  const sixRelations = computeSixRelations(groupTotals);
-  // 생목·사목 계열: 일간 물상이 원국 안에서 살아 있는 상태인지.
-  const livingState = computeLivingState(dayGan, fiveElements) ?? undefined;
+  // 궁위 손상: 원국의 충·형·파·해에 걸린 지지들(육친 궁위 보조 근거용).
+  const damagedBranches = new Set<string>();
+  for (const d of interactionDetails) {
+    if (d.kind === "충" || d.kind === "형" || d.kind === "자형" || d.kind === "파" || d.kind === "해") {
+      for (const ch of d.chars) damagedBranches.add(ch);
+    }
+  }
+  // 육친(六親): 십성 그룹 세기를 실제 가족·인간관계로 옮긴다. (궁위 손상은 추가 근거)
+  const sixRelations = computeSixRelations(groupTotals, {
+    dayZhi: dayPillar.zhi,
+    monthZhi: monthPillar.zhi,
+    hourZhi: timePillar?.zhi,
+    damagedBranches,
+  });
+  // 생목·사목 계열: 일간 물상이 원국 안에서 살아 있는 상태인지. (통근·계절은 추가 근거)
+  const livingState = computeLivingState(dayGan, fiveElements, zhis.map((z) => z.char), monthPillar.zhi) ?? undefined;
 
   return {
     year: yearPillar,

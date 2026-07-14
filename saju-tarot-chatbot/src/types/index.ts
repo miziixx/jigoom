@@ -497,6 +497,15 @@ export interface SixRelation {
   presence: "강함" | "보통" | "약함" | "거의없음";
   /** 쉬운 말 설명 (그 육친이 어떤 결로 나타나는지, 성별 차이 포함) */
   note: string;
+  /**
+   * (additive) 이 육친의 대표 궁위(자리). presence 라벨은 바꾸지 않고, 해석 근거로만 쓴다.
+   * 예: 재성/관성 → "배우자궁(일지)", 인성/비겁 → 월주, 식상 → "자녀궁(시주)".
+   */
+  palace?: string;
+  /** (additive) 대표 궁위 지지가 원국의 충·형·파·해로 손상됐는지 (없으면 undefined = 판정 불가) */
+  palaceDamaged?: boolean;
+  /** (additive) 궁위 손상 여부를 반영한 한 줄 근거. presence(세기) 판정과 별개의 보조 근거. */
+  palaceNote?: string;
 }
 
 /**
@@ -521,6 +530,19 @@ export interface LivingStateInfo {
   missing: string[];
   /** 쉬운 말 설명 */
   note: string;
+  /**
+   * (additive) 일간이 지지 지장간에 같은 오행 뿌리를 두었는지(통근). verdict는 바꾸지 않고
+   * 해석 근거로만 쓴다 — 무근이면 같은 verdict라도 힘이 뜬다는 뉘앙스를 준다.
+   */
+  dayRooted?: boolean;
+  /** (additive) 갖춰진 필요 오행 중 지지에 뿌리까지 있어 실한 것(role) */
+  rootedNeeds?: string[];
+  /** (additive) 있긴 하나 지지 뿌리가 없어 뜬 필요 오행(role) */
+  floatingNeeds?: string[];
+  /** (additive) 월령(계절)이 일간 활력을 돕는지/설기·극하는지 한 줄 */
+  seasonalSupport?: string;
+  /** (additive) 통근·계절을 반영한 심화 근거 한 줄. verdict/note 라벨은 그대로 두고 근거만 덧붙임. */
+  depthNote?: string;
 }
 
 /** 지지 하나의 지장간 기반 십성 분해 (여기/중기/정기 위상별) */
