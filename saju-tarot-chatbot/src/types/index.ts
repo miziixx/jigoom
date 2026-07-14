@@ -480,6 +480,49 @@ export interface PalaceLayer {
   gloss: string;
 }
 
+/**
+ * 육친(六親) 한 갈래 — 십신을 실제 가족·인간관계로 옮긴 레이어.
+ * 재성=아내·부친, 관성=남편·자식, 인성=어머니 … 처럼 십신이 원국에
+ * 실제로 있을 때 그 십신이 상징하는 가족이 어떤 결로 나타나는지 매핑한다.
+ * (성별에 따라 배우자·자식 대응이 갈리는 부분은 note 안에 함께 담는다.)
+ */
+export interface SixRelation {
+  /** 십신 그룹 (비겁·식상·재성·관성·인성) */
+  group: "비겁" | "식상" | "재성" | "관성" | "인성";
+  /** 이 십신이 상징하는 육친(가족·인간관계) 명칭 목록 */
+  relatives: string[];
+  /** 원국에서 이 십신의 세기 (십성 세기 분포 합산값) */
+  strength: number;
+  /** 원국에 이 십신이 뚜렷한지 (강함/보통/약함/거의없음) */
+  presence: "강함" | "보통" | "약함" | "거의없음";
+  /** 쉬운 말 설명 (그 육친이 어떤 결로 나타나는지, 성별 차이 포함) */
+  note: string;
+}
+
+/**
+ * 생목(生木)·사목(死木) 계열의 조후 물상 판정 — 일간(오행)이 원국 안에서
+ * '살아 숨 쉬는 물상'인지, '메마르거나 갇힌 물상'인지 본다.
+ * 甲乙木이면 물(뿌리)·불(햇빛)·흙(땅)의 유무로 생목/사목을 가르고,
+ * 나머지 오행도 같은 물상론으로 활력 조건을 판정한다. (길흉 단정이 아니라
+ * '기운이 잘 쓰이는 상태냐, 눌려 있는 상태냐'의 국면 설명.)
+ */
+export interface LivingStateInfo {
+  /** 일간 (예: "갑") */
+  dayGan: string;
+  /** 일간 오행 (목/화/토/금/수) */
+  element: string;
+  /** 일간을 빗댄 물상 (예: "큰 나무", "촛불", "큰 강물") */
+  image: string;
+  /** 판정 결과 */
+  verdict: "생(生)" | "조건부 생" | "사(死)";
+  /** 활력에 필요한데 갖춰진 조건 */
+  satisfied: string[];
+  /** 활력에 필요한데 부족한 조건 */
+  missing: string[];
+  /** 쉬운 말 설명 */
+  note: string;
+}
+
 /** 지지 하나의 지장간 기반 십성 분해 (여기/중기/정기 위상별) */
 export interface HiddenTenGodBreakdown {
   /** 지지 위치 (예: "월지") */
@@ -603,6 +646,8 @@ export interface SajuChart {
   tenGodDistribution?: Record<string, number>;
   /** 합충형파해 목록 (예: "월지-연지 자오충") */
   interactions?: string[];
+  /** 천간충(칠충) 목록 (예: "연간-일간 갑경충"). 지지 합충형파해와 별개 레이어. */
+  stemClashes?: string[];
   /** 합충형파해 구조화 데이터 (엔진 업그레이드 #4). interactions와 같은 관계를 객체로. */
   interactionDetails?: InteractionDetail[];
   strength?: StrengthAssessment;
@@ -621,6 +666,10 @@ export interface SajuChart {
   twelveStageDetails?: TwelveStageDetail[];
   /** 궁위(자리) 해석 레이어 (엔진 업그레이드 #5). 연/월/일/시주 × 삶의 영역·십신·오행. */
   palaces?: PalaceLayer[];
+  /** 육친(六親): 십신을 실제 가족·인간관계로 옮긴 레이어 */
+  sixRelations?: SixRelation[];
+  /** 생목·사목 계열 조후 물상 판정 (일간이 살아 숨 쉬는 물상인지) */
+  livingState?: LivingStateInfo;
   /** 공망 (일주 순중공망 지지 2개) */
   gongmang?: string;
   /** 조후(계절) 관점 노트 */

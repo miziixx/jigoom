@@ -397,6 +397,11 @@ function formatSajuChart(chart: SajuChart, todayGanZhi?: string): string {
         : "합충형파해 — 원국 내 해당 없음",
     );
   }
+  if (chart.stemClashes && chart.stemClashes.length > 0) {
+    lines.push(
+      `천간충(칠충) — ${chart.stemClashes.join(", ")}. 천간끼리 정면으로 부딪히는 자리라 그 두 기둥이 상징하는 영역(연간=집안·초년, 월간=사회·직업, 일간=나, 시간=자식·말년)에서 마음·관계가 흔들리거나 방향이 갈리기 쉽다. 지지충과 별개의 '겉으로 드러나는 부딪힘'이니 경향으로만 반영하고 단정·공포로 쓰지 마라.`,
+    );
+  }
   if (chart.strength) {
     lines.push(`신강/신약 (간이 억부 판정) — ${chart.strength.label} (${chart.strength.detail})`);
   }
@@ -453,6 +458,26 @@ function formatSajuChart(chart: SajuChart, todayGanZhi?: string): string {
     );
   }
   if (chart.twelveStages) lines.push(`12운성 (일간 기준) — ${chart.twelveStages.join(", ")}`);
+  if (chart.palaces && chart.palaces.length > 0) {
+    lines.push(
+      `궁위(자리별 인생 영역) — ${chart.palaces
+        .map((p) => `${p.pillar}(${p.domains.join("·")}): 천간 ${p.ganTenGod}/${p.ganElement}, 지지 ${p.zhiTenGod}/${p.zhiElement}`)
+        .join(" / ")}. 각 자리(연=뿌리·초년·부모, 월=사회·직업·부모형제, 일지=배우자·가까운 관계, 시=자식·말년)에 놓인 십성·오행을 그 영역 해석에 반영해라.`,
+    );
+  }
+  if (chart.sixRelations && chart.sixRelations.length > 0) {
+    lines.push(
+      `육친(가족·인간관계) — ${chart.sixRelations
+        .map((r) => `${r.group}[${r.relatives.join("·")}] ${r.presence}(${r.strength})`)
+        .join(" / ")}. 십성을 실제 가족·인연으로 옮긴 것이다(재성=아내·부친·재물, 관성=남편·자식·직장, 인성=어머니·문서, 식상=자녀·표현, 비겁=형제·동료). '강함'인 자리는 그 인연·역할이 삶에서 크게 작동하고, '거의없음'은 인연이 옅거나 스스로 채워야 하는 자리로 본다(없다고 단정 금지). 배우자·자식 대응은 성별에 따라 갈리니 사용자 성별에 맞춰 골라 쓰고, 사주 용어는 표면에 내지 마라.`,
+    );
+  }
+  if (chart.livingState) {
+    const ls = chart.livingState;
+    lines.push(
+      `생목·사목(일간 물상 활력) — 일간 ${ls.dayGan}(${ls.image}) 판정: ${ls.verdict}. 갖춤: ${ls.satisfied.join(", ") || "없음"} / 부족: ${ls.missing.join(", ") || "없음"}. ${ls.note} 이건 '타고난 기운이 지금 잘 살아 쓰이는 상태냐, 눌려 있느냐'의 국면이니 성격·활력·보완 방향 해석에 반영하되 단정적 길흉으로 쓰지 마라.`,
+    );
+  }
   if (chart.gongmang) lines.push(`공망 — ${chart.gongmang}`);
   if (chart.sinsal && chart.sinsal.length > 0) {
     lines.push(`신살 — ${chart.sinsal.map((s) => `${s.name}(${s.position}: ${s.gloss})`).join(", ")}`);
