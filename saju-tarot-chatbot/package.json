@@ -8,7 +8,12 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "bot": "tsx bot/index.ts"
+    "bot": "tsx bot/index.ts",
+    "webhook": "tsx scripts/telegramWebhook.ts",
+    "webhook:info": "tsx scripts/telegramWebhook.ts info",
+    "webhook:me": "tsx scripts/telegramWebhook.ts me",
+    "webhook:set": "tsx scripts/telegramWebhook.ts set",
+    "webhook:delete": "tsx scripts/telegramWebhook.ts delete"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
