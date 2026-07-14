@@ -146,12 +146,28 @@ describe("학습모드 — 문제 은행 무결성", () => {
 });
 
 describe("학습모드 — 딥다이브('더 설명해줘')", () => {
-  it("트리거 문구를 인식한다", () => {
+  it("깊이 요청 문구를 인식한다", () => {
     expect(isDeepExplainRequest("더 설명해줘")).toBe(true);
     expect(isDeepExplainRequest("자세히 설명해줘")).toBe(true);
     expect(isDeepExplainRequest("왜 그런지 알려줘")).toBe(true);
+    expect(isDeepExplainRequest("좀 더 자세히")).toBe(true);
+  });
+
+  it("톤·난이도 지정 요청도 인식한다", () => {
+    expect(isDeepExplainRequest("초등학생도 이해하게 쉽게 설명해줘")).toBe(true);
+    expect(isDeepExplainRequest("쉽게 알려줘")).toBe(true);
+    expect(isDeepExplainRequest("비유로 설명해줘")).toBe(true);
+    expect(isDeepExplainRequest("예시 들어서 알려줘")).toBe(true);
+    expect(isDeepExplainRequest("존댓말로 다시 설명해줘")).toBe(true);
+    expect(isDeepExplainRequest("재미있게 풀어줘")).toBe(true);
+  });
+
+  it("짧은 퀴즈 답은 트리거로 오인하지 않는다", () => {
     expect(isDeepExplainRequest("정재")).toBe(false);
     expect(isDeepExplainRequest("패스")).toBe(false);
+    expect(isDeepExplainRequest("화")).toBe(false);
+    expect(isDeepExplainRequest("신유")).toBe(false);
+    expect(isDeepExplainRequest("음토")).toBe(false);
   });
 
   it("시작 직후(강의 직후)에도 lastShown이 잡혀 컨텍스트를 만들 수 있다", () => {

@@ -755,7 +755,7 @@ export function answerStudy(prev: StudyState, userText: string): StudyReply {
   } else {
     lines.push(isPass ? `⏭️ 패스 — 정답은 *${cur.answers[0]}*` : `❌ 아쉽! 정답은 *${cur.answers[0]}*`);
     lines.push(`💡 ${cur.explain}`);
-    lines.push("_(더 깊게 알고 싶으면 \"더 설명해줘\"라고 보내주세요)_");
+    lines.push("_(더 깊게 알고 싶으면 \"더 설명해줘\", 어려우면 \"초등학생도 알게 쉽게 설명해줘\"처럼 원하는 톤으로 보내주세요)_");
     // 오답노트 기록 (중복 방지, 상한 유지)
     if (!state.wrongNotes.some((w) => w.prompt === cur.prompt)) {
       state.wrongNotes.push({ chapter: cur.chapter, prompt: cur.prompt, answers: cur.answers, explain: cur.explain });
@@ -829,13 +829,24 @@ export function isStudyExit(text: string): boolean {
 }
 
 /**
- * "더 설명해줘"류 딥다이브 요청인지 판단한다.
+ * "더 설명해줘"류 딥다이브 요청인지 판단한다. 깊게·자세히뿐 아니라 톤·난이도 지정
+ * ("초등학생도 이해하게", "쉽게", "비유로", "예시 들어서", "존댓말로 다시" 등)도 잡는다.
  * 압축 강의·문제 해설은 전부 하드코딩(토큰 0)이지만, 이 트리거만 Claude를 1회 불러
- * 표·비유·사례 분기·자주 틀리는 포인트까지 담은 긴 해설을 만든다(bot/teacher.ts의 askStudyExplain).
+ * 사용자가 원하는 톤·난이도로 표·비유·사례 분기까지 담은 긴 해설을 만든다(teacher.ts의 askStudyExplain).
+ *
+ * 주의: 짧은 퀴즈 답(화·정재·신유 등)이 오탐되지 않도록, 톤 단어는 반드시 설명 요청
+ * 동사(설명·알려·풀어·이해·다시 등)와 함께 있을 때만 트리거한다.
  */
 export function isDeepExplainRequest(text: string): boolean {
   const t = text.trim();
-  return /^(더\s*(자세히|설명|풀어)|자세히\s*(설명|알려)|왜\s*그런지|풀어서\s*설명|깊게\s*설명|디테일하게|더\s*알려줘)/.test(t);
+  // ① 더 깊이 요청
+  const deeper = /(더|좀|한번더|한\s*번\s*더)?\s*(자세히|자세하게|깊게|깊이|풀어서|디테일하게)\s*(설명|알려|풀어)?/.test(t)
+    || /왜\s*그런지/.test(t)
+    || /더\s*(알려|설명)/.test(t);
+  // ② 톤·난이도 지정 요청 (톤 단어 + 설명 요청 동사)
+  const hasTone = /(쉽게|쉬운\s*말|초등학생|초딩|어린애|애기|중학생|비유|예시|예를\s*들|존댓말|반말|친구처럼|유머|재미있게|재밌게|그림처럼|풀어서)/.test(t);
+  const hasVerb = /(설명|알려|풀어|말해|이해|다시|해줘|해봐|가르쳐)/.test(t);
+  return deeper || (hasTone && hasVerb);
 }
 
 /** 딥다이브 프롬프트에 넘길 컨텍스트. lastShown이 없으면(퀴즈 시작 전) null. */
