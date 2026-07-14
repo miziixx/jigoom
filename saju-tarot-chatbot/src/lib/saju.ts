@@ -12,6 +12,8 @@ import type {
   InteractionDetail,
   TwelveStageDetail,
   PalaceLayer,
+  SixRelation,
+  LivingStateInfo,
   LuckOverlapRefined,
   LuckCycles,
   LuckFavor,
@@ -400,6 +402,106 @@ function computePalaces(dayGan: string, pillars: Array<{ label: string; pillar: 
   }
   return out;
 }
+// ── 육친(六親): 십신 → 실제 가족·인간관계 ──────────
+// 십신이 상징하는 사람을 원국에 그 십신이 얼마나 있느냐로 판단한다. 배우자·자식은 성별에
+// 따라 대응이 갈리므로(남/여) note 안에 양쪽을 함께 담아 상담가가 골라 쓰게 한다.
+const SIX_RELATION_MAP: Record<
+  "비겁" | "식상" | "재성" | "관성" | "인성",
+  { relatives: string[]; note: string }
+> = {
+  비겁: {
+    relatives: ["형제·자매", "친구·동료", "경쟁자·동업자"],
+    note: "형제·또래·동료를 뜻한다. 뚜렷하면 사람과 어울리고 경쟁·협력이 활발하고, 과하면 재물·주도권을 두고 부딪히기 쉽다. 약하면 홀로 서는 힘을 스스로 길러야 한다.",
+  },
+  식상: {
+    relatives: ["(여성)자녀·자식", "손아랫사람·제자", "내가 표현·양육하는 대상"],
+    note: "내가 밖으로 풀어내고 길러내는 힘이라, 여성에게는 자녀를 뜻하고 남녀 모두에게 재능·표현·손아랫사람을 뜻한다. 뚜렷하면 표현·돌봄이 풍부하고, 과하면 말·일을 벌이다 관성(규칙·직장)을 눌러 구설이 생기기도 한다.",
+  },
+  재성: {
+    relatives: ["(남성)아내·여자 인연", "부친", "재물·현실 성과"],
+    note: "재물과 현실을 다루는 힘이다. 남성에게는 아내·여자 인연(정재=배우자, 편재=이성·유동재), 남녀 모두에게 부친(편재)을 뜻한다. 뚜렷하면 현실 감각·수완이 좋고, 과하면 돈·이성 문제로 인성(안정·공부)이 흔들리기 쉽다.",
+  },
+  관성: {
+    relatives: ["(여성)남편·남자 인연", "(남성)자녀·자식", "직장·상사·사회적 책임·명예"],
+    note: "나를 규율하는 힘이라, 여성에게는 남편·남자 인연(정관=배우자, 편관=자극적 인연), 남성에게는 자녀를 뜻하고, 남녀 모두에게 직장·상사·명예·책임을 뜻한다. 뚜렷하면 책임감·사회적 위치가 서고, 과하면 압박·부담으로 몸과 마음이 눌리기 쉽다.",
+  },
+  인성: {
+    relatives: ["어머니", "스승·윗사람", "문서·자격·배움"],
+    note: "나를 받쳐주고 받아들이는 힘이라 어머니·윗사람·스승, 그리고 문서·자격·공부를 뜻한다. 뚜렷하면 배우고 기대고 정리하는 힘이 좋고, 과하면 생각·의존이 많아 식상(표현·실행)이 눌리기 쉽다.",
+  },
+};
+
+/** 육친(六親): 십성 세기 분포를 실제 가족·인간관계 레이어로 옮긴다. */
+function computeSixRelations(groupTotals: Record<string, number>): SixRelation[] {
+  const groups: Array<"비겁" | "식상" | "재성" | "관성" | "인성"> = ["비겁", "식상", "재성", "관성", "인성"];
+  const values = groups.map((g) => groupTotals[g] ?? 0);
+  const max = Math.max(1, ...values);
+  return groups.map((group) => {
+    const strength = groupTotals[group] ?? 0;
+    const ratio = strength / max;
+    const presence: SixRelation["presence"] =
+      strength <= 0 ? "거의없음" : ratio >= 0.75 ? "강함" : ratio >= 0.35 ? "보통" : "약함";
+    const info = SIX_RELATION_MAP[group];
+    const presenceNote =
+      presence === "거의없음"
+        ? " 원국에 이 기운이 거의 없어, 그 자리의 인연은 인연이 옅거나 스스로 채워야 하는 자리로 본다(없다고 단정하지 말 것)."
+        : presence === "강함"
+          ? " 원국에서 이 기운이 두드러져, 그 인연·역할이 삶에서 크게 작동한다."
+          : "";
+    return {
+      group,
+      relatives: info.relatives,
+      strength: Math.round(strength * 10) / 10,
+      presence,
+      note: info.note + presenceNote,
+    };
+  });
+}
+
+// ── 생목(生木)·사목(死木) 계열 조후 물상론 ──────────
+// 일간을 물상(큰 나무·촛불·큰 강물 등)에 빗대, 그 물상이 '살아 숨 쉬는 상태'인지
+// '메마르거나 갇힌 상태'인지 오행 유무로 판정한다. 木일간의 생목/사목이 대표 이론이고,
+// 나머지 오행도 같은 물상론으로 활력 조건을 본다. 길흉 단정이 아니라 국면 설명이다.
+const LIVING_STATE_MAP: Record<
+  string,
+  { image: string; needs: Array<{ element: keyof FiveElementBalance; role: string }>; caution: string }
+> = {
+  갑: { image: "큰 나무·동량목", needs: [{ element: "water", role: "물(뿌리를 적심)" }, { element: "fire", role: "햇빛(꽃과 열매)" }, { element: "earth", role: "땅(뿌리를 내림)" }], caution: "금(도끼)이 강한데 불(제련·햇빛)이 없으면 잘려 재목(死木)으로 굳는다." },
+  을: { image: "화초·덩굴·곡식", needs: [{ element: "water", role: "물(습기)" }, { element: "fire", role: "햇빛(개화)" }], caution: "물만 많고 햇빛이 없으면 웃자라 시들고, 금이 강하면 꺾인다." },
+  병: { image: "태양·큰 불", needs: [{ element: "wood", role: "땔감(빛을 지속)" }, { element: "water", role: "물(과열을 식힘·조후)" }], caution: "물이 지나치면 빛이 가려지고, 땔감이 없으면 금세 사그라든다." },
+  정: { image: "촛불·등불·화롯불", needs: [{ element: "wood", role: "심지·땔감(불을 이어감)" }, { element: "water", role: "적당한 물(조후 균형)" }], caution: "물(수)이 강하면 꺼지고, 땔감(목)이 없으면 곧 스러진다." },
+  무: { image: "큰 산·넓은 대지", needs: [{ element: "fire", role: "햇볕(땅을 데움)" }, { element: "water", role: "물(땅을 적심)" }, { element: "wood", role: "나무(땅에 생기를 통하게 함)" }], caution: "물·나무 없이 마르기만 하면 초목이 자라지 못하는 황무지가 된다." },
+  기: { image: "밭흙·정원 흙", needs: [{ element: "fire", role: "온기(흙을 데움)" }, { element: "water", role: "물(습기)" }, { element: "wood", role: "심을 나무(쓰임)" }], caution: "물이 지나치면 진흙이 되어 무너지고, 온기가 없으면 언 땅이 된다." },
+  경: { image: "원석·무쇠·큰 금속", needs: [{ element: "fire", role: "불(제련해 그릇을 만듦)" }, { element: "water", role: "물(날을 씻어 벼림)" }], caution: "불(화)이 없으면 다듬어지지 못한 무딘 쇳덩이로 남는다." },
+  신: { image: "보석·주옥·정제된 금속", needs: [{ element: "water", role: "맑은 물(씻어 빛냄)" }, { element: "earth", role: "흙(원석을 품음)" }], caution: "불(화)이 지나치면 녹아 빛을 잃고, 물이 없으면 광택이 나지 않는다." },
+  임: { image: "큰 강물·바다", needs: [{ element: "metal", role: "금(수원·물을 맑게 함)" }, { element: "earth", role: "제방(둑으로 물길을 잡음)" }, { element: "wood", role: "나무(넘치는 물을 흘려보냄)" }], caution: "흙(제방)이 없으면 넘쳐 범람하고, 금(수원)이 없으면 이내 마른다." },
+  계: { image: "이슬·빗물·시냇물", needs: [{ element: "metal", role: "금(끊임없는 수원)" }, { element: "wood", role: "나무(물을 흘려 쓰이게 함)" }], caution: "불(화)이 지나치면 증발해 마르고, 수원(금)이 없으면 곧 스러진다." },
+};
+
+/** 생목·사목 계열: 일간 물상이 원국 안에서 살아 있는 상태인지 판정한다. */
+function computeLivingState(dayGan: string, fiveElements: FiveElementBalance): LivingStateInfo | null {
+  const spec = LIVING_STATE_MAP[dayGan];
+  if (!spec) return null;
+  const satisfied: string[] = [];
+  const missing: string[] = [];
+  for (const need of spec.needs) {
+    if ((fiveElements[need.element] ?? 0) > 0) satisfied.push(need.role);
+    else missing.push(need.role);
+  }
+  const verdict: LivingStateInfo["verdict"] =
+    missing.length === 0 ? "생(生)" : satisfied.length === 0 ? "사(死)" : "조건부 생";
+  const el = GAN_WUXING[dayGan];
+  const isWood = el === "wood";
+  const label = isWood ? (verdict === "사(死)" ? "사목(死木)" : "생목(生木)") : "물상 활력";
+  const note =
+    verdict === "생(生)"
+      ? `일간 ${dayGan}(${spec.image})이 활력에 필요한 기운을 두루 갖춰 ${isWood ? "생목(生木)처럼 " : ""}살아 움직이는 상태다. 타고난 힘이 자연스럽게 쓰인다.`
+      : verdict === "사(死)"
+        ? `일간 ${dayGan}(${spec.image})이 활력에 필요한 기운이 부족해 ${isWood ? "사목(死木)처럼 " : ""}눌리거나 메마르기 쉬운 상태다. ${spec.caution} 부족한 기운(${missing.join(", ")})을 생활·환경·시기로 보완하면 힘이 살아난다. 단정적 흉으로 읽지 말 것.`
+        : `일간 ${dayGan}(${spec.image})이 일부 기운은 갖췄으나(${satisfied.join(", ")}) 일부가 부족해(${missing.join(", ")}), 조건이 맞을 때 힘이 살아나는 상태다. ${spec.caution}`;
+  return { dayGan, element: ELEMENT_KO[el] ?? "?", image: `${spec.image}${isWood ? ` — ${label} 관점` : ""}`, verdict, satisfied, missing, note };
+}
+
 const BRANCH_ORDER = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
 const GAN_ORDER = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"];
 // 각 일간의 장생 지지
@@ -747,6 +849,9 @@ function seasonNoteOf(monthZhi: string, dayGan: string): string {
 
 // ── 합충형파해 짝 테이블 ──────────
 const GAN_HE: Record<string, string> = { 갑기: "토", 을경: "금", 병신: "수", 정임: "목", 무계: "화" };
+// 천간충(칠충): 오행이 상극이면서 음양이 같은 천간끼리 정면으로 부딪힌다. 무·기(토)는 중앙이라
+// 상충하지 않는다. 갑↔경(목금)·을↔신(목금)·병↔임(화수)·정↔계(화수) 네 쌍만 성립한다.
+const GAN_CHONG = new Set(["갑경", "을신", "병임", "정계"]);
 const ZHI_LIUHE: Record<string, string> = { 자축: "토", 인해: "목", 묘술: "화", 진유: "금", 사신: "수", 오미: "화" };
 const ZHI_CHONG = new Set(["자오", "축미", "인신", "묘유", "진술", "사해"]);
 const ZHI_XING = new Set(["인사", "사신", "인신", "축술", "술미", "축미", "자묘"]);
@@ -770,6 +875,27 @@ const FANGHE: Array<{ group: string[]; element: string }> = [
 function pairKey(a: string, b: string): string {
   // 테이블이 한 방향으로만 정의되어 있어 양방향 모두 확인한다
   return a + b;
+}
+
+/**
+ * 천간충(칠충): 원국 천간끼리의 정면 충돌만 따로 뽑는다.
+ * 지지 합충형파해(interactions)와 섞지 않고 별도 레이어로 둔다(사건 규칙 영향 없이 additive).
+ */
+function computeStemClashes(gans: PositionedChar[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < gans.length; i++) {
+    for (let j = i + 1; j < gans.length; j++) {
+      const a = gans[i];
+      const b = gans[j];
+      const key = GAN_CHONG.has(pairKey(a.char, b.char))
+        ? pairKey(a.char, b.char)
+        : GAN_CHONG.has(pairKey(b.char, a.char))
+          ? pairKey(b.char, a.char)
+          : undefined;
+      if (key) out.push(`${a.label}-${b.label} ${key}충`);
+    }
+  }
+  return out;
 }
 
 interface PositionedChar {
@@ -1834,6 +1960,7 @@ function assembleChart(
 
   const interactions = computeInteractions(gans, zhis);
   const interactionDetails = computeInteractionDetails(gans, zhis);
+  const stemClashes = computeStemClashes(gans);
   const strength = assessStrength(dayGan, gans, zhis);
   const yongshin = suggestYongshin(dayGan, strength, fiveElements);
   // 용신 체계 확장: 억부(기존) + 조후(계절) + 통관(대립 오행 잇기)
@@ -1876,6 +2003,10 @@ function assembleChart(
   gyeokguk.candidates = computeGyeokgukCandidates(dayGan, monthPillar.zhi, transparency, gyeokguk.basisStem);
   if (gyeokguk.basisKind) gyeokguk.ambiguityReason = GYEOKGUK_AMBIGUITY[gyeokguk.basisKind];
   const iljuTrait = iljuTraitOf(dayPillar.ganZhi);
+  // 육친(六親): 십성 그룹 세기를 실제 가족·인간관계로 옮긴다.
+  const sixRelations = computeSixRelations(groupTotals);
+  // 생목·사목 계열: 일간 물상이 원국 안에서 살아 있는 상태인지.
+  const livingState = computeLivingState(dayGan, fiveElements) ?? undefined;
 
   return {
     year: yearPillar,
@@ -1892,6 +2023,7 @@ function assembleChart(
     tenGodDistribution,
     interactions,
     interactionDetails,
+    stemClashes,
     strength,
     yongshin,
     rootedness,
@@ -1901,6 +2033,8 @@ function assembleChart(
     twelveStages,
     twelveStageDetails,
     palaces,
+    sixRelations,
+    livingState,
     gongmang,
     seasonNote: seasonNoteOf(monthPillar.zhi, dayGan),
     sinsal,
