@@ -60,6 +60,8 @@ export interface StudyRecord {
   startedAt: string;
   /** true면 지금 들어오는 일반 텍스트를 퀴즈 답으로 처리한다 */
   active: boolean;
+  /** "더 설명해줘" 딥다이브가 근거로 쓸, 방금 보여준 개념 */
+  lastShown: { chapter: number; concept: string; explain: string } | null;
 }
 
 export interface UserRecord {

@@ -38,6 +38,12 @@ export interface StudyState {
   wrongNotes: StudyQuestion[];
   stats: { answered: number; correct: number };
   startedAt: string;
+  /**
+   * 방금 보여준 개념(장 소개 강의 또는 채점 직후 문제). "더 설명해줘" 트리거가
+   * 이걸 근거로 딥다이브 LLM 호출 1회를 만든다. 압축 강의/문제 설명은 하드코딩(토큰 0),
+   * 이 필드를 근거로 한 딥다이브만 API를 쓴다.
+   */
+  lastShown: { chapter: number; concept: string; explain: string } | null;
 }
 
 export function emptyStudyState(): StudyState {
@@ -50,6 +56,7 @@ export function emptyStudyState(): StudyState {
     wrongNotes: [],
     stats: { answered: 0, correct: 0 },
     startedAt: new Date().toISOString(),
+    lastShown: null,
   };
 }
 
@@ -709,6 +716,7 @@ export function startStudy(existing: StudyState | null, jumpTo?: number): StudyR
   state.quiz = buildQuiz(state);
   state.qIndex = 0;
   state.correctInQuiz = 0;
+  state.lastShown = { chapter: ch.n, concept: ch.title, explain: ch.lesson };
 
   lines.push(ch.lesson);
   lines.push("");
@@ -732,6 +740,7 @@ export function answerStudy(prev: StudyState, userText: string): StudyReply {
   const correct = !isPass && gradeAnswer(userText, cur.answers);
 
   state.stats.answered += 1;
+  state.lastShown = { chapter: cur.chapter, concept: cur.prompt, explain: cur.explain };
   const lines: string[] = [];
 
   if (correct) {
@@ -746,6 +755,7 @@ export function answerStudy(prev: StudyState, userText: string): StudyReply {
   } else {
     lines.push(isPass ? `⏭️ 패스 — 정답은 *${cur.answers[0]}*` : `❌ 아쉽! 정답은 *${cur.answers[0]}*`);
     lines.push(`💡 ${cur.explain}`);
+    lines.push("_(더 깊게 알고 싶으면 \"더 설명해줘\"라고 보내주세요)_");
     // 오답노트 기록 (중복 방지, 상한 유지)
     if (!state.wrongNotes.some((w) => w.prompt === cur.prompt)) {
       state.wrongNotes.push({ chapter: cur.chapter, prompt: cur.prompt, answers: cur.answers, explain: cur.explain });
@@ -816,4 +826,21 @@ export function formatProgress(state: StudyState | null): string {
 export function isStudyExit(text: string): boolean {
   const t = text.trim();
   return t === "/학습종료" || t === "/학습끝" || /^(그만|학습\s*(그만|끝|종료)|스터디\s*(그만|끝)|quit|exit)$/i.test(t);
+}
+
+/**
+ * "더 설명해줘"류 딥다이브 요청인지 판단한다.
+ * 압축 강의·문제 해설은 전부 하드코딩(토큰 0)이지만, 이 트리거만 Claude를 1회 불러
+ * 표·비유·사례 분기·자주 틀리는 포인트까지 담은 긴 해설을 만든다(bot/teacher.ts의 askStudyExplain).
+ */
+export function isDeepExplainRequest(text: string): boolean {
+  const t = text.trim();
+  return /^(더\s*(자세히|설명|풀어)|자세히\s*(설명|알려)|왜\s*그런지|풀어서\s*설명|깊게\s*설명|디테일하게|더\s*알려줘)/.test(t);
+}
+
+/** 딥다이브 프롬프트에 넘길 컨텍스트. lastShown이 없으면(퀴즈 시작 전) null. */
+export function deepExplainContext(state: StudyState): { chapterTitle: string; concept: string; baseExplain: string } | null {
+  if (!state.lastShown) return null;
+  const ch = chapterOf(state.lastShown.chapter);
+  return { chapterTitle: ch ? `${ch.n}장 ${ch.title}` : `${state.lastShown.chapter}장`, concept: state.lastShown.concept, baseExplain: state.lastShown.explain };
 }

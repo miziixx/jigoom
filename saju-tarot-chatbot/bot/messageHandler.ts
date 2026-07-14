@@ -3,9 +3,9 @@
 import { sendMessage, sendTyping, type TgMessage } from "./telegram.js";
 import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationType, looksLikeTwoBirths, parseTwoBirthsInput } from "./parseBirth.js";
 import { looksLikeFourPillars, looksLikePartialPillars, parseFourPillars, describePillars } from "./parseFourPillars.js";
-import { formatChartSummary, buildCompatibilityEvidence, chartSourceOf, computePack, pillarsSource, birthSource, type ChartSource } from "./evidence.js";
+import { formatChartSummary, buildCompatibilityEvidence, buildNatalEvidence, chartSourceOf, computePack, pillarsSource, birthSource, type ChartSource } from "./evidence.js";
 import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
-import { askTeacher, askCompatibility, askTarot, pickTeacherModel } from "./teacher.js";
+import { askTeacher, askCompatibility, askTarot, askStudyExplain, pickTeacherModel } from "./teacher.js";
 import { extractVerbosityHint } from "./extractVerbosityHint.js";
 import { logError } from "./logSafe.js";
 import { detectIntent, isSecretaryIntent } from "./intentDetector.js";
@@ -15,7 +15,16 @@ import { buildAssistantContext } from "./assistantContext.js";
 import { buildAstrologyEvidenceText } from "./astrologyEvidence.js";
 import { askSecretary, type SecretaryIntent } from "./secretary.js";
 import { summarizeForMemory, detectMemoryDeleteScope } from "./memoryOps.js";
-import { startStudy, answerStudy, formatProgress, isStudyExit, type StudyState } from "./studyMode.js";
+import {
+  startStudy,
+  answerStudy,
+  formatProgress,
+  isStudyExit,
+  isDeepExplainRequest,
+  deepExplainContext,
+  TEXTBOOK_PILLARS,
+  type StudyState,
+} from "./studyMode.js";
 import type { StoredPillars } from "./parseFourPillars.js";
 import type { Store, UserRecord } from "./storeTypes.js";
 import type { SpreadId } from "../src/lib/tarot.js";
@@ -309,6 +318,33 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     if (user.study?.active && isStudyExit(text)) {
       await store.setStudy(chatId, { ...user.study, active: false });
       await sendMessage(chatId, "학습모드를 잠깐 접을게요. 진도는 그대로 저장돼 있으니 /학습 으로 언제든 이어서! 📚");
+      return;
+    }
+    // ── 학습모드 진행 중: "더 설명해줘"는 딥다이브 LLM 호출 1회(퀴즈 답 처리보다 먼저 검사) ──
+    // 압축 강의·문제 해설은 하드코딩(토큰 0)이지만, 이 트리거만 표·비유·사례분기까지 담은
+    // 긴 해설을 만들려고 askStudyExplain을 부른다. 교재 사주(TEXTBOOK_PILLARS)를 근거로 고정.
+    if (user.study?.active && !text.startsWith("/") && isDeepExplainRequest(text)) {
+      const ctx = deepExplainContext(user.study as StudyState);
+      if (!ctx) {
+        await sendMessage(chatId, "아직 설명해줄 개념이 없어요. /학습 으로 먼저 시작해주세요!");
+        return;
+      }
+      const typing = setInterval(() => void sendTyping(chatId), 5000);
+      void sendTyping(chatId);
+      try {
+        const textbookEvidence = buildNatalEvidence(pillarsSource({ ...TEXTBOOK_PILLARS }));
+        // 답은 askStudyExplain이 스트리밍으로 화면에 직접 표시한다(여기서 재전송하지 않음).
+        await askStudyExplain({
+          chapterTitle: ctx.chapterTitle,
+          concept: ctx.concept,
+          baseExplain: ctx.baseExplain,
+          textbookEvidence,
+          question: text,
+          chatId,
+        });
+      } finally {
+        clearInterval(typing);
+      }
       return;
     }
     // ── 학습모드 진행 중: 일반 텍스트는 퀴즈 답으로 처리 (슬래시 명령은 통과) ──

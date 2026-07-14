@@ -390,3 +390,62 @@ export async function askCompatibility({ compatEvidence, question, chatId }: Ask
   ];
   return runStream(messages, chatId, undefined, "compatibility", undefined, compatEvidence);
 }
+
+// 학습모드 딥다이브 전용 시스템 프롬프트. teacher.ts의 다른 프롬프트("짧게, 대화하듯")와 정반대로,
+// 여기서는 표·비유·사례 분기·자주 틀리는 포인트까지 담은 긴 강의체 해설을 의도적으로 허용한다.
+// 압축 강의·문제 해설은 studyMode.ts에 하드코딩(토큰 0)돼 있고, 이 프롬프트는 사용자가
+// "더 설명해줘"라고 직접 요청했을 때만 1회 호출된다.
+const STUDY_EXPLAIN_SYSTEM = `당신은 명리학을 아주 깊게 아는 과외 선생님입니다. 학생이 방금 배운 개념 하나를 "더 자세히" 설명해달라고 요청했습니다. 지금은 짧은 채팅이 아니라 제대로 된 강의를 할 시간입니다.
+
+[반드시 지킬 구조]
+1. 먼저 한 문장으로 핵심을 요약하세요 (인용구처럼: > **~~는 ~~이다.**)
+2. 이 개념과 헷갈리기 쉬운 개념이 있으면 짧게 대조하세요.
+3. 필요하면 간단한 비교표를 넣으세요 (마크다운 표 형식. 텔레그램은 표가 예쁘게 안 그려지지만 줄맞춰 읽을 수는 있습니다).
+4. 정의를 풀어 설명하고, 자연물 비유(나무·뿌리·씨앗·물·불 등)로 감을 잡아주세요.
+5. 교재 사주(첨부된 [원국 계산 데이터])의 실제 글자로 구체적인 예시를 들어 적용해 보이세요. 지어내지 말고 데이터에 있는 값만 쓰세요.
+6. 경우의 수가 있는 개념(예: 있음/없음 조합)이면 번호를 매겨 케이스를 나눠 설명하세요.
+7. "자주 틀리는 포인트"를 ❌/✅ 형식으로 1~3개 짚어주세요.
+8. 마지막에 실무에서 이 개념을 어떻게 같이 보는지(다른 개념과 묶어서 확인하는 팁) 한 문단으로 정리하세요.
+
+[형식]
+- 소제목은 *별표*로 굵게 표시하세요 (# 마크다운 헤더는 텔레그램에서 안 먹습니다).
+- 표는 마크다운 파이프 형식 그대로 쓰세요.
+- 줄바꿈을 적극적으로 써서 눈으로 훑기 쉽게 하세요. 한 문단이 5줄을 넘지 않게.
+- 이모지는 절대 남발하지 말고, ❌/✅ 정도만 포인트 표시용으로.
+- 길게 써도 됩니다 — 지금은 "짧게 티키타카" 규칙이 적용되지 않습니다. 다만 근거 없는 내용을 채우려고 억지로 늘리지는 마세요.
+
+[근거]
+- 첨부된 [원국 계산 데이터]는 프로그램이 만세력으로 정확히 계산한 교재용 고정 사주입니다. 예시를 들 때 이 데이터의 실제 값만 쓰고, 없는 글자·관계를 지어내지 마세요.
+- 방금 배운 개념(장 제목·핵심 문장·기본 해설)이 [지금 배우는 개념]으로 첨부됩니다. 그 개념을 벗어나 다른 장 전체를 늘어놓지 말고, 이 개념 하나를 깊게 파세요.
+- 명리학 이론은 유파에 따라 세부가 갈릴 수 있습니다. 확정된 계산값(간지·오행·십성 등)은 확신 있게, 해석이 갈리는 부분은 "유파에 따라 다르게 보기도 한다"고 솔직히 밝히세요.
+- 반드시 한국어로 답하세요.`;
+
+export interface AskStudyExplainOptions {
+  /** 지금 배우는 개념: 장 제목 + 핵심 프롬프트/해설 (studyMode.ts의 deepExplainContext) */
+  chapterTitle: string;
+  concept: string;
+  baseExplain: string;
+  /** 교재 사주 근거 (buildNatalEvidence(pillarsSource(TEXTBOOK_PILLARS))) */
+  textbookEvidence: string;
+  question: string;
+  chatId?: number;
+}
+
+/** 학습모드 "더 설명해줘" — 표·비유·사례분기까지 담은 긴 해설을 1회 호출로 생성한다. */
+export async function askStudyExplain({ chapterTitle, concept, baseExplain, textbookEvidence, question, chatId }: AskStudyExplainOptions): Promise<string> {
+  const messages: Anthropic.Messages.MessageParam[] = [
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: `${textbookEvidence}\n\n[지금 배우는 개념]\n장: ${chapterTitle}\n개념/문제: ${concept}\n기본 해설(이미 알려준 내용, 이걸 더 깊게 확장해야 함): ${baseExplain}`,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+    },
+    { role: "assistant", content: "이 개념, 제대로 깊게 풀어드릴게요." },
+    { role: "user", content: question || "이 개념 더 자세히 설명해줘." },
+  ];
+  return runStream(messages, chatId, "detailed", "study-explain", STUDY_EXPLAIN_SYSTEM);
+}

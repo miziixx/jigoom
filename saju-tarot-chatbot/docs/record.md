@@ -2267,3 +2267,20 @@ consolidated perspectives 필드 추가 여부 결정.**
 - messageHandler: 학습 active 중 일반 텍스트=퀴즈 답, 슬래시 명령은 통과, 퀴즈 세트 끝나면 자동 비활성화.
 
 872 테스트(신규 studyMode 13 + 엔진 커버리지 4)·tsc(bot 포함)·build 클린.
+
+## 2026-07-14 (2) — 학습모드 딥다이브: "더 설명해줘"로 깊은 해설 1회 호출
+
+기존 학습모드(강의·출제·채점, LLM 호출 0회)는 그대로 두고, 사용자가 "통근/투출처럼 표·비유·
+케이스분기·자주 틀리는 포인트까지 담은 깊은 해설"을 원한다고 지적 — 압축 해설로는 부족한 요청.
+
+- `bot/studyMode.ts`: `StudyState.lastShown`(장 강의 직후 또는 문제 채점 직후 자동 갱신) +
+  `isDeepExplainRequest`(트리거 문구 감지) + `deepExplainContext`(장 제목·개념·기본 해설 추출).
+- `bot/teacher.ts`: `askStudyExplain` + `STUDY_EXPLAIN_SYSTEM` — 요약 인용구→비교표→자연물 비유→
+  교재 사주 실제 값으로 적용 예시→케이스 분기→❌/✅ 오답 포인트→실무 팁 구조를 강제하는 전용
+  시스템 프롬프트(다른 teacher 프롬프트의 "짧게" 규칙과 의도적으로 반대).
+- `bot/messageHandler.ts`: 학습모드 active 중 "더 설명해줘"류 문구는 퀴즈 답 처리보다 먼저 가로채
+  Claude를 1회만 호출(교재 사주 근거는 `buildNatalEvidence(pillarsSource(TEXTBOOK_PILLARS))`).
+- 평소 흐름(강의·출제·채점)은 여전히 토큰 0 — 딥다이브는 사용자가 명시 요청할 때만 과금.
+- `StudyRecord`(storeTypes.ts)에도 `lastShown` 추가해 저장소 타입 동기화.
+
+876 테스트(신규 4개 포함)·tsc(bot 포함)·build 클린.

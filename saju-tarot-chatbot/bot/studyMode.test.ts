@@ -5,6 +5,8 @@ import {
   gradeAnswer,
   formatProgress,
   isStudyExit,
+  isDeepExplainRequest,
+  deepExplainContext,
   emptyStudyState,
   getTextbookChart,
   TOTAL_CHAPTERS,
@@ -140,6 +142,37 @@ describe("학습모드 — 문제 은행 무결성", () => {
         }
       }
     }
+  });
+});
+
+describe("학습모드 — 딥다이브('더 설명해줘')", () => {
+  it("트리거 문구를 인식한다", () => {
+    expect(isDeepExplainRequest("더 설명해줘")).toBe(true);
+    expect(isDeepExplainRequest("자세히 설명해줘")).toBe(true);
+    expect(isDeepExplainRequest("왜 그런지 알려줘")).toBe(true);
+    expect(isDeepExplainRequest("정재")).toBe(false);
+    expect(isDeepExplainRequest("패스")).toBe(false);
+  });
+
+  it("시작 직후(강의 직후)에도 lastShown이 잡혀 컨텍스트를 만들 수 있다", () => {
+    const { state } = startStudy(null);
+    const ctx = deepExplainContext(state);
+    expect(ctx).not.toBeNull();
+    expect(ctx!.chapterTitle).toContain("음양오행");
+    expect(ctx!.baseExplain.length).toBeGreaterThan(0);
+  });
+
+  it("문제를 채점하면 lastShown이 그 문제로 갱신된다", () => {
+    let { state } = startStudy(null);
+    const firstQuestion = state.quiz![0].prompt;
+    const reply = answerStudy(state, "아무거나");
+    state = reply.state;
+    const ctx = deepExplainContext(state);
+    expect(ctx!.concept).toBe(firstQuestion);
+  });
+
+  it("아직 시작 전(lastShown 없음)이면 컨텍스트가 null", () => {
+    expect(deepExplainContext(emptyStudyState())).toBeNull();
   });
 });
 
