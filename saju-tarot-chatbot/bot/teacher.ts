@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { randomUUID } from "node:crypto";
 import type { ChatTurn } from "./storeTypes.js";
 import { buildNatalEvidence, buildTodayEvidence, buildFlowEvidence, type ChartSource } from "./evidence.js";
 import { emitPartial, finalizeStream } from "./streamToTelegram.js";
@@ -200,7 +201,8 @@ export async function runStream(
   const maxTokens = VERBOSITY_TOKENS[level];
   const systemPrompt = systemPromptOverride ?? buildTeacherSystem(level);
   const model = modelOverride ?? MODEL;
-  const requestId = crypto.randomUUID();
+  // 전역 crypto는 Node 런타임/버전에 따라 없을 수 있어(예: Railway Node 18) node:crypto에서 직접 가져온다.
+  const requestId = randomUUID();
   const startedAt = Date.now();
 
   // 짧은 채팅 답변엔 확장 사고를 끄고 바로 답하게 해 속도·비용을 아낀다.
