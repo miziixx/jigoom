@@ -22,6 +22,20 @@ describe("looksLikeFourPillars", () => {
     expect(looksLikeFourPillars("오늘 일진 어때?")).toBe(false);
     expect(looksLikeFourPillars("신강신약이 뭐야?")).toBe(false);
   });
+
+  it("붙여넣은 긴 문서(간지가 섞인 계획표 등)를 팔자 입력으로 오인하지 않는다", () => {
+    // "기억해줘"로 넘긴 공부 계획표. 원국 예시(갑자 갑술 정축 신해)와 천간·지지·십신
+    // 나열 때문에 간지 글자가 흩어져 있지만, 팔자 등록이 아니라 메모 저장 의도다.
+    const plan = [
+      "# 사주 공부 1주차 플랜",
+      "## Day 1 - 천간 10개(갑을병정무기경신임계), 지지 12개(자축인묘진사오미신유술해) 외우기",
+      "## Day 3 - 사주 네 기둥. 내 원국(갑자 갑술 정축 신해) 각 기둥 뜻 짚어보기",
+      "## Day 4 - 지장간, 식신 십신 복습",
+      "## Day 6 - 합충형파해: 자축합, 축술형 예시로 감 잡기",
+      "이거 하기로 했었어. 이거 기억좀 해놔줘.",
+    ].join("\n");
+    expect(looksLikeFourPillars(plan)).toBe(false);
+  });
 });
 
 describe("looksLikePartialPillars", () => {

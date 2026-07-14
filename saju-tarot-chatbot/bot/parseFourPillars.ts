@@ -87,6 +87,14 @@ function detectGender(t: string): Gender | undefined {
 export function looksLikeFourPillars(raw: string): boolean {
   const t = toHangul(raw.trim());
   const tokens = stripLabels(t).match(GZ_RE) ?? [];
+  // 붙여넣은 긴 문서/여러 줄 텍스트(예: 공부 계획표, "기억해줘"로 넘긴 메모)에 간지 글자가
+  // 우연히 섞여 있는 경우를 팔자 입력으로 오인하지 않는다. 진짜 팔자 입력은 짧고, 간지가
+  // 내용의 큰 비중을 차지한다 — 여러 줄이거나 아주 긴데 간지 비중이 낮으면 팔자가 아니다.
+  const nonSpaceLen = t.replace(/\s+/g, "").length;
+  const lineCount = t.split("\n").filter((l) => l.trim()).length;
+  const ganzhiShare = nonSpaceLen > 0 ? (tokens.length * 2) / nonSpaceLen : 0;
+  if ((lineCount >= 4 || nonSpaceLen > 150) && ganzhiShare < 0.3) return false;
+
   if (tokens.length >= 4) return true; // 팔자(4기둥)가 다 잡히면 확실
   if (tokens.length >= 3 && (PILLAR_LABEL_RE.test(t) || UNKNOWN_TIME_RE.test(t))) return true;
   if (extractBySuffix(t)) return true; // 연·월·일에 단위(년/월/일)가 붙어 명확 (예: "갑자년 정축월 병인일")
