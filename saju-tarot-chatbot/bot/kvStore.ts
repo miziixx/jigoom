@@ -14,6 +14,7 @@ import {
   type PendingCompat,
   type StoredTarot,
   type Store,
+  type StudyRecord,
   type UserRecord,
 } from "./storeTypes.js";
 
@@ -60,6 +61,8 @@ async function readUser(chatId: number): Promise<UserRecord> {
       pending: parsed.pending ?? null,
       lastTarot: parsed.lastTarot ?? null,
       memories: parsed.memories ?? [],
+      // 학습 진도는 history TTL과 무관하게 항상 살아남아야 한다 — 여기서 빠뜨리면 매 쓰기마다 진도가 증발한다.
+      study: parsed.study ?? null,
       updatedAt: parsed.updatedAt,
     };
     return applyHistoryExpiry(user);
@@ -126,6 +129,12 @@ export const kvStore: Store = {
   async setLastTarot(chatId: number, tarot: StoredTarot | null): Promise<void> {
     const user = await readUser(chatId);
     user.lastTarot = tarot;
+    await writeUser(chatId, user);
+  },
+
+  async setStudy(chatId: number, study: StudyRecord | null): Promise<void> {
+    const user = await readUser(chatId);
+    user.study = study;
     await writeUser(chatId, user);
   },
 

@@ -16,6 +16,7 @@ import {
   type PendingCompat,
   type StoredTarot,
   type Store,
+  type StudyRecord,
   type UserRecord,
 } from "./storeTypes.js";
 
@@ -94,6 +95,13 @@ export const fileStore: Store = {
   async setLastTarot(chatId: number, tarot: StoredTarot | null): Promise<void> {
     const user = getUserSync(chatId);
     user.lastTarot = tarot;
+    user.updatedAt = new Date().toISOString();
+    save();
+  },
+
+  async setStudy(chatId: number, study: StudyRecord | null): Promise<void> {
+    const user = getUserSync(chatId);
+    user.study = study;
     user.updatedAt = new Date().toISOString();
     save();
   },

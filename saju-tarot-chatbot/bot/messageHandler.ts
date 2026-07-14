@@ -15,6 +15,7 @@ import { buildAssistantContext } from "./assistantContext.js";
 import { buildAstrologyEvidenceText } from "./astrologyEvidence.js";
 import { askSecretary, type SecretaryIntent } from "./secretary.js";
 import { summarizeForMemory, detectMemoryDeleteScope } from "./memoryOps.js";
+import { startStudy, answerStudy, formatProgress, isStudyExit, type StudyState } from "./studyMode.js";
 import type { StoredPillars } from "./parseFourPillars.js";
 import type { Store, UserRecord } from "./storeTypes.js";
 import type { SpreadId } from "../src/lib/tarot.js";
@@ -98,7 +99,7 @@ const START_GUIDE = [
   "• 오늘 일진이 왜 이렇게 흘러가?",
   "• 내 격국이 뭔지, 왜 그렇게 잡히는지 알려줘",
   "",
-  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /타로 타로 리딩 · /궁합 상대와 궁합 보기 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
+  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /타로 타로 리딩 · /궁합 상대와 궁합 보기 · /학습 사주 이론 학습모드(21장) · /진도 학습 진도 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
 ].join("\n");
 
 const PRIVACY_TEXT = [
@@ -125,7 +126,9 @@ const HELP_TEXT = [
   "• \"방금 얘기한 거 기억해둬\" / \"이건 저장하지 마\" → 기억 저장/삭제",
   "• \"보안 상태 알려줘\" → /privacy",
   "",
-  "명령어(선택): /start · /birth · /saju · /today · /타로 · /궁합 · /reset · /delete · /privacy · /help",
+  "사주 이론을 직접 공부하고 싶으면 */학습* — 21장 커리큘럼(음양오행부터 신살까지)을 고정 교재 사주로 빡세게 배우는 학습모드예요. 진도·오답노트는 계속 기억돼요. (/진도 로 확인)",
+  "",
+  "명령어(선택): /start · /birth · /saju · /today · /타로 · /궁합 · /학습 · /진도 · /reset · /delete · /privacy · /help",
 ].join("\n");
 
 const COMPAT_GUIDE = [
@@ -287,6 +290,37 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
       await sendMessage(chatId, "오늘 일진은 내 사주와 오늘 간지를 대조해야 해서, 먼저 등록이 필요해요.\n\n" + BIRTH_GUIDE);
       return;
     }
+    // ── 학습모드: 시작/진도/종료 ──
+    // 완전 규칙 기반(LLM 호출 없음) — 강의·출제·채점·오답노트 전부 studyMode.ts가 코드로 처리한다.
+    // 진도(user.study)는 history TTL·/reset과 무관하게 유지된다. /delete 때만 삭제.
+    if (text === "/학습" || text === "/study" || /^\/(학습|study)\s+\d+$/.test(text)) {
+      const jumpMatch = text.match(/\s+(\d+)$/);
+      const jumpTo = jumpMatch ? Number(jumpMatch[1]) : undefined;
+      const prevState: StudyState | null = user.study ? (user.study as StudyState) : null;
+      const { state, message } = startStudy(prevState, jumpTo);
+      await store.setStudy(chatId, { ...state, active: true });
+      await sendMessage(chatId, message);
+      return;
+    }
+    if (text === "/진도" || text === "/progress") {
+      await sendMessage(chatId, formatProgress(user.study ? (user.study as StudyState) : null));
+      return;
+    }
+    if (user.study?.active && isStudyExit(text)) {
+      await store.setStudy(chatId, { ...user.study, active: false });
+      await sendMessage(chatId, "학습모드를 잠깐 접을게요. 진도는 그대로 저장돼 있으니 /학습 으로 언제든 이어서! 📚");
+      return;
+    }
+    // ── 학습모드 진행 중: 일반 텍스트는 퀴즈 답으로 처리 (슬래시 명령은 통과) ──
+    if (user.study?.active && !text.startsWith("/")) {
+      const { state, message } = answerStudy(user.study as StudyState, text);
+      // 퀴즈 한 세트가 끝나면(quiz=null) 학습모드를 자동으로 접어, 이후 일반 대화가 오답 처리되지 않게 한다.
+      const stillActive = state.quiz !== null;
+      await store.setStudy(chatId, { ...state, active: stillActive });
+      await sendMessage(chatId, stillActive ? message : `${message}\n\n(학습모드를 접었어요 — 이제 일반 질문도 자유롭게. 이어서 하려면 /학습)`);
+      return;
+    }
+
     if (text === "/타로" || text === "/tarot") {
       await sendMessage(chatId, TAROT_GUIDE);
       return;
