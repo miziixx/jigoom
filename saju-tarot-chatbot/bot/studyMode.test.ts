@@ -7,6 +7,7 @@ import {
   isStudyExit,
   isDeepExplainRequest,
   deepExplainContext,
+  setStudyTone,
   emptyStudyState,
   getTextbookChart,
   TOTAL_CHAPTERS,
@@ -35,6 +36,39 @@ describe("학습모드 — 채점", () => {
 
   it("한 글자 정답은 포함이 아니라 일치만 인정 (오답 문장에 우연히 낀 글자로 통과 금지)", () => {
     expect(gradeAnswer("화가 아니라 수", ["화"])).toBe(false);
+  });
+
+  it("유사어 사전: 쉬운 말·한자 표기를 서로 인정", () => {
+    expect(gradeAnswer("불", ["화"])).toBe(true); // 화 = 불
+    expect(gradeAnswer("나무", ["목"])).toBe(true); // 목 = 나무
+    expect(gradeAnswer("흙", ["토"])).toBe(true);
+    expect(gradeAnswer("물이요", ["수"])).toBe(true); // 조사 허용
+    expect(gradeAnswer("네", ["아니오"])).toBe(false); // 반대 답은 여전히 오답
+  });
+
+  it("오타 관용: 편집거리 1 이내면 인정하되, 인접한 다른 정답은 차단", () => {
+    expect(gradeAnswer("정제", ["정재"])).toBe(true); // 흔한 오타
+    expect(gradeAnswer("정제요", ["정재"])).toBe(true); // 조사 섞인 오타
+    expect(gradeAnswer("천을귀임", ["천을귀인"])).toBe(true); // 3글자 이상 오타
+    expect(gradeAnswer("편관", ["정관"])).toBe(false); // 인접한 '다른 정답'은 오타로 통과 금지
+    expect(gradeAnswer("정인", ["정재"])).toBe(false); // 십신 인접어도 통과 금지
+  });
+});
+
+describe("학습모드 — 톤 설정", () => {
+  it("톤을 저장하고, 새 장 강의 응답에 lesson/tail이 분리돼 나온다", () => {
+    const { state: toned } = setStudyTone(null, "초등학생도 알게 쉽게");
+    expect(toned.tone).toBe("초등학생도 알게 쉽게");
+    const reply = startStudy(toned);
+    expect(reply.state.tone).toBe("초등학생도 알게 쉽게"); // 톤 유지
+    expect(reply.lesson).toBeTruthy();
+    expect(reply.tail).toContain("[1장 · 1/");
+  });
+
+  it("빈 문자열이면 톤 해제(null)", () => {
+    const { state: on } = setStudyTone(null, "존댓말로");
+    const { state: off } = setStudyTone(on, "  ");
+    expect(off.tone).toBeNull();
   });
 });
 

@@ -62,6 +62,8 @@ export interface StudyRecord {
   active: boolean;
   /** "더 설명해줘" 딥다이브가 근거로 쓸, 방금 보여준 개념 */
   lastShown: { chapter: number; concept: string; explain: string } | null;
+  /** 사용자가 저장한 학습 톤·난이도. 있으면 기본 강의도 이 톤으로 LLM이 다시 써서 보여준다. */
+  tone?: string | null;
 }
 
 export interface UserRecord {

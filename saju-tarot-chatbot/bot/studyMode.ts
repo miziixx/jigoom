@@ -44,6 +44,12 @@ export interface StudyState {
    * 이 필드를 근거로 한 딥다이브만 API를 쓴다.
    */
   lastShown: { chapter: number; concept: string; explain: string } | null;
+  /**
+   * 사용자가 저장한 학습 톤·난이도(예: "초등학생도 알게 쉽게", "존댓말로 차분하게").
+   * 설정돼 있으면 기본 강의도 이 톤으로 LLM이 다시 써서 보여준다(messageHandler가 처리).
+   * null이면 하드코딩 기본 강의 그대로(토큰 0).
+   */
+  tone?: string | null;
 }
 
 export function emptyStudyState(): StudyState {
@@ -57,6 +63,7 @@ export function emptyStudyState(): StudyState {
     stats: { answered: 0, correct: 0 },
     startedAt: new Date().toISOString(),
     lastShown: null,
+    tone: null,
   };
 }
 
@@ -170,17 +177,139 @@ function norm(s: string): string {
 }
 
 /**
- * 채점: 정규화 후 (1) 완전 일치, (2) 정답이 2글자 이상이면 사용자 답 안에 포함돼도 인정.
- * ("신유" 정답에 "신유 공망"이라 답해도 정답)
+ * 유사어(같은 뜻으로 인정) 그룹. 정답 대표 표기 하나만 넣어도 사용자가 다른 표현을
+ * 써서 통과되게 한다. 초등학생 톤을 지향하니 한자 용어("목") 대신 쉬운 말("나무")도 인정.
+ * 그룹 안 어느 표현으로 답해도 정답으로 본다(정규화 후 비교).
+ */
+const SYNONYM_GROUPS: string[][] = [
+  ["목", "나무"],
+  ["화", "불"],
+  ["토", "흙", "땅"],
+  ["금", "쇠", "금속"],
+  ["수", "물"],
+  ["예", "네", "응", "어", "yes", "ㅇㅇ", "맞아", "맞다", "그래", "그렇다"],
+  ["아니오", "아니요", "아뇨", "아니", "아냐", "no", "ㄴㄴ", "아닙니다"],
+  ["60", "육십", "예순"],
+  ["투출", "투간"],
+  ["득령", "월령을얻음"],
+];
+const SYN_INDEX: Map<string, string[]> = (() => {
+  const m = new Map<string, string[]>();
+  for (const g of SYNONYM_GROUPS) {
+    const ng = g.map(norm).filter(Boolean);
+    for (const t of ng) m.set(t, ng);
+  }
+  return m;
+})();
+/** n과 같은 뜻으로 인정되는 표현들(자기 자신 포함). */
+function synonymsOf(n: string): string[] {
+  return SYN_INDEX.get(n) ?? [n];
+}
+
+/** 학습 어휘가 서로 헷갈리기 쉬운 인접 정답(편관↔정관 등)을 오타 관용에서 차단하기 위한 코어 용어 집합. */
+const CORE_TERMS: string[] = [
+  // 십신 10 + 칠살
+  "비견", "겁재", "식신", "상관", "편재", "정재", "편관", "정관", "편인", "정인", "칠살",
+  // 오행 5
+  "목", "화", "토", "금", "수",
+  // 음양+오행 조합
+  "양목", "음목", "양화", "음화", "양토", "음토", "양금", "음금", "양수", "음수",
+  // 천간 10
+  "갑", "을", "병", "정", "무", "기", "경", "신", "임", "계",
+  // 지지 12
+  "자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해",
+];
+let KNOWN_TERMS_CACHE: Set<string> | null = null;
+/** 커리큘럼 전체의 정답 토큰 + 코어 용어 집합. 길이 2 오타 관용의 "인접 정답" 가드에 쓴다. */
+function knownTerms(): Set<string> {
+  if (KNOWN_TERMS_CACHE) return KNOWN_TERMS_CACHE;
+  const s = new Set<string>(CORE_TERMS.map(norm));
+  for (const ch of CHAPTERS) {
+    for (const question of ch.pool()) {
+      for (const a of question.answers) {
+        const n = norm(a);
+        if (n) s.add(n);
+      }
+    }
+  }
+  KNOWN_TERMS_CACHE = s;
+  return s;
+}
+
+/** 흔한 종결 조사/어미를 떼어 핵심 토큰만 남긴다("정재요"→"정재"). 오타 비교의 정밀도를 높인다. */
+function stripParticle(n: string): string {
+  return n.replace(/(입니다|이에요|예요|이요|이야|이다|이란|라는|네요|은요|요|야|임|은|는|이|가|을|를|다)$/, "") || n;
+}
+
+/** 편집거리(레벤슈타인). 2를 넘으면 조기 중단(상한 반환). */
+function editDistance(a: string, b: string, cap = 2): number {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > cap) return cap + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      cur.push(v);
+      if (v < rowMin) rowMin = v;
+    }
+    if (rowMin > cap) return cap + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+/**
+ * 오타 관용 매칭. 정답 길이 2 이상일 때만. 3글자 이상은 편집거리 1 이내면 인정,
+ * 2글자는 편집거리 1이되 결과가 다른 유효 정답(편관/정관 등)이면 인정하지 않는다.
+ * 사용자 답의 종결 조사 제거형과 정답 길이 창(±1)까지 훑어 문장 속 오타도 잡는다.
+ */
+function fuzzyMatch(u: string, na: string): boolean {
+  if (na.length < 2) return false;
+  const candidates = new Set<string>([u, stripParticle(u)]);
+  for (const len of [na.length - 1, na.length, na.length + 1]) {
+    if (len < 2) continue;
+    for (let i = 0; i + len <= u.length; i++) candidates.add(u.slice(i, i + len));
+  }
+  const guard = na.length === 2 ? knownTerms() : null;
+  for (const c of candidates) {
+    if (!c || Math.abs(c.length - na.length) > 1) continue;
+    const d = editDistance(c, na, 1);
+    if (na.length >= 3) {
+      if (d <= 1) return true;
+    } else if (d === 1 && !(guard!.has(c))) {
+      // 편집거리 1이지만 결과 자체가 알려진 다른 정답이면(편관↔정관) 오타로 보지 않는다.
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * 채점(관용형): 정규화 후 (1) 완전일치·유사어 일치(조사 허용), (2) 2글자 이상 정답·유사어의
+ * 포함, (3) 오타 관용(편집거리, 인접 정답은 가드로 차단). "불"→"화", "나무"→"목",
+ * "정제"→"정재"처럼 초등학생 톤·오타도 관대하게 인정한다.
  */
 export function gradeAnswer(userText: string, answers: string[]): boolean {
   const u = norm(userText);
   if (!u) return false;
+  const uCore = stripParticle(u);
   for (const a of answers) {
-    const n = norm(a);
-    if (!n) continue;
-    if (u === n) return true;
-    if (n.length >= 2 && u.includes(n)) return true;
+    const na = norm(a);
+    if (!na) continue;
+    const syns = synonymsOf(na);
+    // (1) 완전일치 / 유사어 일치 (조사 허용)
+    for (const s of syns) {
+      if (u === s || uCore === s) return true;
+    }
+    // (2) 포함 (2글자 이상 정답·유사어)
+    for (const s of syns) {
+      if (s.length >= 2 && u.includes(s)) return true;
+    }
+    // (3) 오타 관용
+    if (fuzzyMatch(u, na)) return true;
   }
   return false;
 }
@@ -674,6 +803,33 @@ function questionHeader(state: StudyState): string {
 export interface StudyReply {
   state: StudyState;
   message: string;
+  /**
+   * 이번에 새 장 강의를 보여줬다면 그 강의 원문(톤 재작성 대상). 이어하기/결과 메시지엔 없음.
+   * tone이 설정돼 있으면 messageHandler가 이걸 LLM으로 재작성해 보낸다.
+   */
+  lesson?: string;
+  /** 강의 뒤에 붙는 안내+첫 문제(재작성하지 않고 그대로 붙임). lesson이 있을 때만 채워진다. */
+  tail?: string;
+}
+
+/** 학습 톤 설정/해제. tone이 빈 문자열이면 해제(기본 강의로 복귀). */
+export function setStudyTone(existing: StudyState | null, tone: string): StudyReply {
+  const state = existing ? { ...existing } : emptyStudyState();
+  const trimmed = tone.trim();
+  state.tone = trimmed ? trimmed : null;
+  const message = trimmed
+    ? `🎨 학습 톤을 *"${trimmed}"* 로 저장했어요. 이제 강의도 이 톤으로 풀어드릴게요.\n다시 기본으로 돌리려면 \`/톤끄기\`. (\`/학습\`으로 이어서!)`
+    : "🎨 학습 톤을 기본으로 되돌렸어요. 강의는 원래의 압축 강의로 나가요. (원하는 톤은 `/톤 초등학생도 알게 쉽게`처럼 설정)";
+  return { state, message };
+}
+
+/** 현재 톤 설정 안내 텍스트. */
+export function formatToneStatus(state: StudyState | null): string {
+  const tone = state?.tone;
+  if (tone) {
+    return `🎨 현재 학습 톤: *"${tone}"*\n강의를 이 톤으로 풀어드리고 있어요. 바꾸려면 \`/톤 <원하는 말투>\`, 끄려면 \`/톤끄기\`.`;
+  }
+  return "🎨 학습 톤이 *기본*(압축 강의)으로 설정돼 있어요.\n예: `/톤 초등학생도 알게 쉽게`, `/톤 존댓말로 차분하게`, `/톤 친구처럼 반말로 재밌게`. 끄려면 `/톤끄기`.";
 }
 
 /** /학습 진입(이어하기 포함). jumpTo를 주면 해당 장으로 이동. */
@@ -718,13 +874,17 @@ export function startStudy(existing: StudyState | null, jumpTo?: number): StudyR
   state.correctInQuiz = 0;
   state.lastShown = { chapter: ch.n, concept: ch.title, explain: ch.lesson };
 
+  const reviewCount = state.quiz.filter((x) => x.isReview).length;
+  const tail = [
+    `이제 문제 ${state.quiz.length}개 나갑니다${reviewCount > 0 ? ` (오답 복습 ${reviewCount}개 포함)` : ""}. 통과 기준 80%!`,
+    "",
+    questionHeader(state),
+  ].join("\n");
+
   lines.push(ch.lesson);
   lines.push("");
-  const reviewCount = state.quiz.filter((x) => x.isReview).length;
-  lines.push(`이제 문제 ${state.quiz.length}개 나갑니다${reviewCount > 0 ? ` (오답 복습 ${reviewCount}개 포함)` : ""}. 통과 기준 80%!`);
-  lines.push("");
-  lines.push(questionHeader(state));
-  return { state, message: lines.join("\n") };
+  lines.push(tail);
+  return { state, message: lines.join("\n"), lesson: ch.lesson, tail };
 }
 
 /** 학습모드 진행 중 사용자의 답 처리. */

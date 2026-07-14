@@ -5,7 +5,7 @@ import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationT
 import { looksLikeFourPillars, looksLikePartialPillars, parseFourPillars, describePillars } from "./parseFourPillars.js";
 import { formatChartSummary, buildCompatibilityEvidence, buildNatalEvidence, chartSourceOf, computePack, pillarsSource, birthSource, type ChartSource } from "./evidence.js";
 import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
-import { askTeacher, askCompatibility, askTarot, askStudyExplain, pickTeacherModel } from "./teacher.js";
+import { askTeacher, askCompatibility, askTarot, askStudyExplain, askStudyLesson, pickTeacherModel } from "./teacher.js";
 import { extractVerbosityHint } from "./extractVerbosityHint.js";
 import { logError } from "./logSafe.js";
 import { detectIntent, isSecretaryIntent } from "./intentDetector.js";
@@ -22,6 +22,8 @@ import {
   isStudyExit,
   isDeepExplainRequest,
   deepExplainContext,
+  setStudyTone,
+  formatToneStatus,
   TEXTBOOK_PILLARS,
   type StudyState,
 } from "./studyMode.js";
@@ -108,7 +110,7 @@ const START_GUIDE = [
   "• 오늘 일진이 왜 이렇게 흘러가?",
   "• 내 격국이 뭔지, 왜 그렇게 잡히는지 알려줘",
   "",
-  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /타로 타로 리딩 · /궁합 상대와 궁합 보기 · /학습 사주 이론 학습모드(21장) · /진도 학습 진도 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
+  "명령어: /saju 원국 요약 · /today 오늘 일진 풀이 · /타로 타로 리딩 · /궁합 상대와 궁합 보기 · /학습 사주 이론 학습모드(21장) · /진도 학습 진도 · /톤 학습 말투·난이도 설정 · /퀴즈 배운 개념 복습 · /birth 사주 등록/재등록 · /reset 대화 초기화 · /delete 데이터 삭제",
 ].join("\n");
 
 const PRIVACY_TEXT = [
@@ -135,7 +137,7 @@ const HELP_TEXT = [
   "• \"방금 얘기한 거 기억해둬\" / \"이건 저장하지 마\" → 기억 저장/삭제",
   "• \"보안 상태 알려줘\" → /privacy",
   "",
-  "사주 이론을 직접 공부하고 싶으면 */학습* — 21장 커리큘럼(음양오행부터 신살까지)을 고정 교재 사주로 빡세게 배우는 학습모드예요. 진도·오답노트는 계속 기억돼요. (/진도 로 확인)",
+  "사주 이론을 직접 공부하고 싶으면 */학습* — 21장 커리큘럼(음양오행부터 신살까지)을 고정 교재 사주로 빡세게 배우는 학습모드예요. 진도·오답노트는 계속 기억돼요. (/진도 로 확인) 강의가 어렵게 느껴지면 */톤 초등학생도 알게 쉽게* 처럼 원하는 말투를 저장하면 강의도 그 톤으로 나가요.",
   "",
   "명령어(선택): /start · /birth · /saju · /today · /타로 · /궁합 · /학습 · /진도 · /reset · /delete · /privacy · /help",
 ].join("\n");
@@ -306,13 +308,52 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
       const jumpMatch = text.match(/\s+(\d+)$/);
       const jumpTo = jumpMatch ? Number(jumpMatch[1]) : undefined;
       const prevState: StudyState | null = user.study ? (user.study as StudyState) : null;
-      const { state, message } = startStudy(prevState, jumpTo);
-      await store.setStudy(chatId, { ...state, active: true });
-      await sendMessage(chatId, message);
+      const reply = startStudy(prevState, jumpTo);
+      await store.setStudy(chatId, { ...reply.state, active: true });
+      // 톤이 설정돼 있고 새 장 강의가 나왔으면, 기본 강의를 그 톤으로 다시 써서 보낸다(LLM 1회).
+      // 실패하면 하드코딩 기본 강의로 폴백(토큰 0). 강의 뒤 안내·첫 문제(tail)는 그대로 붙인다.
+      if (reply.state.tone && reply.lesson) {
+        const typing = setInterval(() => void sendTyping(chatId), 5000);
+        void sendTyping(chatId);
+        try {
+          const textbookEvidence = buildNatalEvidence(pillarsSource({ ...TEXTBOOK_PILLARS }));
+          const retoned = await askStudyLesson({
+            lesson: reply.lesson,
+            tone: reply.state.tone,
+            textbookEvidence,
+          });
+          await sendMessage(chatId, `${retoned}\n\n${reply.tail ?? ""}`.trim());
+        } catch (err) {
+          logError("study.retoneLesson", err);
+          await sendMessage(chatId, reply.message);
+        } finally {
+          clearInterval(typing);
+        }
+      } else {
+        await sendMessage(chatId, reply.message);
+      }
       return;
     }
     if (text === "/진도" || text === "/progress") {
       await sendMessage(chatId, formatProgress(user.study ? (user.study as StudyState) : null));
+      return;
+    }
+    // ── 학습 톤 설정: 기본 강의도 원하는 톤·난이도로 (영구 저장) ──
+    if (text === "/톤" || text === "/tone") {
+      await sendMessage(chatId, formatToneStatus(user.study ? (user.study as StudyState) : null));
+      return;
+    }
+    if (text === "/톤끄기" || text === "/기본톤" || text === "/tone off") {
+      const { state, message } = setStudyTone(user.study ? (user.study as StudyState) : null, "");
+      await store.setStudy(chatId, { ...state, active: user.study?.active ?? false });
+      await sendMessage(chatId, message);
+      return;
+    }
+    if (text.startsWith("/톤 ") || text.startsWith("/tone ")) {
+      const tone = text.replace(/^\/(톤|tone)\s+/, "");
+      const { state, message } = setStudyTone(user.study ? (user.study as StudyState) : null, tone);
+      await store.setStudy(chatId, { ...state, active: user.study?.active ?? false });
+      await sendMessage(chatId, message);
       return;
     }
     if (user.study?.active && isStudyExit(text)) {

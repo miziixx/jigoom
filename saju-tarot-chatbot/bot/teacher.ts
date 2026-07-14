@@ -454,5 +454,43 @@ export async function askStudyExplain({ chapterTitle, concept, baseExplain, text
     { role: "assistant", content: "이 개념, 제대로 깊게 풀어드릴게요." },
     { role: "user", content: question || "이 개념 더 자세히 설명해줘." },
   ];
-  return runStream(messages, chatId, "detailed", "study-explain", STUDY_EXPLAIN_SYSTEM);
+  // 학습 딥다이브에도 근거 점검(factGrounding)을 넘긴다: 교재 사주에 없는 간지·신살을
+  // LLM이 지어내면 경고 꼬리가 붙는다(학습용이라 정확성 안전장치가 더 중요).
+  return runStream(messages, chatId, "detailed", "study-explain", STUDY_EXPLAIN_SYSTEM, textbookEvidence);
+}
+
+export interface AskStudyLessonOptions {
+  /** 재작성할 원문 강의(studyMode.ts의 하드코딩 압축 강의). 개념·사실의 출처다. */
+  lesson: string;
+  /** 사용자가 저장한 톤·난이도(StudyState.tone). 예: "초등학생도 알게 쉽게". */
+  tone: string;
+  /** 교재 사주 근거 (buildNatalEvidence(pillarsSource(TEXTBOOK_PILLARS))) */
+  textbookEvidence: string;
+  chatId?: number;
+}
+
+/**
+ * 학습 톤 설정이 켜져 있을 때, 기본 압축 강의를 사용자가 원하는 톤·난이도로 다시 쓴다.
+ * "쉬움 모드는 강의도 LLM로 생성"에 해당. 원문 강의의 개념·사실은 유지하고 말투·눈높이만 바꾼다.
+ * 근거 점검(textbookEvidence)을 넘겨 없는 글자를 지어내면 경고가 붙게 한다.
+ */
+export async function askStudyLesson({ lesson, tone, textbookEvidence, chatId }: AskStudyLessonOptions): Promise<string> {
+  const messages: Anthropic.Messages.MessageParam[] = [
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: `${textbookEvidence}\n\n[다시 써야 할 강의 원문]\n${lesson}`,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+    },
+    { role: "assistant", content: "원하시는 톤으로 이 강의를 다시 써드릴게요." },
+    {
+      role: "user",
+      content: `위 강의를 다음 톤·난이도로 자연스럽게 다시 설명해줘: "${tone}".\n- 개념과 사실(오행·관계·교재 사주 값)은 그대로 유지하고, 말투와 눈높이만 바꿔.\n- 교재 사주 예시는 첨부된 [원국 계산 데이터]의 실제 값만 써. 없는 글자·관계는 지어내지 마.\n- 강의 한 편이니 이 개념 하나만 다뤄. 다른 장으로 새지 마.`,
+    },
+  ];
+  return runStream(messages, chatId, "detailed", "study-lesson", STUDY_EXPLAIN_SYSTEM, textbookEvidence);
 }
