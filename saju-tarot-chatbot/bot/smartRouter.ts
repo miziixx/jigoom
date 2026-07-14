@@ -89,9 +89,12 @@ function routerEnabled(): boolean {
 
 const ROUTER_MODEL = process.env.BOT_ROUTER_MODEL ?? "claude-haiku-4-5-20251001";
 
+// 라우터는 매 자유 메시지의 첫 관문이다. 여기가 멈추면 답변 생성 전에 웹훅 함수가
+// 통째로 매달려 죽는다(먹통의 원인 중 하나) → 짧은 타임아웃 + 재시도 축소.
+const ROUTER_TIMEOUT_MS = Number(process.env.BOT_ROUTER_TIMEOUT_MS ?? "20000") || 20000;
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
-  if (!client) client = new Anthropic();
+  if (!client) client = new Anthropic({ timeout: ROUTER_TIMEOUT_MS, maxRetries: 1 });
   return client;
 }
 
@@ -184,13 +187,16 @@ export function fallbackRoute(input: RouteInput): RouteResult {
 export async function routeMessage(input: RouteInput): Promise<RouteResult> {
   if (!routerEnabled()) return fallbackRoute(input);
   try {
-    const res = await getClient().messages.create({
-      model: ROUTER_MODEL,
-      max_tokens: 150,
-      temperature: 0,
-      system: SYSTEM,
-      messages: [{ role: "user", content: buildUserMessage(input) }],
-    });
+    const res = await getClient().messages.create(
+      {
+        model: ROUTER_MODEL,
+        max_tokens: 150,
+        temperature: 0,
+        system: SYSTEM,
+        messages: [{ role: "user", content: buildUserMessage(input) }],
+      },
+      { signal: AbortSignal.timeout(ROUTER_TIMEOUT_MS) },
+    );
     const raw = res.content
       .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
       .map((b) => b.text)

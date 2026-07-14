@@ -42,7 +42,9 @@ if (!process.env.ANTHROPIC_API_KEY) {
   console.error("ANTHROPIC_API_KEY 환경변수가 필요합니다. console.anthropic.com 에서 발급하세요.");
   process.exit(1);
 }
-const client = new Anthropic(); // ANTHROPIC_API_KEY 환경변수 사용
+// 클라이언트 레벨 타임아웃도 백업으로 건다(스트림은 AbortSignal이 1차 방어). 재시도는 1회로
+// 줄여, 실패 시 재시도 지연이 Vercel maxDuration까지 쌓이지 않게 한다.
+const client = new Anthropic({ timeout: BOT_STREAM_TIMEOUT_MS + 30_000, maxRetries: 1 }); // ANTHROPIC_API_KEY 환경변수 사용
 
 // 사주 선생님의 전체 시스템 프롬프트. 길이 지시는 verbosity에 따라 달라진다.
 // 핵심: 텔레그램 채팅이니 짧게 티키타카. 안 물어본 걸 먼저 갖다붙이지 않는다.
