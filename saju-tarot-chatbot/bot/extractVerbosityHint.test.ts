@@ -37,4 +37,19 @@ describe("extractVerbosityHint", () => {
     expect(r.override).toBe("brief");
     expect(r.cleanQuestion).toBe("신강신약 설명");
   });
+
+  it("힌트만 보내면(질문이 비면) 직전 답을 이어받는 후속 문장으로 채운다", () => {
+    const detailed = extractVerbosityHint("자세히");
+    expect(detailed.override).toBe("detailed");
+    expect(detailed.cleanQuestion).not.toBe("");
+    expect(detailed.cleanQuestion).toContain("자세히");
+
+    const brief = extractVerbosityHint("짧게");
+    expect(brief.override).toBe("brief");
+    expect(brief.cleanQuestion).not.toBe("");
+
+    const normal = extractVerbosityHint("다시");
+    expect(normal.override).toBe("normal");
+    expect(normal.cleanQuestion).not.toBe("");
+  });
 });

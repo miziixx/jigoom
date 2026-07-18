@@ -50,5 +50,17 @@ export function extractVerbosityHint(question: string): VerbosityHint {
     }
   }
 
+  // 힌트만 보내서(예: "자세히", "짧게") 질문이 통째로 사라진 경우:
+  // 빈 질문을 그대로 넘기면 봇이 "질문이 뭔가요? 안 보여서"라고 되묻는다.
+  // 직전 답변을 이어받는 자연스러운 후속 문장으로 채워, 방금 답을 그 톤으로 다시 풀게 한다.
+  if (override && !cleanQuestion) {
+    cleanQuestion =
+      override === "brief"
+        ? "방금 한 얘기 짧게 다시 정리해줘."
+        : override === "detailed"
+          ? "방금 한 얘기 더 자세히 설명해줘."
+          : "방금 한 얘기 다시 설명해줘.";
+  }
+
   return { override, cleanQuestion };
 }

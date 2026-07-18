@@ -212,13 +212,17 @@ export async function runStream(
   // haiku(구형)는 disabled/adaptive 파라미터를 안전하게 안 받을 수 있어 thinking을 생략한다
   // (생략 시 사고 없음 — 잡담엔 그게 맞다). Fable 5도 disabled를 거부하므로 여기서 제외된다.
   const supportsThinkingToggle = /sonnet|opus/.test(model);
+  const thinkingEnabled = supportsThinkingToggle && level === "detailed";
   const thinkingParam = supportsThinkingToggle
-    ? { thinking: (level === "detailed" ? { type: "adaptive" as const } : { type: "disabled" as const }) }
+    ? { thinking: (thinkingEnabled ? { type: "adaptive" as const } : { type: "disabled" as const }) }
     : {};
+  // thinking이 켜지면 Anthropic API는 temperature≠1을 거부한다(400). 확장 사고가 켜진
+  // 요청에는 온도를 실어 보내지 않아, BOT_TEMPERATURE 설정 시 detailed 답변이 매번 실패하던 걸 막는다.
+  const temperatureParam = BOT_TEMPERATURE !== undefined && !thinkingEnabled ? { temperature: BOT_TEMPERATURE } : {};
   const stream = client.messages.stream({
     model,
     max_tokens: maxTokens,
-    ...(BOT_TEMPERATURE !== undefined ? { temperature: BOT_TEMPERATURE } : {}),
+    ...temperatureParam,
     ...thinkingParam,
     system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral", ttl: "1h" } }],
     messages,
