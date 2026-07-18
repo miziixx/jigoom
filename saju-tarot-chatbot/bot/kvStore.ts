@@ -91,6 +91,13 @@ export const kvStore: Store = {
     await writeUser(chatId, user);
   },
 
+  async updateGender(chatId: number, gender: BirthInfo["gender"]): Promise<void> {
+    const user = await readUser(chatId);
+    if (!user.birthInfo) return; // 성별로 대운 방향이 갈리는 건 되짚은 생일이 있을 때만
+    user.birthInfo = { ...user.birthInfo, gender };
+    await writeUser(chatId, user);
+  },
+
   async setPillars(chatId: number, pillars: StoredPillars): Promise<void> {
     const user = await readUser(chatId);
     user.pillars = pillars;

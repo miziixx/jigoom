@@ -99,6 +99,12 @@ export const HISTORY_TTL_MINUTES = Number(process.env.BOT_HISTORY_TTL_MINUTES ??
 export interface Store {
   getUser(chatId: number): Promise<UserRecord>;
   setBirthInfo(chatId: number, birthInfo: BirthInfo): Promise<void>;
+  /**
+   * 등록된 사주의 성별만 갱신한다(대화 맥락·나머지 사주 정보는 그대로 유지).
+   * "여자야" 같은 뒤늦은 성별 정정용 — 같은 사람이므로 setBirthInfo처럼 히스토리를 지우면 안 된다.
+   * birthInfo가 없으면(아직 미등록·팔자만 등록) 아무것도 하지 않는다.
+   */
+  updateGender(chatId: number, gender: BirthInfo["gender"]): Promise<void>;
   /** 만세력 사주팔자(여덟 글자) 직접 등록. birthInfo 는 지우고 대화 맥락도 초기화한다. */
   setPillars(chatId: number, pillars: StoredPillars): Promise<void>;
   appendHistory(chatId: number, ...turns: ChatTurn[]): Promise<void>;

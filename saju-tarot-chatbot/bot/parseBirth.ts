@@ -39,6 +39,36 @@ export function looksLikeBirthInput(text: string): boolean {
   return hasYear && hasGenderToken(text);
 }
 
+// 순수 성별 정정 메시지에서, 성별 토큰을 걷어내고 남을 수 있는 흔한 군더더기(호응·조사·어미).
+// 이것들만 남으면 "성별만 말한 것"으로 본다. 다른 내용어가 남으면 성별 정정이 아니다.
+const GENDER_FILLER =
+  /성별은|성별|이에요|이예요|예요|입니다|이라고|이라구|이야|이고|라고|라구|맞아요|맞아|맞음|맞다|응|넹|네|나는|나도|난|나|저는|저도|전|저|그리고|그냥|이라|임|요|야|고|이|은|는|을|를|도/g;
+
+/**
+ * "여자야", "ㅇㅇ 여성이야", "나 남자임"처럼 *성별만* 밝히는 메시지인지 판단해 성별을 돌려준다.
+ * 뒤늦은 성별 정정(팔자 등록 시 성별을 안 줘 남성으로 가정된 경우 등)을 새 대화로 흘리지 않으려는 것.
+ * "여자친구 궁합", "남편 운"처럼 성별 글자가 다른 단어의 일부이거나 내용어가 섞이면 null.
+ */
+export function parseBareGender(text: string): Gender | null {
+  if (/(?:19|20)\d{2}/.test(text)) return null; // 연도가 있으면 생일 입력이지 성별 정정이 아니다
+  let gender: Gender | null = null;
+  const longGender = text.match(/남자|여자|남성|여성/);
+  if (longGender) {
+    gender = longGender[0].startsWith("남") ? "male" : "female";
+  } else {
+    const shortGender = text.match(/(?:^|\s)([남여])(?=[\s.,)!?]|$)/);
+    if (shortGender) gender = shortGender[1] === "남" ? "male" : "female";
+  }
+  if (!gender) return null;
+  // 성별 토큰 + 흔한 군더더기만 남아야 순수 성별 발화다. 그 외 내용어가 남으면(여자'친구' 등) 아니다.
+  const residual = text
+    .replace(/남자|여자|남성|여성|[남여]/g, " ")
+    .replace(GENDER_FILLER, " ")
+    .replace(/[^가-힣]/g, "")
+    .trim();
+  return residual.length === 0 ? gender : null;
+}
+
 // 관계 키워드 → CompatibilityRelationType. 앞쪽(더 구체적)부터 검사한다.
 const RELATION_KEYWORDS: Array<[RegExp, CompatibilityRelationType]> = [
   [/연인|애인|배우자|부부|남친|여친|남자친구|여자친구|남편|아내|썸/, "romantic"],

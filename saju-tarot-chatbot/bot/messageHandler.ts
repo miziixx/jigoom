@@ -1,7 +1,7 @@
 // 사주 선생님 봇 메시지 처리 로직 — 롱폴링(bot/index.ts)과 웹훅(api/telegram-webhook.ts)이 공유한다.
 // 저장소(Store)만 주입받아 동작하므로, 어떤 방식으로 실행되는지는 이 파일이 몰라도 된다.
 import { sendMessage, sendTyping, type TgMessage } from "./telegram.js";
-import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationType, looksLikeTwoBirths, parseTwoBirthsInput } from "./parseBirth.js";
+import { parseBirthInput, describeBirthInfo, looksLikeBirthInput, parseRelationType, looksLikeTwoBirths, parseTwoBirthsInput, parseBareGender } from "./parseBirth.js";
 import { looksLikeFourPillars, looksLikePartialPillars, parseFourPillars, describePillars } from "./parseFourPillars.js";
 import { formatChartSummary, buildCompatibilityEvidence, buildNatalEvidence, chartSourceOf, computePack, pillarsSource, birthSource, type ChartSource } from "./evidence.js";
 import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
@@ -461,6 +461,42 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         clearInterval(typing);
       }
       return;
+    }
+
+    // ── 뒤늦은 성별 정정("여자야", "나 남성이야") → 등록된 사주 성별만 갱신, 대운 재계산 ──
+    // 팔자만 붙여넣으면 성별을 몰라 대운을 남성 기준으로 가정한다. 나중에 "여자야"라고 하면
+    // 그걸 새 질문으로 흘려 라우터가 헤매게 두지 말고, 같은 사람의 성별 정정으로 보고 다시 잡아준다.
+    // 대화 맥락(history)은 유지해, 정정 직후 원래 궁금하던 걸 이어 물을 수 있게 한다.
+    {
+      const correctedGender = parseBareGender(text);
+      if (correctedGender) {
+        const label = correctedGender === "female" ? "여성" : "남성";
+        if (user.birthInfo) {
+          if (user.birthInfo.gender === correctedGender) {
+            await sendMessage(chatId, `네, 이미 ${label} 기준으로 보고 있어요 👍 대운·흐름 다 그 기준이에요. 궁금한 거 이어서 물어보세요.`);
+            return;
+          }
+          await store.updateGender(chatId, correctedGender);
+          const updated = { ...user.birthInfo, gender: correctedGender };
+          await sendMessage(
+            chatId,
+            `네, ${label} 기준으로 다시 잡았어요 ✅ 성별이 바뀌면 *대운 방향*이 반대라 인생 흐름이 달라져요.\n\n` +
+              `${formatChartSummary(birthSource(updated))}\n\n` +
+              "아까 궁금했던 거 그대로 이어서 물어보시면 이 기준으로 답할게요.",
+          );
+          return;
+        }
+        if (user.pillars) {
+          // 팔자만 등록(생일 못 되짚음)이라 성별로 방향이 갈리는 대운 자체가 없다 — 솔직히 안내.
+          await sendMessage(
+            chatId,
+            `${label}이시군요. 다만 지금은 팔자만 등록돼 있어 성별로 방향이 갈리는 *대운*은 계산에서 빠져 있어요. ` +
+              "생년월일시(예: `1993-03-15 14:30 여 서울`)로 등록하면 그 기준 대운까지 잡아드려요.",
+          );
+          return;
+        }
+        // 등록 전이면 성별만 받아둘 데가 없다 → 등록 안내로 이어지게 통과시킨다.
+      }
     }
 
     // ── 한 메시지에 두 사람 생년월일시 → 명령어 없이 바로 궁합 (완전 자연어) ──

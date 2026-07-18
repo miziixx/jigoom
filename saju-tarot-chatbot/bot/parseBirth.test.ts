@@ -1,5 +1,33 @@
 import { describe, it, expect } from "vitest";
-import { parseBirthInput, looksLikeBirthInput, looksLikeTwoBirths, parseTwoBirthsInput } from "./parseBirth.js";
+import { parseBirthInput, looksLikeBirthInput, looksLikeTwoBirths, parseTwoBirthsInput, parseBareGender } from "./parseBirth.js";
+
+describe("parseBareGender — 뒤늦은 성별 정정 감지", () => {
+  it("성별만 밝히는 메시지를 잡는다", () => {
+    expect(parseBareGender("여자야")).toBe("female");
+    expect(parseBareGender("여성이야")).toBe("female");
+    expect(parseBareGender("ㅇㅇ 여성이야")).toBe("female");
+    expect(parseBareGender("나 남자임")).toBe("male");
+    expect(parseBareGender("남성이에요")).toBe("male");
+    expect(parseBareGender("여 맞아")).toBe("female");
+    expect(parseBareGender("성별은 여자")).toBe("female");
+  });
+
+  it("성별 글자가 다른 단어의 일부거나 내용어가 섞이면 무시한다", () => {
+    expect(parseBareGender("여자친구 궁합 봐줘")).toBeNull();
+    expect(parseBareGender("남편 운 어때")).toBeNull();
+    expect(parseBareGender("여자 이름 지어줘")).toBeNull();
+    expect(parseBareGender("남자 사주 특징이 뭐야")).toBeNull();
+  });
+
+  it("생년월일이 들어간 등록 입력은 성별 정정으로 보지 않는다", () => {
+    expect(parseBareGender("1993-03-15 14:30 여 서울")).toBeNull();
+  });
+
+  it("성별 토큰이 없으면 null", () => {
+    expect(parseBareGender("오늘 일진 봐줘")).toBeNull();
+    expect(parseBareGender("응 맞아")).toBeNull();
+  });
+});
 
 describe("parseBirthInput — 완전 자연어 입력", () => {
   it("네 자리 연도 표준 입력을 읽는다", () => {
