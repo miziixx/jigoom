@@ -34,6 +34,19 @@ function splitChunks(text: string, limit = 3900): string[] {
   return chunks;
 }
 
+/** 이 대화에 이미 스트리밍 텍스트가 한 번이라도 화면에 나갔는지. 재시도 안전성 판단에 쓴다. */
+export function hasStreamStarted(chatId: number): boolean {
+  return buffers.get(chatId)?.messageId != null;
+}
+
+/**
+ * 스트림 버퍼를 초기화한다(초기 실패 후 재시도 직전). 아직 아무것도 표시되지 않았을 때만 호출된다
+ * (hasStreamStarted=false). 남은 스로틀 상태를 지워 재시도 스트림이 처음부터 다시 표시하게 한다.
+ */
+export function resetStreamBuffer(chatId: number): void {
+  buffers.delete(chatId);
+}
+
 /**
  * 생성 중 부분 텍스트를 화면에 반영한다 (베스트 에포트, 일반 텍스트).
  * 스로틀에 걸리거나 전송 실패해도 조용히 넘어간다 — 최종 표시는 finalizeStream이 보장한다.

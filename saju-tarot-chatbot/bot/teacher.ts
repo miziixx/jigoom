@@ -2,10 +2,13 @@ import Anthropic from "@anthropic-ai/sdk";
 import { randomUUID } from "node:crypto";
 import type { ChatTurn } from "./storeTypes.js";
 import { buildNatalEvidence, buildTodayEvidence, buildFlowEvidence, type ChartSource } from "./evidence.js";
-import { emitPartial, finalizeStream } from "./streamToTelegram.js";
+import { emitPartial, finalizeStream, hasStreamStarted, resetStreamBuffer } from "./streamToTelegram.js";
 import { logError, logRequest } from "./logSafe.js";
 import { detectUngroundedSajuClaims, formatGroundingWarning } from "../src/lib/factGrounding.js";
 import { shouldUseChatModel } from "./chatModelPolicy.js";
+import { isTransientApiError, retryBackoffMs, MAX_STREAM_ATTEMPTS } from "./retryPolicy.js";
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 // BOT_MODEL 환경변수로 교체 가능. 기본은 비용 대비 해석 품질이 좋은 Sonnet 5.
 // (더 깊게: BOT_MODEL=claude-opus-4-8 / 더 싸게: claude-haiku-4-5. Fable 5는
@@ -219,46 +222,69 @@ export async function runStream(
   // thinking이 켜지면 Anthropic API는 temperature≠1을 거부한다(400). 확장 사고가 켜진
   // 요청에는 온도를 실어 보내지 않아, BOT_TEMPERATURE 설정 시 detailed 답변이 매번 실패하던 걸 막는다.
   const temperatureParam = BOT_TEMPERATURE !== undefined && !thinkingEnabled ? { temperature: BOT_TEMPERATURE } : {};
-  const stream = client.messages.stream({
+  const requestParams = {
     model,
     max_tokens: maxTokens,
     ...temperatureParam,
     ...thinkingParam,
-    system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral", ttl: "1h" } }],
+    system: [{ type: "text" as const, text: systemPrompt, cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }],
     messages,
-  }, { signal: AbortSignal.timeout(BOT_STREAM_TIMEOUT_MS) });
+  };
 
-  let streamedText = "";
-  // 토큰이 도착하는 대로 누적하고, chatId가 있으면 그때그때 화면에 반영한다.
-  // for await로 각 emitPartial을 기다리므로 루프가 끝나면 진행 중 전송이 남지 않는다.
-  try {
+  // 스트림 소비. 성공하면 최종 메시지를 반환, 실패하면 던진다.
+  // 아무 텍스트도 화면에 안 나온 초기 실패(429/529 과부하 등)에 한해 바깥 루프가 재시도한다.
+  const consumeStream = async (): Promise<Anthropic.Messages.Message> => {
+    const stream = client.messages.stream(requestParams, { signal: AbortSignal.timeout(BOT_STREAM_TIMEOUT_MS) });
+    let streamedText = "";
+    // 토큰이 도착하는 대로 누적하고, chatId가 있으면 그때그때 화면에 반영한다.
     for await (const event of stream) {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
         streamedText += event.delta.text;
         if (chatId) await emitPartial(chatId, streamedText);
       }
     }
-  } catch (err) {
-    // 타임아웃(AbortSignal)·네트워크·API 오류. 여기서 삼키지 않으면 웹훅 함수가 그대로 매달려
-    // Vercel maxDuration(5분)까지 죽고 텔레그램이 같은 메시지를 무한 재시도한다(=먹통).
-    // → 안내 메시지를 보내고 빠르게 반환해, 함수가 곧장 200을 돌려주게 한다.
-    const aborted = (err as { name?: string })?.name === "TimeoutError" || (err as { name?: string })?.name === "AbortError";
-    logError("teacher.runStream", err);
-    logRequest({ requestId, mode, latencyMs: Date.now() - startedAt, errorCode: aborted ? "stream_timeout" : "stream_error" });
-    const fallback = aborted
-      ? "지금 답을 만드는 데 시간이 너무 걸려서 멈췄어요 😢 잠시 뒤 다시 물어봐 주세요. (짧게 물어보면 더 빨라요.)"
-      : "지금 답을 만드는 데 문제가 생겼어요 😢 잠시 뒤 다시 물어봐 주세요.";
-    if (chatId) {
-      try {
-        await finalizeStream(chatId, fallback);
-      } catch (e) {
-        logError("teacher.runStream.fallback", e);
+    return stream.finalMessage();
+  };
+
+  let final: Anthropic.Messages.Message;
+  let attempt = 0;
+  // 초기 실패(텍스트가 아직 안 나온 상태)의 일시적 오류만 재시도한다. 이미 스트리밍이 시작됐거나
+  // 우리가 건 타임아웃(시간을 다 씀)은 재시도하지 않는다 — Vercel maxDuration 초과·중복 표시 방지.
+  while (true) {
+    attempt++;
+    try {
+      // 재시도 시 화면 표시가 진행 중이었을 수 있어 버퍼를 정리하고 새로 시작한다.
+      if (attempt > 1 && chatId) resetStreamBuffer(chatId);
+      final = await consumeStream();
+      break;
+    } catch (err) {
+      const aborted = (err as { name?: string })?.name === "TimeoutError" || (err as { name?: string })?.name === "AbortError";
+      const alreadyShown = chatId != null && hasStreamStarted(chatId);
+      // 텍스트가 아직 안 나왔고, 일시적 오류이고, 시도 여유가 있으면 잠깐 쉬고 재시도.
+      if (!aborted && !alreadyShown && isTransientApiError(err) && attempt < MAX_STREAM_ATTEMPTS) {
+        logRequest({ requestId, mode: `${mode}:retry`, latencyMs: Date.now() - startedAt, errorCode: "stream_transient_retry" });
+        await sleep(retryBackoffMs(attempt));
+        continue;
       }
+      // 타임아웃(AbortSignal)·복구 불가 오류. 여기서 삼키지 않으면 웹훅 함수가 그대로 매달려
+      // Vercel maxDuration(5분)까지 죽고 텔레그램이 같은 메시지를 무한 재시도한다(=먹통).
+      // → 안내 메시지를 보내고 빠르게 반환해, 함수가 곧장 200을 돌려주게 한다.
+      logError("teacher.runStream", err);
+      logRequest({ requestId, mode, latencyMs: Date.now() - startedAt, errorCode: aborted ? "stream_timeout" : "stream_error" });
+      const fallback = aborted
+        ? "지금 답을 만드는 데 시간이 너무 걸려서 멈췄어요 😢 잠시 뒤 다시 물어봐 주세요. (짧게 물어보면 더 빨라요.)"
+        : "지금 답을 만드는 데 문제가 생겼어요 😢 잠시 뒤 다시 물어봐 주세요.";
+      if (chatId) {
+        try {
+          await finalizeStream(chatId, fallback);
+        } catch (e) {
+          logError("teacher.runStream.fallback", e);
+        }
+      }
+      return fallback;
     }
-    return fallback;
   }
 
-  const final = await stream.finalMessage();
   const stopReason = final.stop_reason;
   const assembled = final.content
     .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
