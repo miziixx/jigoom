@@ -12,6 +12,13 @@ describe("parseBareGender — 뒤늦은 성별 정정 감지", () => {
     expect(parseBareGender("성별은 여자")).toBe("female");
   });
 
+  it("되묻기 응답으로 오는 한 글자 '남'/'여'도 읽는다", () => {
+    expect(parseBareGender("여")).toBe("female");
+    expect(parseBareGender("남")).toBe("male");
+    expect(parseBareGender("여자요")).toBe("female");
+    expect(parseBareGender("남자요")).toBe("male");
+  });
+
   it("성별 글자가 다른 단어의 일부거나 내용어가 섞이면 무시한다", () => {
     expect(parseBareGender("여자친구 궁합 봐줘")).toBeNull();
     expect(parseBareGender("남편 운 어때")).toBeNull();

@@ -262,6 +262,58 @@ async function handleTarotIntent(
   }
 }
 
+// 팔자 등록 시 성별을 안 줬을 때 되묻는 문구. 조용히 남성으로 가정하지 않기 위함.
+const GENDER_ASK = [
+  "이 사주, *남자예요 여자예요?* 🙏",
+  "성별에 따라 *대운(10년 흐름)의 방향이 반대*라, 이것만 알면 흐름까지 정확히 잡아드려요.",
+  "",
+  "`남` 또는 `여` 라고만 보내주세요.",
+].join("\n");
+
+/**
+ * 파싱된 팔자(성별 포함)로 등록을 마무리한다. 되짚기 성공하면 대운까지, 실패하면 팔자 그대로.
+ * 함께 온 질문(followUp)이 있으면 등록 후 바로 답한다. 새 등록 전용이라 맥락은 새로 시작한다.
+ * 팔자 직접입력 경로와 "성별 되묻기" 완료 경로가 공유한다.
+ */
+async function completePillarsRegistration(
+  chatId: number,
+  store: Store,
+  pillars: StoredPillars,
+  opts: { wasRegistered: boolean; followUp: string | null },
+): Promise<void> {
+  const inferred = inferBirthFromPillars(pillars);
+  let newSource: ChartSource;
+  let header: string;
+  if (inferred.ok) {
+    await store.setBirthInfo(chatId, inferred.birthInfo!);
+    newSource = birthSource(inferred.birthInfo!);
+    header = buildInferHeader(opts.wasRegistered, inferred);
+  } else {
+    await store.setPillars(chatId, pillars);
+    newSource = pillarsSource(pillars);
+    header =
+      (opts.wasRegistered ? "사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)" : "팔자로 등록했어요 ✅") +
+      `\n${describePillars(pillars)}` +
+      "\n(이 팔자에 딱 맞는 실제 날짜를 못 찾아서, 팔자 그대로 해석해요 — 대운은 빠져요.)";
+  }
+
+  const followUp = opts.followUp;
+  if (followUp) {
+    await sendMessage(chatId, header);
+    const typing = setInterval(() => void sendTyping(chatId), 5000);
+    void sendTyping(chatId);
+    try {
+      const { cleanQuestion, override } = extractVerbosityHint(followUp);
+      const answer = await askTeacher({ source: newSource, history: [], question: cleanQuestion, chatId, verbosityOverride: override });
+      await store.appendHistory(chatId, { role: "user", content: cleanQuestion }, { role: "assistant", content: answer });
+    } finally {
+      clearInterval(typing);
+    }
+    return;
+  }
+  await sendMessage(chatId, `${header}\n\n${formatChartSummary(newSource)}`);
+}
+
 export async function handleMessage(msg: TgMessage, store: Store): Promise<void> {
   const chatId = msg.chat.id;
   const text = (msg.text ?? "").trim();
@@ -463,6 +515,23 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
       return;
     }
 
+    // ── 팔자 등록 성별 대기 중: 이 입력에서 성별을 읽어 등록을 마무리한다 ──
+    if (user.pending?.type === "pillarsGender") {
+      const g = parseBareGender(text);
+      if (!g) {
+        await sendMessage(chatId, `${GENDER_ASK}\n\n(그만두려면 /reset)`);
+        return;
+      }
+      const pillarsWithGender = { ...user.pending.pillars, gender: g };
+      const followUp = user.pending.question ?? null;
+      await store.setPending(chatId, null);
+      await completePillarsRegistration(chatId, store, pillarsWithGender, {
+        wasRegistered: Boolean(user.birthInfo || user.pillars),
+        followUp,
+      });
+      return;
+    }
+
     // ── 뒤늦은 성별 정정("여자야", "나 남성이야") → 등록된 사주 성별만 갱신, 대운 재계산 ──
     // 팔자만 붙여넣으면 성별을 몰라 대운을 남성 기준으로 가정한다. 나중에 "여자야"라고 하면
     // 그걸 새 질문으로 흘려 라우터가 헤매게 두지 말고, 같은 사람의 성별 정정으로 보고 다시 잡아준다.
@@ -583,59 +652,36 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
         // 이미 등록된 원국과 같은 사람의 팔자면 "재등록"이 아니라 "재확인" — 맥락을 지우지 않는다.
         const isSame = pillarsMatchSource(parsed.pillars!, source);
         const wasRegistered = Boolean(user.birthInfo || user.pillars);
-
-        let newSource: typeof source;
-        let header: string;
-        if (isSame && source) {
-          newSource = source;
-          header = "네, 등록된 사주 맞아요 ✅";
-        } else {
-          // 1순위: 팔자로 실제 생일을 되짚어본다. 되짚으면 대운·사령까지 되살아난다.
-          const inferred = inferBirthFromPillars(parsed.pillars!);
-          if (inferred.ok) {
-            await store.setBirthInfo(chatId, inferred.birthInfo!);
-            newSource = birthSource(inferred.birthInfo!);
-            header = buildInferHeader(wasRegistered, inferred);
-          } else {
-            // 되짚기 실패 → 팔자 그대로 해석(대운 제외)
-            await store.setPillars(chatId, parsed.pillars!);
-            newSource = pillarsSource(parsed.pillars!);
-            header =
-              (wasRegistered ? "사주를 새로 등록했어요 ✅ (이전 대화 맥락은 초기화)" : "팔자로 등록했어요 ✅") +
-              `\n${describePillars(parsed.pillars!)}` +
-              "\n(이 팔자에 딱 맞는 실제 날짜를 못 찾아서, 팔자 그대로 해석해요 — 대운은 빠져요.)";
-          }
-        }
-
-        // 팔자와 함께 질문까지 한 줄로 보냈으면 등록만 알리고 바로 답한다.
         const followUp = extractQuestion(parsed.remainder);
-        if (followUp) {
-          await sendMessage(chatId, header);
-          const typing = setInterval(() => void sendTyping(chatId), 5000);
-          void sendTyping(chatId);
-          try {
-            const { cleanQuestion, override } = extractVerbosityHint(followUp);
-            // 답은 askTeacher가 스트리밍으로 화면에 직접 표시한다(여기서 재전송하지 않음).
-            const answer = await askTeacher({
-              source: newSource,
-              history: isSame ? user.history : [],
-              question: cleanQuestion,
-              chatId,
-              verbosityOverride: override,
-            });
-            await store.appendHistory(chatId, { role: "user", content: cleanQuestion }, { role: "assistant", content: answer });
-          } finally {
-            clearInterval(typing);
+
+        // 재확인: 맥락(history)을 유지한 채 그대로 답하거나 확인만 한다.
+        if (isSame && source) {
+          if (followUp) {
+            await sendMessage(chatId, "네, 등록된 사주 맞아요 ✅");
+            const typing = setInterval(() => void sendTyping(chatId), 5000);
+            void sendTyping(chatId);
+            try {
+              const { cleanQuestion, override } = extractVerbosityHint(followUp);
+              const answer = await askTeacher({ source, history: user.history, question: cleanQuestion, chatId, verbosityOverride: override });
+              await store.appendHistory(chatId, { role: "user", content: cleanQuestion }, { role: "assistant", content: answer });
+            } finally {
+              clearInterval(typing);
+            }
+          } else {
+            await sendMessage(chatId, "네, 등록된 사주 맞아요 ✅");
           }
           return;
         }
 
-        if (isSame) {
-          await sendMessage(chatId, header);
+        // 새 등록인데 성별이 없으면: 조용히 남성으로 가정하지 말고 먼저 물어본다.
+        // (성별로 대운 방향이 갈려, 여기서 잘못 잡으면 뒤늦게 "여자야" 정정이 필요해진다.)
+        if (!parsed.pillars!.gender) {
+          await store.setPending(chatId, { type: "pillarsGender", pillars: parsed.pillars!, question: followUp ?? undefined });
+          await sendMessage(chatId, GENDER_ASK);
           return;
         }
 
-        await sendMessage(chatId, `${header}\n\n${formatChartSummary(newSource!)}`);
+        await completePillarsRegistration(chatId, store, parsed.pillars!, { wasRegistered, followUp });
         return;
       }
       // 팔자 형태로 보였지만 못 읽은 경우 — 등록 전 사용자에게만 안내한다.

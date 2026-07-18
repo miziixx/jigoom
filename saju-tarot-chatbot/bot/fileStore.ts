@@ -13,7 +13,7 @@ import {
   type ChatTurn,
   type MemoryCategory,
   type MemoryEntry,
-  type PendingCompat,
+  type PendingState,
   type StoredTarot,
   type Store,
   type StudyRecord,
@@ -93,7 +93,7 @@ export const fileStore: Store = {
     save();
   },
 
-  async setPending(chatId: number, pending: PendingCompat | null): Promise<void> {
+  async setPending(chatId: number, pending: PendingState | null): Promise<void> {
     const user = getUserSync(chatId);
     user.pending = pending;
     user.updatedAt = new Date().toISOString();

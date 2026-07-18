@@ -16,6 +16,21 @@ export interface PendingCompat {
 }
 
 /**
+ * 팔자 직접입력에 성별이 없어 "남/여?"를 되물은 상태. 성별을 안 주면 대운 방향을
+ * 남성으로 가정하게 되므로(사용자 불만의 근원), 조용히 가정하지 말고 이 상태로 성별을 받는다.
+ */
+export interface PendingPillarsGender {
+  type: "pillarsGender";
+  /** 성별만 채우면 바로 등록할 파싱된 팔자 */
+  pillars: StoredPillars;
+  /** 팔자와 함께 온 질문(있으면 성별 확정 직후 바로 답한다) */
+  question?: string;
+}
+
+/** 여러 메시지에 걸친 대기 상태(궁합 상대 입력·팔자 성별 확인 등). */
+export type PendingState = PendingCompat | PendingPillarsGender;
+
+/**
  * "기억(memory)" 카테고리. 사용자가 명시적으로 "기억해줘"라고 한 내용만,
  * 원문이 아니라 짧은 요약으로 저장한다. TTL 없이 명시적 삭제 요청 전까지 유지된다.
  */
@@ -79,8 +94,8 @@ export interface UserRecord {
    * null이면 만료 없음(아직 대화가 시작되지 않은 상태).
    */
   historyExpiresAt?: string | null;
-  /** 여러 메시지에 걸친 흐름(궁합 등) 대기 상태. 없으면 일반 대화. */
-  pending?: PendingCompat | null;
+  /** 여러 메시지에 걸친 흐름(궁합·팔자 성별 확인 등) 대기 상태. 없으면 일반 대화. */
+  pending?: PendingState | null;
   /** 사용자가 명시적으로 "기억해줘"라고 요청한 요약들. TTL 없음. */
   memories?: MemoryEntry[];
   /** 학습모드 진도·오답노트. TTL 없음 — /delete 때만 삭제. */
@@ -111,7 +126,7 @@ export interface Store {
   clearHistory(chatId: number): Promise<void>;
   deleteUser(chatId: number): Promise<void>;
   /** 궁합 등 다단계 흐름의 대기 상태를 저장/해제 (null이면 해제) */
-  setPending(chatId: number, pending: PendingCompat | null): Promise<void>;
+  setPending(chatId: number, pending: PendingState | null): Promise<void>;
   /** 마지막 타로 스프레드 저장/해제 (후속 질문 맥락용, null이면 해제) */
   setLastTarot(chatId: number, tarot: StoredTarot | null): Promise<void>;
   /** 사용자가 명시적으로 요청한 요약만 기억에 추가한다 (원문 저장 금지) */

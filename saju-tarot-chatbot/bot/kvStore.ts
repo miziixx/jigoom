@@ -11,7 +11,7 @@ import {
   type ChatTurn,
   type MemoryCategory,
   type MemoryEntry,
-  type PendingCompat,
+  type PendingState,
   type StoredTarot,
   type Store,
   type StudyRecord,
@@ -127,7 +127,7 @@ export const kvStore: Store = {
     await writeUser(chatId, user);
   },
 
-  async setPending(chatId: number, pending: PendingCompat | null): Promise<void> {
+  async setPending(chatId: number, pending: PendingState | null): Promise<void> {
     const user = await readUser(chatId);
     user.pending = pending;
     await writeUser(chatId, user);
