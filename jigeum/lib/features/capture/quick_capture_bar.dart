@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 
 /// 어느 탭에서든 하단에 상시 노출되는 퀵캡처 입력바.
-/// 엔터 → 인박스(parentId=null, type=memo) 적재.
-/// [중요][긴급] 토글 선택 시 task 로 저장.
+/// 적고 엔터 → 오늘 할 일. 📅 로 날짜를 미리 골라 담을 수도 있음.
+/// [중요][긴급] 토글로 매트릭스 분류.
 class QuickCaptureBar extends ConsumerStatefulWidget {
   const QuickCaptureBar({super.key});
 
@@ -20,6 +21,9 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
   final _focus = FocusNode();
   bool _important = false;
   bool _urgent = false;
+
+  /// 담을 날짜. 기본 = 오늘.
+  DateTime _date = todayDate();
 
   @override
   void initState() {
@@ -46,21 +50,35 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     if (text.isEmpty) return;
     final repo = ref.read(nodeRepoProvider);
 
-    // 분류 강요 없음: 적으면 곧장 오늘 할 일로. 날짜/중요는 나중에 타일에서.
+    // 분류 강요 없음: 기본은 오늘, 📅 로 골랐으면 그 날짜로.
     await repo.create(
       type: NodeType.task,
       title: text,
       important: _important,
       urgent: _urgent,
-      date: todayDate(),
+      date: _date,
     );
 
     _controller.clear();
     setState(() {
       _important = false;
       _urgent = false;
+      _date = todayDate(); // 담고 나면 오늘로 초기화
     });
     _focus.requestFocus();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: todayDate(),
+      lastDate: todayDate().add(const Duration(days: 730)),
+      helpText: '이 할 일을 언제로 담을까요?',
+      cancelText: '취소',
+      confirmText: '선택',
+    );
+    if (picked != null) setState(() => _date = dateOnly(picked));
   }
 
   @override
@@ -94,6 +112,16 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
               icon: Icons.bolt,
               selected: _urgent,
               onTap: () => setState(() => _urgent = !_urgent),
+            ),
+            const SizedBox(width: 6),
+            // 📅 담을 날짜: 기본 오늘, 고르면 "7/25" 처럼 표시.
+            _Chip(
+              label: _date == todayDate()
+                  ? '오늘'
+                  : DateFormat('M/d').format(_date),
+              icon: Icons.calendar_today_outlined,
+              selected: _date != todayDate(),
+              onTap: _pickDate,
             ),
             const SizedBox(width: 8),
             Expanded(
