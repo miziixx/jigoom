@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { randomUUID } from "node:crypto";
 import type { ChatTurn } from "./storeTypes.js";
-import { buildNatalEvidence, buildTodayEvidence, buildFlowEvidence, type ChartSource } from "./evidence.js";
+import { buildNatalEvidence, buildTodayEvidence, buildTodayGanzhiFact, buildFlowEvidence, type ChartSource } from "./evidence.js";
 import { emitPartial, finalizeStream, hasStreamStarted, resetStreamBuffer } from "./streamToTelegram.js";
 import { logError, logRequest } from "./logSafe.js";
 import { detectUngroundedSajuClaims, formatGroundingWarning } from "../src/lib/factGrounding.js";
@@ -131,6 +131,9 @@ export async function askTeacher({ source, history, question, chatId, verbosityO
   const evidenceBlocks: string[] = [];
   if (source && questionAsksAboutToday(question)) evidenceBlocks.push(buildTodayEvidence(source));
   if (source && questionAsksAboutFlow(question)) evidenceBlocks.push(buildFlowEvidence(source));
+  // 등록 전이라도 "오늘 일진/오늘이 무슨 날"은 원국 없이 간지만이라도 계산해 붙인다 —
+  // "만세력 앱에서 확인하세요"로 회피하지 않게. (개인 상호작용은 등록해야 나옴을 블록이 명시한다.)
+  if (!source && questionAsksAboutToday(question)) evidenceBlocks.push(buildTodayGanzhiFact());
   if (astrologyEvidence) evidenceBlocks.push(astrologyEvidence);
   const finalUserContent = evidenceBlocks.length > 0 ? `${evidenceBlocks.join("\n\n")}\n\n[질문]\n${question}` : `[질문]\n${question}`;
 

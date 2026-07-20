@@ -7,6 +7,7 @@ import { formatChartSummary, buildCompatibilityEvidence, buildNatalEvidence, cha
 import { inferBirthFromPillars, type InferBirthResult } from "./inferBirth.js";
 import { askTeacher, askCompatibility, askTarot, askStudyExplain, askStudyLesson, pickTeacherModel } from "./teacher.js";
 import { extractVerbosityHint } from "./extractVerbosityHint.js";
+import { carriesRealQuestion } from "./questionHeuristics.js";
 import { logError } from "./logSafe.js";
 import { detectIntent, isSecretaryIntent } from "./intentDetector.js";
 import { routeMessage } from "./smartRouter.js";
@@ -692,7 +693,9 @@ export async function handleMessage(msg: TgMessage, store: Store): Promise<void>
     }
 
     // ── 간지를 쓰려다 연·월주까지만 준 경우(예: "갑자년 정축월") → 최소 일주 안내 ──
-    if (looksLikePartialPillars(text)) {
+    // 단, 이론 질문("정축일주가 을미일에 편재/상관 성격을 띠나?")은 가로채지 말고 선생님이 답한다.
+    // (이 안내로 return하면 그 메시지가 히스토리에 안 남아 이후 맥락도 끊긴다.)
+    if (looksLikePartialPillars(text) && !carriesRealQuestion(text)) {
       await sendMessage(
         chatId,
         [

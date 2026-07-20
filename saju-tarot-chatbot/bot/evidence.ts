@@ -7,7 +7,7 @@ import {
   computeChartFromPillars,
   computeLuckFromPillars,
 } from "../src/lib/saju.js";
-import { computeFortuneEvidence, computeFortuneEvidenceFromChart } from "../src/lib/fortune.js";
+import { computeFortuneEvidence, computeFortuneEvidenceFromChart, kstDateOf, ganzhiForKstDate } from "../src/lib/fortune.js";
 import type { BirthInfo, CompatibilityRelationType, LuckCycles, SajuChart } from "../src/types/index.js";
 import { describeBirthInfo } from "./parseBirth.js";
 import { describePillars, toFourPillarsInput, type StoredPillars } from "./parseFourPillars.js";
@@ -193,6 +193,24 @@ export function buildFlowEvidence(source: ChartSource): string {
 }
 
 /** 오늘 일진 근거 (매 질문마다 새로 계산해 현재 턴에만 첨부) */
+/**
+ * 원국 없이도 계산되는 "오늘 간지(일진/월/연)" 사실 블록.
+ * 사주 등록 전 사용자가 "오늘 일진/오늘이 무슨 날이야"를 물었을 때, 봇이 "계산 못 한다"고
+ * 회피하지 않게 한다 — 날짜→간지는 생년월일 없이도 만세력으로 확정되는 값이기 때문이다.
+ * (개인 원국과의 상호작용·십성·점수는 등록해야 나오며, 그건 buildTodayEvidence가 담당.)
+ */
+export function buildTodayGanzhiFact(now: Date = new Date()): string {
+  const kst = kstDateOf(now);
+  const gz = ganzhiForKstDate(kst);
+  return [
+    `[오늘 날짜·간지 — 계산됨 (원국 없이도 확정되는 값)]`,
+    `오늘: ${kst.iso} (${kst.weekday}요일)`,
+    `일진(오늘 간지): ${gz.day}`,
+    `이번 달 간지(월): ${gz.month} · 올해 간지(연): ${gz.year}`,
+    `※ 이 값은 만세력 계산 결과이니 확신 있게 말해도 됩니다. 단, 개인 사주와의 상호작용(십성·점수·조언)은 생년월일시 등록이 있어야 계산됩니다.`,
+  ].join("\n");
+}
+
 export function buildTodayEvidence(source: ChartSource): string {
   const fortune =
     source.kind === "pillars"
