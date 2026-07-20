@@ -3,60 +3,106 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
+import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 import 'node_detail_sheet.dart';
 
-/// 오늘 뷰 (홈) — 단순 모드.
-/// 큰 날짜 → 포커스 카드 → 오늘 할 일(flat) → 오늘의 승리.
-/// 분류·세분화 강요 없음: 적으면 오늘 목록에 들어오고, ⭐ 만 누르면 됨.
-class TodayView extends ConsumerWidget {
+/// 오늘 뷰 (홈) — 저널형 타임라인.
+/// 페이지 배경 위 큰 날짜 + 포커스 카드, 아래 카드 안에
+/// 레일 + [오늘] 배지 + 할 일 + [오늘의 승리] 배지.
+class TodayView extends ConsumerStatefulWidget {
   const TodayView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TodayView> createState() => _TodayViewState();
+}
+
+class _TodayViewState extends ConsumerState<TodayView> {
+  bool _winsOpen = false;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final focus = ref.watch(focusProvider);
     final today = ref.watch(todayNodesProvider).valueOrNull ?? const [];
+    final wins = ref.watch(todayWinsProvider).valueOrNull ?? const [];
     final now = DateTime.now();
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
-        // 큰 날짜
-        Text(DateFormat('M월 d일', 'ko').format(now),
-            style: theme.textTheme.titleLarge?.copyWith(fontSize: 28)),
-        Text(DateFormat('EEEE', 'ko').format(now),
-            style: theme.textTheme.bodySmall),
-        const SizedBox(height: 14),
+    // 카드 안 타임라인 rows.
+    final rows = <Widget>[];
+    rows.add(Journal.pill(context, '오늘'));
+    if (today.isEmpty) {
+      rows.add(Padding(
+        padding: const EdgeInsets.only(left: Journal.rowLeft, bottom: 6),
+        child: Text('아래 입력창에 적으면 여기에 쌓여요',
+            style: theme.textTheme.bodySmall?.copyWith(fontSize: 12)),
+      ));
+    } else {
+      for (var i = 0; i < today.length; i++) {
+        rows.add(SimpleTile(node: today[i]));
+        if (i != today.length - 1) rows.add(Journal.divider(context));
+      }
+    }
 
-        focus.when(
-          loading: () => const SizedBox(height: 56),
-          error: (_, __) => const SizedBox.shrink(),
-          data: (node) =>
-              node == null ? const SizedBox.shrink() : _FocusCard(node: node),
-        ),
-        const SizedBox(height: 10),
+    if (wins.isNotEmpty) {
+      rows.add(Journal.pill(
+        context,
+        '오늘의 승리 · ${wins.length}',
+        onTap: () => setState(() => _winsOpen = !_winsOpen),
+        trailing: Icon(_winsOpen ? Icons.expand_less : Icons.expand_more,
+            size: 12, color: theme.textTheme.bodySmall?.color),
+      ));
+      if (_winsOpen) {
+        for (final n in wins) {
+          rows.add(SimpleTile(node: n, showStar: false));
+        }
+      }
+    }
 
-        if (today.isEmpty)
+    return Container(
+      color: Journal.pageBg(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 큰 날짜 (페이지 배경 위)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Text('아래 입력창에 적으면 여기에 쌓여요',
-                style: theme.textTheme.bodySmall),
-          )
-        else
-          for (final n in today) SimpleTile(node: n),
-
-        const SizedBox(height: 16),
-        const _WinsStack(),
-      ],
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(DateFormat('M월 d일', 'ko').format(now),
+                    style:
+                        theme.textTheme.titleLarge?.copyWith(fontSize: 28)),
+                Text(DateFormat('EEEE', 'ko').format(now),
+                    style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+          // 포커스 카드
+          focus.when(
+            loading: () => const SizedBox(height: 8),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (node) => node == null
+                ? const SizedBox(height: 8)
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+                    child: _FocusCard(node: node),
+                  ),
+          ),
+          Expanded(
+            child: Journal.card(context,
+                child: Journal.timeline(context, rows)),
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// 단순 타일: 체크 · 제목 · 마감칩 · ⭐ · 📅
-/// 스와이프 우=완료, 좌=삭제.
+/// 저널형 할 일 타일: 둥근 사각 체크 · 제목 · 메모 미리보기 · 마감 pill · "!"
+/// 스와이프 우=완료, 좌=삭제. 탭=상세.
 class SimpleTile extends ConsumerWidget {
   const SimpleTile({super.key, required this.node, this.showStar = true});
 
@@ -68,91 +114,85 @@ class SimpleTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final repo = ref.read(nodeRepoProvider);
     final done = node.status == NodeStatus.done;
+    final showDeadline =
+        node.date != null && node.date != todayDate() && !done;
 
     final tile = Opacity(
       opacity: done ? 0.45 : 1,
       child: InkWell(
-        onTap: () => showNodeDetailSheet(context, node), // 메모/폴더/날짜 상세
+        onTap: () => showNodeDetailSheet(context, node),
         child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          children: [
-            // 체크
-            GestureDetector(
-              onTap: () =>
-                  done ? repo.reopen(node.id) : repo.complete(node.id),
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 11, top: 3, bottom: 3),
-                child: done
-                    ? const Icon(Icons.check_circle,
-                        size: 19, color: AppColors.done)
-                    : Container(
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: theme.textTheme.bodySmall?.color ??
-                                Colors.grey,
-                            width: 1.4,
-                          ),
-                        ),
-                      ),
-              ),
-            ),
-            // 제목 + 마감칩
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(node.title,
-                      style: theme.textTheme.bodyLarge,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis),
-                  if (node.note.isNotEmpty)
-                    Text(
-                      node.note,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-                    ),
-                  if (node.date != null && node.date != todayDate() && !done)
-                    Text(
-                      '${DateFormat('M/d (E)', 'ko').format(node.date!)} 까지',
-                      style:
-                          theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-                    ),
-                ],
-              ),
-            ),
-            // "!" 중요 토글 → 포커스 후보 (별 대신 !, 사용자 확정)
-            if (!done && showStar)
-              GestureDetector(
+          padding: const EdgeInsets.only(
+              left: Journal.rowLeft, right: 4, top: 7, bottom: 7),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SquareCheck(
+                done: done,
                 onTap: () =>
-                    repo.setMatrix(node.id, important: !node.important),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  child: Text(
-                    '!',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                      height: 1,
-                      color: node.important
-                          ? theme.textTheme.bodyLarge?.color
-                          : (theme.textTheme.bodySmall?.color ?? Colors.grey)
-                              .withValues(alpha: 0.35),
+                    done ? repo.reopen(node.id) : repo.complete(node.id),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (node.urgent && !done) ...[
+                          Icon(Icons.bolt,
+                              size: 13,
+                              color: theme.textTheme.bodySmall?.color),
+                          const SizedBox(width: 2),
+                        ],
+                        Flexible(
+                          child: Text(node.title,
+                              style: theme.textTheme.bodyMedium,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
+                    ),
+                    if (node.note.isNotEmpty)
+                      Text(node.note,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(fontSize: 11)),
+                    if (showDeadline)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: deadlinePill(context, node.date!),
+                      ),
+                  ],
+                ),
+              ),
+              // "!" 중요 토글 → 포커스 후보
+              if (!done && showStar)
+                GestureDetector(
+                  onTap: () =>
+                      repo.setMatrix(node.id, important: !node.important),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 3),
+                    child: Text(
+                      '!',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 17,
+                        height: 1.2,
+                        color: node.important
+                            ? theme.textTheme.bodyLarge?.color
+                            : (theme.textTheme.bodySmall?.color ??
+                                    Colors.grey)
+                                .withValues(alpha: 0.35),
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
@@ -181,7 +221,6 @@ class SimpleTile extends ConsumerWidget {
       child: tile,
     );
   }
-
 }
 
 class _FocusCard extends ConsumerWidget {
@@ -194,6 +233,7 @@ class _FocusCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
             color: theme.textTheme.bodyLarge?.color ?? Colors.black,
@@ -201,21 +241,12 @@ class _FocusCard extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          GestureDetector(
+          SquareCheck(
+            done: false,
+            size: 20,
             onTap: () => ref.read(nodeRepoProvider).complete(node.id),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: theme.textTheme.bodyLarge?.color ?? Colors.black,
-                    width: 1.6),
-              ),
-            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,62 +259,6 @@ class _FocusCard extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// "오늘의 승리 · N" 접힌 스택.
-class _WinsStack extends ConsumerStatefulWidget {
-  const _WinsStack();
-  @override
-  ConsumerState<_WinsStack> createState() => _WinsStackState();
-}
-
-class _WinsStackState extends ConsumerState<_WinsStack> {
-  bool _open = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final wins = ref.watch(todayWinsProvider).valueOrNull ?? const [];
-    if (wins.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () => setState(() => _open = !_open),
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, size: 15, color: AppColors.done),
-                const SizedBox(width: 6),
-                Text('오늘의 승리 · ${wins.length}',
-                    style: theme.textTheme.bodyMedium),
-                const Spacer(),
-                AnimatedRotation(
-                  duration: kAnimDuration,
-                  turns: _open ? 0.5 : 0,
-                  child: Icon(Icons.expand_more,
-                      size: 18, color: theme.textTheme.bodySmall?.color),
-                ),
-              ],
-            ),
-          ),
-        ),
-        AnimatedCrossFade(
-          duration: kAnimDuration,
-          crossFadeState:
-              _open ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-          firstChild: Column(
-            children: [
-              for (final n in wins) SimpleTile(node: n, showStar: false),
-            ],
-          ),
-          secondChild: const SizedBox(width: double.infinity),
-        ),
-      ],
     );
   }
 }

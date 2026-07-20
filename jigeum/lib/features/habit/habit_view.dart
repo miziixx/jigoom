@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
 import '../../data/db.dart';
+import '../../core/journal.dart';
 import '../../providers.dart';
 
 /// 습관 탭 — 레퍼런스 스타일 해빗 트래커.
@@ -42,7 +43,9 @@ class HabitView extends ConsumerWidget {
         return a.compareTo(b);
       });
 
-    return ListView(
+    return Container(
+      color: Journal.pageBg(context),
+      child: ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         for (final c in cats) ...[
@@ -54,6 +57,7 @@ class HabitView extends ConsumerWidget {
           for (final h in byCat[c]!) _HabitCard(habit: h),
         ],
       ],
+    ),
     );
   }
 }
@@ -88,6 +92,7 @@ class _HabitCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: hairline, width: 0.5),
       ),

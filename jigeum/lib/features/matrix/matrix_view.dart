@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/journal.dart';
 import '../../providers.dart';
 import 'quadrant_list.dart';
 
@@ -11,7 +12,8 @@ class MatrixView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
+    return Container(
+      color: Journal.pageBg(context),
       padding: const EdgeInsets.all(12),
       child: Column(
         children: [
@@ -89,6 +91,7 @@ class _Cell extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: accent
@@ -155,6 +158,7 @@ class _DrawerCell extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: theme.dividerTheme.color ?? Colors.black12, width: 0.5),
