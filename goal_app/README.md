@@ -29,7 +29,8 @@ feature-first. 각 feature 는 view + controller 로만. usecase 레이어 없�
 2. **자동 이월** — 앱 시작 시 `date < today AND status='open'` → today, `carriedCount++`. 하루 1회, 조용히.
 3. **Q4 자동 서랍** — `important=false, urgent=false` task → `status='drawer'`.
 4. **포커스 선정** — Q1 → Q2 → Q3 순, `sortOrder` 최상단.
-5. **Q2 아침 승격** — 하루 1회 Q2 1개에 오늘 날짜 부여 (`last_promote_date` 기록).
+5. **Q2 승격** — 앱 오픈 시점(콜드 스타트 + resume)에 `lastPromotedDate != today`
+   이면 Q2 1개에 오늘 날짜 부여 후 기록. 날짜 비교라 언제 열어도 하루 1회 보장.
 6. **금지** — 스트릭/달성률%/빨강 미완료/실패 문구/미완료 뱃지 없음.
 
 ## 최초 설정 (로컬 Flutter 환경에서 1회)

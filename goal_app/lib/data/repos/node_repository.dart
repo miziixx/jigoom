@@ -286,7 +286,9 @@ class NodeRepository {
   // 규칙 4/5: Q2 아침 승격
   // ---------------------------------------------------------------------------
 
-  /// 하루 1회, 아침에 Q2에서 1개를 '오늘의 추천'으로 승격 (date=today 부여).
+  /// 앱 오픈 시점(콜드 스타트/resume)에 lastPromotedDate != today 이면
+  /// Q2에서 1개를 '오늘의 추천'으로 승격 (date=today 부여) 후 날짜 기록.
+  /// 시각 트리거 대신 날짜 비교라 언제 열어도 하루 1회 보장.
   /// 반환값 = 승격된 노드 (없으면 null).
   Future<Node?> promoteQ2({DateTime? now}) async {
     final today = dateOnly(now ?? DateTime.now());

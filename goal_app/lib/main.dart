@@ -47,28 +47,46 @@ class GoalApp extends ConsumerStatefulWidget {
 }
 
 class _GoalAppState extends ConsumerState<GoalApp> {
+  AppLifecycleListener? _lifecycle;
+
   @override
   void initState() {
     super.initState();
+    // resume 시점에도 날짜 비교 후 이월/승격 실행 (오후 첫 오픈 누락 방지).
+    _lifecycle = AppLifecycleListener(
+      onResume: () => _runDailyRoutine(),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _startup());
   }
 
-  /// 앱 시작 시: 자동 이월 → Q2 승격 → 포커스/알림/위젯 동기화.
-  Future<void> _startup() async {
+  @override
+  void dispose() {
+    _lifecycle?.dispose();
+    super.dispose();
+  }
+
+  /// 앱 오픈 시점(콜드 스타트 + resume)의 하루 1회 루틴.
+  /// 이월 → 승격 순서. 둘 다 lastDate != today 로 가드되어 idempotent.
+  Future<void> _runDailyRoutine() async {
     final repo = ref.read(nodeRepoProvider);
     await repo.runCarryOver(); // 규칙 2 (조용히)
-    await repo.promoteQ2(); // 규칙 5
+    await repo.promoteQ2(); // 규칙 5 — 날짜 비교 기반, 언제 열어도 하루 1회 보장
 
-    // 포커스/승리 재계산 후 위젯·알림 동기화.
-    final _ = ref.refresh(focusProvider);
+    // 포커스/승리 재계산 후 위젯·상주 알림 동기화.
+    ref.invalidate(focusProvider);
     final focus = await repo.selectFocus();
     await WidgetBridge.updateFocus(focus);
+    if (!kIsWeb) {
+      await NotificationService.instance.showOngoingFocus(focus?.title);
+    }
+  }
 
+  /// 콜드 스타트: 하루 루틴 + 알림 권한/브리핑 예약 (1회성).
+  Future<void> _startup() async {
+    await _runDailyRoutine();
     if (!kIsWeb) {
       await NotificationService.instance.requestPermission();
-      await NotificationService.instance.showOngoingFocus(focus?.title);
-      // 아침/저녁 브리핑 예약.
-      final q2 = await repo.selectFocus(); // Q2 우선 포함
+      final q2 = await ref.read(nodeRepoProvider).selectFocus();
       await NotificationService.instance.scheduleMorning(q2?.title);
     }
   }
