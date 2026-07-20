@@ -38,6 +38,7 @@ class Settings extends Table {
 class Habits extends Table {
   TextColumn get id => text()(); // uuid v4
   TextColumn get title => text()();
+  TextColumn get category => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -59,7 +60,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +77,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.createTable(habits);
             await m.createTable(habitTicks);
+          }
+          if (from == 2) {
+            await m.addColumn(habits, habits.category);
           }
         },
       );

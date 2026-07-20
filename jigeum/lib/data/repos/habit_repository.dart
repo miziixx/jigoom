@@ -24,14 +24,20 @@ class HabitRepository {
     return q.watch();
   }
 
-  Future<String> addHabit(String title) async {
+  Future<String> addHabit(String title, {String category = ''}) async {
     final id = _uuid.v4();
     await db.into(db.habits).insert(HabitsCompanion.insert(
           id: id,
           title: title,
+          category: Value(category),
           createdAt: todayDate(),
         ));
     return id;
+  }
+
+  Future<void> setCategory(String id, String category) async {
+    await (db.update(db.habits)..where((h) => h.id.equals(id)))
+        .write(HabitsCompanion(category: Value(category)));
   }
 
   Future<void> deleteHabit(String id) async {

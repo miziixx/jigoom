@@ -94,31 +94,46 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  /// 새 습관 만들기.
+  /// 새 습관 만들기 (이름 + 카테고리).
   Future<void> _newHabit() async {
-    final controller = TextEditingController();
-    final title = await showDialog<String>(
+    final name = TextEditingController();
+    final cat = TextEditingController();
+    final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('새 습관'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '예: 아침 산책, 물 마시기'),
-          onSubmitted: (v) => Navigator.of(ctx).pop(v),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              autofocus: true,
+              decoration:
+                  const InputDecoration(hintText: '예: 아침 산책, 물 마시기'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: cat,
+              decoration: const InputDecoration(
+                  hintText: '카테고리 (선택 · 예: 건강, 공부)'),
+              onSubmitted: (_) => Navigator.of(ctx).pop(true),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
+              onPressed: () => Navigator.of(ctx).pop(false),
               child: const Text('취소')),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              onPressed: () => Navigator.of(ctx).pop(true),
               child: const Text('만들기')),
         ],
       ),
     );
-    if (title == null || title.trim().isEmpty) return;
-    await ref.read(habitRepoProvider).addHabit(title.trim());
+    if (ok != true || name.text.trim().isEmpty) return;
+    await ref
+        .read(habitRepoProvider)
+        .addHabit(name.text.trim(), category: cat.text.trim());
   }
 
   /// 새 폴더(카테고리) 생성 — 아웃라인 최상위에 추가.

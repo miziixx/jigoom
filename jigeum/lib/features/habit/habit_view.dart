@@ -30,9 +30,30 @@ class HabitView extends ConsumerWidget {
       );
     }
 
+    // 카테고리별 그룹핑 (빈 값은 맨 앞 '기본').
+    final byCat = <String, List<Habit>>{};
+    for (final h in habits) {
+      byCat.putIfAbsent(h.category, () => []).add(h);
+    }
+    final cats = byCat.keys.toList()
+      ..sort((a, b) {
+        if (a.isEmpty) return -1;
+        if (b.isEmpty) return 1;
+        return a.compareTo(b);
+      });
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: [for (final h in habits) _HabitCard(habit: h)],
+      children: [
+        for (final c in cats) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 6, left: 2),
+            child: Text(c.isEmpty ? '기본' : c,
+                style: Theme.of(context).textTheme.bodySmall),
+          ),
+          for (final h in byCat[c]!) _HabitCard(habit: h),
+        ],
+      ],
     );
   }
 }
@@ -110,13 +131,12 @@ class _HabitCard extends ConsumerWidget {
               ),
               const SizedBox(width: 6),
               GestureDetector(
-                onLongPress: () => _confirmDelete(context, ref),
+                onTap: () => _menu(context, ref),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: Icon(Icons.more_horiz,
                       size: 16, color: theme.textTheme.bodySmall?.color),
                 ),
-                onTap: () => _confirmDelete(context, ref),
               ),
             ],
           ),
@@ -190,6 +210,61 @@ class _HabitCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _menu(BuildContext context, WidgetRef ref) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.folder_outlined, size: 20),
+              title: const Text('카테고리 변경'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _changeCategory(context, ref);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, size: 20),
+              title: const Text('삭제'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _confirmDelete(context, ref);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _changeCategory(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController(text: habit.category);
+    final v = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('카테고리'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '예: 건강, 공부 (비우면 기본)'),
+          onSubmitted: (s) => Navigator.of(ctx).pop(s),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('취소')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              child: const Text('저장')),
+        ],
+      ),
+    );
+    if (v == null) return;
+    await ref.read(habitRepoProvider).setCategory(habit.id, v.trim());
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
