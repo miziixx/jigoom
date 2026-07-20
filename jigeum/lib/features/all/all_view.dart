@@ -31,7 +31,7 @@ class AllView extends ConsumerWidget {
               .compareTo(a.doneAt ?? a.updatedAt));
 
     Widget header(String t) => Padding(
-          padding: const EdgeInsets.only(top: 18, bottom: 4),
+          padding: const EdgeInsets.only(top: 12, bottom: 2),
           child: Text(t, style: theme.textTheme.bodySmall),
         );
 
@@ -103,7 +103,7 @@ class _LaterTile extends ConsumerWidget {
         return false;
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 9),
+        padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(
           children: [
             Icon(Icons.inbox_outlined,
@@ -115,13 +115,16 @@ class _LaterTile extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis),
             ),
-            // ↑ 오늘로 꺼내기
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              tooltip: '오늘로',
-              icon: Icon(Icons.north,
-                  size: 18, color: theme.textTheme.bodySmall?.color),
-              onPressed: () async {
+            // ↑ 오늘로 꺼내기 (compact)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Icon(Icons.north,
+                    size: 16, color: theme.textTheme.bodySmall?.color),
+              ),
+              onTap: () async {
                 await repo.setDate(node.id, todayDate());
                 await repo.setMatrix(node.id, urgent: node.urgent);
                 // 서랍 → open 복귀는 날짜 부여로 충분: 상태 직접 갱신

@@ -39,7 +39,7 @@ class NodeTile extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: EdgeInsets.only(
-              left: 12.0 + depth * 20, right: 12, top: 10, bottom: 10),
+              left: 12.0 + depth * 20, right: 12, top: 5, bottom: 5),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -53,7 +53,7 @@ class NodeTile extends StatelessWidget {
                           duration: kAnimDuration,
                           turns: expanded ? 0.25 : 0,
                           child: Icon(Icons.chevron_right,
-                              size: 18,
+                              size: 16,
                               color: theme.textTheme.bodySmall?.color),
                         ),
                       )
@@ -67,10 +67,10 @@ class NodeTile extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 10, top: 1),
                   child: done
                       ? const Icon(Icons.check_circle,
-                          size: 18, color: AppColors.done)
+                          size: 17, color: AppColors.done)
                       : Container(
-                          width: 14,
-                          height: 14,
+                          width: 12,
+                          height: 12,
                           margin: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,

@@ -26,19 +26,18 @@ class TodayView extends ConsumerWidget {
       children: [
         // 큰 날짜
         Text(DateFormat('M월 d일', 'ko').format(now),
-            style: theme.textTheme.titleLarge?.copyWith(fontSize: 30)),
-        const SizedBox(height: 2),
+            style: theme.textTheme.titleLarge?.copyWith(fontSize: 28)),
         Text(DateFormat('EEEE', 'ko').format(now),
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 15)),
-        const SizedBox(height: 18),
+            style: theme.textTheme.bodySmall),
+        const SizedBox(height: 14),
 
         focus.when(
-          loading: () => const SizedBox(height: 60),
+          loading: () => const SizedBox(height: 56),
           error: (_, __) => const SizedBox.shrink(),
           data: (node) =>
               node == null ? const SizedBox.shrink() : _FocusCard(node: node),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
 
         if (today.isEmpty)
           Padding(
@@ -75,7 +74,7 @@ class SimpleTile extends ConsumerWidget {
       child: InkWell(
         onTap: () => showNodeDetailSheet(context, node), // 메모/폴더/날짜 상세
         child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 9),
+        padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(
           children: [
             // 체크
@@ -84,19 +83,19 @@ class SimpleTile extends ConsumerWidget {
                   done ? repo.reopen(node.id) : repo.complete(node.id),
               behavior: HitTestBehavior.opaque,
               child: Padding(
-                padding: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.only(right: 11, top: 3, bottom: 3),
                 child: done
                     ? const Icon(Icons.check_circle,
-                        size: 22, color: AppColors.done)
+                        size: 19, color: AppColors.done)
                     : Container(
-                        width: 20,
-                        height: 20,
+                        width: 18,
+                        height: 18,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: theme.textTheme.bodySmall?.color ??
                                 Colors.grey,
-                            width: 1.5,
+                            width: 1.4,
                           ),
                         ),
                       ),
@@ -112,61 +111,46 @@ class SimpleTile extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
                   if (node.note.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Row(
-                        children: [
-                          Icon(Icons.sticky_note_2_outlined,
-                              size: 12,
-                              color: theme.textTheme.bodySmall?.color),
-                          const SizedBox(width: 3),
-                          Flexible(
-                            child: Text(
-                              node.note,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(fontSize: 12),
-                            ),
-                          ),
-                        ],
-                      ),
+                    Text(
+                      node.note,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          theme.textTheme.bodySmall?.copyWith(fontSize: 11),
                     ),
                   if (node.date != null && node.date != todayDate() && !done)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        '${DateFormat('M/d (E)', 'ko').format(node.date!)} 까지',
-                        style:
-                            theme.textTheme.bodySmall?.copyWith(fontSize: 12),
-                      ),
+                    Text(
+                      '${DateFormat('M/d (E)', 'ko').format(node.date!)} 까지',
+                      style:
+                          theme.textTheme.bodySmall?.copyWith(fontSize: 11),
                     ),
                 ],
               ),
             ),
-            if (!done) ...[
-              // ⭐ 중요 토글 → 포커스 후보
-              if (showStar)
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(
-                    node.important ? Icons.star : Icons.star_border,
-                    size: 20,
-                    color: node.important
-                        ? theme.textTheme.bodyLarge?.color
-                        : theme.textTheme.bodySmall?.color,
+            // "!" 중요 토글 → 포커스 후보 (별 대신 !, 사용자 확정)
+            if (!done && showStar)
+              GestureDetector(
+                onTap: () =>
+                    repo.setMatrix(node.id, important: !node.important),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  child: Text(
+                    '!',
+                    style: TextStyle(
+                      fontFamily: 'Pretendard',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                      height: 1,
+                      color: node.important
+                          ? theme.textTheme.bodyLarge?.color
+                          : (theme.textTheme.bodySmall?.color ?? Colors.grey)
+                              .withValues(alpha: 0.35),
+                    ),
                   ),
-                  onPressed: () =>
-                      repo.setMatrix(node.id, important: !node.important),
                 ),
-              // 📅 날짜/마감 설정
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.calendar_today_outlined,
-                    size: 17, color: theme.textTheme.bodySmall?.color),
-                onPressed: () => _pickDate(context, ref),
               ),
-            ],
           ],
         ),
         ),
@@ -198,21 +182,6 @@ class SimpleTile extends ConsumerWidget {
     );
   }
 
-  Future<void> _pickDate(BuildContext context, WidgetRef ref) async {
-    final repo = ref.read(nodeRepoProvider);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: node.date ?? todayDate(),
-      firstDate: todayDate(),
-      lastDate: todayDate().add(const Duration(days: 365)),
-      helpText: '언제까지 할까요?',
-      cancelText: '취소',
-      confirmText: '설정',
-    );
-    if (picked != null) {
-      await repo.setDate(node.id, picked);
-    }
-  }
 }
 
 class _FocusCard extends ConsumerWidget {
@@ -223,7 +192,7 @@ class _FocusCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
@@ -285,10 +254,10 @@ class _WinsStackState extends ConsumerState<_WinsStack> {
           onTap: () => setState(() => _open = !_open),
           behavior: HitTestBehavior.opaque,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               children: [
-                const Icon(Icons.check_circle, size: 16, color: AppColors.done),
+                const Icon(Icons.check_circle, size: 15, color: AppColors.done),
                 const SizedBox(width: 6),
                 Text('오늘의 승리 · ${wins.length}',
                     style: theme.textTheme.bodyMedium),

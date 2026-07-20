@@ -62,11 +62,27 @@ class AppTheme {
       canvasColor: bg,
       colorScheme: scheme,
       textTheme: _textTheme(primary, secondary),
+      // 전역 밀도: 터치영역 부풀림 없이 컴팩트하게.
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          padding: const EdgeInsets.all(6),
+          minimumSize: const Size(34, 34),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: bg,
         elevation: 0,
         scrolledUnderElevation: 0,
         foregroundColor: primary,
+        toolbarHeight: 52,
+        titleTextStyle: TextStyle(
+            fontFamily: 'Pretendard',
+            fontWeight: FontWeight.w600,
+            fontSize: 17,
+            color: primary),
       ),
       cardTheme: const CardThemeData(elevation: 0),
       dividerTheme: DividerThemeData(

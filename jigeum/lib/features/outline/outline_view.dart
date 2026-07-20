@@ -46,9 +46,10 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
       return Padding(
         padding: const EdgeInsets.only(right: 6),
         child: ChoiceChip(
-          label: Text(label),
+          label: Text(label, style: const TextStyle(fontSize: 12)),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 6),
           selected: selected,
-          visualDensity: VisualDensity.compact,
+          visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
           onSelected: (_) => setState(() {
             _range = r == null
                 ? null
@@ -60,7 +61,7 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
       child: Row(
         children: [
           chip('전체', null),
@@ -75,11 +76,13 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
           Padding(
             padding: const EdgeInsets.only(right: 6),
             child: ActionChip(
-              avatar: const Icon(Icons.date_range, size: 16),
+              avatar: const Icon(Icons.date_range, size: 14),
+              labelPadding: const EdgeInsets.symmetric(horizontal: 4),
               label: Text(_range?.label.contains('~') == true
                   ? _range!.label
-                  : '기간 선택'),
-              visualDensity: VisualDensity.compact,
+                  : '기간 선택',
+                  style: const TextStyle(fontSize: 12)),
+              visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
               onPressed: _pickRange,
             ),
           ),
@@ -207,11 +210,11 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
       onLongPress: () => showNodeDetailSheet(context, node),
       child: Padding(
         padding: EdgeInsets.only(
-            left: 12.0 + depth * 20, right: 12, top: 10, bottom: 10),
+            left: 12.0 + depth * 20, right: 12, top: 6, bottom: 6),
         child: Row(
           children: [
             Icon(open ? Icons.folder_open_outlined : Icons.folder_outlined,
-                size: 18, color: theme.textTheme.bodySmall?.color),
+                size: 17, color: theme.textTheme.bodySmall?.color),
             const SizedBox(width: 10),
             Expanded(
               child: Text(node.title, style: theme.textTheme.titleMedium),

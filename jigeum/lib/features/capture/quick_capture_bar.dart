@@ -91,12 +91,7 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
         color: theme.scaffoldBackgroundColor,
         border: Border(top: BorderSide(color: hairline, width: 0.5)),
       ),
-      padding: EdgeInsets.only(
-        left: 12,
-        right: 12,
-        top: 8,
-        bottom: 8 + MediaQuery.of(context).viewInsets.bottom * 0,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: SafeArea(
         top: false,
         child: Row(
@@ -138,9 +133,13 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
                 ),
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.arrow_upward, size: 20),
-              onPressed: _submit,
+            GestureDetector(
+              onTap: _submit,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Icon(Icons.arrow_upward, size: 19),
+              ),
             ),
           ],
         ),
@@ -174,7 +173,7 @@ class _Chip extends StatelessWidget {
       child: AnimatedContainer(
         duration: kAnimDuration,
         curve: kAnimCurve,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
