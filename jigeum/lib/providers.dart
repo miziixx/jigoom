@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants.dart';
+import 'data/backup_service.dart';
 import 'data/db.dart';
 import 'data/repos/habit_repository.dart';
 import 'data/repos/node_repository.dart';
@@ -18,6 +19,10 @@ final dbProvider = Provider<AppDatabase>((ref) {
 
 final nodeRepoProvider = Provider<NodeRepository>((ref) {
   return NodeRepository(ref.watch(dbProvider));
+});
+
+final backupServiceProvider = Provider<BackupService>((ref) {
+  return BackupService(ref.watch(dbProvider));
 });
 
 /// 인박스 (parentId=null, type=memo, open)

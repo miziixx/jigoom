@@ -41,11 +41,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       appBar: AppBar(
         title: Text(_titles[_index]),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.opacity_outlined),
-            tooltip: '위젯 투명도',
-            onPressed: _widgetOpacityDialog,
-          ),
           if (_index == 3)
             IconButton(
               icon: const Icon(Icons.auto_awesome_outlined),
@@ -64,6 +59,24 @@ class _AppShellState extends ConsumerState<AppShell> {
               onPressed: _newGoal,
             ),
           ],
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (v) {
+              switch (v) {
+                case 'opacity':
+                  _widgetOpacityDialog();
+                case 'export':
+                  _exportBackup();
+                case 'import':
+                  _importBackup();
+              }
+            },
+            itemBuilder: (ctx) => const [
+              PopupMenuItem(value: 'opacity', child: Text('위젯 투명도')),
+              PopupMenuItem(value: 'export', child: Text('백업 내보내기')),
+              PopupMenuItem(value: 'import', child: Text('백업 가져오기 (복원)')),
+            ],
+          ),
         ],
       ),
       // 입력바가 키보드 위로 따라 올라오도록 body 에 배치.
@@ -193,6 +206,57 @@ class _AppShellState extends ConsumerState<AppShell> {
     final id = await repo.create(type: NodeType.goal, title: title.trim());
     if (!mounted) return;
     await showTwoMinuteSheet(context, ref, goalId: id, goalTitle: title.trim());
+  }
+
+  /// 백업 내보내기: 전체 데이터를 JSON 으로 → 문서창(SAF) 저장.
+  Future<void> _exportBackup() async {
+    try {
+      final json = await ref.read(backupServiceProvider).exportJson();
+      final now = DateTime.now();
+      final stamp =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+      final ok = await WidgetBridge.saveBackup('jigeum-backup-$stamp.json', json);
+      if (!mounted) return;
+      _toast(ok ? '백업을 저장했어요' : '저장을 취소했어요');
+    } catch (e) {
+      if (mounted) _toast('백업 실패: $e');
+    }
+  }
+
+  /// 백업 가져오기(전체 교체): 파일 선택 → 확인 → 복원.
+  Future<void> _importBackup() async {
+    final json = await WidgetBridge.openBackup();
+    if (json == null || !mounted) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('복원할까요?'),
+        content: const Text('지금의 모든 데이터를 지우고\n선택한 백업으로 되돌립니다.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('취소')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('복원')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    try {
+      await ref.read(backupServiceProvider).importJson(json);
+      if (mounted) _toast('복원했어요');
+    } catch (e) {
+      if (mounted) _toast('복원 실패 — 올바른 백업 파일인지 확인해 주세요');
+    }
+  }
+
+  void _toast(String msg) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(msg)));
   }
 
   /// 홈/잠금 위젯 배경 투명도 설정 (0=투명 ~ 100=불투명).

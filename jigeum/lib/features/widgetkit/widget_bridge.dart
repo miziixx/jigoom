@@ -60,4 +60,26 @@ class WidgetBridge {
       return null;
     }
   }
+
+  /// 백업 JSON 을 문서창(SAF)으로 저장. true=저장됨, null/false=취소·실패.
+  static Future<bool> saveBackup(String filename, String content) async {
+    if (kIsWeb) return false;
+    try {
+      final ok = await _channel.invokeMethod<bool>(
+          'saveBackup', {'filename': filename, 'content': content});
+      return ok ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 문서창(SAF)에서 백업 파일 선택 → 내용 반환. null=취소·실패.
+  static Future<String?> openBackup() async {
+    if (kIsWeb) return null;
+    try {
+      return await _channel.invokeMethod<String>('openBackup');
+    } catch (_) {
+      return null;
+    }
+  }
 }
