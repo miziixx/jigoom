@@ -1,0 +1,57 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'core/constants.dart';
+import 'data/db.dart';
+import 'data/repos/node_repository.dart';
+
+final dbProvider = Provider<AppDatabase>((ref) {
+  final db = AppDatabase();
+  ref.onDispose(db.close);
+  return db;
+});
+
+final nodeRepoProvider = Provider<NodeRepository>((ref) {
+  return NodeRepository(ref.watch(dbProvider));
+});
+
+/// 인박스 (parentId=null, type=memo, open)
+final inboxProvider = StreamProvider<List<Node>>((ref) {
+  return ref.watch(nodeRepoProvider).watchInbox();
+});
+
+/// 루트 노드 (아웃라이너 최상위)
+final rootsProvider = StreamProvider<List<Node>>((ref) {
+  return ref.watch(nodeRepoProvider).watchRoots();
+});
+
+/// 자식 노드
+final childrenProvider =
+    StreamProvider.family<List<Node>, String>((ref, parentId) {
+  return ref.watch(nodeRepoProvider).watchChildren(parentId);
+});
+
+/// 오늘 open 노드
+final todayNodesProvider = StreamProvider<List<Node>>((ref) {
+  return ref.watch(nodeRepoProvider).watchForDate(todayDate());
+});
+
+/// 오늘의 승리
+final todayWinsProvider = StreamProvider<List<Node>>((ref) {
+  return ref.watch(nodeRepoProvider).watchWinsForDate(todayDate());
+});
+
+/// 포커스 노드 (Future — 노드 변경 시 refresh)
+final focusProvider = FutureProvider<Node?>((ref) {
+  // today 노드가 바뀌면 포커스도 재계산
+  ref.watch(todayNodesProvider);
+  return ref.watch(nodeRepoProvider).selectFocus();
+});
+
+/// 매트릭스 사분면
+final quadrantProvider =
+    StreamProvider.family<List<Node>, ({bool important, bool urgent})>(
+        (ref, key) {
+  return ref
+      .watch(nodeRepoProvider)
+      .watchQuadrant(important: key.important, urgent: key.urgent);
+});
