@@ -56,6 +56,6 @@ class AppDatabase extends _$AppDatabase {
       );
 
   static QueryExecutor _openConnection() {
-    return driftDatabase(name: 'goal_app_db');
+    return driftDatabase(name: 'jigeum_db');
   }
 }

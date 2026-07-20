@@ -1,4 +1,4 @@
-package com.ziia.goal_app
+package com.ziia.jigeum
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager

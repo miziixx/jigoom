@@ -1,8 +1,8 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:goal_app/core/constants.dart';
-import 'package:goal_app/data/db.dart';
-import 'package:goal_app/data/repos/node_repository.dart';
+import 'package:jigeum/core/constants.dart';
+import 'package:jigeum/data/db.dart';
+import 'package:jigeum/data/repos/node_repository.dart';
 
 void main() {
   late AppDatabase db;

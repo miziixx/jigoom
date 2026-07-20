@@ -1,6 +1,6 @@
 {
-  "name": "목표달성",
-  "short_name": "목표달성",
+  "name": "지금 · Now",
+  "short_name": "지금",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#FFFFFF",

@@ -1,6 +1,10 @@
-# 목표달성 앱 (goal_app)
+# 지금 · Now (jigeum)
 
-클린 아웃라이너 기반 목표달성 앱. Android APK + Flutter Web(PWA). 기획서 v1 MVP.
+클린 아웃라이너 기반 목표달성 앱. "지금 이것부터" 한 가지에 집중.
+Android APK + Flutter Web(PWA). 기획서 v1 MVP.
+
+- 서비스명: **지금** (스토어 표기 `지금 · Now`)
+- Dart 패키지: `jigeum` · Android applicationId: `com.ziia.jigeum`
 
 ## 아키텍처
 
@@ -39,7 +43,7 @@ feature-first. 각 feature 는 view + controller 로만. usecase 레이어 없�
 플랫폼 스캐폴드(gradle/Manifest 등)와 Drift 코드생성은 로컬에서 생성합니다.
 
 ```bash
-cd goal_app
+cd jigeum
 
 # 1) 플랫폼 스캐폴드 생성 (기존 lib/, web/, android 리소스는 유지됨)
 flutter create --org com.ziia --platforms android,web .
@@ -59,6 +63,9 @@ flutter test
 
 `android/app/build.gradle`:
 - `minSdkVersion 26`, `targetSdk` 최신
+- `applicationId "com.ziia.jigeum"` (flutter create 가 org 로 자동 설정)
+
+`AndroidManifest.xml` `<application android:label="지금" ...>` — 홈 화면 앱 이름.
 
 `android/app/src/main/AndroidManifest.xml` `<application>` 안에 홈위젯 등록:
 

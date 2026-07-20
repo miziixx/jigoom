@@ -1,5 +1,5 @@
-name: goal_app
-description: "목표달성 앱 — 클린 아웃라이너 기반 MVP"
+name: jigeum
+description: "지금 · Now — 클린 아웃라이너 기반 목표달성 앱"
 publish_to: 'none'
 version: 0.1.0+1
 

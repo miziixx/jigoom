@@ -94,7 +94,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '목표달성',
+      title: '지금',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
