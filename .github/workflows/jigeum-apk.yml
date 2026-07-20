@@ -34,7 +34,10 @@ jobs:
           cache: true
 
       - name: Generate Android platform scaffold
-        run: flutter create --org com.ziia --project-name jigeum --platforms android .
+        run: |
+          flutter create --org com.ziia --project-name jigeum --platforms android .
+          # flutter create 가 넣는 기본 위젯 테스트(MyApp 참조)는 제거 — 우리 테스트만 사용.
+          rm -f test/widget_test.dart
 
       - name: Strip uncommitted font refs from pubspec
         run: |
