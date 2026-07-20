@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,9 @@ import 'data/repos/node_repository.dart';
 import 'features/widgetkit/notification_service.dart';
 import 'features/widgetkit/widget_bridge.dart';
 import 'providers.dart';
+
+/// 진단용: 릴리즈에서도 크래시 대신 에러 메시지를 화면에 표시.
+final ValueNotifier<String?> gError = ValueNotifier<String?>(null);
 
 /// 홈위젯 체크 버튼 background 콜백 (top-level 필수).
 @pragma('vm:entry-point')
@@ -27,18 +32,65 @@ Future<void> widgetBackgroundCallback(Uri? uri) async {
   }
 }
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // 날짜 로케일만 UI 전에 준비 (실패해도 앱은 떠야 함).
-  try {
-    await initializeDateFormatting('ko');
-  } catch (e, s) {
-    debugPrint('initializeDateFormatting 실패: $e\n$s');
+    // 프레임워크 에러 → 화면에 표시 (진단용).
+    FlutterError.onError = (details) {
+      gError.value = '${details.exceptionAsString()}\n\n${details.stack}';
+      FlutterError.presentError(details);
+    };
+    ErrorWidget.builder =
+        (details) => _ErrorScreen(message: details.exceptionAsString());
+
+    try {
+      await initializeDateFormatting('ko');
+    } catch (e, s) {
+      debugPrint('initializeDateFormatting 실패: $e\n$s');
+    }
+
+    runApp(const ProviderScope(child: GoalApp()));
+  }, (error, stack) {
+    // 잡히지 않은 비동기 에러 → 화면에 표시.
+    gError.value = '$error\n\n$stack';
+    debugPrint('zone error: $error\n$stack');
+  });
+}
+
+/// 크래시 대신 보여줄 에러 화면.
+class _ErrorScreen extends StatelessWidget {
+  const _ErrorScreen({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Container(
+        color: const Color(0xFF111417),
+        padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('시작 중 오류',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
+              SelectableText(
+                message,
+                style: const TextStyle(
+                    color: Color(0xFFFFB0B0), fontSize: 13, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
-
-  // 알림/위젯 등 무거운 네이티브 초기화는 UI 를 막지 않도록 runApp 이후에 수행.
-  runApp(const ProviderScope(child: GoalApp()));
 }
 
 class GoalApp extends ConsumerStatefulWidget {
@@ -125,6 +177,15 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
+      builder: (context, child) {
+        return ValueListenableBuilder<String?>(
+          valueListenable: gError,
+          builder: (context, err, _) {
+            if (err != null) return _ErrorScreen(message: err);
+            return child ?? const SizedBox.shrink();
+          },
+        );
+      },
       home: const AppShell(),
     );
   }
