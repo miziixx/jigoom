@@ -4,6 +4,7 @@
 - AndroidManifest.xml 에 홈위젯 receiver + 알림 권한 추가
 - android:label 을 '지금' 으로 변경
 - build.gradle(.kts) minSdk 26 보장
+- build.gradle(.kts) core library desugaring 활성화 (flutter_local_notifications 요구)
 
 로컬 개발자는 README 의 수동 통합 안내를 따르면 됨. 이 스크립트는 재실행 안전(idempotent).
 """
@@ -62,9 +63,67 @@ def patch_min_sdk() -> None:
         return
 
 
+# flutter_local_notifications 는 core library desugaring 을 요구한다.
+# (checkReleaseAarMetadata: "requires core library desugaring to be enabled")
+DESUGAR_VERSION = "2.1.4"
+
+
+def patch_desugaring() -> None:
+    for name in ("build.gradle.kts", "build.gradle"):
+        f = APP / name
+        if not f.exists():
+            continue
+        t = f.read_text(encoding="utf-8")
+        kts = name.endswith(".kts")
+
+        # 1) compileOptions 안에 desugaring 활성화 플래그 추가 (idempotent)
+        enable_line = (
+            "        isCoreLibraryDesugaringEnabled = true\n"
+            if kts
+            else "        coreLibraryDesugaringEnabled true\n"
+        )
+        if "CoreLibraryDesugaringEnabled" not in t:
+            if re.search(r"compileOptions\s*\{", t):
+                t = re.sub(
+                    r"(compileOptions\s*\{\s*\n)", r"\1" + enable_line, t, count=1
+                )
+            else:
+                # compileOptions 블록이 없으면 android { 바로 아래에 통째로 추가
+                block = (
+                    "    compileOptions {\n"
+                    + enable_line
+                    + (
+                        "        sourceCompatibility = JavaVersion.VERSION_11\n"
+                        "        targetCompatibility = JavaVersion.VERSION_11\n"
+                        if kts
+                        else "        sourceCompatibility JavaVersion.VERSION_11\n"
+                        "        targetCompatibility JavaVersion.VERSION_11\n"
+                    )
+                    + "    }\n"
+                )
+                t = re.sub(r"(android\s*\{\s*\n)", r"\1" + block, t, count=1)
+
+        # 2) coreLibraryDesugaring 의존성 추가 (idempotent).
+        #    Gradle 은 dependencies 블록 다중 선언을 허용하므로 파일 끝에 append.
+        if "coreLibraryDesugaring" not in t:
+            dep = (
+                f'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:{DESUGAR_VERSION}")'
+                if kts
+                else f"coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:{DESUGAR_VERSION}'"
+            )
+            if not t.endswith("\n"):
+                t += "\n"
+            t += "\ndependencies {\n    " + dep + "\n}\n"
+
+        f.write_text(t, encoding="utf-8")
+        print(f"patched {name} (core library desugaring, desugar_jdk_libs={DESUGAR_VERSION})")
+        return
+
+
 if __name__ == "__main__":
     if not MANIFEST.exists():
         print("AndroidManifest not found — run flutter create first", file=sys.stderr)
         sys.exit(1)
     patch_manifest()
     patch_min_sdk()
+    patch_desugaring()

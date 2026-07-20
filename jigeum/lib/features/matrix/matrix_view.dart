@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants.dart';
-import '../../data/db.dart';
 import '../../providers.dart';
 import 'quadrant_list.dart';
 
