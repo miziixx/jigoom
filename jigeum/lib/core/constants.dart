@@ -3,6 +3,7 @@ class NodeType {
   static const goal = 'goal';
   static const task = 'task';
   static const memo = 'memo';
+  static const folder = 'folder'; // 카테고리/폴더
 }
 
 /// 노드 상태

@@ -44,12 +44,18 @@ class _AppShellState extends ConsumerState<AppShell> {
             tooltip: '위젯 투명도',
             onPressed: _widgetOpacityDialog,
           ),
-          if (_index == 2)
+          if (_index == 2) ...[
+            IconButton(
+              icon: const Icon(Icons.create_new_folder_outlined),
+              tooltip: '새 폴더',
+              onPressed: _newFolder,
+            ),
             IconButton(
               icon: const Icon(Icons.flag_outlined),
               tooltip: '새 목표',
               onPressed: _newGoal,
             ),
+          ],
         ],
       ),
       // 입력바가 키보드 위로 따라 올라오도록 body 에 배치.
@@ -76,6 +82,35 @@ class _AppShellState extends ConsumerState<AppShell> {
         ],
       ),
     );
+  }
+
+  /// 새 폴더(카테고리) 생성 — 아웃라인 최상위에 추가.
+  Future<void> _newFolder() async {
+    final controller = TextEditingController();
+    final title = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('새 폴더'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '예: 회사, 집, 공부'),
+          onSubmitted: (v) => Navigator.of(ctx).pop(v),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('취소')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              child: const Text('만들기')),
+        ],
+      ),
+    );
+    if (title == null || title.trim().isEmpty) return;
+    await ref
+        .read(nodeRepoProvider)
+        .create(type: NodeType.folder, title: title.trim());
   }
 
   /// 새 목표 → 저장 직후 첫 2분 행동 시트 (규칙 5).

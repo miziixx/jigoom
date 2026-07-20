@@ -6,6 +6,7 @@ import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
+import 'node_detail_sheet.dart';
 
 /// 오늘 뷰 (홈) — 단순 모드.
 /// 큰 날짜 → 포커스 카드 → 오늘 할 일(flat) → 오늘의 승리.
@@ -71,7 +72,9 @@ class SimpleTile extends ConsumerWidget {
 
     final tile = Opacity(
       opacity: done ? 0.45 : 1,
-      child: Padding(
+      child: InkWell(
+        onTap: () => showNodeDetailSheet(context, node), // 메모/폴더/날짜 상세
+        child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 9),
         child: Row(
           children: [
@@ -108,6 +111,27 @@ class SimpleTile extends ConsumerWidget {
                       style: theme.textTheme.bodyLarge,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
+                  if (node.note.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Row(
+                        children: [
+                          Icon(Icons.sticky_note_2_outlined,
+                              size: 12,
+                              color: theme.textTheme.bodySmall?.color),
+                          const SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              node.note,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall
+                                  ?.copyWith(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   if (node.date != null && node.date != todayDate() && !done)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
@@ -144,6 +168,7 @@ class SimpleTile extends ConsumerWidget {
               ),
             ],
           ],
+        ),
         ),
       ),
     );

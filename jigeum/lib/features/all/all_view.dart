@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../data/db.dart';
@@ -16,9 +17,11 @@ class AllView extends ConsumerWidget {
     final theme = Theme.of(context);
     final all = ref.watch(allNodesProvider).valueOrNull ?? const [];
 
-    final open =
-        all.where((n) => n.status == NodeStatus.open).toList()
-          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final open = all
+        .where((n) =>
+            n.status == NodeStatus.open && n.type != NodeType.folder)
+        .toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final later =
         all.where((n) => n.status == NodeStatus.drawer).toList()
           ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
@@ -47,10 +50,32 @@ class AllView extends ConsumerWidget {
         else
           for (final n in later) _LaterTile(node: n),
 
+        // 완료 모아보기: 전부, 날짜별 묶음.
         header('완료 · ${doneList.length}'),
-        for (final n in doneList.take(20)) SimpleTile(node: n, showStar: false),
+        ..._doneGrouped(context, doneList),
       ],
     );
+  }
+
+  List<Widget> _doneGrouped(BuildContext context, List<Node> doneList) {
+    final theme = Theme.of(context);
+    final byDate = <DateTime, List<Node>>{};
+    for (final n in doneList) {
+      final d = dateOnly(n.doneAt ?? n.updatedAt);
+      byDate.putIfAbsent(d, () => []).add(n);
+    }
+    final dates = byDate.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    return [
+      for (final d in dates) ...[
+        Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 2),
+          child: Text(DateFormat('M월 d일 (E)', 'ko').format(d),
+              style: theme.textTheme.bodySmall?.copyWith(fontSize: 12)),
+        ),
+        for (final n in byDate[d]!) SimpleTile(node: n, showStar: false),
+      ],
+    ];
   }
 }
 

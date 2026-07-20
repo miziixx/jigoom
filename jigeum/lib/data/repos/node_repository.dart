@@ -57,7 +57,8 @@ class NodeRepository {
     final q = db.select(db.nodes)
       ..where((n) =>
           n.status.equals(NodeStatus.open) &
-          (n.date.equals(d) | n.date.isNull()))
+          (n.date.equals(d) | n.date.isNull()) &
+          n.type.equals(NodeType.folder).not())
       ..orderBy([
         (n) => OrderingTerm.desc(n.important),
         (n) => OrderingTerm.asc(n.sortOrder),
@@ -69,6 +70,47 @@ class NodeRepository {
   Future<void> deleteNode(String id) async {
     await (db.delete(db.nodes)..where((n) => n.parentId.equals(id))).go();
     await (db.delete(db.nodes)..where((n) => n.id.equals(id))).go();
+  }
+
+  /// 메모 저장.
+  Future<void> setNote(String id, String note) async {
+    await (db.update(db.nodes)..where((n) => n.id.equals(id))).write(
+      NodesCompanion(note: Value(note), updatedAt: Value(DateTime.now())),
+    );
+  }
+
+  /// 폴더 이동 (parentId 변경). null 이면 최상위로.
+  Future<void> setParent(String id, String? parentId) async {
+    final order = await _nextSortOrder(parentId);
+    await (db.update(db.nodes)..where((n) => n.id.equals(id))).write(
+      NodesCompanion(
+        parentId: Value(parentId),
+        sortOrder: Value(order),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// 폴더 목록.
+  Stream<List<Node>> watchFolders() {
+    final q = db.select(db.nodes)
+      ..where((n) => n.type.equals(NodeType.folder))
+      ..orderBy([(n) => OrderingTerm.asc(n.sortOrder)]);
+    return q.watch();
+  }
+
+  /// 날짜 범위 조회 (아웃라이너 기간 필터). start ≤ date < end.
+  Stream<List<Node>> watchDateRange(DateTime start, DateTime end) {
+    final q = db.select(db.nodes)
+      ..where((n) =>
+          n.date.isBiggerOrEqualValue(dateOnly(start)) &
+          n.date.isSmallerThanValue(dateOnly(end)) &
+          n.type.equals(NodeType.folder).not())
+      ..orderBy([
+        (n) => OrderingTerm.asc(n.date),
+        (n) => OrderingTerm.asc(n.sortOrder),
+      ]);
+    return q.watch();
   }
 
   Stream<List<Node>> watchForDate(DateTime date) {

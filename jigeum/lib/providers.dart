@@ -45,6 +45,18 @@ final allNodesProvider = StreamProvider<List<Node>>((ref) {
   return ref.watch(nodeRepoProvider).watchAll();
 });
 
+/// 폴더 목록
+final foldersProvider = StreamProvider<List<Node>>((ref) {
+  return ref.watch(nodeRepoProvider).watchFolders();
+});
+
+/// 날짜 범위 노드 (아웃라이너 기간 필터)
+final dateRangeNodesProvider =
+    StreamProvider.family<List<Node>, ({DateTime start, DateTime end})>(
+        (ref, r) {
+  return ref.watch(nodeRepoProvider).watchDateRange(r.start, r.end);
+});
+
 /// 오늘의 승리
 final todayWinsProvider = StreamProvider<List<Node>>((ref) {
   return ref.watch(nodeRepoProvider).watchWinsForDate(todayDate());
