@@ -16,8 +16,9 @@ dependencies:
   path_provider: ^2.1.4
   intl: ^0.19.0
   uuid: ^4.5.0
-  # MVP 안정화: home_widget / flutter_local_notifications / timezone 임시 제거.
-  # 앱이 안정적으로 열리는 것을 확인한 뒤 다시 추가.
+  flutter_local_notifications: ^17.2.2
+  timezone: ^0.9.4
+  # home_widget 은 다음 단계에서 재도입 (알림 안정 확인 후).
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
