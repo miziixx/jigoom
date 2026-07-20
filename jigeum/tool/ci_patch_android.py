@@ -49,17 +49,53 @@ def patch_manifest() -> None:
     print("patched AndroidManifest.xml")
 
 
-def patch_min_sdk() -> None:
+def _app_gradle() -> Path | None:
     for name in ("build.gradle.kts", "build.gradle"):
         f = APP / name
-        if not f.exists():
-            continue
-        t = f.read_text(encoding="utf-8")
-        t = re.sub(r"minSdk(Version)?\s*=?\s*[\w.]+", "minSdk = 26", t)
-        t = re.sub(r"minSdk(Version)?\s+flutter\.minSdkVersion", "minSdk = 26", t)
-        f.write_text(t, encoding="utf-8")
-        print(f"patched {name} (minSdk=26)")
+        if f.exists():
+            return f
+    return None
+
+
+def patch_min_sdk() -> None:
+    f = _app_gradle()
+    if not f:
         return
+    t = f.read_text(encoding="utf-8")
+    t = re.sub(r"minSdk(Version)?\s*=?\s*[\w.]+", "minSdk = 26", t)
+    f.write_text(t, encoding="utf-8")
+    print(f"patched {f.name} (minSdk=26)")
+
+
+def patch_desugaring() -> None:
+    """flutter_local_notifications 는 core library desugaring 필요.
+    isCoreLibraryDesugaringEnabled + desugar_jdk_libs 의존성 주입 (idempotent)."""
+    f = _app_gradle()
+    if not f:
+        return
+    t = f.read_text(encoding="utf-8")
+    kts = f.name.endswith(".kts")
+
+    # 1) compileOptions 안에 desugaring 활성화
+    if "isCoreLibraryDesugaringEnabled" not in t and "coreLibraryDesugaringEnabled" not in t:
+        flag = ("        isCoreLibraryDesugaringEnabled = true\n"
+                if kts else
+                "        coreLibraryDesugaringEnabled true\n")
+        t = re.sub(r"(compileOptions\s*\{\s*\n)", r"\1" + flag, t, count=1)
+
+    # 2) desugar_jdk_libs 의존성 (별도 dependencies 블록 append — Gradle 이 병합)
+    if "desugar_jdk_libs" not in t:
+        if kts:
+            t += ('\ndependencies {\n'
+                  '    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n'
+                  '}\n')
+        else:
+            t += ('\ndependencies {\n'
+                  "    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n"
+                  '}\n')
+
+    f.write_text(t, encoding="utf-8")
+    print(f"patched {f.name} (core library desugaring)")
 
 
 if __name__ == "__main__":
@@ -68,3 +104,4 @@ if __name__ == "__main__":
         sys.exit(1)
     patch_manifest()
     patch_min_sdk()
+    patch_desugaring()

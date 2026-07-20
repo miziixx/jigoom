@@ -73,12 +73,14 @@ jobs:
       - name: Run core tests
         run: flutter test
 
-      - name: Build release APK (split per ABI)
-        run: flutter build apk --release --split-per-abi
+      # arm64 단일 APK 하나만 빌드 — 요즘 폰 전부 호환, 파일 1개(~10MB),
+      # split-per-abi zip(28.7MB) 이 걸리던 첨부 용량제한도 회피.
+      - name: Build release APK (arm64 only)
+        run: flutter build apk --release --target-platform android-arm64
 
-      - name: Upload APKs
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: jigeum-release-apk
-          path: jigeum/build/app/outputs/flutter-apk/*.apk
+          name: jigeum-arm64-apk
+          path: jigeum/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
