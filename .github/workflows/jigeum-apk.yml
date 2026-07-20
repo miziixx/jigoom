@@ -34,7 +34,11 @@ jobs:
           cache: true
 
       - name: Generate Android platform scaffold
-        run: flutter create --org com.ziia --project-name jigeum --platforms android .
+        run: |
+          flutter create --org com.ziia --project-name jigeum --platforms android .
+          # flutter create regenerates a default boilerplate test that references a
+          # non-existent `MyApp` widget; drop it so `flutter test` runs only the real suite.
+          rm -f test/widget_test.dart
 
       - name: Strip uncommitted font refs from pubspec
         run: |
