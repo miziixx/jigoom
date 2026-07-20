@@ -18,7 +18,7 @@ dependencies:
   uuid: ^4.5.0
   flutter_local_notifications: ^17.2.2
   timezone: ^0.9.4
-  # home_widget 은 다음 단계에서 재도입 (알림 안정 확인 후).
+  home_widget: ^0.6.0
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
