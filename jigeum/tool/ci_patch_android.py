@@ -40,10 +40,7 @@ def patch_manifest() -> None:
     # 앱 라벨
     text = re.sub(r'android:label="[^"]*"', 'android:label="지금"', text, count=1)
 
-    # 위젯 receiver (중복 방지)
-    if "FocusWidgetProvider" not in text:
-        text = text.replace("        </application>", RECEIVER + "        </application>", 1)
-        text = text.replace("    </application>", RECEIVER + "    </application>", 1)
+    # (MVP 안정화: home_widget 제거로 위젯 receiver 주입 생략)
 
     MANIFEST.write_text(text, encoding="utf-8")
     print("patched AndroidManifest.xml")

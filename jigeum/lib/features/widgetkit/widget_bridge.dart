@@ -1,32 +1,16 @@
 import 'package:flutter/foundation.dart';
-import 'package:home_widget/home_widget.dart';
 
 import '../../data/db.dart';
 
-/// 홈 위젯(포커스 2×1) 브리지.
-/// 웹은 미지원 → kIsWeb 분기로 no-op.
+/// MVP 안정화 단계: 홈 위젯 브리지 임시 비활성화 (no-op 스텁).
+///
+/// home_widget 를 앱에서 제거해 시작 크래시 원인에서 배제한다.
+/// 앱이 안정적으로 열리는 것을 확인한 뒤 실제 구현을 다시 붙인다.
 class WidgetBridge {
-  static const _keyTitle = 'focus_title';
-  static const _keyId = 'focus_id';
-  static const _androidWidget = 'FocusWidgetProvider';
+  static Future<void> updateFocus(Node? focus) async {}
 
-  /// 포커스 노드를 위젯으로 전달 + 갱신.
-  static Future<void> updateFocus(Node? focus) async {
-    if (kIsWeb) return;
-    try {
-      await HomeWidget.saveWidgetData<String>(
-          _keyTitle, focus?.title ?? '오늘 할 일을 정해볼까요');
-      await HomeWidget.saveWidgetData<String>(_keyId, focus?.id ?? '');
-      await HomeWidget.updateWidget(androidName: _androidWidget);
-    } catch (_) {
-      // 위젯 미설치 등 — 조용히 무시.
-    }
-  }
-
-  /// 위젯 체크 탭 콜백 등록. background 콜백은 top-level 함수여야 함.
   static Future<void> registerBackgroundCallback(
       Future<void> Function(Uri?) callback) async {
-    if (kIsWeb) return;
-    await HomeWidget.registerInteractivityCallback(callback);
+    debugPrint('[stub] WidgetBridge.registerBackgroundCallback — 비활성화됨');
   }
 }
