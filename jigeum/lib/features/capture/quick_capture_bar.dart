@@ -46,13 +46,13 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     if (text.isEmpty) return;
     final repo = ref.read(nodeRepoProvider);
 
-    final isTask = _important || _urgent;
+    // 분류 강요 없음: 적으면 곧장 오늘 할 일로. 날짜/중요는 나중에 타일에서.
     await repo.create(
-      type: isTask ? NodeType.task : NodeType.memo,
+      type: NodeType.task,
       title: text,
       important: _important,
       urgent: _urgent,
-      // 매트릭스에서 잡히도록 task 는 date=null (인박스성). memo 는 인박스.
+      date: todayDate(),
     );
 
     _controller.clear();

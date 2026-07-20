@@ -6,10 +6,10 @@ import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
-import '../outline/node_tile.dart';
 
-/// 오늘 뷰 (홈).
-/// 상단 "오늘"+날짜 → 포커스 카드 1개 → 오전/오후/저녁 섹션 → 오늘의 승리 스택.
+/// 오늘 뷰 (홈) — 단순 모드.
+/// 큰 날짜 → 포커스 카드 → 오늘 할 일(flat) → 오늘의 승리.
+/// 분류·세분화 강요 없음: 적으면 오늘 목록에 들어오고, ⭐ 만 누르면 됨.
 class TodayView extends ConsumerWidget {
   const TodayView({super.key});
 
@@ -18,69 +18,187 @@ class TodayView extends ConsumerWidget {
     final theme = Theme.of(context);
     final focus = ref.watch(focusProvider);
     final today = ref.watch(todayNodesProvider).valueOrNull ?? const [];
+    final now = DateTime.now();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
-        Text('오늘', style: theme.textTheme.titleLarge),
+        // 큰 날짜
+        Text(DateFormat('M월 d일', 'ko').format(now),
+            style: theme.textTheme.titleLarge?.copyWith(fontSize: 30)),
         const SizedBox(height: 2),
-        Text(DateFormat('M월 d일 EEEE', 'ko').format(DateTime.now()),
-            style: theme.textTheme.bodySmall),
-        const SizedBox(height: 16),
+        Text(DateFormat('EEEE', 'ko').format(now),
+            style: theme.textTheme.bodySmall?.copyWith(fontSize: 15)),
+        const SizedBox(height: 18),
 
-        // 포커스 카드 (유일하게 시각적 무게 있음)
         focus.when(
-          loading: () => const SizedBox(height: 72),
+          loading: () => const SizedBox(height: 60),
           error: (_, __) => const SizedBox.shrink(),
-          data: (node) => _FocusCard(node: node),
+          data: (node) =>
+              node == null ? const SizedBox.shrink() : _FocusCard(node: node),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
 
-        // 오전/오후/저녁 섹션
-        for (final slot in Slot.all)
-          _SlotSection(
-            slot: slot,
-            nodes: today
-                .where((n) => n.slot == slot && n.status == NodeStatus.open)
-                .toList(),
-          ),
+        if (today.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Text('아래 입력창에 적으면 여기에 쌓여요',
+                style: theme.textTheme.bodySmall),
+          )
+        else
+          for (final n in today) SimpleTile(node: n),
 
-        // 구간 미지정 오늘 항목
-        _SlotSection(
-          slot: null,
-          nodes: today
-              .where((n) => n.slot == null && n.status == NodeStatus.open)
-              .toList(),
-        ),
-
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         const _WinsStack(),
       ],
     );
   }
 }
 
-class _FocusCard extends ConsumerWidget {
-  const _FocusCard({required this.node});
-  final Node? node;
+/// 단순 타일: 체크 · 제목 · 마감칩 · ⭐ · 📅
+/// 스와이프 우=완료, 좌=삭제.
+class SimpleTile extends ConsumerWidget {
+  const SimpleTile({super.key, required this.node, this.showStar = true});
+
+  final Node node;
+  final bool showStar;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    if (node == null) {
-      return Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: theme.dividerTheme.color ?? Colors.black12, width: 0.5),
+    final repo = ref.read(nodeRepoProvider);
+    final done = node.status == NodeStatus.done;
+
+    final tile = Opacity(
+      opacity: done ? 0.45 : 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        child: Row(
+          children: [
+            // 체크
+            GestureDetector(
+              onTap: () =>
+                  done ? repo.reopen(node.id) : repo.complete(node.id),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: done
+                    ? const Icon(Icons.check_circle,
+                        size: 22, color: AppColors.done)
+                    : Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: theme.textTheme.bodySmall?.color ??
+                                Colors.grey,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+            // 제목 + 마감칩
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(node.title,
+                      style: theme.textTheme.bodyLarge,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                  if (node.date != null && node.date != todayDate() && !done)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        '${DateFormat('M/d (E)', 'ko').format(node.date!)} 까지',
+                        style:
+                            theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (!done) ...[
+              // ⭐ 중요 토글 → 포커스 후보
+              if (showStar)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    node.important ? Icons.star : Icons.star_border,
+                    size: 20,
+                    color: node.important
+                        ? theme.textTheme.bodyLarge?.color
+                        : theme.textTheme.bodySmall?.color,
+                  ),
+                  onPressed: () =>
+                      repo.setMatrix(node.id, important: !node.important),
+                ),
+              // 📅 날짜/마감 설정
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.calendar_today_outlined,
+                    size: 17, color: theme.textTheme.bodySmall?.color),
+                onPressed: () => _pickDate(context, ref),
+              ),
+            ],
+          ],
         ),
-        child: Text('지금은 비어 있어요', style: theme.textTheme.bodyMedium),
-      );
+      ),
+    );
+
+    return Dismissible(
+      key: ValueKey('tile_${node.id}'),
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 16),
+        child: const Icon(Icons.check_circle, color: AppColors.done),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        child: Icon(Icons.delete_outline,
+            color: Theme.of(context).textTheme.bodySmall?.color),
+      ),
+      confirmDismiss: (dir) async {
+        if (dir == DismissDirection.startToEnd) {
+          done ? await repo.reopen(node.id) : await repo.complete(node.id);
+          return false; // 스트림 갱신에 맡김
+        }
+        await repo.deleteNode(node.id); // 좌 = 삭제
+        return false;
+      },
+      child: tile,
+    );
+  }
+
+  Future<void> _pickDate(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(nodeRepoProvider);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: node.date ?? todayDate(),
+      firstDate: todayDate(),
+      lastDate: todayDate().add(const Duration(days: 365)),
+      helpText: '언제까지 할까요?',
+      cancelText: '취소',
+      confirmText: '설정',
+    );
+    if (picked != null) {
+      await repo.setDate(node.id, picked);
     }
-    final n = node!;
+  }
+}
+
+class _FocusCard extends ConsumerWidget {
+  const _FocusCard({required this.node});
+  final Node node;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
@@ -90,7 +208,7 @@ class _FocusCard extends ConsumerWidget {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => ref.read(nodeRepoProvider).complete(n.id),
+            onTap: () => ref.read(nodeRepoProvider).complete(node.id),
             behavior: HitTestBehavior.opaque,
             child: Container(
               width: 22,
@@ -103,14 +221,14 @@ class _FocusCard extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('지금 이것부터', style: theme.textTheme.bodySmall),
                 const SizedBox(height: 2),
-                Text(n.title, style: theme.textTheme.titleMedium),
+                Text(node.title, style: theme.textTheme.titleMedium),
               ],
             ),
           ),
@@ -120,45 +238,7 @@ class _FocusCard extends ConsumerWidget {
   }
 }
 
-class _SlotSection extends ConsumerWidget {
-  const _SlotSection({required this.slot, required this.nodes});
-  final String? slot;
-  final List<Node> nodes;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    // 구간 미지정이고 비어있으면 섹션 자체를 숨김.
-    if (slot == null && nodes.isEmpty) return const SizedBox.shrink();
-    final label = slot == null ? '그 외' : Slot.label(slot!);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 4),
-          child: Text(label, style: theme.textTheme.bodySmall),
-        ),
-        if (nodes.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8, left: 2),
-            child: Text('지금은 비어 있어요',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.textTheme.bodySmall?.color)),
-          )
-        else
-          for (final n in nodes)
-            NodeTile(
-              node: n,
-              onToggleDone: () => ref.read(nodeRepoProvider).complete(n.id),
-            ),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
-}
-
-/// "오늘의 승리 · N" 접힌 스택. 탭하면 펼침.
+/// "오늘의 승리 · N" 접힌 스택.
 class _WinsStack extends ConsumerStatefulWidget {
   const _WinsStack();
   @override
@@ -172,6 +252,7 @@ class _WinsStackState extends ConsumerState<_WinsStack> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final wins = ref.watch(todayWinsProvider).valueOrNull ?? const [];
+    if (wins.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -182,8 +263,7 @@ class _WinsStackState extends ConsumerState<_WinsStack> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                const Icon(Icons.check_circle,
-                    size: 16, color: AppColors.done),
+                const Icon(Icons.check_circle, size: 16, color: AppColors.done),
                 const SizedBox(width: 6),
                 Text('오늘의 승리 · ${wins.length}',
                     style: theme.textTheme.bodyMedium),
@@ -204,12 +284,7 @@ class _WinsStackState extends ConsumerState<_WinsStack> {
               _open ? CrossFadeState.showFirst : CrossFadeState.showSecond,
           firstChild: Column(
             children: [
-              for (final n in wins)
-                NodeTile(
-                  node: n,
-                  showUrgentBolt: false,
-                  onToggleDone: () => ref.read(nodeRepoProvider).reopen(n.id),
-                ),
+              for (final n in wins) SimpleTile(node: n, showStar: false),
             ],
           ),
           secondChild: const SizedBox(width: double.infinity),

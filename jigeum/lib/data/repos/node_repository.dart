@@ -51,6 +51,26 @@ class NodeRepository {
     return q.watch();
   }
 
+  /// 오늘 화면용: 오늘 날짜 또는 날짜 미지정인 open 노드 (미래 날짜는 제외).
+  Stream<List<Node>> watchTodayOpen(DateTime date) {
+    final d = dateOnly(date);
+    final q = db.select(db.nodes)
+      ..where((n) =>
+          n.status.equals(NodeStatus.open) &
+          (n.date.equals(d) | n.date.isNull()))
+      ..orderBy([
+        (n) => OrderingTerm.desc(n.important),
+        (n) => OrderingTerm.asc(n.sortOrder),
+      ]);
+    return q.watch();
+  }
+
+  /// 완전 삭제 (사용자 명시 요청 시). 자식도 함께 삭제.
+  Future<void> deleteNode(String id) async {
+    await (db.delete(db.nodes)..where((n) => n.parentId.equals(id))).go();
+    await (db.delete(db.nodes)..where((n) => n.id.equals(id))).go();
+  }
+
   Stream<List<Node>> watchForDate(DateTime date) {
     final d = dateOnly(date);
     final q = db.select(db.nodes)
@@ -94,9 +114,10 @@ class NodeRepository {
     final id = _uuid.v4();
     final order = await _nextSortOrder(parentId);
 
-    // Q4 자동 서랍: task 이면서 important=false, urgent=false → drawer
+    // Q4 자동 서랍: 날짜 없는 미분류 task 만 서랍으로.
+    // 날짜가 있으면(오늘 할 일 등) 분류 없이도 목록에 그대로 보인다.
     var status = NodeStatus.open;
-    if (type == NodeType.task && !important && !urgent) {
+    if (type == NodeType.task && !important && !urgent && date == null) {
       status = NodeStatus.drawer;
     }
 

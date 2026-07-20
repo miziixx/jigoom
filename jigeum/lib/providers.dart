@@ -35,9 +35,14 @@ final childrenProvider =
   return ref.watch(nodeRepoProvider).watchChildren(parentId);
 });
 
-/// 오늘 open 노드
+/// 오늘 open 노드 (오늘 날짜 + 날짜 미지정 포함)
 final todayNodesProvider = StreamProvider<List<Node>>((ref) {
-  return ref.watch(nodeRepoProvider).watchForDate(todayDate());
+  return ref.watch(nodeRepoProvider).watchTodayOpen(todayDate());
+});
+
+/// 전체 노드 (전체 탭용)
+final allNodesProvider = StreamProvider<List<Node>>((ref) {
+  return ref.watch(nodeRepoProvider).watchAll();
 });
 
 /// 오늘의 승리
