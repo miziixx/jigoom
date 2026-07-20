@@ -18,7 +18,7 @@ dependencies:
   uuid: ^4.5.0
   flutter_local_notifications: ^17.2.2
   timezone: ^0.9.4
-  # home_widget 은 다음 단계에서 재도입 (알림 안정 확인 후).
+  # home_widget 플러그인은 기기 크래시로 사용 안 함 — 위젯은 네이티브(MethodChannel) 직접 구현.
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

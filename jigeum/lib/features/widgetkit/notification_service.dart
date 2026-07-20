@@ -78,6 +78,8 @@ class NotificationService {
         importance: Importance.low,
         playSound: false,
         onlyAlertOnce: true,
+        // 잠금화면에서도 내용이 그대로 보이도록 공개.
+        visibility: NotificationVisibility.public,
       );
       await _plugin.show(
         _ongoingId,
