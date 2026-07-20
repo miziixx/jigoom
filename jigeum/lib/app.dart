@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants.dart';
 import 'features/capture/quick_capture_bar.dart';
+import 'features/widgetkit/widget_bridge.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_view.dart';
 import 'features/today/today_view.dart';
@@ -33,6 +34,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       appBar: AppBar(
         title: Text(_titles[_index]),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.opacity_outlined),
+            tooltip: '위젯 투명도',
+            onPressed: _widgetOpacityDialog,
+          ),
           if (_index == 2)
             IconButton(
               icon: const Icon(Icons.flag_outlined),
@@ -59,6 +65,48 @@ class _AppShellState extends ConsumerState<AppShell> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// 홈/잠금 위젯 배경 투명도 설정 (0=투명 ~ 100=불투명).
+  Future<void> _widgetOpacityDialog() async {
+    var value = (await WidgetBridge.getWidgetOpacity()).toDouble();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('위젯 투명도'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${value.round()}%',
+                  style: Theme.of(ctx).textTheme.titleMedium),
+              Slider(
+                value: value,
+                min: 0,
+                max: 100,
+                divisions: 20,
+                onChanged: (v) => setDialogState(() => value = v),
+              ),
+              Text('0% = 완전 투명 · 100% = 불투명',
+                  style: Theme.of(ctx).textTheme.bodySmall),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('취소')),
+            FilledButton(
+              onPressed: () async {
+                await WidgetBridge.setWidgetOpacity(value.round());
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+              child: const Text('적용'),
+            ),
+          ],
+        ),
       ),
     );
   }

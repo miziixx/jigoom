@@ -334,6 +334,32 @@ class NodeRepository {
     return q.watch();
   }
 
+  /// 위젯용: 사분면 상위 open task 목록 (1회성 조회).
+  Future<List<Node>> quadrantTop({
+    required bool important,
+    required bool urgent,
+    int limit = 3,
+  }) {
+    final q = db.select(db.nodes)
+      ..where((n) =>
+          n.type.equals(NodeType.task) &
+          n.important.equals(important) &
+          n.urgent.equals(urgent) &
+          n.status.equals(NodeStatus.open))
+      ..orderBy([(n) => OrderingTerm.asc(n.sortOrder)])
+      ..limit(limit);
+    return q.get();
+  }
+
+  /// 위젯용: 서랍(Q4) 개수.
+  Future<int> drawerCount() async {
+    final q = db.selectOnly(db.nodes)
+      ..addColumns([db.nodes.id.count()])
+      ..where(db.nodes.status.equals(NodeStatus.drawer));
+    final row = await q.getSingleOrNull();
+    return row?.read(db.nodes.id.count()) ?? 0;
+  }
+
   // ---------------------------------------------------------------------------
   // settings helpers
   // ---------------------------------------------------------------------------

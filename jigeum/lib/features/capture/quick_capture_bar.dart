@@ -22,7 +22,20 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
   bool _urgent = false;
 
   @override
+  void initState() {
+    super.initState();
+    // 위젯 탭 진입 → 입력창 포커스 + 키보드 열기.
+    quickCaptureFocusRequest.addListener(_onFocusRequest);
+  }
+
+  void _onFocusRequest() {
+    if (!mounted) return;
+    _focus.requestFocus();
+  }
+
+  @override
   void dispose() {
+    quickCaptureFocusRequest.removeListener(_onFocusRequest);
     _controller.dispose();
     _focus.dispose();
     super.dispose();

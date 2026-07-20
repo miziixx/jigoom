@@ -8,48 +8,35 @@ import android.content.Intent
 import android.widget.RemoteViews
 
 /**
- * 포커스 위젯 (2×1) — 순수 안드로이드 구현 (플러그인 의존 없음).
- * MainActivity 가 MethodChannel 로 저장한 SharedPreferences("jigeum_widget")의
- * focus_title 을 읽어 표시한다. 위젯 탭 → 앱 열기.
+ * 포커스 위젯 (2×1) — 순수 안드로이드 구현.
+ * 오늘의 포커스 표시. 탭하면 앱이 퀵캡처 입력 모드로 열림 (키보드 바로).
  */
 class FocusWidgetProvider : AppWidgetProvider() {
 
-    companion object {
-        const val PREFS = "jigeum_widget"
-        const val KEY_TITLE = "focus_title"
-
-        /** 등록된 모든 위젯 인스턴스를 갱신. */
-        fun updateAll(context: Context) {
-            val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(
-                android.content.ComponentName(context, FocusWidgetProvider::class.java)
-            )
-            if (ids.isNotEmpty()) {
-                FocusWidgetProvider().onUpdate(context, manager, ids)
-            }
-        }
-    }
-
-    override fun onUpdate(
+    public override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        val title = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_TITLE, "오늘 할 일을 정해볼까요")
+        val prefs = context.getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
+        val title = prefs.getString(WidgetPrefs.KEY_FOCUS, "오늘 할 일을 정해볼까요")
+        val alpha = WidgetPrefs.bgAlpha(context)
 
-        // 위젯 탭 → 앱 열기
-        val launch = Intent(context, MainActivity::class.java)
+        // 탭 → 앱을 퀵캡처 모드로 열기
+        val capture = Intent(context, MainActivity::class.java).apply {
+            action = MainActivity.ACTION_QUICK_CAPTURE
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
         val pending = PendingIntent.getActivity(
-            context, 0, launch,
+            context, 1, capture,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         for (widgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.focus_widget).apply {
                 setTextViewText(R.id.widget_title, title)
-                setOnClickPendingIntent(R.id.widget_title, pending)
-                setOnClickPendingIntent(R.id.widget_check, pending)
+                setInt(R.id.widget_bg_img, "setImageAlpha", alpha)
+                setOnClickPendingIntent(R.id.widget_root, pending)
             }
             appWidgetManager.updateAppWidget(widgetId, views)
         }

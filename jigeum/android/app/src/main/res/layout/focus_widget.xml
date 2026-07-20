@@ -1,28 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:padding="12dp"
-    android:background="@drawable/widget_bg">
+    android:layout_height="match_parent">
 
+    <!-- 배경 레이어: setImageAlpha 로 투명도 조절 (둥근 모서리 유지) -->
     <ImageView
-        android:id="@+id/widget_check"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:src="@drawable/ic_widget_check"
-        android:contentDescription="완료"
-        android:layout_marginEnd="12dp" />
+        android:id="@+id/widget_bg_img"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg"
+        android:scaleType="fitXY"
+        android:importantForAccessibility="no" />
 
-    <TextView
-        android:id="@+id/widget_title"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:maxLines="2"
-        android:ellipsize="end"
-        android:textSize="15sp"
-        android:textColor="#1A1A1A"
-        android:text="오늘 할 일을 정해볼까요" />
-</LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+
+        <ImageView
+            android:id="@+id/widget_check"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_widget_check"
+            android:contentDescription="빠른 입력"
+            android:layout_marginEnd="10dp" />
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:textSize="15sp"
+            android:textColor="#1A1A1A"
+            android:text="오늘 할 일을 정해볼까요" />
+    </LinearLayout>
+</FrameLayout>

@@ -26,6 +26,14 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/focus_widget_info" />
         </receiver>
+        <receiver android:name=".MatrixWidgetProvider" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/matrix_widget_info" />
+        </receiver>
 """
 
 

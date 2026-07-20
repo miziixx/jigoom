@@ -1,8 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants.dart';
 import 'data/db.dart';
 import 'data/repos/node_repository.dart';
+
+/// 위젯 탭 진입 시 퀵캡처 입력창에 포커스를 요청하는 트리거.
+/// 값이 증가할 때마다 QuickCaptureBar 가 포커스+키보드를 연다.
+final ValueNotifier<int> quickCaptureFocusRequest = ValueNotifier<int>(0);
 
 final dbProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();

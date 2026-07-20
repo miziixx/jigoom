@@ -8,29 +8,12 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
 import 'core/theme.dart';
 import 'data/db.dart';
-import 'data/repos/node_repository.dart';
 import 'features/widgetkit/notification_service.dart';
 import 'features/widgetkit/widget_bridge.dart';
 import 'providers.dart';
 
 /// 진단용: 릴리즈에서도 크래시 대신 에러 메시지를 화면에 표시.
 final ValueNotifier<String?> gError = ValueNotifier<String?>(null);
-
-/// 홈위젯 체크 버튼 background 콜백 (top-level 필수).
-@pragma('vm:entry-point')
-Future<void> widgetBackgroundCallback(Uri? uri) async {
-  if (uri == null) return;
-  if (uri.host == 'complete') {
-    final id = uri.queryParameters['id'];
-    if (id == null || id.isEmpty) return;
-    final db = AppDatabase();
-    final repo = NodeRepository(db);
-    await repo.complete(id);
-    final focus = await repo.selectFocus();
-    await WidgetBridge.updateFocus(focus);
-    await db.close();
-  }
-}
 
 void main() {
   runZonedGuarded(() async {
@@ -102,21 +85,61 @@ class GoalApp extends ConsumerStatefulWidget {
 
 class _GoalAppState extends ConsumerState<GoalApp> {
   AppLifecycleListener? _lifecycle;
+  StreamSubscription<dynamic>? _nodesSub;
+  Timer? _syncDebounce;
 
   @override
   void initState() {
     super.initState();
-    // resume 시점에도 날짜 비교 후 이월/승격 실행 (오후 첫 오픈 누락 방지).
+    // resume 시점에도 날짜 비교 후 이월/승격 + 위젯 진입 액션 확인.
     _lifecycle = AppLifecycleListener(
-      onResume: () => _runDailyRoutine(),
+      onResume: () {
+        _runDailyRoutine();
+        _checkLaunchAction();
+      },
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _startup());
   }
 
   @override
   void dispose() {
+    _syncDebounce?.cancel();
+    _nodesSub?.cancel();
     _lifecycle?.dispose();
     super.dispose();
+  }
+
+  /// 위젯 탭으로 열렸는지 확인 → 퀵캡처 입력창에 바로 포커스.
+  Future<void> _checkLaunchAction() async {
+    final action = await WidgetBridge.consumeLaunchAction();
+    if (action == 'quick_capture') {
+      quickCaptureFocusRequest.value++;
+    }
+  }
+
+  /// 홈/잠금 위젯 데이터 동기화 (포커스 + 매트릭스 + 서랍 개수).
+  Future<void> _syncWidgets() async {
+    try {
+      final repo = ref.read(nodeRepoProvider);
+      final focus = await repo.selectFocus();
+      String join(List<Node> ns) => ns.map((n) => '· ${n.title}').join('\n');
+      final q1 = await repo.quadrantTop(important: true, urgent: true);
+      final q2 = await repo.quadrantTop(important: true, urgent: false);
+      final q3 = await repo.quadrantTop(important: false, urgent: true);
+      final q4 = await repo.drawerCount();
+      await WidgetBridge.updateWidgets(
+        focusTitle: focus?.title ?? '오늘 할 일을 정해볼까요',
+        q1: join(q1),
+        q2: join(q2),
+        q3: join(q3),
+        q4Count: q4,
+      );
+      if (!kIsWeb) {
+        await NotificationService.instance.showOngoingFocus(focus?.title);
+      }
+    } catch (e, s) {
+      debugPrint('widget sync 실패(무시): $e\n$s');
+    }
   }
 
   /// 앱 오픈 시점(콜드 스타트 + resume)의 하루 1회 루틴.
@@ -127,14 +150,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       final repo = ref.read(nodeRepoProvider);
       await repo.runCarryOver(); // 규칙 2 (조용히)
       await repo.promoteQ2(); // 규칙 5 — 날짜 비교 기반, 언제 열어도 하루 1회 보장
-
-      // 포커스/승리 재계산 후 위젯·상주 알림 동기화.
       ref.invalidate(focusProvider);
-      final focus = await repo.selectFocus();
-      await WidgetBridge.updateFocus(focus);
-      if (!kIsWeb) {
-        await NotificationService.instance.showOngoingFocus(focus?.title);
-      }
+      await _syncWidgets();
     } catch (e, s) {
       debugPrint('daily routine 실패(무시): $e\n$s');
     }
@@ -149,14 +166,16 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       } catch (e, s) {
         debugPrint('알림 init 실패(무시): $e\n$s');
       }
-      try {
-        await WidgetBridge.registerBackgroundCallback(widgetBackgroundCallback);
-      } catch (e, s) {
-        debugPrint('위젯 콜백 등록 실패(무시): $e\n$s');
-      }
     }
 
     await _runDailyRoutine();
+    await _checkLaunchAction();
+
+    // 노드가 바뀔 때마다 위젯도 갱신 (0.5초 디바운스).
+    _nodesSub = ref.read(nodeRepoProvider).watchAll().listen((_) {
+      _syncDebounce?.cancel();
+      _syncDebounce = Timer(const Duration(milliseconds: 500), _syncWidgets);
+    });
 
     if (!kIsWeb) {
       try {
