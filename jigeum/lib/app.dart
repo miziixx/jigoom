@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/constants.dart';
 import 'features/all/all_view.dart';
 import 'features/capture/quick_capture_bar.dart';
+import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_view.dart';
 import 'features/today/today_view.dart';
@@ -23,7 +24,7 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
 
-  static const _titles = ['오늘', '매트릭스', '아웃라인', '전체'];
+  static const _titles = ['오늘', '매트릭스', '아웃라인', '습관', '전체'];
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +32,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       0 => const TodayView(),
       1 => const MatrixView(),
       2 => const OutlineView(),
+      3 => const HabitView(),
       _ => const AllView(),
     };
 
@@ -44,6 +46,12 @@ class _AppShellState extends ConsumerState<AppShell> {
             tooltip: '위젯 투명도',
             onPressed: _widgetOpacityDialog,
           ),
+          if (_index == 3)
+            IconButton(
+              icon: const Icon(Icons.auto_awesome_outlined),
+              tooltip: '새 습관',
+              onPressed: _newHabit,
+            ),
           if (_index == 2) ...[
             IconButton(
               icon: const Icon(Icons.create_new_folder_outlined),
@@ -78,10 +86,39 @@ class _AppShellState extends ConsumerState<AppShell> {
           NavigationDestination(
               icon: Icon(Icons.account_tree_outlined), label: '아웃라인'),
           NavigationDestination(
+              icon: Icon(Icons.auto_awesome_outlined), label: '습관'),
+          NavigationDestination(
               icon: Icon(Icons.list_alt_outlined), label: '전체'),
         ],
       ),
     );
+  }
+
+  /// 새 습관 만들기.
+  Future<void> _newHabit() async {
+    final controller = TextEditingController();
+    final title = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('새 습관'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '예: 아침 산책, 물 마시기'),
+          onSubmitted: (v) => Navigator.of(ctx).pop(v),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('취소')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              child: const Text('만들기')),
+        ],
+      ),
+    );
+    if (title == null || title.trim().isEmpty) return;
+    await ref.read(habitRepoProvider).addHabit(title.trim());
   }
 
   /// 새 폴더(카테고리) 생성 — 아웃라인 최상위에 추가.

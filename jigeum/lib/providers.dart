@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants.dart';
 import 'data/db.dart';
+import 'data/repos/habit_repository.dart';
 import 'data/repos/node_repository.dart';
 
 /// 위젯 탭 진입 시 퀵캡처 입력창에 포커스를 요청하는 트리거.
@@ -48,6 +49,20 @@ final allNodesProvider = StreamProvider<List<Node>>((ref) {
 /// 폴더 목록
 final foldersProvider = StreamProvider<List<Node>>((ref) {
   return ref.watch(nodeRepoProvider).watchFolders();
+});
+
+/// 습관 리포지토리 & 목록 & 체크 기록
+final habitRepoProvider = Provider<HabitRepository>((ref) {
+  return HabitRepository(ref.watch(dbProvider));
+});
+
+final habitsProvider = StreamProvider<List<Habit>>((ref) {
+  return ref.watch(habitRepoProvider).watchHabits();
+});
+
+final habitTicksProvider =
+    StreamProvider.family<List<HabitTick>, String>((ref, habitId) {
+  return ref.watch(habitRepoProvider).watchTicks(habitId);
 });
 
 /// 날짜 범위 노드 (아웃라이너 기간 필터)

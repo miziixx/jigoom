@@ -34,13 +34,32 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [Nodes, Settings])
+/// 습관 (해빗 트래커).
+class Habits extends Table {
+  TextColumn get id => text()(); // uuid v4
+  TextColumn get title => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 습관 체크 기록: 하루 1개 (habitId + date 유니크).
+class HabitTicks extends Table {
+  TextColumn get habitId => text()();
+  DateTimeColumn get date => dateTime()(); // 자정 기준 날짜만
+
+  @override
+  Set<Column> get primaryKey => {habitId, date};
+}
+
+@DriftDatabase(tables: [Nodes, Settings, Habits, HabitTicks])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +71,12 @@ class AppDatabase extends _$AppDatabase {
               'CREATE INDEX IF NOT EXISTS idx_nodes_date_status ON nodes(date, status)');
           await customStatement(
               'CREATE INDEX IF NOT EXISTS idx_nodes_matrix ON nodes(important, urgent, status)');
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(habits);
+            await m.createTable(habitTicks);
+          }
         },
       );
 
