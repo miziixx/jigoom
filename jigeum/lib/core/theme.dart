@@ -287,7 +287,6 @@ class AppTheme {
             s.contains(WidgetState.selected) ? tk.paper : tk.ink),
         dayBackgroundColor: WidgetStateProperty.resolveWith((s) =>
             s.contains(WidgetState.selected) ? tk.ink : Colors.transparent),
-        rangeSelectionForegroundColor: WidgetStatePropertyAll(tk.ink),
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       ),
       // 시간 피커: 다이얼·선택 배경도 잉크 톤.
