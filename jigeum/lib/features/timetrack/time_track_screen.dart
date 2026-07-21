@@ -16,7 +16,7 @@ Future<void> showTimeTrackInput(
   final repo = ref.read(timeTrackRepoProvider);
   final existing = await repo.getBlock(date, block);
   if (!context.mounted) return;
-  final controller = TextEditingController(text: existing?.text ?? '');
+  final controller = TextEditingController(text: existing?.content ?? '');
   final label =
       '${blockLabel(block)}–${blockLabel((block + 1) % 48 == 0 ? 48 : block + 1)}';
   final text = await showDialog<String>(
@@ -66,7 +66,7 @@ class _TimeTrackScreenState extends ConsumerState<TimeTrackScreen> {
     final theme = Theme.of(context);
     final blocks =
         ref.watch(timeBlocksForDateProvider(_date)).valueOrNull ?? const [];
-    final byIndex = {for (final b in blocks) b.block: b.text};
+    final byIndex = {for (final b in blocks) b.block: b.content};
     final nowBlock = TimeTrackRepository.blockOfNow();
     final filled = byIndex.length;
 

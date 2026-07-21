@@ -96,7 +96,7 @@ class BackupService {
       ],
       'timeBlocks': [
         for (final t in timeBlocks)
-          {'date': d(t.date), 'block': t.block, 'text': t.text}
+          {'date': d(t.date), 'block': t.block, 'text': t.content}
       ],
     });
   }
@@ -186,7 +186,7 @@ class BackupService {
         TimeBlocksCompanion.insert(
           date: pr(m['date']),
           block: m['block'] as int,
-          text: m['text'] as String,
+          content: m['text'] as String,
         )
     ];
 

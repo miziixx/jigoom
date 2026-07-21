@@ -149,7 +149,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       final cur = await ttRepo.getBlock(todayDate(), nowBlock);
       await WidgetBridge.updateTimeTrack(
         '지금 ${blockLabel(nowBlock)}',
-        cur?.text ?? '탭해서 기록',
+        cur?.content ?? '탭해서 기록',
       );
     } catch (e, s) {
       debugPrint('widget sync 실패(무시): $e\n$s');

@@ -40,6 +40,6 @@ class TimeTrackRepository {
       return;
     }
     await db.into(db.timeBlocks).insertOnConflictUpdate(
-        TimeBlocksCompanion.insert(date: d, block: block, text: t));
+        TimeBlocksCompanion.insert(date: d, block: block, content: t));
   }
 }

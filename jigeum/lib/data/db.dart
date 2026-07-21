@@ -75,7 +75,7 @@ class Schedules extends Table {
 class TimeBlocks extends Table {
   DateTimeColumn get date => dateTime()(); // 자정 기준 날짜
   IntColumn get block => integer()(); // 0~47 (30분 단위)
-  TextColumn get text => text()();
+  TextColumn get content => text()(); // 'text' 는 drift 빌더명과 충돌 → content
 
   @override
   Set<Column> get primaryKey => {date, block};
