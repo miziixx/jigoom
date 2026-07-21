@@ -10,6 +10,9 @@ on:
       - 'jigeum/**'
       - '.github/workflows/jigeum-apk.yml'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -84,3 +87,16 @@ jobs:
           name: jigeum-arm64-apk
           path: jigeum/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
+
+      # main 에 올라오면 다운로드 가능한 릴리즈로 APK 를 게시 (롤링 태그).
+      - name: Publish APK to Release (main only)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: jigeum-latest
+          name: 지금 (Editorial) — 최신 APK
+          body: |
+            `지금` 앱 최신 빌드 (arm64 release).
+            main 커밋 ${{ github.sha }} 기준 자동 게시.
+          files: jigeum/build/app/outputs/flutter-apk/app-release.apk
+          make_latest: 'true'
