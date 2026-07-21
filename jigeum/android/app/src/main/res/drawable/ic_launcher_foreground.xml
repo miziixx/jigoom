@@ -1,19 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 지금 런처 아이콘 전경 — 프롬프트 캐럿 "›" (잉크) + 커서(mark). 편집 시그니처. -->
+<!-- 지금 런처 아이콘 전경 — 미니멀 시계("지금/now"). 종이 링·바늘 + mark 중심점. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 캐럿 › (종이색, 각진 획) — 다크 배경 위 고대비 -->
+    <!-- 시계 링 (종이) -->
     <path
+        android:fillColor="#00000000"
         android:strokeColor="#F4F1EA"
-        android:strokeWidth="10"
-        android:strokeLineCap="butt"
-        android:strokeLineJoin="miter"
-        android:pathData="M43,38 L66,56 L43,74" />
-    <!-- 커서 블록 _ (mark, 유일한 포인트색) -->
+        android:strokeWidth="5"
+        android:pathData="M28,54 a26,26 0 1 0 52,0 a26,26 0 1 0 -52,0" />
+    <!-- 분침 (종이, 길게) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#F4F1EA"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L70,41" />
+    <!-- 시침 (종이, 짧게) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#F4F1EA"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L43,46" />
+    <!-- 중심점 (mark, 유일한 포인트색) -->
     <path
         android:fillColor="#B5443A"
-        android:pathData="M56,72 h18 v6 h-18 z" />
+        android:pathData="M50,54 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0" />
 </vector>

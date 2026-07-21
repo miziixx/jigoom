@@ -120,43 +120,53 @@ class _AppShellState extends ConsumerState<AppShell> {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Padding(
-          padding: const EdgeInsets.only(left: 14),
+          // 세로 여백으로 터치 영역 확보.
+          padding: const EdgeInsets.only(left: 10, top: 8, bottom: 8),
           child: Text(label,
               style: AppText.meta(t(context).inkSoft, size: 11)),
         ),
       );
 
   /// 하단 탭 — 소문자 모노, 상단 규칙선, 활성 = ink + 밑줄.
+  /// 각 탭은 Expanded + 세로 여백으로 셀 전체가 터치되도록 함.
   Widget _bottomNav(BuildContext context) {
     final tk = t(context);
     return Container(
-      decoration:
-          BoxDecoration(border: Border(top: BorderSide(color: tk.line, width: 1))),
+      decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: tk.line, width: 1))),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               for (var i = 0; i < _navLabels.length; i++)
-                GestureDetector(
-                  onTap: () => setState(() => _index = i),
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: _index == i ? tk.ink : Colors.transparent,
-                          width: 1.5,
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _index = i),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      alignment: Alignment.center,
+                      // 넉넉한 터치 영역(≈44dp).
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Container(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: _index == i ? tk.ink : Colors.transparent,
+                              width: 1.5,
+                            ),
+                          ),
                         ),
+                        child: Text(_navLabels[i],
+                            maxLines: 1,
+                            overflow: TextOverflow.visible,
+                            style: AppText.nav(
+                                _index == i ? tk.ink : tk.inkSoft,
+                                active: _index == i)),
                       ),
                     ),
-                    child: Text(_navLabels[i],
-                        style: AppText.nav(
-                            _index == i ? tk.ink : tk.inkSoft,
-                            active: _index == i)),
                   ),
                 ),
             ],
