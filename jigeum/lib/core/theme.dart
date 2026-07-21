@@ -153,8 +153,7 @@ class AppTheme {
         foregroundColor: primary,
         toolbarHeight: 52,
         titleTextStyle: TextStyle(
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w600,
             fontSize: 17,
             color: primary),
       ),
@@ -175,13 +174,11 @@ class AppTheme {
           side: BorderSide(color: hairline, width: 0.5),
         ),
         titleTextStyle: TextStyle(
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w600,
             fontSize: 17,
             color: primary),
         contentTextStyle: TextStyle(
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w400,
+                        fontWeight: FontWeight.w400,
             fontSize: 15,
             color: primary),
       ),
@@ -204,8 +201,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10)),
           textStyle: const TextStyle(
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w600,
               fontSize: 15),
         ),
       ),
@@ -213,8 +209,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: secondary,
           textStyle: const TextStyle(
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.w400,
+                            fontWeight: FontWeight.w400,
               fontSize: 14),
         ),
       ),
@@ -228,8 +223,7 @@ class AppTheme {
         side: BorderSide(color: hairline, width: 1),
         shape: const StadiumBorder(),
         labelStyle: TextStyle(
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w400,
+                        fontWeight: FontWeight.w400,
             fontSize: 13,
             color: primary),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -243,7 +237,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         hintStyle: TextStyle(
-            fontFamily: 'Pretendard', fontSize: 15, color: tertiary),
+            fontSize: 15, color: tertiary),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: hairline, width: 1),
@@ -267,8 +261,7 @@ class AppTheme {
                 ? AppColors.accent
                 : secondary)),
         labelTextStyle: WidgetStatePropertyAll(TextStyle(
-            fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w500,
             fontSize: 12,
             color: secondary)),
       ),
@@ -277,20 +270,17 @@ class AppTheme {
 
   static TextTheme _textTheme(
       Color primary, Color secondary, int weightDelta) {
-    const family = 'Pretendard';
+    // fontFamily 미지정 = 기기 기본 글꼴(삼성 One UI 등) 사용.
     final reg = shiftWeight(FontWeight.w400, weightDelta);
     final semi = shiftWeight(FontWeight.w600, weightDelta);
     return TextTheme(
-      titleLarge: TextStyle(
-          fontFamily: family, fontWeight: semi, fontSize: 22, color: primary),
-      titleMedium: TextStyle(
-          fontFamily: family, fontWeight: semi, fontSize: 17, color: primary),
-      bodyLarge: TextStyle(
-          fontFamily: family, fontWeight: reg, fontSize: 16, color: primary),
-      bodyMedium: TextStyle(
-          fontFamily: family, fontWeight: reg, fontSize: 15, color: primary),
-      bodySmall: TextStyle(
-          fontFamily: family, fontWeight: reg, fontSize: 13, color: secondary),
+      titleLarge:
+          TextStyle(fontWeight: semi, fontSize: 22, color: primary),
+      titleMedium:
+          TextStyle(fontWeight: semi, fontSize: 17, color: primary),
+      bodyLarge: TextStyle(fontWeight: reg, fontSize: 16, color: primary),
+      bodyMedium: TextStyle(fontWeight: reg, fontSize: 15, color: primary),
+      bodySmall: TextStyle(fontWeight: reg, fontSize: 13, color: secondary),
     );
   }
 }

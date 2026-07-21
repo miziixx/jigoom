@@ -124,8 +124,7 @@ class _HabitCard extends ConsumerWidget {
                   child: Text(
                     todayDone ? '오늘 ✦' : '오늘',
                     style: TextStyle(
-                      fontFamily: 'Pretendard',
-                      fontSize: 12,
+                                            fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: todayDone
                           ? theme.scaffoldBackgroundColor

@@ -136,10 +136,27 @@ class SimpleTile extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(node.title,
-                        style: theme.textTheme.bodyMedium,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
+                    Row(
+                      children: [
+                        // 중요 표시: 작은 accent 점만 (배지 안 씀).
+                        if (node.important && !done) ...[
+                          Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.only(right: 6),
+                            decoration: const BoxDecoration(
+                                color: AppColors.accent,
+                                shape: BoxShape.circle),
+                          ),
+                        ],
+                        Flexible(
+                          child: Text(node.title,
+                              style: theme.textTheme.bodyMedium,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
+                    ),
                     if (node.note.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
@@ -148,7 +165,7 @@ class SimpleTile extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                             style: metaStyle(context)),
                       ),
-                    // 메타 배지 줄: 긴급 · 마감
+                    // 메타 배지: 긴급·마감만 (있을 때만)
                     if (!done && (node.urgent || showDeadline))
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -168,23 +185,6 @@ class SimpleTile extends ConsumerWidget {
                   ],
                 ),
               ),
-              // 중요 토글 배지 (테두리형, 중요일 때 accent)
-              if (!done && showStar)
-                GestureDetector(
-                  onTap: () =>
-                      repo.setMatrix(node.id, important: !node.important),
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 6, top: 2),
-                    child: Opacity(
-                      opacity: node.important ? 1 : 0.35,
-                      child: metaBadge(context, '중요',
-                          filled: node.important,
-                          bg: AppColors.accent,
-                          fg: Colors.white),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),

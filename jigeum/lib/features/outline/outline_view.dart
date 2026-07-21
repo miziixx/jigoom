@@ -462,8 +462,7 @@ class _TaskRow extends ConsumerWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontFamily: 'Pretendard',
-          fontSize: 10.5,
+                    fontSize: 10.5,
           fontWeight: FontWeight.w600,
           color: urgentish ? bg : theme.textTheme.bodySmall?.color,
         ),

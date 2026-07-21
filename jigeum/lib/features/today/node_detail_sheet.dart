@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
+import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 
@@ -29,6 +30,8 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
   late final TextEditingController _note;
   DateTime? _date;
   String? _parentId;
+  late bool _important;
+  late bool _urgent;
 
   @override
   void initState() {
@@ -36,12 +39,39 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
     _note = TextEditingController(text: widget.node.note);
     _date = widget.node.date;
     _parentId = widget.node.parentId;
+    _important = widget.node.important;
+    _urgent = widget.node.urgent;
   }
 
   @override
   void dispose() {
     _note.dispose();
     super.dispose();
+  }
+
+  Widget _toggleChip(ThemeData theme, String label, bool on, Color onColor,
+      VoidCallback onTap) {
+    final border = theme.dividerTheme.color ?? Colors.black12;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: on ? onColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: on ? null : Border.all(color: border, width: 1),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: on ? Colors.white : theme.textTheme.bodySmall?.color,
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _save() async {
@@ -52,6 +82,11 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
     }
     if (_parentId != widget.node.parentId) {
       await repo.setParent(widget.node.id, _parentId);
+    }
+    if (_important != widget.node.important ||
+        _urgent != widget.node.urgent) {
+      await repo.setMatrix(widget.node.id,
+          important: _important, urgent: _urgent);
     }
     if (mounted) Navigator.of(context).pop();
   }
@@ -73,6 +108,18 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(widget.node.title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 12),
+
+          // 중요 / 긴급 토글
+          Row(
+            children: [
+              _toggleChip(theme, '중요', _important, AppColors.accent,
+                  () => setState(() => _important = !_important)),
+              const SizedBox(width: 8),
+              _toggleChip(theme, '긴급', _urgent, AppColors.alert,
+                  () => setState(() => _urgent = !_urgent)),
+            ],
+          ),
           const SizedBox(height: 14),
 
           // 메모

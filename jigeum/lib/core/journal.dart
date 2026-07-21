@@ -7,8 +7,7 @@ import 'theme.dart';
 /// 메타·숫자·시간·배지용 모노 스타일 (DESIGN_SYSTEM §3 두 벌 시스템).
 TextStyle metaStyle(BuildContext context, {Color? color, double size = 11}) {
   return TextStyle(
-    fontFamily: kMonoFamily,
-    fontSize: size,
+        fontSize: size,
     fontWeight: FontWeight.w400,
     height: 1.3,
     color: color ?? Theme.of(context).textTheme.bodySmall?.color,
