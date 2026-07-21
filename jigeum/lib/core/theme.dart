@@ -27,11 +27,30 @@ class AppColors {
 const kAnimDuration = Duration(milliseconds: 200);
 const kAnimCurve = Curves.easeOut;
 
-class AppTheme {
-  static ThemeData light() => _build(Brightness.light);
-  static ThemeData dark() => _build(Brightness.dark);
+/// 굵기 조절: FontWeight 을 delta 만큼 이동 (w400=index3 기준).
+FontWeight shiftWeight(FontWeight base, int delta) {
+  const order = [
+    FontWeight.w100,
+    FontWeight.w200,
+    FontWeight.w300,
+    FontWeight.w400,
+    FontWeight.w500,
+    FontWeight.w600,
+    FontWeight.w700,
+    FontWeight.w800,
+    FontWeight.w900,
+  ];
+  final i = (order.indexOf(base) + delta).clamp(0, order.length - 1);
+  return order[i];
+}
 
-  static ThemeData _build(Brightness b) {
+class AppTheme {
+  static ThemeData light({int weightDelta = 0}) =>
+      _build(Brightness.light, weightDelta);
+  static ThemeData dark({int weightDelta = 0}) =>
+      _build(Brightness.dark, weightDelta);
+
+  static ThemeData _build(Brightness b, [int weightDelta = 0]) {
     final isDark = b == Brightness.dark;
     final bg = isDark ? AppColors.bgDark : AppColors.bgLight;
     final primary =
@@ -61,7 +80,30 @@ class AppTheme {
       scaffoldBackgroundColor: bg,
       canvasColor: bg,
       colorScheme: scheme,
-      textTheme: _textTheme(primary, secondary),
+      textTheme: _textTheme(primary, secondary, weightDelta),
+      // 드로어·팝업: M3 보라 틴트 제거, 흰 톤 + 헤어라인.
+      drawerTheme: DrawerThemeData(
+        backgroundColor: bg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.horizontal(right: Radius.circular(20)),
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: bg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: hairline, width: 0.5),
+        ),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: secondary,
+        textColor: primary,
+      ),
       // 전역 밀도: 터치영역 부풀림 없이 컴팩트하게.
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -197,34 +239,22 @@ class AppTheme {
     );
   }
 
-  static TextTheme _textTheme(Color primary, Color secondary) {
+  static TextTheme _textTheme(
+      Color primary, Color secondary, int weightDelta) {
     const family = 'Pretendard';
+    final reg = shiftWeight(FontWeight.w400, weightDelta);
+    final semi = shiftWeight(FontWeight.w600, weightDelta);
     return TextTheme(
       titleLarge: TextStyle(
-          fontFamily: family,
-          fontWeight: FontWeight.w600,
-          fontSize: 22,
-          color: primary),
+          fontFamily: family, fontWeight: semi, fontSize: 22, color: primary),
       titleMedium: TextStyle(
-          fontFamily: family,
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-          color: primary),
+          fontFamily: family, fontWeight: semi, fontSize: 17, color: primary),
       bodyLarge: TextStyle(
-          fontFamily: family,
-          fontWeight: FontWeight.w400,
-          fontSize: 16,
-          color: primary),
+          fontFamily: family, fontWeight: reg, fontSize: 16, color: primary),
       bodyMedium: TextStyle(
-          fontFamily: family,
-          fontWeight: FontWeight.w400,
-          fontSize: 15,
-          color: primary),
+          fontFamily: family, fontWeight: reg, fontSize: 15, color: primary),
       bodySmall: TextStyle(
-          fontFamily: family,
-          fontWeight: FontWeight.w400,
-          fontSize: 13,
-          color: secondary),
+          fontFamily: family, fontWeight: reg, fontSize: 13, color: secondary),
     );
   }
 }

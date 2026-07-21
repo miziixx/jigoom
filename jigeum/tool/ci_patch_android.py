@@ -18,7 +18,7 @@ PERMISSIONS = """    <uses-permission android:name="android.permission.POST_NOTI
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 """
 
-RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:exported="true">
+RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:exported="true" android:label="지금 · 포커스">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -26,7 +26,7 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/focus_widget_info" />
         </receiver>
-        <receiver android:name=".MatrixWidgetProvider" android:exported="true">
+        <receiver android:name=".MatrixWidgetProvider" android:exported="true" android:label="지금 · 매트릭스">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -34,7 +34,7 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/matrix_widget_info" />
         </receiver>
-        <receiver android:name=".TimeTrackWidgetProvider" android:exported="true">
+        <receiver android:name=".TimeTrackWidgetProvider" android:exported="true" android:label="지금 · 타임트래커">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

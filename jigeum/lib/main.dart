@@ -8,6 +8,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
 import 'core/constants.dart';
 import 'core/journal.dart';
+import 'core/settings_controller.dart';
 import 'core/theme.dart';
 import 'data/db.dart';
 import 'data/repos/time_track_repository.dart';
@@ -205,19 +206,27 @@ class _GoalAppState extends ConsumerState<GoalApp> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
     return MaterialApp(
       title: '지금',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: AppTheme.light(weightDelta: settings.weightDelta),
+      darkTheme: AppTheme.dark(weightDelta: settings.weightDelta),
       themeMode: ThemeMode.system,
       builder: (context, child) {
-        return ValueListenableBuilder<String?>(
-          valueListenable: gError,
-          builder: (context, err, _) {
-            if (err != null) return _ErrorScreen(message: err);
-            return child ?? const SizedBox.shrink();
-          },
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          // 폰트 크기: 시스템 배율에 앱 설정 배율을 곱함.
+          data: mq.copyWith(
+            textScaler: TextScaler.linear(settings.fontScale),
+          ),
+          child: ValueListenableBuilder<String?>(
+            valueListenable: gError,
+            builder: (context, err, _) {
+              if (err != null) return _ErrorScreen(message: err);
+              return child ?? const SizedBox.shrink();
+            },
+          ),
         );
       },
       home: const AppShell(),

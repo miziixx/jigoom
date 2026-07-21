@@ -9,10 +9,10 @@ import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_view.dart';
 import 'features/schedule/schedule_view.dart';
+import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
 import 'features/today/today_view.dart';
 import 'features/today/two_minute_sheet.dart';
-import 'features/widgetkit/widget_bridge.dart';
 import 'providers.dart';
 
 /// 셸: 오늘 / 매트릭스 / 아웃라인 / 전체.
@@ -102,29 +102,9 @@ class _AppShellState extends ConsumerState<AppShell> {
               onPressed: _newGoal,
             ),
           ],
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (v) {
-              switch (v) {
-                case 'timetrack':
-                  _openTimeTrack();
-                case 'opacity':
-                  _widgetOpacityDialog();
-                case 'export':
-                  _exportBackup();
-                case 'import':
-                  _importBackup();
-              }
-            },
-            itemBuilder: (ctx) => const [
-              PopupMenuItem(value: 'timetrack', child: Text('기록 (타임트래커)')),
-              PopupMenuItem(value: 'opacity', child: Text('위젯 투명도')),
-              PopupMenuItem(value: 'export', child: Text('백업 내보내기')),
-              PopupMenuItem(value: 'import', child: Text('백업 가져오기 (복원)')),
-            ],
-          ),
         ],
       ),
+      drawer: _buildDrawer(context),
       // 입력바가 키보드 위로 따라 올라오도록 body 에 배치.
       body: SafeArea(
         child: Column(
@@ -256,93 +236,34 @@ class _AppShellState extends ConsumerState<AppShell> {
     await showTwoMinuteSheet(context, ref, goalId: id, goalTitle: title.trim());
   }
 
-  /// 백업 내보내기: 전체 데이터를 JSON 으로 → 문서창(SAF) 저장.
-  Future<void> _exportBackup() async {
-    try {
-      final json = await ref.read(backupServiceProvider).exportJson();
-      final now = DateTime.now();
-      final stamp =
-          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-      final ok = await WidgetBridge.saveBackup('jigeum-backup-$stamp.json', json);
-      if (!mounted) return;
-      _toast(ok ? '백업을 저장했어요' : '저장을 취소했어요');
-    } catch (e) {
-      if (mounted) _toast('백업 실패: $e');
-    }
-  }
+  void _openSettings() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
 
-  /// 백업 가져오기(전체 교체): 파일 선택 → 확인 → 복원.
-  Future<void> _importBackup() async {
-    final json = await WidgetBridge.openBackup();
-    if (json == null || !mounted) return;
+  /// 사이드바 메뉴.
+  Widget _buildDrawer(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget item(IconData icon, String label, VoidCallback onTap) => ListTile(
+          leading: Icon(icon, size: 20),
+          title: Text(label, style: theme.textTheme.bodyLarge),
+          onTap: () {
+            Navigator.of(context).pop(); // 드로어 닫기
+            onTap();
+          },
+        );
 
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('복원할까요?'),
-        content: const Text('지금의 모든 데이터를 지우고\n선택한 백업으로 되돌립니다.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('취소')),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('복원')),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    try {
-      await ref.read(backupServiceProvider).importJson(json);
-      if (mounted) _toast('복원했어요');
-    } catch (e) {
-      if (mounted) _toast('복원 실패 — 올바른 백업 파일인지 확인해 주세요');
-    }
-  }
-
-  void _toast(String msg) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(msg)));
-  }
-
-  /// 홈/잠금 위젯 배경 투명도 설정 (0=투명 ~ 100=불투명).
-  Future<void> _widgetOpacityDialog() async {
-    var value = (await WidgetBridge.getWidgetOpacity()).toDouble();
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('위젯 투명도'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('${value.round()}%',
-                  style: Theme.of(ctx).textTheme.titleMedium),
-              Slider(
-                value: value,
-                min: 0,
-                max: 100,
-                divisions: 20,
-                onChanged: (v) => setDialogState(() => value = v),
-              ),
-              Text('0% = 완전 투명 · 100% = 불투명',
-                  style: Theme.of(ctx).textTheme.bodySmall),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('취소')),
-            FilledButton(
-              onPressed: () async {
-                await WidgetBridge.setWidgetOpacity(value.round());
-                if (ctx.mounted) Navigator.of(ctx).pop();
-              },
-              child: const Text('적용'),
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Text('지금', style: theme.textTheme.titleLarge),
             ),
+            const Divider(height: 0.5),
+            item(Icons.access_time, '기록 (타임트래커)', _openTimeTrack),
+            const Divider(height: 0.5),
+            item(Icons.settings_outlined, '설정', _openSettings),
           ],
         ),
       ),
