@@ -21,7 +21,13 @@ class AppColors {
 
   // 포인트 — 딱 둘
   static const accent = Color(0xFF6B4EFF); // 보라: 액션·링크·활성 체크박스
+  static const accentSoft = Color(0xFFEEEBFF); // 연보라: 선택 탭 배경 등
+  static const accentSoftDark = Color(0xFF2A2547); // 다크 대응
   static const alert = Color(0xFFFF5B24); // 주황: 오늘 표시·마감 임박
+
+  /// 체크박스 미완료 테두리색 (DESIGN_SYSTEM §5).
+  static const checkBorderLight = Color(0xFFCFCAC4);
+  static const checkBorderDark = Color(0xFF4A473F);
 
   // 상태
   static const success = Color(0xFF2E9E5B);
@@ -254,16 +260,19 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         height: 64,
-        // 선택 탭: accent 톤 인디케이터 + accent 아이콘.
-        indicatorColor: AppColors.accent.withValues(alpha: 0.14),
+        // 선택 탭: accent-soft 알약 배경 + accent 아이콘/텍스트. (DESIGN_SYSTEM §5)
+        indicatorColor:
+            isDark ? AppColors.accentSoftDark : AppColors.accentSoft,
         iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
             color: states.contains(WidgetState.selected)
                 ? AppColors.accent
                 : secondary)),
-        labelTextStyle: WidgetStatePropertyAll(TextStyle(
-                        fontWeight: FontWeight.w500,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+            fontWeight: FontWeight.w500,
             fontSize: 12,
-            color: secondary)),
+            color: states.contains(WidgetState.selected)
+                ? AppColors.accent
+                : secondary)),
       ),
     );
   }

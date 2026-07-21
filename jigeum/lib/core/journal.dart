@@ -7,7 +7,8 @@ import 'theme.dart';
 /// 메타·숫자·시간·배지용 모노 스타일 (DESIGN_SYSTEM §3 두 벌 시스템).
 TextStyle metaStyle(BuildContext context, {Color? color, double size = 11}) {
   return TextStyle(
-        fontSize: size,
+    fontFamily: kMonoFamily, // 숫자/기호 모노 (한글은 산세리프 폴백)
+    fontSize: size,
     fontWeight: FontWeight.w400,
     height: 1.3,
     color: color ?? Theme.of(context).textTheme.bodySmall?.color,
@@ -27,8 +28,7 @@ Widget metaBadge(
   final border = theme.dividerTheme.color ?? Colors.black12;
   final fillBg = bg ?? (theme.textTheme.bodyLarge?.color ?? Colors.black);
   return Container(
-    height: 20,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
+    padding: const EdgeInsets.fromLTRB(7, 2, 7, 2),
     alignment: Alignment.center,
     decoration: BoxDecoration(
       color: filled ? fillBg : Colors.transparent,
@@ -38,7 +38,7 @@ Widget metaBadge(
     child: Text(
       label,
       style: metaStyle(context,
-          size: 11,
+          size: 9,
           color: filled
               ? (fg ?? theme.scaffoldBackgroundColor)
               : theme.textTheme.bodySmall?.color),
@@ -127,56 +127,61 @@ class Journal {
     );
   }
 
-  /// 레일 위 알약 배지.
+  /// 섹션 라벨 — 배경/테두리 없이 텍스트만. (DESIGN_SYSTEM §5)
+  /// "라벨 · 3" 형태면 뒤 카운트만 text 색으로 진하게.
   static Widget pill(BuildContext context, String label,
       {VoidCallback? onTap, VoidCallback? onLong, Widget? trailing}) {
     final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.color;
+    final strong = theme.textTheme.bodyLarge?.color;
+
+    // "라벨 · 숫자" 분해해 숫자만 진하게.
+    final parts = label.split(' · ');
+    final Widget text;
+    if (parts.length == 2) {
+      text = RichText(
+        text: TextSpan(
+          style: metaStyle(context, color: muted),
+          children: [
+            TextSpan(text: '${parts[0]} · '),
+            TextSpan(
+                text: parts[1],
+                style: metaStyle(context, color: strong)),
+          ],
+        ),
+      );
+    } else {
+      text = Text(label, style: metaStyle(context, color: muted));
+    }
+
     return Padding(
-      padding: const EdgeInsets.only(left: 14, top: 10, bottom: 6),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: onTap,
-            onLongPress: onLong,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: _hairline(context), width: 0.8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(label, style: metaStyle(context)),
-                  if (trailing != null) ...[
-                    const SizedBox(width: 3),
-                    trailing,
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(left: 14, top: 12, bottom: 4),
+      child: GestureDetector(
+        onTap: onTap,
+        onLongPress: onLong,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            text,
+            if (trailing != null) ...[
+              const SizedBox(width: 4),
+              trailing,
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  /// 행 사이 헤어라인.
-  static Widget divider(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(left: rowLeft, right: 4),
-      height: 0.5,
-      color: _hairline(context),
-    );
-  }
+  /// 구분선 없음 (DESIGN_SYSTEM §5): 여백만. 기존 호출부 호환용.
+  static Widget divider(BuildContext context) => const SizedBox(height: 2);
 }
 
 /// 둥근 사각 체크박스 (완료 = 초록 채움 + ✓).
 class SquareCheck extends StatelessWidget {
   const SquareCheck(
-      {super.key, required this.done, required this.onTap, this.size = 18});
+      {super.key, required this.done, required this.onTap, this.size = 17});
 
   final bool done;
   final VoidCallback onTap;
@@ -184,23 +189,23 @@ class SquareCheck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor =
+        isDark ? AppColors.checkBorderDark : AppColors.checkBorderLight;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.only(right: 11, top: 1),
+        padding: const EdgeInsets.only(right: 10, top: 1),
         child: Container(
           width: size,
           height: size,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             color: done ? AppColors.accent : Colors.transparent,
             border: done
                 ? null
-                : Border.all(
-                    color: theme.textTheme.bodySmall?.color ?? Colors.grey,
-                    width: 1.3),
+                : Border.all(color: borderColor, width: 1.5),
           ),
           child: done
               ? Icon(Icons.check, size: size - 5, color: Colors.white)

@@ -33,7 +33,8 @@
 | 토큰 | 값 | 용도 |
 |---|---|---|
 | `accent` | `#6B4EFF` | 보라. 액션·링크·화살표·활성 체크박스 |
-| `alert` | `#FF5B24` | 주황. 오늘 표시·마감 임박 점 |
+| `accent-soft` | `#EEEBFF` | 연보라. 선택된 탭 배경 등 accent의 은은한 버전 |
+| `alert` | `#FF5B24` | 주황. 오늘 표시·마감 임박 점·긴급 배지 |
 
 ### 상태 — 대시보드/데이터 확장 대비
 | 토큰 | 값 | 용도 |
@@ -98,29 +99,49 @@
 
 ## 5. 핵심 컴포넌트 규격
 
-### 배지 (알약)
-- 높이 20px, `radius-full`, 좌우 패딩 8px, 텍스트 `meta`
-- **채움형**: 배경 `text`, 글자 `bg` — 예: 마감 "2 days"
-- **테두리형**: `border` 1px, 글자 `text-muted` — 예: 예정 "Next Mon"
+### 배지 (알약) — 우선순위 표시
+- `radius-full`, 좌우 패딩 7px, 상하 2px, 텍스트 `meta`(Mono 9px)
+- **긴급 (채움형)**: 배경 `alert`, 글자 흰색 — 확 튀게. 시선을 먼저 끄는 용도
+- **중요 (테두리형)**: `border` 1px, 글자 `text-muted`, 배경 없음 — 얌전하게
+- 규칙: 한 아이템에 배지는 1개. "긴급"만 채움, 나머지는 전부 테두리형으로 조용히 둔다 (채움 배지가 여러 개 줄서면 시끄러워짐)
 
 ### 체크박스
-- 18px 원형, `border` 1.5px
-- 체크 시 배경/테두리 `accent`, 체크 아이콘 흰색
-- 미완료는 빈 원
+- **17px 사각형**, `radius-sm`(5~6px), `border` 1.5px (색 `#CFCAC4`)
+- 체크 시 배경/테두리 `accent`, 체크 표시 흰색
+- hover 시 테두리 `accent`
+- 완료된 아이템: 제목 `text-muted` + 취소선
 
-### 리스트/할 일 아이템
-- 좌: 체크박스 → `space-2` → 제목(`title`) → 하단 메타 줄(배지 + 진행도)
-- 우측 상단: 상세 이동 화살표(↗) `accent`
-- 아이템 간 구분선 1px `border`, 위아래 여백 `space-3`
+### 리스트 / 할 일 아이템  ★구분선 없음
+- 구성: 체크박스 → `space-2`(10px) → 제목 → (우측) 우선순위 배지
+- 제목: **14px, weight 500** (`title`보다 작고 얇게 — 리스트는 촘촘하게)
+- **아이템 사이 구분선(border-bottom) 사용하지 않는다.** 상하 여백 7~9px + 왼쪽 정렬선으로만 구분한다.
+- 완료 처리: 체크박스 `accent` 채움 + 제목 취소선/`text-muted`
 
-### 타임라인
-- 좌측 세로선 1px `border`
-- 시간 스탬프는 선에 매달린 `bg-subtle` 알약, 텍스트 `meta` `text-muted`
-- 블록 간 간격 `space-5`
+### 섹션 라벨 (할 일 · 3 등)  ★배경 없음
+- `meta`(Mono 11px) `text-muted`, **배경 알약·테두리 없이 텍스트만**
+- 뒤 카운트 숫자(· 3)만 `text` 색으로 진하게
+- 위 여백 `space-3`~`space-4`, 아래 여백 `space-1`
+
+### 할 일 상세 — 라벨·값 (카탈로그 스타일)  ★신규
+미술관 카탈로그 톤. **구분선 없이** 라벨-값을 2컬럼으로 정렬해 여백으로만 나눈다.
+- 제목: `display`급(22px Bold), 아래 여백 넉넉히(`space-6`)
+- 각 행(row): `grid-template-columns: 88px 1fr`, 행 간격 22px
+  - **라벨**: `meta`(Mono 10px) `text-muted`, **우측 정렬** (값 쪽에 붙어 가운데로 모이는 배치 — 이 정렬이 톤의 핵심)
+  - **값**: 14px weight 500, 좌측 정렬. 보조 정보는 `text-muted`
+- **값 하이라이트 박스**: 특정 값 하나만 강조할 때 `bg-subtle` 배경 + `radius-sm` + Mono. 화면당 1개까지 (카탈로그의 번호 박스에서 차용)
+- 상태/우선순위 값은 색으로: 긴급 `alert`, 진행 중 `accent`
+
+### 빠른 담기 칩 (중요 / 긴급 / 오늘)
+- 텍스트만. **이모지·아이콘 붙이지 않는다** (톤 안 맞음)
+- `border` 1px 테두리 알약, 텍스트 `label`(13px) `text-muted`
 
 ### 플로팅 입력 바
 - 하단 고정, `radius-full`, 배경 `bg-subtle` (반투명 허용), `shadow-float`
 - 구성: `+` 아이콘 / 플레이스홀더(`text-muted`) / 마이크 아이콘
+
+### 하단 탭 (bottom nav)
+- 선택 탭만 `accent` 텍스트 + 아이콘 뒤 `accent-soft`(#EEEBFF) 알약 배경
+- 비선택 탭은 `text-muted`, 배경 없음 (선택 1개만 강조, 나머지는 조용히)
 
 ### 헤더
 - 작은 날짜 라벨(`label`) + `alert` 점 → 큰 타이틀(`display`) → 우측 메뉴 아이콘
@@ -155,6 +176,7 @@
   --text: #1C1B1A;
   --text-muted: #8A8580;
   --accent: #6B4EFF;
+  --accent-soft: #EEEBFF;
   --alert: #FF5B24;
   --success: #2E9E5B;
   --warning: #E0A400;
@@ -234,6 +256,7 @@ class AppColors {
   static const text      = Color(0xFF1C1B1A);
   static const textMuted = Color(0xFF8A8580);
   static const accent    = Color(0xFF6B4EFF);
+  static const accentSoft = Color(0xFFEEEBFF);
   static const alert     = Color(0xFFFF5B24);
   static const success   = Color(0xFF2E9E5B);
   static const warning   = Color(0xFFE0A400);
@@ -298,17 +321,18 @@ class AppText {
 - 예: "아직 없어요" (title) + "아래 입력창에 빠르게 담아보세요" (muted)
 - 매트릭스 사분면 "비어 있어요", 전체 화면 "없어요"에 동일 적용
 
-### (5) 간격 규칙 통일 — "허접함"의 실제 원인
-화면마다 미세하게 다른 여백을 §2 토큰으로 통일:
-- 리스트 아이템 사이: `space-5` (24px)
+### (5) 구분선 제거 + 간격 규칙 통일 — "허접함"의 실제 원인
+**리스트 아이템의 구분선(border-bottom)을 전부 제거한다.** 선 대신 여백과 왼쪽 정렬선으로 구분:
+- 리스트 아이템 상하 여백: 7~9px (촘촘하게)
 - 카드/사분면 내부 패딩: `space-4` (16px)
-- 배지와 제목 사이: `space-2` (8px)
-- 구분선은 1px `border` 하나로 통일 (굵기 제각각 금지)
+- 배지·체크박스와 제목 사이: `space-2` (8~10px)
+- 섹션 라벨 배경 알약도 제거 → 텍스트만 (§5 참조)
 
 ### 우선순위 (투자 대비 효과 순)
-1. (2) 배지 통일 + (1) accent 포인트 — 가장 티 남
-2. (3) 모노스페이스 메타
-3. (4) 빈 상태 + (5) 간격 정리
+1. (2) 배지 위계 + (1) accent 포인트 — 가장 티 남
+2. (5) 구분선 제거 + (3) 모노스페이스 메타
+3. (4) 빈 상태 정리
+4. 할 일 상세 화면을 §5 "라벨·값 카탈로그 스타일"로 신규 구성
 
 ---
 
@@ -319,4 +343,7 @@ class AppText {
 - 폰트 크기 단계를 6개 이상으로 늘리기
 - 메타·숫자에 산세리프, 본문에 모노스페이스 쓰기 (두 벌 규칙 위반)
 - 두꺼운 그림자·굵은 테두리로 경계 무겁게 만들기
+- **리스트 아이템에 구분선(border-bottom) 넣기** (여백으로만 구분)
+- 우선순위를 느낌표(`!`) 단독으로 표기하기 (배지 사용)
+- 채움형 배지를 여러 개 나열하기 (긴급 1개만 채움, 나머지 테두리형)
 - 상태(disabled/empty/invalid/loading) 정의를 건너뛰기
