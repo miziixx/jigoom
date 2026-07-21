@@ -41,10 +41,10 @@ class MatrixWidgetProvider : AppWidgetProvider() {
         for (widgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.matrix_widget).apply {
                 setTextViewText(R.id.matrix_date, date)
-                setTextViewText(R.id.matrix_q1, q1.ifEmpty { "비어 있어요" })
-                setTextViewText(R.id.matrix_q2, q2.ifEmpty { "비어 있어요" })
-                setTextViewText(R.id.matrix_q3, q3.ifEmpty { "비어 있어요" })
-                setTextViewText(R.id.matrix_q4, "서랍 · ${q4Count}개")
+                setTextViewText(R.id.matrix_q1, q1.ifEmpty { "—" })
+                setTextViewText(R.id.matrix_q2, q2.ifEmpty { "—" })
+                setTextViewText(R.id.matrix_q3, q3.ifEmpty { "—" })
+                setTextViewText(R.id.matrix_q4, "${q4Count}개")
                 setInt(R.id.widget_bg_img, "setImageAlpha", alpha)
                 setOnClickPendingIntent(R.id.matrix_root, pending)
             }

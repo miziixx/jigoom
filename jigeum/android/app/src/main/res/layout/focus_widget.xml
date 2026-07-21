@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- 배경 레이어: setImageAlpha 로 투명도 조절 (둥근 모서리 유지) -->
+    <!-- 배경 레이어: setImageAlpha 로 투명도 조절 -->
     <ImageView
         android:id="@+id/widget_bg_img"
         android:layout_width="match_parent"
@@ -18,25 +18,46 @@
         android:layout_height="match_parent"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="12dp">
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
 
         <ImageView
             android:id="@+id/widget_check"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
             android:src="@drawable/ic_widget_check"
-            android:contentDescription="빠른 입력"
-            android:layout_marginEnd="10dp" />
+            android:contentDescription="빠른 담기"
+            android:layout_marginEnd="12dp" />
 
-        <TextView
-            android:id="@+id/widget_title"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:textSize="15sp"
-            android:textColor="#1A1A1A"
-            android:text="오늘 할 일을 정해볼까요" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textAllCaps="true"
+                android:letterSpacing="0.14"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:textColor="#B5443A"
+                android:layout_marginBottom="3dp"
+                android:text="NOW" />
+
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:textSize="15sp"
+                android:textColor="#26241F"
+                android:text="오늘 할 일을 정해볼까요" />
+        </LinearLayout>
     </LinearLayout>
 </FrameLayout>

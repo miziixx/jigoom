@@ -16,18 +16,24 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="14dp">
 
-        <!-- 날짜 -->
+        <!-- 마스트헤드: 날짜 + 규칙선 -->
         <TextView
             android:id="@+id/matrix_date"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textStyle="bold"
-            android:textColor="#1A1A1A"
-            android:layout_marginBottom="8dp"
+            android:textColor="#26241F"
             android:text="7월 20일 일요일" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="10dp"
+            android:background="#26241F" />
 
         <!-- 1행: Q1 / Q2 -->
         <LinearLayout
@@ -41,19 +47,26 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginEnd="6dp">
+                android:layout_marginEnd="8dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="10sp"
-                    android:textColor="#6B6B6B"
-                    android:text="중요·긴급" />
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="9sp"
+                    android:textColor="#B5443A"
+                    android:layout_marginBottom="4dp"
+                    android:text="URGENT+IMP" />
                 <TextView
                     android:id="@+id/matrix_q1"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textSize="12sp"
-                    android:textColor="#1A1A1A"
+                    android:textColor="#26241F"
+                    android:lineSpacingExtra="2dp"
                     android:maxLines="3"
                     android:ellipsize="end" />
             </LinearLayout>
@@ -61,8 +74,8 @@
             <View
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:layout_marginEnd="6dp"
-                android:background="#26000000" />
+                android:layout_marginEnd="8dp"
+                android:background="#D8D2C6" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -72,26 +85,33 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="10sp"
-                    android:textColor="#6B6B6B"
-                    android:text="중요·비긴급" />
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="9sp"
+                    android:textColor="#26241F"
+                    android:layout_marginBottom="4dp"
+                    android:text="IMPORTANT" />
                 <TextView
                     android:id="@+id/matrix_q2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textSize="12sp"
-                    android:textColor="#1A1A1A"
+                    android:textColor="#26241F"
+                    android:lineSpacingExtra="2dp"
                     android:maxLines="3"
                     android:ellipsize="end" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 가로 구분선 -->
+        <!-- 가로 규칙선 -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="6dp"
-            android:background="#26000000" />
+            android:layout_marginTop="8dp"
+            android:background="#D8D2C6" />
 
         <!-- 2행: Q3 / Q4 -->
         <LinearLayout
@@ -99,26 +119,33 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="horizontal"
-            android:layout_marginTop="6dp">
+            android:layout_marginTop="8dp">
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginEnd="6dp">
+                android:layout_marginEnd="8dp">
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="10sp"
-                    android:textColor="#6B6B6B"
-                    android:text="비중요·긴급" />
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="9sp"
+                    android:textColor="#B5443A"
+                    android:layout_marginBottom="4dp"
+                    android:text="URGENT" />
                 <TextView
                     android:id="@+id/matrix_q3"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textSize="12sp"
-                    android:textColor="#1A1A1A"
+                    android:textColor="#26241F"
+                    android:lineSpacingExtra="2dp"
                     android:maxLines="3"
                     android:ellipsize="end" />
             </LinearLayout>
@@ -126,8 +153,8 @@
             <View
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:layout_marginEnd="6dp"
-                android:background="#26000000" />
+                android:layout_marginEnd="8dp"
+                android:background="#D8D2C6" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -137,15 +164,21 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="10sp"
-                    android:textColor="#6B6B6B"
-                    android:text="언젠가" />
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.1"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="9sp"
+                    android:textColor="#9A948A"
+                    android:layout_marginBottom="4dp"
+                    android:text="DRAWER" />
                 <TextView
                     android:id="@+id/matrix_q4"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textSize="12sp"
-                    android:textColor="#A0A0A0"
+                    android:textColor="#9A948A"
                     android:maxLines="1"
                     android:ellipsize="end" />
             </LinearLayout>
