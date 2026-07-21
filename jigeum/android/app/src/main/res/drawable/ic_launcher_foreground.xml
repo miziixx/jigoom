@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 지금 런처 아이콘 전경 — 프롬프트 캐럿 "›" (잉크) + 커서(mark). 편집 시그니처. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 캐럿 › (잉크, 각진 획) -->
+    <path
+        android:strokeColor="#26241F"
+        android:strokeWidth="10"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="miter"
+        android:pathData="M43,38 L66,56 L43,74" />
+    <!-- 커서 블록 _ (mark, 유일한 포인트색) -->
+    <path
+        android:fillColor="#B5443A"
+        android:pathData="M56,72 h18 v6 h-18 z" />
+</vector>

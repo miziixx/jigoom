@@ -273,7 +273,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   /// 사이드바 메뉴 (편집형).
   Widget _buildDrawer(BuildContext context) {
     final tk = t(context);
-    Widget item(String glyph, String label, VoidCallback onTap) => InkWell(
+    Widget item(IconData icon, String label, VoidCallback onTap) => InkWell(
           onTap: () {
             Navigator.of(context).pop(); // 드로어 닫기
             onTap();
@@ -282,10 +282,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
             child: Row(
               children: [
-                SizedBox(
-                    width: 22,
-                    child: Text(glyph, style: AppText.glyph(tk.inkSoft))),
-                const SizedBox(width: 8),
+                Icon(icon, size: 19, color: tk.inkSoft),
+                const SizedBox(width: 14),
                 Text(label, style: AppText.body(tk.ink)),
               ],
             ),
@@ -307,8 +305,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                 height: 1,
                 color: tk.ink),
             const SizedBox(height: 6),
-            item('◷', '기록 · 타임트래커', _openTimeTrack),
-            item('⚙', '설정', _openSettings),
+            item(Icons.schedule_outlined, '기록 · 타임트래커', _openTimeTrack),
+            item(Icons.tune, '설정', _openSettings),
           ],
         ),
       ),
