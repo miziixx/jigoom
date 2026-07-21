@@ -2,6 +2,50 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'constants.dart';
+import 'theme.dart';
+
+/// 메타·숫자·시간·배지용 모노 스타일 (DESIGN_SYSTEM §3 두 벌 시스템).
+TextStyle metaStyle(BuildContext context, {Color? color, double size = 11}) {
+  return TextStyle(
+    fontFamily: kMonoFamily,
+    fontSize: size,
+    fontWeight: FontWeight.w400,
+    height: 1.3,
+    color: color ?? Theme.of(context).textTheme.bodySmall?.color,
+  );
+}
+
+/// 알약 배지 (DESIGN_SYSTEM §5).
+/// filled=채움형(배경 bg색, 글자 fg), 아니면 테두리형.
+Widget metaBadge(
+  BuildContext context,
+  String label, {
+  bool filled = false,
+  Color? bg,
+  Color? fg,
+}) {
+  final theme = Theme.of(context);
+  final border = theme.dividerTheme.color ?? Colors.black12;
+  final fillBg = bg ?? (theme.textTheme.bodyLarge?.color ?? Colors.black);
+  return Container(
+    height: 20,
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: filled ? fillBg : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.full),
+      border: filled ? null : Border.all(color: border, width: 1),
+    ),
+    child: Text(
+      label,
+      style: metaStyle(context,
+          size: 11,
+          color: filled
+              ? (fg ?? theme.scaffoldBackgroundColor)
+              : theme.textTheme.bodySmall?.color),
+    ),
+  );
+}
 
 /// 일정·루틴 색 팔레트 (index 로 저장). 스샷처럼 부드러운 톤.
 const kScheduleColors = <Color>[
@@ -46,8 +90,8 @@ class Journal {
 
   static Color pageBg(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF0D1013)
-          : const Color(0xFFF3F2EF);
+          ? AppColors.bgSubtleDark
+          : AppColors.bgSubtleLight;
 
   static Color _hairline(BuildContext context) =>
       Theme.of(context).dividerTheme.color ?? Colors.black12;
@@ -106,9 +150,7 @@ class Journal {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(label,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(fontSize: 11, letterSpacing: 0.2)),
+                  Text(label, style: metaStyle(context)),
                   if (trailing != null) ...[
                     const SizedBox(width: 3),
                     trailing,
@@ -154,7 +196,7 @@ class SquareCheck extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(5),
-            color: done ? const Color(0xFF34C77B) : Colors.transparent,
+            color: done ? AppColors.accent : Colors.transparent,
             border: done
                 ? null
                 : Border.all(
@@ -170,9 +212,8 @@ class SquareCheck extends StatelessWidget {
   }
 }
 
-/// 마감 pill: 오늘/내일 = 잉크 채움, 이후 = 테두리 'M/d'.
+/// 마감 배지 (DESIGN_SYSTEM §5): 임박(오늘·내일)=alert 채움, 이후=테두리 'M/d'.
 Widget deadlinePill(BuildContext context, DateTime date) {
-  final theme = Theme.of(context);
   final d = dateOnly(date);
   final diff = d.difference(todayDate()).inDays;
 
@@ -185,26 +226,7 @@ Widget deadlinePill(BuildContext context, DateTime date) {
     label = DateFormat('M/d').format(d);
   }
 
-  final urgentish = diff <= 1;
-  final ink = theme.textTheme.bodyLarge?.color ?? Colors.black;
-  final bg = theme.scaffoldBackgroundColor;
-  final hairline = theme.dividerTheme.color ?? Colors.black12;
-
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    decoration: BoxDecoration(
-      color: urgentish ? ink : Colors.transparent,
-      borderRadius: BorderRadius.circular(999),
-      border: urgentish ? null : Border.all(color: hairline, width: 0.8),
-    ),
-    child: Text(
-      label,
-      style: TextStyle(
-        fontFamily: 'Pretendard',
-        fontSize: 10.5,
-        fontWeight: FontWeight.w600,
-        color: urgentish ? bg : theme.textTheme.bodySmall?.color,
-      ),
-    ),
-  );
+  final imminent = diff <= 1;
+  return metaBadge(context, label,
+      filled: imminent, bg: AppColors.alert, fg: Colors.white);
 }

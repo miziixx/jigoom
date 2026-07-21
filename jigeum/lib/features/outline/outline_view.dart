@@ -31,7 +31,7 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pageBg =
-        isDark ? const Color(0xFF0D1013) : const Color(0xFFF3F2EF);
+        isDark ? AppColors.bgSubtleDark : AppColors.bgSubtleLight;
     final cardBg = Theme.of(context).scaffoldBackgroundColor;
     final hairline =
         Theme.of(context).dividerTheme.color ?? Colors.black12;

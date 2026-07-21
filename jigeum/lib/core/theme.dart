@@ -1,28 +1,61 @@
 import 'package:flutter/material.dart';
 
-/// 클린 아웃라이너 테마.
-/// 포인트 색(#34C77B)은 완료 체크 전용. 다른 곳에 쓰지 말 것.
+/// 디자인 시스템 토큰 — DESIGN_SYSTEM.md 참조. 하드코딩 대신 항상 이 토큰 사용.
+/// 미학: "따뜻한 종이 + 차분한 구조". 포인트는 accent(보라)·alert(주황) 둘뿐.
 class AppColors {
-  // 배경
-  static const bgLight = Color(0xFFFFFFFF);
-  static const bgDark = Color(0xFF111417);
+  // 중립 — 따뜻한 회색(종이)
+  static const bgLight = Color(0xFFFDFCFB); // bg
+  static const bgSubtleLight = Color(0xFFF5F3F0); // bg-subtle
+  static const borderLight = Color(0xFFE8E4DF); // border
+  static const textPrimaryLight = Color(0xFF1C1B1A); // text
+  static const textSecondaryLight = Color(0xFF8A8580); // text-muted
+  static const textTertiaryLight = Color(0xFFC4BFB9); // disabled
 
-  // 텍스트 (light)
-  static const textPrimaryLight = Color(0xFF1A1A1A);
-  static const textSecondaryLight = Color(0xFF6B6B6B);
-  static const textTertiaryLight = Color(0xFFA0A0A0);
+  // 다크 (반전)
+  static const bgDark = Color(0xFF15140F);
+  static const bgSubtleDark = Color(0xFF1F1D18);
+  static const borderDark = Color(0xFF34322C);
+  static const textPrimaryDark = Color(0xFFF2F0EC);
+  static const textSecondaryDark = Color(0xFF9A958E);
+  static const textTertiaryDark = Color(0xFF57534D);
 
-  // 텍스트 (dark, 반전)
-  static const textPrimaryDark = Color(0xFFF2F2F2);
-  static const textSecondaryDark = Color(0xFFB0B0B0);
-  static const textTertiaryDark = Color(0xFF6B6B6B);
+  // 포인트 — 딱 둘
+  static const accent = Color(0xFF6B4EFF); // 보라: 액션·링크·활성 체크박스
+  static const alert = Color(0xFFFF5B24); // 주황: 오늘 표시·마감 임박
 
-  /// 완료 체크 전용 포인트 색.
-  static const done = Color(0xFF34C77B);
+  // 상태
+  static const success = Color(0xFF2E9E5B);
+  static const warning = Color(0xFFE0A400);
+  static const error = Color(0xFFE5484D);
+  static const disabled = Color(0xFFC4BFB9);
 
-  static const hairlineLight = Color(0x14000000); // 0.5px 헤어라인
-  static const hairlineDark = Color(0x1FFFFFFF);
+  /// 완료 체크는 accent(보라) — DESIGN_SYSTEM §5 체크박스.
+  static const done = accent;
+
+  // 하위호환 별칭 (기존 코드가 참조)
+  static const hairlineLight = borderLight;
+  static const hairlineDark = borderDark;
 }
+
+/// 간격 토큰 (4px 배수).
+class AppSpace {
+  static const s1 = 4.0;
+  static const s2 = 8.0;
+  static const s3 = 12.0;
+  static const s4 = 16.0;
+  static const s5 = 24.0;
+  static const s6 = 32.0;
+  static const s8 = 48.0;
+}
+
+class AppRadius {
+  static const sm = 6.0;
+  static const md = 10.0;
+  static const full = 999.0;
+}
+
+/// 메타·숫자·시간·배지용 모노스페이스. (JetBrains Mono 미번들 → 안드로이드 generic)
+const kMonoFamily = 'monospace';
 
 const kAnimDuration = Duration(milliseconds: 200);
 const kAnimCurve = Curves.easeOut;
@@ -66,13 +99,12 @@ class AppTheme {
     final base = ThemeData(brightness: b, useMaterial3: true);
     final scheme = base.colorScheme.copyWith(
       brightness: b,
-      // primary 를 텍스트색으로: 버튼/커서/포커스가 초록으로 새지 않게.
-      // 초록(#34C77B)은 완료 체크 전용 — 위젯 코드에서만 명시적으로 사용.
-      primary: primary,
-      onPrimary: bg,
+      // primary = accent(보라): 버튼·링크·활성 체크박스·커서. (DESIGN_SYSTEM §1)
+      primary: AppColors.accent,
+      onPrimary: Colors.white,
       secondary: secondary,
       surface: bg,
-      surfaceTint: Colors.transparent, // M3 보라끼 틴트 제거
+      surfaceTint: Colors.transparent, // M3 자동 틴트 제거 (의도된 accent 만 사용)
       outline: tertiary,
     );
 
@@ -162,11 +194,11 @@ class AppTheme {
         ),
       ),
 
-      // 버튼: 채움=텍스트색(잉크), 텍스트버튼=회색. 초록 금지.
+      // 버튼: 채움=accent(보라), 텍스트버튼=회색. (DESIGN_SYSTEM §1 액션)
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: bg,
+          backgroundColor: AppColors.accent,
+          foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           shape: RoundedRectangleBorder(
@@ -190,10 +222,10 @@ class AppTheme {
       // 칩(필터): 얇은 헤어라인, 선택 시 잉크 반전. 체크 아이콘 없음.
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: bg,
-        selectedColor: primary.withValues(alpha: 0.09),
+        selectedColor: AppColors.accent.withValues(alpha: 0.12),
         surfaceTintColor: Colors.transparent,
         showCheckmark: false,
-        side: BorderSide(color: hairline, width: 0.5),
+        side: BorderSide(color: hairline, width: 1),
         shape: const StadiumBorder(),
         labelStyle: TextStyle(
             fontFamily: 'Pretendard',
@@ -203,22 +235,22 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       ),
 
-      // 입력: 초록 대신 잉크색 커서/포커스 밑줄.
+      // 입력: accent 커서/포커스.
       textSelectionTheme: TextSelectionThemeData(
-        cursorColor: primary,
-        selectionColor: primary.withValues(alpha: 0.15),
-        selectionHandleColor: primary,
+        cursorColor: AppColors.accent,
+        selectionColor: AppColors.accent.withValues(alpha: 0.18),
+        selectionHandleColor: AppColors.accent,
       ),
       inputDecorationTheme: InputDecorationTheme(
         hintStyle: TextStyle(
             fontFamily: 'Pretendard', fontSize: 15, color: tertiary),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: hairline, width: 0.5),
+          borderSide: BorderSide(color: hairline, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: primary, width: 1),
+          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
         ),
       ),
 
@@ -228,11 +260,15 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         height: 64,
-        indicatorColor: primary.withValues(alpha: 0.08),
-        iconTheme: WidgetStatePropertyAll(IconThemeData(color: primary)),
+        // 선택 탭: accent 톤 인디케이터 + accent 아이콘.
+        indicatorColor: AppColors.accent.withValues(alpha: 0.14),
+        iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.accent
+                : secondary)),
         labelTextStyle: WidgetStatePropertyAll(TextStyle(
             fontFamily: 'Pretendard',
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w500,
             fontSize: 12,
             color: secondary)),
       ),

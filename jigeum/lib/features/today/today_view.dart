@@ -136,58 +136,52 @@ class SimpleTile extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        if (node.urgent && !done) ...[
-                          Icon(Icons.bolt,
-                              size: 13,
-                              color: theme.textTheme.bodySmall?.color),
-                          const SizedBox(width: 2),
-                        ],
-                        Flexible(
-                          child: Text(node.title,
-                              style: theme.textTheme.bodyMedium,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
-                        ),
-                      ],
-                    ),
+                    Text(node.title,
+                        style: theme.textTheme.bodyMedium,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
                     if (node.note.isNotEmpty)
-                      Text(node.note,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(fontSize: 11)),
-                    if (showDeadline)
                       Padding(
-                        padding: const EdgeInsets.only(top: 3),
-                        child: deadlinePill(context, node.date!),
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(node.note,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: metaStyle(context)),
+                      ),
+                    // 메타 배지 줄: 긴급 · 마감
+                    if (!done && (node.urgent || showDeadline))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                            if (node.urgent)
+                              metaBadge(context, '긴급',
+                                  filled: true,
+                                  bg: AppColors.alert,
+                                  fg: Colors.white),
+                            if (showDeadline) deadlinePill(context, node.date!),
+                          ],
+                        ),
                       ),
                   ],
                 ),
               ),
-              // "!" 중요 토글 → 포커스 후보
+              // 중요 토글 배지 (테두리형, 중요일 때 accent)
               if (!done && showStar)
                 GestureDetector(
                   onTap: () =>
                       repo.setMatrix(node.id, important: !node.important),
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 3),
-                    child: Text(
-                      '!',
-                      style: TextStyle(
-                        fontFamily: 'Pretendard',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 17,
-                        height: 1.2,
-                        color: node.important
-                            ? theme.textTheme.bodyLarge?.color
-                            : (theme.textTheme.bodySmall?.color ??
-                                    Colors.grey)
-                                .withValues(alpha: 0.35),
-                      ),
+                    padding: const EdgeInsets.only(left: 6, top: 2),
+                    child: Opacity(
+                      opacity: node.important ? 1 : 0.35,
+                      child: metaBadge(context, '중요',
+                          filled: node.important,
+                          bg: AppColors.accent,
+                          fg: Colors.white),
                     ),
                   ),
                 ),

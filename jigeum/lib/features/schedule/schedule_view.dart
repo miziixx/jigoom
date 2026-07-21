@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../core/journal.dart';
+import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 import 'schedule_edit_sheet.dart';
@@ -217,7 +218,7 @@ class _ListView extends ConsumerWidget {
                           : Icons.radio_button_unchecked,
                       size: 20,
                       color: s.done
-                          ? const Color(0xFF34C77B)
+                          ? AppColors.accent
                           : theme.textTheme.bodySmall?.color,
                     ),
                   ),
