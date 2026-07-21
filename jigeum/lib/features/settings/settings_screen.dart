@@ -56,6 +56,13 @@ class SettingsScreen extends ConsumerWidget {
                 onChanged: (v) => ctrl.setWeightDelta(v.round()),
               ),
             ),
+            _switchRow(
+              context,
+              title: '기기 글꼴로 통일',
+              sub: '라벨·숫자(모노)까지 폰에서 쓰는 글꼴로',
+              value: s.systemFont,
+              onChanged: ctrl.setSystemFont,
+            ),
 
             const SectionLabel('WIDGET'),
             const _WidgetOpacityTile(),
@@ -89,6 +96,32 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           slider,
+        ],
+      ),
+    );
+  }
+
+  Widget _switchRow(BuildContext context,
+      {required String title,
+      required String sub,
+      required bool value,
+      required ValueChanged<bool> onChanged}) {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppText.body(tk.ink)),
+                const SizedBox(height: 2),
+                Text(sub, style: AppText.meta(tk.inkSoft)),
+              ],
+            ),
+          ),
+          Switch(value: value, onChanged: onChanged),
         ],
       ),
     );

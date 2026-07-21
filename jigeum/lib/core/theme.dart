@@ -122,6 +122,10 @@ AppTokens t(BuildContext context) =>
 /// AppText 를 직접 호출하는 위젯들도 이 값을 반영한다.
 int appWeightDelta = 0;
 
+/// 라벨·기호·숫자용 글꼴. 기본 = 모노. 설정 "기기 글꼴로 통일" 이 켜지면
+/// null(기기 기본 글꼴)로 바뀌어 앱 전체가 폰 글꼴을 쓴다. AppTheme.build 에서 갱신.
+String? appMono = kMonoFamily;
+
 /// 편집 타이포 (DESIGN_SYSTEM §3 두 벌 하이브리드).
 /// 한글 내용 = Sans(기기 기본), 라벨·기호·영문·숫자 = Mono. 색은 토큰을 주입.
 class AppText {
@@ -145,7 +149,7 @@ class AppText {
 
   /// 섹션 대문자 라벨 (Mono 11/Bold, +0.14em).
   static TextStyle sec(Color c) => TextStyle(
-      fontFamily: kMonoFamily,
+      fontFamily: appMono,
       fontSize: 11,
       fontWeight: FontWeight.w700,
       height: 1,
@@ -154,7 +158,7 @@ class AppText {
 
   /// 우선순위 라벨 (Mono 10, +0.12em).
   static TextStyle pri(Color c, {bool bold = false}) => TextStyle(
-      fontFamily: kMonoFamily,
+      fontFamily: appMono,
       fontSize: 10,
       fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
       height: 1,
@@ -163,7 +167,7 @@ class AppText {
 
   /// 카운트·날짜·시간·메뉴·빈 상태 (Mono 11, +0.05em).
   static TextStyle meta(Color c, {double size = 11}) => TextStyle(
-      fontFamily: kMonoFamily,
+      fontFamily: appMono,
       fontSize: size,
       fontWeight: FontWeight.w400,
       height: 1.3,
@@ -172,7 +176,7 @@ class AppText {
 
   /// 하단 탭 (Mono 10 소문자, +0.04em).
   static TextStyle nav(Color c, {bool active = false}) => TextStyle(
-      fontFamily: kMonoFamily,
+      fontFamily: appMono,
       fontSize: 10,
       fontWeight: active ? FontWeight.w700 : FontWeight.w400,
       height: 1,
@@ -181,7 +185,7 @@ class AppText {
 
   /// 칩 (Mono 10, +0.08em — 한글 허용).
   static TextStyle chip(Color c) => TextStyle(
-      fontFamily: kMonoFamily,
+      fontFamily: appMono,
       fontSize: 10,
       fontWeight: FontWeight.w400,
       height: 1,
@@ -190,16 +194,21 @@ class AppText {
 
   /// 체크박스·기호 글리프 (Mono 15).
   static TextStyle glyph(Color c, {double size = 15}) => TextStyle(
-      fontFamily: kMonoFamily, fontSize: size, height: 1, color: c);
+      fontFamily: appMono, fontSize: size, height: 1, color: c);
 }
 
 /// 6토큰 → ThemeData. 편집 원칙(radius 0 · shadow none · 잉크 하나)을 강제한다.
 class AppTheme {
-  static ThemeData fromKey(String key, {int weightDelta = 0}) =>
-      build(tokensForKey(key), weightDelta: weightDelta);
+  static ThemeData fromKey(String key,
+          {int weightDelta = 0, bool systemFont = false}) =>
+      build(tokensForKey(key),
+          weightDelta: weightDelta, systemFont: systemFont);
 
-  static ThemeData build(AppTokens tk, {int weightDelta = 0}) {
+  static ThemeData build(AppTokens tk,
+      {int weightDelta = 0, bool systemFont = false}) {
     appWeightDelta = weightDelta; // 전역 반영 (AppText 직접 호출부용)
+    // 라벨 글꼴: 기본 모노, "기기 글꼴로 통일" 켜지면 기기 기본(null).
+    appMono = systemFont ? kSansFamily : kMonoFamily;
     final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);
 
