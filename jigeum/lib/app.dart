@@ -7,6 +7,7 @@ import 'features/capture/quick_capture_bar.dart';
 import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_view.dart';
+import 'features/schedule/schedule_view.dart';
 import 'features/today/today_view.dart';
 import 'features/today/two_minute_sheet.dart';
 import 'features/widgetkit/widget_bridge.dart';
@@ -23,8 +24,9 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
+  final _scheduleKey = GlobalKey<ScheduleViewState>();
 
-  static const _titles = ['오늘', '매트릭스', '아웃라인', '습관', '전체'];
+  static const _titles = ['오늘', '매트릭스', '아웃라인', '일과', '습관', '전체'];
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +34,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       0 => const TodayView(),
       1 => const MatrixView(),
       2 => const OutlineView(),
-      3 => const HabitView(),
+      3 => ScheduleView(key: _scheduleKey),
+      4 => const HabitView(),
       _ => const AllView(),
     };
 
@@ -41,7 +44,19 @@ class _AppShellState extends ConsumerState<AppShell> {
       appBar: AppBar(
         title: Text(_titles[_index]),
         actions: [
-          if (_index == 3)
+          if (_index == 3) ...[
+            IconButton(
+              icon: const Icon(Icons.repeat),
+              tooltip: '루틴',
+              onPressed: () => _scheduleKey.currentState?.openRoutines(),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: '새 일정',
+              onPressed: () => _scheduleKey.currentState?.addSchedule(),
+            ),
+          ],
+          if (_index == 4)
             IconButton(
               icon: const Icon(Icons.auto_awesome_outlined),
               tooltip: '새 습관',
@@ -98,6 +113,8 @@ class _AppShellState extends ConsumerState<AppShell> {
               icon: Icon(Icons.grid_view_outlined), label: '매트릭스'),
           NavigationDestination(
               icon: Icon(Icons.account_tree_outlined), label: '아웃라인'),
+          NavigationDestination(
+              icon: Icon(Icons.schedule_outlined), label: '일과'),
           NavigationDestination(
               icon: Icon(Icons.auto_awesome_outlined), label: '습관'),
           NavigationDestination(

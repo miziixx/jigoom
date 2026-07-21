@@ -6,6 +6,7 @@ import 'data/backup_service.dart';
 import 'data/db.dart';
 import 'data/repos/habit_repository.dart';
 import 'data/repos/node_repository.dart';
+import 'data/repos/schedule_repository.dart';
 
 /// 위젯 탭 진입 시 퀵캡처 입력창에 포커스를 요청하는 트리거.
 /// 값이 증가할 때마다 QuickCaptureBar 가 포커스+키보드를 연다.
@@ -68,6 +69,20 @@ final habitsProvider = StreamProvider<List<Habit>>((ref) {
 final habitTicksProvider =
     StreamProvider.family<List<HabitTick>, String>((ref, habitId) {
   return ref.watch(habitRepoProvider).watchTicks(habitId);
+});
+
+/// 일과(일정) & 루틴
+final scheduleRepoProvider = Provider<ScheduleRepository>((ref) {
+  return ScheduleRepository(ref.watch(dbProvider));
+});
+
+final schedulesForDateProvider =
+    StreamProvider.family<List<Schedule>, DateTime>((ref, date) {
+  return ref.watch(scheduleRepoProvider).watchForDate(date);
+});
+
+final routinesProvider = StreamProvider<List<Routine>>((ref) {
+  return ref.watch(scheduleRepoProvider).watchRoutines();
 });
 
 /// 날짜 범위 노드 (아웃라이너 기간 필터)

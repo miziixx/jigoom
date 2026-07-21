@@ -150,6 +150,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       final repo = ref.read(nodeRepoProvider);
       await repo.runCarryOver(); // 규칙 2 (조용히)
       await repo.promoteQ2(); // 규칙 5 — 날짜 비교 기반, 언제 열어도 하루 1회 보장
+      await ref.read(scheduleRepoProvider).generateTodayRoutines(); // 루틴→오늘 일정
       ref.invalidate(focusProvider);
       await _syncWidgets();
     } catch (e, s) {

@@ -19,6 +19,8 @@ class BackupService {
     final settings = await db.select(db.settings).get();
     final habits = await db.select(db.habits).get();
     final ticks = await db.select(db.habitTicks).get();
+    final schedules = await db.select(db.schedules).get();
+    final routines = await db.select(db.routines).get();
 
     String? d(DateTime? v) => v?.toIso8601String();
 
@@ -61,6 +63,35 @@ class BackupService {
       'habitTicks': [
         for (final t in ticks)
           {'habitId': t.habitId, 'date': d(t.date)}
+      ],
+      'schedules': [
+        for (final s in schedules)
+          {
+            'id': s.id,
+            'date': d(s.date),
+            'title': s.title,
+            'note': s.note,
+            'color': s.color,
+            'startMin': s.startMin,
+            'endMin': s.endMin,
+            'done': s.done,
+            'routineId': s.routineId,
+            'createdAt': d(s.createdAt),
+          }
+      ],
+      'routines': [
+        for (final r in routines)
+          {
+            'id': r.id,
+            'title': r.title,
+            'note': r.note,
+            'color': r.color,
+            'startMin': r.startMin,
+            'endMin': r.endMin,
+            'weekdays': r.weekdays,
+            'active': r.active,
+            'createdAt': d(r.createdAt),
+          }
       ],
     });
   }
@@ -116,12 +147,43 @@ class BackupService {
         HabitTicksCompanion.insert(
             habitId: m['habitId'] as String, date: pr(m['date']))
     ];
+    final schedules = [
+      for (final m in (map['schedules'] as List? ?? const []))
+        SchedulesCompanion.insert(
+          id: m['id'] as String,
+          date: pr(m['date']),
+          title: m['title'] as String,
+          note: Value(m['note'] as String? ?? ''),
+          color: Value(m['color'] as int? ?? 0),
+          startMin: m['startMin'] as int,
+          endMin: m['endMin'] as int,
+          done: Value(m['done'] as bool? ?? false),
+          routineId: Value(m['routineId'] as String?),
+          createdAt: pr(m['createdAt']),
+        )
+    ];
+    final routines = [
+      for (final m in (map['routines'] as List? ?? const []))
+        RoutinesCompanion.insert(
+          id: m['id'] as String,
+          title: m['title'] as String,
+          note: Value(m['note'] as String? ?? ''),
+          color: Value(m['color'] as int? ?? 0),
+          startMin: m['startMin'] as int,
+          endMin: m['endMin'] as int,
+          weekdays: Value(m['weekdays'] as String? ?? '1,2,3,4,5,6,7'),
+          active: Value(m['active'] as bool? ?? true),
+          createdAt: pr(m['createdAt']),
+        )
+    ];
 
     await db.transaction(() async {
       await db.delete(db.habitTicks).go();
       await db.delete(db.habits).go();
       await db.delete(db.settings).go();
       await db.delete(db.nodes).go();
+      await db.delete(db.schedules).go();
+      await db.delete(db.routines).go();
       for (final n in nodes) {
         await db.into(db.nodes).insert(n);
       }
@@ -133,6 +195,12 @@ class BackupService {
       }
       for (final t in ticks) {
         await db.into(db.habitTicks).insert(t);
+      }
+      for (final s in schedules) {
+        await db.into(db.schedules).insert(s);
+      }
+      for (final r in routines) {
+        await db.into(db.routines).insert(r);
       }
     });
   }

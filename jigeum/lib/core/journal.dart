@@ -3,6 +3,38 @@ import 'package:intl/intl.dart';
 
 import 'constants.dart';
 
+/// 일정·루틴 색 팔레트 (index 로 저장). 스샷처럼 부드러운 톤.
+const kScheduleColors = <Color>[
+  Color(0xFFE7B44C), // 노랑(재택근무)
+  Color(0xFF6FA8DC), // 파랑
+  Color(0xFF7FBf7F), // 초록
+  Color(0xFFE28E8E), // 빨강
+  Color(0xFFE0A15E), // 주황
+  Color(0xFFB18FD6), // 보라
+  Color(0xFF7FC7C0), // 청록
+  Color(0xFFB0B4BA), // 회색
+];
+
+Color scheduleColor(int i) =>
+    kScheduleColors[i % kScheduleColors.length];
+
+/// 분(0~1439) → "오전 9:30" 표기.
+String minToLabel(int m) {
+  final h = m ~/ 60;
+  final mm = m % 60;
+  final ampm = h < 12 ? '오전' : '오후';
+  var h12 = h % 12;
+  if (h12 == 0) h12 = 12;
+  return '$ampm $h12:${mm.toString().padLeft(2, '0')}';
+}
+
+/// 분 → "9:30" (짧게).
+String minToShort(int m) {
+  final h = m ~/ 60;
+  final mm = m % 60;
+  return '${h.toString().padLeft(2, '0')}:${mm.toString().padLeft(2, '0')}';
+}
+
 /// 저널형 타임라인 디자인 공용 요소.
 /// 오프화이트 페이지 배경 + 라운드 카드 + 세로 레일 + 알약 배지 + pill.
 class Journal {

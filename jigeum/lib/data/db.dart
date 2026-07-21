@@ -54,13 +54,48 @@ class HabitTicks extends Table {
   Set<Column> get primaryKey => {habitId, date};
 }
 
-@DriftDatabase(tables: [Nodes, Settings, Habits, HabitTicks])
+/// 하루 일정 (일과). 시작·끝 시간이 있는 그날의 일정.
+class Schedules extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get date => dateTime()(); // 자정 기준 날짜
+  TextColumn get title => text()();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  IntColumn get color => integer().withDefault(const Constant(0))(); // 팔레트 index
+  IntColumn get startMin => integer()(); // 0~1439 (하루 분 단위)
+  IntColumn get endMin => integer()();
+  BoolColumn get done => boolean().withDefault(const Constant(false))();
+  TextColumn get routineId => text().nullable()(); // 루틴에서 생성됐으면 그 id
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 루틴: 매일/요일 반복되는 일정 템플릿. 앱 열 때 오늘 일정으로 자동 생성.
+class Routines extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  IntColumn get color => integer().withDefault(const Constant(0))();
+  IntColumn get startMin => integer()();
+  IntColumn get endMin => integer()();
+  TextColumn get weekdays =>
+      text().withDefault(const Constant('1,2,3,4,5,6,7'))(); // 1=월 ~ 7=일
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(
+    tables: [Nodes, Settings, Habits, HabitTicks, Schedules, Routines])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -80,6 +115,10 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from == 2) {
             await m.addColumn(habits, habits.category);
+          }
+          if (from < 4) {
+            await m.createTable(schedules);
+            await m.createTable(routines);
           }
         },
       );
