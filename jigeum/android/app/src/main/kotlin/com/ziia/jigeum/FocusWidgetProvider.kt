@@ -36,10 +36,9 @@ class FocusWidgetProvider : AppWidgetProvider() {
         for (widgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.focus_widget).apply {
                 setTextViewText(R.id.widget_title, title)
-                setInt(R.id.widget_bg_img, "setImageAlpha", alpha)
-                // 테마 색 적용
-                setInt(R.id.widget_bg_img, "setColorFilter", pal.paper)
-                setInt(R.id.widget_check, "setColorFilter", pal.mark)
+                // 배경: 테마 paper + 투명도(alpha) 를 루트에 직접 (RemoteViews 안전).
+                setInt(R.id.widget_root, "setBackgroundColor",
+                    (alpha shl 24) or (pal.paper and 0xFFFFFF))
                 setTextColor(R.id.widget_now, pal.mark)
                 setTextColor(R.id.widget_title, pal.ink)
                 setOnClickPendingIntent(R.id.widget_root, pending)

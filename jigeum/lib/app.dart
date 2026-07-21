@@ -66,6 +66,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     'all'
   ];
 
+  /// 하단 담기 대상: 일과 탭=일정, 습관 탭=습관, 그 외=할 일.
+  CaptureMode get _captureMode => switch (_index) {
+        3 => CaptureMode.schedule,
+        4 => CaptureMode.habit,
+        _ => CaptureMode.task,
+      };
+
   @override
   Widget build(BuildContext context) {
     final body = switch (_index) {
@@ -92,7 +99,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               ),
             ),
             Expanded(child: body),
-            const QuickCaptureBar(),
+            QuickCaptureBar(mode: _captureMode),
             _bottomNav(context),
           ],
         ),

@@ -46,9 +46,9 @@ class MatrixWidgetProvider : AppWidgetProvider() {
                 setTextViewText(R.id.matrix_q2, q2.ifEmpty { "—" })
                 setTextViewText(R.id.matrix_q3, q3.ifEmpty { "—" })
                 setTextViewText(R.id.matrix_q4, "${q4Count}개")
-                setInt(R.id.widget_bg_img, "setImageAlpha", alpha)
-                // 테마 색 적용
-                setInt(R.id.widget_bg_img, "setColorFilter", pal.paper)
+                // 배경: 테마 paper + 투명도(alpha) 를 루트에 직접.
+                setInt(R.id.matrix_root, "setBackgroundColor",
+                    (alpha shl 24) or (pal.paper and 0xFFFFFF))
                 setTextColor(R.id.matrix_date, pal.ink)
                 setInt(R.id.matrix_rule, "setBackgroundColor", pal.ink)
                 setInt(R.id.matrix_div1, "setBackgroundColor", pal.line)

@@ -38,9 +38,9 @@ class TimeTrackWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.time_track_widget).apply {
                 setTextViewText(R.id.tt_label, label)
                 setTextViewText(R.id.tt_text, text)
-                setInt(R.id.widget_bg_img, "setImageAlpha", alpha)
-                // 테마 색 적용
-                setInt(R.id.widget_bg_img, "setColorFilter", pal.paper)
+                // 배경: 테마 paper + 투명도(alpha) 를 루트에 직접.
+                setInt(R.id.tt_root, "setBackgroundColor",
+                    (alpha shl 24) or (pal.paper and 0xFFFFFF))
                 setInt(R.id.tt_bar, "setBackgroundColor", pal.mark)
                 setTextColor(R.id.tt_label, pal.inkSoft)
                 setTextColor(R.id.tt_text, pal.ink)
