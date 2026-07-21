@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../core/journal.dart';
+import '../../core/theme.dart';
 import '../../data/repos/time_track_repository.dart';
 import '../../providers.dart';
 
@@ -85,12 +86,12 @@ class _TimeTrackScreenState extends ConsumerState<TimeTrackScreen> {
         ],
       ),
       body: Container(
-        color: Journal.pageBg(context),
+        color: t(context).paper,
         child: Column(
           children: [
             // 날짜 이동
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 2),
               child: Row(
                 children: [
                   IconButton(
@@ -102,7 +103,7 @@ class _TimeTrackScreenState extends ConsumerState<TimeTrackScreen> {
                     child: Text(
                       DateFormat('M월 d일 (E)', 'ko').format(_date),
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium,
+                      style: AppText.hTitle(t(context).ink),
                     ),
                   ),
                   IconButton(
@@ -113,21 +114,23 @@ class _TimeTrackScreenState extends ConsumerState<TimeTrackScreen> {
                 ],
               ),
             ),
-            Text('기록한 칸 $filled / 48',
-                style: theme.textTheme.bodySmall),
-            const SizedBox(height: 8),
+            Text('$filled / 48 FILLED',
+                style: AppText.meta(t(context).inkSoft)),
+            const SizedBox(height: 12),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: kGutter),
+              height: 1,
+              color: t(context).line,
+            ),
             Expanded(
-              child: Journal.card(
-                context,
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  itemCount: 48,
-                  itemBuilder: (_, i) {
-                    final text = byIndex[i];
-                    final isNow = _isToday && i == nowBlock;
-                    return _row(theme, i, text, isNow);
-                  },
-                ),
+              child: ListView.builder(
+                padding: const EdgeInsets.only(top: 6, bottom: 16),
+                itemCount: 48,
+                itemBuilder: (_, i) {
+                  final text = byIndex[i];
+                  final isNow = _isToday && i == nowBlock;
+                  return _row(theme, i, text, isNow);
+                },
               ),
             ),
           ],
@@ -137,39 +140,32 @@ class _TimeTrackScreenState extends ConsumerState<TimeTrackScreen> {
   }
 
   Widget _row(ThemeData theme, int i, String? text, bool isNow) {
-    final ink = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final tk = t(context);
     final hasText = text != null && text.isNotEmpty;
     return InkWell(
-      onTap: () =>
-          showTimeTrackInput(context, ref, date: _date, block: i),
+      onTap: () => showTimeTrackInput(context, ref, date: _date, block: i),
       child: Container(
-        decoration: isNow
-            ? BoxDecoration(
-                border: Border(left: BorderSide(color: ink, width: 2)))
-            : null,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+                color: isNow ? tk.mark : Colors.transparent, width: 2),
+            bottom: BorderSide(color: tk.line, width: 1),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(kGutter, 9, kGutter, 9),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
               width: 46,
-              child: Text(
-                blockLabel(i),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 12,
-                  fontWeight: isNow ? FontWeight.w700 : FontWeight.w400,
-                ),
-              ),
+              child: Text(blockLabel(i),
+                  style: AppText.meta(isNow ? tk.ink : tk.inkSoft)),
             ),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 hasText ? text : '—',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: hasText
-                      ? theme.textTheme.bodyMedium?.color
-                      : (theme.textTheme.bodySmall?.color ?? Colors.grey)
-                          .withValues(alpha: 0.4),
-                ),
+                style: AppText.body(hasText ? tk.ink : tk.inkSoft),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

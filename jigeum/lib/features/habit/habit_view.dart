@@ -4,34 +4,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../../data/db.dart';
 import '../../core/journal.dart';
+import '../../core/theme.dart';
 import '../../providers.dart';
 
-/// 습관 탭 — 레퍼런스 스타일 해빗 트래커.
-/// 습관마다: 제목 + [오늘 체크] + 통계(총/완료/%) + ✦ 그리드
-/// (한 날 = 잉크 ✦, 안 한 날 = 연회색 ✦).
+/// 습관 탭 — 편집형. 카테고리 = 섹션 라벨, 습관마다 제목 + 오늘 토글 + 통계 + ●/○ 그리드.
 class HabitView extends ConsumerWidget {
   const HabitView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tk = t(context);
     final habits = ref.watch(habitsProvider).valueOrNull ?? const [];
 
     if (habits.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('아직 습관이 없어요',
-                style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 4),
-            Text('오른쪽 위 ✦ 버튼으로 만들어보세요',
-                style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+      return Container(
+        color: tk.paper,
+        alignment: Alignment.topLeft,
+        padding: const EdgeInsets.only(top: 26),
+        child: emptyNote(context, '오른쪽 위 + 로 습관을 만들어보세요'),
       );
     }
 
-    // 카테고리별 그룹핑 (빈 값은 맨 앞 '기본').
     final byCat = <String, List<Habit>>{};
     for (final h in habits) {
       byCat.putIfAbsent(h.category, () => []).add(h);
@@ -43,35 +36,30 @@ class HabitView extends ConsumerWidget {
         return a.compareTo(b);
       });
 
+    final rows = <Widget>[];
+    for (final c in cats) {
+      final list = byCat[c]!;
+      rows.add(SectionLabel(c.isEmpty ? 'GENERAL' : c, count: list.length));
+      for (final h in list) {
+        rows.add(_HabitBlock(habit: h));
+      }
+    }
+    rows.add(const SizedBox(height: 16));
+
     return Container(
-      color: Journal.pageBg(context),
-      child: ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: [
-        for (final c in cats) ...[
-          Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 6, left: 2),
-            child: Text(c.isEmpty ? '기본' : c,
-                style: Theme.of(context).textTheme.bodySmall),
-          ),
-          for (final h in byCat[c]!) _HabitCard(habit: h),
-        ],
-      ],
-    ),
+      color: tk.paper,
+      child: ListView(padding: EdgeInsets.zero, children: rows),
     );
   }
 }
 
-class _HabitCard extends ConsumerWidget {
-  const _HabitCard({required this.habit});
+class _HabitBlock extends ConsumerWidget {
+  const _HabitBlock({required this.habit});
   final Habit habit;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final hairline = theme.dividerTheme.color ?? Colors.black12;
-    final ink = theme.textTheme.bodyLarge?.color ?? Colors.black;
-
+    final tk = t(context);
     final ticks =
         ref.watch(habitTicksProvider(habit.id)).valueOrNull ?? const [];
     final tickSet = {for (final t in ticks) dateOnly(t.date)};
@@ -80,95 +68,59 @@ class _HabitCard extends ConsumerWidget {
     final today = todayDate();
     final totalDays = today.difference(start).inDays + 1;
     final doneDays = tickSet.length;
-    final percent =
-        totalDays == 0 ? 0 : (doneDays * 100 / totalDays).round();
+    final percent = totalDays == 0 ? 0 : (doneDays * 100 / totalDays).round();
     final todayDone = tickSet.contains(today);
 
-    // 표시 일수: 시작일부터, 최대 최근 180일.
     final showDays = totalDays.clamp(1, 180);
     final firstShown = today.subtract(Duration(days: showDays - 1));
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: hairline, width: 0.5),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(
-                child: Text(habit.title, style: theme.textTheme.titleMedium),
-              ),
-              // 오늘 체크 토글
+              Expanded(child: Text(habit.title, style: AppText.body(tk.ink))),
+              // 오늘 토글
               GestureDetector(
-                onTap: () => ref
-                    .read(habitRepoProvider)
-                    .toggleTick(habit.id, today),
+                onTap: () =>
+                    ref.read(habitRepoProvider).toggleTick(habit.id, today),
                 behavior: HitTestBehavior.opaque,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: todayDone ? ink : Colors.transparent,
-                    borderRadius: BorderRadius.circular(999),
-                    border: todayDone
-                        ? null
-                        : Border.all(color: hairline, width: 0.8),
-                  ),
-                  child: Text(
-                    todayDone ? '오늘 ✦' : '오늘',
-                    style: TextStyle(
-                                            fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: todayDone
-                          ? theme.scaffoldBackgroundColor
-                          : theme.textTheme.bodySmall?.color,
-                    ),
-                  ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(todayDone ? '● today' : '○ today',
+                      style: AppText.nav(
+                          todayDone ? tk.ink : tk.inkSoft,
+                          active: todayDone)),
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _menu(context, ref),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Icon(Icons.more_horiz,
-                      size: 16, color: theme.textTheme.bodySmall?.color),
-                ),
+                behavior: HitTestBehavior.opaque,
+                child: Text('⋯', style: AppText.glyph(tk.inkSoft, size: 16)),
               ),
             ],
           ),
           const SizedBox(height: 8),
-
-          // 통계 (레퍼런스 스타일)
-          _stat(theme, '$totalDays', '일째'),
-          _stat(theme, '$doneDays', '일 함'),
-          _stat(theme, '$percent%', '만큼 해냈어요'),
+          // 통계 (모노 메타)
+          Text('$totalDays일째 · $doneDays일 함 · $percent%',
+              style: AppText.meta(tk.inkSoft)),
           const SizedBox(height: 12),
-
-          // ✦ 그리드
+          // ●/○ 그리드
           Wrap(
             spacing: 5,
             runSpacing: 5,
             children: [
               for (var i = 0; i < showDays; i++)
-                _star(
-                  theme,
-                  filled: tickSet
-                      .contains(firstShown.add(Duration(days: i))),
-                  isToday:
-                      firstShown.add(Duration(days: i)) == today,
-                  onTap: () {
-                    final d = firstShown.add(Duration(days: i));
-                    // 과거 날짜도 탭해서 수정 가능 (미래는 없음)
-                    ref.read(habitRepoProvider).toggleTick(habit.id, d);
-                  },
+                _dot(
+                  tk,
+                  filled: tickSet.contains(firstShown.add(Duration(days: i))),
+                  isToday: firstShown.add(Duration(days: i)) == today,
+                  onTap: () => ref
+                      .read(habitRepoProvider)
+                      .toggleTick(habit.id, firstShown.add(Duration(days: i))),
                 ),
             ],
           ),
@@ -177,42 +129,16 @@ class _HabitCard extends ConsumerWidget {
     );
   }
 
-  Widget _stat(ThemeData theme, String strong, String rest) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 1),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Text(strong,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(width: 4),
-          Text(rest,
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Widget _star(ThemeData theme,
+  Widget _dot(AppTokens tk,
       {required bool filled,
       required bool isToday,
       required VoidCallback onTap}) {
-    final ink = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final faint = (theme.textTheme.bodySmall?.color ?? Colors.grey)
-        .withValues(alpha: 0.22);
     return GestureDetector(
       onTap: onTap,
-      child: Text(
-        '✦',
-        style: TextStyle(
-          fontSize: 14,
-          height: 1,
-          color: filled ? ink : faint,
-          fontWeight: isToday ? FontWeight.w700 : FontWeight.w400,
-        ),
-      ),
+      child: Text(filled ? '●' : '○',
+          style: AppText.glyph(
+              filled ? tk.ink : tk.line.withValues(alpha: isToday ? 1 : 0.7),
+              size: 13)),
     );
   }
 
@@ -254,7 +180,8 @@ class _HabitCard extends ConsumerWidget {
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: '예: 건강, 공부 (비우면 기본)'),
+          decoration:
+              const InputDecoration(hintText: '예: 건강, 공부 (비우면 기본)'),
           onSubmitted: (s) => Navigator.of(ctx).pop(s),
         ),
         actions: [

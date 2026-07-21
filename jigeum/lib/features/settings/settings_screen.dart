@@ -3,127 +3,125 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
+import '../../core/theme.dart';
 import '../../providers.dart';
 import '../widgetkit/widget_bridge.dart';
 
-/// 설정 화면 — 백업/복원 · 폰트 크기 · 굵기 · 위젯 투명도.
+/// 설정 화면 — 편집형. 테마 · 글자 크기/굵기 · 위젯 투명도 · 백업/복원.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final tk = t(context);
     final s = ref.watch(settingsProvider);
     final ctrl = ref.read(settingsProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: const Text('설정')),
       body: Container(
-        color: Journal.pageBg(context),
+        color: tk.paper,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(bottom: 32),
           children: [
-            // 미리보기
-            _card(context, [
-              Text('미리보기', style: theme.textTheme.bodySmall),
-              const SizedBox(height: 8),
-              Text('지금 할 것 · 오늘의 기록', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 2),
-              Text('이 정도 크기와 굵기로 보여요',
-                  style: theme.textTheme.bodyMedium),
-            ]),
-            const SizedBox(height: 8),
+            const SectionLabel('THEME'),
+            _ThemePicker(current: s.themeKey, onPick: ctrl.setThemeKey),
 
-            // 폰트 크기
-            _card(context, [
-              _rowLabel(theme, '글자 크기', '${(s.fontScale * 100).round()}%'),
-              Slider(
+            const SectionLabel('TYPE'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+              child: Text('지금 할 것 · 오늘의 기록', style: AppText.body(tk.ink)),
+            ),
+            _sliderRow(
+              context,
+              label: '글자 크기',
+              value: '${(s.fontScale * 100).round()}%',
+              slider: Slider(
                 value: s.fontScale,
                 min: 0.85,
                 max: 1.4,
                 divisions: 11,
-                onChanged: (v) => ctrl.setFontScale(
-                    (v * 100).round() / 100),
+                onChanged: (v) => ctrl.setFontScale((v * 100).round() / 100),
               ),
-            ]),
-            const SizedBox(height: 8),
-
-            // 글자 굵기
-            _card(context, [
-              _rowLabel(theme, '글자 굵기', _weightLabel(s.weightDelta)),
-              Slider(
+            ),
+            _sliderRow(
+              context,
+              label: '글자 굵기',
+              value: _weightLabel(s.weightDelta),
+              slider: Slider(
                 value: s.weightDelta.toDouble(),
                 min: -1,
                 max: 2,
                 divisions: 3,
                 onChanged: (v) => ctrl.setWeightDelta(v.round()),
               ),
-            ]),
-            const SizedBox(height: 8),
+            ),
 
-            // 위젯 투명도
-            _card(context, [
-              _WidgetOpacityTile(),
-            ]),
-            const SizedBox(height: 16),
+            const SectionLabel('WIDGET'),
+            const _WidgetOpacityTile(),
 
-            // 백업 / 복원
-            _sectionLabel(theme, '데이터'),
-            _menuTile(context, Icons.upload_outlined, '백업 내보내기',
-                '모든 데이터를 파일로 저장', () => _export(context, ref)),
-            _menuTile(context, Icons.download_outlined, '백업 가져오기 (복원)',
-                '파일에서 전체 되돌리기', () => _import(context, ref)),
+            const SectionLabel('DATA'),
+            _menuTile(context, '↑', '백업 내보내기', '모든 데이터를 파일로 저장',
+                () => _export(context, ref)),
+            _menuTile(context, '↓', '백업 가져오기 (복원)', '파일에서 전체 되돌리기',
+                () => _import(context, ref)),
           ],
         ),
       ),
     );
   }
 
-  // ---- 위젯 조각 ----
-  Widget _card(BuildContext context, List<Widget> children) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: theme.dividerTheme.color ?? Colors.black12, width: 0.5),
-      ),
+  Widget _sliderRow(BuildContext context,
+      {required String label,
+      required String value,
+      required Widget slider}) {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, children: children),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: AppText.body(tk.ink)),
+              Text(value, style: AppText.meta(tk.inkSoft)),
+            ],
+          ),
+          slider,
+        ],
+      ),
     );
   }
 
-  Widget _rowLabel(ThemeData theme, String label, String value) => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: theme.textTheme.bodyMedium),
-          Text(value, style: theme.textTheme.bodySmall),
-        ],
-      );
-
-  Widget _sectionLabel(ThemeData theme, String t) => Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 6),
-        child: Text(t, style: theme.textTheme.bodySmall),
-      );
-
-  Widget _menuTile(BuildContext context, IconData icon, String title,
+  Widget _menuTile(BuildContext context, String glyph, String title,
       String sub, VoidCallback onTap) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: theme.dividerTheme.color ?? Colors.black12, width: 0.5),
-      ),
-      child: ListTile(
-        leading: Icon(icon, size: 20),
-        title: Text(title, style: theme.textTheme.bodyMedium),
-        subtitle: Text(sub, style: theme.textTheme.bodySmall),
-        onTap: onTap,
+    final tk = t(context);
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: tk.line, width: 1)),
+        ),
+        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+        child: Row(
+          children: [
+            SizedBox(
+                width: 22,
+                child: Text(glyph, style: AppText.glyph(tk.inkSoft))),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppText.body(tk.ink)),
+                  const SizedBox(height: 2),
+                  Text(sub, style: AppText.meta(tk.inkSoft)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -188,8 +186,70 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+/// 내장 10종 테마 스와치 — paper / ink / mark 3색 바. 선택 = ink 1.5px 테두리.
+class _ThemePicker extends StatelessWidget {
+  const _ThemePicker({required this.current, required this.onPick});
+  final String current;
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          for (final spec in kThemes)
+            GestureDetector(
+              onTap: () => onPick(spec.key),
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 58,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: current == spec.key ? tk.ink : spec.tokens.line,
+                        width: current == spec.key ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                            child: Container(color: spec.tokens.paper)),
+                        Expanded(child: Container(color: spec.tokens.ink)),
+                        Expanded(child: Container(color: spec.tokens.mark)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: 58,
+                    child: Text(spec.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.nav(
+                            current == spec.key ? tk.ink : tk.inkSoft,
+                            active: current == spec.key)),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 위젯 투명도 조절 타일.
 class _WidgetOpacityTile extends StatefulWidget {
+  const _WidgetOpacityTile();
+
   @override
   State<_WidgetOpacityTile> createState() => _WidgetOpacityTileState();
 }
@@ -207,26 +267,29 @@ class _WidgetOpacityTileState extends State<_WidgetOpacityTile> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('위젯 투명도', style: theme.textTheme.bodyMedium),
-            Text('${_value.round()}%', style: theme.textTheme.bodySmall),
-          ],
-        ),
-        Slider(
-          value: _value,
-          min: 0,
-          max: 100,
-          divisions: 20,
-          onChanged: (v) => setState(() => _value = v),
-          onChangeEnd: (v) => WidgetBridge.setWidgetOpacity(v.round()),
-        ),
-      ],
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('위젯 투명도', style: AppText.body(tk.ink)),
+              Text('${_value.round()}%', style: AppText.meta(tk.inkSoft)),
+            ],
+          ),
+          Slider(
+            value: _value,
+            min: 0,
+            max: 100,
+            divisions: 20,
+            onChanged: (v) => setState(() => _value = v),
+            onChangeEnd: (v) => WidgetBridge.setWidgetOpacity(v.round()),
+          ),
+        ],
+      ),
     );
   }
 }

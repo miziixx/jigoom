@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants.dart';
+import 'core/journal.dart';
+import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
 import 'features/capture/quick_capture_bar.dart';
@@ -55,6 +57,14 @@ class _AppShellState extends ConsumerState<AppShell> {
       .push(MaterialPageRoute(builder: (_) => const TimeTrackScreen()));
 
   static const _titles = ['오늘', '매트릭스', '아웃라인', '일과', '습관', '전체'];
+  static const _navLabels = [
+    'today',
+    'matrix',
+    'outline',
+    'routine',
+    'habit',
+    'all'
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -69,68 +79,89 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: Text(_titles[_index]),
-        actions: [
-          if (_index == 3) ...[
-            IconButton(
-              icon: const Icon(Icons.repeat),
-              tooltip: '루틴',
-              onPressed: () => _scheduleKey.currentState?.openRoutines(),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add),
-              tooltip: '새 일정',
-              onPressed: () => _scheduleKey.currentState?.addSchedule(),
-            ),
-          ],
-          if (_index == 4)
-            IconButton(
-              icon: const Icon(Icons.auto_awesome_outlined),
-              tooltip: '새 습관',
-              onPressed: _newHabit,
-            ),
-          if (_index == 2) ...[
-            IconButton(
-              icon: const Icon(Icons.create_new_folder_outlined),
-              tooltip: '새 폴더',
-              onPressed: _newFolder,
-            ),
-            IconButton(
-              icon: const Icon(Icons.flag_outlined),
-              tooltip: '새 목표',
-              onPressed: _newGoal,
-            ),
-          ],
-        ],
-      ),
       drawer: _buildDrawer(context),
       // 입력바가 키보드 위로 따라 올라오도록 body 에 배치.
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
+            Builder(
+              builder: (ctx) => Masthead(
+                title: _titles[_index],
+                actions: _mastheadActions(ctx),
+              ),
+            ),
             Expanded(child: body),
             const QuickCaptureBar(),
+            _bottomNav(context),
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.wb_sunny_outlined), label: '오늘'),
-          NavigationDestination(
-              icon: Icon(Icons.grid_view_outlined), label: '매트릭스'),
-          NavigationDestination(
-              icon: Icon(Icons.account_tree_outlined), label: '아웃라인'),
-          NavigationDestination(
-              icon: Icon(Icons.schedule_outlined), label: '일과'),
-          NavigationDestination(
-              icon: Icon(Icons.auto_awesome_outlined), label: '습관'),
-          NavigationDestination(
-              icon: Icon(Icons.list_alt_outlined), label: '전체'),
-        ],
+    );
+  }
+
+  /// 마스트헤드 우측: 탭별 액션 + ≡ MENU (모노).
+  List<Widget> _mastheadActions(BuildContext ctx) {
+    final actions = <Widget>[];
+    if (_index == 2) {
+      actions.add(_act('+폴더', _newFolder));
+      actions.add(_act('+목표', _newGoal));
+    } else if (_index == 3) {
+      actions.add(_act('루틴', () => _scheduleKey.currentState?.openRoutines()));
+      actions.add(_act('+일정', () => _scheduleKey.currentState?.addSchedule()));
+    } else if (_index == 4) {
+      actions.add(_act('+습관', _newHabit));
+    }
+    actions.add(_act('≡ MENU', () => Scaffold.of(ctx).openDrawer()));
+    return actions;
+  }
+
+  Widget _act(String label, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 14),
+          child: Text(label,
+              style: AppText.meta(t(context).inkSoft, size: 11)),
+        ),
+      );
+
+  /// 하단 탭 — 소문자 모노, 상단 규칙선, 활성 = ink + 밑줄.
+  Widget _bottomNav(BuildContext context) {
+    final tk = t(context);
+    return Container(
+      decoration:
+          BoxDecoration(border: Border(top: BorderSide(color: tk.line, width: 1))),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (var i = 0; i < _navLabels.length; i++)
+                GestureDetector(
+                  onTap: () => setState(() => _index = i),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: _index == i ? tk.ink : Colors.transparent,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    child: Text(_navLabels[i],
+                        style: AppText.nav(
+                            _index == i ? tk.ink : tk.inkSoft,
+                            active: _index == i)),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -239,31 +270,45 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _openSettings() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
 
-  /// 사이드바 메뉴.
+  /// 사이드바 메뉴 (편집형).
   Widget _buildDrawer(BuildContext context) {
-    final theme = Theme.of(context);
-    Widget item(IconData icon, String label, VoidCallback onTap) => ListTile(
-          leading: Icon(icon, size: 20),
-          title: Text(label, style: theme.textTheme.bodyLarge),
+    final tk = t(context);
+    Widget item(String glyph, String label, VoidCallback onTap) => InkWell(
           onTap: () {
             Navigator.of(context).pop(); // 드로어 닫기
             onTap();
           },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+            child: Row(
+              children: [
+                SizedBox(
+                    width: 22,
+                    child: Text(glyph, style: AppText.glyph(tk.inkSoft))),
+                const SizedBox(width: 8),
+                Text(label, style: AppText.body(tk.ink)),
+              ],
+            ),
+          ),
         );
 
     return Drawer(
+      backgroundColor: tk.paper,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-              child: Text('지금', style: theme.textTheme.titleLarge),
+              padding: const EdgeInsets.fromLTRB(kGutter, 20, kGutter, 12),
+              child: Text('지금', style: AppText.hTitle(tk.ink)),
             ),
-            const Divider(height: 0.5),
-            item(Icons.access_time, '기록 (타임트래커)', _openTimeTrack),
-            const Divider(height: 0.5),
-            item(Icons.settings_outlined, '설정', _openSettings),
+            Container(
+                margin: const EdgeInsets.symmetric(horizontal: kGutter),
+                height: 1,
+                color: tk.ink),
+            const SizedBox(height: 6),
+            item('◷', '기록 · 타임트래커', _openTimeTrack),
+            item('⚙', '설정', _openSettings),
           ],
         ),
       ),

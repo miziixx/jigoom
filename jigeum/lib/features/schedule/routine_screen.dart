@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/journal.dart';
+import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 
@@ -28,22 +29,17 @@ class RoutineScreen extends ConsumerWidget {
         ],
       ),
       body: Container(
-        color: Journal.pageBg(context),
+        color: t(context).paper,
         child: routines.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('반복되는 일정을 루틴으로 만들어요',
-                        style: theme.textTheme.bodyMedium),
-                    const SizedBox(height: 4),
-                    Text('예: 매일 아침 기상, 화·목 운동',
-                        style: theme.textTheme.bodySmall),
-                  ],
+            ? Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 26),
+                  child: emptyNote(context, '반복되는 일정을 루틴으로 만들어요'),
                 ),
               )
             : ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.only(top: 8, bottom: 24),
                 children: [
                   for (final r in routines) _card(context, ref, theme, r),
                 ],
@@ -54,38 +50,29 @@ class RoutineScreen extends ConsumerWidget {
 
   Widget _card(BuildContext context, WidgetRef ref, ThemeData theme,
       Routine r) {
-    final hairline = theme.dividerTheme.color ?? Colors.black12;
+    final tk = t(context);
     final days = r.weekdays.split(',').where((s) => s.isNotEmpty).toList();
     final dayLabel = days.length == 7
         ? '매일'
         : days.map((d) => _weekdayNames[int.parse(d) - 1]).join('·');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: hairline, width: 0.5),
+        border: Border(bottom: BorderSide(color: tk.line, width: 1)),
       ),
+      padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 12),
       child: Row(
         children: [
-          Container(
-            width: 4,
-            height: 34,
-            decoration: BoxDecoration(
-                color: scheduleColor(r.color),
-                borderRadius: BorderRadius.circular(2)),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(r.title, style: theme.textTheme.bodyMedium),
+                Text(r.title,
+                    style: AppText.body(r.active ? tk.ink : tk.inkSoft)),
+                const SizedBox(height: 3),
                 Text(
                     '$dayLabel · ${minToShort(r.startMin)}–${minToShort(r.endMin)}',
-                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 12)),
+                    style: AppText.meta(tk.inkSoft)),
               ],
             ),
           ),
@@ -97,10 +84,10 @@ class RoutineScreen extends ConsumerWidget {
           ),
           GestureDetector(
             onTap: () => _edit(context, ref, existing: r),
+            behavior: HitTestBehavior.opaque,
             child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(Icons.edit_outlined,
-                  size: 18, color: theme.textTheme.bodySmall?.color),
+              padding: const EdgeInsets.only(left: 8),
+              child: Icon(Icons.edit_outlined, size: 18, color: tk.inkSoft),
             ),
           ),
         ],
@@ -243,11 +230,10 @@ class _RoutineEditSheetState extends ConsumerState<_RoutineEditSheet> {
                     height: 36,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
                       color: _days.contains(d)
                           ? (theme.textTheme.bodyLarge?.color ?? Colors.black)
                           : Colors.transparent,
-                      border: Border.all(color: hairline, width: 0.8),
+                      border: Border.all(color: hairline, width: 1),
                     ),
                     child: Text(
                       _weekdayNames[d - 1],
@@ -268,30 +254,6 @@ class _RoutineEditSheetState extends ConsumerState<_RoutineEditSheet> {
               Expanded(child: _timeBtn(theme, '시작', _start, true)),
               const SizedBox(width: 10),
               Expanded(child: _timeBtn(theme, '끝', _end, false)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            children: [
-              for (var i = 0; i < kScheduleColors.length; i++)
-                GestureDetector(
-                  onTap: () => setState(() => _color = i),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: scheduleColor(i),
-                      shape: BoxShape.circle,
-                      border: _color == i
-                          ? Border.all(
-                              color: theme.textTheme.bodyLarge?.color ??
-                                  Colors.black,
-                              width: 2)
-                          : null,
-                    ),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -325,8 +287,8 @@ class _RoutineEditSheetState extends ConsumerState<_RoutineEditSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: hairline, width: 0.5),
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: hairline, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

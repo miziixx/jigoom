@@ -129,31 +129,6 @@ class _SheetState extends ConsumerState<_Sheet> {
               Expanded(child: _timeBtn(theme, '끝', _end, false)),
             ],
           ),
-          const SizedBox(height: 14),
-          // 색
-          Wrap(
-            spacing: 10,
-            children: [
-              for (var i = 0; i < kScheduleColors.length; i++)
-                GestureDetector(
-                  onTap: () => setState(() => _color = i),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: scheduleColor(i),
-                      shape: BoxShape.circle,
-                      border: _color == i
-                          ? Border.all(
-                              color: theme.textTheme.bodyLarge?.color ??
-                                  Colors.black,
-                              width: 2)
-                          : null,
-                    ),
-                  ),
-                ),
-            ],
-          ),
           const SizedBox(height: 12),
           TextField(
             controller: _note,
@@ -191,8 +166,8 @@ class _SheetState extends ConsumerState<_Sheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: hairline, width: 0.5),
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: hairline, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

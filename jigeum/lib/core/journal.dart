@@ -4,62 +4,159 @@ import 'package:intl/intl.dart';
 import 'constants.dart';
 import 'theme.dart';
 
-/// 메타·숫자·시간·배지용 모노 스타일 (DESIGN_SYSTEM §3 두 벌 시스템).
-TextStyle metaStyle(BuildContext context, {Color? color, double size = 11}) {
-  return TextStyle(
-    fontFamily: kMonoFamily, // 숫자/기호 모노 (한글은 산세리프 폴백)
-    fontSize: size,
-    fontWeight: FontWeight.w400,
-    height: 1.3,
-    color: color ?? Theme.of(context).textTheme.bodySmall?.color,
+/// 편집(에디토리얼) 공용 요소 — DESIGN_SYSTEM 준수.
+/// 카드·박스·그림자·둥근 모서리를 쓰지 않는다. 구분은 라벨 + 규칙선으로.
+
+/// 메타·숫자·시간용 모노 스타일 (DESIGN_SYSTEM §3).
+TextStyle metaStyle(BuildContext context, {Color? color, double size = 11}) =>
+    AppText.meta(color ?? t(context).inkSoft, size: size);
+
+/// 화면 좌우 여백 — 잡지 마진의 시그니처. (22px)
+const double kGutter = AppSpace.gutter;
+
+/// 마스트헤드 아래 강한 규칙선 (1px ink, 좌우 gutter 인셋).
+class Masthead extends StatelessWidget {
+  const Masthead({super.key, required this.title, this.actions});
+  final String title;
+  final List<Widget>? actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 12),
+          child: Row(
+            children: [
+              Expanded(child: Text(title, style: AppText.hTitle(tk.ink))),
+              if (actions != null) ...actions!,
+            ],
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: kGutter),
+          height: 1,
+          color: tk.ink,
+        ),
+      ],
+    );
+  }
+}
+
+/// 섹션 라벨 (잡지 목차) — 대문자 모노 라벨 + `/ n` 카운트 + fill 규칙선.
+/// 카드로 감싸지 않는다. 라벨 + 규칙선이 곧 구분. (DESIGN_SYSTEM §5)
+class SectionLabel extends StatelessWidget {
+  const SectionLabel(
+      this.label, {
+    super.key,
+    this.count,
+    this.onTap,
+    this.onLongPress,
+    this.trailing,
+  });
+
+  final String label;
+  final int? count;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    final row = Row(
+      children: [
+        Text(label, style: AppText.sec(tk.ink)),
+        if (count != null) ...[
+          const SizedBox(width: 8),
+          Text('/ $count', style: AppText.meta(tk.inkSoft)),
+        ],
+        const SizedBox(width: 12),
+        Expanded(child: Container(height: 1, color: tk.line)),
+        if (trailing != null) ...[
+          const SizedBox(width: 10),
+          trailing!,
+        ],
+      ],
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 26, kGutter, 12),
+      child: (onTap == null && onLongPress == null)
+          ? row
+          : GestureDetector(
+              onTap: onTap,
+              onLongPress: onLongPress,
+              behavior: HitTestBehavior.opaque,
+              child: row),
+    );
+  }
+}
+
+/// 체크박스 = 글리프 □(미완료) / ■(완료). 원형·색채움 쓰지 않는다.
+class GlyphCheck extends StatelessWidget {
+  const GlyphCheck(
+      {super.key, required this.done, required this.onTap, this.size = 16});
+
+  final bool done;
+  final VoidCallback onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 12, top: 1),
+        child: SizedBox(
+          width: size,
+          child: Text(done ? '■' : '□',
+              style: AppText.glyph(tk.ink, size: size),
+              textAlign: TextAlign.center),
+        ),
+      ),
+    );
+  }
+}
+
+/// 우선순위 라벨 (배지 아님). URGENT = mark+Bold(유일 포인트), IMPORTANT = inkSoft.
+/// 없으면 null (우측 비움).
+Widget? priorityLabel(BuildContext context,
+    {required bool urgent, required bool important}) {
+  final tk = t(context);
+  if (urgent) return Text('URGENT', style: AppText.pri(tk.mark, bold: true));
+  if (important) return Text('IMPORTANT', style: AppText.pri(tk.inkSoft));
+  return null;
+}
+
+/// 빈 상태 — em-dash 접두 한 줄, 담백하게. 느낌표·이모지 금지. (DESIGN_SYSTEM §5)
+Widget emptyNote(BuildContext context, String text) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 6),
+    child: Text('— $text', style: AppText.meta(t(context).inkSoft)),
   );
 }
 
-/// 알약 배지 (DESIGN_SYSTEM §5).
-/// filled=채움형(배경 bg색, 글자 fg), 아니면 테두리형.
-Widget metaBadge(
-  BuildContext context,
-  String label, {
-  bool filled = false,
-  Color? bg,
-  Color? fg,
-}) {
-  final theme = Theme.of(context);
-  final border = theme.dividerTheme.color ?? Colors.black12;
-  final fillBg = bg ?? (theme.textTheme.bodyLarge?.color ?? Colors.black);
-  return Container(
-    padding: const EdgeInsets.fromLTRB(7, 2, 7, 2),
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: filled ? fillBg : Colors.transparent,
-      borderRadius: BorderRadius.circular(AppRadius.full),
-      border: filled ? null : Border.all(color: border, width: 1),
-    ),
-    child: Text(
-      label,
-      style: metaStyle(context,
-          size: 9,
-          color: filled
-              ? (fg ?? theme.scaffoldBackgroundColor)
-              : theme.textTheme.bodySmall?.color),
-    ),
-  );
+/// 마감 라벨 (우측 메타). 임박(오늘/내일) = ink, 그 외 = inkSoft. 채움 배지 아님.
+Widget deadlineLabel(BuildContext context, DateTime date) {
+  final tk = t(context);
+  final d = dateOnly(date);
+  final diff = d.difference(todayDate()).inDays;
+  final String label;
+  if (diff <= 0) {
+    label = '오늘';
+  } else if (diff == 1) {
+    label = '내일';
+  } else {
+    label = DateFormat('M/d').format(d);
+  }
+  final imminent = diff <= 1;
+  return Text(label,
+      style: AppText.meta(imminent ? tk.ink : tk.inkSoft, size: 10));
 }
-
-/// 일정·루틴 색 팔레트 (index 로 저장). 스샷처럼 부드러운 톤.
-const kScheduleColors = <Color>[
-  Color(0xFFE7B44C), // 노랑(재택근무)
-  Color(0xFF6FA8DC), // 파랑
-  Color(0xFF7FBf7F), // 초록
-  Color(0xFFE28E8E), // 빨강
-  Color(0xFFE0A15E), // 주황
-  Color(0xFFB18FD6), // 보라
-  Color(0xFF7FC7C0), // 청록
-  Color(0xFFB0B4BA), // 회색
-];
-
-Color scheduleColor(int i) =>
-    kScheduleColors[i % kScheduleColors.length];
 
 /// 분(0~1439) → "오전 9:30" 표기.
 String minToLabel(int m) {
@@ -71,7 +168,7 @@ String minToLabel(int m) {
   return '$ampm $h12:${mm.toString().padLeft(2, '0')}';
 }
 
-/// 분 → "9:30" (짧게).
+/// 분 → "09:30" (짧게).
 String minToShort(int m) {
   final h = m ~/ 60;
   final mm = m % 60;
@@ -80,157 +177,3 @@ String minToShort(int m) {
 
 /// 타임트래커 블록(0~47) → "09:30" 시작 시각.
 String blockLabel(int block) => minToShort(block * 30);
-
-/// 저널형 타임라인 디자인 공용 요소.
-/// 오프화이트 페이지 배경 + 라운드 카드 + 세로 레일 + 알약 배지 + pill.
-class Journal {
-  static const double railX = 27; // 세로선 x
-  static const double rowLeft = 52; // 행 들여쓰기
-
-  static Color pageBg(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-          ? AppColors.bgSubtleDark
-          : AppColors.bgSubtleLight;
-
-  static Color _hairline(BuildContext context) =>
-      Theme.of(context).dividerTheme.color ?? Colors.black12;
-
-  /// 라운드 카드 래퍼.
-  static Widget card(BuildContext context, {required Widget child}) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _hairline(context), width: 0.5),
-      ),
-      child: child,
-    );
-  }
-
-  /// 세로 레일 + 스크롤 rows.
-  static Widget timeline(BuildContext context, List<Widget> rows) {
-    return Stack(
-      children: [
-        Positioned(
-          left: railX,
-          top: 0,
-          bottom: 0,
-          child: Container(width: 1, color: _hairline(context)),
-        ),
-        ListView(
-          padding: const EdgeInsets.fromLTRB(0, 14, 12, 20),
-          children: rows,
-        ),
-      ],
-    );
-  }
-
-  /// 섹션 라벨 — 배경/테두리 없이 텍스트만. (DESIGN_SYSTEM §5)
-  /// "라벨 · 3" 형태면 뒤 카운트만 text 색으로 진하게.
-  static Widget pill(BuildContext context, String label,
-      {VoidCallback? onTap, VoidCallback? onLong, Widget? trailing}) {
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.color;
-    final strong = theme.textTheme.bodyLarge?.color;
-
-    // "라벨 · 숫자" 분해해 숫자만 진하게.
-    final parts = label.split(' · ');
-    final Widget text;
-    if (parts.length == 2) {
-      text = RichText(
-        text: TextSpan(
-          style: metaStyle(context, color: muted),
-          children: [
-            TextSpan(text: '${parts[0]} · '),
-            TextSpan(
-                text: parts[1],
-                style: metaStyle(context, color: strong)),
-          ],
-        ),
-      );
-    } else {
-      text = Text(label, style: metaStyle(context, color: muted));
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 14, top: 12, bottom: 4),
-      child: GestureDetector(
-        onTap: onTap,
-        onLongPress: onLong,
-        behavior: HitTestBehavior.opaque,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            text,
-            if (trailing != null) ...[
-              const SizedBox(width: 4),
-              trailing,
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 구분선 없음 (DESIGN_SYSTEM §5): 여백만. 기존 호출부 호환용.
-  static Widget divider(BuildContext context) => const SizedBox(height: 2);
-}
-
-/// 둥근 사각 체크박스 (완료 = 초록 채움 + ✓).
-class SquareCheck extends StatelessWidget {
-  const SquareCheck(
-      {super.key, required this.done, required this.onTap, this.size = 17});
-
-  final bool done;
-  final VoidCallback onTap;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor =
-        isDark ? AppColors.checkBorderDark : AppColors.checkBorderLight;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.only(right: 10, top: 1),
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            color: done ? AppColors.accent : Colors.transparent,
-            border: done
-                ? null
-                : Border.all(color: borderColor, width: 1.5),
-          ),
-          child: done
-              ? Icon(Icons.check, size: size - 5, color: Colors.white)
-              : null,
-        ),
-      ),
-    );
-  }
-}
-
-/// 마감 배지 (DESIGN_SYSTEM §5): 임박(오늘·내일)=alert 채움, 이후=테두리 'M/d'.
-Widget deadlinePill(BuildContext context, DateTime date) {
-  final d = dateOnly(date);
-  final diff = d.difference(todayDate()).inDays;
-
-  final String label;
-  if (diff <= 0) {
-    label = '오늘';
-  } else if (diff == 1) {
-    label = '내일';
-  } else {
-    label = DateFormat('M/d').format(d);
-  }
-
-  final imminent = diff <= 1;
-  return metaBadge(context, label,
-      filled: imminent, bg: AppColors.alert, fg: Colors.white);
-}

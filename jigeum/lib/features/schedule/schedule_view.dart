@@ -11,7 +11,7 @@ import '../../providers.dart';
 import 'schedule_edit_sheet.dart';
 import 'routine_screen.dart';
 
-/// 일과 (하루 일정) — 리스트 / 타임라인 / 원형 3보기 + 날짜 이동.
+/// 일과 (하루 일정) — 편집형. 리스트 / 타임라인 / 원형 3보기. 잉크 단색.
 class ScheduleView extends ConsumerStatefulWidget {
   const ScheduleView({super.key});
 
@@ -24,116 +24,115 @@ class ScheduleViewState extends ConsumerState<ScheduleView> {
       DateTime.now().year, DateTime.now().month, DateTime.now().day);
   int _view = 0; // 0 리스트 · 1 타임라인 · 2 원형
 
-  /// 앱바 + 버튼에서 호출: 일정 추가.
   void addSchedule() => showScheduleEditSheet(context, date: _date);
 
-  /// 앱바 루틴 버튼.
-  void openRoutines() => Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const RoutineScreen()));
+  void openRoutines() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const RoutineScreen()));
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tk = t(context);
     final items =
         ref.watch(schedulesForDateProvider(_date)).valueOrNull ?? const [];
-    final totalMin =
-        items.fold<int>(0, (a, s) => a + (s.endMin - s.startMin).clamp(0, 1440));
+    final totalMin = items.fold<int>(
+        0, (a, s) => a + (s.endMin - s.startMin).clamp(0, 1440));
 
     return Container(
-      color: Journal.pageBg(context),
+      color: tk.paper,
       child: Column(
         children: [
           // 날짜 이동
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+            padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 2),
             child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: () => setState(() =>
-                      _date = _date.subtract(const Duration(days: 1))),
-                ),
+                _navArrow(tk, '‹',
+                    () => setState(() =>
+                        _date = _date.subtract(const Duration(days: 1)))),
                 Expanded(
                   child: GestureDetector(
                     onTap: _pickDate,
+                    behavior: HitTestBehavior.opaque,
                     child: Text(
                       DateFormat('M월 d일 (E)', 'ko').format(_date),
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium,
+                      style: AppText.hTitle(tk.ink),
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: () => setState(
-                      () => _date = _date.add(const Duration(days: 1))),
-                ),
+                _navArrow(tk, '›',
+                    () => setState(
+                        () => _date = _date.add(const Duration(days: 1)))),
               ],
             ),
           ),
-          // 요약
-          Text(
-            '일정 ${items.length}건 · 총 ${_hm(totalMin)}',
-            style: theme.textTheme.bodySmall,
+          Text('${items.length} EVENTS · ${_hm(totalMin)}',
+              style: AppText.meta(tk.inkSoft)),
+          const SizedBox(height: 12),
+          _viewTabs(tk),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: kGutter),
+            height: 1,
+            color: tk.line,
           ),
-          const SizedBox(height: 8),
-          // 보기 전환
-          _viewTabs(theme),
           Expanded(
-            child: Journal.card(
-              context,
-              child: items.isEmpty
-                  ? Center(
-                      child: Text('+ 로 오늘 일정을 추가해요',
-                          style: theme.textTheme.bodySmall))
-                  : switch (_view) {
-                      0 => _ListView(items: items),
-                      1 => _TimelineView(items: items),
-                      _ => _CircularView(items: items, date: _date),
-                    },
-            ),
+            child: items.isEmpty
+                ? Align(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: emptyNote(context, '+ 로 오늘 일정을 추가해요'),
+                    ),
+                  )
+                : switch (_view) {
+                    0 => _ListView(items: items),
+                    1 => _TimelineView(items: items),
+                    _ => _CircularView(items: items, date: _date),
+                  },
           ),
         ],
       ),
     );
   }
 
-  Widget _viewTabs(ThemeData theme) {
+  Widget _navArrow(AppTokens tk, String g, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Text(g, style: AppText.glyph(tk.ink, size: 20)),
+        ),
+      );
+
+  Widget _viewTabs(AppTokens tk) {
     Widget tab(int i, String label) {
       final sel = _view == i;
-      return Expanded(
-        child: GestureDetector(
-          onTap: () => setState(() => _view = i),
-          behavior: HitTestBehavior.opaque,
+      return GestureDetector(
+        onTap: () => setState(() => _view = i),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 18),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: sel
-                      ? (theme.textTheme.bodyLarge?.color ?? Colors.black)
-                      : Colors.transparent,
-                  width: 1.5,
-                ),
+                    color: sel ? tk.ink : Colors.transparent, width: 1.5),
               ),
             ),
-            child: Text(label,
-                textAlign: TextAlign.center,
-                style: sel
-                    ? theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)
-                    : theme.textTheme.bodySmall),
+            child: Text(label, style: AppText.nav(sel ? tk.ink : tk.inkSoft, active: sel)),
           ),
         ),
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.fromLTRB(kGutter, 0, kGutter, 0),
       child: Row(children: [
-        tab(0, '리스트'),
-        tab(1, '타임라인'),
-        tab(2, '원형'),
+        tab(0, 'list'),
+        tab(1, 'timeline'),
+        tab(2, 'clock'),
       ]),
     );
   }
@@ -153,9 +152,9 @@ class ScheduleViewState extends ConsumerState<ScheduleView> {
   static String _hm(int m) {
     final h = m ~/ 60;
     final mm = m % 60;
-    if (h == 0) return '$mm분';
-    if (mm == 0) return '$h시간';
-    return '$h시간 $mm분';
+    if (h == 0) return '${mm}m';
+    if (mm == 0) return '${h}h';
+    return '${h}h ${mm}m';
   }
 }
 
@@ -166,26 +165,26 @@ class _ListView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final tk = t(context);
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8, bottom: 16),
       itemCount: items.length,
-      separatorBuilder: (_, __) => Journal.divider(context),
       itemBuilder: (_, i) {
         final s = items[i];
         return InkWell(
           onTap: () => showScheduleEditSheet(context, existing: s),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: tk.line, width: 1)),
+            ),
+            padding: const EdgeInsets.fromLTRB(kGutter, 11, kGutter, 11),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 4,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: scheduleColor(s.color),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                SizedBox(
+                  width: 44,
+                  child: Text(minToShort(s.startMin),
+                      style: AppText.meta(tk.inkSoft)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -193,15 +192,18 @@ class _ListView extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(s.title,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                              decoration: s.done
-                                  ? TextDecoration.lineThrough
-                                  : null),
+                          style: AppText.body(s.done ? tk.inkSoft : tk.ink)
+                              .copyWith(
+                                  decoration: s.done
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  decorationColor: tk.inkSoft),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
-                      Text('${minToShort(s.startMin)} – ${minToShort(s.endMin)}',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(fontSize: 12)),
+                      const SizedBox(height: 2),
+                      Text(
+                          '${minToShort(s.startMin)}–${minToShort(s.endMin)}',
+                          style: AppText.meta(tk.inkSoft, size: 10)),
                     ],
                   ),
                 ),
@@ -211,16 +213,9 @@ class _ListView extends ConsumerWidget {
                       .toggleDone(s.id, !s.done),
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Icon(
-                      s.done
-                          ? Icons.check_circle
-                          : Icons.radio_button_unchecked,
-                      size: 20,
-                      color: s.done
-                          ? AppColors.accent
-                          : theme.textTheme.bodySmall?.color,
-                    ),
+                    padding: const EdgeInsets.only(left: 8, top: 1),
+                    child: Text(s.done ? '■' : '□',
+                        style: AppText.glyph(tk.ink)),
                   ),
                 ),
               ],
@@ -239,23 +234,21 @@ class _TimelineView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hairline = theme.dividerTheme.color ?? Colors.black12;
-    // 표시 범위: 가장 이른 시작 ~ 가장 늦은 끝 (여유 1시간).
+    final tk = t(context);
     final startH =
         ((items.map((s) => s.startMin).reduce(math.min)) ~/ 60 - 0)
             .clamp(0, 23);
-    final endH =
-        ((items.map((s) => s.endMin).reduce(math.max)) / 60).ceil().clamp(1, 24);
+    final endH = ((items.map((s) => s.endMin).reduce(math.max)) / 60)
+        .ceil()
+        .clamp(1, 24);
     const rowH = 44.0;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(8, 8, 12, 16),
+      padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 16),
       child: SizedBox(
         height: (endH - startH) * rowH,
         child: Stack(
           children: [
-            // 시간 눈금
             for (var h = startH; h <= endH; h++)
               Positioned(
                 left: 0,
@@ -266,36 +259,35 @@ class _TimelineView extends StatelessWidget {
                     SizedBox(
                       width: 40,
                       child: Text('${h.toString().padLeft(2, '0')}:00',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(fontSize: 11)),
+                          style: AppText.meta(tk.inkSoft, size: 10)),
                     ),
-                    Expanded(child: Container(height: 0.5, color: hairline)),
+                    Expanded(child: Container(height: 1, color: tk.line)),
                   ],
                 ),
               ),
-            // 일정 블록
             for (final s in items)
               Positioned(
                 left: 48,
-                right: 4,
+                right: 0,
                 top: (s.startMin - startH * 60) / 60 * rowH,
                 height: ((s.endMin - s.startMin) / 60 * rowH).clamp(18, 1440),
                 child: GestureDetector(
                   onTap: () => showScheduleEditSheet(context, existing: s),
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: scheduleColor(s.color).withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(6),
+                      color: tk.paper2,
+                      border: Border(
+                          left: BorderSide(color: tk.ink, width: 2),
+                          top: BorderSide(color: tk.line, width: 1),
+                          right: BorderSide(color: tk.line, width: 1),
+                          bottom: BorderSide(color: tk.line, width: 1)),
                     ),
                     child: Text(s.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
+                        style: AppText.body(tk.ink)),
                   ),
                 ),
               ),
@@ -314,26 +306,27 @@ class _CircularView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tk = t(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(kGutter),
         child: AspectRatio(
           aspectRatio: 1,
           child: CustomPaint(
             painter: _ClockPainter(
               items: items,
-              ring: theme.dividerTheme.color ?? Colors.black12,
-              tickColor: theme.textTheme.bodySmall?.color ?? Colors.grey,
+              ink: tk.ink,
+              ring: tk.line,
+              tickColor: tk.inkSoft,
             ),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(DateFormat('M.d').format(date),
-                      style: theme.textTheme.titleMedium),
-                  Text('${items.length}건',
-                      style: theme.textTheme.bodySmall),
+                      style: AppText.hTitle(tk.ink)),
+                  Text('${items.length} events',
+                      style: AppText.meta(tk.inkSoft)),
                 ],
               ),
             ),
@@ -346,8 +339,12 @@ class _CircularView extends StatelessWidget {
 
 class _ClockPainter extends CustomPainter {
   _ClockPainter(
-      {required this.items, required this.ring, required this.tickColor});
+      {required this.items,
+      required this.ink,
+      required this.ring,
+      required this.tickColor});
   final List<Schedule> items;
+  final Color ink;
   final Color ring;
   final Color tickColor;
 
@@ -356,17 +353,17 @@ class _ClockPainter extends CustomPainter {
     final c = size.center(Offset.zero);
     final r = size.shortestSide / 2;
     final ringR = r * 0.72;
-    final bandW = r * 0.16;
+    final bandW = r * 0.14;
 
-    // 바깥 링
     final ringPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
       ..color = ring;
     canvas.drawCircle(c, ringR + bandW * 0.9, ringPaint);
 
-    // 시간 눈금 + 숫자 (0,3,6,...21)
-    final tickPaint = Paint()..color = tickColor..strokeWidth = 1;
+    final tickPaint = Paint()
+      ..color = tickColor
+      ..strokeWidth = 1;
     for (var h = 0; h < 24; h++) {
       final a = (h / 24) * 2 * math.pi - math.pi / 2;
       final outer = ringR + bandW * 0.9;
@@ -380,7 +377,8 @@ class _ClockPainter extends CustomPainter {
         final tp = TextPainter(
           text: TextSpan(
               text: '$h',
-              style: TextStyle(color: tickColor, fontSize: 10)),
+              style: TextStyle(
+                  color: tickColor, fontSize: 10, fontFamily: 'monospace')),
           textDirection: TextDirection.ltr,
         )..layout();
         final lr = outer + 10;
@@ -393,7 +391,7 @@ class _ClockPainter extends CustomPainter {
       }
     }
 
-    // 일정 밴드
+    // 일정 밴드 — 잉크 단색.
     for (final s in items) {
       final startA = (s.startMin / 1440) * 2 * math.pi - math.pi / 2;
       final sweep = ((s.endMin - s.startMin) / 1440) * 2 * math.pi;
@@ -401,7 +399,7 @@ class _ClockPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = bandW
         ..strokeCap = StrokeCap.butt
-        ..color = scheduleColor(s.color);
+        ..color = ink;
       canvas.drawArc(
         Rect.fromCircle(center: c, radius: ringR),
         startA,
@@ -413,6 +411,5 @@ class _ClockPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ClockPainter old) =>
-      old.items != items;
+  bool shouldRepaint(covariant _ClockPainter old) => old.items != items;
 }

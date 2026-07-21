@@ -207,12 +207,14 @@ class _GoalAppState extends ConsumerState<GoalApp> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    final themeData =
+        AppTheme.fromKey(settings.themeKey, weightDelta: settings.weightDelta);
     return MaterialApp(
       title: '지금',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(weightDelta: settings.weightDelta),
-      darkTheme: AppTheme.dark(weightDelta: settings.weightDelta),
-      themeMode: ThemeMode.system,
+      theme: themeData,
+      darkTheme: themeData,
+      themeMode: ThemeMode.light,
       builder: (context, child) {
         final mq = MediaQuery.of(context);
         return MediaQuery(

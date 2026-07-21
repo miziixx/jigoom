@@ -2,58 +2,56 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/journal.dart';
+import '../../core/theme.dart';
 import '../../providers.dart';
 import 'quadrant_list.dart';
 
-/// 매트릭스 뷰 — 2×2 그리드. 각 칸 상위 3개 + "N개 더".
-/// Q2 칸에만 액센트 테두리. Q4 는 "언젠가 서랍 · 숨김"으로 개수만.
+/// 매트릭스 뷰 — 2×2. 카드가 아니라 1px 규칙선 십자로 나눈다.
+/// 각 칸: 대문자 모노 라벨 + 카운트 + 상위 3개. Q4(서랍)는 개수만.
 class MatrixView extends ConsumerWidget {
   const MatrixView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tk = t(context);
+    Widget vline() => Container(width: 1, color: tk.line);
+    Widget hline() => Container(height: 1, color: tk.line);
+
     return Container(
-      color: Journal.pageBg(context),
-      padding: const EdgeInsets.all(12),
+      color: tk.paper,
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 8),
       child: Column(
         children: [
           Expanded(
             child: Row(
               children: [
-                Expanded(
-                  child: _Cell(
-                    title: '중요·긴급',
-                    important: true,
-                    urgent: true,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _Cell(
-                    title: '중요·비긴급',
-                    important: true,
-                    urgent: false,
-                    accent: true,
-                  ),
-                ),
+                const Expanded(
+                    child: _Cell(
+                        label: 'URGENT+IMPORTANT',
+                        important: true,
+                        urgent: true,
+                        mark: true)),
+                vline(),
+                const Expanded(
+                    child: _Cell(
+                        label: 'IMPORTANT',
+                        important: true,
+                        urgent: false,
+                        emphasis: true)),
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          hline(),
           Expanded(
             child: Row(
               children: [
-                Expanded(
-                  child: _Cell(
-                    title: '비중요·긴급',
-                    important: false,
-                    urgent: true,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _DrawerCell(),
-                ),
+                const Expanded(
+                    child: _Cell(
+                        label: 'URGENT',
+                        important: false,
+                        urgent: true)),
+                vline(),
+                const Expanded(child: _DrawerCell()),
               ],
             ),
           ),
@@ -65,64 +63,69 @@ class MatrixView extends ConsumerWidget {
 
 class _Cell extends ConsumerWidget {
   const _Cell({
-    required this.title,
+    required this.label,
     required this.important,
     required this.urgent,
-    this.accent = false,
+    this.emphasis = false,
+    this.mark = false,
   });
 
-  final String title;
+  final String label;
   final bool important;
   final bool urgent;
-  final bool accent;
+  final bool emphasis;
+  final bool mark;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final tk = t(context);
     final nodes = ref
             .watch(quadrantProvider((important: important, urgent: urgent)))
             .valueOrNull ??
         const [];
     final top = nodes.take(3).toList();
     final more = nodes.length - top.length;
+    final labelColor = mark ? tk.mark : (emphasis ? tk.ink : tk.inkSoft);
 
     return GestureDetector(
-      onTap: () => _openList(context, title, important, urgent),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: accent
-                ? (theme.textTheme.bodyLarge?.color ?? Colors.black)
-                : (theme.dividerTheme.color ?? Colors.black12),
-            width: accent ? 1.2 : 0.5,
-          ),
-        ),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => QuadrantListScreen(
+            title: label, important: important, urgent: urgent),
+      )),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                    child: Text(label,
+                        style: AppText.sec(labelColor),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 6),
+                Text('${nodes.length}', style: AppText.meta(tk.inkSoft)),
+              ],
+            ),
+            const SizedBox(height: 12),
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
                   for (final n in top)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Text(
-                        n.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium,
-                      ),
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(n.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.body(tk.ink)),
                     ),
                   if (more > 0)
-                    Text('$more개 더', style: theme.textTheme.bodySmall),
+                    Text('+$more', style: AppText.meta(tk.inkSoft)),
                   if (nodes.isEmpty)
-                    Text('비어 있어요', style: theme.textTheme.bodySmall),
+                    Text('— 비어 있어요', style: AppText.meta(tk.inkSoft)),
                 ],
               ),
             ),
@@ -131,21 +134,15 @@ class _Cell extends ConsumerWidget {
       ),
     );
   }
-
-  void _openList(
-      BuildContext context, String title, bool important, bool urgent) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => QuadrantListScreen(
-          title: title, important: important, urgent: urgent),
-    ));
-  }
 }
 
-/// Q4: 개수만 표시.
+/// Q4: 개수만.
 class _DrawerCell extends ConsumerWidget {
+  const _DrawerCell();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final tk = t(context);
     final nodes = ref
             .watch(quadrantProvider((important: false, urgent: false)))
             .valueOrNull ??
@@ -153,23 +150,20 @@ class _DrawerCell extends ConsumerWidget {
     return GestureDetector(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => const QuadrantListScreen(
-            title: '언젠가 서랍', important: false, urgent: false),
+            title: 'DRAWER', important: false, urgent: false),
       )),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: theme.dividerTheme.color ?? Colors.black12, width: 0.5),
-        ),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('언젠가 서랍 · 숨김', style: theme.textTheme.bodySmall),
-            const SizedBox(height: 6),
-            Text('${nodes.length}개', style: theme.textTheme.titleMedium),
+            Text('DRAWER', style: AppText.sec(tk.inkSoft)),
+            const SizedBox(height: 8),
+            Text('${nodes.length}', style: AppText.hTitle(tk.ink)),
+            const SizedBox(height: 2),
+            Text('언젠가 서랍', style: AppText.meta(tk.inkSoft)),
           ],
         ),
       ),

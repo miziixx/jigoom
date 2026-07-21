@@ -9,9 +9,8 @@ import '../../data/db.dart';
 import '../../providers.dart';
 import 'node_detail_sheet.dart';
 
-/// 오늘 뷰 (홈) — 저널형 타임라인.
-/// 페이지 배경 위 큰 날짜 + 포커스 카드, 아래 카드 안에
-/// 레일 + [오늘] 배지 + 할 일 + [오늘의 승리] 배지.
+/// 오늘 뷰 (홈) — 편집(에디토리얼) 목차형.
+/// 큰 날짜(Sans) → NOW(포커스) → TO-DO → DONE, 규칙선으로 구분. 카드 없음.
 class TodayView extends ConsumerStatefulWidget {
   const TodayView({super.key});
 
@@ -24,85 +23,118 @@ class _TodayViewState extends ConsumerState<TodayView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tk = t(context);
     final focus = ref.watch(focusProvider);
     final today = ref.watch(todayNodesProvider).valueOrNull ?? const [];
     final wins = ref.watch(todayWinsProvider).valueOrNull ?? const [];
     final now = DateTime.now();
 
-    // 카드 안 타임라인 rows.
-    final rows = <Widget>[];
-    rows.add(Journal.pill(context, '오늘'));
-    if (today.isEmpty) {
-      rows.add(Padding(
-        padding: const EdgeInsets.only(left: Journal.rowLeft, bottom: 6),
-        child: Text('아래 입력창에 적으면 여기에 쌓여요',
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 12)),
-      ));
-    } else {
-      for (var i = 0; i < today.length; i++) {
-        rows.add(SimpleTile(node: today[i]));
-        if (i != today.length - 1) rows.add(Journal.divider(context));
-      }
-    }
+    final children = <Widget>[
+      // 큰 날짜 (Sans) + 요일 (Mono meta)
+      Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(DateFormat('M월 d일', 'ko').format(now),
+                style: AppText.hTitle(tk.ink)),
+            const SizedBox(width: 10),
+            Text(DateFormat('EEEE', 'ko').format(now),
+                style: AppText.meta(tk.inkSoft)),
+          ],
+        ),
+      ),
 
-    if (wins.isNotEmpty) {
-      rows.add(Journal.pill(
-        context,
-        '오늘의 승리 · ${wins.length}',
-        onTap: () => setState(() => _winsOpen = !_winsOpen),
-        trailing: Icon(_winsOpen ? Icons.expand_less : Icons.expand_more,
-            size: 12, color: theme.textTheme.bodySmall?.color),
-      ));
-      if (_winsOpen) {
-        for (final n in wins) {
-          rows.add(SimpleTile(node: n, showStar: false));
-        }
-      }
-    }
+      // NOW — 지금 이것부터
+      focus.when(
+        loading: () => const SizedBox.shrink(),
+        error: (_, __) => const SizedBox.shrink(),
+        data: (node) => node == null
+            ? const SizedBox.shrink()
+            : _FocusBlock(node: node),
+      ),
+
+      // TO-DO
+      SectionLabel('TO-DO', count: today.length),
+      if (today.isEmpty)
+        emptyNote(context, '아래 프롬프트에 적으면 여기 쌓여요')
+      else
+        for (final n in today) SimpleTile(node: n),
+
+      // DONE (오늘의 승리)
+      if (wins.isNotEmpty) ...[
+        SectionLabel(
+          'DONE',
+          count: wins.length,
+          onTap: () => setState(() => _winsOpen = !_winsOpen),
+          trailing: Text(_winsOpen ? '−' : '+',
+              style: AppText.meta(tk.inkSoft, size: 13)),
+        ),
+        if (_winsOpen)
+          for (final n in wins) SimpleTile(node: n),
+      ],
+
+      const SizedBox(height: 16),
+    ];
 
     return Container(
-      color: Journal.pageBg(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 큰 날짜 (페이지 배경 위)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(DateFormat('M월 d일', 'ko').format(now),
-                    style:
-                        theme.textTheme.titleLarge?.copyWith(fontSize: 28)),
-                Text(DateFormat('EEEE', 'ko').format(now),
-                    style: theme.textTheme.bodySmall),
-              ],
-            ),
-          ),
-          // 포커스 카드
-          focus.when(
-            loading: () => const SizedBox(height: 8),
-            error: (_, __) => const SizedBox.shrink(),
-            data: (node) => node == null
-                ? const SizedBox(height: 8)
-                : Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-                    child: _FocusCard(node: node),
-                  ),
-          ),
-          Expanded(
-            child: Journal.card(context,
-                child: Journal.timeline(context, rows)),
-          ),
-        ],
+      color: tk.paper,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: children,
       ),
     );
   }
 }
 
-/// 저널형 할 일 타일: 둥근 사각 체크 · 제목 · 메모 미리보기 · 마감 pill · "!"
-/// 스와이프 우=완료, 좌=삭제. 탭=상세.
+/// 포커스 블록 — 카드가 아니라 라벨 + 규칙선 + 한 줄. mark 캐럿으로 강조.
+class _FocusBlock extends ConsumerWidget {
+  const _FocusBlock({required this.node});
+  final Node node;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tk = t(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 26, kGutter, 12),
+          child: Row(
+            children: [
+              Text('› NOW',
+                  style: AppText.sec(tk.mark)),
+              const SizedBox(width: 12),
+              Expanded(child: Container(height: 1, color: tk.line)),
+            ],
+          ),
+        ),
+        InkWell(
+          onTap: () => showNodeDetailSheet(context, node),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(kGutter, 0, kGutter, 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GlyphCheck(
+                  done: false,
+                  onTap: () => ref.read(nodeRepoProvider).complete(node.id),
+                ),
+                Expanded(
+                  child: Text(node.title, style: AppText.body(tk.ink)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 편집형 할 일 줄: 글리프 체크 · 제목(한글 Sans) · 메타(메모/마감) · 우선순위 라벨.
+/// 완료 = 글리프 ■ + 제목 inkSoft + 취소선. 스와이프 우=완료, 좌=삭제.
 class SimpleTile extends ConsumerWidget {
   const SimpleTile({super.key, required this.node, this.showStar = true});
 
@@ -111,148 +143,86 @@ class SimpleTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final tk = t(context);
     final repo = ref.read(nodeRepoProvider);
     final done = node.status == NodeStatus.done;
     final showDeadline =
         node.date != null && node.date != todayDate() && !done;
+    final pri = done
+        ? null
+        : priorityLabel(context,
+            urgent: node.urgent, important: node.important);
 
-    final tile = Opacity(
-      opacity: done ? 0.45 : 1,
-      child: InkWell(
-        onTap: () => showNodeDetailSheet(context, node),
-        child: Padding(
-          padding: const EdgeInsets.only(
-              left: Journal.rowLeft, right: 4, top: 7, bottom: 7),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SquareCheck(
-                done: done,
-                onTap: () =>
-                    done ? repo.reopen(node.id) : repo.complete(node.id),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        // 중요 표시: 작은 accent 점만 (배지 안 씀).
-                        if (node.important && !done) ...[
-                          Container(
-                            width: 6,
-                            height: 6,
-                            margin: const EdgeInsets.only(right: 6),
-                            decoration: const BoxDecoration(
-                                color: AppColors.accent,
-                                shape: BoxShape.circle),
-                          ),
-                        ],
-                        Flexible(
-                          child: Text(node.title,
-                              style: theme.textTheme.bodyMedium,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
-                        ),
-                      ],
+    final tile = InkWell(
+      onTap: () => showNodeDetailSheet(context, node),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 11, kGutter, 11),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GlyphCheck(
+              done: done,
+              onTap: () =>
+                  done ? repo.reopen(node.id) : repo.complete(node.id),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(node.title,
+                      style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
+                          decoration:
+                              done ? TextDecoration.lineThrough : null,
+                          decorationColor: tk.inkSoft),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                  if (node.note.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(node.note,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.meta(tk.inkSoft)),
                     ),
-                    if (node.note.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(node.note,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: metaStyle(context)),
-                      ),
-                    // 메타 배지: 긴급·마감만 (있을 때만)
-                    if (!done && (node.urgent || showDeadline))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: [
-                            if (node.urgent)
-                              metaBadge(context, '긴급',
-                                  filled: true,
-                                  bg: AppColors.alert,
-                                  fg: Colors.white),
-                            if (showDeadline) deadlinePill(context, node.date!),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+                ],
+              ),
+            ),
+            if (showDeadline) ...[
+              const SizedBox(width: 10),
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: deadlineLabel(context, node.date!),
               ),
             ],
-          ),
+            if (pri != null) ...[
+              const SizedBox(width: 10),
+              Padding(padding: const EdgeInsets.only(top: 2), child: pri),
+            ],
+          ],
         ),
       ),
     );
 
     return Dismissible(
       key: ValueKey('tile_${node.id}'),
-      background: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 16),
-        child: const Icon(Icons.check_circle, color: AppColors.done),
-      ),
-      secondaryBackground: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        child: Icon(Icons.delete_outline,
-            color: Theme.of(context).textTheme.bodySmall?.color),
-      ),
+      background: _swipeBg(tk, Alignment.centerLeft, done ? '□' : '■'),
+      secondaryBackground: _swipeBg(tk, Alignment.centerRight, '×'),
       confirmDismiss: (dir) async {
         if (dir == DismissDirection.startToEnd) {
           done ? await repo.reopen(node.id) : await repo.complete(node.id);
-          return false; // 스트림 갱신에 맡김
+          return false;
         }
-        await repo.deleteNode(node.id); // 좌 = 삭제
+        await repo.deleteNode(node.id);
         return false;
       },
       child: tile,
     );
   }
-}
 
-class _FocusCard extends ConsumerWidget {
-  const _FocusCard({required this.node});
-  final Node node;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: theme.textTheme.bodyLarge?.color ?? Colors.black,
-            width: 1.2),
-      ),
-      child: Row(
-        children: [
-          SquareCheck(
-            done: false,
-            size: 20,
-            onTap: () => ref.read(nodeRepoProvider).complete(node.id),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('지금 이것부터', style: theme.textTheme.bodySmall),
-                const SizedBox(height: 2),
-                Text(node.title, style: theme.textTheme.titleMedium),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _swipeBg(AppTokens tk, Alignment align, String glyph) => Container(
+        alignment: align,
+        color: tk.paper2,
+        padding: const EdgeInsets.symmetric(horizontal: kGutter),
+        child: Text(glyph, style: AppText.glyph(tk.inkSoft, size: 16)),
+      );
 }

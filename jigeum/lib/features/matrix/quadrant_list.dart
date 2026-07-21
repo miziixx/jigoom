@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
+import '../../core/journal.dart';
+import '../../core/theme.dart';
 import '../../providers.dart';
 import '../outline/node_tile.dart';
 
@@ -27,10 +29,15 @@ class QuadrantListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: nodes.isEmpty
-          ? Center(
-              child: Text('지금은 비어 있어요',
-                  style: Theme.of(context).textTheme.bodySmall))
-          : ListView(
+          ? Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 26),
+                child: emptyNote(context, '지금은 비어 있어요'),
+              ))
+          : Container(
+              color: t(context).paper,
+              child: ListView(
               children: [
                 for (final n in nodes)
                   NodeTile(
@@ -43,7 +50,7 @@ class QuadrantListScreen extends ConsumerWidget {
                     },
                   ),
               ],
-            ),
+            )),
     );
   }
 }

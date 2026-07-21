@@ -49,27 +49,19 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
     super.dispose();
   }
 
-  Widget _toggleChip(ThemeData theme, String label, bool on, Color onColor,
-      VoidCallback onTap) {
-    final border = theme.dividerTheme.color ?? Colors.black12;
+  Widget _toggleChip(BuildContext context, String label, bool on,
+      Color onColor, VoidCallback onTap) {
+    final tk = t(context);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: on ? onColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          border: on ? null : Border.all(color: border, width: 1),
+          border: Border.all(color: on ? onColor : tk.line, width: 1),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: on ? Colors.white : theme.textTheme.bodySmall?.color,
-          ),
-        ),
+        child: Text(label, style: AppText.chip(on ? tk.paper : tk.inkSoft)),
       ),
     );
   }
@@ -113,10 +105,10 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
           // 중요 / 긴급 토글
           Row(
             children: [
-              _toggleChip(theme, '중요', _important, AppColors.accent,
+              _toggleChip(context, '중요', _important, t(context).ink,
                   () => setState(() => _important = !_important)),
               const SizedBox(width: 8),
-              _toggleChip(theme, '긴급', _urgent, AppColors.alert,
+              _toggleChip(context, '긴급', _urgent, t(context).mark,
                   () => setState(() => _urgent = !_urgent)),
             ],
           ),

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants.dart';
+import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 
-/// 아웃라이너/리스트 공용 노드 타일.
-/// 완료 노드: 도트→체크(#34C77B) + 흐림(opacity 0.45), 취소선 없음.
+/// 아웃라이너/리스트 공용 노드 줄 (편집형).
+/// 글리프 체크(□/■) + 제목(한글 Sans) + 우선순위 라벨. 완료 = ■ + inkSoft + 취소선.
 class NodeTile extends StatelessWidget {
   const NodeTile({
     super.key,
@@ -30,80 +31,50 @@ class NodeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tk = t(context);
     final done = node.status == NodeStatus.done;
+    final pri = done
+        ? null
+        : priorityLabel(context,
+            urgent: showUrgentBolt && node.urgent, important: node.important);
 
-    return Opacity(
-      opacity: done ? 0.45 : 1,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.only(
-              left: 12.0 + depth * 20, right: 12, top: 5, bottom: 5),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 펼침 화살표 (자식 있을 때만)
-              SizedBox(
-                width: 20,
-                child: hasChildren
-                    ? GestureDetector(
-                        onTap: onToggleExpand,
-                        child: AnimatedRotation(
-                          duration: kAnimDuration,
-                          turns: expanded ? 0.25 : 0,
-                          child: Icon(Icons.chevron_right,
-                              size: 16,
-                              color: theme.textTheme.bodySmall?.color),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-              // 체크/도트
-              GestureDetector(
-                onTap: onToggleDone,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 10, top: 1),
-                  child: done
-                      ? const Icon(Icons.check_circle,
-                          size: 17, color: AppColors.done)
-                      : Container(
-                          width: 12,
-                          height: 12,
-                          margin: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: theme.textTheme.bodySmall?.color ??
-                                  Colors.grey,
-                              width: 1.4,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-              Expanded(
-                child: Row(
-                  children: [
-                    if (showUrgentBolt && node.urgent && !done) ...[
-                      Icon(Icons.bolt,
-                          size: 14, color: theme.textTheme.bodySmall?.color),
-                      const SizedBox(width: 2),
-                    ],
-                    Flexible(
-                      child: Text(
-                        node.title,
-                        style: theme.textTheme.bodyLarge,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(kGutter + depth * 18, 11, kGutter, 11),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 펼침 화살표 (자식 있을 때만)
+            SizedBox(
+              width: 18,
+              child: hasChildren
+                  ? GestureDetector(
+                      onTap: onToggleExpand,
+                      behavior: HitTestBehavior.opaque,
+                      child: AnimatedRotation(
+                        duration: kAnimDuration,
+                        turns: expanded ? 0.25 : 0,
+                        child: Icon(Icons.chevron_right,
+                            size: 16, color: tk.inkSoft),
                       ),
-                    ),
-                  ],
-                ),
-              ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            GlyphCheck(done: done, onTap: onToggleDone ?? () {}),
+            Expanded(
+              child: Text(node.title,
+                  style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
+                      decoration: done ? TextDecoration.lineThrough : null,
+                      decorationColor: tk.inkSoft),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
+            ),
+            if (pri != null) ...[
+              const SizedBox(width: 10),
+              Padding(padding: const EdgeInsets.only(top: 2), child: pri),
             ],
-          ),
+          ],
         ),
       ),
     );

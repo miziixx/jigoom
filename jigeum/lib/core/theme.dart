@@ -1,295 +1,367 @@
 import 'package:flutter/material.dart';
 
-/// 디자인 시스템 토큰 — DESIGN_SYSTEM.md 참조. 하드코딩 대신 항상 이 토큰 사용.
-/// 미학: "따뜻한 종이 + 차분한 구조". 포인트는 accent(보라)·alert(주황) 둘뿐.
-class AppColors {
-  // 중립 — 따뜻한 회색(종이)
-  static const bgLight = Color(0xFFFDFCFB); // bg
-  static const bgSubtleLight = Color(0xFFF5F3F0); // bg-subtle
-  static const borderLight = Color(0xFFE8E4DF); // border
-  static const textPrimaryLight = Color(0xFF1C1B1A); // text
-  static const textSecondaryLight = Color(0xFF8A8580); // text-muted
-  static const textTertiaryLight = Color(0xFFC4BFB9); // disabled
+import 'constants.dart';
 
-  // 다크 (반전)
-  static const bgDark = Color(0xFF15140F);
-  static const bgSubtleDark = Color(0xFF1F1D18);
-  static const borderDark = Color(0xFF34322C);
-  static const textPrimaryDark = Color(0xFFF2F0EC);
-  static const textSecondaryDark = Color(0xFF9A958E);
-  static const textTertiaryDark = Color(0xFF57534D);
+/// 6토큰 잉크 시스템 (DESIGN_SYSTEM §1). 테마가 이 인스턴스를 통째로 교체한다.
+/// 컴포넌트는 색을 하드코딩하지 않고 이 토큰만 참조한다 → 10종이 자동 대응.
+@immutable
+class AppTokens extends ThemeExtension<AppTokens> {
+  const AppTokens({
+    required this.paper,
+    required this.paper2,
+    required this.ink,
+    required this.inkSoft,
+    required this.line,
+    required this.mark,
+  });
 
-  // 포인트 — 딱 둘
-  static const accent = Color(0xFF6B4EFF); // 보라: 액션·링크·활성 체크박스
-  static const accentSoft = Color(0xFFEEEBFF); // 연보라: 선택 탭 배경 등
-  static const accentSoftDark = Color(0xFF2A2547); // 다크 대응
-  static const alert = Color(0xFFFF5B24); // 주황: 오늘 표시·마감 임박
+  final Color paper; // 종이 — 기본 배경
+  final Color paper2; // 종이(짙음) — 눌림·선택 배경
+  final Color ink; // 잉크 — 본문·제목·활성·규칙선
+  final Color inkSoft; // 흐린 잉크 — 메타·카운트·placeholder·비활성
+  final Color line; // 규칙선 — 얇은 구분선·섹션 fill
+  final Color mark; // 포인트 — 긴급(URGENT)·프롬프트 캐럿에만
 
-  /// 체크박스 미완료 테두리색 (DESIGN_SYSTEM §5).
-  static const checkBorderLight = Color(0xFFCFCAC4);
-  static const checkBorderDark = Color(0xFF4A473F);
+  bool get isDark => paper.computeLuminance() < 0.5;
 
-  // 상태
-  static const success = Color(0xFF2E9E5B);
-  static const warning = Color(0xFFE0A400);
-  static const error = Color(0xFFE5484D);
-  static const disabled = Color(0xFFC4BFB9);
+  @override
+  AppTokens copyWith({
+    Color? paper,
+    Color? paper2,
+    Color? ink,
+    Color? inkSoft,
+    Color? line,
+    Color? mark,
+  }) =>
+      AppTokens(
+        paper: paper ?? this.paper,
+        paper2: paper2 ?? this.paper2,
+        ink: ink ?? this.ink,
+        inkSoft: inkSoft ?? this.inkSoft,
+        line: line ?? this.line,
+        mark: mark ?? this.mark,
+      );
 
-  /// 완료 체크는 accent(보라) — DESIGN_SYSTEM §5 체크박스.
-  static const done = accent;
-
-  // 하위호환 별칭 (기존 코드가 참조)
-  static const hairlineLight = borderLight;
-  static const hairlineDark = borderDark;
+  @override
+  AppTokens lerp(ThemeExtension<AppTokens>? other, double t) {
+    if (other is! AppTokens) return this;
+    return AppTokens(
+      paper: Color.lerp(paper, other.paper, t)!,
+      paper2: Color.lerp(paper2, other.paper2, t)!,
+      ink: Color.lerp(ink, other.ink, t)!,
+      inkSoft: Color.lerp(inkSoft, other.inkSoft, t)!,
+      line: Color.lerp(line, other.line, t)!,
+      mark: Color.lerp(mark, other.mark, t)!,
+    );
+  }
 }
 
-/// 간격 토큰 (4px 배수).
-class AppSpace {
-  static const s1 = 4.0;
-  static const s2 = 8.0;
-  static const s3 = 12.0;
-  static const s4 = 16.0;
-  static const s5 = 24.0;
-  static const s6 = 32.0;
-  static const s8 = 48.0;
+/// 기능 상태색 (테마 무관 — DESIGN_SYSTEM §1 functional). 극소량.
+class AppState {
+  static const success = Color(0xFF4F7A4A);
+  static const warning = Color(0xFFB08A2E);
+  static const error = Color(0xFFB0392E);
 }
 
-class AppRadius {
-  static const sm = 6.0;
-  static const md = 10.0;
-  static const full = 999.0;
+/// 내장 테마 한 종의 정의(키 + 이름 + 6토큰).
+class ThemeSpec {
+  const ThemeSpec(this.key, this.name, this.tokens);
+  final String key;
+  final String name;
+  final AppTokens tokens;
 }
 
-/// 메타·숫자·시간·배지용 모노스페이스. (JetBrains Mono 미번들 → 안드로이드 generic)
-const kMonoFamily = 'monospace';
+/// 내장 10종 — 9 라이트 + 1 다크(NOIR). 기본 MANILA. (DESIGN_SYSTEM §1-1)
+const List<ThemeSpec> kThemes = [
+  ThemeSpec('manila', 'MANILA', AppTokens(
+      paper: Color(0xFFF4F1EA), paper2: Color(0xFFEFEBE2), ink: Color(0xFF26241F),
+      inkSoft: Color(0xFF9A948A), line: Color(0xFFD8D2C6), mark: Color(0xFFB5443A))),
+  ThemeSpec('newsprint', 'NEWSPRINT', AppTokens(
+      paper: Color(0xFFEDEBE6), paper2: Color(0xFFE6E3DC), ink: Color(0xFF1C1C1A),
+      inkSoft: Color(0xFF8C8A84), line: Color(0xFFD2CFC8), mark: Color(0xFFC4362B))),
+  ThemeSpec('sage', 'SAGE', AppTokens(
+      paper: Color(0xFFE9EAE0), paper2: Color(0xFFE1E3D6), ink: Color(0xFF2E362B),
+      inkSoft: Color(0xFF949A88), line: Color(0xFFCFD3C3), mark: Color(0xFF5E7048))),
+  ThemeSpec('midnight', 'MIDNIGHT', AppTokens(
+      paper: Color(0xFFEFE9DD), paper2: Color(0xFFE8E1D2), ink: Color(0xFF1B2A3A),
+      inkSoft: Color(0xFF8C93A0), line: Color(0xFFD5CFC0), mark: Color(0xFFB5443A))),
+  ThemeSpec('terracotta', 'TERRACOTTA', AppTokens(
+      paper: Color(0xFFF0E4D8), paper2: Color(0xFFE9DACB), ink: Color(0xFF3A2A20),
+      inkSoft: Color(0xFFA8917E), line: Color(0xFFE0CCB8), mark: Color(0xFFC0603A))),
+  ThemeSpec('olive', 'OLIVE', AppTokens(
+      paper: Color(0xFFEAE7D6), paper2: Color(0xFFE2DEC9), ink: Color(0xFF33321F),
+      inkSoft: Color(0xFF9A9678), line: Color(0xFFD3CFB6), mark: Color(0xFF7A6A2E))),
+  ThemeSpec('slate', 'SLATE', AppTokens(
+      paper: Color(0xFFE6E8EA), paper2: Color(0xFFDDE0E3), ink: Color(0xFF23292E),
+      inkSoft: Color(0xFF8A9196), line: Color(0xFFCDD1D4), mark: Color(0xFF4A5A66))),
+  ThemeSpec('rose', 'DUSTY ROSE', AppTokens(
+      paper: Color(0xFFF0E7E4), paper2: Color(0xFFE9DBD7), ink: Color(0xFF322523),
+      inkSoft: Color(0xFFA8908C), line: Color(0xFFDDCCC8), mark: Color(0xFFA64B54))),
+  ThemeSpec('plum', 'PLUM', AppTokens(
+      paper: Color(0xFFECE6EA), paper2: Color(0xFFE3DBE1), ink: Color(0xFF2C2330),
+      inkSoft: Color(0xFF978C9C), line: Color(0xFFD6CCD6), mark: Color(0xFF7A4A6E))),
+  ThemeSpec('noir', 'NOIR', AppTokens(
+      paper: Color(0xFF201E1A), paper2: Color(0xFF2A2722), ink: Color(0xFFEDE7D9),
+      inkSoft: Color(0xFF7A756B), line: Color(0xFF3A3630), mark: Color(0xFFD46A4A))),
+];
 
-const kAnimDuration = Duration(milliseconds: 200);
-const kAnimCurve = Curves.easeOut;
+const String kDefaultThemeKey = 'manila';
 
-/// 굵기 조절: FontWeight 을 delta 만큼 이동 (w400=index3 기준).
-FontWeight shiftWeight(FontWeight base, int delta) {
-  const order = [
-    FontWeight.w100,
-    FontWeight.w200,
-    FontWeight.w300,
-    FontWeight.w400,
-    FontWeight.w500,
-    FontWeight.w600,
-    FontWeight.w700,
-    FontWeight.w800,
-    FontWeight.w900,
-  ];
-  final i = (order.indexOf(base) + delta).clamp(0, order.length - 1);
-  return order[i];
+AppTokens tokensForKey(String key) {
+  for (final t in kThemes) {
+    if (t.key == key) return t.tokens;
+  }
+  return kThemes.first.tokens;
 }
 
+/// 현재 테마의 6토큰. 컴포넌트에서 `t(context).ink` 처럼 사용.
+AppTokens t(BuildContext context) =>
+    Theme.of(context).extension<AppTokens>() ?? kThemes.first.tokens;
+
+/// 앱 전역 글자 굵기 delta (설정의 "글자 굵기"). AppTheme.build 에서 갱신.
+/// AppText 를 직접 호출하는 위젯들도 이 값을 반영한다.
+int appWeightDelta = 0;
+
+/// 편집 타이포 (DESIGN_SYSTEM §3 두 벌 하이브리드).
+/// 한글 내용 = Sans(기기 기본), 라벨·기호·영문·숫자 = Mono. 색은 토큰을 주입.
+class AppText {
+  /// 화면 타이틀 (한글, Sans 19/Bold).
+  static TextStyle hTitle(Color c, [int? wd]) => TextStyle(
+      fontFamily: kSansFamily,
+      fontSize: 19,
+      fontWeight: shiftWeight(FontWeight.w700, wd ?? appWeightDelta),
+      height: 1.2,
+      letterSpacing: -0.2,
+      color: c);
+
+  /// 할 일 제목·본문 (한글, Sans 15/Medium).
+  static TextStyle body(Color c, [int? wd]) => TextStyle(
+      fontFamily: kSansFamily,
+      fontSize: 15,
+      fontWeight: shiftWeight(FontWeight.w500, wd ?? appWeightDelta),
+      height: 1.4,
+      letterSpacing: -0.15,
+      color: c);
+
+  /// 섹션 대문자 라벨 (Mono 11/Bold, +0.14em).
+  static TextStyle sec(Color c) => TextStyle(
+      fontFamily: kMonoFamily,
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      height: 1,
+      letterSpacing: 1.54,
+      color: c);
+
+  /// 우선순위 라벨 (Mono 10, +0.12em).
+  static TextStyle pri(Color c, {bool bold = false}) => TextStyle(
+      fontFamily: kMonoFamily,
+      fontSize: 10,
+      fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+      height: 1,
+      letterSpacing: 1.2,
+      color: c);
+
+  /// 카운트·날짜·시간·메뉴·빈 상태 (Mono 11, +0.05em).
+  static TextStyle meta(Color c, {double size = 11}) => TextStyle(
+      fontFamily: kMonoFamily,
+      fontSize: size,
+      fontWeight: FontWeight.w400,
+      height: 1.3,
+      letterSpacing: 0.55,
+      color: c);
+
+  /// 하단 탭 (Mono 10 소문자, +0.04em).
+  static TextStyle nav(Color c, {bool active = false}) => TextStyle(
+      fontFamily: kMonoFamily,
+      fontSize: 10,
+      fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+      height: 1,
+      letterSpacing: 0.4,
+      color: c);
+
+  /// 칩 (Mono 10, +0.08em — 한글 허용).
+  static TextStyle chip(Color c) => TextStyle(
+      fontFamily: kMonoFamily,
+      fontSize: 10,
+      fontWeight: FontWeight.w400,
+      height: 1,
+      letterSpacing: 0.8,
+      color: c);
+
+  /// 체크박스·기호 글리프 (Mono 15).
+  static TextStyle glyph(Color c, {double size = 15}) => TextStyle(
+      fontFamily: kMonoFamily, fontSize: size, height: 1, color: c);
+}
+
+/// 6토큰 → ThemeData. 편집 원칙(radius 0 · shadow none · 잉크 하나)을 강제한다.
 class AppTheme {
-  static ThemeData light({int weightDelta = 0}) =>
-      _build(Brightness.light, weightDelta);
-  static ThemeData dark({int weightDelta = 0}) =>
-      _build(Brightness.dark, weightDelta);
+  static ThemeData fromKey(String key, {int weightDelta = 0}) =>
+      build(tokensForKey(key), weightDelta: weightDelta);
 
-  static ThemeData _build(Brightness b, [int weightDelta = 0]) {
-    final isDark = b == Brightness.dark;
-    final bg = isDark ? AppColors.bgDark : AppColors.bgLight;
-    final primary =
-        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final secondary =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-
-    final hairline =
-        isDark ? AppColors.hairlineDark : AppColors.hairlineLight;
-    final tertiary =
-        isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight;
-
+  static ThemeData build(AppTokens tk, {int weightDelta = 0}) {
+    appWeightDelta = weightDelta; // 전역 반영 (AppText 직접 호출부용)
+    final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);
-    final scheme = base.colorScheme.copyWith(
-      brightness: b,
-      // primary = accent(보라): 버튼·링크·활성 체크박스·커서. (DESIGN_SYSTEM §1)
-      primary: AppColors.accent,
-      onPrimary: Colors.white,
-      secondary: secondary,
-      surface: bg,
-      surfaceTint: Colors.transparent, // M3 자동 틴트 제거 (의도된 accent 만 사용)
-      outline: tertiary,
+
+    final reg = shiftWeight(FontWeight.w400, weightDelta);
+    final med = shiftWeight(FontWeight.w500, weightDelta);
+    final bold = shiftWeight(FontWeight.w700, weightDelta);
+
+    final textTheme = TextTheme(
+      titleLarge: AppText.hTitle(tk.ink, weightDelta),
+      titleMedium: TextStyle(
+          fontFamily: kSansFamily,
+          fontWeight: bold,
+          fontSize: 16,
+          letterSpacing: -0.15,
+          color: tk.ink),
+      bodyLarge: TextStyle(
+          fontFamily: kSansFamily,
+          fontWeight: med,
+          fontSize: 15,
+          height: 1.4,
+          letterSpacing: -0.15,
+          color: tk.ink),
+      bodyMedium: AppText.body(tk.ink, weightDelta),
+      bodySmall: AppText.meta(tk.inkSoft),
     );
 
     return base.copyWith(
-      scaffoldBackgroundColor: bg,
-      canvasColor: bg,
-      colorScheme: scheme,
-      textTheme: _textTheme(primary, secondary, weightDelta),
-      // 드로어·팝업: M3 보라 틴트 제거, 흰 톤 + 헤어라인.
-      drawerTheme: DrawerThemeData(
-        backgroundColor: bg,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.horizontal(right: Radius.circular(20)),
-        ),
+      scaffoldBackgroundColor: tk.paper,
+      canvasColor: tk.paper,
+      extensions: [tk],
+      colorScheme: base.colorScheme.copyWith(
+        brightness: b,
+        primary: tk.ink,
+        onPrimary: tk.paper,
+        secondary: tk.inkSoft,
+        surface: tk.paper,
+        onSurface: tk.ink,
+        surfaceTint: Colors.transparent,
+        error: AppState.error,
+        outline: tk.line,
       ),
-      popupMenuTheme: PopupMenuThemeData(
-        color: bg,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: hairline, width: 0.5),
-        ),
-      ),
-      listTileTheme: ListTileThemeData(
-        iconColor: secondary,
-        textColor: primary,
-      ),
-      // 전역 밀도: 터치영역 부풀림 없이 컴팩트하게.
+      textTheme: textTheme,
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      iconTheme: IconThemeData(color: tk.ink, size: 20),
+      dividerTheme: DividerThemeData(thickness: 1, space: 1, color: tk.line),
+      appBarTheme: AppBarTheme(
+        backgroundColor: tk.paper,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: tk.ink,
+        toolbarHeight: 52,
+        titleTextStyle: AppText.hTitle(tk.ink, weightDelta),
+      ),
+      cardTheme: const CardThemeData(elevation: 0),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
+          foregroundColor: tk.ink,
           padding: const EdgeInsets.all(6),
           minimumSize: const Size(34, 34),
+          shape:
+              const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: bg,
+      // 드로어·팝업·다이얼로그·시트: 각지게, 틴트 없이, 1px 규칙선.
+      drawerTheme: DrawerThemeData(
+        backgroundColor: tk.paper,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        scrolledUnderElevation: 0,
-        foregroundColor: primary,
-        toolbarHeight: 52,
-        titleTextStyle: TextStyle(
-                        fontWeight: FontWeight.w600,
-            fontSize: 17,
-            color: primary),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       ),
-      cardTheme: const CardThemeData(elevation: 0),
-      dividerTheme: DividerThemeData(
-        thickness: 0.5,
-        space: 0.5,
-        color: hairline,
-      ),
-
-      // 다이얼로그: 틴트 없는 플랫 카드 + 헤어라인.
-      dialogTheme: DialogThemeData(
-        backgroundColor: bg,
+      popupMenuTheme: PopupMenuThemeData(
+        color: tk.paper,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: hairline, width: 0.5),
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: tk.ink, width: 1),
         ),
-        titleTextStyle: TextStyle(
-                        fontWeight: FontWeight.w600,
-            fontSize: 17,
-            color: primary),
-        contentTextStyle: TextStyle(
-                        fontWeight: FontWeight.w400,
-            fontSize: 15,
-            color: primary),
       ),
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: bg,
+      listTileTheme: ListTileThemeData(iconColor: tk.inkSoft, textColor: tk.ink),
+      dialogTheme: DialogThemeData(
+        backgroundColor: tk.paper,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: tk.ink, width: 1),
         ),
+        titleTextStyle: textTheme.titleMedium,
+        contentTextStyle: textTheme.bodyMedium,
       ),
-
-      // 버튼: 채움=accent(보라), 텍스트버튼=회색. (DESIGN_SYSTEM §1 액션)
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: tk.paper,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: tk.ink,
+        contentTextStyle: AppText.body(tk.paper, weightDelta),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        behavior: SnackBarBehavior.floating,
+      ),
+      // 버튼: 채움 = 잉크 반전, 텍스트 = inkSoft. 각지게.
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.accent,
-          foregroundColor: Colors.white,
+          backgroundColor: tk.ink,
+          foregroundColor: tk.paper,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
-          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w600,
-              fontSize: 15),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          textStyle: TextStyle(
+              fontFamily: kSansFamily, fontWeight: bold, fontSize: 15),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: secondary,
-          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w400,
-              fontSize: 14),
+          foregroundColor: tk.inkSoft,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          textStyle: TextStyle(
+              fontFamily: kSansFamily, fontWeight: reg, fontSize: 14),
         ),
       ),
-
-      // 칩(필터): 얇은 헤어라인, 선택 시 잉크 반전. 체크 아이콘 없음.
+      // 칩(필터): 각진 1px 규칙선, 선택 시 잉크 반전. 체크 없음.
       chipTheme: base.chipTheme.copyWith(
-        backgroundColor: bg,
-        selectedColor: AppColors.accent.withValues(alpha: 0.12),
+        backgroundColor: tk.paper,
+        selectedColor: tk.ink,
         surfaceTintColor: Colors.transparent,
         showCheckmark: false,
-        side: BorderSide(color: hairline, width: 1),
-        shape: const StadiumBorder(),
-        labelStyle: TextStyle(
-                        fontWeight: FontWeight.w400,
-            fontSize: 13,
-            color: primary),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        side: BorderSide(color: tk.line, width: 1),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        labelStyle: AppText.chip(tk.inkSoft),
+        secondaryLabelStyle: AppText.chip(tk.paper),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       ),
-
-      // 입력: accent 커서/포커스.
+      // 입력: 캐럿 = mark, 밑줄 = 잉크.
       textSelectionTheme: TextSelectionThemeData(
-        cursorColor: AppColors.accent,
-        selectionColor: AppColors.accent.withValues(alpha: 0.18),
-        selectionHandleColor: AppColors.accent,
+        cursorColor: tk.mark,
+        selectionColor: tk.mark.withValues(alpha: 0.20),
+        selectionHandleColor: tk.mark,
       ),
       inputDecorationTheme: InputDecorationTheme(
-        hintStyle: TextStyle(
-            fontSize: 15, color: tertiary),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: hairline, width: 1),
+        hintStyle: AppText.body(tk.inkSoft, weightDelta),
+        isDense: true,
+        enabledBorder: UnderlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: tk.line, width: 1),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+        focusedBorder: UnderlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: tk.ink, width: 1.5),
         ),
       ),
-
-      // 하단 탭: 틴트 없는 심플 인디케이터.
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: bg,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        height: 64,
-        // 선택 탭: accent-soft 알약 배경 + accent 아이콘/텍스트. (DESIGN_SYSTEM §5)
-        indicatorColor:
-            isDark ? AppColors.accentSoftDark : AppColors.accentSoft,
-        iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-            color: states.contains(WidgetState.selected)
-                ? AppColors.accent
-                : secondary)),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-            color: states.contains(WidgetState.selected)
-                ? AppColors.accent
-                : secondary)),
+      sliderTheme: base.sliderTheme.copyWith(
+        activeTrackColor: tk.ink,
+        inactiveTrackColor: tk.line,
+        thumbColor: tk.ink,
+        overlayColor: tk.ink.withValues(alpha: 0.12),
+        trackHeight: 2,
       ),
-    );
-  }
-
-  static TextTheme _textTheme(
-      Color primary, Color secondary, int weightDelta) {
-    // fontFamily 미지정 = 기기 기본 글꼴(삼성 One UI 등) 사용.
-    final reg = shiftWeight(FontWeight.w400, weightDelta);
-    final semi = shiftWeight(FontWeight.w600, weightDelta);
-    return TextTheme(
-      titleLarge:
-          TextStyle(fontWeight: semi, fontSize: 22, color: primary),
-      titleMedium:
-          TextStyle(fontWeight: semi, fontSize: 17, color: primary),
-      bodyLarge: TextStyle(fontWeight: reg, fontSize: 16, color: primary),
-      bodyMedium: TextStyle(fontWeight: reg, fontSize: 15, color: primary),
-      bodySmall: TextStyle(fontWeight: reg, fontSize: 13, color: secondary),
     );
   }
 }

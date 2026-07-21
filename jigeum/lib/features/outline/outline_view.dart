@@ -3,23 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
+import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 import '../today/node_detail_sheet.dart';
 
-/// 아웃라이너 — 저널형 타임라인 디자인.
-/// 왼쪽 세로 레일 + 알약 배지(폴더/목표, 기간 모드에선 날짜),
-/// 둥근 사각 체크박스, 마감 pill, 하위할일 진행(1/4), 헤어라인 구분.
+/// 아웃라이너 — 편집형 목차. 폴더/목표 = 섹션 라벨 + 규칙선, 할 일 = 글리프 줄.
+/// 카드·레일 없음. 기간 필터는 대문자 모노 칩.
 class OutlineView extends ConsumerStatefulWidget {
   const OutlineView({super.key});
 
   @override
   ConsumerState<OutlineView> createState() => _OutlineViewState();
 }
-
-const double _kRailX = 27; // 타임라인 세로선 x 위치
-const double _kRowLeft = 52; // 할 일 행 들여쓰기 시작
 
 class _OutlineViewState extends ConsumerState<OutlineView> {
   final Set<String> _collapsed = {}; // 기본 펼침, 접은 것만 기록
@@ -29,30 +26,13 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final pageBg =
-        isDark ? AppColors.bgSubtleDark : AppColors.bgSubtleLight;
-    final cardBg = Theme.of(context).scaffoldBackgroundColor;
-    final hairline =
-        Theme.of(context).dividerTheme.color ?? Colors.black12;
-
+    final tk = t(context);
     return Container(
-      color: pageBg,
+      color: tk.paper,
       child: Column(
         children: [
           _filterBar(context),
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: cardBg,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: hairline, width: 0.5),
-              ),
-              child: _range == null ? _tree() : _filtered(),
-            ),
-          ),
+          Expanded(child: _range == null ? _tree() : _filtered()),
         ],
       ),
     );
@@ -64,49 +44,37 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
     Widget chip(String label, ({DateTime start, DateTime end})? r) {
       final selected =
           (_range == null && r == null) || (_range?.label == label);
-      return Padding(
-        padding: const EdgeInsets.only(right: 6),
-        child: ChoiceChip(
-          label: Text(label, style: const TextStyle(fontSize: 12)),
-          labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-          selected: selected,
-          visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-          onSelected: (_) => setState(() {
-            _range = r == null
-                ? null
-                : (start: r.start, end: r.end, label: label);
-          }),
-        ),
+      return _MonoChip(
+        label: label,
+        selected: selected,
+        onTap: () => setState(() {
+          _range =
+              r == null ? null : (start: r.start, end: r.end, label: label);
+        }),
       );
     }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+      padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 6),
       child: Row(
         children: [
-          chip('전체', null),
-          chip('오늘', (start: today, end: today.add(const Duration(days: 1)))),
-          chip('7일', (start: today, end: today.add(const Duration(days: 7)))),
+          chip('all', null),
+          chip('today',
+              (start: today, end: today.add(const Duration(days: 1)))),
+          chip('7d', (start: today, end: today.add(const Duration(days: 7)))),
           chip(
-              '이번달',
+              'month',
               (
                 start: DateTime(today.year, today.month, 1),
                 end: DateTime(today.year, today.month + 1, 1)
               )),
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: ActionChip(
-              avatar: const Icon(Icons.date_range, size: 14),
-              labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-              label: Text(
-                  _range?.label.contains('~') == true
-                      ? _range!.label
-                      : '기간 선택',
-                  style: const TextStyle(fontSize: 12)),
-              visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-              onPressed: _pickRange,
-            ),
+          _MonoChip(
+            label: _range?.label.contains('~') == true
+                ? _range!.label
+                : 'range',
+            selected: _range?.label.contains('~') == true,
+            onTap: _pickRange,
           ),
         ],
       ),
@@ -131,69 +99,19 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
         ));
   }
 
-  // ---------------------------------------------------- 타임라인 공통 골격
-  /// 세로 레일 위에 rows 를 얹는다.
-  Widget _timeline(List<Widget> rows) {
-    final hairline =
-        Theme.of(context).dividerTheme.color ?? Colors.black12;
-    return Stack(
-      children: [
-        Positioned(
-          left: _kRailX,
-          top: 0,
-          bottom: 0,
-          child: Container(width: 1, color: hairline),
-        ),
-        ListView(
-          padding: const EdgeInsets.fromLTRB(0, 14, 12, 20),
-          children: rows,
-        ),
-      ],
-    );
-  }
-
-  /// 레일 위 알약 배지 (레퍼런스의 점선 시간 배지 역할).
-  Widget _pill(String label, {VoidCallback? onTap, VoidCallback? onLong}) {
-    final theme = Theme.of(context);
-    final hairline = theme.dividerTheme.color ?? Colors.black12;
-    return Padding(
-      padding: const EdgeInsets.only(left: 14, top: 10, bottom: 6),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: onTap,
-            onLongPress: onLong,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: hairline, width: 0.8),
-              ),
-              child: Text(
-                label,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(fontSize: 11, letterSpacing: 0.2),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ------------------------------------------------------- 기간 필터 모드
   Widget _filtered() {
+    final tk = t(context);
     final r = _range!;
     final nodes = ref
             .watch(dateRangeNodesProvider((start: r.start, end: r.end)))
             .valueOrNull ??
         const [];
     if (nodes.isEmpty) {
-      return Center(
-          child: Text('이 기간엔 비어 있어요',
-              style: Theme.of(context).textTheme.bodySmall));
+      return Align(
+        alignment: Alignment.topLeft,
+        child: emptyNote(context, '이 기간엔 담긴 게 없어요'),
+      );
     }
 
     final byDate = <DateTime, List<Node>>{};
@@ -204,26 +122,29 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
 
     final rows = <Widget>[];
     for (final d in dates) {
-      rows.add(_pill(DateFormat('M월 d일 (E)', 'ko').format(d)));
-      final list = byDate[d]!;
-      for (var i = 0; i < list.length; i++) {
-        rows.add(_TaskRow(node: list[i], showDeadline: false));
-        if (i != list.length - 1) rows.add(_rowDivider());
+      rows.add(Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 20, kGutter, 4),
+        child: Text(DateFormat('M월 d일 (E)', 'ko').format(d),
+            style: AppText.meta(tk.inkSoft)),
+      ));
+      for (final n in byDate[d]!) {
+        rows.add(_TaskRow(node: n, showDeadline: false));
       }
     }
-    return _timeline(rows);
+    rows.add(const SizedBox(height: 16));
+    return ListView(padding: EdgeInsets.zero, children: rows);
   }
 
   // ------------------------------------------------------------ 트리 모드
   Widget _tree() {
     final roots = ref.watch(rootsProvider).valueOrNull ?? const [];
     if (roots.isEmpty) {
-      return Center(
-          child: Text('아직 아무것도 없어요',
-              style: Theme.of(context).textTheme.bodySmall));
+      return Align(
+        alignment: Alignment.topLeft,
+        child: emptyNote(context, '아직 아무것도 없어요'),
+      );
     }
 
-    // 섹션 = 폴더/목표. 소속 없는 할 일은 "할 일" 섹션.
     final sections = <Node>[];
     final loose = <Node>[];
     for (final n in roots) {
@@ -237,21 +158,18 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
     final rows = <Widget>[];
 
     void addTasks(List<Node> list, int depth) {
-      for (var i = 0; i < list.length; i++) {
-        final n = list[i];
+      for (final n in list) {
         rows.add(_swipeable(n, _TaskRow(node: n, depth: depth)));
-        // 하위 항목 (펼침 상태일 때)
         final children =
             ref.watch(childrenProvider(n.id)).valueOrNull ?? const [];
         if (children.isNotEmpty && !_collapsed.contains(n.id)) {
           addTasks(children, depth + 1);
         }
-        if (i != list.length - 1 && depth == 0) rows.add(_rowDivider());
       }
     }
 
     if (loose.isNotEmpty) {
-      rows.add(_pill('할 일'));
+      rows.add(SectionLabel('TASKS', count: loose.length));
       addTasks(loose, 0);
     }
 
@@ -259,56 +177,41 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
       final children =
           ref.watch(childrenProvider(s.id)).valueOrNull ?? const [];
       final open = !_collapsed.contains(s.id);
-      rows.add(_pill(
-        s.type == NodeType.goal ? '🎯 ${s.title}' : s.title,
+      rows.add(SectionLabel(
+        s.type == NodeType.goal ? '★ ${s.title}' : s.title,
+        count: children.length,
         onTap: () => setState(() {
           open ? _collapsed.add(s.id) : _collapsed.remove(s.id);
         }),
-        onLong: () => showNodeDetailSheet(context, s),
+        onLongPress: () => showNodeDetailSheet(context, s),
+        trailing: Text(open ? '−' : '+',
+            style: AppText.meta(t(context).inkSoft, size: 13)),
       ));
       if (open) {
         if (children.isEmpty) {
-          rows.add(Padding(
-            padding: const EdgeInsets.only(left: _kRowLeft, bottom: 6),
-            child: Text('비어 있어요',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(fontSize: 12)),
-          ));
+          rows.add(emptyNote(context, '비어 있어요'));
         } else {
           addTasks(children, 0);
         }
       }
     }
 
-    return _timeline(rows);
-  }
-
-  Widget _rowDivider() {
-    final hairline =
-        Theme.of(context).dividerTheme.color ?? Colors.black12;
-    return Container(
-      margin: const EdgeInsets.only(left: _kRowLeft, right: 4),
-      height: 0.5,
-      color: hairline,
-    );
+    rows.add(const SizedBox(height: 16));
+    return ListView(padding: EdgeInsets.zero, children: rows);
   }
 
   Widget _swipeable(Node node, Widget child) {
-    final theme = Theme.of(context);
+    final tk = t(context);
+    Widget bg(Alignment a, String g) => Container(
+          alignment: a,
+          color: tk.paper2,
+          padding: const EdgeInsets.symmetric(horizontal: kGutter),
+          child: Text(g, style: AppText.glyph(tk.inkSoft, size: 16)),
+        );
     return Dismissible(
       key: ValueKey('dismiss_${node.id}'),
-      background: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 24),
-        child: const Icon(Icons.check_circle, color: AppColors.done),
-      ),
-      secondaryBackground: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        child: Icon(Icons.east, color: theme.textTheme.bodySmall?.color),
-      ),
+      background: bg(Alignment.centerLeft, '■'),
+      secondaryBackground: bg(Alignment.centerRight, '→'),
       confirmDismiss: (dir) async {
         final repo = ref.read(nodeRepoProvider);
         if (dir == DismissDirection.startToEnd) {
@@ -323,9 +226,40 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
   }
 }
 
-/// 저널형 할 일 행: 둥근 사각 체크박스 + 제목 + 마감 pill + 하위 진행(1/4).
+/// 대문자 모노 필터 칩 (각진 1px 규칙선, 선택 = 잉크 반전).
+class _MonoChip extends StatelessWidget {
+  const _MonoChip(
+      {required this.label, required this.selected, required this.onTap});
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? tk.ink : Colors.transparent,
+            border: Border.all(color: selected ? tk.ink : tk.line, width: 1),
+          ),
+          child:
+              Text(label, style: AppText.chip(selected ? tk.paper : tk.inkSoft)),
+        ),
+      ),
+    );
+  }
+}
+
+/// 편집형 할 일 줄 (아웃라인): 글리프 체크 + 제목 + 마감/하위진행 메타 + 우선순위.
 class _TaskRow extends ConsumerWidget {
-  const _TaskRow({required this.node, this.depth = 0, this.showDeadline = true});
+  const _TaskRow(
+      {required this.node, this.depth = 0, this.showDeadline = true});
 
   final Node node;
   final int depth;
@@ -333,138 +267,61 @@ class _TaskRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+    final tk = t(context);
     final repo = ref.read(nodeRepoProvider);
     final done = node.status == NodeStatus.done;
     final children =
         ref.watch(childrenProvider(node.id)).valueOrNull ?? const [];
     final doneCount =
         children.where((c) => c.status == NodeStatus.done).length;
+    final pri = done
+        ? null
+        : priorityLabel(context,
+            urgent: node.urgent, important: node.important);
 
-    return Opacity(
-      opacity: done ? 0.45 : 1,
-      child: InkWell(
-        onTap: () => showNodeDetailSheet(context, node),
-        child: Padding(
-          padding: EdgeInsets.only(
-              left: _kRowLeft + depth * 18, right: 4, top: 8, bottom: 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 둥근 사각 체크박스
-              GestureDetector(
-                onTap: () =>
-                    done ? repo.reopen(node.id) : repo.complete(node.id),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 11, top: 1),
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: done ? AppColors.done : Colors.transparent,
-                      border: done
-                          ? null
-                          : Border.all(
-                              color: theme.textTheme.bodySmall?.color ??
-                                  Colors.grey,
-                              width: 1.3),
+    return InkWell(
+      onTap: () => showNodeDetailSheet(context, node),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(kGutter + depth * 18, 11, kGutter, 11),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GlyphCheck(
+              done: done,
+              onTap: () =>
+                  done ? repo.reopen(node.id) : repo.complete(node.id),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(node.title,
+                      style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
+                          decoration:
+                              done ? TextDecoration.lineThrough : null,
+                          decorationColor: tk.inkSoft),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                  if (children.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text('$doneCount/${children.length}',
+                          style: AppText.meta(tk.inkSoft)),
                     ),
-                    child: done
-                        ? const Icon(Icons.check,
-                            size: 13, color: Colors.white)
-                        : null,
-                  ),
-                ),
+                ],
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        if (node.urgent && !done) ...[
-                          Icon(Icons.bolt,
-                              size: 13,
-                              color: theme.textTheme.bodySmall?.color),
-                          const SizedBox(width: 2),
-                        ],
-                        Flexible(
-                          child: Text(node.title,
-                              style: theme.textTheme.bodyMedium,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
-                        ),
-                      ],
-                    ),
-                    if ((showDeadline && node.date != null && !done) ||
-                        children.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          children: [
-                            if (showDeadline && node.date != null && !done)
-                              _deadlinePill(theme),
-                            if (children.isNotEmpty) ...[
-                              if (showDeadline &&
-                                  node.date != null &&
-                                  !done)
-                                const SizedBox(width: 6),
-                              Icon(Icons.radio_button_unchecked,
-                                  size: 10,
-                                  color: theme.textTheme.bodySmall?.color),
-                              const SizedBox(width: 3),
-                              Text('$doneCount/${children.length}',
-                                  style: theme.textTheme.bodySmall
-                                      ?.copyWith(fontSize: 11)),
-                            ],
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+            ),
+            if (showDeadline && node.date != null && !done) ...[
+              const SizedBox(width: 10),
+              Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: deadlineLabel(context, node.date!)),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 마감 pill: 임박(오늘/내일)=잉크 채움, 그 외=테두리.
-  Widget _deadlinePill(ThemeData theme) {
-    final d = dateOnly(node.date!);
-    final today = todayDate();
-    final diff = d.difference(today).inDays;
-
-    final String label;
-    if (diff <= 0) {
-      label = '오늘';
-    } else if (diff == 1) {
-      label = '내일';
-    } else {
-      label = DateFormat('M/d').format(d);
-    }
-
-    final urgentish = diff <= 1;
-    final ink = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final bg = theme.scaffoldBackgroundColor;
-    final hairline = theme.dividerTheme.color ?? Colors.black12;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: urgentish ? ink : Colors.transparent,
-        borderRadius: BorderRadius.circular(999),
-        border: urgentish ? null : Border.all(color: hairline, width: 0.8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-                    fontSize: 10.5,
-          fontWeight: FontWeight.w600,
-          color: urgentish ? bg : theme.textTheme.bodySmall?.color,
+            if (pri != null) ...[
+              const SizedBox(width: 10),
+              Padding(padding: const EdgeInsets.only(top: 2), child: pri),
+            ],
+          ],
         ),
       ),
     );
