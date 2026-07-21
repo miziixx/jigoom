@@ -8,8 +8,75 @@ import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 
-/// 습관 탭 — 모노 트리(├─ └─ │)로 카테고리 → 습관.
-/// 각 습관 leaf 에서 오늘 체크(□/■). 습관을 탭하면 기간별 상세 화면.
+const _weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
+
+// ---------------------------------------------------------------- 분석 헬퍼
+/// 오늘부터 거꾸로 연속 완료 일수.
+int _currentStreak(Set<DateTime> ticks, DateTime today) {
+  var s = 0;
+  var d = today;
+  while (ticks.contains(d)) {
+    s++;
+    d = d.subtract(const Duration(days: 1));
+  }
+  return s;
+}
+
+/// start~today 중 최장 연속.
+int _longestStreak(Set<DateTime> ticks, DateTime start, DateTime today) {
+  var best = 0, run = 0;
+  var d = start;
+  while (!d.isAfter(today)) {
+    if (ticks.contains(d)) {
+      run++;
+      if (run > best) best = run;
+    } else {
+      run = 0;
+    }
+    d = d.add(const Duration(days: 1));
+  }
+  return best;
+}
+
+/// 요일별(월~일) 완료 수/등장 수.
+(List<int> done, List<int> total) _weekday(
+    Set<DateTime> ticks, DateTime start, DateTime end) {
+  final done = List.filled(7, 0);
+  final total = List.filled(7, 0);
+  var d = start;
+  while (!d.isAfter(end)) {
+    final wi = d.weekday - 1;
+    total[wi]++;
+    if (ticks.contains(d)) done[wi]++;
+    d = d.add(const Duration(days: 1));
+  }
+  return (done, total);
+}
+
+/// 7일 버킷 주별 완료 수(최근 maxWeeks개).
+List<({DateTime start, int done})> _weekly(
+    Set<DateTime> ticks, DateTime start, DateTime end,
+    {int maxWeeks = 12}) {
+  final buckets = <({DateTime start, int done})>[];
+  var bs = start;
+  while (!bs.isAfter(end)) {
+    var done = 0;
+    var d = bs;
+    final be = bs.add(const Duration(days: 6));
+    while (!d.isAfter(be) && !d.isAfter(end)) {
+      if (ticks.contains(d)) done++;
+      d = d.add(const Duration(days: 1));
+    }
+    buckets.add((start: bs, done: done));
+    bs = bs.add(const Duration(days: 7));
+  }
+  return buckets.length > maxWeeks
+      ? buckets.sublist(buckets.length - maxWeeks)
+      : buckets;
+}
+
+// ------------------------------------------------------------------- 탭 뷰
+/// 습관 탭 — 상단 오늘 요약 + 카테고리→습관 모노 트리. 습관 탭 → 상세 대시보드.
 class HabitView extends ConsumerWidget {
   const HabitView({super.key});
 
@@ -27,6 +94,24 @@ class HabitView extends ConsumerWidget {
       );
     }
 
+    final today = todayDate();
+    // 오늘 완료 수 + 전체 최근 30일 평균 완료율 (각 습관 ticks 를 watch).
+    var todayDone = 0;
+    var rateSum = 0.0;
+    for (final h in habits) {
+      final ticks = ref.watch(habitTicksProvider(h.id)).valueOrNull ?? const [];
+      final set = {for (final t in ticks) dateOnly(t.date)};
+      if (set.contains(today)) todayDone++;
+      final span =
+          (today.difference(dateOnly(h.createdAt)).inDays + 1).clamp(1, 30);
+      var d30 = 0;
+      for (var i = 0; i < span; i++) {
+        if (set.contains(today.subtract(Duration(days: i)))) d30++;
+      }
+      rateSum += d30 / span;
+    }
+    final avgPct = (rateSum / habits.length * 100).round();
+
     final byCat = <String, List<Habit>>{};
     for (final h in habits) {
       byCat.putIfAbsent(h.category, () => []).add(h);
@@ -38,11 +123,9 @@ class HabitView extends ConsumerWidget {
         return a.compareTo(b);
       });
 
-    final rows = <Widget>[];
-    rows.add(Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 6),
-      child: Text('HABITS', style: AppText.sec(tk.ink)),
-    ));
+    final rows = <Widget>[
+      _overview(tk, todayDone, habits.length, avgPct),
+    ];
 
     for (var ci = 0; ci < cats.length; ci++) {
       final lastCat = ci == cats.length - 1;
@@ -79,6 +162,40 @@ class HabitView extends ConsumerWidget {
       child: ListView(padding: EdgeInsets.zero, children: rows),
     );
   }
+
+  /// 상단 오늘 요약 스트립 + 진행바.
+  Widget _overview(AppTokens tk, int done, int total, int avgPct) {
+    final rate = total == 0 ? 0.0 : done / total;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text('오늘 ', style: AppText.meta(tk.inkSoft)),
+              Text('$done/$total', style: AppText.hTitle(tk.ink)),
+              const Spacer(),
+              Text('최근 30일 $avgPct%', style: AppText.meta(tk.inkSoft)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 진행바 (오늘 완료율)
+          Stack(
+            children: [
+              Container(height: 4, color: tk.line),
+              FractionallySizedBox(
+                widthFactor: rate,
+                child: Container(height: 4, color: tk.ink),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _HabitRow extends ConsumerWidget {
@@ -95,6 +212,7 @@ class _HabitRow extends ConsumerWidget {
     final tickSet = {for (final t in ticks) dateOnly(t.date)};
     final today = todayDate();
     final todayDone = tickSet.contains(today);
+    final streak = _currentStreak(tickSet, today);
     final total = today.difference(dateOnly(habit.createdAt)).inDays + 1;
     final percent = total == 0 ? 0 : (tickSet.length * 100 / total).round();
 
@@ -125,7 +243,8 @@ class _HabitRow extends ConsumerWidget {
                   style: AppText.body(todayDone ? tk.inkSoft : tk.ink)),
             ),
             const SizedBox(width: 8),
-            Text('$percent%', style: AppText.meta(tk.inkSoft, size: 10)),
+            Text('${streak}연속 · $percent%',
+                style: AppText.meta(tk.inkSoft, size: 10)),
             const SizedBox(width: 6),
             Text('›', style: AppText.glyph(tk.inkSoft, size: 13)),
           ],
@@ -135,7 +254,8 @@ class _HabitRow extends ConsumerWidget {
   }
 }
 
-/// 습관 상세 — 기간을 골라 그 기간의 통계 + ●/○ 기록을 본다.
+// ---------------------------------------------------------- 상세 대시보드
+/// 습관 상세 — 기간별 통계 + 요일/주별 그래프 + 분석.
 class HabitDetailScreen extends ConsumerStatefulWidget {
   const HabitDetailScreen({super.key, required this.habit});
   final Habit habit;
@@ -153,7 +273,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   void initState() {
     super.initState();
     _end = todayDate();
-    _start = dateOnly(widget.habit.createdAt); // 기본 = 전체(시작일~오늘)
+    _start = dateOnly(widget.habit.createdAt);
   }
 
   void _setQuick(String label, int? days) {
@@ -188,11 +308,12 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
+    final today = todayDate();
     final ticks =
         ref.watch(habitTicksProvider(widget.habit.id)).valueOrNull ?? const [];
     final tickSet = {for (final t in ticks) dateOnly(t.date)};
+    final start = dateOnly(widget.habit.createdAt);
 
-    // 기간 내 일수/완료/퍼센트.
     final rangeDays = _end.difference(_start).inDays + 1;
     var doneInRange = 0;
     for (var i = 0; i < rangeDays; i++) {
@@ -201,6 +322,33 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final percent =
         rangeDays == 0 ? 0 : (doneInRange * 100 / rangeDays).round();
     final gridDays = rangeDays.clamp(1, 372);
+
+    final curStreak = _currentStreak(tickSet, today);
+    final longStreak = _longestStreak(tickSet, start, today);
+    final (wDone, wTotal) = _weekday(tickSet, _start, _end);
+    final weekly = _weekly(tickSet, _start, _end);
+
+    // 가장 잘 지킨 요일 (등장 있는 요일 중 최고율).
+    var bestWi = -1;
+    var bestRate = -1.0;
+    for (var i = 0; i < 7; i++) {
+      if (wTotal[i] == 0) continue;
+      final r = wDone[i] / wTotal[i];
+      if (r > bestRate) {
+        bestRate = r;
+        bestWi = i;
+      }
+    }
+    // 이번 주 / 지난 주 (오늘 기준 최근 7·그 이전 7).
+    int lastNDone(int from, int to) {
+      var c = 0;
+      for (var i = from; i < to; i++) {
+        if (tickSet.contains(today.subtract(Duration(days: i)))) c++;
+      }
+      return c;
+    }
+    final thisWeek = lastNDone(0, 7);
+    final lastWeek = lastNDone(7, 14);
 
     return Scaffold(
       appBar: AppBar(
@@ -223,6 +371,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
+            // RANGE
             const SectionLabel('RANGE'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
@@ -230,20 +379,16 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _rangeChip('7일', () => _setQuick('7일', 7),
-                      _label == '7일'),
-                  _rangeChip('30일', () => _setQuick('30일', 30),
-                      _label == '30일'),
-                  _rangeChip('전체', () => _setQuick('전체', null),
-                      _label == '전체'),
-                  _rangeChip(
-                      _label.contains('~') ? _label : '기간 선택',
-                      _pickRange,
-                      _label.contains('~')),
+                  _rangeChip('7일', () => _setQuick('7일', 7), _label == '7일'),
+                  _rangeChip('30일', () => _setQuick('30일', 30), _label == '30일'),
+                  _rangeChip('전체', () => _setQuick('전체', null), _label == '전체'),
+                  _rangeChip(_label.contains('~') ? _label : '기간 선택',
+                      _pickRange, _label.contains('~')),
                 ],
               ),
             ),
 
+            // STATS
             const SectionLabel('STATS'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
@@ -253,10 +398,71 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   _stat(tk, '$doneInRange', '일 완료'),
                   _stat(tk, '$rangeDays', '일 중'),
                   _stat(tk, '$percent%', '만큼 해냈어요'),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      _miniStat(tk, '$curStreak', '현재 연속'),
+                      const SizedBox(width: 24),
+                      _miniStat(tk, '$longStreak', '최장 연속'),
+                    ],
+                  ),
                 ],
               ),
             ),
 
+            // WEEKDAY 그래프
+            const SectionLabel('WEEKDAY'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (var i = 0; i < 7; i++)
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _bar(tk,
+                              wTotal[i] == 0 ? 0 : wDone[i] / wTotal[i],
+                              highlight: i == bestWi),
+                          const SizedBox(height: 4),
+                          Text(_weekdayNames[i],
+                              style: AppText.meta(
+                                  i == bestWi ? tk.ink : tk.inkSoft,
+                                  size: 10)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // TREND 그래프 (주별)
+            const SectionLabel('TREND'),
+            SizedBox(
+              height: 84,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: kGutter),
+                children: [
+                  for (var wi = 0; wi < weekly.length; wi++)
+                    SizedBox(
+                      width: 22,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _bar(tk, weekly[wi].done / 7),
+                          const SizedBox(height: 4),
+                          Text(DateFormat('M/d').format(weekly[wi].start),
+                              style: AppText.meta(tk.inkSoft, size: 8)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // LOG 격자
             const SectionLabel('LOG'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
@@ -265,15 +471,19 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 runSpacing: 6,
                 children: [
                   for (var i = 0; i < gridDays; i++)
-                    _dot(
-                      tk,
-                      day: _start.add(Duration(days: i)),
-                      filled:
-                          tickSet.contains(_start.add(Duration(days: i))),
-                    ),
+                    _dot(tk,
+                        day: _start.add(Duration(days: i)),
+                        filled: tickSet.contains(_start.add(Duration(days: i)))),
                 ],
               ),
             ),
+
+            // NOTES 분석
+            const SectionLabel('NOTES'),
+            emptyNote(context, '현재 $curStreak일 연속, 최장 $longStreak일'),
+            if (bestWi >= 0)
+              emptyNote(context, '가장 잘 지킨 요일: ${_weekdayNames[bestWi]}'),
+            emptyNote(context, '이번 주 $thisWeek/7 (지난주 $lastWeek/7)'),
           ],
         ),
       ),
@@ -308,6 +518,41 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           const SizedBox(width: 6),
           Text(rest, style: AppText.meta(tk.inkSoft)),
         ],
+      ),
+    );
+  }
+
+  Widget _miniStat(AppTokens tk, String strong, String label) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(strong, style: AppText.body(tk.ink)),
+        const SizedBox(width: 4),
+        Text(label, style: AppText.meta(tk.inkSoft, size: 10)),
+      ],
+    );
+  }
+
+  /// 편집 톤 막대 — 고정 64 트랙 안에서 잉크 fill(높이 ∝ rate). 0은 얇은 line.
+  Widget _bar(AppTokens tk, double rate, {bool highlight = false}) {
+    final double h = rate <= 0
+        ? 0.03
+        : rate < 0.06
+            ? 0.06
+            : rate > 1.0
+                ? 1.0
+                : rate;
+    return SizedBox(
+      height: 64,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: FractionallySizedBox(
+          heightFactor: h,
+          widthFactor: 0.5,
+          child: Container(
+              color: rate <= 0 ? tk.line : (highlight ? tk.mark : tk.ink)),
+        ),
       ),
     );
   }

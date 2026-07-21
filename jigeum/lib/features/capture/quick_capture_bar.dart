@@ -7,16 +7,10 @@ import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 
-/// 담기 대상 — 탭에 따라 달라진다. task=할 일, schedule=일정, habit=습관.
-enum CaptureMode { task, schedule, habit }
-
-/// 어느 탭에서든 하단에 상시 노출되는 빠른 담기 — 터미널 프롬프트.
-/// `› 빠르게 담기_` (캐럿 mark). 탭에 맞는 항목을 담는다.
+/// 할 일 계열 탭 하단에 상시 노출되는 빠른 담기 — 터미널 프롬프트.
+/// `› 빠르게 담기_` (캐럿 mark). 적고 엔터 → 오늘 할 일. 칩으로 중요/긴급/날짜 분류.
 class QuickCaptureBar extends ConsumerStatefulWidget {
-  const QuickCaptureBar({super.key, this.mode = CaptureMode.task});
-
-  /// 현재 탭에 대응하는 담기 대상.
-  final CaptureMode mode;
+  const QuickCaptureBar({super.key});
 
   @override
   ConsumerState<QuickCaptureBar> createState() => _QuickCaptureBarState();
@@ -51,35 +45,13 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
   Future<void> _submit() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-
-    switch (widget.mode) {
-      case CaptureMode.habit:
-        await ref.read(habitRepoProvider).addHabit(text);
-        break;
-      case CaptureMode.schedule:
-        // 오늘, 현재 정시부터 1시간짜리 일정으로 담고(시간은 탭해서 조정).
-        final start = DateTime.now().hour * 60;
-        final end = (start + 60).clamp(0, 1439);
-        await ref.read(scheduleRepoProvider).addSchedule(
-              date: todayDate(),
-              title: text,
-              note: '',
-              color: 0,
-              startMin: start,
-              endMin: end,
-            );
-        break;
-      case CaptureMode.task:
-        await ref.read(nodeRepoProvider).create(
-              type: NodeType.task,
-              title: text,
-              important: _important,
-              urgent: _urgent,
-              date: _date,
-            );
-        break;
-    }
-
+    await ref.read(nodeRepoProvider).create(
+          type: NodeType.task,
+          title: text,
+          important: _important,
+          urgent: _urgent,
+          date: _date,
+        );
     _controller.clear();
     setState(() {
       _important = false;
@@ -88,12 +60,6 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     });
     _focus.requestFocus();
   }
-
-  String get _hint => switch (widget.mode) {
-        CaptureMode.habit => '습관 담기_',
-        CaptureMode.schedule => '오늘 일정 담기_',
-        CaptureMode.task => '빠르게 담기_',
-      };
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -123,26 +89,24 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 칩 줄 — 할 일 담기일 때만 (중요/긴급/날짜 분류).
-              if (widget.mode == CaptureMode.task) ...[
-                Row(
-                  children: [
-                    _chip('중요', _important,
-                        () => setState(() => _important = !_important)),
-                    const SizedBox(width: 8),
-                    _chip('긴급', _urgent,
-                        () => setState(() => _urgent = !_urgent), mark: true),
-                    const SizedBox(width: 8),
-                    _chip(
-                        _date == todayDate()
-                            ? '오늘'
-                            : DateFormat('M/d').format(_date),
-                        _date != todayDate(),
-                        _pickDate),
-                  ],
-                ),
-                const SizedBox(height: 10),
-              ],
+              // 칩 줄 (중요/긴급/날짜 분류)
+              Row(
+                children: [
+                  _chip('중요', _important,
+                      () => setState(() => _important = !_important)),
+                  const SizedBox(width: 8),
+                  _chip('긴급', _urgent,
+                      () => setState(() => _urgent = !_urgent), mark: true),
+                  const SizedBox(width: 8),
+                  _chip(
+                      _date == todayDate()
+                          ? '오늘'
+                          : DateFormat('M/d').format(_date),
+                      _date != todayDate(),
+                      _pickDate),
+                ],
+              ),
+              const SizedBox(height: 10),
               // 프롬프트 줄
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -161,7 +125,7 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
                       style: AppText.body(tk.ink),
                       decoration: InputDecoration(
                         isDense: true,
-                        hintText: _hint,
+                        hintText: '빠르게 담기_',
                         hintStyle: AppText.meta(tk.inkSoft, size: 12),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
