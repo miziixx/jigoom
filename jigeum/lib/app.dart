@@ -10,7 +10,7 @@ import 'features/capture/quick_capture_bar.dart';
 import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_view.dart';
-import 'features/schedule/schedule_view.dart';
+import 'features/schedule/time_hub.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
 import 'features/today/today_view.dart';
@@ -28,7 +28,6 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
-  final _scheduleKey = GlobalKey<ScheduleViewState>();
 
   @override
   void initState() {
@@ -53,15 +52,12 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  void _openTimeTrack() => Navigator.of(context)
-      .push(MaterialPageRoute(builder: (_) => const TimeTrackScreen()));
-
   static const _titles = ['오늘', '매트릭스', '아웃라인', '일과', '습관', '전체'];
   static const _navLabels = [
     'today',
     'matrix',
     'outline',
-    'routine',
+    'time',
     'habit',
     'all'
   ];
@@ -79,7 +75,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       0 => const TodayView(),
       1 => const MatrixView(),
       2 => const OutlineView(),
-      3 => ScheduleView(key: _scheduleKey),
+      3 => const TimeHub(),
       4 => const HabitView(),
       _ => const AllView(),
     };
@@ -113,9 +109,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (_index == 2) {
       actions.add(_act('+폴더', _newFolder));
       actions.add(_act('+목표', _newGoal));
-    } else if (_index == 3) {
-      actions.add(_act('루틴', () => _scheduleKey.currentState?.openRoutines()));
-      actions.add(_act('+일정', () => _scheduleKey.currentState?.addSchedule()));
     } else if (_index == 4) {
       actions.add(_act('+습관', _newHabit));
     }
@@ -322,7 +315,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                 height: 1,
                 color: tk.ink),
             const SizedBox(height: 6),
-            item(Icons.schedule_outlined, '기록 · 타임트래커', _openTimeTrack),
             item(Icons.tune, '설정', _openSettings),
           ],
         ),

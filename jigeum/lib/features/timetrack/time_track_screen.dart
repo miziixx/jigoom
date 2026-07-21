@@ -45,15 +45,26 @@ Future<void> showTimeTrackInput(
   }
 }
 
-/// 타임트래커 화면 — 하루 30분×48블록 기록.
-class TimeTrackScreen extends ConsumerStatefulWidget {
+/// 타임트래커 화면 (독립 진입용 — Scaffold 래퍼).
+class TimeTrackScreen extends StatelessWidget {
   const TimeTrackScreen({super.key});
 
   @override
-  ConsumerState<TimeTrackScreen> createState() => _TimeTrackScreenState();
+  Widget build(BuildContext context) => const Scaffold(
+        appBar: null,
+        body: SafeArea(child: TimeTrackBody()),
+      );
 }
 
-class _TimeTrackScreenState extends ConsumerState<TimeTrackScreen> {
+/// 타임트래커 body — 하루 30분×48블록 기록 (임베드용, Scaffold 없음).
+class TimeTrackBody extends ConsumerStatefulWidget {
+  const TimeTrackBody({super.key});
+
+  @override
+  ConsumerState<TimeTrackBody> createState() => _TimeTrackBodyState();
+}
+
+class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
   DateTime _date = DateTime(
       DateTime.now().year, DateTime.now().month, DateTime.now().day);
 
@@ -71,21 +82,7 @@ class _TimeTrackScreenState extends ConsumerState<TimeTrackScreen> {
     final nowBlock = TimeTrackRepository.blockOfNow();
     final filled = byIndex.length;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('기록'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_note),
-            tooltip: '지금 기록',
-            onPressed: _isToday
-                ? () => showTimeTrackInput(context, ref,
-                    date: _date, block: nowBlock)
-                : null,
-          ),
-        ],
-      ),
-      body: Container(
+    return Container(
         color: t(context).paper,
         child: Column(
           children: [
@@ -135,8 +132,7 @@ class _TimeTrackScreenState extends ConsumerState<TimeTrackScreen> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _row(ThemeData theme, int i, String? text, bool isNow) {

@@ -8,43 +8,61 @@ import '../../providers.dart';
 
 const _weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
 
-/// 루틴 관리: 매일/요일 반복 일정 템플릿. 앱 열 때 오늘 일정으로 자동 생성.
-class RoutineScreen extends ConsumerWidget {
+/// 루틴 편집 시트 (추가/수정 공용).
+Future<void> showRoutineEditSheet(BuildContext context, {Routine? existing}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    builder: (_) => _RoutineEditSheet(existing: existing),
+  );
+}
+
+/// 루틴 관리 화면 (독립 진입용 — Scaffold 래퍼).
+class RoutineScreen extends StatelessWidget {
   const RoutineScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+          title: const Text('루틴'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: '새 루틴',
+              onPressed: () => showRoutineEditSheet(context),
+            ),
+          ],
+        ),
+        body: const RoutineBody(),
+      );
+}
+
+/// 루틴 목록 (임베드용 body — Scaffold 없음).
+class RoutineBody extends ConsumerWidget {
+  const RoutineBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final routines = ref.watch(routinesProvider).valueOrNull ?? const [];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('루틴'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: '새 루틴',
-            onPressed: () => _edit(context, ref),
-          ),
-        ],
-      ),
-      body: Container(
-        color: t(context).paper,
-        child: routines.isEmpty
-            ? Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 26),
-                  child: emptyNote(context, '반복되는 일정을 루틴으로 만들어요'),
-                ),
-              )
-            : ListView(
-                padding: const EdgeInsets.only(top: 8, bottom: 24),
-                children: [
-                  for (final r in routines) _card(context, ref, theme, r),
-                ],
+    return Container(
+      color: t(context).paper,
+      child: routines.isEmpty
+          ? Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: emptyNote(context, '반복되는 일정을 루틴으로 만들어요'),
               ),
-      ),
+            )
+          : ListView(
+              padding: const EdgeInsets.only(top: 8, bottom: 24),
+              children: [
+                for (final r in routines) _card(context, ref, theme, r),
+              ],
+            ),
     );
   }
 
@@ -83,7 +101,7 @@ class RoutineScreen extends ConsumerWidget {
                 ref.read(scheduleRepoProvider).setRoutineActive(r.id, v),
           ),
           GestureDetector(
-            onTap: () => _edit(context, ref, existing: r),
+            onTap: () => showRoutineEditSheet(context, existing: r),
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.only(left: 8),
@@ -95,15 +113,6 @@ class RoutineScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _edit(BuildContext context, WidgetRef ref,
-      {Routine? existing}) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (_) => _RoutineEditSheet(existing: existing),
-    );
-  }
 }
 
 class _RoutineEditSheet extends ConsumerStatefulWidget {
