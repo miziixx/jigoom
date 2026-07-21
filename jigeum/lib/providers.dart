@@ -7,10 +7,14 @@ import 'data/db.dart';
 import 'data/repos/habit_repository.dart';
 import 'data/repos/node_repository.dart';
 import 'data/repos/schedule_repository.dart';
+import 'data/repos/time_track_repository.dart';
 
 /// 위젯 탭 진입 시 퀵캡처 입력창에 포커스를 요청하는 트리거.
 /// 값이 증가할 때마다 QuickCaptureBar 가 포커스+키보드를 연다.
 final ValueNotifier<int> quickCaptureFocusRequest = ValueNotifier<int>(0);
+
+/// 타임트래커 위젯 탭 진입 시 현재 블록 입력창을 여는 트리거.
+final ValueNotifier<int> timeTrackLaunchRequest = ValueNotifier<int>(0);
 
 final dbProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -83,6 +87,16 @@ final schedulesForDateProvider =
 
 final routinesProvider = StreamProvider<List<Routine>>((ref) {
   return ref.watch(scheduleRepoProvider).watchRoutines();
+});
+
+/// 타임트래커
+final timeTrackRepoProvider = Provider<TimeTrackRepository>((ref) {
+  return TimeTrackRepository(ref.watch(dbProvider));
+});
+
+final timeBlocksForDateProvider =
+    StreamProvider.family<List<TimeBlock>, DateTime>((ref, date) {
+  return ref.watch(timeTrackRepoProvider).watchForDate(date);
 });
 
 /// 날짜 범위 노드 (아웃라이너 기간 필터)

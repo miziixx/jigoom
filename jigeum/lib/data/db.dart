@@ -71,6 +71,16 @@ class Schedules extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 타임트래커: 하루를 30분 단위(0~47)로 실제 한 일을 기록.
+class TimeBlocks extends Table {
+  DateTimeColumn get date => dateTime()(); // 자정 기준 날짜
+  IntColumn get block => integer()(); // 0~47 (30분 단위)
+  TextColumn get text => text()();
+
+  @override
+  Set<Column> get primaryKey => {date, block};
+}
+
 /// 루틴: 매일/요일 반복되는 일정 템플릿. 앱 열 때 오늘 일정으로 자동 생성.
 class Routines extends Table {
   TextColumn get id => text()();
@@ -88,14 +98,21 @@ class Routines extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(
-    tables: [Nodes, Settings, Habits, HabitTicks, Schedules, Routines])
+@DriftDatabase(tables: [
+  Nodes,
+  Settings,
+  Habits,
+  HabitTicks,
+  Schedules,
+  Routines,
+  TimeBlocks
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -119,6 +136,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             await m.createTable(schedules);
             await m.createTable(routines);
+          }
+          if (from < 5) {
+            await m.createTable(timeBlocks);
           }
         },
       );

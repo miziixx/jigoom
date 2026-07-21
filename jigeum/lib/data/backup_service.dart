@@ -21,6 +21,7 @@ class BackupService {
     final ticks = await db.select(db.habitTicks).get();
     final schedules = await db.select(db.schedules).get();
     final routines = await db.select(db.routines).get();
+    final timeBlocks = await db.select(db.timeBlocks).get();
 
     String? d(DateTime? v) => v?.toIso8601String();
 
@@ -92,6 +93,10 @@ class BackupService {
             'active': r.active,
             'createdAt': d(r.createdAt),
           }
+      ],
+      'timeBlocks': [
+        for (final t in timeBlocks)
+          {'date': d(t.date), 'block': t.block, 'text': t.text}
       ],
     });
   }
@@ -176,6 +181,14 @@ class BackupService {
           createdAt: pr(m['createdAt']),
         )
     ];
+    final timeBlocks = [
+      for (final m in (map['timeBlocks'] as List? ?? const []))
+        TimeBlocksCompanion.insert(
+          date: pr(m['date']),
+          block: m['block'] as int,
+          text: m['text'] as String,
+        )
+    ];
 
     await db.transaction(() async {
       await db.delete(db.habitTicks).go();
@@ -184,6 +197,7 @@ class BackupService {
       await db.delete(db.nodes).go();
       await db.delete(db.schedules).go();
       await db.delete(db.routines).go();
+      await db.delete(db.timeBlocks).go();
       for (final n in nodes) {
         await db.into(db.nodes).insert(n);
       }
@@ -201,6 +215,9 @@ class BackupService {
       }
       for (final r in routines) {
         await db.into(db.routines).insert(r);
+      }
+      for (final t in timeBlocks) {
+        await db.into(db.timeBlocks).insert(t);
       }
     });
   }

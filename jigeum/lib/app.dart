@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants.dart';
+import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
 import 'features/capture/quick_capture_bar.dart';
 import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_view.dart';
 import 'features/schedule/schedule_view.dart';
+import 'features/timetrack/time_track_screen.dart';
 import 'features/today/today_view.dart';
 import 'features/today/two_minute_sheet.dart';
 import 'features/widgetkit/widget_bridge.dart';
@@ -25,6 +27,32 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   int _index = 0;
   final _scheduleKey = GlobalKey<ScheduleViewState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // 타임트래커 위젯 탭 진입 → 현재 블록 입력창.
+    timeTrackLaunchRequest.addListener(_onTimeTrackLaunch);
+  }
+
+  @override
+  void dispose() {
+    timeTrackLaunchRequest.removeListener(_onTimeTrackLaunch);
+    super.dispose();
+  }
+
+  void _onTimeTrackLaunch() {
+    if (!mounted) return;
+    showTimeTrackInput(
+      context,
+      ref,
+      date: DateTime.now(),
+      block: TimeTrackRepository.blockOfNow(),
+    );
+  }
+
+  void _openTimeTrack() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const TimeTrackScreen()));
 
   static const _titles = ['오늘', '매트릭스', '아웃라인', '일과', '습관', '전체'];
 
@@ -78,6 +106,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             icon: const Icon(Icons.more_vert),
             onSelected: (v) {
               switch (v) {
+                case 'timetrack':
+                  _openTimeTrack();
                 case 'opacity':
                   _widgetOpacityDialog();
                 case 'export':
@@ -87,6 +117,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               }
             },
             itemBuilder: (ctx) => const [
+              PopupMenuItem(value: 'timetrack', child: Text('기록 (타임트래커)')),
               PopupMenuItem(value: 'opacity', child: Text('위젯 투명도')),
               PopupMenuItem(value: 'export', child: Text('백업 내보내기')),
               PopupMenuItem(value: 'import', child: Text('백업 가져오기 (복원)')),

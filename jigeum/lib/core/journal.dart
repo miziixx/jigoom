@@ -35,6 +35,9 @@ String minToShort(int m) {
   return '${h.toString().padLeft(2, '0')}:${mm.toString().padLeft(2, '0')}';
 }
 
+/// 타임트래커 블록(0~47) → "09:30" 시작 시각.
+String blockLabel(int block) => minToShort(block * 30);
+
 /// 저널형 타임라인 디자인 공용 요소.
 /// 오프화이트 페이지 배경 + 라운드 카드 + 세로 레일 + 알약 배지 + pill.
 class Journal {

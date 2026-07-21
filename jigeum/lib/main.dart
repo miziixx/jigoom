@@ -6,8 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
+import 'core/constants.dart';
+import 'core/journal.dart';
 import 'core/theme.dart';
 import 'data/db.dart';
+import 'data/repos/time_track_repository.dart';
 import 'features/widgetkit/notification_service.dart';
 import 'features/widgetkit/widget_bridge.dart';
 import 'providers.dart';
@@ -109,11 +112,13 @@ class _GoalAppState extends ConsumerState<GoalApp> {
     super.dispose();
   }
 
-  /// 위젯 탭으로 열렸는지 확인 → 퀵캡처 입력창에 바로 포커스.
+  /// 위젯 탭으로 열렸는지 확인 → 퀵캡처/타임트래커 입력 트리거.
   Future<void> _checkLaunchAction() async {
     final action = await WidgetBridge.consumeLaunchAction();
     if (action == 'quick_capture') {
       quickCaptureFocusRequest.value++;
+    } else if (action == 'time_track') {
+      timeTrackLaunchRequest.value++;
     }
   }
 
@@ -137,6 +142,15 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       if (!kIsWeb) {
         await NotificationService.instance.showOngoingFocus(focus?.title);
       }
+
+      // 타임트래커 위젯: 지금 블록 라벨 + 현재 기록.
+      final ttRepo = ref.read(timeTrackRepoProvider);
+      final nowBlock = TimeTrackRepository.blockOfNow();
+      final cur = await ttRepo.getBlock(todayDate(), nowBlock);
+      await WidgetBridge.updateTimeTrack(
+        '지금 ${blockLabel(nowBlock)}',
+        cur?.text ?? '탭해서 기록',
+      );
     } catch (e, s) {
       debugPrint('widget sync 실패(무시): $e\n$s');
     }

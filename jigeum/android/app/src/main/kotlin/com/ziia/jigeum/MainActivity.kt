@@ -17,6 +17,7 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         const val ACTION_QUICK_CAPTURE = "com.ziia.jigeum.QUICK_CAPTURE"
+        const val ACTION_TIME_TRACK = "com.ziia.jigeum.TIME_TRACK"
         const val REQ_SAVE_BACKUP = 7101
         const val REQ_OPEN_BACKUP = 7102
     }
@@ -73,8 +74,9 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun captureAction(intent: Intent?) {
-        if (intent?.action == ACTION_QUICK_CAPTURE) {
-            pendingAction = "quick_capture"
+        when (intent?.action) {
+            ACTION_QUICK_CAPTURE -> pendingAction = "quick_capture"
+            ACTION_TIME_TRACK -> pendingAction = "time_track"
         }
     }
 
@@ -111,6 +113,17 @@ class MainActivity : FlutterActivity() {
                             WidgetPrefs.FILE, Context.MODE_PRIVATE
                         ).getInt(WidgetPrefs.KEY_OPACITY, 90)
                         result.success(percent)
+                    }
+                    "updateTimeTrack" -> {
+                        getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
+                            .edit()
+                            .putString(WidgetPrefs.KEY_TT_LABEL,
+                                call.argument("label") ?: "지금")
+                            .putString(WidgetPrefs.KEY_TT_TEXT,
+                                call.argument("text") ?: "탭해서 기록")
+                            .apply()
+                        WidgetPrefs.updateAllWidgets(this)
+                        result.success(true)
                     }
                     "consumeLaunchAction" -> {
                         result.success(pendingAction)
