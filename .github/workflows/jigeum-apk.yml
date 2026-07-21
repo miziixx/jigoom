@@ -1,0 +1,86 @@
+name: Build 지금 APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - claude/goal-app-mvp-sj7lun
+    paths:
+      - 'jigeum/**'
+      - '.github/workflows/jigeum-apk.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jigeum
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android platform scaffold
+        run: |
+          flutter create --org com.ziia --project-name jigeum --platforms android .
+          # flutter create 가 넣는 기본 위젯 테스트(MyApp 참조)는 제거 — 우리 테스트만 사용.
+          rm -f test/widget_test.dart
+
+      - name: Strip uncommitted font refs from pubspec
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("pubspec.yaml")
+          lines = p.read_text(encoding="utf-8").splitlines(keepends=True)
+          out, skip = [], False
+          for ln in lines:
+              if ln.startswith("  fonts:"):
+                  skip = True
+                  continue
+              if skip and ln.strip() and not ln.startswith(("    ", "  fonts")):
+                  skip = False
+              if not skip:
+                  out.append(ln)
+          p.write_text("".join(out), encoding="utf-8")
+          print("stripped fonts section")
+          PY
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Patch Android (widget receiver, permissions, label, minSdk)
+        run: python3 tool/ci_patch_android.py
+
+      - name: Drift code generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze lib/ --no-fatal-infos --no-fatal-warnings
+
+      - name: Run core tests
+        run: flutter test
+
+      # arm64 단일 APK 하나만 빌드 — 요즘 폰 전부 호환, 파일 1개(~10MB),
+      # split-per-abi zip(28.7MB) 이 걸리던 첨부 용량제한도 회피.
+      - name: Build release APK (arm64 only)
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jigeum-arm64-apk
+          path: jigeum/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14

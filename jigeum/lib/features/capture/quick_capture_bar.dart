@@ -1,0 +1,199 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../../core/constants.dart';
+import '../../core/theme.dart';
+import '../../providers.dart';
+
+/// 어느 탭에서든 하단에 상시 노출되는 퀵캡처 입력바.
+/// 적고 엔터 → 오늘 할 일. 📅 로 날짜를 미리 골라 담을 수도 있음.
+/// [중요][긴급] 토글로 매트릭스 분류.
+class QuickCaptureBar extends ConsumerStatefulWidget {
+  const QuickCaptureBar({super.key});
+
+  @override
+  ConsumerState<QuickCaptureBar> createState() => _QuickCaptureBarState();
+}
+
+class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
+  final _controller = TextEditingController();
+  final _focus = FocusNode();
+  bool _important = false;
+  bool _urgent = false;
+
+  /// 담을 날짜. 기본 = 오늘.
+  DateTime _date = todayDate();
+
+  @override
+  void initState() {
+    super.initState();
+    // 위젯 탭 진입 → 입력창 포커스 + 키보드 열기.
+    quickCaptureFocusRequest.addListener(_onFocusRequest);
+  }
+
+  void _onFocusRequest() {
+    if (!mounted) return;
+    _focus.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    quickCaptureFocusRequest.removeListener(_onFocusRequest);
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    final repo = ref.read(nodeRepoProvider);
+
+    // 분류 강요 없음: 기본은 오늘, 📅 로 골랐으면 그 날짜로.
+    await repo.create(
+      type: NodeType.task,
+      title: text,
+      important: _important,
+      urgent: _urgent,
+      date: _date,
+    );
+
+    _controller.clear();
+    setState(() {
+      _important = false;
+      _urgent = false;
+      _date = todayDate(); // 담고 나면 오늘로 초기화
+    });
+    _focus.requestFocus();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: todayDate(),
+      lastDate: todayDate().add(const Duration(days: 730)),
+      helpText: '이 할 일을 언제로 담을까요?',
+      cancelText: '취소',
+      confirmText: '선택',
+    );
+    if (picked != null) setState(() => _date = dateOnly(picked));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hairline = theme.dividerTheme.color ?? Colors.black12;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        border: Border(top: BorderSide(color: hairline, width: 0.5)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            _Chip(
+              label: '중요',
+              selected: _important,
+              onTap: () => setState(() => _important = !_important),
+            ),
+            const SizedBox(width: 6),
+            _Chip(
+              label: '긴급',
+              icon: Icons.bolt,
+              selected: _urgent,
+              onTap: () => setState(() => _urgent = !_urgent),
+            ),
+            const SizedBox(width: 6),
+            // 📅 담을 날짜: 기본 오늘, 고르면 "7/25" 처럼 표시.
+            _Chip(
+              label: _date == todayDate()
+                  ? '오늘'
+                  : DateFormat('M/d').format(_date),
+              icon: Icons.calendar_today_outlined,
+              selected: _date != todayDate(),
+              onTap: _pickDate,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                focusNode: _focus,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+                style: theme.textTheme.bodyLarge,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  hintText: '빠르게 담기…',
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: _submit,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Icon(Icons.arrow_upward, size: 19),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.icon,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final on = selected;
+    final fg = on
+        ? theme.textTheme.bodyLarge?.color
+        : theme.textTheme.bodySmall?.color;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: kAnimDuration,
+        curve: kAnimCurve,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: on
+                ? (theme.textTheme.bodyLarge?.color ?? Colors.black)
+                : (theme.dividerTheme.color ?? Colors.black12),
+            width: on ? 1 : 0.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 13, color: fg),
+              const SizedBox(width: 2),
+            ],
+            Text(label, style: theme.textTheme.bodySmall?.copyWith(color: fg)),
+          ],
+        ),
+      ),
+    );
+  }
+}
