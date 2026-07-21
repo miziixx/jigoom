@@ -105,7 +105,7 @@ class _LaterTile extends ConsumerWidget {
         return false;
       },
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 11, kGutter, 11),
+        padding: const EdgeInsets.fromLTRB(kGutter, 7, kGutter, 7),
         child: Row(
           children: [
             Padding(

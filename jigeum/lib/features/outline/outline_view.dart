@@ -282,7 +282,7 @@ class _TaskRow extends ConsumerWidget {
     return InkWell(
       onTap: () => showNodeDetailSheet(context, node),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(kGutter + depth * 18, 11, kGutter, 11),
+        padding: EdgeInsets.fromLTRB(kGutter + depth * 18, 7, kGutter, 7),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

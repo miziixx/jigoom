@@ -82,7 +82,7 @@ class SectionLabel extends StatelessWidget {
       ],
     );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 26, kGutter, 12),
+      padding: const EdgeInsets.fromLTRB(kGutter, 18, kGutter, 8),
       child: (onTap == null && onLongPress == null)
           ? row
           : GestureDetector(

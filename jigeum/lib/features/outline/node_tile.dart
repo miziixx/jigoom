@@ -41,7 +41,7 @@ class NodeTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(kGutter + depth * 18, 11, kGutter, 11),
+        padding: EdgeInsets.fromLTRB(kGutter + depth * 18, 7, kGutter, 7),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
