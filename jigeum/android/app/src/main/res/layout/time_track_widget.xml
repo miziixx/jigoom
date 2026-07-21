@@ -24,6 +24,7 @@
 
         <!-- 좌측 mark 규칙 (현재 블록 표식) -->
         <View
+            android:id="@+id/tt_bar"
             android:layout_width="2dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="12dp"

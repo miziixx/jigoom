@@ -5,9 +5,9 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 캐럿 › (잉크, 각진 획) -->
+    <!-- 캐럿 › (종이색, 각진 획) — 다크 배경 위 고대비 -->
     <path
-        android:strokeColor="#26241F"
+        android:strokeColor="#F4F1EA"
         android:strokeWidth="10"
         android:strokeLineCap="butt"
         android:strokeLineJoin="miter"

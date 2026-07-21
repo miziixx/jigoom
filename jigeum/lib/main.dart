@@ -19,6 +19,10 @@ import 'providers.dart';
 /// 진단용: 릴리즈에서도 크래시 대신 에러 메시지를 화면에 표시.
 final ValueNotifier<String?> gError = ValueNotifier<String?>(null);
 
+/// Color → "#RRGGBB" (위젯 테마 전달용).
+String _hex(Color c) =>
+    '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
@@ -133,12 +137,21 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       final q2 = await repo.quadrantTop(important: true, urgent: false);
       final q3 = await repo.quadrantTop(important: false, urgent: true);
       final q4 = await repo.drawerCount();
+      // 현재 테마 6토큰을 위젯에 전달 (앱과 톤 일치).
+      final tk = tokensForKey(ref.read(settingsProvider).themeKey);
       await WidgetBridge.updateWidgets(
         focusTitle: focus?.title ?? '오늘 할 일을 정해볼까요',
         q1: join(q1),
         q2: join(q2),
         q3: join(q3),
         q4Count: q4,
+        theme: {
+          'paper': _hex(tk.paper),
+          'ink': _hex(tk.ink),
+          'inkSoft': _hex(tk.inkSoft),
+          'line': _hex(tk.line),
+          'mark': _hex(tk.mark),
+        },
       );
       if (!kIsWeb) {
         await NotificationService.instance.showOngoingFocus(focus?.title);
@@ -207,6 +220,10 @@ class _GoalAppState extends ConsumerState<GoalApp> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    // 테마가 바뀌면 위젯도 즉시 새 톤으로 갱신.
+    ref.listen(settingsProvider.select((s) => s.themeKey), (_, __) {
+      _syncWidgets();
+    });
     final themeData =
         AppTheme.fromKey(settings.themeKey, weightDelta: settings.weightDelta);
     return MaterialApp(

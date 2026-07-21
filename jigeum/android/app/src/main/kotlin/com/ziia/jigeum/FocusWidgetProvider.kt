@@ -21,6 +21,7 @@ class FocusWidgetProvider : AppWidgetProvider() {
         val prefs = context.getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
         val title = prefs.getString(WidgetPrefs.KEY_FOCUS, "오늘 할 일을 정해볼까요")
         val alpha = WidgetPrefs.bgAlpha(context)
+        val pal = WidgetPrefs.palette(context)
 
         // 탭 → 앱을 퀵캡처 모드로 열기
         val capture = Intent(context, MainActivity::class.java).apply {
@@ -36,6 +37,11 @@ class FocusWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.focus_widget).apply {
                 setTextViewText(R.id.widget_title, title)
                 setInt(R.id.widget_bg_img, "setImageAlpha", alpha)
+                // 테마 색 적용
+                setInt(R.id.widget_bg_img, "setColorFilter", pal.paper)
+                setInt(R.id.widget_check, "setColorFilter", pal.mark)
+                setTextColor(R.id.widget_now, pal.mark)
+                setTextColor(R.id.widget_title, pal.ink)
                 setOnClickPendingIntent(R.id.widget_root, pending)
             }
             appWidgetManager.updateAppWidget(widgetId, views)

@@ -91,13 +91,19 @@ class MainActivity : FlutterActivity() {
                         val prefs = getSharedPreferences(
                             WidgetPrefs.FILE, Context.MODE_PRIVATE
                         )
-                        prefs.edit()
+                        val edit = prefs.edit()
                             .putString(WidgetPrefs.KEY_FOCUS, call.argument("focus") ?: "")
                             .putString(WidgetPrefs.KEY_Q1, call.argument("q1") ?: "")
                             .putString(WidgetPrefs.KEY_Q2, call.argument("q2") ?: "")
                             .putString(WidgetPrefs.KEY_Q3, call.argument("q3") ?: "")
                             .putInt(WidgetPrefs.KEY_Q4_COUNT, call.argument("q4count") ?: 0)
-                            .apply()
+                        // 테마 색(있을 때만) — 앱 테마와 위젯 톤 일치.
+                        call.argument<String>("paper")?.let { edit.putString(WidgetPrefs.KEY_PAPER, it) }
+                        call.argument<String>("ink")?.let { edit.putString(WidgetPrefs.KEY_INK, it) }
+                        call.argument<String>("inkSoft")?.let { edit.putString(WidgetPrefs.KEY_INK_SOFT, it) }
+                        call.argument<String>("line")?.let { edit.putString(WidgetPrefs.KEY_LINE, it) }
+                        call.argument<String>("mark")?.let { edit.putString(WidgetPrefs.KEY_MARK, it) }
+                        edit.apply()
                         WidgetPrefs.updateAllWidgets(this)
                         result.success(true)
                     }

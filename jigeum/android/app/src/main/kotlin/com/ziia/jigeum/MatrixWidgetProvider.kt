@@ -27,6 +27,7 @@ class MatrixWidgetProvider : AppWidgetProvider() {
         val q3 = prefs.getString(WidgetPrefs.KEY_Q3, "") ?: ""
         val q4Count = prefs.getInt(WidgetPrefs.KEY_Q4_COUNT, 0)
         val alpha = WidgetPrefs.bgAlpha(context)
+        val pal = WidgetPrefs.palette(context)
 
         val date = SimpleDateFormat("M월 d일 EEEE", Locale.KOREAN).format(Date())
 
@@ -46,6 +47,21 @@ class MatrixWidgetProvider : AppWidgetProvider() {
                 setTextViewText(R.id.matrix_q3, q3.ifEmpty { "—" })
                 setTextViewText(R.id.matrix_q4, "${q4Count}개")
                 setInt(R.id.widget_bg_img, "setImageAlpha", alpha)
+                // 테마 색 적용
+                setInt(R.id.widget_bg_img, "setColorFilter", pal.paper)
+                setTextColor(R.id.matrix_date, pal.ink)
+                setInt(R.id.matrix_rule, "setBackgroundColor", pal.ink)
+                setInt(R.id.matrix_div1, "setBackgroundColor", pal.line)
+                setInt(R.id.matrix_div2, "setBackgroundColor", pal.line)
+                setInt(R.id.matrix_div3, "setBackgroundColor", pal.line)
+                setTextColor(R.id.matrix_l1, pal.mark)
+                setTextColor(R.id.matrix_l2, pal.ink)
+                setTextColor(R.id.matrix_l3, pal.mark)
+                setTextColor(R.id.matrix_l4, pal.inkSoft)
+                setTextColor(R.id.matrix_q1, pal.ink)
+                setTextColor(R.id.matrix_q2, pal.ink)
+                setTextColor(R.id.matrix_q3, pal.ink)
+                setTextColor(R.id.matrix_q4, pal.inkSoft)
                 setOnClickPendingIntent(R.id.matrix_root, pending)
             }
             appWidgetManager.updateAppWidget(widgetId, views)

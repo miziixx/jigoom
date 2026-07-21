@@ -22,6 +22,7 @@ class TimeTrackWidgetProvider : AppWidgetProvider() {
         val label = prefs.getString(WidgetPrefs.KEY_TT_LABEL, "지금")
         val text = prefs.getString(WidgetPrefs.KEY_TT_TEXT, "탭해서 기록")
         val alpha = WidgetPrefs.bgAlpha(context)
+        val pal = WidgetPrefs.palette(context)
 
         // 탭 → 타임트래커 입력 모드로 앱 열기
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -38,6 +39,11 @@ class TimeTrackWidgetProvider : AppWidgetProvider() {
                 setTextViewText(R.id.tt_label, label)
                 setTextViewText(R.id.tt_text, text)
                 setInt(R.id.widget_bg_img, "setImageAlpha", alpha)
+                // 테마 색 적용
+                setInt(R.id.widget_bg_img, "setColorFilter", pal.paper)
+                setInt(R.id.tt_bar, "setBackgroundColor", pal.mark)
+                setTextColor(R.id.tt_label, pal.inkSoft)
+                setTextColor(R.id.tt_text, pal.ink)
                 setOnClickPendingIntent(R.id.tt_root, pending)
             }
             appWidgetManager.updateAppWidget(widgetId, views)

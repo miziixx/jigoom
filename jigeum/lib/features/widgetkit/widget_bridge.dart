@@ -16,6 +16,7 @@ class WidgetBridge {
     required String q2,
     required String q3,
     required int q4Count,
+    Map<String, String>? theme,
   }) async {
     if (kIsWeb) return;
     try {
@@ -25,6 +26,8 @@ class WidgetBridge {
         'q2': q2,
         'q3': q3,
         'q4count': q4Count,
+        // 현재 테마 6토큰 (#RRGGBB) — 위젯이 앱 테마를 따라가도록.
+        if (theme != null) ...theme,
       });
     } catch (e) {
       debugPrint('updateWidgets 실패(무시): $e');
