@@ -5,6 +5,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/journal.dart';
+import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import 'schedule_edit_sheet.dart';
@@ -75,13 +76,15 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
           ),
           for (var i = 0; i < 7; i++)
             _dayRow(tk, _weekStart.add(Duration(days: i)), today,
-                byDate[_weekStart.add(Duration(days: i))] ?? const []),
+                byDate[_weekStart.add(Duration(days: i))] ?? const [],
+                ref.watch(settingsProvider)),
         ],
       ),
     );
   }
 
-  Widget _dayRow(AppTokens tk, DateTime day, DateTime today, List items) {
+  Widget _dayRow(AppTokens tk, DateTime day, DateTime today, List items,
+      AppSettings settings) {
     final isToday = day == today;
     final sunday = day.weekday % 7 == 0;
     final dowColor = sunday ? tk.mark : tk.inkSoft;
@@ -96,7 +99,7 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
         children: [
           // 날짜 열
           SizedBox(
-            width: 58,
+            width: 70,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -113,6 +116,16 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                 const SizedBox(height: 2),
                 Text('${moonEmoji(day)} ${lunarShort(day)}',
                     style: AppText.metaSans(tk.inkSoft, size: 9)),
+                if (settings.showSaju)
+                  Text(iljinLabel(day),
+                      maxLines: 1,
+                      overflow: TextOverflow.clip,
+                      style: AppText.metaSans(tk.inkSoft, size: 9)),
+                if (settings.showZodiac)
+                  Text(byeoljariLabel(day),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.metaSans(tk.inkSoft, size: 9)),
                 if (isSonEomneunNal(day))
                   Text('손없는날', style: AppText.chip(tk.mark)),
               ],

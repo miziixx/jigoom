@@ -79,25 +79,10 @@ class SettingsScreen extends ConsumerWidget {
             const SectionLabel('SKY'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-              child: Text('헤더의 별자리·만세력 표시', style: AppText.body(tk.ink)),
+              child: Text('별자리·만세력(일진) 표시 — 오늘·일정·달력·플랜 모든 화면',
+                  style: AppText.body(tk.ink)),
             ),
             _SkyPicker(current: s.skyMode, onPick: ctrl.setSkyMode),
-
-            const SectionLabel('CALENDAR'),
-            _switchRow(
-              context,
-              title: '캘린더에 사주 표시',
-              sub: '선택한 날의 일진(간지)을 상세에 표시',
-              value: s.calSaju,
-              onChanged: ctrl.setCalSaju,
-            ),
-            _switchRow(
-              context,
-              title: '캘린더에 점성학 표시',
-              sub: '선택한 날의 별자리를 상세에 표시',
-              value: s.calAstro,
-              onChanged: ctrl.setCalAstro,
-            ),
 
             const SectionLabel('SAJU'),
             Padding(

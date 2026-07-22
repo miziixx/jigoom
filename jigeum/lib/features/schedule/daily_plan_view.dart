@@ -5,6 +5,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/journal.dart';
+import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import 'schedule_edit_sheet.dart';
@@ -128,6 +129,7 @@ class _DailyPlanBodyState extends ConsumerState<DailyPlanBody> {
 
   Widget _dateHeader(AppTokens tk) {
     final today = todayDate();
+    final settings = ref.watch(settingsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -159,8 +161,18 @@ class _DailyPlanBodyState extends ConsumerState<DailyPlanBody> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('${lunarLabel(_date)} · ${moonEmoji(_date)} ${moonName(_date)}',
-                  style: AppText.metaSans(tk.inkSoft)),
+              Flexible(
+                child: Text(
+                  [
+                    lunarLabel(_date),
+                    if (settings.showSaju) iljinLabel(_date),
+                    if (settings.showZodiac) byeoljariLabel(_date),
+                    '${moonEmoji(_date)} ${moonName(_date)}',
+                  ].join(' · '),
+                  textAlign: TextAlign.center,
+                  style: AppText.metaSans(tk.inkSoft),
+                ),
+              ),
               if (isSonEomneunNal(_date)) ...[
                 const SizedBox(width: 8),
                 Text('손없는날', style: AppText.chip(tk.mark)),
