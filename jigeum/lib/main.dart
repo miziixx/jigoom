@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
+import 'core/almanac.dart';
 import 'core/constants.dart';
 import 'core/journal.dart';
 import 'core/settings_controller.dart';
@@ -124,6 +125,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       quickCaptureFocusRequest.value++;
     } else if (action == 'time_track') {
       timeTrackLaunchRequest.value++;
+    } else if (action == 'open_calendar') {
+      calendarLaunchRequest.value++;
     }
   }
 
@@ -138,13 +141,22 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       final q3 = await repo.quadrantTop(important: false, urgent: true);
       final q4 = await repo.drawerCount();
       // 현재 테마 6토큰을 위젯에 전달 (앱과 톤 일치).
-      final tk = tokensForKey(ref.read(settingsProvider).themeKey);
+      final settings = ref.read(settingsProvider);
+      final tk = tokensForKey(settings.themeKey);
+      // 캘린더 위젯 하단: 음력은 항상, 일진(사주)·별자리(점성학)는 설정 토글.
+      final today = todayDate();
+      final calFoot = <String>[
+        lunarLabel(today),
+        if (settings.calSaju) iljinLabel(today),
+        if (settings.calAstro) byeoljariLabel(today),
+      ].join(' · ');
       await WidgetBridge.updateWidgets(
         focusTitle: focus?.title ?? '오늘 할 일을 정해볼까요',
         q1: join(q1),
         q2: join(q2),
         q3: join(q3),
         q4Count: q4,
+        calFoot: calFoot,
         theme: {
           'paper': _hex(tk.paper),
           'ink': _hex(tk.ink),

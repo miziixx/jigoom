@@ -17,6 +17,9 @@ final ValueNotifier<int> quickCaptureFocusRequest = ValueNotifier<int>(0);
 /// 타임트래커 위젯 탭 진입 시 현재 블록 입력창을 여는 트리거.
 final ValueNotifier<int> timeTrackLaunchRequest = ValueNotifier<int>(0);
 
+/// 캘린더 위젯 탭 진입 시 달력 화면을 여는 트리거.
+final ValueNotifier<int> calendarLaunchRequest = ValueNotifier<int>(0);
+
 final dbProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
   ref.onDispose(db.close);
