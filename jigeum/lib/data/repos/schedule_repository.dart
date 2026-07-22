@@ -22,6 +22,17 @@ class ScheduleRepository {
     return q.watch();
   }
 
+  /// 기간(start~end, 포함) 일정 — 달력 점 표시용.
+  Stream<List<Schedule>> watchForRange(DateTime start, DateTime end) {
+    final s = dateOnly(start);
+    final e = dateOnly(end);
+    final q = db.select(db.schedules)
+      ..where((x) =>
+          x.date.isBiggerOrEqualValue(s) & x.date.isSmallerOrEqualValue(e))
+      ..orderBy([(x) => OrderingTerm.asc(x.date)]);
+    return q.watch();
+  }
+
   Future<String> addSchedule({
     required DateTime date,
     required String title,

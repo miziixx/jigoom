@@ -89,6 +89,12 @@ final routinesProvider = StreamProvider<List<Routine>>((ref) {
   return ref.watch(scheduleRepoProvider).watchRoutines();
 });
 
+/// 기간 일정 (달력 점 표시)
+final schedulesInRangeProvider = StreamProvider.family<List<Schedule>,
+    ({DateTime start, DateTime end})>((ref, r) {
+  return ref.watch(scheduleRepoProvider).watchForRange(r.start, r.end);
+});
+
 /// 타임트래커
 final timeTrackRepoProvider = Provider<TimeTrackRepository>((ref) {
   return TimeTrackRepository(ref.watch(dbProvider));

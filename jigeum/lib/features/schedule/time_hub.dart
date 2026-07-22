@@ -8,6 +8,7 @@ import '../../data/repos/time_track_repository.dart';
 import '../../providers.dart';
 import '../capture/prompt_bar.dart';
 import '../timetrack/time_track_screen.dart';
+import 'calendar_view.dart';
 import 'routine_screen.dart';
 import 'schedule_view.dart';
 import 'time_dashboard.dart';
@@ -21,7 +22,7 @@ class TimeHub extends ConsumerStatefulWidget {
 }
 
 class _TimeHubState extends ConsumerState<TimeHub> {
-  int _sub = 0; // 0 대시보드 · 1 일정 · 2 루틴 · 3 기록
+  int _sub = 0; // 0 대시보드 · 1 달력 · 2 일정 · 3 루틴 · 4 기록
   final _scheduleKey = GlobalKey<ScheduleViewState>();
 
   @override
@@ -40,14 +41,15 @@ class _TimeHubState extends ConsumerState<TimeHub> {
             index: _sub,
             children: [
               const TimeDashboard(),
+              const CalendarView(),
               ScheduleView(key: _scheduleKey),
               const RoutineBody(),
               const TimeTrackBody(),
             ],
           ),
         ),
-        // 일정(1)·기록(3) 하위엔 하단 담기 바.
-        if (_sub == 1)
+        // 일정(2)·기록(4) 하위엔 하단 담기 바.
+        if (_sub == 2)
           PromptBar(
             hint: '일정 담기_',
             onSubmit: (text) async {
@@ -62,7 +64,7 @@ class _TimeHubState extends ConsumerState<TimeHub> {
                   );
             },
           )
-        else if (_sub == 3)
+        else if (_sub == 4)
           PromptBar(
             hint: '지금 기록_',
             onSubmit: (text) async {
@@ -108,9 +110,10 @@ class _TimeHubState extends ConsumerState<TimeHub> {
               child: Row(
                 children: [
                   tab(0, 'day'),
-                  tab(1, 'schedule'),
-                  tab(2, 'routine'),
-                  tab(3, 'log'),
+                  tab(1, 'month'),
+                  tab(2, 'schedule'),
+                  tab(3, 'routine'),
+                  tab(4, 'log'),
                 ],
               ),
             ),
@@ -130,21 +133,21 @@ class _TimeHubState extends ConsumerState<TimeHub> {
   }
 
   String? get _actionLabel => switch (_sub) {
-        1 => '+ 일정',
-        2 => '+ 루틴',
-        3 => '지금 기록',
+        2 => '+ 일정',
+        3 => '+ 루틴',
+        4 => '지금 기록',
         _ => null,
       };
 
   void _action() {
     switch (_sub) {
-      case 1:
+      case 2:
         _scheduleKey.currentState?.addSchedule();
         break;
-      case 2:
+      case 3:
         showRoutineEditSheet(context);
         break;
-      case 3:
+      case 4:
         showTimeTrackInput(context, ref,
             date: DateTime.now(), block: TimeTrackRepository.blockOfNow());
         break;

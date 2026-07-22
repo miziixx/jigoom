@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'almanac.dart';
+
 /// 간격 토큰 (4px 리듬 + 편집 레이아웃 상수). DESIGN_SYSTEM §2.
 class AppSpace {
   static const s1 = 4.0;
@@ -120,21 +122,15 @@ String iljinLabel(DateTime d) => '${iljinHanja(d)}日';
 // 년주(年柱)는 입춘(~2/4) 이전이면 전년 간지. 월주(月柱)는 절기(節) 기준 +
 // 오호둔(五虎遁)으로 천간 산출. 절기일은 ±1일 오차가 있는 근사값.
 
-/// 60갑자 중 올해(년주) index. 입춘 이전은 전년.
+/// 60갑자 중 올해(년주) index. 입춘(315°) 이전은 전년.
 int _yearGanziIndex(DateTime d) {
   var y = d.year;
-  if (d.month == 1 || (d.month == 2 && d.day < 4)) y -= 1;
+  if (beforeIpchun(d)) y -= 1;
   return (((y - 4) % 60) + 60) % 60;
 }
 
-/// 절기(節) 기준 이 날짜가 속한 월지(月支) index (자=0). 근사 절기일 사용.
-int _monthBranch(DateTime d) {
-  // 각 달의 절(節) 시작 근사일: 소한·입춘·경칩…대설.
-  const cut = [6, 4, 6, 5, 6, 6, 7, 8, 8, 8, 7, 7];
-  final m = d.month - 1; // 0-based
-  // 절 이후면 이 달 시작 월지((m+1)%12), 이전이면 전 월지(m%12).
-  return d.day >= cut[m] ? (m + 1) % 12 : m % 12;
-}
+/// 절기(節) 기준 이 날짜가 속한 월지(月支) index (자=0). 태양황경 기준.
+int _monthBranch(DateTime d) => sajuMonthBranch(d);
 
 /// 년주 한자 — 예: "丙午".
 String yearGanziHanja(DateTime d) {
