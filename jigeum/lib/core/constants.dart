@@ -118,6 +118,9 @@ String iljinHanja(DateTime d) {
 /// 일진 한자 라벨 — 예: "丁酉日".
 String iljinLabel(DateTime d) => '${iljinHanja(d)}日';
 
+/// 일주(日柱) 60갑자 index (0~59) — 사주 계산용. 천간=%10, 지지=%12.
+int dayGanziIndex(DateTime d) => _ganziIndex(d);
+
 // ----------------------------------------------------------- 년주·월주(만세력)
 // 년주(年柱)는 입춘(~2/4) 이전이면 전년 간지. 월주(月柱)는 절기(節) 기준 +
 // 오호둔(五虎遁)으로 천간 산출. 절기일은 ±1일 오차가 있는 근사값.
@@ -156,6 +159,21 @@ String monthLabel(DateTime d) => '${monthGanziHanja(d)}月';
 
 /// 년·월·일 한자 라벨 — 예: "丙午年 乙未月 丁酉日".
 String sajuLabel(DateTime d) => '${yearLabel(d)} ${monthLabel(d)} ${iljinLabel(d)}';
+
+/// 년주(年柱) 60갑자 index — 입춘 이전은 전년. 천간=%10, 지지=%12.
+int yearGanziIndex(DateTime d) => _yearGanziIndex(d);
+
+/// 월주(月柱) 천간 index — 오호둔(五虎遁).
+int monthStemIndex(DateTime d) {
+  final yStem = _yearGanziIndex(d) % 10;
+  final branch = sajuMonthBranch(d);
+  final yinStem = (yStem % 5) * 2 + 2; // 寅월 천간
+  final order = ((branch - 2) + 12) % 12; // 寅부터의 순번
+  return (yinStem + order) % 10;
+}
+
+/// 월주(月柱) 지지 index — 절기 기준.
+int monthBranchIndex(DateTime d) => sajuMonthBranch(d);
 
 // ------------------------------------------------------------- 별자리(점성술)
 // 서양 태양(sun-sign) 점성술. 월별 경계일(_zodiacCut) 기준으로 별자리 index 산출.

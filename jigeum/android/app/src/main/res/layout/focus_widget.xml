@@ -14,13 +14,21 @@
         android:paddingTop="12dp"
         android:paddingBottom="12dp">
 
-        <ImageView
+        <!-- 빠른 담기 캐럿 › — 앱의 프롬프트 시그니처.
+             벡터 드로어블은 RemoteViews(특히 삼성 One UI 런처)에서 인플레이트에
+             실패해 위젯이 빈 박스로 뜨므로, 모노 텍스트 캐럿으로 대체한다. -->
+        <TextView
             android:id="@+id/widget_check"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:src="@drawable/ic_widget_check"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#B5443A"
+            android:includeFontPadding="false"
             android:contentDescription="빠른 담기"
-            android:layout_marginEnd="12dp" />
+            android:layout_marginEnd="12dp"
+            android:text="›" />
 
         <LinearLayout
             android:layout_width="0dp"

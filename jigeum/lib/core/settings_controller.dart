@@ -12,6 +12,13 @@ class AppSettings {
     this.weightDelta = 0,
     this.systemFont = false,
     this.skyMode = 'both',
+    this.birth,
+    this.birthHasTime = false,
+    this.birthLongitude = 126.98, // 기본 서울
+    this.birthMale = true,
+    this.birthPlace = '서울',
+    this.birthCalendar = 'solar', // 입력 방식(표시용): 'solar' | 'lunar'
+    this.birthLeap = false, // 음력 윤달 입력 여부(표시용)
   });
 
   final String themeKey; // 내장 10종 중 하나 (기본 manila)
@@ -19,6 +26,16 @@ class AppSettings {
   final int weightDelta; // -1 ~ +2 (얇게 ~ 굵게)
   final bool systemFont; // true면 라벨·숫자도 기기 글꼴(모노 끄기)
   final String skyMode; // 'both' | 'zodiac' | 'saju' | 'none'
+  final DateTime? birth; // 생년월일(+시각) — 항상 '양력' 시각으로 저장(civil).
+  final bool birthHasTime; // 태어난 시각을 입력했는가(시주 포함 여부)
+  final double birthLongitude; // 출생지 경도(동경) — 진태양시 보정용
+  final bool birthMale; // 성별(대운 방향 계산용). true=남
+  final String birthPlace; // 출생지 이름(표시용)
+  final String birthCalendar; // 입력 달력 표시용
+  final bool birthLeap; // 음력 윤달 입력이었는지(표시용)
+
+  /// 사주(오늘의 운세)를 계산할 수 있는가.
+  bool get hasBirth => birth != null;
 
   /// 헤더에 별자리(점성술) 표시 여부.
   bool get showZodiac => skyMode == 'both' || skyMode == 'zodiac';
@@ -26,12 +43,21 @@ class AppSettings {
   /// 헤더에 만세력(년·월·일주) 표시 여부.
   bool get showSaju => skyMode == 'both' || skyMode == 'saju';
 
+  static const _noArg = Object();
+
   AppSettings copyWith({
     String? themeKey,
     double? fontScale,
     int? weightDelta,
     bool? systemFont,
     String? skyMode,
+    Object? birth = _noArg, // null 로 지울 수 있도록 sentinel 사용
+    bool? birthHasTime,
+    double? birthLongitude,
+    bool? birthMale,
+    String? birthPlace,
+    String? birthCalendar,
+    bool? birthLeap,
   }) =>
       AppSettings(
         themeKey: themeKey ?? this.themeKey,
@@ -39,6 +65,13 @@ class AppSettings {
         weightDelta: weightDelta ?? this.weightDelta,
         systemFont: systemFont ?? this.systemFont,
         skyMode: skyMode ?? this.skyMode,
+        birth: identical(birth, _noArg) ? this.birth : birth as DateTime?,
+        birthHasTime: birthHasTime ?? this.birthHasTime,
+        birthLongitude: birthLongitude ?? this.birthLongitude,
+        birthMale: birthMale ?? this.birthMale,
+        birthPlace: birthPlace ?? this.birthPlace,
+        birthCalendar: birthCalendar ?? this.birthCalendar,
+        birthLeap: birthLeap ?? this.birthLeap,
       );
 }
 
@@ -54,6 +87,13 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _kTheme = 'theme_key';
   static const _kSystemFont = 'system_font';
   static const _kSkyMode = 'sky_mode';
+  static const _kBirth = 'birth_at'; // ISO8601 (local) — 항상 양력 시각
+  static const _kBirthHasTime = 'birth_has_time';
+  static const _kBirthLng = 'birth_lng';
+  static const _kBirthMale = 'birth_male';
+  static const _kBirthPlace = 'birth_place';
+  static const _kBirthCal = 'birth_cal';
+  static const _kBirthLeap = 'birth_leap';
 
   Future<void> _load() async {
     final scale = await _get(_kScale);
@@ -61,13 +101,75 @@ class SettingsController extends StateNotifier<AppSettings> {
     final theme = await _get(_kTheme);
     final sysFont = await _get(_kSystemFont);
     final sky = await _get(_kSkyMode);
+    final birthStr = await _get(_kBirth);
+    final birthHasTime = await _get(_kBirthHasTime);
+    final lng = await _get(_kBirthLng);
+    final male = await _get(_kBirthMale);
+    final place = await _get(_kBirthPlace);
+    final cal = await _get(_kBirthCal);
+    final leap = await _get(_kBirthLeap);
     state = AppSettings(
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
       weightDelta: int.tryParse(weight ?? '') ?? 0,
       systemFont: sysFont == '1',
       skyMode: sky ?? 'both',
+      birth: (birthStr == null || birthStr.isEmpty)
+          ? null
+          : DateTime.tryParse(birthStr),
+      birthHasTime: birthHasTime == '1',
+      birthLongitude: double.tryParse(lng ?? '') ?? 126.98,
+      birthMale: male == null ? true : male == '1',
+      birthPlace: place ?? '서울',
+      birthCalendar: cal ?? 'solar',
+      birthLeap: leap == '1',
     );
+  }
+
+  /// 생년월일시(양력으로 변환된 civil 시각) 저장.
+  Future<void> setBirth(
+    DateTime birth, {
+    required bool hasTime,
+    double? longitude,
+    bool? male,
+    String? place,
+    String? calendar,
+    bool? leap,
+  }) async {
+    state = state.copyWith(
+      birth: birth,
+      birthHasTime: hasTime,
+      birthLongitude: longitude,
+      birthMale: male,
+      birthPlace: place,
+      birthCalendar: calendar,
+      birthLeap: leap,
+    );
+    await _set(_kBirth, birth.toIso8601String());
+    await _set(_kBirthHasTime, hasTime ? '1' : '0');
+    if (longitude != null) await _set(_kBirthLng, '$longitude');
+    if (male != null) await _set(_kBirthMale, male ? '1' : '0');
+    if (place != null) await _set(_kBirthPlace, place);
+    if (calendar != null) await _set(_kBirthCal, calendar);
+    if (leap != null) await _set(_kBirthLeap, leap ? '1' : '0');
+  }
+
+  Future<void> setLongitude(double lng, String place) async {
+    state = state.copyWith(birthLongitude: lng, birthPlace: place);
+    await _set(_kBirthLng, '$lng');
+    await _set(_kBirthPlace, place);
+  }
+
+  Future<void> setMale(bool v) async {
+    state = state.copyWith(birthMale: v);
+    await _set(_kBirthMale, v ? '1' : '0');
+  }
+
+  /// 생년월일시 지우기.
+  Future<void> clearBirth() async {
+    state = state.copyWith(birth: null, birthHasTime: false);
+    await _set(_kBirth, '');
+    await _set(_kBirthHasTime, '0');
   }
 
   Future<void> setSkyMode(String v) async {
