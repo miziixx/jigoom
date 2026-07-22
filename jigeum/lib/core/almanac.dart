@@ -289,6 +289,40 @@ String lunarShort(DateTime d) {
   return '${l.day}';
 }
 
+/// 손없는날 — 음력 끝자리가 9 또는 0(9·10·19·20·29·30일). 이사·개업 등 길일 관습.
+bool isSonEomneunNal(DateTime d) {
+  final t = lunarOf(d).day % 10;
+  return t == 9 || t == 0;
+}
+
+/// 달 모양(음력 일 기준 근사) 이모지.
+String moonEmoji(DateTime d) {
+  final day = lunarOf(d).day;
+  if (day <= 1) return '🌑';
+  if (day <= 6) return '🌒';
+  if (day <= 9) return '🌓';
+  if (day <= 13) return '🌔';
+  if (day <= 16) return '🌕';
+  if (day <= 20) return '🌖';
+  if (day <= 23) return '🌗';
+  if (day <= 28) return '🌘';
+  return '🌑';
+}
+
+/// 달 모양 이름(음력 일 기준 근사).
+String moonName(DateTime d) {
+  final day = lunarOf(d).day;
+  if (day <= 1) return '삭(신월)';
+  if (day <= 6) return '초승달';
+  if (day <= 9) return '상현달';
+  if (day <= 13) return '차오르는 달';
+  if (day <= 16) return '보름달';
+  if (day <= 20) return '기우는 달';
+  if (day <= 23) return '하현달';
+  if (day <= 28) return '그믐달';
+  return '그믐';
+}
+
 /// 음력(년·월·일·윤달) → 양력 그레고리 날짜. `lunarOf`를 역스캔한다.
 /// [leap]이 그 해에 없으면 같은 달의 평달로 대체(null 아님). 못 찾으면 null.
 DateTime? solarFromLunar(int year, int month, int day, bool leap) {

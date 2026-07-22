@@ -265,6 +265,25 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           child: Text(almanacParts.join(' · '),
               style: AppText.metaSans(tk.inkSoft)),
         ),
+        // 달모양 + 손없는날
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
+          child: Row(
+            children: [
+              Text('${moonEmoji(d)} ${moonName(d)}',
+                  style: AppText.metaSans(tk.inkSoft)),
+              if (isSonEomneunNal(d)) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(border: Border.all(color: tk.mark)),
+                  child: Text('손없는날', style: AppText.chip(tk.mark)),
+                ),
+              ],
+            ],
+          ),
+        ),
         if (term != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
