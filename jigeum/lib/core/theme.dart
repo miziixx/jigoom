@@ -174,6 +174,14 @@ class AppText {
       letterSpacing: 0.55,
       color: c);
 
+  /// 메타(Sans) — 기호(별자리 ♋ 등)처럼 모노에 없을 수 있는 글자 렌더용.
+  static TextStyle metaSans(Color c, {double size = 11}) => TextStyle(
+      fontFamily: kSansFamily,
+      fontSize: size,
+      fontWeight: FontWeight.w400,
+      height: 1.3,
+      color: c);
+
   /// 하단 탭 (Mono 10 소문자, +0.04em).
   static TextStyle nav(Color c, {bool active = false}) => TextStyle(
       fontFamily: appMono,

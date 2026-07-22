@@ -19,6 +19,39 @@ class TimeDashboard extends ConsumerWidget {
     return '${h}h ${mm}m';
   }
 
+  /// 별자리(서양 점성술) 섹션 — 기호 + 한글 + 영문·기간 + 원소·지배성.
+  Widget _zodiacSection(AppTokens tk, DateTime d) {
+    final z = zodiacOf(d);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionLabel('ZODIAC'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(z.symbol, style: AppText.metaSans(tk.ink, size: 22)),
+              const SizedBox(width: 10),
+              Text(z.name, style: AppText.hTitle(tk.ink)),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 3, kGutter, 0),
+          child: Text('${z.eng} · ${z.range}',
+              style: AppText.metaSans(tk.inkSoft)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 1, kGutter, 0),
+          child: Text('원소 ${z.element} · 지배성 ${z.planet}',
+              style: AppText.metaSans(tk.inkSoft)),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tk = t(context);
@@ -55,12 +88,15 @@ class TimeDashboard extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Flexible(
                   child: Text(
-                      '${DateFormat('EEEE', 'ko').format(now)} · ${iljinLabel(today)} · ${byeoljari(today)}',
-                      style: AppText.meta(tk.inkSoft)),
+                      '${DateFormat('EEEE', 'ko').format(now)} · ${iljinLabel(today)}',
+                      style: AppText.metaSans(tk.inkSoft)),
                 ),
               ],
             ),
           ),
+
+          // 별자리 (점성술)
+          _zodiacSection(tk, today),
 
           // 일정
           SectionLabel('SCHEDULE', count: items.length),

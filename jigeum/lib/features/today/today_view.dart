@@ -42,8 +42,8 @@ class _TodayViewState extends ConsumerState<TodayView> {
             const SizedBox(width: 10),
             Flexible(
               child: Text(
-                  '${DateFormat('EEEE', 'ko').format(now)} · ${iljinLabel(now)} · ${byeoljari(now)}',
-                  style: AppText.meta(tk.inkSoft)),
+                  '${DateFormat('EEEE', 'ko').format(now)} · ${iljinLabel(now)} · ${byeoljariLabel(now)}',
+                  style: AppText.metaSans(tk.inkSoft)),
             ),
           ],
         ),

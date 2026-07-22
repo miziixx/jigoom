@@ -116,17 +116,58 @@ String iljinHanja(DateTime d) {
 /// 일진 한자 라벨 — 예: "丁酉日".
 String iljinLabel(DateTime d) => '${iljinHanja(d)}日';
 
-// ------------------------------------------------------------------- 별자리
+// ------------------------------------------------------------- 별자리(점성술)
+// 서양 태양(sun-sign) 점성술. 월별 경계일(_zodiacCut) 기준으로 별자리 index 산출.
+// index: 0 물병 … 11 염소 (월 순서에 맞춘 배열).
 const _zodiacCut = [20, 19, 21, 20, 21, 22, 23, 23, 23, 23, 23, 22];
 const _zodiacNames = [
   '물병자리', '물고기자리', '양자리', '황소자리', '쌍둥이자리', '게자리',
   '사자자리', '처녀자리', '천칭자리', '전갈자리', '사수자리', '염소자리',
 ];
+const _zodiacSymbol = ['♒', '♓', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑'];
+const _zodiacEng = [
+  'Aquarius', 'Pisces', 'Aries', 'Taurus', 'Gemini', 'Cancer',
+  'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn',
+];
+const _zodiacRange = [
+  '1.20–2.18', '2.19–3.20', '3.21–4.19', '4.20–5.20', '5.21–6.21', '6.22–7.22',
+  '7.23–8.22', '8.23–9.22', '9.23–10.22', '10.23–11.22', '11.23–12.21', '12.22–1.19',
+];
+const _zodiacElement = ['공기', '물', '불', '흙', '공기', '물', '불', '흙', '공기', '물', '불', '흙'];
+const _zodiacPlanet = [
+  '천왕성', '해왕성', '화성', '금성', '수성', '달',
+  '태양', '수성', '금성', '명왕성', '목성', '토성',
+];
 
-/// 날짜의 별자리 — 예: "게자리" (양력 태양 별자리).
-String byeoljari(DateTime d) {
+/// 별자리 데이터 묶음.
+class Zodiac {
+  const Zodiac(this.name, this.symbol, this.eng, this.range, this.element,
+      this.planet);
+  final String name; // 게자리
+  final String symbol; // ♋
+  final String eng; // Cancer
+  final String range; // 6.22–7.22
+  final String element; // 물
+  final String planet; // 달
+}
+
+int _zodiacIndex(DateTime d) {
   final m = d.month;
-  return d.day >= _zodiacCut[m - 1]
-      ? _zodiacNames[m - 1]
-      : _zodiacNames[(m - 2 + 12) % 12];
+  return d.day >= _zodiacCut[m - 1] ? m - 1 : (m - 2 + 12) % 12;
+}
+
+/// 날짜의 별자리 데이터 — 서양 태양 별자리(점성술).
+Zodiac zodiacOf(DateTime d) {
+  final i = _zodiacIndex(d);
+  return Zodiac(_zodiacNames[i], _zodiacSymbol[i], _zodiacEng[i],
+      _zodiacRange[i], _zodiacElement[i], _zodiacPlanet[i]);
+}
+
+/// 날짜의 별자리 — 예: "게자리".
+String byeoljari(DateTime d) => _zodiacNames[_zodiacIndex(d)];
+
+/// 별자리 기호 라벨 — 예: "♋ 게자리".
+String byeoljariLabel(DateTime d) {
+  final i = _zodiacIndex(d);
+  return '${_zodiacSymbol[i]} ${_zodiacNames[i]}';
 }
