@@ -64,10 +64,17 @@ class SettingsScreen extends ConsumerWidget {
             _switchRow(
               context,
               title: '글꼴 하나로 통일',
-              sub: '라벨·숫자(모노)까지 본문과 같은 글꼴(Pretendard)로',
+              sub: '라벨·숫자(모노)까지 아래에서 고른 글꼴로',
               value: s.systemFont,
               onChanged: ctrl.setSystemFont,
             ),
+
+            const SectionLabel('FONT'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+              child: Text('앱 전체 글꼴', style: AppText.body(tk.ink)),
+            ),
+            _FontPicker(current: s.fontKey, onPick: ctrl.setFontKey),
 
             const SectionLabel('SKY'),
             Padding(
@@ -245,6 +252,64 @@ class SettingsScreen extends ConsumerWidget {
 }
 
 /// 내장 10종 테마 스와치 — paper / ink / mark 3색 바. 선택 = ink 1.5px 테두리.
+/// 글꼴 선택기 — 각 폰트를 그 폰트로 렌더한 미리보기와 함께 세로 나열.
+class _FontPicker extends StatelessWidget {
+  const _FontPicker({required this.current, required this.onPick});
+  final String current;
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+      child: Column(
+        children: [
+          for (final f in kFonts)
+            GestureDetector(
+              onTap: () => onPick(f.key),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: current == f.key ? tk.ink : tk.line,
+                    width: current == f.key ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(f.name,
+                              style: AppText.meta(
+                                  current == f.key ? tk.ink : tk.inkSoft)),
+                          const SizedBox(height: 4),
+                          // 미리보기: 그 폰트로 렌더.
+                          Text(f.sample,
+                              style: TextStyle(
+                                  fontFamily: f.family,
+                                  fontSize: 18,
+                                  color: tk.ink)),
+                        ],
+                      ),
+                    ),
+                    if (current == f.key)
+                      Text('›', style: AppText.glyph(tk.mark, size: 18)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ThemePicker extends StatelessWidget {
   const _ThemePicker({required this.current, required this.onPick});
   final String current;

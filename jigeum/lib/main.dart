@@ -243,7 +243,9 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       _syncWidgets();
     });
     final themeData = AppTheme.fromKey(settings.themeKey,
-        weightDelta: settings.weightDelta, systemFont: settings.systemFont);
+        weightDelta: settings.weightDelta,
+        systemFont: settings.systemFont,
+        fontKey: settings.fontKey);
     return MaterialApp(
       title: '지금',
       debugShowCheckedModeBanner: false,
