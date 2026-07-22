@@ -35,15 +35,29 @@ flutter:
   fonts:
     - family: Pretendard
       fonts:
+        - asset: assets/fonts/Pretendard-Light.otf
+          weight: 300
         - asset: assets/fonts/Pretendard-Regular.otf
           weight: 400
+        - asset: assets/fonts/Pretendard-Medium.otf
+          weight: 500
         - asset: assets/fonts/Pretendard-SemiBold.otf
           weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.otf
+          weight: 800
     - family: NanumGothic
       fonts:
         - asset: assets/fonts/NanumGothic-Regular.ttf
           weight: 400
         - asset: assets/fonts/NanumGothic-Bold.ttf
+          weight: 700
+    - family: NanumMyeongjo
+      fonts:
+        - asset: assets/fonts/NanumMyeongjo-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NanumMyeongjo-Bold.ttf
           weight: 700
     - family: Jua
       fonts:
@@ -51,3 +65,9 @@ flutter:
     - family: GowunDodum
       fonts:
         - asset: assets/fonts/GowunDodum-Regular.ttf
+    - family: DoHyeon
+      fonts:
+        - asset: assets/fonts/DoHyeon-Regular.ttf
+    - family: BlackHanSans
+      fonts:
+        - asset: assets/fonts/BlackHanSans-Regular.ttf

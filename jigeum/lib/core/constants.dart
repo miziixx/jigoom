@@ -30,20 +30,29 @@ const String? kSansFamily = 'Pretendard';
 
 /// 사용자가 고를 수 있는 번들 한글 글꼴.
 class AppFont {
-  const AppFont(this.key, this.name, this.family, this.sample);
+  const AppFont(this.key, this.name, this.family, this.sample,
+      [this.oneWeight = false]);
   final String key; // 저장용 키
   final String name; // 표시 이름
   final String family; // pubspec fonts family
   final String sample; // 미리보기 문구
+  final bool oneWeight; // 굵기가 하나뿐(굵기 슬라이더 영향 없음)
 }
 
 const kDefaultFontKey = 'pretendard';
 
 const List<AppFont> kFonts = [
+  // 고딕
   AppFont('pretendard', '프리텐다드', 'Pretendard', '가나다 AaBb 123'),
   AppFont('nanum', '나눔고딕', 'NanumGothic', '가나다 AaBb 123'),
-  AppFont('jua', '주아', 'Jua', '가나다 AaBb 123'),
-  AppFont('gowun', '고운돋움', 'GowunDodum', '가나다 AaBb 123'),
+  // 명조
+  AppFont('myeongjo', '나눔명조', 'NanumMyeongjo', '가나다 AaBb 123'),
+  // 둥근
+  AppFont('jua', '주아', 'Jua', '가나다 AaBb 123', true),
+  AppFont('gowun', '고운돋움', 'GowunDodum', '가나다 AaBb 123', true),
+  // 디스플레이
+  AppFont('dohyeon', '도현', 'DoHyeon', '가나다 AaBb 123', true),
+  AppFont('blackhan', '검은고딕', 'BlackHanSans', '가나다 AaBb 123', true),
 ];
 
 /// 폰트 키 → pubspec family. 알 수 없으면 기본(Pretendard).
