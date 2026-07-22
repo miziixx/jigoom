@@ -276,3 +276,20 @@ String lunarShort(DateTime d) {
   if (l.day == 1) return '${l.leap ? '윤' : ''}${l.month}월';
   return '${l.day}';
 }
+
+/// 음력(년·월·일·윤달) → 양력 그레고리 날짜. `lunarOf`를 역스캔한다.
+/// [leap]이 그 해에 없으면 같은 달의 평달로 대체(null 아님). 못 찾으면 null.
+DateTime? solarFromLunar(int year, int month, int day, bool leap) {
+  var d = DateTime(year - 1, 11, 1);
+  final end = DateTime(year + 1, 3, 1);
+  DateTime? plainFallback;
+  while (d.isBefore(end)) {
+    final l = lunarOf(d);
+    if (l.year == year && l.month == month && l.day == day) {
+      if (l.leap == leap) return d;
+      if (!l.leap) plainFallback ??= d;
+    }
+    d = d.add(const Duration(days: 1));
+  }
+  return plainFallback; // 윤달 요청이 무효면 평달로
+}

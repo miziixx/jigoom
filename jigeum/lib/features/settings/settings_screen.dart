@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/dialogs.dart';
 import '../../core/journal.dart';
@@ -332,68 +333,23 @@ class _SkyPicker extends StatelessWidget {
   }
 }
 
-/// 사주(생년월일시) 입력 타일 — 날짜/시각 피커. '오늘의 운세'의 원천 데이터.
+/// 사주 요약 타일 — 현재 입력 상태를 보여주고, 탭하면 정밀 입력 폼으로.
 class _SajuTile extends StatelessWidget {
   const _SajuTile({required this.settings, required this.ctrl});
   final AppSettings settings;
   final SettingsController ctrl;
 
-  Future<void> _pickDate(BuildContext context) async {
-    final b = settings.birth;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: b ?? DateTime(1995, 1, 1),
-      firstDate: DateTime(1920),
-      lastDate: DateTime.now(),
-      helpText: '생년월일 선택',
-    );
-    if (picked == null) return;
-    // 기존 시각 유지(없으면 정오).
-    final h = settings.birthHasTime && b != null ? b.hour : 12;
-    final m = settings.birthHasTime && b != null ? b.minute : 0;
-    await ctrl.setBirth(
-      DateTime(picked.year, picked.month, picked.day, h, m),
-      hasTime: settings.birthHasTime,
-    );
-  }
-
-  Future<void> _pickTime(BuildContext context) async {
-    final b = settings.birth;
-    if (b == null) {
-      // 날짜부터.
-      await _pickDate(context);
-      if (settings.birth == null) return;
-    }
-    final base = settings.birth ?? DateTime(1995, 1, 1, 12);
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: base.hour, minute: base.minute),
-      helpText: '태어난 시각 선택',
-    );
-    if (picked == null) return;
-    await ctrl.setBirth(
-      DateTime(base.year, base.month, base.day, picked.hour, picked.minute),
-      hasTime: true,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
     final b = settings.birth;
-    final dateStr = b == null
-        ? '입력 안 됨'
-        : '${b.year}.${b.month.toString().padLeft(2, '0')}.${b.day.toString().padLeft(2, '0')}';
-    final timeStr = b == null
-        ? '—'
-        : settings.birthHasTime
-            ? '${b.hour.toString().padLeft(2, '0')}:${b.minute.toString().padLeft(2, '0')}'
-            : '모름';
 
-    Widget row(String label, String value, VoidCallback onTap,
-        {Widget? trailing}) {
+    void openEditor() => Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => SajuEditorPage(ctrl: ctrl, initial: settings)));
+
+    if (b == null) {
       return InkWell(
-        onTap: onTap,
+        onTap: openEditor,
         child: Container(
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: tk.line, width: 1)),
@@ -401,61 +357,460 @@ class _SajuTile extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
           child: Row(
             children: [
-              Expanded(child: Text(label, style: AppText.body(tk.ink))),
-              Text(value, style: AppText.meta(tk.inkSoft, size: 12)),
-              if (trailing != null) trailing,
+              Expanded(
+                  child: Text('생년월일·시각 입력하기',
+                      style: AppText.body(tk.ink))),
+              Text('입력', style: AppText.meta(tk.mark, size: 12)),
             ],
           ),
         ),
       );
     }
 
+    final calLabel = settings.birthCalendar == 'lunar'
+        ? '음력${settings.birthLeap ? ' 윤달' : ''}'
+        : '양력';
+    final dateStr =
+        '${b.year}.${b.month.toString().padLeft(2, '0')}.${b.day.toString().padLeft(2, '0')}';
+    final timeStr = settings.birthHasTime
+        ? '${b.hour.toString().padLeft(2, '0')}:${b.minute.toString().padLeft(2, '0')}'
+        : '시 모름';
+    final chart = computeSaju(b,
+        hasHour: settings.birthHasTime,
+        longitude: settings.birthLongitude,
+        male: settings.birthMale);
+    final z = zodiacOf(b);
+
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('음력이면 양력으로 변환해 입력하세요',
-                  style: AppText.meta(tk.inkSoft, size: 10)),
-              if (b != null)
-                GestureDetector(
-                  onTap: ctrl.clearBirth,
-                  child: Text('지우기', style: AppText.meta(tk.mark, size: 11)),
+        InkWell(
+          onTap: openEditor,
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: tk.line, width: 1)),
+            ),
+            padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('$dateStr · $timeStr',
+                          style: AppText.body(tk.ink)),
+                      const SizedBox(height: 3),
+                      Text(
+                          '$calLabel · ${settings.birthMale ? '남' : '여'} · '
+                          '${settings.birthPlace}',
+                          style: AppText.meta(tk.inkSoft, size: 11)),
+                    ],
+                  ),
                 ),
+                Text('수정', style: AppText.meta(tk.mark, size: 12)),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '→ 일주 ${chart.day.hanja}(${chart.day.kor}) · 일간 '
+                  '${stemHanja[chart.dayStem]} ${wuxingKor[stemWuxing(chart.dayStem)]}'
+                  ' · ${z.symbol} ${z.name}',
+                  style: AppText.meta(tk.ink, size: 11),
+                ),
+              ),
+              GestureDetector(
+                onTap: ctrl.clearBirth,
+                child: Text('지우기', style: AppText.meta(tk.mark, size: 11)),
+              ),
             ],
           ),
         ),
-        row('생년월일 (양력)', dateStr, () => _pickDate(context)),
-        row('태어난 시각', timeStr, () => _pickTime(context),
-            trailing: b == null
-                ? null
-                : Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: GestureDetector(
-                      onTap: () => ctrl.setBirth(
-                          DateTime(b.year, b.month, b.day, 12, 0),
-                          hasTime: false),
-                      child:
-                          Text('시 모름', style: AppText.meta(tk.inkSoft, size: 10)),
-                    ),
-                  )),
-        if (b != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
-            child: Builder(builder: (_) {
-              final chart = computeSaju(b, hasHour: settings.birthHasTime);
-              final z = zodiacOf(b);
-              return Text(
-                '→ 일주 ${chart.day.hanja}(${chart.day.kor}) · 일간 '
-                '${stemHanja[chart.dayStem]} ${wuxingKor[stemWuxing(chart.dayStem)]}'
-                ' · ${z.symbol} ${z.name}',
-                style: AppText.meta(tk.ink, size: 11),
-              );
-            }),
-          ),
       ],
+    );
+  }
+}
+
+/// 사주 정밀 입력 폼 — 성별·양력/음력(윤달)·생년월일·시각(시 모름)·출생지(경도).
+class SajuEditorPage extends StatefulWidget {
+  const SajuEditorPage({super.key, required this.ctrl, required this.initial});
+  final SettingsController ctrl;
+  final AppSettings initial;
+
+  @override
+  State<SajuEditorPage> createState() => _SajuEditorPageState();
+}
+
+class _SajuEditorPageState extends State<SajuEditorPage> {
+  bool _male = true;
+  String _cal = 'solar'; // solar | lunar
+  bool _leap = false;
+  late int _year, _month, _day;
+  bool _timeUnknown = false;
+  int _hour = 12, _minute = 0;
+  int _cityIndex = 0; // koreaCities index, -1 = 직접입력
+  double _customLng = 127.0;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final s = widget.initial;
+    final b = s.birth;
+    _male = s.birthMale;
+    _cal = s.birthCalendar;
+    _leap = s.birthLeap;
+    _timeUnknown = b != null && !s.birthHasTime;
+    // 경도 → 도시 index 매칭.
+    _cityIndex = koreaCities.indexWhere((c) => (c.$2 - s.birthLongitude).abs() < 0.01);
+    if (_cityIndex < 0) {
+      _customLng = s.birthLongitude;
+    }
+    if (b == null) {
+      _year = 1995;
+      _month = 1;
+      _day = 1;
+    } else if (_cal == 'lunar') {
+      final l = lunarOf(b); // 저장은 양력 → 음력 숫자로 역표시
+      _year = l.year;
+      _month = l.month;
+      _day = l.day;
+      _leap = l.leap;
+      _hour = b.hour;
+      _minute = b.minute;
+    } else {
+      _year = b.year;
+      _month = b.month;
+      _day = b.day;
+      _hour = b.hour;
+      _minute = b.minute;
+    }
+  }
+
+  double get _longitude =>
+      _cityIndex < 0 ? _customLng : koreaCities[_cityIndex].$2;
+  String get _placeName => _cityIndex < 0 ? '직접입력' : koreaCities[_cityIndex].$1;
+
+  Future<void> _save() async {
+    DateTime? solar;
+    if (_cal == 'solar') {
+      solar = DateTime(_year, _month, _day, _hour, _minute);
+    } else {
+      final base = solarFromLunar(_year, _month, _day, _leap);
+      if (base == null) {
+        setState(() => _error = '해당 음력 날짜를 찾지 못했어요. 날짜를 확인해 주세요.');
+        return;
+      }
+      solar = DateTime(base.year, base.month, base.day, _hour, _minute);
+    }
+    await widget.ctrl.setBirth(
+      solar,
+      hasTime: !_timeUnknown,
+      longitude: _longitude,
+      male: _male,
+      place: _placeName,
+      calendar: _cal,
+      leap: _cal == 'lunar' && _leap,
+    );
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    // 음력이면 양력 미리보기.
+    String preview = '';
+    if (_cal == 'lunar') {
+      final s = solarFromLunar(_year, _month, _day, _leap);
+      preview = s == null
+          ? '변환 불가'
+          : '양력 ${s.year}.${s.month.toString().padLeft(2, '0')}.${s.day.toString().padLeft(2, '0')}';
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('사주 정보'),
+        actions: [
+          TextButton(onPressed: _save, child: const Text('저장')),
+        ],
+      ),
+      body: Container(
+        color: tk.paper,
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 40),
+          children: [
+            const SectionLabel('성별 (대운 계산)'),
+            _seg(['남', '여'], _male ? 0 : 1, (i) => setState(() => _male = i == 0)),
+            const SectionLabel('달력'),
+            _seg(['양력', '음력'], _cal == 'solar' ? 0 : 1,
+                (i) => setState(() => _cal = i == 0 ? 'solar' : 'lunar')),
+            if (_cal == 'lunar')
+              Padding(
+                padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                        child: Text('윤달', style: AppText.body(tk.ink))),
+                    Switch(
+                        value: _leap,
+                        onChanged: (v) => setState(() => _leap = v)),
+                  ],
+                ),
+              ),
+            const SectionLabel('생년월일'),
+            _ymdWheels(tk),
+            if (_cal == 'lunar')
+              Padding(
+                padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+                child: Text('→ $preview', style: AppText.meta(tk.mark, size: 12)),
+              ),
+            const SectionLabel('태어난 시각'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                      child: Text('시각을 몰라요',
+                          style: AppText.body(tk.ink))),
+                  Switch(
+                      value: _timeUnknown,
+                      onChanged: (v) => setState(() => _timeUnknown = v)),
+                ],
+              ),
+            ),
+            if (!_timeUnknown) _hmWheels(tk),
+            if (_timeUnknown)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+                child: Text('시각 없이도 년·월·일주로 분석해요 (시주만 제외).',
+                    style: AppText.meta(tk.inkSoft, size: 11)),
+              ),
+            const SectionLabel('출생지 (경도 보정)'),
+            _cityPicker(tk),
+            if (_cityIndex < 0) _lngField(tk),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+              child: Text('경도로 진태양시를 보정합니다 (동경 ${_longitude.toStringAsFixed(2)}°). '
+                  '서머타임·한국 표준시 변천은 자동 반영.',
+                  style: AppText.meta(tk.inkSoft, size: 11)),
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 0),
+                child: Text(_error!, style: AppText.meta(tk.mark, size: 12)),
+              ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: kGutter),
+              child: FilledButton(
+                onPressed: _save,
+                child: const Text('저장'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _seg(List<String> labels, int sel, ValueChanged<int> onPick) {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+      child: Row(
+        children: [
+          for (var i = 0; i < labels.length; i++)
+            Padding(
+              padding: EdgeInsets.only(right: i < labels.length - 1 ? 8 : 0),
+              child: GestureDetector(
+                onTap: () => onPick(i),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: sel == i ? tk.ink : tk.line,
+                      width: sel == i ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Text(labels[i],
+                      style: AppText.nav(sel == i ? tk.ink : tk.inkSoft,
+                          active: sel == i)),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ymdWheels(AppTokens tk) {
+    final years = [for (var y = 1920; y <= DateTime.now().year; y++) y];
+    return SizedBox(
+      height: 120,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: kGutter),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: _wheel(
+                years.length,
+                years.indexOf(_year),
+                (i) => setState(() => _year = years[i]),
+                (i) => '${years[i]}년',
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: _wheel(12, _month - 1,
+                  (i) => setState(() => _month = i + 1), (i) => '${i + 1}월'),
+            ),
+            Expanded(
+              flex: 2,
+              child: _wheel(31, _day - 1,
+                  (i) => setState(() => _day = i + 1), (i) => '${i + 1}일'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _hmWheels(AppTokens tk) {
+    return SizedBox(
+      height: 120,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: kGutter),
+        child: Row(
+          children: [
+            Expanded(
+              child: _wheel(24, _hour, (i) => setState(() => _hour = i),
+                  (i) => '${i.toString().padLeft(2, '0')}시'),
+            ),
+            Expanded(
+              child: _wheel(60, _minute, (i) => setState(() => _minute = i),
+                  (i) => '${i.toString().padLeft(2, '0')}분'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _wheel(int count, int selected, ValueChanged<int> onChanged,
+          String Function(int) label) =>
+      _Wheel(
+          count: count,
+          selected: selected < 0 ? 0 : selected,
+          onChanged: onChanged,
+          label: label);
+
+  Widget _cityPicker(AppTokens tk) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (var i = 0; i < koreaCities.length; i++)
+            _cityChip(koreaCities[i].$1, _cityIndex == i,
+                () => setState(() => _cityIndex = i)),
+          _cityChip('직접입력', _cityIndex < 0, () => setState(() => _cityIndex = -1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _cityChip(String label, bool sel, VoidCallback onTap) {
+    final tk = t(context);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          border: Border.all(
+              color: sel ? tk.ink : tk.line, width: sel ? 1.5 : 1),
+        ),
+        child: Text(label,
+            style: AppText.chip(sel ? tk.ink : tk.inkSoft)),
+      ),
+    );
+  }
+
+  Widget _lngField(AppTokens tk) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
+      child: Row(
+        children: [
+          Text('경도(동경) ', style: AppText.body(tk.ink)),
+          Expanded(
+            child: TextFormField(
+              initialValue: _customLng.toStringAsFixed(2),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              style: AppText.body(tk.ink),
+              onChanged: (v) {
+                final d = double.tryParse(v);
+                if (d != null && d > 100 && d < 150) _customLng = d;
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 자체 컨트롤러를 가진 스크롤 휠 — 부모 rebuild 에도 위치가 튀지 않는다.
+class _Wheel extends StatefulWidget {
+  const _Wheel({
+    required this.count,
+    required this.selected,
+    required this.onChanged,
+    required this.label,
+  });
+  final int count;
+  final int selected;
+  final ValueChanged<int> onChanged;
+  final String Function(int) label;
+
+  @override
+  State<_Wheel> createState() => _WheelState();
+}
+
+class _WheelState extends State<_Wheel> {
+  late final FixedExtentScrollController _c =
+      FixedExtentScrollController(initialItem: widget.selected);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return ListWheelScrollView.useDelegate(
+      controller: _c,
+      itemExtent: 34,
+      perspective: 0.004,
+      diameterRatio: 1.6,
+      physics: const FixedExtentScrollPhysics(),
+      onSelectedItemChanged: widget.onChanged,
+      childDelegate: ListWheelChildBuilderDelegate(
+        childCount: widget.count,
+        builder: (context, i) => Center(
+          child: Text(widget.label(i), style: AppText.meta(tk.ink, size: 15)),
+        ),
+      ),
     );
   }
 }
