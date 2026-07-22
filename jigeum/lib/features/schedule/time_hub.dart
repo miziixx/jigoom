@@ -10,8 +10,9 @@ import '../capture/prompt_bar.dart';
 import '../timetrack/time_track_screen.dart';
 import 'routine_screen.dart';
 import 'schedule_view.dart';
+import 'time_dashboard.dart';
 
-/// 시간 허브 — 일과 탭. 하위 보기: 일정 / 루틴 / 기록(타임트래커).
+/// 시간 허브 — 일과 탭. 하위: 대시보드 / 일정 / 루틴 / 기록.
 class TimeHub extends ConsumerStatefulWidget {
   const TimeHub({super.key});
 
@@ -20,7 +21,7 @@ class TimeHub extends ConsumerStatefulWidget {
 }
 
 class _TimeHubState extends ConsumerState<TimeHub> {
-  int _sub = 0; // 0 일정 · 1 루틴 · 2 기록
+  int _sub = 0; // 0 대시보드 · 1 일정 · 2 루틴 · 3 기록
   final _scheduleKey = GlobalKey<ScheduleViewState>();
 
   @override
@@ -38,14 +39,15 @@ class _TimeHubState extends ConsumerState<TimeHub> {
           child: IndexedStack(
             index: _sub,
             children: [
+              const TimeDashboard(),
               ScheduleView(key: _scheduleKey),
               const RoutineBody(),
               const TimeTrackBody(),
             ],
           ),
         ),
-        // 일정·기록 하위엔 하단 담기 바(빠른 추가). 루틴은 없음.
-        if (_sub == 0)
+        // 일정(1)·기록(3) 하위엔 하단 담기 바.
+        if (_sub == 1)
           PromptBar(
             hint: '일정 담기_',
             onSubmit: (text) async {
@@ -60,7 +62,7 @@ class _TimeHubState extends ConsumerState<TimeHub> {
                   );
             },
           )
-        else if (_sub == 2)
+        else if (_sub == 3)
           PromptBar(
             hint: '지금 기록_',
             onSubmit: (text) async {
@@ -79,7 +81,7 @@ class _TimeHubState extends ConsumerState<TimeHub> {
         onTap: () => setState(() => _sub = i),
         behavior: HitTestBehavior.opaque,
         child: Padding(
-          padding: const EdgeInsets.only(right: 18),
+          padding: const EdgeInsets.only(right: 16),
           child: Container(
             padding: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
@@ -95,42 +97,54 @@ class _TimeHubState extends ConsumerState<TimeHub> {
       );
     }
 
+    final label = _actionLabel;
     return Padding(
       padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
       child: Row(
         children: [
-          tab(0, 'schedule'),
-          tab(1, 'routine'),
-          tab(2, 'log'),
-          const Spacer(),
-          GestureDetector(
-            onTap: _action,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8, left: 8),
-              child: Text(_actionLabel, style: AppText.meta(tk.ink, size: 12)),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  tab(0, 'day'),
+                  tab(1, 'schedule'),
+                  tab(2, 'routine'),
+                  tab(3, 'log'),
+                ],
+              ),
             ),
           ),
+          if (label != null)
+            GestureDetector(
+              onTap: _action,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8, left: 8),
+                child: Text(label, style: AppText.meta(tk.ink, size: 12)),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  String get _actionLabel => switch (_sub) {
-        0 => '+ 일정',
-        1 => '+ 루틴',
-        _ => '지금 기록',
+  String? get _actionLabel => switch (_sub) {
+        1 => '+ 일정',
+        2 => '+ 루틴',
+        3 => '지금 기록',
+        _ => null,
       };
 
   void _action() {
     switch (_sub) {
-      case 0:
+      case 1:
         _scheduleKey.currentState?.addSchedule();
         break;
-      case 1:
+      case 2:
         showRoutineEditSheet(context);
         break;
-      case 2:
+      case 3:
         showTimeTrackInput(context, ref,
             date: DateTime.now(), block: TimeTrackRepository.blockOfNow());
         break;

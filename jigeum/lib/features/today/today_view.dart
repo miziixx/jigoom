@@ -40,8 +40,11 @@ class _TodayViewState extends ConsumerState<TodayView> {
             Text(DateFormat('M월 d일', 'ko').format(now),
                 style: AppText.hTitle(tk.ink)),
             const SizedBox(width: 10),
-            Text(DateFormat('EEEE', 'ko').format(now),
-                style: AppText.meta(tk.inkSoft)),
+            Flexible(
+              child: Text(
+                  '${DateFormat('EEEE', 'ko').format(now)} · ${iljinLabel(now)} · ${byeoljari(now)}',
+                  style: AppText.meta(tk.inkSoft)),
+            ),
           ],
         ),
       ),

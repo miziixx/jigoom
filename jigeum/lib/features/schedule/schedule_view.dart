@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
+import '../../core/constants.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
@@ -53,10 +54,18 @@ class ScheduleViewState extends ConsumerState<ScheduleView> {
                   child: GestureDetector(
                     onTap: _pickDate,
                     behavior: HitTestBehavior.opaque,
-                    child: Text(
-                      DateFormat('M월 d일 (E)', 'ko').format(_date),
-                      textAlign: TextAlign.center,
-                      style: AppText.hTitle(tk.ink),
+                    child: Column(
+                      children: [
+                        Text(
+                          DateFormat('M월 d일 (E)', 'ko').format(_date),
+                          textAlign: TextAlign.center,
+                          style: AppText.hTitle(tk.ink),
+                        ),
+                        const SizedBox(height: 2),
+                        Text('${iljinLabel(_date)} · ${byeoljari(_date)}',
+                            textAlign: TextAlign.center,
+                            style: AppText.meta(tk.inkSoft)),
+                      ],
                     ),
                   ),
                 ),

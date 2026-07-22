@@ -84,3 +84,49 @@ class Slot {
 DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 DateTime todayDate() => dateOnly(DateTime.now());
+
+// ------------------------------------------------------------------ 일진(日辰)
+// 날짜의 60갑자(천간+지지). 기준: 2000-01-07 = 갑자(甲子, index 0).
+// (교차검증: 1900-01-01 = 갑술 과 일치)
+const _cheongan = ['갑', '을', '병', '정', '무', '기', '경', '신', '임', '계'];
+const _jiji = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'];
+const _cheonganHanja = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+const _jijiHanja = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+
+int _ganziIndex(DateTime d) {
+  // DST 영향 없이 순수 일수 차이 (UTC 자정 기준).
+  final anchor = DateTime.utc(2000, 1, 7);
+  final x = DateTime.utc(d.year, d.month, d.day);
+  final diff = x.difference(anchor).inDays;
+  return ((diff % 60) + 60) % 60;
+}
+
+/// 일진 한글 — 예: "정유일".
+String iljin(DateTime d) {
+  final i = _ganziIndex(d);
+  return '${_cheongan[i % 10]}${_jiji[i % 12]}일';
+}
+
+/// 일진 한자 — 예: "丁酉".
+String iljinHanja(DateTime d) {
+  final i = _ganziIndex(d);
+  return '${_cheonganHanja[i % 10]}${_jijiHanja[i % 12]}';
+}
+
+/// 일진 한자 라벨 — 예: "丁酉日".
+String iljinLabel(DateTime d) => '${iljinHanja(d)}日';
+
+// ------------------------------------------------------------------- 별자리
+const _zodiacCut = [20, 19, 21, 20, 21, 22, 23, 23, 23, 23, 23, 22];
+const _zodiacNames = [
+  '물병자리', '물고기자리', '양자리', '황소자리', '쌍둥이자리', '게자리',
+  '사자자리', '처녀자리', '천칭자리', '전갈자리', '사수자리', '염소자리',
+];
+
+/// 날짜의 별자리 — 예: "게자리" (양력 태양 별자리).
+String byeoljari(DateTime d) {
+  final m = d.month;
+  return d.day >= _zodiacCut[m - 1]
+      ? _zodiacNames[m - 1]
+      : _zodiacNames[(m - 2 + 12) % 12];
+}
