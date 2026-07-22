@@ -41,18 +41,27 @@ class _AppShellState extends ConsumerState<AppShell> {
     quickCaptureFocusRequest.addListener(_onQuickCapture);
     // 타임트래커 위젯 탭 진입 → 현재 블록 입력창.
     timeTrackLaunchRequest.addListener(_onTimeTrackLaunch);
+    // 캘린더 위젯 탭 진입 → 달력 화면.
+    calendarLaunchRequest.addListener(_onCalendarLaunch);
   }
 
   @override
   void dispose() {
     quickCaptureFocusRequest.removeListener(_onQuickCapture);
     timeTrackLaunchRequest.removeListener(_onTimeTrackLaunch);
+    calendarLaunchRequest.removeListener(_onCalendarLaunch);
     super.dispose();
   }
 
   void _onQuickCapture() {
     if (!mounted) return;
     showQuickCaptureInput(context, ref);
+  }
+
+  void _onCalendarLaunch() {
+    if (!mounted) return;
+    Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const CalendarScreen()));
   }
 
   void _onTimeTrackLaunch() {

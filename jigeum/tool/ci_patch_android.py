@@ -42,6 +42,14 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/time_track_widget_info" />
         </receiver>
+        <receiver android:name=".CalendarWidgetProvider" android:exported="true" android:label="지금 · 캘린더">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/calendar_widget_info" />
+        </receiver>
 """
 
 

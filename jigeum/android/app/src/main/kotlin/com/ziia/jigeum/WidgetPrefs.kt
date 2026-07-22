@@ -16,6 +16,7 @@ object WidgetPrefs {
     const val KEY_OPACITY = "opacity" // 0~100
     const val KEY_TT_LABEL = "tt_label"
     const val KEY_TT_TEXT = "tt_text"
+    const val KEY_CAL_FOOT = "cal_foot" // 캘린더 위젯 하단: 음력·일진·별자리
 
     // 앱에서 선택한 테마의 6토큰(앱과 위젯 톤 일치). 기본 = MANILA.
     const val KEY_PAPER = "t_paper"
@@ -64,6 +65,7 @@ object WidgetPrefs {
             FocusWidgetProvider::class.java to FocusWidgetProvider(),
             MatrixWidgetProvider::class.java to MatrixWidgetProvider(),
             TimeTrackWidgetProvider::class.java to TimeTrackWidgetProvider(),
+            CalendarWidgetProvider::class.java to CalendarWidgetProvider(),
         ).forEach { (cls, provider) ->
             val ids = manager.getAppWidgetIds(ComponentName(context, cls))
             if (ids.isNotEmpty()) provider.onUpdate(context, manager, ids)

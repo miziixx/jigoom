@@ -18,6 +18,7 @@ class MainActivity : FlutterActivity() {
     companion object {
         const val ACTION_QUICK_CAPTURE = "com.ziia.jigeum.QUICK_CAPTURE"
         const val ACTION_TIME_TRACK = "com.ziia.jigeum.TIME_TRACK"
+        const val ACTION_OPEN_CALENDAR = "com.ziia.jigeum.OPEN_CALENDAR"
         const val REQ_SAVE_BACKUP = 7101
         const val REQ_OPEN_BACKUP = 7102
     }
@@ -77,6 +78,7 @@ class MainActivity : FlutterActivity() {
         when (intent?.action) {
             ACTION_QUICK_CAPTURE -> pendingAction = "quick_capture"
             ACTION_TIME_TRACK -> pendingAction = "time_track"
+            ACTION_OPEN_CALENDAR -> pendingAction = "open_calendar"
         }
     }
 
@@ -97,6 +99,7 @@ class MainActivity : FlutterActivity() {
                             .putString(WidgetPrefs.KEY_Q2, call.argument("q2") ?: "")
                             .putString(WidgetPrefs.KEY_Q3, call.argument("q3") ?: "")
                             .putInt(WidgetPrefs.KEY_Q4_COUNT, call.argument("q4count") ?: 0)
+                            .putString(WidgetPrefs.KEY_CAL_FOOT, call.argument("calFoot") ?: "")
                         // 테마 색(있을 때만) — 앱 테마와 위젯 톤 일치.
                         call.argument<String>("paper")?.let { edit.putString(WidgetPrefs.KEY_PAPER, it) }
                         call.argument<String>("ink")?.let { edit.putString(WidgetPrefs.KEY_INK, it) }
