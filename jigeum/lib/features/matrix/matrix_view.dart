@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
+import '../capture/quick_capture_input.dart';
 import 'quadrant_list.dart';
 
 /// 매트릭스 뷰 — 2×2. 카드가 아니라 1px 규칙선 십자로 나눈다.
@@ -107,6 +108,19 @@ class _Cell extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis)),
                 const SizedBox(width: 6),
                 Text('${nodes.length}', style: AppText.meta(tk.inkSoft)),
+                GestureDetector(
+                  onTap: () => showQuickCaptureInput(context, ref,
+                      presetImportant: important,
+                      presetUrgent: urgent,
+                      quadrantLabel: important && urgent
+                          ? '긴급·중요'
+                          : (important ? '중요' : '긴급')),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text('＋', style: AppText.glyph(tk.mark, size: 17)),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -159,7 +173,21 @@ class _DrawerCell extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('DRAWER', style: AppText.sec(tk.inkSoft)),
+            Row(
+              children: [
+                Text('DRAWER', style: AppText.sec(tk.inkSoft)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => showQuickCaptureInput(context, ref,
+                      quadrantLabel: '서랍', toDrawer: true),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text('＋', style: AppText.glyph(tk.mark, size: 17)),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             Text('${nodes.length}', style: AppText.hTitle(tk.ink)),
             const SizedBox(height: 2),

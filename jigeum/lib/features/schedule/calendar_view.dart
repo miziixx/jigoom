@@ -5,9 +5,21 @@ import 'package:intl/intl.dart';
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/journal.dart';
+import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import 'schedule_edit_sheet.dart';
+
+/// 달력 화면 — 드로어에서 바로 여는 독립 진입(Scaffold 래퍼).
+class CalendarScreen extends StatelessWidget {
+  const CalendarScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('달력')),
+        body: const SafeArea(child: CalendarView()),
+      );
+}
 
 /// 달력 뷰 — 월 그리드에 음력·24절기·일정 점, 아래에 선택일 상세(음력·일진·별자리·절기·일정).
 class CalendarView extends ConsumerStatefulWidget {
@@ -211,6 +223,14 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final d = _selected;
     final items = ref.watch(schedulesForDateProvider(d)).valueOrNull ?? const [];
     final term = solarTermName(d);
+    final settings = ref.watch(settingsProvider);
+
+    // 음력은 항상, 일진(사주)·별자리(점성학)는 설정 토글에 따라.
+    final almanacParts = <String>[
+      lunarLabel(d),
+      if (settings.calSaju) iljinLabel(d),
+      if (settings.calAstro) byeoljariLabel(d),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,8 +262,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-          child: Text(
-              '${lunarLabel(d)} · ${iljinLabel(d)} · ${byeoljariLabel(d)}',
+          child: Text(almanacParts.join(' · '),
               style: AppText.metaSans(tk.inkSoft)),
         ),
         if (term != null)

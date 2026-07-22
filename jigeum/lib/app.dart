@@ -13,6 +13,7 @@ import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_view.dart';
+import 'features/schedule/calendar_view.dart';
 import 'features/schedule/time_hub.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
@@ -223,6 +224,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _openFortune() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const FortuneView()));
 
+  void _openCalendar() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
+
   /// 사이드바 메뉴 (편집형).
   Widget _buildDrawer(BuildContext context) {
     final tk = t(context);
@@ -258,6 +262,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 height: 1,
                 color: tk.ink),
             const SizedBox(height: 6),
+            item(Icons.calendar_today, '달력', _openCalendar),
             item(Icons.auto_awesome, '오늘의 운세', _openFortune),
             item(Icons.tune, '설정', _openSettings),
           ],
