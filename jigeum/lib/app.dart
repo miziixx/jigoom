@@ -254,7 +254,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ? null
                 : Border(bottom: BorderSide(color: tk.line, width: 1)),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 18),
+          padding: const EdgeInsets.symmetric(vertical: 11),
           child: Row(
             children: [
               SizedBox(

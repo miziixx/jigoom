@@ -285,9 +285,19 @@ class _FontPicker extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(f.name,
-                              style: AppText.meta(
-                                  current == f.key ? tk.ink : tk.inkSoft)),
+                          Row(
+                            children: [
+                              Text(f.name,
+                                  style: AppText.meta(current == f.key
+                                      ? tk.ink
+                                      : tk.inkSoft)),
+                              if (f.oneWeight) ...[
+                                const SizedBox(width: 8),
+                                Text('굵기 고정',
+                                    style: AppText.meta(tk.inkSoft, size: 9)),
+                              ],
+                            ],
+                          ),
                           const SizedBox(height: 4),
                           // 미리보기: 그 폰트로 렌더.
                           Text(f.sample,
