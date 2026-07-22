@@ -24,19 +24,7 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
   DateTime _date = todayDate();
 
   @override
-  void initState() {
-    super.initState();
-    quickCaptureFocusRequest.addListener(_onFocusRequest);
-  }
-
-  void _onFocusRequest() {
-    if (!mounted) return;
-    _focus.requestFocus();
-  }
-
-  @override
   void dispose() {
-    quickCaptureFocusRequest.removeListener(_onFocusRequest);
     _controller.dispose();
     _focus.dispose();
     super.dispose();

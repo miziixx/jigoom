@@ -8,7 +8,7 @@ import android.content.Intent
 import android.widget.RemoteViews
 
 /**
- * 타임트래커 위젯 — 순수 안드로이드. 홈/잠금(keyguard) 배치 가능.
+ * 타임트래커 위젯 — 순수 안드로이드. 홈 화면.
  * 지금 시각 블록 + 마지막 기록을 보여주고, 탭하면 앱이 열려 바로 입력창(현재 블록).
  */
 class TimeTrackWidgetProvider : AppWidgetProvider() {

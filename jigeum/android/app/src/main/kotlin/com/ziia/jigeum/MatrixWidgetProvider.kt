@@ -11,8 +11,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 매트릭스 위젯 (4×3) — 날짜 + 아이젠하워 2×2. 홈/잠금화면(keyguard) 공용.
- * 투명도는 WidgetPrefs.KEY_OPACITY 로 조절. 탭하면 앱 열기.
+ * 매트릭스 위젯 (4×3) — 날짜 + 아이젠하워 2×2. 홈 화면.
+ * 투명도는 WidgetPrefs.KEY_OPACITY 로 조절. 탭하면 담기 입력창.
  */
 class MatrixWidgetProvider : AppWidgetProvider() {
 
@@ -31,7 +31,9 @@ class MatrixWidgetProvider : AppWidgetProvider() {
 
         val date = SimpleDateFormat("M월 d일 EEEE", Locale.KOREAN).format(Date())
 
+        // 탭 → 담기 입력창(중요/긴급 분류)으로 앱 열기
         val launch = Intent(context, MainActivity::class.java).apply {
+            action = MainActivity.ACTION_QUICK_CAPTURE
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
         val pending = PendingIntent.getActivity(

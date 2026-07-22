@@ -10,8 +10,8 @@ import 'data/repos/node_repository.dart';
 import 'data/repos/schedule_repository.dart';
 import 'data/repos/time_track_repository.dart';
 
-/// 위젯 탭 진입 시 퀵캡처 입력창에 포커스를 요청하는 트리거.
-/// 값이 증가할 때마다 QuickCaptureBar 가 포커스+키보드를 연다.
+/// 포커스·매트릭스 위젯 탭 진입 시 빠른 담기 입력창(모달)을 여는 트리거.
+/// 값이 증가할 때마다 AppShell 이 showQuickCaptureInput 을 띄운다.
 final ValueNotifier<int> quickCaptureFocusRequest = ValueNotifier<int>(0);
 
 /// 타임트래커 위젯 탭 진입 시 현재 블록 입력창을 여는 트리거.
