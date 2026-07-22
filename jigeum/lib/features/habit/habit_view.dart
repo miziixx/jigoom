@@ -8,36 +8,13 @@ import '../../data/db.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
+import 'habit_stats.dart';
 
 const _weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
 
 // ---------------------------------------------------------------- 분석 헬퍼
-/// 오늘부터 거꾸로 연속 완료 일수.
-int _currentStreak(Set<DateTime> ticks, DateTime today) {
-  var s = 0;
-  var d = today;
-  while (ticks.contains(d)) {
-    s++;
-    d = d.subtract(const Duration(days: 1));
-  }
-  return s;
-}
-
-/// start~today 중 최장 연속.
-int _longestStreak(Set<DateTime> ticks, DateTime start, DateTime today) {
-  var best = 0, run = 0;
-  var d = start;
-  while (!d.isAfter(today)) {
-    if (ticks.contains(d)) {
-      run++;
-      if (run > best) best = run;
-    } else {
-      run = 0;
-    }
-    d = d.add(const Duration(days: 1));
-  }
-  return best;
-}
+// 스칼라 계산(현재/최장 연속·복귀·최근 실행일)은 habit_stats.dart 로 분리
+// (Flutter 비의존 → 유닛테스트). 여기엔 UI 결합된 요일/주별 집계만 둔다.
 
 /// 요일별(월~일) 완료 수/등장 수.
 (List<int> done, List<int> total) _weekday(
@@ -213,9 +190,10 @@ class _HabitRow extends ConsumerWidget {
     final tickSet = {for (final t in ticks) dateOnly(t.date)};
     final today = todayDate();
     final todayDone = tickSet.contains(today);
-    final streak = _currentStreak(tickSet, today);
+    final streak = currentStreak(tickSet, today);
     final total = today.difference(dateOnly(habit.createdAt)).inDays + 1;
     final percent = total == 0 ? 0 : (tickSet.length * 100 / total).round();
+    final returns = returnCount(tickSet, dateOnly(habit.createdAt), today);
 
     return InkWell(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
@@ -244,7 +222,10 @@ class _HabitRow extends ConsumerWidget {
                   style: AppText.body(todayDone ? tk.inkSoft : tk.ink)),
             ),
             const SizedBox(width: 8),
-            Text('${streak}연속 · $percent%',
+            Text(
+                returns > 0
+                    ? '${streak}연속 · $percent% · 복귀 $returns회'
+                    : '${streak}연속 · $percent%',
                 style: AppText.meta(tk.inkSoft, size: 10)),
             const SizedBox(width: 6),
             Text('›', style: AppText.glyph(tk.inkSoft, size: 13)),
@@ -324,8 +305,10 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         rangeDays == 0 ? 0 : (doneInRange * 100 / rangeDays).round();
     final gridDays = rangeDays.clamp(1, 372);
 
-    final curStreak = _currentStreak(tickSet, today);
-    final longStreak = _longestStreak(tickSet, start, today);
+    final curStreak = currentStreak(tickSet, today);
+    final longStreak = longestStreak(tickSet, start, today);
+    final returns = returnCount(tickSet, start, today);
+    final recent7 = recentActiveDays(tickSet, today);
     final (wDone, wTotal) = _weekday(tickSet, _start, _end);
     final weekly = _weekly(tickSet, _start, _end);
 
@@ -405,6 +388,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       _miniStat(tk, '$curStreak', '현재 연속'),
                       const SizedBox(width: 24),
                       _miniStat(tk, '$longStreak', '최장 연속'),
+                      const SizedBox(width: 24),
+                      // 스트릭과 병행하는 지표 — 끊겨도 다시 온 횟수.
+                      _miniStat(tk, '$returns', '복귀'),
                     ],
                   ),
                 ],
@@ -482,6 +468,10 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             // NOTES 분석
             const SectionLabel('NOTES'),
             emptyNote(context, '현재 $curStreak일 연속, 최장 $longStreak일'),
+            if (returns > 0)
+              emptyNote(context, '끊겨도 $returns번 다시 왔어요 · 최근 7일 중 $recent7일 실행')
+            else
+              emptyNote(context, '최근 7일 중 $recent7일 실행'),
             if (bestWi >= 0)
               emptyNote(context, '가장 잘 지킨 요일: ${_weekdayNames[bestWi]}'),
             emptyNote(context, '이번 주 $thisWeek/7 (지난주 $lastWeek/7)'),

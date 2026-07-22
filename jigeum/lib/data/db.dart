@@ -18,8 +18,26 @@ class Nodes extends Table {
       text().withDefault(const Constant('open'))(); // open|done|drawer
   DateTimeColumn get doneAt => dateTime().nullable()();
   IntColumn get carriedCount => integer().withDefault(const Constant(0))();
+  // ADHD 개선(v6): 다음 시작점·실행의도·장애물 한 줄, 캡처된 집중세션 링크.
+  TextColumn get nextStep => text().nullable()(); // 다음엔 어디부터
+  TextColumn get triggerCondition => text().nullable()(); // "~하면 시작한다"
+  TextColumn get obstacleNote => text().nullable()(); // 가장 망칠 위험
+  TextColumn get focusSessionId => text().nullable()(); // 어느 집중세션 중 캡처됐나
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 집중 세션(적응형 타임박싱). plannedMinutes=null 이면 몰입모드(무제한).
+class FocusSessions extends Table {
+  TextColumn get id => text()(); // uuid v4
+  TextColumn get nodeId => text().nullable()(); // 연결된 노드(없을 수 있음)
+  IntColumn get plannedMinutes => integer().nullable()(); // null=몰입모드
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime().nullable()();
+  IntColumn get actualSeconds => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -105,14 +123,15 @@ class Routines extends Table {
   HabitTicks,
   Schedules,
   Routines,
-  TimeBlocks
+  TimeBlocks,
+  FocusSessions
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -139,6 +158,13 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 5) {
             await m.createTable(timeBlocks);
+          }
+          if (from < 6) {
+            await m.addColumn(nodes, nodes.nextStep);
+            await m.addColumn(nodes, nodes.triggerCondition);
+            await m.addColumn(nodes, nodes.obstacleNote);
+            await m.addColumn(nodes, nodes.focusSessionId);
+            await m.createTable(focusSessions);
           }
         },
       );

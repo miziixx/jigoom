@@ -45,6 +45,9 @@ class BackupService {
             'status': n.status,
             'doneAt': d(n.doneAt),
             'carriedCount': n.carriedCount,
+            'nextStep': n.nextStep,
+            'triggerCondition': n.triggerCondition,
+            'obstacleNote': n.obstacleNote,
             'createdAt': d(n.createdAt),
             'updatedAt': d(n.updatedAt),
           }
@@ -129,6 +132,9 @@ class BackupService {
           status: Value(m['status'] as String? ?? 'open'),
           doneAt: Value(p(m['doneAt'])),
           carriedCount: Value(m['carriedCount'] as int? ?? 0),
+          nextStep: Value(m['nextStep'] as String?),
+          triggerCondition: Value(m['triggerCondition'] as String?),
+          obstacleNote: Value(m['obstacleNote'] as String?),
           createdAt: pr(m['createdAt']),
           updatedAt: pr(m['updatedAt']),
         )
