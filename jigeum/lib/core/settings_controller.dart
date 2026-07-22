@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db.dart';
 import '../providers.dart';
+import 'constants.dart';
 import 'theme.dart';
 
 /// 앱 표시 설정 (테마·폰트 크기·굵기). DB settings 표에 영구 저장.
@@ -24,6 +25,7 @@ class AppSettings {
     this.astroLevel = 'general', // 점성학 풀이 설명 레벨
     this.calSaju = true, // 캘린더에 사주(일진·오늘 기운) 표시
     this.calAstro = true, // 캘린더에 점성학(별자리) 표시
+    this.fontKey = kDefaultFontKey, // 앱 글꼴(번들 한글 폰트 중 선택)
   });
 
   final String themeKey; // 내장 10종 중 하나 (기본 manila)
@@ -43,6 +45,7 @@ class AppSettings {
   final String astroLevel; // 점성학 풀이 레벨 키(explain.dart)
   final bool calSaju; // 캘린더 상세에 일진·오늘 기운 표시
   final bool calAstro; // 캘린더 상세에 별자리 표시
+  final String fontKey; // 앱 글꼴 키(kFonts)
 
   /// 사주(오늘의 운세)를 계산할 수 있는가.
   bool get hasBirth => birth != null;
@@ -73,6 +76,7 @@ class AppSettings {
     String? astroLevel,
     bool? calSaju,
     bool? calAstro,
+    String? fontKey,
   }) =>
       AppSettings(
         themeKey: themeKey ?? this.themeKey,
@@ -92,6 +96,7 @@ class AppSettings {
         astroLevel: astroLevel ?? this.astroLevel,
         calSaju: calSaju ?? this.calSaju,
         calAstro: calAstro ?? this.calAstro,
+        fontKey: fontKey ?? this.fontKey,
       );
 }
 
@@ -119,6 +124,7 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _kAstroLevel = 'astro_level';
   static const _kCalSaju = 'cal_saju';
   static const _kCalAstro = 'cal_astro';
+  static const _kFontKey = 'font_key';
 
   Future<void> _load() async {
     final scale = await _get(_kScale);
@@ -138,6 +144,7 @@ class SettingsController extends StateNotifier<AppSettings> {
     final astroLevel = await _get(_kAstroLevel);
     final calSaju = await _get(_kCalSaju);
     final calAstro = await _get(_kCalAstro);
+    final fontKey = await _get(_kFontKey);
     state = AppSettings(
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
@@ -158,6 +165,7 @@ class SettingsController extends StateNotifier<AppSettings> {
       astroLevel: astroLevel ?? 'general',
       calSaju: calSaju == null ? true : calSaju == '1',
       calAstro: calAstro == null ? true : calAstro == '1',
+      fontKey: fontKey ?? kDefaultFontKey,
     );
   }
 
@@ -205,6 +213,11 @@ class SettingsController extends StateNotifier<AppSettings> {
   Future<void> setCalAstro(bool v) async {
     state = state.copyWith(calAstro: v);
     await _set(_kCalAstro, v ? '1' : '0');
+  }
+
+  Future<void> setFontKey(String key) async {
+    state = state.copyWith(fontKey: key);
+    await _set(_kFontKey, key);
   }
 
   Future<void> setAstroLevel(String key) async {

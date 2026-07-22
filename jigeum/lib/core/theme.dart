@@ -122,16 +122,19 @@ AppTokens t(BuildContext context) =>
 /// AppText 를 직접 호출하는 위젯들도 이 값을 반영한다.
 int appWeightDelta = 0;
 
-/// 라벨·기호·숫자용 글꼴. 기본 = 모노. 설정 "기기 글꼴로 통일" 이 켜지면
-/// null(기기 기본 글꼴)로 바뀌어 앱 전체가 폰 글꼴을 쓴다. AppTheme.build 에서 갱신.
+/// 라벨·기호·숫자용 글꼴. 기본 = 모노. 설정 "글꼴 하나로 통일" 이 켜지면
+/// 본문 글꼴(appSans)로 바뀌어 앱 전체가 같은 글꼴을 쓴다. AppTheme.build 에서 갱신.
 String? appMono = kMonoFamily;
+
+/// 한글 본문·제목 글꼴. 설정(fontKey)에서 고른 번들 폰트로 AppTheme.build 에서 갱신.
+String? appSans = kSansFamily;
 
 /// 편집 타이포 (DESIGN_SYSTEM §3 두 벌 하이브리드).
 /// 한글 내용 = Sans(기기 기본), 라벨·기호·영문·숫자 = Mono. 색은 토큰을 주입.
 class AppText {
   /// 화면 타이틀 (한글, Sans 19/Bold).
   static TextStyle hTitle(Color c, [int? wd]) => TextStyle(
-      fontFamily: kSansFamily,
+      fontFamily: appSans,
       fontSize: 19,
       fontWeight: shiftWeight(FontWeight.w700, wd ?? appWeightDelta),
       height: 1.2,
@@ -140,7 +143,7 @@ class AppText {
 
   /// 할 일 제목·본문 (한글, Sans 15/Medium).
   static TextStyle body(Color c, [int? wd]) => TextStyle(
-      fontFamily: kSansFamily,
+      fontFamily: appSans,
       fontSize: 15,
       fontWeight: shiftWeight(FontWeight.w500, wd ?? appWeightDelta),
       height: 1.4,
@@ -176,7 +179,7 @@ class AppText {
 
   /// 메타(Sans) — 기호(별자리 ♋ 등)처럼 모노에 없을 수 있는 글자 렌더용.
   static TextStyle metaSans(Color c, {double size = 11}) => TextStyle(
-      fontFamily: kSansFamily,
+      fontFamily: appSans,
       fontSize: size,
       fontWeight: FontWeight.w400,
       height: 1.3,
@@ -208,15 +211,23 @@ class AppText {
 /// 6토큰 → ThemeData. 편집 원칙(radius 0 · shadow none · 잉크 하나)을 강제한다.
 class AppTheme {
   static ThemeData fromKey(String key,
-          {int weightDelta = 0, bool systemFont = false}) =>
+          {int weightDelta = 0,
+          bool systemFont = false,
+          String fontKey = kDefaultFontKey}) =>
       build(tokensForKey(key),
-          weightDelta: weightDelta, systemFont: systemFont);
+          weightDelta: weightDelta,
+          systemFont: systemFont,
+          fontKey: fontKey);
 
   static ThemeData build(AppTokens tk,
-      {int weightDelta = 0, bool systemFont = false}) {
+      {int weightDelta = 0,
+      bool systemFont = false,
+      String fontKey = kDefaultFontKey}) {
     appWeightDelta = weightDelta; // 전역 반영 (AppText 직접 호출부용)
-    // 라벨 글꼴: 기본 모노, "글꼴 하나로 통일" 켜지면 본문과 같은 Pretendard.
-    appMono = systemFont ? kSansFamily : kMonoFamily;
+    // 본문 글꼴: 설정에서 고른 번들 한글 폰트.
+    appSans = familyForFontKey(fontKey);
+    // 라벨 글꼴: 기본 모노, "글꼴 하나로 통일" 켜지면 본문과 같은 글꼴.
+    appMono = systemFont ? appSans : kMonoFamily;
     final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);
 
@@ -227,13 +238,13 @@ class AppTheme {
     final textTheme = TextTheme(
       titleLarge: AppText.hTitle(tk.ink, weightDelta),
       titleMedium: TextStyle(
-          fontFamily: kSansFamily,
+          fontFamily: appSans,
           fontWeight: bold,
           fontSize: 16,
           letterSpacing: -0.15,
           color: tk.ink),
       bodyLarge: TextStyle(
-          fontFamily: kSansFamily,
+          fontFamily: appSans,
           fontWeight: med,
           fontSize: 15,
           height: 1.4,
@@ -383,7 +394,7 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           textStyle: TextStyle(
-              fontFamily: kSansFamily, fontWeight: bold, fontSize: 15),
+              fontFamily: appSans, fontWeight: bold, fontSize: 15),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -391,7 +402,7 @@ class AppTheme {
           foregroundColor: tk.inkSoft,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           textStyle: TextStyle(
-              fontFamily: kSansFamily, fontWeight: reg, fontSize: 14),
+              fontFamily: appSans, fontWeight: reg, fontSize: 14),
         ),
       ),
       // 칩(필터): 각진 1px 규칙선, 선택 시 잉크 반전. 체크 없음.

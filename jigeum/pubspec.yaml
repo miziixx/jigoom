@@ -39,3 +39,15 @@ flutter:
           weight: 400
         - asset: assets/fonts/Pretendard-SemiBold.otf
           weight: 600
+    - family: NanumGothic
+      fonts:
+        - asset: assets/fonts/NanumGothic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NanumGothic-Bold.ttf
+          weight: 700
+    - family: Jua
+      fonts:
+        - asset: assets/fonts/Jua-Regular.ttf
+    - family: GowunDodum
+      fonts:
+        - asset: assets/fonts/GowunDodum-Regular.ttf

@@ -22,10 +22,37 @@ const double kRadius = 0.0;
 /// 라벨·기호·영문·숫자용 모노스페이스. (JetBrains Mono 미번들 → generic monospace)
 const kMonoFamily = 'monospace';
 
-/// 한글 본문·제목용 산세리프. 번들 Pretendard(assets/fonts) — 기기·폰트설정과
+/// 한글 본문·제목용 산세리프 기본값. 번들 Pretendard(assets/fonts) — 기기·폰트설정과
 /// 무관하게 앱이 항상 이 글꼴로 렌더된다. (Flutter 는 폰 커스텀 글꼴을 못 읽어
-/// 번들이 유일한 확실한 방법.)
+/// 번들이 유일한 확실한 방법.) 실제 적용 글꼴은 설정(fontKey)으로 고를 수 있고,
+/// theme.dart 의 전역 `appSans` 가 이를 반영한다.
 const String? kSansFamily = 'Pretendard';
+
+/// 사용자가 고를 수 있는 번들 한글 글꼴.
+class AppFont {
+  const AppFont(this.key, this.name, this.family, this.sample);
+  final String key; // 저장용 키
+  final String name; // 표시 이름
+  final String family; // pubspec fonts family
+  final String sample; // 미리보기 문구
+}
+
+const kDefaultFontKey = 'pretendard';
+
+const List<AppFont> kFonts = [
+  AppFont('pretendard', '프리텐다드', 'Pretendard', '가나다 AaBb 123'),
+  AppFont('nanum', '나눔고딕', 'NanumGothic', '가나다 AaBb 123'),
+  AppFont('jua', '주아', 'Jua', '가나다 AaBb 123'),
+  AppFont('gowun', '고운돋움', 'GowunDodum', '가나다 AaBb 123'),
+];
+
+/// 폰트 키 → pubspec family. 알 수 없으면 기본(Pretendard).
+String familyForFontKey(String key) {
+  for (final f in kFonts) {
+    if (f.key == key) return f.family;
+  }
+  return 'Pretendard';
+}
 
 const kAnimDuration = Duration(milliseconds: 160);
 const kAnimCurve = Curves.easeOut;

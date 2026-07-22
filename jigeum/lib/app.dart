@@ -236,45 +236,58 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _openCalendar() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
 
-  /// 사이드바 메뉴 (편집형).
+  /// 사이드바 메뉴 (에디토리얼) — 번호 + 라벨 + › 캐럿, 얇은 규칙선.
   Widget _buildDrawer(BuildContext context) {
     final tk = t(context);
-    Widget item(IconData icon, String label, VoidCallback onTap) => InkWell(
-          onTap: () {
-            Navigator.of(context).pop(); // 드로어 닫기
-            onTap();
-          },
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
-            child: Row(
-              children: [
-                Icon(icon, size: 19, color: tk.inkSoft),
-                const SizedBox(width: 14),
-                Text(label, style: AppText.body(tk.ink)),
-              ],
-            ),
+
+    Widget row(String index, String label, VoidCallback onTap,
+        {bool last = false}) {
+      return GestureDetector(
+        onTap: () {
+          Navigator.of(context).pop(); // 드로어 닫기
+          onTap();
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          decoration: BoxDecoration(
+            border: last
+                ? null
+                : Border(bottom: BorderSide(color: tk.line, width: 1)),
           ),
-        );
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 30,
+                child: Text(index, style: AppText.meta(tk.inkSoft, size: 11)),
+              ),
+              Expanded(child: Text(label, style: AppText.body(tk.ink))),
+              Text('›', style: AppText.glyph(tk.mark, size: 18)),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Drawer(
       backgroundColor: tk.paper,
       child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(kGutter, 20, kGutter, 12),
-              child: Text('지금', style: AppText.hTitle(tk.ink)),
-            ),
-            Container(
-                margin: const EdgeInsets.symmetric(horizontal: kGutter),
-                height: 1,
-                color: tk.ink),
-            const SizedBox(height: 6),
-            item(Icons.calendar_today, '달력', _openCalendar),
-            item(Icons.auto_awesome, '오늘의 운세', _openFortune),
-            item(Icons.tune, '설정', _openSettings),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: kGutter),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              Text('지금', style: AppText.hTitle(tk.ink)),
+              const SizedBox(height: 4),
+              Text('MENU', style: AppText.meta(tk.inkSoft, size: 10)),
+              const SizedBox(height: 10),
+              Container(height: 1, color: tk.ink),
+              row('01', '달력', _openCalendar),
+              row('02', '오늘의 운세', _openFortune),
+              row('03', '설정', _openSettings, last: true),
+            ],
+          ),
         ),
       ),
     );
