@@ -161,4 +161,13 @@ class ScheduleRepository {
     await db.into(db.settings).insertOnConflictUpdate(
         SettingsCompanion.insert(key: key, value: value));
   }
+
+  // 오늘의 목표(날짜별 자유 텍스트) — kv settings 재사용.
+  String _ymd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<String?> getDayGoal(DateTime d) => _getSetting('day_goal_${_ymd(d)}');
+
+  Future<void> setDayGoal(DateTime d, String value) =>
+      _setSetting('day_goal_${_ymd(d)}', value);
 }

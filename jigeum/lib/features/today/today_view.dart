@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
+import '../../core/dialogs.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
@@ -22,6 +23,24 @@ class TodayView extends ConsumerStatefulWidget {
 
 class _TodayViewState extends ConsumerState<TodayView> {
   bool _winsOpen = false;
+  String _goal = '';
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(scheduleRepoProvider).getDayGoal(todayDate()).then((v) {
+      if (mounted) setState(() => _goal = v ?? '');
+    });
+  }
+
+  Future<void> _editGoal() async {
+    final v = await showInputDialog(context,
+        title: '오늘의 목표', kicker: 'GOAL', hint: '오늘 이루고 싶은 것', initial: _goal);
+    if (v == null) return;
+    final g = v.trim();
+    await ref.read(scheduleRepoProvider).setDayGoal(todayDate(), g);
+    if (mounted) setState(() => _goal = g);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +74,28 @@ class _TodayViewState extends ConsumerState<TodayView> {
         ),
       ),
 
+      // GOAL — 오늘의 목표 (탭해서 편집)
+      Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 20, kGutter, 0),
+        child: Row(
+          children: [
+            Text('GOAL', style: AppText.sec(tk.mark)),
+            const SizedBox(width: 12),
+            Expanded(child: Container(height: 1, color: tk.line)),
+          ],
+        ),
+      ),
+      InkWell(
+        onTap: _editGoal,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
+          child: Text(_goal.isEmpty ? '탭해서 오늘의 목표 적기' : _goal,
+              style: _goal.isEmpty
+                  ? AppText.meta(tk.inkSoft, size: 13)
+                  : AppText.body(tk.ink)),
+        ),
+      ),
+
       // NOW — 지금 이것부터
       focus.when(
         loading: () => const SizedBox.shrink(),
@@ -67,7 +108,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
       // TO-DO
       SectionLabel('TO-DO', count: today.length),
       if (today.isEmpty)
-        emptyNote(context, '아래 프롬프트에 적으면 여기 쌓여요')
+        emptyNote(context, '아래에 적으면 여기 쌓여요')
       else
         for (final n in today) SimpleTile(node: n),
 

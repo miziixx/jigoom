@@ -228,8 +228,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     // 음력은 항상, 일진(사주)·별자리(점성학)는 설정 토글에 따라.
     final almanacParts = <String>[
       lunarLabel(d),
-      if (settings.calSaju) iljinLabel(d),
-      if (settings.calAstro) byeoljariLabel(d),
+      if (settings.showSaju) iljinLabel(d),
+      if (settings.showZodiac) byeoljariLabel(d),
     ];
 
     return Column(
