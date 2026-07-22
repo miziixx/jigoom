@@ -9,9 +9,11 @@ import '../../providers.dart';
 import '../capture/prompt_bar.dart';
 import '../timetrack/time_track_screen.dart';
 import 'calendar_view.dart';
+import 'daily_plan_view.dart';
 import 'routine_screen.dart';
 import 'schedule_view.dart';
 import 'time_dashboard.dart';
+import 'weekly_plan_view.dart';
 
 /// 시간 허브 — 일과 탭. 하위: 대시보드 / 일정 / 루틴 / 기록.
 class TimeHub extends ConsumerStatefulWidget {
@@ -22,7 +24,7 @@ class TimeHub extends ConsumerStatefulWidget {
 }
 
 class _TimeHubState extends ConsumerState<TimeHub> {
-  int _sub = 0; // 0 대시보드 · 1 달력 · 2 일정 · 3 루틴 · 4 기록
+  int _sub = 5; // 0 대시보드·1 달력·2 일정·3 루틴·4 기록·5 하루플랜·6 주간플랜
   final _scheduleKey = GlobalKey<ScheduleViewState>();
 
   @override
@@ -45,6 +47,8 @@ class _TimeHubState extends ConsumerState<TimeHub> {
               ScheduleView(key: _scheduleKey),
               const RoutineBody(),
               const TimeTrackBody(),
+              const DailyPlanBody(),
+              const WeeklyPlanBody(),
             ],
           ),
         ),
@@ -109,6 +113,8 @@ class _TimeHubState extends ConsumerState<TimeHub> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
+                  tab(5, 'plan'),
+                  tab(6, 'week'),
                   tab(0, 'day'),
                   tab(1, 'month'),
                   tab(2, 'schedule'),
