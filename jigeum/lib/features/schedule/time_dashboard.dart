@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../core/journal.dart';
+import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 
@@ -19,9 +20,11 @@ class TimeDashboard extends ConsumerWidget {
     return '${h}h ${mm}m';
   }
 
-  /// 별자리(서양 점성술) 섹션 — 기호 + 한글 + 영문·기간 + 원소·지배성.
-  Widget _zodiacSection(AppTokens tk, DateTime d) {
-    final z = zodiacOf(d);
+  /// 별자리(서양 점성술) 섹션 — 기호·한글·한자 + 영문·기간 + 원소·지배성 + 상승/하강.
+  Widget _zodiacSection(AppTokens tk, DateTime now) {
+    final z = zodiacOf(now);
+    final rise = risingOf(now);
+    final desc = descendantOf(now);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -35,6 +38,8 @@ class TimeDashboard extends ConsumerWidget {
               Text(z.symbol, style: AppText.metaSans(tk.ink, size: 22)),
               const SizedBox(width: 10),
               Text(z.name, style: AppText.hTitle(tk.ink)),
+              const SizedBox(width: 8),
+              Text(z.hanja, style: AppText.metaSans(tk.inkSoft, size: 13)),
             ],
           ),
         ),
@@ -48,6 +53,18 @@ class TimeDashboard extends ConsumerWidget {
           child: Text('원소 ${z.element} · 지배성 ${z.planet}',
               style: AppText.metaSans(tk.inkSoft)),
         ),
+        // 상승궁(어센던트)·하강궁(디센던트) — 지금 하늘 근사.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 7, kGutter, 0),
+          child: Text(
+              '상승 ${rise.symbol} ${rise.name} · 하강 ${desc.symbol} ${desc.name}',
+              style: AppText.metaSans(tk.ink)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 1, kGutter, 0),
+          child: Text('지금 하늘 기준 · 근사',
+              style: AppText.metaSans(tk.inkSoft, size: 9)),
+        ),
       ],
     );
   }
@@ -57,6 +74,7 @@ class TimeDashboard extends ConsumerWidget {
     final tk = t(context);
     final today = todayDate();
     final now = DateTime.now();
+    final sky = ref.watch(settingsProvider);
 
     final items =
         ref.watch(schedulesForDateProvider(today)).valueOrNull ?? const [];
@@ -88,7 +106,9 @@ class TimeDashboard extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Flexible(
                   child: Text(
-                      '${DateFormat('EEEE', 'ko').format(now)} · ${iljinLabel(today)}',
+                      sky.showSaju
+                          ? '${DateFormat('EEEE', 'ko').format(now)} · ${sajuLabel(today)}'
+                          : DateFormat('EEEE', 'ko').format(now),
                       style: AppText.metaSans(tk.inkSoft)),
                 ),
               ],
@@ -96,7 +116,7 @@ class TimeDashboard extends ConsumerWidget {
           ),
 
           // 별자리 (점성술)
-          _zodiacSection(tk, today),
+          if (sky.showZodiac) _zodiacSection(tk, now),
 
           // 일정
           SectionLabel('SCHEDULE', count: items.length),

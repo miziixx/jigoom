@@ -6,6 +6,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../core/constants.dart';
 import '../../core/journal.dart';
+import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
@@ -35,8 +36,14 @@ class ScheduleViewState extends ConsumerState<ScheduleView> {
     final tk = t(context);
     final items =
         ref.watch(schedulesForDateProvider(_date)).valueOrNull ?? const [];
+    final sky = ref.watch(settingsProvider);
     final totalMin = items.fold<int>(
         0, (a, s) => a + (s.endMin - s.startMin).clamp(0, 1440));
+
+    final metaParts = <String>[
+      if (sky.showSaju) sajuLabel(_date),
+      if (sky.showZodiac) byeoljariLabel(_date),
+    ];
 
     return Container(
       color: tk.paper,
@@ -61,10 +68,12 @@ class ScheduleViewState extends ConsumerState<ScheduleView> {
                           textAlign: TextAlign.center,
                           style: AppText.hTitle(tk.ink),
                         ),
-                        const SizedBox(height: 2),
-                        Text('${iljinLabel(_date)} · ${byeoljariLabel(_date)}',
-                            textAlign: TextAlign.center,
-                            style: AppText.metaSans(tk.inkSoft)),
+                        if (metaParts.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(metaParts.join(' · '),
+                              textAlign: TextAlign.center,
+                              style: AppText.metaSans(tk.inkSoft)),
+                        ],
                       ],
                     ),
                   ),

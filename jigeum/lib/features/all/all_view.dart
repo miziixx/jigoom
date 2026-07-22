@@ -31,6 +31,53 @@ class AllView extends ConsumerWidget {
 
     final rows = <Widget>[];
 
+    // ── 종합 대시보드 ──────────────────────────────────────────
+    final today = todayDate();
+    int doneOn(DateTime day) =>
+        doneList.where((n) => dateOnly(n.doneAt ?? n.updatedAt) == day).length;
+    final week = [for (var i = 6; i >= 0; i--) today.subtract(Duration(days: i))];
+    final weekCounts = [for (final d in week) doneOn(d)];
+    final weekTotal = weekCounts.fold<int>(0, (a, b) => a + b);
+    final maxC = weekCounts.fold<int>(1, (a, b) => b > a ? b : a);
+    const wd = ['일', '월', '화', '수', '목', '금', '토'];
+
+    rows.add(const SectionLabel('OVERVIEW'));
+    rows.add(Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
+      child: Text('진행 ${open.length} · 나중 ${later.length} · 오늘 완료 ${doneOn(today)}',
+          style: AppText.body(tk.ink)),
+    ));
+    rows.add(Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 3, kGutter, 0),
+      child: Text('이번주 완료 $weekTotal', style: AppText.meta(tk.inkSoft)),
+    ));
+    rows.add(Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < 7; i++)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      height: 4 + 40 * weekCounts[i] / maxC,
+                      color: weekCounts[i] > 0 ? tk.ink : tk.line,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(wd[week[i].weekday % 7],
+                        style: AppText.meta(tk.inkSoft, size: 9)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    ));
+
     rows.add(SectionLabel('TO-DO', count: open.length));
     if (open.isEmpty) {
       rows.add(emptyNote(context, '담아둔 게 없어요'));

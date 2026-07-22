@@ -116,6 +116,51 @@ String iljinHanja(DateTime d) {
 /// 일진 한자 라벨 — 예: "丁酉日".
 String iljinLabel(DateTime d) => '${iljinHanja(d)}日';
 
+// ----------------------------------------------------------- 년주·월주(만세력)
+// 년주(年柱)는 입춘(~2/4) 이전이면 전년 간지. 월주(月柱)는 절기(節) 기준 +
+// 오호둔(五虎遁)으로 천간 산출. 절기일은 ±1일 오차가 있는 근사값.
+
+/// 60갑자 중 올해(년주) index. 입춘 이전은 전년.
+int _yearGanziIndex(DateTime d) {
+  var y = d.year;
+  if (d.month == 1 || (d.month == 2 && d.day < 4)) y -= 1;
+  return (((y - 4) % 60) + 60) % 60;
+}
+
+/// 절기(節) 기준 이 날짜가 속한 월지(月支) index (자=0). 근사 절기일 사용.
+int _monthBranch(DateTime d) {
+  // 각 달의 절(節) 시작 근사일: 소한·입춘·경칩…대설.
+  const cut = [6, 4, 6, 5, 6, 6, 7, 8, 8, 8, 7, 7];
+  final m = d.month - 1; // 0-based
+  // 절 이후면 이 달 시작 월지((m+1)%12), 이전이면 전 월지(m%12).
+  return d.day >= cut[m] ? (m + 1) % 12 : m % 12;
+}
+
+/// 년주 한자 — 예: "丙午".
+String yearGanziHanja(DateTime d) {
+  final i = _yearGanziIndex(d);
+  return '${_cheonganHanja[i % 10]}${_jijiHanja[i % 12]}';
+}
+
+/// 년주 라벨 — 예: "丙午年".
+String yearLabel(DateTime d) => '${yearGanziHanja(d)}年';
+
+/// 월주 한자 — 오호둔으로 월간 산출. 예: "乙未".
+String monthGanziHanja(DateTime d) {
+  final yStem = _yearGanziIndex(d) % 10;
+  final branch = _monthBranch(d);
+  final yinStem = (yStem % 5) * 2 + 2; // 寅월 천간 (오호둔)
+  final order = ((branch - 2) + 12) % 12; // 寅부터의 순번
+  final stem = (yinStem + order) % 10;
+  return '${_cheonganHanja[stem]}${_jijiHanja[branch]}';
+}
+
+/// 월주 라벨 — 예: "乙未月".
+String monthLabel(DateTime d) => '${monthGanziHanja(d)}月';
+
+/// 년·월·일 한자 라벨 — 예: "丙午年 乙未月 丁酉日".
+String sajuLabel(DateTime d) => '${yearLabel(d)} ${monthLabel(d)} ${iljinLabel(d)}';
+
 // ------------------------------------------------------------- 별자리(점성술)
 // 서양 태양(sun-sign) 점성술. 월별 경계일(_zodiacCut) 기준으로 별자리 index 산출.
 // index: 0 물병 … 11 염소 (월 순서에 맞춘 배열).
@@ -138,18 +183,28 @@ const _zodiacPlanet = [
   '천왕성', '해왕성', '화성', '금성', '수성', '달',
   '태양', '수성', '금성', '명왕성', '목성', '토성',
 ];
+// 황도 12궁 한자 (중국 점성 명칭).
+const _zodiacHanja = [
+  '寶瓶', '雙魚', '白羊', '金牛', '雙子', '巨蟹',
+  '獅子', '處女', '天秤', '天蠍', '人馬', '磨羯',
+];
 
 /// 별자리 데이터 묶음.
 class Zodiac {
   const Zodiac(this.name, this.symbol, this.eng, this.range, this.element,
-      this.planet);
+      this.planet, this.hanja);
   final String name; // 게자리
   final String symbol; // ♋
   final String eng; // Cancer
   final String range; // 6.22–7.22
   final String element; // 물
   final String planet; // 달
+  final String hanja; // 巨蟹
 }
+
+Zodiac _zodiacAt(int i) => Zodiac(_zodiacNames[i], _zodiacSymbol[i],
+    _zodiacEng[i], _zodiacRange[i], _zodiacElement[i], _zodiacPlanet[i],
+    _zodiacHanja[i]);
 
 int _zodiacIndex(DateTime d) {
   final m = d.month;
@@ -157,11 +212,21 @@ int _zodiacIndex(DateTime d) {
 }
 
 /// 날짜의 별자리 데이터 — 서양 태양 별자리(점성술).
-Zodiac zodiacOf(DateTime d) {
-  final i = _zodiacIndex(d);
-  return Zodiac(_zodiacNames[i], _zodiacSymbol[i], _zodiacEng[i],
-      _zodiacRange[i], _zodiacElement[i], _zodiacPlanet[i]);
+Zodiac zodiacOf(DateTime d) => _zodiacAt(_zodiacIndex(d));
+
+/// 지금 상승궁(어센던트) index — 근사: 일출(~6시)에 태양궁이 뜨고 약 2h마다 1궁.
+/// 정확한 상승궁은 출생 시각·위도가 필요 → 여기선 '지금 하늘'의 근사값.
+int _risingIndex(DateTime d) {
+  final sun = _zodiacIndex(d);
+  final steps = ((d.hour - 6) / 2).floor();
+  return ((sun + steps) % 12 + 12) % 12;
 }
+
+/// 지금 상승궁(어센던트, 근사).
+Zodiac risingOf(DateTime d) => _zodiacAt(_risingIndex(d));
+
+/// 지금 하강궁(디센던트) — 상승궁의 반대 궁.
+Zodiac descendantOf(DateTime d) => _zodiacAt((_risingIndex(d) + 6) % 12);
 
 /// 날짜의 별자리 — 예: "게자리".
 String byeoljari(DateTime d) => _zodiacNames[_zodiacIndex(d)];

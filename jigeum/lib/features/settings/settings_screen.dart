@@ -65,6 +65,13 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: ctrl.setSystemFont,
             ),
 
+            const SectionLabel('SKY'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+              child: Text('헤더의 별자리·만세력 표시', style: AppText.body(tk.ink)),
+            ),
+            _SkyPicker(current: s.skyMode, onPick: ctrl.setSkyMode),
+
             const SectionLabel('WIDGET'),
             const _WidgetOpacityTile(),
 
@@ -262,6 +269,52 @@ class _ThemePicker extends StatelessWidget {
                             active: current == spec.key)),
                   ),
                 ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 별자리·만세력 표시 모드 선택 — 둘다/별자리만/만세력만/둘다빼기.
+class _SkyPicker extends StatelessWidget {
+  const _SkyPicker({required this.current, required this.onPick});
+  final String current;
+  final ValueChanged<String> onPick;
+
+  static const _opts = [
+    ('both', '둘 다 보기'),
+    ('zodiac', '별자리만'),
+    ('saju', '만세력만'),
+    ('none', '둘 다 빼기'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final (key, label) in _opts)
+            GestureDetector(
+              onTap: () => onPick(key),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: current == key ? tk.ink : tk.line,
+                    width: current == key ? 1.5 : 1,
+                  ),
+                ),
+                child: Text(label,
+                    style: AppText.nav(current == key ? tk.ink : tk.inkSoft,
+                        active: current == key)),
               ),
             ),
         ],

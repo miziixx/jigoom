@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../core/journal.dart';
+import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
@@ -27,7 +28,12 @@ class _TodayViewState extends ConsumerState<TodayView> {
     final focus = ref.watch(focusProvider);
     final today = ref.watch(todayNodesProvider).valueOrNull ?? const [];
     final wins = ref.watch(todayWinsProvider).valueOrNull ?? const [];
+    final sky = ref.watch(settingsProvider);
     final now = DateTime.now();
+
+    final metaParts = <String>[DateFormat('EEEE', 'ko').format(now)];
+    if (sky.showSaju) metaParts.add(sajuLabel(now));
+    if (sky.showZodiac) metaParts.add(byeoljariLabel(now));
 
     final children = <Widget>[
       // 큰 날짜 (Sans) + 요일 (Mono meta)
@@ -41,8 +47,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
                 style: AppText.hTitle(tk.ink)),
             const SizedBox(width: 10),
             Flexible(
-              child: Text(
-                  '${DateFormat('EEEE', 'ko').format(now)} · ${iljinLabel(now)} · ${byeoljariLabel(now)}',
+              child: Text(metaParts.join(' · '),
                   style: AppText.metaSans(tk.inkSoft)),
             ),
           ],
