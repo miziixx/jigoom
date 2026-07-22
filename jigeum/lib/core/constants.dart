@@ -22,8 +22,10 @@ const double kRadius = 0.0;
 /// 라벨·기호·영문·숫자용 모노스페이스. (JetBrains Mono 미번들 → generic monospace)
 const kMonoFamily = 'monospace';
 
-/// 한글 본문·제목용 산세리프. null = 기기 기본 글꼴(삼성 One UI 등).
-const String? kSansFamily = null;
+/// 한글 본문·제목용 산세리프. 번들 Pretendard(assets/fonts) — 기기·폰트설정과
+/// 무관하게 앱이 항상 이 글꼴로 렌더된다. (Flutter 는 폰 커스텀 글꼴을 못 읽어
+/// 번들이 유일한 확실한 방법.)
+const String? kSansFamily = 'Pretendard';
 
 const kAnimDuration = Duration(milliseconds: 160);
 const kAnimCurve = Curves.easeOut;

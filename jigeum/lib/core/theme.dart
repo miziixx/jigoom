@@ -215,7 +215,7 @@ class AppTheme {
   static ThemeData build(AppTokens tk,
       {int weightDelta = 0, bool systemFont = false}) {
     appWeightDelta = weightDelta; // 전역 반영 (AppText 직접 호출부용)
-    // 라벨 글꼴: 기본 모노, "기기 글꼴로 통일" 켜지면 기기 기본(null).
+    // 라벨 글꼴: 기본 모노, "글꼴 하나로 통일" 켜지면 본문과 같은 Pretendard.
     appMono = systemFont ? kSansFamily : kMonoFamily;
     final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);

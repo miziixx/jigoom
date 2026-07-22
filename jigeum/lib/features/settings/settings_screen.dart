@@ -63,8 +63,8 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _switchRow(
               context,
-              title: '기기 글꼴로 통일',
-              sub: '라벨·숫자(모노)까지 폰에서 쓰는 글꼴로',
+              title: '글꼴 하나로 통일',
+              sub: '라벨·숫자(모노)까지 본문과 같은 글꼴(Pretendard)로',
               value: s.systemFont,
               onChanged: ctrl.setSystemFont,
             ),

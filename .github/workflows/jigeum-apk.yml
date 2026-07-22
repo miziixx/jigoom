@@ -46,6 +46,11 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          # 번들 폰트 파일이 실제로 있으면 fonts: 선언을 유지한다.
+          # (Pretendard 등 커밋된 폰트) 없을 때만 기본 폰트로 빌드하도록 스트립.
+          if list(Path("assets/fonts").glob("*.otf")) or list(Path("assets/fonts").glob("*.ttf")):
+              print("bundled font files present — keeping fonts: section")
+              raise SystemExit(0)
           p = Path("pubspec.yaml")
           lines = p.read_text(encoding="utf-8").splitlines(keepends=True)
           out, skip = [], False
