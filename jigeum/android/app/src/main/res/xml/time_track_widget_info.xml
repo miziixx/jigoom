@@ -8,4 +8,4 @@
     android:initialLayout="@layout/time_track_widget"
     android:previewLayout="@layout/time_track_widget"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen|keyguard" />
+    android:widgetCategory="home_screen" />

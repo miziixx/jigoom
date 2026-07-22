@@ -8,6 +8,7 @@ import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
 import 'features/capture/quick_capture_bar.dart';
+import 'features/capture/quick_capture_input.dart';
 import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
@@ -35,14 +36,22 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   void initState() {
     super.initState();
+    // 포커스·매트릭스 위젯 탭 진입 → 빠른 담기 입력창.
+    quickCaptureFocusRequest.addListener(_onQuickCapture);
     // 타임트래커 위젯 탭 진입 → 현재 블록 입력창.
     timeTrackLaunchRequest.addListener(_onTimeTrackLaunch);
   }
 
   @override
   void dispose() {
+    quickCaptureFocusRequest.removeListener(_onQuickCapture);
     timeTrackLaunchRequest.removeListener(_onTimeTrackLaunch);
     super.dispose();
+  }
+
+  void _onQuickCapture() {
+    if (!mounted) return;
+    showQuickCaptureInput(context, ref);
   }
 
   void _onTimeTrackLaunch() {
