@@ -20,7 +20,7 @@
             android:textColor="#26241F"
             android:text="7월 20일 일요일" />
 
-        <View
+        <TextView
             android:id="@+id/matrix_rule"
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -65,7 +65,7 @@
                     android:ellipsize="end" />
             </LinearLayout>
 
-            <View
+            <TextView
                 android:id="@+id/matrix_div1"
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
@@ -103,7 +103,7 @@
         </LinearLayout>
 
         <!-- 가로 규칙선 -->
-        <View
+        <TextView
             android:id="@+id/matrix_div2"
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -148,7 +148,7 @@
                     android:ellipsize="end" />
             </LinearLayout>
 
-            <View
+            <TextView
                 android:id="@+id/matrix_div3"
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
