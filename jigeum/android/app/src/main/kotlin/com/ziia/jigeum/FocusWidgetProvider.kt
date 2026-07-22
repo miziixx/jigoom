@@ -39,6 +39,7 @@ class FocusWidgetProvider : AppWidgetProvider() {
                 // 배경: 테마 paper + 투명도(alpha) 를 루트에 직접 (RemoteViews 안전).
                 setInt(R.id.widget_root, "setBackgroundColor",
                     (alpha shl 24) or (pal.paper and 0xFFFFFF))
+                setTextColor(R.id.widget_check, pal.mark)
                 setTextColor(R.id.widget_now, pal.mark)
                 setTextColor(R.id.widget_title, pal.ink)
                 setOnClickPendingIntent(R.id.widget_root, pending)
