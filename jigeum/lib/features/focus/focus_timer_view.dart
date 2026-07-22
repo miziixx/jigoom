@@ -162,7 +162,7 @@ class _FocusTimerViewState extends ConsumerState<FocusTimerView> {
   Widget _buildPreStart() {
     final tk = t(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 24),
+      padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 8, AppSpace.gutter, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -255,7 +255,7 @@ class _FocusTimerViewState extends ConsumerState<FocusTimerView> {
     final tk = t(context);
     final reached = _ctrl.reachedPlan;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 24),
+      padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 8, AppSpace.gutter, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
