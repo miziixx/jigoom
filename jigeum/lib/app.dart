@@ -8,6 +8,7 @@ import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
 import 'features/capture/quick_capture_bar.dart';
+import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_view.dart';
@@ -203,6 +204,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _openSettings() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
 
+  void _openFortune() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const FortuneView()));
+
   /// 사이드바 메뉴 (편집형).
   Widget _buildDrawer(BuildContext context) {
     final tk = t(context);
@@ -238,6 +242,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                 height: 1,
                 color: tk.ink),
             const SizedBox(height: 6),
+            item(Icons.auto_awesome, '오늘의 운세', _openFortune),
             item(Icons.tune, '설정', _openSettings),
           ],
         ),

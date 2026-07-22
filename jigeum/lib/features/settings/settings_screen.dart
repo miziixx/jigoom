@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants.dart';
 import '../../core/dialogs.dart';
 import '../../core/journal.dart';
+import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
@@ -71,6 +73,13 @@ class SettingsScreen extends ConsumerWidget {
               child: Text('헤더의 별자리·만세력 표시', style: AppText.body(tk.ink)),
             ),
             _SkyPicker(current: s.skyMode, onPick: ctrl.setSkyMode),
+
+            const SectionLabel('SAJU'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+              child: Text('오늘의 운세용 — 생년월일과 태어난 시각', style: AppText.body(tk.ink)),
+            ),
+            _SajuTile(settings: s, ctrl: ctrl),
 
             const SectionLabel('WIDGET'),
             const _WidgetOpacityTile(),
@@ -319,6 +328,134 @@ class _SkyPicker extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// 사주(생년월일시) 입력 타일 — 날짜/시각 피커. '오늘의 운세'의 원천 데이터.
+class _SajuTile extends StatelessWidget {
+  const _SajuTile({required this.settings, required this.ctrl});
+  final AppSettings settings;
+  final SettingsController ctrl;
+
+  Future<void> _pickDate(BuildContext context) async {
+    final b = settings.birth;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: b ?? DateTime(1995, 1, 1),
+      firstDate: DateTime(1920),
+      lastDate: DateTime.now(),
+      helpText: '생년월일 선택',
+    );
+    if (picked == null) return;
+    // 기존 시각 유지(없으면 정오).
+    final h = settings.birthHasTime && b != null ? b.hour : 12;
+    final m = settings.birthHasTime && b != null ? b.minute : 0;
+    await ctrl.setBirth(
+      DateTime(picked.year, picked.month, picked.day, h, m),
+      hasTime: settings.birthHasTime,
+    );
+  }
+
+  Future<void> _pickTime(BuildContext context) async {
+    final b = settings.birth;
+    if (b == null) {
+      // 날짜부터.
+      await _pickDate(context);
+      if (settings.birth == null) return;
+    }
+    final base = settings.birth ?? DateTime(1995, 1, 1, 12);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: base.hour, minute: base.minute),
+      helpText: '태어난 시각 선택',
+    );
+    if (picked == null) return;
+    await ctrl.setBirth(
+      DateTime(base.year, base.month, base.day, picked.hour, picked.minute),
+      hasTime: true,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    final b = settings.birth;
+    final dateStr = b == null
+        ? '입력 안 됨'
+        : '${b.year}.${b.month.toString().padLeft(2, '0')}.${b.day.toString().padLeft(2, '0')}';
+    final timeStr = b == null
+        ? '—'
+        : settings.birthHasTime
+            ? '${b.hour.toString().padLeft(2, '0')}:${b.minute.toString().padLeft(2, '0')}'
+            : '모름';
+
+    Widget row(String label, String value, VoidCallback onTap,
+        {Widget? trailing}) {
+      return InkWell(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: tk.line, width: 1)),
+          ),
+          padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+          child: Row(
+            children: [
+              Expanded(child: Text(label, style: AppText.body(tk.ink))),
+              Text(value, style: AppText.meta(tk.inkSoft, size: 12)),
+              if (trailing != null) trailing,
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('음력이면 양력으로 변환해 입력하세요',
+                  style: AppText.meta(tk.inkSoft, size: 10)),
+              if (b != null)
+                GestureDetector(
+                  onTap: ctrl.clearBirth,
+                  child: Text('지우기', style: AppText.meta(tk.mark, size: 11)),
+                ),
+            ],
+          ),
+        ),
+        row('생년월일 (양력)', dateStr, () => _pickDate(context)),
+        row('태어난 시각', timeStr, () => _pickTime(context),
+            trailing: b == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: GestureDetector(
+                      onTap: () => ctrl.setBirth(
+                          DateTime(b.year, b.month, b.day, 12, 0),
+                          hasTime: false),
+                      child:
+                          Text('시 모름', style: AppText.meta(tk.inkSoft, size: 10)),
+                    ),
+                  )),
+        if (b != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
+            child: Builder(builder: (_) {
+              final chart = computeSaju(b, hasHour: settings.birthHasTime);
+              final z = zodiacOf(b);
+              return Text(
+                '→ 일주 ${chart.day.hanja}(${chart.day.kor}) · 일간 '
+                '${stemHanja[chart.dayStem]} ${wuxingKor[stemWuxing(chart.dayStem)]}'
+                ' · ${z.symbol} ${z.name}',
+                style: AppText.meta(tk.ink, size: 11),
+              );
+            }),
+          ),
+      ],
     );
   }
 }
