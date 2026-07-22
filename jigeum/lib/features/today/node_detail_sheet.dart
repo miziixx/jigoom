@@ -49,6 +49,16 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
     super.dispose();
   }
 
+  /// 읽기 전용 메타 한 줄 — 값이 있을 때만. 예: "다음 · 3장부터".
+  Widget _metaLine(BuildContext context, String label, String? value) {
+    if (value == null || value.trim().isEmpty) return const SizedBox.shrink();
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text('$label · $value', style: AppText.meta(tk.inkSoft)),
+    );
+  }
+
   Widget _toggleChip(BuildContext context, String label, bool on,
       Color onColor, VoidCallback onTap) {
     final tk = t(context);
@@ -100,6 +110,12 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(widget.node.title, style: theme.textTheme.titleMedium),
+
+          // ADHD 메타: 다음 시작점 · 실행의도 · 장애물 (있을 때만, 읽기 전용).
+          _metaLine(context, '다음', widget.node.nextStep),
+          _metaLine(context, '시작 신호', widget.node.triggerCondition),
+          _metaLine(context, '주의', widget.node.obstacleNote),
+
           const SizedBox(height: 12),
 
           // 중요 / 긴급 토글

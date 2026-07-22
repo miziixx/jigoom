@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/constants.dart';
 import 'data/backup_service.dart';
 import 'data/db.dart';
+import 'data/repos/focus_session_repository.dart';
 import 'data/repos/habit_repository.dart';
 import 'data/repos/node_repository.dart';
 import 'data/repos/schedule_repository.dart';
@@ -28,6 +29,11 @@ final nodeRepoProvider = Provider<NodeRepository>((ref) {
 
 final backupServiceProvider = Provider<BackupService>((ref) {
   return BackupService(ref.watch(dbProvider));
+});
+
+/// 집중 세션 리포지토리 (적응형 타임박싱).
+final focusSessionRepoProvider = Provider<FocusSessionRepository>((ref) {
+  return FocusSessionRepository(ref.watch(dbProvider));
 });
 
 /// 인박스 (parentId=null, type=memo, open)

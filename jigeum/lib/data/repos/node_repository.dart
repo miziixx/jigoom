@@ -79,6 +79,62 @@ class NodeRepository {
     );
   }
 
+  /// 다음 시작점 저장 (집중 세션 종료 시 "다음엔 어디부터"). 빈 값이면 지움.
+  Future<void> setNextStep(String id, String? text) async {
+    final v = (text == null || text.trim().isEmpty) ? null : text.trim();
+    await (db.update(db.nodes)..where((n) => n.id.equals(id))).write(
+      NodesCompanion(nextStep: Value(v), updatedAt: Value(DateTime.now())),
+    );
+  }
+
+  /// 실행의도(트리거)·장애물 한 줄 저장 (WOOP 경량화). 빈 값이면 지움.
+  Future<void> setTriggerAndObstacle(
+      String id, String? trigger, String? obstacle) async {
+    String? clean(String? s) =>
+        (s == null || s.trim().isEmpty) ? null : s.trim();
+    await (db.update(db.nodes)..where((n) => n.id.equals(id))).write(
+      NodesCompanion(
+        triggerCondition: Value(clean(trigger)),
+        obstacleNote: Value(clean(obstacle)),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// 타입 전환 (예: 방해요소 메모 → task). status 재계산은 setMatrix 가 담당.
+  /// task 로 전환 시 캡처 링크(focusSessionId)는 유지해도 무방하나, 목록 노출을
+  /// 깔끔히 하기 위해 링크를 끊는다(리뷰에서 처리 완료된 것으로 간주).
+  Future<void> setType(String id, String type) async {
+    await (db.update(db.nodes)..where((n) => n.id.equals(id))).write(
+      NodesCompanion(
+        type: Value(type),
+        focusSessionId: const Value(null),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// 특정 집중 세션 중 캡처된 방해요소(메모) 목록 (1회성 조회).
+  Future<List<Node>> distractionsForSession(String sessionId) {
+    final q = db.select(db.nodes)
+      ..where((n) => n.focusSessionId.equals(sessionId))
+      ..orderBy([(n) => OrderingTerm.asc(n.createdAt)]);
+    return q.get();
+  }
+
+  /// 해당 날짜에 완료(done)된 노드 개수 — 저녁 "오늘의 승리 N개" 알림용.
+  Future<int> winsCountForDate(DateTime date) async {
+    final start = dateOnly(date);
+    final end = start.add(const Duration(days: 1));
+    final q = db.selectOnly(db.nodes)
+      ..addColumns([db.nodes.id.count()])
+      ..where(db.nodes.status.equals(NodeStatus.done) &
+          db.nodes.doneAt.isBiggerOrEqualValue(start) &
+          db.nodes.doneAt.isSmallerThanValue(end));
+    final row = await q.getSingleOrNull();
+    return row?.read(db.nodes.id.count()) ?? 0;
+  }
+
   /// 폴더 이동 (parentId 변경). null 이면 최상위로.
   Future<void> setParent(String id, String? parentId) async {
     final order = await _nextSortOrder(parentId);
@@ -151,6 +207,7 @@ class NodeRepository {
     bool urgent = false,
     DateTime? date,
     String? slot,
+    String? focusSessionId,
   }) async {
     final now = DateTime.now();
     final id = _uuid.v4();
@@ -175,6 +232,7 @@ class NodeRepository {
           date: Value(date == null ? null : dateOnly(date)),
           slot: Value(slot),
           status: Value(status),
+          focusSessionId: Value(focusSessionId),
           createdAt: now,
           updatedAt: now,
         ));

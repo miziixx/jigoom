@@ -15,6 +15,7 @@ import 'features/outline/outline_view.dart';
 import 'features/schedule/time_hub.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
+import 'features/today/intention_sheet.dart';
 import 'features/today/today_view.dart';
 import 'features/today/two_minute_sheet.dart';
 import 'providers.dart';
@@ -198,7 +199,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     final repo = ref.read(nodeRepoProvider);
     final id = await repo.create(type: NodeType.goal, title: title.trim());
     if (!mounted) return;
-    await showTwoMinuteSheet(context, ref, goalId: id, goalTitle: title.trim());
+    final saved = await showTwoMinuteSheet(context, ref,
+        goalId: id, goalTitle: title.trim());
+    // 첫 행동을 실제로 정했을 때만 이어서 실행의도(선택) 시트.
+    if (saved == true && mounted) {
+      await showIntentionSheet(context, ref,
+          goalId: id, goalTitle: title.trim());
+    }
   }
 
   void _openSettings() => Navigator.of(context)

@@ -8,6 +8,7 @@ import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
+import '../focus/focus_timer_view.dart';
 import 'node_detail_sheet.dart';
 
 /// 오늘 뷰 (홈) — 편집(에디토리얼) 목차형.
@@ -127,18 +128,64 @@ class _FocusBlock extends ConsumerWidget {
               children: [
                 GlyphCheck(
                   done: false,
-                  onTap: () => ref.read(nodeRepoProvider).complete(node.id),
+                  onTap: () async {
+                    await ref.read(nodeRepoProvider).complete(node.id);
+                    if (context.mounted) showDoneFeedback(context, ref);
+                  },
                 ),
                 Expanded(
-                  child: Text(node.title, style: AppText.body(tk.ink)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(node.title, style: AppText.body(tk.ink)),
+                      if (node.nextStep != null &&
+                          node.nextStep!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text('다음 · ${node.nextStep}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.meta(tk.inkSoft)),
+                        ),
+                    ],
+                  ),
                 ),
               ],
+            ),
+          ),
+        ),
+        // 지금 조금만 시작 — 생각 단계를 줄여 바로 진입.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 4),
+          child: GestureDetector(
+            onTap: () => openFocusTimer(context, node: node, autoStartMinutes: 3),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                border: Border.all(color: tk.line, width: 1),
+              ),
+              child: Text('▷ 3분만 시작',
+                  style: AppText.chip(tk.ink)),
             ),
           ),
         ),
       ],
     );
   }
+}
+
+/// 완료 시 짧은 텍스트 피드백 (코인·랜덤박스 없이 — 에세이의 "나쁜 보상" 회피).
+/// 오늘 완료 누계를 세어 "완료했어요 · 오늘 N개째" SnackBar 를 띄운다.
+Future<void> showDoneFeedback(BuildContext context, WidgetRef ref) async {
+  final n = await ref.read(nodeRepoProvider).winsCountForDate(todayDate());
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context)
+    ..clearSnackBars()
+    ..showSnackBar(SnackBar(
+      content: Text('완료했어요 · 오늘 $n개째'),
+      duration: const Duration(milliseconds: 1400),
+    ));
 }
 
 /// 편집형 할 일 줄: 글리프 체크 · 제목(한글 Sans) · 메타(메모/마감) · 우선순위 라벨.
@@ -170,8 +217,14 @@ class SimpleTile extends ConsumerWidget {
           children: [
             GlyphCheck(
               done: done,
-              onTap: () =>
-                  done ? repo.reopen(node.id) : repo.complete(node.id),
+              onTap: () async {
+                if (done) {
+                  await repo.reopen(node.id);
+                } else {
+                  await repo.complete(node.id);
+                  if (context.mounted) showDoneFeedback(context, ref);
+                }
+              },
             ),
             Expanded(
               child: Column(
@@ -217,7 +270,12 @@ class SimpleTile extends ConsumerWidget {
       secondaryBackground: _swipeBg(tk, Alignment.centerRight, '×'),
       confirmDismiss: (dir) async {
         if (dir == DismissDirection.startToEnd) {
-          done ? await repo.reopen(node.id) : await repo.complete(node.id);
+          if (done) {
+            await repo.reopen(node.id);
+          } else {
+            await repo.complete(node.id);
+            if (context.mounted) showDoneFeedback(context, ref);
+          }
           return false;
         }
         await repo.deleteNode(node.id);

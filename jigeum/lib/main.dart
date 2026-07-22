@@ -181,6 +181,12 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       await ref.read(scheduleRepoProvider).generateTodayRoutines(); // 루틴→오늘 일정
       ref.invalidate(focusProvider);
       await _syncWidgets();
+
+      // 즉시 보상 배선: 저녁 "오늘의 승리 N개" 예약 (N=0이면 발송 안 함).
+      if (!kIsWeb) {
+        final wins = await repo.winsCountForDate(todayDate());
+        await NotificationService.instance.scheduleEvening(wins);
+      }
     } catch (e, s) {
       debugPrint('daily routine 실패(무시): $e\n$s');
     }
