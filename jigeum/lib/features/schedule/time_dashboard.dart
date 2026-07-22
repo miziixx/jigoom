@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/astrology.dart' as astro;
 import '../../core/constants.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
@@ -52,6 +53,15 @@ class TimeDashboard extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(kGutter, 1, kGutter, 0),
           child: Text('원소 ${z.element} · 지배성 ${z.planet}',
               style: AppText.metaSans(tk.inkSoft)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 3, kGutter, 0),
+          child: Builder(builder: (_) {
+            final moon = astro.signAt(
+                astro.signIndexFromLongitude(astro.moonEclipticLongitude(now)));
+            return Text('달 ${moon.symbol} ${moon.name}',
+                style: AppText.metaSans(tk.ink));
+          }),
         ),
         // 상승궁(어센던트)·하강궁(디센던트) — 지금 하늘 근사.
         Padding(

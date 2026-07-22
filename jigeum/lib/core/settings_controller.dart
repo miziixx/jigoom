@@ -15,10 +15,13 @@ class AppSettings {
     this.birth,
     this.birthHasTime = false,
     this.birthLongitude = 126.98, // 기본 서울
+    this.birthLatitude = 37.57, // 기본 서울
     this.birthMale = true,
     this.birthPlace = '서울',
     this.birthCalendar = 'solar', // 입력 방식(표시용): 'solar' | 'lunar'
     this.birthLeap = false, // 음력 윤달 입력 여부(표시용)
+    this.sajuLevel = 'general', // 사주 풀이 설명 레벨
+    this.astroLevel = 'general', // 점성학 풀이 설명 레벨
   });
 
   final String themeKey; // 내장 10종 중 하나 (기본 manila)
@@ -29,10 +32,13 @@ class AppSettings {
   final DateTime? birth; // 생년월일(+시각) — 항상 '양력' 시각으로 저장(civil).
   final bool birthHasTime; // 태어난 시각을 입력했는가(시주 포함 여부)
   final double birthLongitude; // 출생지 경도(동경) — 진태양시 보정용
+  final double birthLatitude; // 출생지 위도(북위) — 상승궁(점성) 근사용
   final bool birthMale; // 성별(대운 방향 계산용). true=남
   final String birthPlace; // 출생지 이름(표시용)
   final String birthCalendar; // 입력 달력 표시용
   final bool birthLeap; // 음력 윤달 입력이었는지(표시용)
+  final String sajuLevel; // 사주 풀이 레벨 키(explain.dart)
+  final String astroLevel; // 점성학 풀이 레벨 키(explain.dart)
 
   /// 사주(오늘의 운세)를 계산할 수 있는가.
   bool get hasBirth => birth != null;
@@ -54,10 +60,13 @@ class AppSettings {
     Object? birth = _noArg, // null 로 지울 수 있도록 sentinel 사용
     bool? birthHasTime,
     double? birthLongitude,
+    double? birthLatitude,
     bool? birthMale,
     String? birthPlace,
     String? birthCalendar,
     bool? birthLeap,
+    String? sajuLevel,
+    String? astroLevel,
   }) =>
       AppSettings(
         themeKey: themeKey ?? this.themeKey,
@@ -68,10 +77,13 @@ class AppSettings {
         birth: identical(birth, _noArg) ? this.birth : birth as DateTime?,
         birthHasTime: birthHasTime ?? this.birthHasTime,
         birthLongitude: birthLongitude ?? this.birthLongitude,
+        birthLatitude: birthLatitude ?? this.birthLatitude,
         birthMale: birthMale ?? this.birthMale,
         birthPlace: birthPlace ?? this.birthPlace,
         birthCalendar: birthCalendar ?? this.birthCalendar,
         birthLeap: birthLeap ?? this.birthLeap,
+        sajuLevel: sajuLevel ?? this.sajuLevel,
+        astroLevel: astroLevel ?? this.astroLevel,
       );
 }
 
@@ -90,10 +102,13 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _kBirth = 'birth_at'; // ISO8601 (local) — 항상 양력 시각
   static const _kBirthHasTime = 'birth_has_time';
   static const _kBirthLng = 'birth_lng';
+  static const _kBirthLat = 'birth_lat';
   static const _kBirthMale = 'birth_male';
   static const _kBirthPlace = 'birth_place';
   static const _kBirthCal = 'birth_cal';
   static const _kBirthLeap = 'birth_leap';
+  static const _kSajuLevel = 'saju_level';
+  static const _kAstroLevel = 'astro_level';
 
   Future<void> _load() async {
     final scale = await _get(_kScale);
@@ -104,10 +119,13 @@ class SettingsController extends StateNotifier<AppSettings> {
     final birthStr = await _get(_kBirth);
     final birthHasTime = await _get(_kBirthHasTime);
     final lng = await _get(_kBirthLng);
+    final lat = await _get(_kBirthLat);
     final male = await _get(_kBirthMale);
     final place = await _get(_kBirthPlace);
     final cal = await _get(_kBirthCal);
     final leap = await _get(_kBirthLeap);
+    final sajuLevel = await _get(_kSajuLevel);
+    final astroLevel = await _get(_kAstroLevel);
     state = AppSettings(
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
@@ -119,10 +137,13 @@ class SettingsController extends StateNotifier<AppSettings> {
           : DateTime.tryParse(birthStr),
       birthHasTime: birthHasTime == '1',
       birthLongitude: double.tryParse(lng ?? '') ?? 126.98,
+      birthLatitude: double.tryParse(lat ?? '') ?? 37.57,
       birthMale: male == null ? true : male == '1',
       birthPlace: place ?? '서울',
       birthCalendar: cal ?? 'solar',
       birthLeap: leap == '1',
+      sajuLevel: sajuLevel ?? 'general',
+      astroLevel: astroLevel ?? 'general',
     );
   }
 
@@ -131,6 +152,7 @@ class SettingsController extends StateNotifier<AppSettings> {
     DateTime birth, {
     required bool hasTime,
     double? longitude,
+    double? latitude,
     bool? male,
     String? place,
     String? calendar,
@@ -140,6 +162,7 @@ class SettingsController extends StateNotifier<AppSettings> {
       birth: birth,
       birthHasTime: hasTime,
       birthLongitude: longitude,
+      birthLatitude: latitude,
       birthMale: male,
       birthPlace: place,
       birthCalendar: calendar,
@@ -148,10 +171,21 @@ class SettingsController extends StateNotifier<AppSettings> {
     await _set(_kBirth, birth.toIso8601String());
     await _set(_kBirthHasTime, hasTime ? '1' : '0');
     if (longitude != null) await _set(_kBirthLng, '$longitude');
+    if (latitude != null) await _set(_kBirthLat, '$latitude');
     if (male != null) await _set(_kBirthMale, male ? '1' : '0');
     if (place != null) await _set(_kBirthPlace, place);
     if (calendar != null) await _set(_kBirthCal, calendar);
     if (leap != null) await _set(_kBirthLeap, leap ? '1' : '0');
+  }
+
+  Future<void> setSajuLevel(String key) async {
+    state = state.copyWith(sajuLevel: key);
+    await _set(_kSajuLevel, key);
+  }
+
+  Future<void> setAstroLevel(String key) async {
+    state = state.copyWith(astroLevel: key);
+    await _set(_kAstroLevel, key);
   }
 
   Future<void> setLongitude(double lng, String place) async {

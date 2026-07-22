@@ -45,6 +45,18 @@ double _sunLongitude(double jd) {
   return lambda;
 }
 
+/// KST civil DateTime(연·월·일·시·분) → JD(UT). 한국 표준시 UTC+9로 간주.
+double julianDayUt(DateTime kst) {
+  final ut = kst.subtract(const Duration(hours: 9));
+  final jdn = _gregToJDN(ut.year, ut.month, ut.day);
+  final dayFrac =
+      (ut.hour + ut.minute / 60.0 + ut.second / 3600.0) / 24.0;
+  return jdn - 0.5 + dayFrac;
+}
+
+/// 그 순간의 태양 겉보기 황경(도, 0~360). 별자리·트랜짓용.
+double sunEclipticLongitude(DateTime kst) => _sunLongitude(julianDayUt(kst));
+
 // ------------------------------------------------------------------ 24절기
 // 인덱스 = 황경/15. 0°=춘분 … 345°=경칩.
 const solarTermNames = [
