@@ -124,7 +124,7 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
             style: theme.textTheme.bodyMedium,
             decoration: const InputDecoration(
               hintText: '지금이든 나중이든, 남기고 싶은 것',
-              border: OutlineInputBorder(),
+              border: UnderlineInputBorder(),
               isDense: true,
             ),
           ),

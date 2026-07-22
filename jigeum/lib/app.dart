@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants.dart';
+import 'core/dialogs.dart';
 import 'core/journal.dart';
 import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
@@ -170,71 +171,18 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  /// 새 습관 만들기 (이름 + 카테고리).
+  /// 새 습관 만들기 (이름만 — 카테고리는 상세에서).
   Future<void> _newHabit() async {
-    final name = TextEditingController();
-    final cat = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('새 습관'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              autofocus: true,
-              decoration:
-                  const InputDecoration(hintText: '예: 아침 산책, 물 마시기'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: cat,
-              decoration: const InputDecoration(
-                  hintText: '카테고리 (선택 · 예: 건강, 공부)'),
-              onSubmitted: (_) => Navigator.of(ctx).pop(true),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('취소')),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('만들기')),
-        ],
-      ),
-    );
-    if (ok != true || name.text.trim().isEmpty) return;
-    await ref
-        .read(habitRepoProvider)
-        .addHabit(name.text.trim(), category: cat.text.trim());
+    final name = await showInputDialog(context,
+        title: '새 습관', hint: '예: 아침 산책, 물 마시기');
+    if (name == null || name.trim().isEmpty) return;
+    await ref.read(habitRepoProvider).addHabit(name.trim());
   }
 
   /// 새 폴더(카테고리) 생성 — 아웃라인 최상위에 추가.
   Future<void> _newFolder() async {
-    final controller = TextEditingController();
-    final title = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('새 폴더'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '예: 회사, 집, 공부'),
-          onSubmitted: (v) => Navigator.of(ctx).pop(v),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('취소')),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(controller.text),
-              child: const Text('만들기')),
-        ],
-      ),
-    );
+    final title =
+        await showInputDialog(context, title: '새 폴더', hint: '예: 회사, 집, 공부');
     if (title == null || title.trim().isEmpty) return;
     await ref
         .read(nodeRepoProvider)
@@ -243,27 +191,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   /// 새 목표 → 저장 직후 첫 2분 행동 시트 (규칙 5).
   Future<void> _newGoal() async {
-    final controller = TextEditingController();
-    final title = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('새 목표'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '이루고 싶은 것'),
-          onSubmitted: (v) => Navigator.of(ctx).pop(v),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('취소')),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(controller.text),
-              child: const Text('만들기')),
-        ],
-      ),
-    );
+    final title =
+        await showInputDialog(context, title: '새 목표', hint: '이루고 싶은 것');
     if (title == null || title.trim().isEmpty || !mounted) return;
     final repo = ref.read(nodeRepoProvider);
     final id = await repo.create(type: NodeType.goal, title: title.trim());

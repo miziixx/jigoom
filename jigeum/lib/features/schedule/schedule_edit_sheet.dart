@@ -118,7 +118,7 @@ class _SheetState extends ConsumerState<_Sheet> {
             controller: _title,
             autofocus: widget.existing == null,
             decoration: const InputDecoration(
-                hintText: '무엇을 하나요?', border: OutlineInputBorder()),
+                hintText: '무엇을 하나요?', border: UnderlineInputBorder()),
           ),
           const SizedBox(height: 12),
           // 시간
@@ -133,7 +133,7 @@ class _SheetState extends ConsumerState<_Sheet> {
           TextField(
             controller: _note,
             decoration: const InputDecoration(
-                hintText: '메모 (선택)', border: OutlineInputBorder(), isDense: true),
+                hintText: '메모 (선택)', border: UnderlineInputBorder(), isDense: true),
           ),
           const SizedBox(height: 16),
           Row(

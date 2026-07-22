@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/repos/time_track_repository.dart';
+import '../../providers.dart';
+import '../capture/prompt_bar.dart';
 import '../timetrack/time_track_screen.dart';
 import 'routine_screen.dart';
 import 'schedule_view.dart';
@@ -41,6 +44,30 @@ class _TimeHubState extends ConsumerState<TimeHub> {
             ],
           ),
         ),
+        // 일정·기록 하위엔 하단 담기 바(빠른 추가). 루틴은 없음.
+        if (_sub == 0)
+          PromptBar(
+            hint: '일정 담기_',
+            onSubmit: (text) async {
+              final start = DateTime.now().hour * 60;
+              await ref.read(scheduleRepoProvider).addSchedule(
+                    date: todayDate(),
+                    title: text,
+                    note: '',
+                    color: 0,
+                    startMin: start,
+                    endMin: (start + 60).clamp(0, 1439),
+                  );
+            },
+          )
+        else if (_sub == 2)
+          PromptBar(
+            hint: '지금 기록_',
+            onSubmit: (text) async {
+              await ref.read(timeTrackRepoProvider).setBlock(
+                  todayDate(), TimeTrackRepository.blockOfNow(), text);
+            },
+          ),
       ],
     );
   }

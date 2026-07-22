@@ -222,7 +222,7 @@ class _RoutineEditSheetState extends ConsumerState<_RoutineEditSheet> {
             controller: _title,
             autofocus: widget.existing == null,
             decoration: const InputDecoration(
-                hintText: '예: 아침 기상, 운동', border: OutlineInputBorder()),
+                hintText: '예: 아침 기상, 운동', border: UnderlineInputBorder()),
           ),
           const SizedBox(height: 12),
           // 요일 선택

@@ -77,7 +77,7 @@ class _TwoMinuteSheetState extends ConsumerState<_TwoMinuteSheet> {
             style: theme.textTheme.bodyLarge,
             decoration: const InputDecoration(
               hintText: '예: 관련 폴더 하나 만들기',
-              border: OutlineInputBorder(),
+              border: UnderlineInputBorder(),
               isDense: true,
             ),
           ),

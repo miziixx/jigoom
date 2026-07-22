@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/dialogs.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
@@ -186,22 +187,12 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _import(BuildContext context, WidgetRef ref) async {
     final json = await WidgetBridge.openBackup();
     if (json == null || !context.mounted) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('복원할까요?'),
-        content: const Text('지금의 모든 데이터를 지우고\n선택한 백업으로 되돌립니다.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('취소')),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('복원')),
-        ],
-      ),
-    );
-    if (ok != true) return;
+    final ok = await showConfirmDialog(context,
+        title: '복원할까요?',
+        message: '지금의 모든 데이터를 지우고\n선택한 백업으로 되돌립니다.',
+        confirmLabel: '복원',
+        danger: true);
+    if (!ok) return;
     try {
       await ref.read(backupServiceProvider).importJson(json);
       if (context.mounted) _toast(context, '복원했어요');

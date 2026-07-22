@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
+import '../../core/dialogs.dart';
 import '../../data/db.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
@@ -571,49 +572,22 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   }
 
   Future<void> _changeCategory() async {
-    final controller = TextEditingController(text: widget.habit.category);
-    final v = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('카테고리'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration:
-              const InputDecoration(hintText: '예: 건강, 공부 (비우면 기본)'),
-          onSubmitted: (s) => Navigator.of(ctx).pop(s),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('취소')),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(controller.text),
-              child: const Text('저장')),
-        ],
-      ),
-    );
+    final v = await showInputDialog(context,
+        kicker: 'EDIT',
+        title: '카테고리',
+        hint: '예: 건강, 공부 (비우면 기본)',
+        initial: widget.habit.category);
     if (v == null) return;
     await ref.read(habitRepoProvider).setCategory(widget.habit.id, v.trim());
   }
 
   Future<void> _confirmDelete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('"${widget.habit.title}" 삭제할까요?'),
-        content: const Text('기록도 함께 지워져요.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('취소')),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('삭제')),
-        ],
-      ),
-    );
-    if (ok == true) {
+    final ok = await showConfirmDialog(context,
+        title: '"${widget.habit.title}" 삭제할까요?',
+        message: '기록도 함께 지워져요.',
+        confirmLabel: '삭제',
+        danger: true);
+    if (ok) {
       await ref.read(habitRepoProvider).deleteHabit(widget.habit.id);
       if (mounted) Navigator.of(context).pop();
     }
