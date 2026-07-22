@@ -5,6 +5,7 @@ import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/dialogs.dart';
 import '../../core/journal.dart';
+import '../../core/regions.dart';
 import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
@@ -452,9 +453,16 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
   late int _year, _month, _day;
   bool _timeUnknown = false;
   int _hour = 12, _minute = 0;
-  int _cityIndex = 0; // koreaCities index, -1 = 직접입력
-  double _customLng = 127.0;
+  Region _region = seoulRegion;
+  final TextEditingController _search = TextEditingController();
+  String _query = '';
   String? _error;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -465,11 +473,8 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
     _cal = s.birthCalendar;
     _leap = s.birthLeap;
     _timeUnknown = b != null && !s.birthHasTime;
-    // 경도 → 도시 index 매칭.
-    _cityIndex = koreaCities.indexWhere((c) => (c.$2 - s.birthLongitude).abs() < 0.01);
-    if (_cityIndex < 0) {
-      _customLng = s.birthLongitude;
-    }
+    // 저장된 지역명(우선)·경도로 지역 되살리기.
+    _region = resolveRegion(s.birthPlace, s.birthLongitude);
     if (b == null) {
       _year = 1995;
       _month = 1;
@@ -491,10 +496,6 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
     }
   }
 
-  double get _longitude =>
-      _cityIndex < 0 ? _customLng : koreaCities[_cityIndex].$2;
-  String get _placeName => _cityIndex < 0 ? '직접입력' : koreaCities[_cityIndex].$1;
-
   Future<void> _save() async {
     DateTime? solar;
     if (_cal == 'solar') {
@@ -510,9 +511,10 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
     await widget.ctrl.setBirth(
       solar,
       hasTime: !_timeUnknown,
-      longitude: _longitude,
+      longitude: _region.lng,
+      latitude: _region.lat,
       male: _male,
-      place: _placeName,
+      place: _region.name,
       calendar: _cal,
       leap: _cal == 'lunar' && _leap,
     );
@@ -589,13 +591,13 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
                 child: Text('시각 없이도 년·월·일주로 분석해요 (시주만 제외).',
                     style: AppText.meta(tk.inkSoft, size: 11)),
               ),
-            const SectionLabel('출생지 (경도 보정)'),
-            _cityPicker(tk),
-            if (_cityIndex < 0) _lngField(tk),
+            const SectionLabel('출생지 (지역)'),
+            _regionPicker(tk),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
-              child: Text('경도로 진태양시를 보정합니다 (동경 ${_longitude.toStringAsFixed(2)}°). '
-                  '서머타임·한국 표준시 변천은 자동 반영.',
+              child: Text(
+                  '지역으로 진태양시(사주)와 상승궁(점성학)을 자동 보정해요. '
+                  '서머타임·한국 표준시 변천도 자동 반영.',
                   style: AppText.meta(tk.inkSoft, size: 11)),
             ),
             if (_error != null)
@@ -711,23 +713,66 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
           onChanged: onChanged,
           label: label);
 
-  Widget _cityPicker(AppTokens tk) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (var i = 0; i < koreaCities.length; i++)
-            _cityChip(koreaCities[i].$1, _cityIndex == i,
-                () => setState(() => _cityIndex = i)),
-          _cityChip('직접입력', _cityIndex < 0, () => setState(() => _cityIndex = -1)),
-        ],
-      ),
+  Widget _regionPicker(AppTokens tk) {
+    final results = searchRegions(_query).take(30).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+          child: TextField(
+            controller: _search,
+            style: AppText.body(tk.ink),
+            onChanged: (v) => setState(() => _query = v),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: '지역 이름 검색 (예: 성남, 강릉, 제주)',
+              hintStyle: AppText.meta(tk.inkSoft),
+              prefixIcon: Icon(Icons.search, size: 18, color: tk.inkSoft),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : GestureDetector(
+                      onTap: () => setState(() {
+                        _query = '';
+                        _search.clear();
+                      }),
+                      child: Icon(Icons.close, size: 18, color: tk.inkSoft),
+                    ),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: tk.line)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: tk.ink, width: 1.5)),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+          child: Text('선택한 지역: ${_region.name}',
+              style: AppText.meta(tk.mark, size: 12)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (results.isEmpty)
+                Text('검색 결과가 없어요. 시·군 이름으로 다시 찾아보세요.',
+                    style: AppText.meta(tk.inkSoft))
+              else
+                for (final r in results)
+                  _regionChip(r, _region.name == r.name,
+                      () => setState(() => _region = r)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _cityChip(String label, bool sel, VoidCallback onTap) {
+  Widget _regionChip(Region r, bool sel, VoidCallback onTap) {
     final tk = t(context);
     return GestureDetector(
       onTap: onTap,
@@ -738,31 +783,7 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
           border: Border.all(
               color: sel ? tk.ink : tk.line, width: sel ? 1.5 : 1),
         ),
-        child: Text(label,
-            style: AppText.chip(sel ? tk.ink : tk.inkSoft)),
-      ),
-    );
-  }
-
-  Widget _lngField(AppTokens tk) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
-      child: Row(
-        children: [
-          Text('경도(동경) ', style: AppText.body(tk.ink)),
-          Expanded(
-            child: TextFormField(
-              initialValue: _customLng.toStringAsFixed(2),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              style: AppText.body(tk.ink),
-              onChanged: (v) {
-                final d = double.tryParse(v);
-                if (d != null && d > 100 && d < 150) _customLng = d;
-              },
-            ),
-          ),
-        ],
+        child: Text(r.name, style: AppText.chip(sel ? tk.ink : tk.inkSoft)),
       ),
     );
   }

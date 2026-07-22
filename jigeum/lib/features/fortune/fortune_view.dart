@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/astrology.dart';
 import '../../core/constants.dart';
+import '../../core/explain.dart';
 import '../../core/fortune.dart';
+import '../../core/fortune_text.dart';
 import '../../core/journal.dart';
 import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
@@ -43,10 +46,11 @@ class _EmptyState extends StatelessWidget {
           children: [
             Text('☯', style: AppText.glyph(tk.inkSoft, size: 40)),
             const SizedBox(height: 16),
-            Text('생년월일시를 입력하면\n오늘의 운세와 사주 분석을 볼 수 있어요',
+            Text('생년월일시를 입력하면\n오늘의 운세와 사주·점성학 분석을 볼 수 있어요',
                 textAlign: TextAlign.center, style: AppText.body(tk.ink)),
             const SizedBox(height: 8),
-            Text('사주팔자 + 서양 점성술 · 진태양시 보정 · 대운/세운',
+            Text('사주팔자 + 태양·달·상승 별자리 · 진태양시 보정 · 대운/세운\n'
+                '일반인부터 사주 고급까지 5단계 설명 레벨',
                 textAlign: TextAlign.center, style: AppText.meta(tk.inkSoft)),
             const SizedBox(height: 20),
             FilledButton(
@@ -61,12 +65,16 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _FortuneBody extends StatelessWidget {
+class _FortuneBody extends ConsumerWidget {
   const _FortuneBody({required this.settings});
   final AppSettings settings;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ctrl = ref.read(settingsProvider.notifier);
+    final sajuLevel = explainLevelFromKey(settings.sajuLevel);
+    final astroLevel = explainLevelFromKey(settings.astroLevel);
+
     final chart = computeSaju(
       settings.birth!,
       hasHour: settings.birthHasTime,
@@ -75,12 +83,34 @@ class _FortuneBody extends StatelessWidget {
     );
     final fortune = computeDailyFortune(chart, DateTime.now());
 
+    final astro = computeAstroChart(
+      settings.birth!,
+      hasTime: settings.birthHasTime,
+      latitude: settings.birthLatitude,
+      longitude: settings.birthLongitude,
+    );
+    final readings = astroReadings(astro, DateTime.now(), astroLevel);
+
     return ListView(
       padding: const EdgeInsets.only(bottom: 44),
       children: [
         _TodayHeader(fortune: fortune),
+        const SectionLabel('사주 풀이 · 설명 레벨'),
+        _LevelPicker(
+          current: sajuLevel,
+          onPick: (l) => ctrl.setSajuLevel(explainLevelKey(l)),
+        ),
         const SectionLabel('오늘의 카테고리'),
-        for (final c in fortune.categories) _CategoryCard(cat: c),
+        for (final c in fortune.categories)
+          _CategoryCard(cat: c, level: sajuLevel),
+        const SizedBox(height: 8),
+        const SectionLabel('점성학 풀이 · 설명 레벨'),
+        _LevelPicker(
+          current: astroLevel,
+          onPick: (l) => ctrl.setAstroLevel(explainLevelKey(l)),
+        ),
+        const SectionLabel('점성학 풀이'),
+        for (final r in readings) _AstroCard(reading: r),
         const SizedBox(height: 8),
         const SectionLabel('사주 원국 (정밀)'),
         _ChartCard(chart: chart),
@@ -94,12 +124,101 @@ class _FortuneBody extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: kGutter),
           child: Text(
-            '※ 만세력 간지·지장간·오행·십신·대운과 서양 태양 별자리를 규칙으로 조합한 '
-            '해석입니다. 신강신약·용신은 대표 규칙에 따른 근사예요. 재미와 참고로 즐겨 주세요.',
+            '※ 만세력 간지·지장간·오행·십신·대운과 태양·달·상승 별자리를 규칙으로 조합한 '
+            '해석입니다. 신강신약·용신·상승궁은 대표 규칙에 따른 근사예요. 재미와 참고로 즐겨 주세요.',
             style: AppText.meta(t(context).inkSoft),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 설명 레벨 선택 세그먼트 — 일반인/왕초보/초보/중급/고급.
+class _LevelPicker extends StatelessWidget {
+  const _LevelPicker({required this.current, required this.onPick});
+  final ExplainLevel current;
+  final ValueChanged<ExplainLevel> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final l in ExplainLevel.values)
+                GestureDetector(
+                  onTap: () => onPick(l),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: current == l ? tk.ink : tk.line,
+                        width: current == l ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Text(explainLevelLabel(l),
+                        style: AppText.nav(current == l ? tk.ink : tk.inkSoft,
+                            active: current == l)),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(explainLevelDesc[current.index],
+              style: AppText.meta(tk.inkSoft, size: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+/// 점성학 풀이 카드 — 태양/달/상승/원소/오늘의 하늘.
+class _AstroCard extends StatelessWidget {
+  const _AstroCard({required this.reading});
+  final AstroReading reading;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: tk.line, width: 1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                  width: 22,
+                  child: Text(reading.glyph, style: AppText.glyph(tk.mark))),
+              const SizedBox(width: 6),
+              Expanded(child: Text(reading.title, style: AppText.body(tk.ink))),
+              Text(reading.summary, style: AppText.meta(tk.inkSoft, size: 11)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final line in reading.body) ...[
+            Text(line, style: AppText.body(tk.ink)),
+            const SizedBox(height: 6),
+          ],
+          if (reading.note != null) ...[
+            const SizedBox(height: 2),
+            Text('※ ${reading.note}', style: AppText.meta(tk.inkSoft, size: 11)),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -543,14 +662,16 @@ class _DaeunTimeline extends StatelessWidget {
   }
 }
 
-/// 카테고리 카드 — 제목·점수바·풀이·조언.
+/// 카테고리 카드 — 제목·점수바·풀이·조언. 설명 레벨에 맞춰 풀이가 바뀐다.
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.cat});
+  const _CategoryCard({required this.cat, required this.level});
   final FortuneCategory cat;
+  final ExplainLevel level;
 
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
+    final txt = describeCategory(cat, level);
     return Container(
       margin: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -582,9 +703,9 @@ class _CategoryCard extends StatelessWidget {
           const SizedBox(height: 8),
           _ScoreBar(score: cat.score),
           const SizedBox(height: 4),
-          Text(cat.summary, style: AppText.meta(tk.inkSoft, size: 11)),
+          Text(txt.summary, style: AppText.meta(tk.inkSoft, size: 11)),
           const SizedBox(height: 10),
-          for (final line in cat.lines) ...[
+          for (final line in txt.body) ...[
             Text(line, style: AppText.body(tk.ink)),
             const SizedBox(height: 6),
           ],
@@ -594,10 +715,29 @@ class _CategoryCard extends StatelessWidget {
             children: [
               Text('→ ', style: AppText.meta(tk.mark)),
               Expanded(
-                child: Text(cat.advice, style: AppText.meta(tk.ink, size: 12)),
+                child: Text(txt.advice, style: AppText.meta(tk.ink, size: 12)),
               ),
             ],
           ),
+          if (txt.basis.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: tk.paper2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('근거', style: AppText.meta(tk.mark, size: 10)),
+                  const SizedBox(height: 4),
+                  for (final b in txt.basis)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(b, style: AppText.meta(tk.inkSoft, size: 11)),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
