@@ -76,6 +76,22 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _SkyPicker(current: s.skyMode, onPick: ctrl.setSkyMode),
 
+            const SectionLabel('CALENDAR'),
+            _switchRow(
+              context,
+              title: '캘린더에 사주 표시',
+              sub: '선택한 날의 일진(간지)을 상세에 표시',
+              value: s.calSaju,
+              onChanged: ctrl.setCalSaju,
+            ),
+            _switchRow(
+              context,
+              title: '캘린더에 점성학 표시',
+              sub: '선택한 날의 별자리를 상세에 표시',
+              value: s.calAstro,
+              onChanged: ctrl.setCalAstro,
+            ),
+
             const SectionLabel('SAJU'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),

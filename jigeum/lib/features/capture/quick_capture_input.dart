@@ -6,14 +6,26 @@ import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 
-/// 위젯 탭 진입용 빠른 담기 입력창(모달) — 앱 에디토리얼 톤.
+/// 빠른 담기 입력창(모달) — 앱 에디토리얼 톤.
 ///
-/// 포커스·매트릭스 위젯을 누르면 앱 홈이 아니라 이 입력창만 바로 뜬다.
-/// 텍스트 + 중요/긴급 분류 → 오늘 할 일로 담긴다(매트릭스 사분면 반영).
-Future<void> showQuickCaptureInput(BuildContext context, WidgetRef ref) async {
+/// 위젯 탭/매트릭스 칸에서 공용. 앱 홈이 아니라 이 입력창만 바로 뜬다.
+///
+/// - 기본: 텍스트 + 중요/긴급 칩으로 분류 → 오늘 할 일.
+/// - [quadrantLabel] 이 있으면(매트릭스 칸에서 진입) 분류를 [presetImportant]/
+///   [presetUrgent] 로 잠그고 칩 대신 대상 칸을 표시 → 그 칸에 바로 담긴다.
+/// - [toDrawer] 면 날짜 없이 담아 서랍(Q4)으로 간다.
+Future<void> showQuickCaptureInput(
+  BuildContext context,
+  WidgetRef ref, {
+  bool presetImportant = false,
+  bool presetUrgent = false,
+  String? quadrantLabel,
+  bool toDrawer = false,
+}) async {
   final controller = TextEditingController();
-  var important = false;
-  var urgent = false;
+  final locked = quadrantLabel != null;
+  var important = presetImportant;
+  var urgent = presetUrgent;
 
   Future<void> submit(BuildContext ctx) async {
     final text = controller.text.trim();
@@ -23,7 +35,7 @@ Future<void> showQuickCaptureInput(BuildContext context, WidgetRef ref) async {
             title: text,
             important: important,
             urgent: urgent,
-            date: todayDate(),
+            date: toDrawer ? null : todayDate(),
           );
     }
     if (ctx.mounted) Navigator.of(ctx).pop();
@@ -70,10 +82,20 @@ Future<void> showQuickCaptureInput(BuildContext context, WidgetRef ref) async {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 마스트헤드
-                  Text('빠르게 담기',
-                      style: AppText.meta(tk.inkSoft, size: 10)
-                          .copyWith(letterSpacing: 1.4)),
+                  // 마스트헤드 — 잠금(매트릭스 칸)이면 대상 칸을 함께 표시
+                  Row(
+                    children: [
+                      Text('빠르게 담기',
+                          style: AppText.meta(tk.inkSoft, size: 10)
+                              .copyWith(letterSpacing: 1.4)),
+                      if (locked) ...[
+                        const Spacer(),
+                        Text('→ $quadrantLabel',
+                            style: AppText.meta(tk.mark, size: 10)
+                                .copyWith(letterSpacing: 0.8)),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 6),
                   Container(height: 1, color: tk.ink),
                   const SizedBox(height: 14),
@@ -107,18 +129,20 @@ Future<void> showQuickCaptureInput(BuildContext context, WidgetRef ref) async {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  // 분류 칩
-                  Row(
-                    children: [
-                      chip('중요', important,
-                          () => setState(() => important = !important)),
-                      const SizedBox(width: 8),
-                      chip('긴급', urgent,
-                          () => setState(() => urgent = !urgent),
-                          mark: true),
-                    ],
-                  ),
+                  // 분류 칩 — 잠금(매트릭스 칸)에서는 숨김(칸이 이미 정함)
+                  if (!locked) ...[
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        chip('중요', important,
+                            () => setState(() => important = !important)),
+                        const SizedBox(width: 8),
+                        chip('긴급', urgent,
+                            () => setState(() => urgent = !urgent),
+                            mark: true),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   // 액션
                   Row(

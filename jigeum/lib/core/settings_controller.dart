@@ -22,6 +22,8 @@ class AppSettings {
     this.birthLeap = false, // 음력 윤달 입력 여부(표시용)
     this.sajuLevel = 'general', // 사주 풀이 설명 레벨
     this.astroLevel = 'general', // 점성학 풀이 설명 레벨
+    this.calSaju = true, // 캘린더에 사주(일진·오늘 기운) 표시
+    this.calAstro = true, // 캘린더에 점성학(별자리) 표시
   });
 
   final String themeKey; // 내장 10종 중 하나 (기본 manila)
@@ -39,6 +41,8 @@ class AppSettings {
   final bool birthLeap; // 음력 윤달 입력이었는지(표시용)
   final String sajuLevel; // 사주 풀이 레벨 키(explain.dart)
   final String astroLevel; // 점성학 풀이 레벨 키(explain.dart)
+  final bool calSaju; // 캘린더 상세에 일진·오늘 기운 표시
+  final bool calAstro; // 캘린더 상세에 별자리 표시
 
   /// 사주(오늘의 운세)를 계산할 수 있는가.
   bool get hasBirth => birth != null;
@@ -67,6 +71,8 @@ class AppSettings {
     bool? birthLeap,
     String? sajuLevel,
     String? astroLevel,
+    bool? calSaju,
+    bool? calAstro,
   }) =>
       AppSettings(
         themeKey: themeKey ?? this.themeKey,
@@ -84,6 +90,8 @@ class AppSettings {
         birthLeap: birthLeap ?? this.birthLeap,
         sajuLevel: sajuLevel ?? this.sajuLevel,
         astroLevel: astroLevel ?? this.astroLevel,
+        calSaju: calSaju ?? this.calSaju,
+        calAstro: calAstro ?? this.calAstro,
       );
 }
 
@@ -109,6 +117,8 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _kBirthLeap = 'birth_leap';
   static const _kSajuLevel = 'saju_level';
   static const _kAstroLevel = 'astro_level';
+  static const _kCalSaju = 'cal_saju';
+  static const _kCalAstro = 'cal_astro';
 
   Future<void> _load() async {
     final scale = await _get(_kScale);
@@ -126,6 +136,8 @@ class SettingsController extends StateNotifier<AppSettings> {
     final leap = await _get(_kBirthLeap);
     final sajuLevel = await _get(_kSajuLevel);
     final astroLevel = await _get(_kAstroLevel);
+    final calSaju = await _get(_kCalSaju);
+    final calAstro = await _get(_kCalAstro);
     state = AppSettings(
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
@@ -144,6 +156,8 @@ class SettingsController extends StateNotifier<AppSettings> {
       birthLeap: leap == '1',
       sajuLevel: sajuLevel ?? 'general',
       astroLevel: astroLevel ?? 'general',
+      calSaju: calSaju == null ? true : calSaju == '1',
+      calAstro: calAstro == null ? true : calAstro == '1',
     );
   }
 
@@ -181,6 +195,16 @@ class SettingsController extends StateNotifier<AppSettings> {
   Future<void> setSajuLevel(String key) async {
     state = state.copyWith(sajuLevel: key);
     await _set(_kSajuLevel, key);
+  }
+
+  Future<void> setCalSaju(bool v) async {
+    state = state.copyWith(calSaju: v);
+    await _set(_kCalSaju, v ? '1' : '0');
+  }
+
+  Future<void> setCalAstro(bool v) async {
+    state = state.copyWith(calAstro: v);
+    await _set(_kCalAstro, v ? '1' : '0');
   }
 
   Future<void> setAstroLevel(String key) async {
