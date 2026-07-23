@@ -16,6 +16,8 @@ MANIFEST = APP / "src/main/AndroidManifest.xml"
 
 PERMISSIONS = """    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 """
 
 RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:exported="true" android:label="지금 · 포커스">
@@ -50,6 +52,19 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/calendar_widget_info" />
         </receiver>
+        <receiver android:name=".QuickAddWidgetProvider" android:exported="true" android:label="지금 · 빠른 추가">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_add_widget_info" />
+        </receiver>
+        <activity
+            android:name=".QuickAddActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.Jigeum.QuickAdd" />
 """
 
 

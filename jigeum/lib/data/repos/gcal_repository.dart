@@ -70,7 +70,8 @@ class GcalRepository {
         GcalCalendarsCompanion(
             selected: Value(selected),
             // 동기화 껐다 켜면 다음번 전체 동기화(토큰 리셋).
-            syncToken: selected ? const Value.absent() : const Value(null)));
+            syncToken:
+                selected ? const Value.absent() : const Value<String?>(null)));
   }
 
   Future<void> setSyncToken(String id, String? token) async {
