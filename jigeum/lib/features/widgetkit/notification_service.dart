@@ -13,6 +13,16 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _inited = false;
 
+  /// 방해 금지 — 켜지면 상주/아침/저녁 알림을 내보내지 않는다(하이퍼포커스 보호).
+  bool quietMode = false;
+
+  /// 알림 문구 변주 — 켜지면 브리핑 문구를 매번 조금씩 바꿔 무뎌짐을 줄인다.
+  bool variedNudges = true;
+
+  /// 날짜 기반 회전 인덱스(변주용) — 같은 날은 같은 문구, 날이 바뀌면 달라짐.
+  int _rotate(int len) =>
+      len <= 1 ? 0 : DateTime.now().day % len;
+
   static const _ongoingId = 1;
   static const _morningId = 2;
   static const _eveningId = 3;
@@ -72,7 +82,7 @@ class NotificationService {
   Future<void> showOngoingFocus(String? title) async {
     if (kIsWeb || !_inited) return;
     try {
-      if (title == null || title.isEmpty) {
+      if (quietMode || title == null || title.isEmpty) {
         await _plugin.cancel(_ongoingId);
         return;
       }
@@ -109,20 +119,56 @@ class NotificationService {
   /// 아침 08:00 브리핑: "오늘의 추천 — {Q2 title}부터 2분만"
   Future<void> scheduleMorning(String? q2Title) async {
     if (kIsWeb || !_inited || q2Title == null || q2Title.isEmpty) return;
-    await _zonedDaily(_morningId, '오늘의 추천', '$q2Title 부터 2분만', 8, 0);
+    if (quietMode) {
+      try {
+        await _plugin.cancel(_morningId);
+      } catch (_) {}
+      return;
+    }
+    // 변주: 시작을 부드럽게 여는 여러 꼬리말 중 하루 기준 회전.
+    const tails = <String>[
+      '부터 딱 2분만',
+      '· 30초만 열어볼까요',
+      '· 한 걸음이면 시작이에요',
+      '· 아주 작게 시작해요',
+    ];
+    final tail = variedNudges ? tails[_rotate(tails.length)] : '부터 2분만';
+    await _zonedDaily(_morningId, '오늘의 추천', '$q2Title $tail', 8, 0);
   }
 
   /// 저녁 20:30: "오늘의 승리 {N}개". N=0이면 보내지 않음.
   Future<void> scheduleEvening(int winCount) async {
     if (kIsWeb || !_inited) return;
-    if (winCount <= 0) {
+    if (quietMode || winCount <= 0) {
       await cancelOngoing();
       try {
         await _plugin.cancel(_eveningId);
       } catch (_) {}
       return;
     }
-    await _zonedDaily(_eveningId, '오늘의 승리', '$winCount개', 20, 30);
+    final body = variedNudges ? _praise(winCount, _rotate(3)) : '$winCount개';
+    await _zonedDaily(_eveningId, '오늘의 승리', body, 20, 30);
+  }
+
+  String _praise(int n, int i) {
+    switch (i) {
+      case 0:
+        return '오늘 $n개 해냈어요';
+      case 1:
+        return '$n개나 마쳤네요';
+      default:
+        return '$n걸음 나아갔어요';
+    }
+  }
+
+  /// 방해 금지가 켜졌을 때 즉시 모든 알림 정리.
+  Future<void> silenceAll() async {
+    if (kIsWeb) return;
+    try {
+      await _plugin.cancel(_ongoingId);
+      await _plugin.cancel(_morningId);
+      await _plugin.cancel(_eveningId);
+    } catch (_) {}
   }
 
   Future<void> _zonedDaily(

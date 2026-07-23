@@ -41,6 +41,11 @@ final focusSessionRepoProvider = Provider<FocusSessionRepository>((ref) {
   return FocusSessionRepository(ref.watch(dbProvider));
 });
 
+/// 오늘 "시작한" 집중 세션 수 (완료 아닌 시작을 세는 자기효능감 지표).
+final startedTodayProvider = StreamProvider<int>((ref) {
+  return ref.watch(focusSessionRepoProvider).watchStartedCount(todayDate());
+});
+
 /// 인박스 (parentId=null, type=memo, open)
 final inboxProvider = StreamProvider<List<Node>>((ref) {
   return ref.watch(nodeRepoProvider).watchInbox();

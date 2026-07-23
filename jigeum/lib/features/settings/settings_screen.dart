@@ -11,6 +11,7 @@ import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import '../gcal/gcal_settings_section.dart';
+import '../widgetkit/notification_service.dart';
 import '../widgetkit/widget_bridge.dart';
 
 /// 설정 화면 — 편집형. 테마 · 글자 크기/굵기 · 위젯 투명도 · 백업/복원.
@@ -91,6 +92,32 @@ class SettingsScreen extends ConsumerWidget {
               child: Text('오늘의 운세용 — 생년월일과 태어난 시각', style: AppText.body(tk.ink)),
             ),
             _SajuTile(settings: s, ctrl: ctrl),
+
+            const SectionLabel('FOCUS'),
+            _switchRow(
+              context,
+              title: '방해 금지',
+              sub: '몰입 중엔 아침·저녁 브리핑과 상주 알림을 끄기',
+              value: s.quietMode,
+              onChanged: (v) async {
+                await ctrl.setQuietMode(v);
+                if (v) await NotificationService.instance.silenceAll();
+              },
+            ),
+            _switchRow(
+              context,
+              title: '알림 문구 바꾸기',
+              sub: '같은 알림에 무뎌지지 않게 문구를 매번 조금씩',
+              value: s.variedNudges,
+              onChanged: ctrl.setVariedNudges,
+            ),
+            _switchRow(
+              context,
+              title: '모션·완료 팝업 줄이기',
+              sub: '완료 시 뜨는 팝업을 끄고 화면을 더 잔잔하게',
+              value: s.reduceMotion,
+              onChanged: ctrl.setReduceMotion,
+            ),
 
             const SectionLabel('GOOGLE CALENDAR'),
             const GcalSettingsSection(),

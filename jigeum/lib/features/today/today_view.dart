@@ -11,6 +11,7 @@ import '../../data/db.dart';
 import '../../providers.dart';
 import '../focus/focus_timer_view.dart';
 import 'node_detail_sheet.dart';
+import 'stuck_sheet.dart';
 
 /// 오늘 뷰 (홈) — 편집(에디토리얼) 목차형.
 /// 큰 날짜(Sans) → NOW(포커스) → TO-DO → DONE, 규칙선으로 구분. 카드 없음.
@@ -55,6 +56,27 @@ class _TodayViewState extends ConsumerState<TodayView> {
     if (sky.showSaju) metaParts.add(sajuLabel(now));
     if (sky.showZodiac) metaParts.add(byeoljariLabel(now));
 
+    // 시작 카운트(완료 아닌 '시작'을 세는 자기효능감) + 다음 일정까지 남은 시간(시간 실명 대응).
+    final startedToday = ref.watch(startedTodayProvider).valueOrNull ?? 0;
+    final todaySchedules =
+        ref.watch(schedulesForDateProvider(todayDate())).valueOrNull ??
+            const [];
+    final nowMin = now.hour * 60 + now.minute;
+    final upcoming = [...todaySchedules]
+      ..sort((a, b) => a.startMin.compareTo(b.startMin));
+    Schedule? nextSchedule;
+    for (final s in upcoming) {
+      if (!s.done && !s.allDay && s.startMin > nowMin) {
+        nextSchedule = s;
+        break;
+      }
+    }
+    final scaffoldParts = <String>[
+      if (startedToday > 0) '오늘 $startedToday번 시작',
+      if (nextSchedule != null)
+        '다음 · ${nextSchedule.title} 까지 ${_untilLabel(nextSchedule.startMin - nowMin)}',
+    ];
+
     final children = <Widget>[
       // 큰 날짜 (Sans) + 요일 (Mono meta)
       Padding(
@@ -73,6 +95,16 @@ class _TodayViewState extends ConsumerState<TodayView> {
           ],
         ),
       ),
+
+      // 시작 카운트 + 다음 일정 카운트다운 (있을 때만)
+      if (scaffoldParts.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+          child: Text(scaffoldParts.join('   ·   '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.meta(tk.mark, size: 11)),
+        ),
 
       // GOAL — 오늘의 목표 (탭해서 편집)
       Padding(
@@ -138,6 +170,14 @@ class _TodayViewState extends ConsumerState<TodayView> {
   }
 }
 
+/// 남은 시간 라벨 — 60분 미만은 분, 그 이상은 시간+분.
+String _untilLabel(int minutes) {
+  if (minutes < 60) return '$minutes분';
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  return m == 0 ? '$h시간' : '$h시간 $m분';
+}
+
 /// 포커스 블록 — 카드가 아니라 라벨 + 규칙선 + 한 줄. mark 캐럿으로 강조.
 class _FocusBlock extends ConsumerWidget {
   const _FocusBlock({required this.node});
@@ -195,20 +235,38 @@ class _FocusBlock extends ConsumerWidget {
             ),
           ),
         ),
-        // 지금 조금만 시작 — 생각 단계를 줄여 바로 진입.
+        // 지금 조금만 시작 — 생각 단계를 줄여 바로 진입. + 막혔을 때 탈출구.
         Padding(
           padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 4),
-          child: GestureDetector(
-            onTap: () => openFocusTimer(context, node: node, autoStartMinutes: 3),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: tk.line, width: 1),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () =>
+                    openFocusTimer(context, node: node, autoStartMinutes: 3),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: tk.line, width: 1),
+                  ),
+                  child: Text('▷ 3분만 시작', style: AppText.chip(tk.ink)),
+                ),
               ),
-              child: Text('▷ 3분만 시작',
-                  style: AppText.chip(tk.ink)),
-            ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => showStuckSheet(context, ref, node),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: tk.line, width: 1),
+                  ),
+                  child: Text('막혔어', style: AppText.chip(tk.inkSoft)),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -219,6 +277,8 @@ class _FocusBlock extends ConsumerWidget {
 /// 완료 시 짧은 텍스트 피드백 (코인·랜덤박스 없이 — 에세이의 "나쁜 보상" 회피).
 /// 오늘 완료 누계를 세어 "완료했어요 · 오늘 N개째" SnackBar 를 띄운다.
 Future<void> showDoneFeedback(BuildContext context, WidgetRef ref) async {
+  // 모션·팝업 줄이기가 켜져 있으면 조용히 넘어간다(센서리 예민 대응).
+  if (ref.read(settingsProvider).reduceMotion) return;
   final n = await ref.read(nodeRepoProvider).winsCountForDate(todayDate());
   if (!context.mounted) return;
   ScaffoldMessenger.of(context)
