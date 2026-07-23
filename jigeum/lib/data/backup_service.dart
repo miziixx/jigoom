@@ -81,6 +81,13 @@ class BackupService {
             'done': s.done,
             'routineId': s.routineId,
             'createdAt': d(s.createdAt),
+            'allDay': s.allDay,
+            'gcalCalendarId': s.gcalCalendarId,
+            'gcalId': s.gcalId,
+            'gcalEtag': s.gcalEtag,
+            'dirty': s.dirty,
+            'deleted': s.deleted,
+            'updatedAt': d(s.updatedAt),
           }
       ],
       'routines': [
@@ -171,6 +178,13 @@ class BackupService {
           done: Value(m['done'] as bool? ?? false),
           routineId: Value(m['routineId'] as String?),
           createdAt: pr(m['createdAt']),
+          allDay: Value(m['allDay'] as bool? ?? false),
+          gcalCalendarId: Value(m['gcalCalendarId'] as String?),
+          gcalId: Value(m['gcalId'] as String?),
+          gcalEtag: Value(m['gcalEtag'] as String?),
+          dirty: Value(m['dirty'] as bool? ?? false),
+          deleted: Value(m['deleted'] as bool? ?? false),
+          updatedAt: Value(p(m['updatedAt'])),
         )
     ];
     final routines = [

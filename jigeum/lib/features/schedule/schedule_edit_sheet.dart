@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:drift/drift.dart' show Value;
+
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
+import '../gcal/gcal_controller.dart';
 
 /// 일정 추가/수정 시트. date=새 일정 / existing=수정.
 Future<void> showScheduleEditSheet(BuildContext context,
@@ -32,6 +35,8 @@ class _SheetState extends ConsumerState<_Sheet> {
   late int _color;
   late int _start;
   late int _end;
+  late bool _allDay;
+  String? _calId; // 저장할 구글 캘린더(종류)
 
   @override
   void initState() {
@@ -42,6 +47,8 @@ class _SheetState extends ConsumerState<_Sheet> {
     _color = e?.color ?? 0;
     _start = e?.startMin ?? 9 * 60;
     _end = e?.endMin ?? 10 * 60;
+    _allDay = e?.allDay ?? false;
+    _calId = e?.gcalCalendarId;
   }
 
   @override
@@ -85,6 +92,8 @@ class _SheetState extends ConsumerState<_Sheet> {
         color: _color,
         startMin: _start,
         endMin: _end,
+        allDay: _allDay,
+        gcalCalendarId: _calId,
       );
     } else {
       await repo.updateSchedule(e.copyWith(
@@ -93,6 +102,8 @@ class _SheetState extends ConsumerState<_Sheet> {
         color: _color,
         startMin: _start,
         endMin: _end,
+        allDay: _allDay,
+        gcalCalendarId: Value(_calId),
       ));
     }
     if (mounted) Navigator.of(context).pop();
@@ -164,15 +175,30 @@ class _SheetState extends ConsumerState<_Sheet> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          // 시간
+          const SizedBox(height: 14),
+          // 종일 토글
           Row(
             children: [
-              Expanded(child: _timeBtn(tk, '시작', _start, true)),
-              const SizedBox(width: 10),
-              Expanded(child: _timeBtn(tk, '끝', _end, false)),
+              Expanded(child: Text('종일', style: AppText.body(tk.ink))),
+              Switch(
+                value: _allDay,
+                onChanged: (v) => setState(() => _allDay = v),
+              ),
             ],
           ),
+          // 시간 (종일이 아닐 때만)
+          if (!_allDay) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(child: _timeBtn(tk, '시작', _start, true)),
+                const SizedBox(width: 10),
+                Expanded(child: _timeBtn(tk, '끝', _end, false)),
+              ],
+            ),
+          ],
+          // 구글 캘린더(종류) 선택 — 연결됐고 선택된 캘린더가 있을 때만.
+          _calendarPicker(tk),
           const SizedBox(height: 14),
           // 메모
           TextField(
@@ -215,6 +241,56 @@ class _SheetState extends ConsumerState<_Sheet> {
                       style: AppText.nav(tk.paper, active: true)),
                 ),
               ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 구글 캘린더 종류 선택 — 연결됐고 동기화 대상 캘린더가 있을 때만 노출.
+  Widget _calendarPicker(AppTokens tk) {
+    final connected = ref.watch(gcalControllerProvider).connected;
+    if (!connected) return const SizedBox.shrink();
+    final cals = ref.watch(gcalCalendarsProvider).valueOrNull ?? const [];
+    final writable = cals
+        .where((c) =>
+            c.selected &&
+            (c.accessRole == 'writer' || c.accessRole == 'owner'))
+        .toList();
+    if (writable.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('구글 캘린더', style: AppText.meta(tk.inkSoft, size: 10)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in writable)
+                GestureDetector(
+                  onTap: () => setState(() => _calId = c.id),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: _calId == c.id ? tk.ink : tk.line,
+                        width: _calId == c.id ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      c.summary,
+                      style: AppText.chip(
+                          _calId == c.id ? tk.ink : tk.inkSoft),
+                    ),
+                  ),
+                ),
             ],
           ),
         ],

@@ -1,10 +1,20 @@
 package com.ziia.jigeum
 
+import android.Manifest
+import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.provider.CalendarContract
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.util.Calendar
+import java.util.TimeZone
 
 /**
  * 'jigeum/widget' MethodChannel:
@@ -21,6 +31,7 @@ class MainActivity : FlutterActivity() {
         const val ACTION_OPEN_CALENDAR = "com.ziia.jigeum.OPEN_CALENDAR"
         const val REQ_SAVE_BACKUP = 7101
         const val REQ_OPEN_BACKUP = 7102
+        const val REQ_CALENDAR_PERM = 7103
     }
 
     private var pendingAction: String? = null
@@ -28,6 +39,23 @@ class MainActivity : FlutterActivity() {
     // SAF 진행 중 콜백/데이터
     private var backupResult: MethodChannel.Result? = null
     private var backupContent: String? = null
+
+    // 캘린더 권한 요청 진행 중 콜백
+    private var permResult: MethodChannel.Result? = null
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_CALENDAR_PERM) {
+            val granted = grantResults.isNotEmpty() &&
+                grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+            permResult?.success(granted)
+            permResult = null
+        }
+    }
 
     override fun onActivityResult(
         requestCode: Int, resultCode: Int, data: Intent?
@@ -138,6 +166,57 @@ class MainActivity : FlutterActivity() {
                         result.success(pendingAction)
                         pendingAction = null
                     }
+                    "setGcalCalendars" -> {
+                        // 1×1 팝업 스피너용 캘린더(종류) 목록 저장.
+                        getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
+                            .edit()
+                            .putString(WidgetPrefs.KEY_GCAL_CALENDARS,
+                                call.argument<String>("json") ?: "[]")
+                            .apply()
+                        WidgetPrefs.updateAllWidgets(this)
+                        result.success(true)
+                    }
+                    "consumeQuickAddQueue" -> {
+                        // 위젯 팝업으로 쌓인 입력 큐를 1회성으로 넘기고 비운다.
+                        val prefs = getSharedPreferences(
+                            WidgetPrefs.FILE, Context.MODE_PRIVATE
+                        )
+                        val queue = prefs.getString(
+                            WidgetPrefs.KEY_QUICK_ADD_QUEUE, null
+                        )
+                        prefs.edit()
+                            .remove(WidgetPrefs.KEY_QUICK_ADD_QUEUE).apply()
+                        result.success(queue)
+                    }
+                    // ---- 폰 캘린더(CalendarContract) 연동 ----
+                    "calendarPermission" -> result.success(hasCalendarPermission())
+                    "requestCalendarPermission" -> {
+                        if (hasCalendarPermission()) {
+                            result.success(true)
+                        } else {
+                            permResult = result
+                            ActivityCompat.requestPermissions(
+                                this,
+                                arrayOf(
+                                    Manifest.permission.READ_CALENDAR,
+                                    Manifest.permission.WRITE_CALENDAR
+                                ),
+                                REQ_CALENDAR_PERM
+                            )
+                        }
+                    }
+                    "listCalendars" -> result.success(listCalendars())
+                    "queryEvents" -> result.success(
+                        queryEvents(
+                            call.argument<String>("calendarId") ?: "",
+                            call.argument<Number>("start")?.toLong() ?: 0L,
+                            call.argument<Number>("end")?.toLong() ?: 0L
+                        )
+                    )
+                    "insertEvent" -> result.success(insertEvent(call))
+                    "updateEvent" -> result.success(updateEvent(call))
+                    "deleteEvent" ->
+                        result.success(deleteEvent(call.argument<String>("eventId")))
                     "saveBackup" -> {
                         backupResult = result
                         backupContent = call.argument<String>("content") ?: ""
@@ -166,5 +245,189 @@ class MainActivity : FlutterActivity() {
                 result.success(null) // 위젯 실패가 앱을 막지 않도록
             }
         }
+    }
+
+    // ------------------------------------------------------ 캘린더 헬퍼
+
+    private fun hasCalendarPermission(): Boolean {
+        val read = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.READ_CALENDAR
+        ) == PackageManager.PERMISSION_GRANTED
+        val write = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.WRITE_CALENDAR
+        ) == PackageManager.PERMISSION_GRANTED
+        return read && write
+    }
+
+    private fun colorToHex(color: Int): String =
+        String.format("#%06X", 0xFFFFFF and color)
+
+    /** 폰 캘린더 목록. */
+    private fun listCalendars(): List<Map<String, Any?>> {
+        val out = ArrayList<Map<String, Any?>>()
+        if (!hasCalendarPermission()) return out
+        val proj = arrayOf(
+            CalendarContract.Calendars._ID,
+            CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
+            CalendarContract.Calendars.ACCOUNT_NAME,
+            CalendarContract.Calendars.CALENDAR_COLOR,
+            CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL,
+            CalendarContract.Calendars.IS_PRIMARY
+        )
+        contentResolver.query(
+            CalendarContract.Calendars.CONTENT_URI, proj, null, null, null
+        )?.use { c ->
+            while (c.moveToNext()) {
+                val level = c.getInt(4)
+                val role = when {
+                    level >= CalendarContract.Calendars.CAL_ACCESS_OWNER -> "owner"
+                    level >= CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR -> "writer"
+                    else -> "reader"
+                }
+                out.add(
+                    mapOf(
+                        "id" to c.getLong(0).toString(),
+                        "name" to (c.getString(1) ?: ""),
+                        "account" to (c.getString(2) ?: ""),
+                        "colorHex" to colorToHex(c.getInt(3)),
+                        "accessRole" to role,
+                        "primary" to (!c.isNull(5) && c.getInt(5) == 1)
+                    )
+                )
+            }
+        }
+        return out
+    }
+
+    /** 한 캘린더의 [start,end) 이벤트. 반복 이벤트는 마스터 1건으로만 보인다. */
+    private fun queryEvents(
+        calendarId: String, start: Long, end: Long
+    ): List<Map<String, Any?>> {
+        val out = ArrayList<Map<String, Any?>>()
+        if (!hasCalendarPermission() || calendarId.isEmpty()) return out
+        val proj = arrayOf(
+            CalendarContract.Events._ID,
+            CalendarContract.Events.TITLE,
+            CalendarContract.Events.DESCRIPTION,
+            CalendarContract.Events.DTSTART,
+            CalendarContract.Events.DTEND,
+            CalendarContract.Events.ALL_DAY
+        )
+        val sel = "${CalendarContract.Events.CALENDAR_ID} = ? AND " +
+            "${CalendarContract.Events.DTSTART} >= ? AND " +
+            "${CalendarContract.Events.DTSTART} < ? AND " +
+            "${CalendarContract.Events.DELETED} = 0"
+        val args = arrayOf(calendarId, start.toString(), end.toString())
+        contentResolver.query(
+            CalendarContract.Events.CONTENT_URI, proj, sel, args, null
+        )?.use { c ->
+            while (c.moveToNext()) {
+                val dtstart = c.getLong(3)
+                val dtend = if (c.isNull(4)) 0L else c.getLong(4)
+                val allDay = !c.isNull(5) && c.getInt(5) == 1
+                val startMs: Long
+                val endMs: Long
+                if (allDay) {
+                    startMs = utcMidnightToLocal(dtstart)
+                    endMs = if (dtend > 0) utcMidnightToLocal(dtend)
+                    else startMs + 86400000L
+                } else {
+                    startMs = dtstart
+                    endMs = if (dtend > 0) dtend else dtstart + 3600000L
+                }
+                out.add(
+                    mapOf(
+                        "id" to c.getLong(0).toString(),
+                        "title" to (c.getString(1) ?: ""),
+                        "note" to (c.getString(2) ?: ""),
+                        "startMs" to startMs,
+                        "endMs" to endMs,
+                        "allDay" to allDay
+                    )
+                )
+            }
+        }
+        return out
+    }
+
+    private fun insertEvent(call: MethodCall): String? {
+        if (!hasCalendarPermission()) return null
+        val calId = call.argument<String>("calendarId") ?: return null
+        val start = call.argument<Number>("start")?.toLong() ?: return null
+        val end = call.argument<Number>("end")?.toLong() ?: (start + 3600000L)
+        val values = ContentValues().apply {
+            put(CalendarContract.Events.CALENDAR_ID, calId.toLong())
+            put(CalendarContract.Events.TITLE, call.argument<String>("title") ?: "")
+            put(CalendarContract.Events.DESCRIPTION, call.argument<String>("note") ?: "")
+            applyTime(this, start, end, call.argument<Boolean>("allDay") ?: false)
+        }
+        val uri = contentResolver.insert(CalendarContract.Events.CONTENT_URI, values)
+            ?: return null
+        return ContentUris.parseId(uri).toString()
+    }
+
+    private fun updateEvent(call: MethodCall): Boolean {
+        if (!hasCalendarPermission()) return false
+        val eventId = call.argument<String>("eventId") ?: return false
+        val start = call.argument<Number>("start")?.toLong() ?: return false
+        val end = call.argument<Number>("end")?.toLong() ?: (start + 3600000L)
+        val values = ContentValues().apply {
+            put(CalendarContract.Events.TITLE, call.argument<String>("title") ?: "")
+            put(CalendarContract.Events.DESCRIPTION, call.argument<String>("note") ?: "")
+            applyTime(this, start, end, call.argument<Boolean>("allDay") ?: false)
+        }
+        val uri = ContentUris.withAppendedId(
+            CalendarContract.Events.CONTENT_URI, eventId.toLong()
+        )
+        return contentResolver.update(uri, values, null, null) > 0
+    }
+
+    private fun deleteEvent(eventId: String?): Boolean {
+        if (!hasCalendarPermission() || eventId == null) return false
+        val uri = ContentUris.withAppendedId(
+            CalendarContract.Events.CONTENT_URI, eventId.toLong()
+        )
+        return contentResolver.delete(uri, null, null) >= 0
+    }
+
+    /** 종일/시간제에 맞춰 DTSTART/DTEND/ALL_DAY/EVENT_TIMEZONE 채우기. */
+    private fun applyTime(v: ContentValues, start: Long, end: Long, allDay: Boolean) {
+        if (allDay) {
+            v.put(CalendarContract.Events.DTSTART, localMidnightToUtc(start))
+            v.put(CalendarContract.Events.DTEND, localMidnightToUtc(end))
+            v.put(CalendarContract.Events.ALL_DAY, 1)
+            v.put(CalendarContract.Events.EVENT_TIMEZONE, "UTC")
+        } else {
+            v.put(CalendarContract.Events.DTSTART, start)
+            v.put(CalendarContract.Events.DTEND, end)
+            v.put(CalendarContract.Events.ALL_DAY, 0)
+            v.put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
+        }
+    }
+
+    /** UTC 자정(종일 저장값) → 그 날짜의 로컬 자정 millis. */
+    private fun utcMidnightToLocal(utcMs: Long): Long {
+        val u = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        u.timeInMillis = utcMs
+        val local = Calendar.getInstance()
+        local.set(
+            u.get(Calendar.YEAR), u.get(Calendar.MONTH),
+            u.get(Calendar.DAY_OF_MONTH), 0, 0, 0
+        )
+        local.set(Calendar.MILLISECOND, 0)
+        return local.timeInMillis
+    }
+
+    /** 로컬 자정 → 같은 날짜의 UTC 자정 millis (종일 이벤트 저장용). */
+    private fun localMidnightToUtc(localMs: Long): Long {
+        val l = Calendar.getInstance()
+        l.timeInMillis = localMs
+        val u = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        u.set(
+            l.get(Calendar.YEAR), l.get(Calendar.MONTH),
+            l.get(Calendar.DAY_OF_MONTH), 0, 0, 0
+        )
+        u.set(Calendar.MILLISECOND, 0)
+        return u.timeInMillis
     }
 }

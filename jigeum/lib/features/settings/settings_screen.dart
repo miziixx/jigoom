@@ -10,6 +10,7 @@ import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
+import '../gcal/gcal_settings_section.dart';
 import '../widgetkit/widget_bridge.dart';
 
 /// 설정 화면 — 편집형. 테마 · 글자 크기/굵기 · 위젯 투명도 · 백업/복원.
@@ -90,6 +91,9 @@ class SettingsScreen extends ConsumerWidget {
               child: Text('오늘의 운세용 — 생년월일과 태어난 시각', style: AppText.body(tk.ink)),
             ),
             _SajuTile(settings: s, ctrl: ctrl),
+
+            const SectionLabel('GOOGLE CALENDAR'),
+            const GcalSettingsSection(),
 
             const SectionLabel('WIDGET'),
             const _WidgetOpacityTile(),

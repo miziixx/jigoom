@@ -19,6 +19,9 @@ dependencies:
   flutter_local_notifications: ^17.2.2
   timezone: ^0.9.4
   # home_widget 플러그인은 기기 크래시로 사용 안 함 — 위젯은 네이티브(MethodChannel) 직접 구현.
+  # 구글 캘린더 연동도 같은 이유로 플러그인 없이 네이티브(CalendarContract) 직접 구현.
+  # OAuth/GCP/SHA-1 불필요 — 폰에 이미 동기화된 구글 캘린더를 앱이 직접 읽고 쓴다.
+  # (READ_CALENDAR/WRITE_CALENDAR 런타임 권한만 필요 → docs/google-calendar-setup.md)
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

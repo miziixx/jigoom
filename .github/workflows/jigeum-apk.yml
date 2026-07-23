@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - claude/goal-app-mvp-sj7lun
+      - claude/jigeum-google-calendar-sync-lqeo5b
     paths:
       - 'jigeum/**'
       - '.github/workflows/jigeum-apk.yml'
@@ -93,15 +94,21 @@ jobs:
           path: jigeum/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
 
-      # main 에 올라오면 다운로드 가능한 릴리즈로 APK 를 게시 (롤링 태그).
-      - name: Publish APK to Release (main only)
-        if: github.ref == 'refs/heads/main'
+      # main 에 올라오면 롤링 최신 릴리즈로, 연동 브랜치면 프리뷰 릴리즈로 게시
+      # → 폰에서 바로 설치 가능한 APK 링크가 생긴다.
+      - name: Publish APK to Release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/jigeum-google-calendar-sync-lqeo5b'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: jigeum-latest
-          name: 지금 (Editorial) — 최신 APK
+          tag_name: ${{ github.ref == 'refs/heads/main' && 'jigeum-latest' || 'jigeum-gcal-preview' }}
+          name: ${{ github.ref == 'refs/heads/main' && '지금 (Editorial) — 최신 APK' || '지금 — 구글 캘린더 연동 프리뷰 APK' }}
           body: |
-            `지금` 앱 최신 빌드 (arm64 release).
-            main 커밋 ${{ github.sha }} 기준 자동 게시.
+            `지금` 앱 빌드 (arm64 release).
+            구글 캘린더(폰 캘린더) 연동 + 1×1 빠른 추가 위젯 포함.
+            커밋 ${{ github.sha }} 기준 자동 게시.
+
+            설치: 아래 app-release.apk 를 폰에서 받아 실행 → "출처를 알 수 없는 앱" 허용 후 설치.
+            연동: 앱 설정 → GOOGLE CALENDAR → 캘린더 연동 켜기 → 권한 허용.
           files: jigeum/build/app/outputs/flutter-apk/app-release.apk
-          make_latest: 'true'
+          make_latest: ${{ github.ref == 'refs/heads/main' }}
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
