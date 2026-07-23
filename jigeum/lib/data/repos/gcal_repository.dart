@@ -91,6 +91,16 @@ class GcalRepository {
       (db.select(db.schedules)..where((s) => s.gcalId.equals(gcalId)))
           .getSingleOrNull();
 
+  /// 한 캘린더에 동기화된(원격 연결·dirty 아님) 로컬 일정 — 원격 삭제 감지용.
+  Future<List<Schedule>> syncedSchedulesForCalendar(String calendarId) =>
+      (db.select(db.schedules)
+            ..where((s) =>
+                s.gcalCalendarId.equals(calendarId) &
+                s.gcalId.isNotNull() &
+                s.dirty.equals(false) &
+                s.deleted.equals(false)))
+          .get();
+
   /// push 성공 → dirty 해제 + 원격 식별자 저장.
   Future<void> markPushed(String id,
       {required String gcalId, String? etag, String? calendarId}) async {

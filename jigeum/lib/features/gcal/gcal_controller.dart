@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/gcal/gcal_api.dart';
-import '../../core/gcal/gcal_auth.dart';
+import '../../core/gcal/device_calendar_bridge.dart';
 import '../../data/db.dart';
 import '../../data/repos/gcal_repository.dart';
 import '../../data/repos/schedule_repository.dart';
@@ -12,33 +11,29 @@ import '../../providers.dart';
 import '../widgetkit/widget_bridge.dart';
 import 'gcal_sync.dart';
 
-/// 구글 캘린더 연동 UI 상태.
+/// 폰 캘린더 연동 UI 상태.
 @immutable
 class GcalState {
   const GcalState({
-    this.connected = false,
-    this.email,
+    this.connected = false, // 권한 허용 + 사용 중
     this.syncing = false,
     this.lastSyncAt,
     this.error,
   });
 
   final bool connected;
-  final String? email;
   final bool syncing;
   final DateTime? lastSyncAt;
   final String? error;
 
   GcalState copyWith({
     bool? connected,
-    String? email,
     bool? syncing,
     DateTime? lastSyncAt,
     Object? error = _keep,
   }) =>
       GcalState(
         connected: connected ?? this.connected,
-        email: email ?? this.email,
         syncing: syncing ?? this.syncing,
         lastSyncAt: lastSyncAt ?? this.lastSyncAt,
         error: identical(error, _keep) ? this.error : error as String?,
@@ -47,62 +42,64 @@ class GcalState {
   static const _keep = Object();
 }
 
-/// 연동 오케스트레이터 — 로그인·캘린더 목록·양방향 동기화·위젯 팝업 큐 처리.
+/// 연동 오케스트레이터 — 권한·캘린더 목록·양방향 동기화·위젯 팝업 큐 처리.
 class GcalController extends StateNotifier<GcalState> {
   GcalController(this.ref) : super(const GcalState());
 
   final Ref ref;
 
-  final GcalApi _api = GcalApi();
-  GcalAuth get _auth => GcalAuth.instance;
+  final DeviceCalendarBridge _bridge = DeviceCalendarBridge();
 
   GcalRepository get _gcalRepo => ref.read(gcalRepoProvider);
   ScheduleRepository get _scheduleRepo => ref.read(scheduleRepoProvider);
 
-  GcalSync get _sync => GcalSync(_api, _gcalRepo, _scheduleRepo);
+  GcalSync get _sync => GcalSync(_bridge, _gcalRepo, _scheduleRepo);
 
-  /// 앱 시작 시 조용히 복구. 연결돼 있으면 위젯 팝업 큐를 비우고 동기화까지.
+  /// 앱 시작 시 조용히 복구. 권한이 이미 있으면 목록·동기화까지.
   Future<void> restore() async {
-    final ok = await _auth.restore();
-    state = state.copyWith(connected: ok, email: _auth.email);
+    final ok = await _bridge.hasPermission();
+    state = state.copyWith(connected: ok);
     if (ok) {
-      await _pushCalendarsToWidget();
+      await refreshCalendarList();
       await syncNow(refreshList: false);
     }
   }
 
-  /// 사용자 로그인 → 캘린더 목록 로드 → 첫 동기화.
+  /// 캘린더 권한 요청 → 목록 로드 → 첫 동기화.
   Future<bool> connect() async {
     state = state.copyWith(error: null);
-    final ok = await _auth.connect();
+    final ok = await _bridge.requestPermission();
     if (!ok) {
-      state = state.copyWith(error: '구글 로그인을 취소했거나 실패했어요.');
+      state = state.copyWith(
+          error: '캘린더 접근을 허용하지 않았어요. 설정에서 권한을 켜면 연동돼요.');
       return false;
     }
-    state = state.copyWith(connected: true, email: _auth.email);
+    state = state.copyWith(connected: true);
     await refreshCalendarList();
     await syncNow(refreshList: false);
     return true;
   }
 
+  /// 연동 끄기 — 로컬 캘린더 목록·연결 상태만 정리(폰 캘린더 데이터는 안 건드림).
   Future<void> disconnect() async {
-    await _auth.disconnect();
     await _gcalRepo.clearAllCalendars();
     await _pushCalendarsToWidget();
     state = const GcalState();
   }
 
-  /// 구글에서 캘린더 목록을 새로 가져와 로컬에 반영 + 위젯에 전달.
+  /// 폰에서 캘린더 목록을 새로 가져와 로컬에 반영 + 위젯에 전달.
   Future<void> refreshCalendarList() async {
-    final entries = await _api.calendars();
+    final entries = await _bridge.calendars();
     final mapped = entries
-        .where((e) => e.id != null)
+        .where((e) => e['id'] != null)
         .map((e) => RemoteCalendar(
-              id: e.id!,
-              summary: e.summaryOverride ?? e.summary ?? e.id!,
-              colorHex: e.backgroundColor ?? '#4A5A66',
-              primary: e.primary ?? false,
-              accessRole: e.accessRole ?? 'reader',
+              id: e['id'].toString(),
+              summary: (e['name'] as String?)?.trim().isNotEmpty == true
+                  ? e['name'] as String
+                  : (e['account'] as String? ?? '캘린더'),
+              colorHex: (e['colorHex'] as String?) ?? '#4A5A66',
+              primary: e['primary'] == true,
+              accessRole: (e['accessRole'] as String?) ?? 'reader',
             ))
         .toList();
     await _gcalRepo.upsertFromRemote(mapped);
@@ -113,14 +110,18 @@ class GcalController extends StateNotifier<GcalState> {
   Future<void> setCalendarSelected(String id, bool selected) async {
     await _gcalRepo.setSelected(id, selected);
     await _pushCalendarsToWidget();
-    // 켜면 곧바로 그 캘린더를 당겨온다.
     if (selected) await syncNow(refreshList: false);
   }
 
   /// 위젯 팝업 큐를 비우고 양방향 동기화. [refreshList] 면 캘린더 목록도 갱신.
   Future<void> syncNow({bool refreshList = true}) async {
-    if (!_auth.isConnected) return;
+    if (!state.connected) return;
     if (state.syncing) return;
+    // 백그라운드에서 권한이 회수됐을 수 있으니 확인.
+    if (!await _bridge.hasPermission()) {
+      state = state.copyWith(connected: false);
+      return;
+    }
     state = state.copyWith(syncing: true, error: null);
     try {
       await drainQuickAddQueue();
@@ -133,8 +134,7 @@ class GcalController extends StateNotifier<GcalState> {
     }
   }
 
-  /// 1×1 위젯 팝업으로 입력된 항목을 로컬 일정으로 추가(dirty → 다음 push 로 원격 반영).
-  /// 네이티브 SharedPreferences 큐를 1회성으로 소비한다.
+  /// 1×1 위젯 팝업으로 입력된 항목을 로컬 일정으로 추가(dirty → push 로 폰 캘린더 반영).
   Future<int> drainQuickAddQueue() async {
     final raw = await WidgetBridge.consumeQuickAddQueue();
     if (raw == null || raw.isEmpty) return 0;
@@ -149,7 +149,7 @@ class GcalController extends StateNotifier<GcalState> {
       if (it is! Map) continue;
       final title = (it['title'] as String?)?.trim() ?? '';
       if (title.isEmpty) continue;
-      final calId = (it['calendarId'] as String?);
+      final calId = it['calendarId'] as String?;
       final allDay = it['allDay'] == true;
       final millis = (it['at'] as num?)?.toInt();
       final at = millis != null
@@ -164,7 +164,7 @@ class GcalController extends StateNotifier<GcalState> {
         endMin: endMin,
         allDay: allDay,
         gcalCalendarId: calId,
-        dirty: true, // 원격으로 밀어야 함
+        dirty: true,
       );
       added++;
     }

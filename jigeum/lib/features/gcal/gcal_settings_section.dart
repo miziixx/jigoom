@@ -22,13 +22,14 @@ class GcalSettingsSection extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-            child: Text('구글 계정으로 로그인하면 일정을 캘린더와 양방향으로 동기화해요.',
+            child: Text('폰에 있는 구글 캘린더와 일정을 양방향으로 동기화해요. '
+                '로그인 없이 캘린더 접근 허용만 하면 됩니다.',
                 style: AppText.body(tk.ink)),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 0),
             child: _Btn(
-              label: '구글 캘린더 연결',
+              label: '캘린더 연동 켜기',
               filled: true,
               onTap: () => ctrl.connect(),
             ),
@@ -56,7 +57,7 @@ class GcalSettingsSection extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(state.email ?? '연결됨', style: AppText.body(tk.ink)),
+                    Text('폰 캘린더 연동됨', style: AppText.body(tk.ink)),
                     const SizedBox(height: 2),
                     Text(
                       state.syncing
@@ -72,7 +73,7 @@ class GcalSettingsSection extends ConsumerWidget {
               GestureDetector(
                 onTap: () => ctrl.disconnect(),
                 behavior: HitTestBehavior.opaque,
-                child: Text('연결 해제', style: AppText.meta(tk.mark, size: 12)),
+                child: Text('연동 끄기', style: AppText.meta(tk.mark, size: 12)),
               ),
             ],
           ),
