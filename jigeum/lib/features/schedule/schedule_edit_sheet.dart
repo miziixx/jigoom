@@ -8,6 +8,7 @@ import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 import '../gcal/gcal_controller.dart';
+import '../widgetkit/notification_service.dart';
 
 /// 일정 추가/수정 시트. date=새 일정 / existing=수정.
 Future<void> showScheduleEditSheet(BuildContext context,
@@ -37,6 +38,24 @@ class _SheetState extends ConsumerState<_Sheet> {
   late int _end;
   late bool _allDay;
   String? _calId; // 저장할 구글 캘린더(종류)
+  int? _reminderMin; // null=알림 없음, 0=정각, 그 외=분 전
+  String? _repeat; // null=반복 안 함, daily|weekly|monthly
+
+  // 알림 옵션 (라벨, 시작 몇 분 전).
+  static const _reminderOpts = <(String, int?)>[
+    ('없음', null),
+    ('정각', 0),
+    ('10분 전', 10),
+    ('30분 전', 30),
+    ('1시간 전', 60),
+    ('1일 전', 1440),
+  ];
+  static const _repeatOpts = <(String, String?)>[
+    ('안 함', null),
+    ('매일', 'daily'),
+    ('매주', 'weekly'),
+    ('매월', 'monthly'),
+  ];
 
   @override
   void initState() {
@@ -49,6 +68,8 @@ class _SheetState extends ConsumerState<_Sheet> {
     _end = e?.endMin ?? 10 * 60;
     _allDay = e?.allDay ?? false;
     _calId = e?.gcalCalendarId;
+    _reminderMin = e?.reminderMin;
+    _repeat = e?.repeatRule;
   }
 
   @override
@@ -84,9 +105,12 @@ class _SheetState extends ConsumerState<_Sheet> {
     if (title.isEmpty) return;
     final repo = ref.read(scheduleRepoProvider);
     final e = widget.existing;
+    final date = e?.date ?? widget.date ?? DateTime.now();
+    final notif = NotificationService.instance;
+    String scheduleId;
     if (e == null) {
-      await repo.addSchedule(
-        date: widget.date ?? DateTime.now(),
+      scheduleId = await repo.addSchedule(
+        date: date,
         title: title,
         note: _note.text.trim(),
         color: _color,
@@ -94,8 +118,11 @@ class _SheetState extends ConsumerState<_Sheet> {
         endMin: _end,
         allDay: _allDay,
         gcalCalendarId: _calId,
+        reminderMin: _reminderMin,
+        repeatRule: _repeat,
       );
     } else {
+      scheduleId = e.id;
       await repo.updateSchedule(e.copyWith(
         title: title,
         note: _note.text.trim(),
@@ -104,8 +131,27 @@ class _SheetState extends ConsumerState<_Sheet> {
         endMin: _end,
         allDay: _allDay,
         gcalCalendarId: Value(_calId),
+        reminderMin: Value(_reminderMin),
+        repeatRule: Value(_repeat),
       ));
     }
+
+    // 알림 예약/해제.
+    if (_reminderMin != null) {
+      await notif.requestPermission();
+      await notif.scheduleEventReminder(
+        scheduleId: scheduleId,
+        date: date,
+        startMin: _start,
+        reminderMin: _reminderMin!,
+        allDay: _allDay,
+        title: title,
+        repeatRule: _repeat,
+      );
+    } else {
+      await notif.cancelEventReminder(scheduleId);
+    }
+
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -135,6 +181,8 @@ class _SheetState extends ConsumerState<_Sheet> {
               if (editing)
                 GestureDetector(
                   onTap: () async {
+                    await NotificationService.instance
+                        .cancelEventReminder(widget.existing!.id);
                     await ref
                         .read(scheduleRepoProvider)
                         .deleteSchedule(widget.existing!.id);
@@ -176,25 +224,40 @@ class _SheetState extends ConsumerState<_Sheet> {
             ],
           ),
           const SizedBox(height: 14),
-          // 종일 토글
-          Row(
-            children: [
-              Expanded(child: Text('종일', style: AppText.body(tk.ink))),
-              Switch(
-                value: _allDay,
-                onChanged: (v) => setState(() => _allDay = v),
-              ),
-            ],
-          ),
+          // 종일 토글 (에디토리얼)
+          _pillToggle(tk, '종일', _allDay,
+              (v) => setState(() => _allDay = v)),
           // 시간 (종일이 아닐 때만)
           if (!_allDay) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(child: _timeBtn(tk, '시작', _start, true)),
                 const SizedBox(width: 10),
                 Expanded(child: _timeBtn(tk, '끝', _end, false)),
               ],
+            ),
+          ],
+          const SizedBox(height: 18),
+          // 알림
+          Text('알림', style: AppText.meta(tk.inkSoft, size: 10)),
+          const SizedBox(height: 8),
+          _chipRow<int?>(
+            tk,
+            options: _reminderOpts,
+            selected: _reminderMin,
+            onPick: (v) => setState(() => _reminderMin = v),
+          ),
+          // 반복 (알림이 켜져 있을 때만)
+          if (_reminderMin != null) ...[
+            const SizedBox(height: 16),
+            Text('반복', style: AppText.meta(tk.inkSoft, size: 10)),
+            const SizedBox(height: 8),
+            _chipRow<String?>(
+              tk,
+              options: _repeatOpts,
+              selected: _repeat,
+              onPick: (v) => setState(() => _repeat = v),
             ),
           ],
           // 구글 캘린더(종류) 선택 — 연결됐고 선택된 캘린더가 있을 때만.
@@ -293,6 +356,70 @@ class _SheetState extends ConsumerState<_Sheet> {
                 ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  /// 에디토리얼 토글 — 라벨 + [끔|켬] 세그먼트(선택 시 잉크 반전).
+  Widget _pillToggle(
+      AppTokens tk, String label, bool value, ValueChanged<bool> onChanged) {
+    Widget seg(String text, bool on) => GestureDetector(
+          onTap: () => onChanged(on),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            color: value == on ? tk.ink : Colors.transparent,
+            child: Text(text,
+                style: AppText.chip(value == on ? tk.paper : tk.inkSoft)),
+          ),
+        );
+    return Row(
+      children: [
+        Expanded(child: Text(label, style: AppText.body(tk.ink))),
+        Container(
+          decoration: BoxDecoration(border: Border.all(color: tk.line)),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            seg('끔', false),
+            Container(width: 1, height: 24, color: tk.line),
+            seg('켬', true),
+          ]),
+        ),
+      ],
+    );
+  }
+
+  /// 가로 스크롤 선택 칩 행 (모노 각진 칩, 선택 = 잉크 반전).
+  Widget _chipRow<T>(
+    AppTokens tk, {
+    required List<(String, T)> options,
+    required T selected,
+    required ValueChanged<T> onPick,
+  }) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final (label, value) in options)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => onPick(value),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: selected == value ? tk.ink : Colors.transparent,
+                    border: Border.all(
+                        color: selected == value ? tk.ink : tk.line),
+                  ),
+                  child: Text(label,
+                      style: AppText.chip(
+                          selected == value ? tk.paper : tk.inkSoft)),
+                ),
+              ),
+            ),
         ],
       ),
     );

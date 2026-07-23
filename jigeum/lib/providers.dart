@@ -86,6 +86,18 @@ final habitTicksProvider =
   return ref.watch(habitRepoProvider).watchTicks(habitId);
 });
 
+/// 특정 날짜에 완료된 습관 틱들.
+final habitTicksOnDateProvider =
+    StreamProvider.family<List<HabitTick>, DateTime>((ref, d) {
+  return ref.watch(habitRepoProvider).watchTicksOn(d);
+});
+
+/// 기간 내 습관 틱들 (주간 플랜용).
+final habitTicksInRangeProvider = StreamProvider.family<List<HabitTick>,
+    ({DateTime start, DateTime end})>((ref, r) {
+  return ref.watch(habitRepoProvider).watchTicksInRange(r.start, r.end);
+});
+
 /// 일과(일정) & 루틴
 final scheduleRepoProvider = Provider<ScheduleRepository>((ref) {
   return ScheduleRepository(ref.watch(dbProvider));
@@ -132,6 +144,12 @@ final timeTrackRepoProvider = Provider<TimeTrackRepository>((ref) {
 final timeBlocksForDateProvider =
     StreamProvider.family<List<TimeBlock>, DateTime>((ref, date) {
   return ref.watch(timeTrackRepoProvider).watchForDate(date);
+});
+
+/// 기간 내 기록 블록들 (주간 플랜용).
+final timeBlocksInRangeProvider = StreamProvider.family<List<TimeBlock>,
+    ({DateTime start, DateTime end})>((ref, r) {
+  return ref.watch(timeTrackRepoProvider).watchForRange(r.start, r.end);
 });
 
 /// 날짜 범위 노드 (아웃라이너 기간 필터)

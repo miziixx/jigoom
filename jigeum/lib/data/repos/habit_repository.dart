@@ -24,6 +24,21 @@ class HabitRepository {
     return q.watch();
   }
 
+  /// 특정 날짜에 체크된 습관 틱들.
+  Stream<List<HabitTick>> watchTicksOn(DateTime date) {
+    final d = DateTime(date.year, date.month, date.day);
+    return (db.select(db.habitTicks)..where((t) => t.date.equals(d))).watch();
+  }
+
+  /// 기간(포함) 내 습관 틱들.
+  Stream<List<HabitTick>> watchTicksInRange(DateTime start, DateTime end) {
+    final s = DateTime(start.year, start.month, start.day);
+    final e = DateTime(end.year, end.month, end.day);
+    return (db.select(db.habitTicks)
+          ..where((t) => t.date.isBetweenValues(s, e)))
+        .watch();
+  }
+
   Future<String> addHabit(String title, {String category = ''}) async {
     final id = _uuid.v4();
     await db.into(db.habits).insert(HabitsCompanion.insert(

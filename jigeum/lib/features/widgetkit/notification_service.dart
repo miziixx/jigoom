@@ -28,6 +28,12 @@ class NotificationService {
     '아침/저녁 브리핑',
     importance: Importance.defaultImportance,
   );
+  static const _reminderChannel = AndroidNotificationChannel(
+    'schedule_reminder',
+    '일정 알림',
+    description: '일정 시작 전 알림',
+    importance: Importance.high,
+  );
 
   Future<void> init() async {
     if (kIsWeb || _inited) return;
@@ -42,6 +48,7 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin>();
       await android13?.createNotificationChannel(_ongoingChannel);
       await android13?.createNotificationChannel(_briefChannel);
+      await android13?.createNotificationChannel(_reminderChannel);
       _inited = true;
     } catch (e, s) {
       debugPrint('NotificationService.init 실패(무시): $e\n$s');
@@ -144,5 +151,107 @@ class NotificationService {
     } catch (e) {
       debugPrint('_zonedDaily 실패(무시): $e');
     }
+  }
+
+  // -------------------------------------------------------- 일정 알림
+  /// 일정 id → 안정적인 양수 알림 id (상주=1·브리핑=2/3 과 겹치지 않게 offset).
+  int _reminderId(String scheduleId) {
+    var h = 0;
+    for (final c in scheduleId.codeUnits) {
+      h = (h * 31 + c) & 0x3fffffff;
+    }
+    return 100000 + h;
+  }
+
+  /// 일정 알림 예약(재예약 시 이전 것 취소). reminderMin=시작 몇 분 전(0=정각),
+  /// 종일이면 그날 09:00 기준. repeatRule=null|daily|weekly|monthly.
+  Future<void> scheduleEventReminder({
+    required String scheduleId,
+    required DateTime date, // 자정 기준
+    required int startMin,
+    required int reminderMin,
+    required bool allDay,
+    required String title,
+    String? repeatRule,
+  }) async {
+    if (kIsWeb || !_inited) return;
+    try {
+      final id = _reminderId(scheduleId);
+      await _plugin.cancel(id); // 재예약 전 정리
+
+      // 기준 시각: 종일=09:00, 아니면 시작 시각. 거기서 reminderMin 만큼 당김.
+      final base = DateTime(date.year, date.month, date.day)
+          .add(Duration(minutes: allDay ? 9 * 60 : startMin));
+      final fire = base.subtract(Duration(minutes: reminderMin));
+      var scheduled = tz.TZDateTime.from(fire, tz.local);
+      final now = tz.TZDateTime.now(tz.local);
+
+      DateTimeComponents? match;
+      switch (repeatRule) {
+        case 'daily':
+          match = DateTimeComponents.time;
+          break;
+        case 'weekly':
+          match = DateTimeComponents.dayOfWeekAndTime;
+          break;
+        case 'monthly':
+          match = DateTimeComponents.dayOfMonthAndTime;
+          break;
+      }
+
+      if (match == null) {
+        // 1회성: 이미 지났으면 예약하지 않음.
+        if (scheduled.isBefore(now)) return;
+      } else {
+        // 반복: 다음 발생 시각으로 밀어 미래로.
+        if (repeatRule == 'monthly') {
+          while (scheduled.isBefore(now)) {
+            scheduled = tz.TZDateTime(tz.local, scheduled.year,
+                scheduled.month + 1, scheduled.day, scheduled.hour,
+                scheduled.minute);
+          }
+        } else {
+          final step = repeatRule == 'weekly'
+              ? const Duration(days: 7)
+              : const Duration(days: 1);
+          while (scheduled.isBefore(now)) {
+            scheduled = scheduled.add(step);
+          }
+        }
+      }
+
+      final body = allDay
+          ? '오늘 일정'
+          : (reminderMin <= 0 ? '지금 시작' : '$reminderMin분 후 시작');
+      const details = NotificationDetails(
+        android: AndroidNotificationDetails(
+          'schedule_reminder',
+          '일정 알림',
+          importance: Importance.high,
+          priority: Priority.high,
+          visibility: NotificationVisibility.public,
+        ),
+      );
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduled,
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: match,
+      );
+    } catch (e) {
+      debugPrint('scheduleEventReminder 실패(무시): $e');
+    }
+  }
+
+  Future<void> cancelEventReminder(String scheduleId) async {
+    if (kIsWeb) return;
+    try {
+      await _plugin.cancel(_reminderId(scheduleId));
+    } catch (_) {}
   }
 }

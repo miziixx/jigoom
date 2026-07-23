@@ -94,6 +94,11 @@ class Schedules extends Table {
   BoolColumn get deleted =>
       boolean().withDefault(const Constant(false))(); // 삭제 툼스톤(동기화 전)
   DateTimeColumn get updatedAt => dateTime().nullable()(); // 로컬 최종 수정(LWW)
+  // ---- 알림(v9) ----
+  IntColumn get reminderMin =>
+      integer().nullable()(); // 시작 몇 분 전 알림 (null=없음, 0=정각)
+  TextColumn get repeatRule =>
+      text().nullable()(); // 반복 알림: null|daily|weekly|monthly
 
   @override
   Set<Column> get primaryKey => {id};
@@ -194,7 +199,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -242,6 +247,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 8) {
             await m.createTable(routineGroups);
             await m.createTable(routineSteps);
+          }
+          if (from < 9) {
+            await m.addColumn(schedules, schedules.reminderMin);
+            await m.addColumn(schedules, schedules.repeatRule);
           }
         },
       );

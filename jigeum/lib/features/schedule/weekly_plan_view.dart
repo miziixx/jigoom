@@ -47,6 +47,28 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
       (byDate[d] ??= []).add(s);
     }
 
+    // 습관·기록 인디케이터 (그날 완료 습관 수 / 기록 블록 수).
+    final ticks = ref
+            .watch(habitTicksInRangeProvider(
+                (start: _weekStart, end: weekEnd)))
+            .valueOrNull ??
+        const [];
+    final blocks = ref
+            .watch(timeBlocksInRangeProvider(
+                (start: _weekStart, end: weekEnd)))
+            .valueOrNull ??
+        const [];
+    final habitCount = <DateTime, int>{};
+    for (final tick in ticks) {
+      final d = dateOnly(tick.date);
+      habitCount[d] = (habitCount[d] ?? 0) + 1;
+    }
+    final recordCount = <DateTime, int>{};
+    for (final b in blocks) {
+      final d = dateOnly(b.date);
+      recordCount[d] = (recordCount[d] ?? 0) + 1;
+    }
+
     return Container(
       color: tk.paper,
       child: ListView(
@@ -75,16 +97,22 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
             ),
           ),
           for (var i = 0; i < 7; i++)
-            _dayRow(tk, _weekStart.add(Duration(days: i)), today,
-                byDate[_weekStart.add(Duration(days: i))] ?? const [],
-                ref.watch(settingsProvider)),
+            _dayRow(
+              tk,
+              _weekStart.add(Duration(days: i)),
+              today,
+              byDate[_weekStart.add(Duration(days: i))] ?? const [],
+              ref.watch(settingsProvider),
+              habitCount[_weekStart.add(Duration(days: i))] ?? 0,
+              recordCount[_weekStart.add(Duration(days: i))] ?? 0,
+            ),
         ],
       ),
     );
   }
 
   Widget _dayRow(AppTokens tk, DateTime day, DateTime today, List items,
-      AppSettings settings) {
+      AppSettings settings, int habitDone, int records) {
     final isToday = day == today;
     final sunday = day.weekday % 7 == 0;
     final dowColor = sunday ? tk.mark : tk.inkSoft;
@@ -128,6 +156,25 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                       style: AppText.metaSans(tk.inkSoft, size: 9)),
                 if (isSonEomneunNal(day))
                   Text('손없는날', style: AppText.chip(tk.mark)),
+                if (habitDone > 0 || records > 0) ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      if (habitDone > 0) ...[
+                        Text('✓', style: AppText.glyph(tk.mark, size: 11)),
+                        Text('$habitDone',
+                            style: AppText.metaSans(tk.inkSoft, size: 9)),
+                      ],
+                      if (habitDone > 0 && records > 0)
+                        const SizedBox(width: 6),
+                      if (records > 0) ...[
+                        Text('⏱', style: AppText.metaSans(tk.inkSoft, size: 10)),
+                        Text('$records',
+                            style: AppText.metaSans(tk.inkSoft, size: 9)),
+                      ],
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
