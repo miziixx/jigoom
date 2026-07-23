@@ -189,6 +189,28 @@ class NodeRepository {
     return q.watch();
   }
 
+  /// 기간 내 완료(승리)를 날짜(자정)별 개수로 집계 — 정원 뷰용.
+  Stream<Map<DateTime, int>> watchWinCountsInRange(
+      DateTime start, DateTime end) {
+    final s = dateOnly(start);
+    final e = dateOnly(end).add(const Duration(days: 1));
+    final q = db.select(db.nodes)
+      ..where((n) =>
+          n.status.equals(NodeStatus.done) &
+          n.doneAt.isBiggerOrEqualValue(s) &
+          n.doneAt.isSmallerThanValue(e));
+    return q.watch().map((rows) {
+      final m = <DateTime, int>{};
+      for (final n in rows) {
+        final da = n.doneAt;
+        if (da == null) continue;
+        final d = DateTime(da.year, da.month, da.day);
+        m[d] = (m[d] ?? 0) + 1;
+      }
+      return m;
+    });
+  }
+
   Future<Node?> findById(String id) {
     return (db.select(db.nodes)..where((n) => n.id.equals(id)))
         .getSingleOrNull();

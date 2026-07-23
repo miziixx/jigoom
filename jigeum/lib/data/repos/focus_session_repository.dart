@@ -53,6 +53,27 @@ class FocusSessionRepository {
     return q.watch().map((rows) => rows.length);
   }
 
+  /// 기간 내 "시작한" 세션 수를 날짜(자정)별로 집계 — 정원 뷰용.
+  Stream<Map<DateTime, int>> watchStartedCountsInRange(
+      DateTime start, DateTime end) {
+    final s = DateTime(start.year, start.month, start.day);
+    final e = DateTime(end.year, end.month, end.day)
+        .add(const Duration(days: 1));
+    final q = db.select(db.focusSessions)
+      ..where((x) =>
+          x.startedAt.isBiggerOrEqualValue(s) &
+          x.startedAt.isSmallerThanValue(e));
+    return q.watch().map((rows) {
+      final m = <DateTime, int>{};
+      for (final r in rows) {
+        final d =
+            DateTime(r.startedAt.year, r.startedAt.month, r.startedAt.day);
+        m[d] = (m[d] ?? 0) + 1;
+      }
+      return m;
+    });
+  }
+
   /// 최근 종료된 세션들의 실제 지속시간(분) 평균. 데이터 없으면 null.
   /// [minCount] 개 미만이면(표본 부족) null 을 반환해 성급한 힌트를 피한다.
   Future<double?> averageActualMinutes({int recent = 10, int minCount = 3}) async {
