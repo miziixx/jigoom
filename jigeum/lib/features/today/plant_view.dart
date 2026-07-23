@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/constants.dart';
+import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
