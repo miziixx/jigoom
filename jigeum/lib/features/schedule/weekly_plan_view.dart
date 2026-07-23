@@ -168,7 +168,8 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                       if (habitDone > 0 && records > 0)
                         const SizedBox(width: 6),
                       if (records > 0) ...[
-                        Text('⏱', style: AppText.metaSans(tk.inkSoft, size: 10)),
+                        Text('■', style: AppText.glyph(tk.inkSoft, size: 9)),
+                        const SizedBox(width: 2),
                         Text('$records',
                             style: AppText.metaSans(tk.inkSoft, size: 9)),
                       ],

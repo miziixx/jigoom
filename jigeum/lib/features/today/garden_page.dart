@@ -96,10 +96,10 @@ class GardenPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
               child: Text(
                   [
-                    if (streak >= 2) '$streak일 연속 🌱',
+                    if (streak >= 2) '$streak일 연속',
                     '$activeDays일 · 물 $total번',
                   ].join('   ·   '),
-                  style: AppText.metaSans(tk.mark, size: 11)),
+                  style: AppText.metaSans(tk.inkSoft, size: 11)),
             ),
             // 요일 머리글
             Padding(

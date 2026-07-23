@@ -62,8 +62,8 @@ String coachLine(String personaKey, CoachContext c) {
       return '고민은 그만. 하나 적고 바로 시작.';
     case 'warm':
     default:
-      if (c.inPeakNow) return '지금 컨디션 좋을 때예요. 잘 골랐어!';
-      if (c.streak >= 2) return '${c.streak}일 연속이라니, 대단해 🌱';
+      if (c.inPeakNow) return '지금 컨디션 좋을 때예요. 잘 골랐어.';
+      if (c.streak >= 2) return '${c.streak}일 연속이라니, 대단해.';
       if (c.startedToday > 0) return '오늘 ${c.startedToday}번이나 시작했어. 충분해.';
       if (c.pending > 0) return '괜찮아, 딱 하나만 시작해보자.';
       return '천천히 와도 돼. 오늘도 반가워.';

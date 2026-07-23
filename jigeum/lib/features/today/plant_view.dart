@@ -71,7 +71,7 @@ class PlantBand extends ConsumerWidget {
               children: [
                 Text(caption, style: AppText.meta(tk.inkSoft, size: 11)),
                 const SizedBox(width: 8),
-                Text('정원 ›', style: AppText.meta(tk.mark, size: 11)),
+                Text('정원 ›', style: AppText.meta(tk.inkSoft, size: 11)),
               ],
             ),
           ],
@@ -179,7 +179,7 @@ class _PlantPainter extends CustomPainter {
 
     // 씨앗(성장 0).
     if (grow <= 0.001) {
-      canvas.drawCircle(Offset(cx, baseY - 3), 3, Paint()..color = mark);
+      canvas.drawCircle(Offset(cx, baseY - 3), 3, Paint()..color = soft);
       return;
     }
 
@@ -198,8 +198,8 @@ class _PlantPainter extends CustomPainter {
           ..strokeWidth = 2
           ..strokeCap = StrokeCap.round);
 
-    // 잎.
-    final leafPaint = Paint()..color = mark.withValues(alpha: 0.85);
+    // 잎 (잉크 계열 — 포인트색은 꽃/봉오리에만).
+    final leafPaint = Paint()..color = soft;
     for (var i = 0; i < leaves; i++) {
       final f = (i + 1) / (leaves + 1);
       final ly = baseY - stemH * f;

@@ -77,7 +77,7 @@ class _FolderCreateSheetState extends ConsumerState<_FolderCreateSheet> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(right: 8, bottom: 2),
-                child: Text('▸', style: AppText.glyph(tk.mark, size: 14)),
+                child: Text('›', style: AppText.glyph(tk.mark, size: 16)),
               ),
               Expanded(
                 child: TextField(
@@ -108,7 +108,7 @@ class _FolderCreateSheetState extends ConsumerState<_FolderCreateSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _locRow(tk, depth: 0, label: '홈 (최상위)', id: null, glyph: '▚'),
+                  _locRow(tk, depth: 0, label: '홈 (최상위)', id: null),
                   for (final f in topFolders) ..._folderRows(tk, f, 1),
                 ],
               ),
@@ -161,10 +161,7 @@ class _FolderCreateSheetState extends ConsumerState<_FolderCreateSheet> {
 
   /// 탐색기 행 — 들여쓰기 가이드선 + 폴더 글리프 + 이름 + 선택 표시.
   Widget _locRow(AppTokens tk,
-      {required int depth,
-      required String label,
-      required String? id,
-      String glyph = '▸'}) {
+      {required int depth, required String label, required String? id}) {
     final selected = _parentId == id;
     return GestureDetector(
       onTap: () => setState(() => _parentId = id),
@@ -174,22 +171,8 @@ class _FolderCreateSheetState extends ConsumerState<_FolderCreateSheet> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            // 들여쓰기 가이드선 (스킬트리 느낌)
-            for (var i = 0; i < depth; i++)
-              Container(
-                width: 18,
-                alignment: Alignment.centerLeft,
-                child: Text(i == depth - 1 ? '└' : ' ',
-                    style: AppText.glyph(
-                        selected ? tk.paper : tk.inkSoft,
-                        size: 12)),
-              ),
-            const SizedBox(width: 2),
-            Text(glyph,
-                style: AppText.glyph(
-                    selected ? tk.paper : tk.mark,
-                    size: 13)),
-            const SizedBox(width: 8),
+            // 계층은 들여쓰기로만 (아웃라인과 동일 방식, 새 글리프 없음).
+            SizedBox(width: (depth * 18).toDouble()),
             Expanded(
               child: Text(label,
                   maxLines: 1,
@@ -199,8 +182,7 @@ class _FolderCreateSheetState extends ConsumerState<_FolderCreateSheet> {
             if (selected)
               Padding(
                 padding: const EdgeInsets.only(left: 8),
-                child: Text('여기',
-                    style: AppText.chip(tk.paper)),
+                child: Text('여기', style: AppText.chip(tk.paper)),
               ),
           ],
         ),

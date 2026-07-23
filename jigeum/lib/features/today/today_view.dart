@@ -127,15 +127,14 @@ class _TodayViewState extends ConsumerState<TodayView> {
           child: Text(scaffoldParts.join('   ·   '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppText.meta(tk.mark, size: 11)),
+              style: AppText.meta(tk.inkSoft, size: 11)),
         ),
 
       // 코치 한마디 (설정한 페르소나 톤)
       Padding(
         padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
         child: Text('“$coachMsg”',
-            style: AppText.body(tk.inkSoft).copyWith(
-                fontStyle: FontStyle.italic, height: 1.3)),
+            style: AppText.body(tk.inkSoft).copyWith(height: 1.3)),
       ),
 
       // 오늘의 식물 — 완료·시작이 쌓일수록 자라는 잔잔한 보상

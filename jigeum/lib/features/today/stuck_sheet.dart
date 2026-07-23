@@ -111,7 +111,7 @@ class _StuckSheet extends ConsumerWidget {
           children: [
             SizedBox(
                 width: 22,
-                child: Text(glyph, style: AppText.glyph(tk.mark, size: 15))),
+                child: Text(glyph, style: AppText.glyph(tk.inkSoft, size: 15))),
             const SizedBox(width: 8),
             Expanded(
               child: Column(

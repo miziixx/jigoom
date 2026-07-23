@@ -227,6 +227,18 @@ final todayWinsProvider = StreamProvider<List<Node>>((ref) {
   return ref.watch(nodeRepoProvider).watchWinsForDate(todayDate());
 });
 
+/// 특정 날짜에 완료(done)된 노드 — 데이 화면 '한 일'.
+final winsForDateProvider =
+    StreamProvider.family<List<Node>, DateTime>((ref, date) {
+  return ref.watch(nodeRepoProvider).watchWinsForDate(date);
+});
+
+/// 특정 날짜의 open 노드(메모·할 일 등) — 데이 화면 '메모'.
+final openNodesForDateProvider =
+    StreamProvider.family<List<Node>, DateTime>((ref, date) {
+  return ref.watch(nodeRepoProvider).watchForDate(date);
+});
+
 /// 포커스 노드 (Future — 노드 변경 시 refresh)
 final focusProvider = FutureProvider<Node?>((ref) {
   // today 노드가 바뀌면 포커스도 재계산

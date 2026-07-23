@@ -335,8 +335,6 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('⏱', style: AppText.metaSans(tk.inkSoft)),
-                  const SizedBox(width: 8),
                   SizedBox(
                       width: 44,
                       child: Text(blockLabel(b.block),

@@ -9,13 +9,12 @@ import '../../providers.dart';
 import '../capture/prompt_bar.dart';
 import '../timetrack/time_track_screen.dart';
 import 'calendar_view.dart';
-import 'daily_plan_view.dart';
+import 'day_view.dart';
 import 'routine_screen.dart';
-import 'schedule_view.dart';
-import 'time_dashboard.dart';
 import 'weekly_plan_view.dart';
 
-/// 시간 허브 — 일과 탭. 하위: 대시보드 / 일정 / 루틴 / 기록.
+/// 시간 허브 — 일과 탭. 하위: 데이 / 주간 / 달력 / 루틴 / 기록.
+/// (기존 plan·day·schedule 은 'day' 하나로 통합됨.)
 class TimeHub extends ConsumerStatefulWidget {
   const TimeHub({super.key});
 
@@ -24,8 +23,7 @@ class TimeHub extends ConsumerStatefulWidget {
 }
 
 class _TimeHubState extends ConsumerState<TimeHub> {
-  int _sub = 5; // 0 대시보드·1 달력·2 일정·3 루틴·4 기록·5 하루플랜·6 주간플랜
-  final _scheduleKey = GlobalKey<ScheduleViewState>();
+  int _sub = 0; // 0 데이·1 주간·2 달력·3 루틴·4 기록
 
   @override
   Widget build(BuildContext context) {
@@ -41,34 +39,17 @@ class _TimeHubState extends ConsumerState<TimeHub> {
         Expanded(
           child: IndexedStack(
             index: _sub,
-            children: [
-              const TimeDashboard(),
-              const CalendarView(),
-              ScheduleView(key: _scheduleKey),
-              const RoutineBody(),
-              const TimeTrackBody(),
-              const DailyPlanBody(),
-              const WeeklyPlanBody(),
+            children: const [
+              DayView(),
+              WeeklyPlanBody(),
+              CalendarView(),
+              RoutineBody(),
+              TimeTrackBody(),
             ],
           ),
         ),
-        // 일정(2)·기록(4) 하위엔 하단 담기 바.
-        if (_sub == 2)
-          PromptBar(
-            hint: '일정 담기_',
-            onSubmit: (text) async {
-              final start = DateTime.now().hour * 60;
-              await ref.read(scheduleRepoProvider).addSchedule(
-                    date: todayDate(),
-                    title: text,
-                    note: '',
-                    color: 0,
-                    startMin: start,
-                    endMin: (start + 60).clamp(0, 1439),
-                  );
-            },
-          )
-        else if (_sub == 4)
+        // 기록(4) 하위엔 하단 담기 바.
+        if (_sub == 4)
           PromptBar(
             hint: '지금 기록_',
             onSubmit: (text) async {
@@ -113,11 +94,9 @@ class _TimeHubState extends ConsumerState<TimeHub> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  tab(5, 'plan'),
-                  tab(6, 'week'),
                   tab(0, 'day'),
-                  tab(1, 'month'),
-                  tab(2, 'schedule'),
+                  tab(1, 'week'),
+                  tab(2, 'month'),
                   tab(3, 'routine'),
                   tab(4, 'log'),
                 ],
@@ -139,7 +118,6 @@ class _TimeHubState extends ConsumerState<TimeHub> {
   }
 
   String? get _actionLabel => switch (_sub) {
-        2 => '+ 일정',
         3 => '+ 루틴',
         4 => '지금 기록',
         _ => null,
@@ -147,9 +125,6 @@ class _TimeHubState extends ConsumerState<TimeHub> {
 
   void _action() {
     switch (_sub) {
-      case 2:
-        _scheduleKey.currentState?.addSchedule();
-        break;
       case 3:
         showRoutineGroupSheet(context);
         break;
