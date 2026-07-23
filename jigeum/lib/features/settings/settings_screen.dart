@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/almanac.dart';
+import '../../core/coach.dart';
 import '../../core/constants.dart';
 import '../../core/dialogs.dart';
 import '../../core/journal.dart';
@@ -117,6 +118,58 @@ class SettingsScreen extends ConsumerWidget {
               sub: '완료 시 뜨는 팝업을 끄고 화면을 더 잔잔하게',
               value: s.reduceMotion,
               onChanged: ctrl.setReduceMotion,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('코치 목소리', style: AppText.body(tk.ink)),
+                  const SizedBox(height: 2),
+                  Text('오늘 화면 한마디의 톤', style: AppText.meta(tk.inkSoft)),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final p in kCoachPersonas)
+                        GestureDetector(
+                          onTap: () => ctrl.setCoachPersona(p.key),
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: s.coachPersona == p.key
+                                  ? tk.ink
+                                  : Colors.transparent,
+                              border: Border.all(
+                                  color: s.coachPersona == p.key
+                                      ? tk.ink
+                                      : tk.line),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(p.name,
+                                    style: AppText.chip(s.coachPersona == p.key
+                                        ? tk.paper
+                                        : tk.ink)),
+                                const SizedBox(height: 2),
+                                Text(p.desc,
+                                    style: AppText.meta(
+                                        s.coachPersona == p.key
+                                            ? tk.paper
+                                            : tk.inkSoft,
+                                        size: 10)),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
 
             const SectionLabel('GOOGLE CALENDAR'),

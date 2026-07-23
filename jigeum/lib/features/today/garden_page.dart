@@ -40,6 +40,7 @@ class GardenPage extends ConsumerWidget {
       total += w;
       if (w > 0) activeDays++;
     }
+    final streak = ref.watch(streakProvider);
 
     const dows = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -93,7 +94,11 @@ class GardenPage extends ConsumerWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
-              child: Text('$activeDays일 · 물 $total번',
+              child: Text(
+                  [
+                    if (streak >= 2) '$streak일 연속 🌱',
+                    '$activeDays일 · 물 $total번',
+                  ].join('   ·   '),
                   style: AppText.metaSans(tk.mark, size: 11)),
             ),
             // 요일 머리글
