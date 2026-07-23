@@ -13,6 +13,7 @@ import 'core/settings_controller.dart';
 import 'core/theme.dart';
 import 'data/db.dart';
 import 'data/repos/time_track_repository.dart';
+import 'features/gcal/gcal_controller.dart';
 import 'features/widgetkit/notification_service.dart';
 import 'features/widgetkit/widget_bridge.dart';
 import 'providers.dart';
@@ -95,7 +96,9 @@ class GoalApp extends ConsumerStatefulWidget {
 class _GoalAppState extends ConsumerState<GoalApp> {
   AppLifecycleListener? _lifecycle;
   StreamSubscription<dynamic>? _nodesSub;
+  StreamSubscription<dynamic>? _schedulesSub;
   Timer? _syncDebounce;
+  Timer? _gcalDebounce;
 
   @override
   void initState() {
@@ -105,6 +108,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       onResume: () {
         _runDailyRoutine();
         _checkLaunchAction();
+        // 복귀할 때마다 위젯 팝업 큐 비우고 구글 캘린더 동기화.
+        ref.read(gcalControllerProvider.notifier).syncNow(refreshList: false);
       },
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _startup());
@@ -113,7 +118,9 @@ class _GoalAppState extends ConsumerState<GoalApp> {
   @override
   void dispose() {
     _syncDebounce?.cancel();
+    _gcalDebounce?.cancel();
     _nodesSub?.cancel();
+    _schedulesSub?.cancel();
     _lifecycle?.dispose();
     super.dispose();
   }
@@ -223,6 +230,22 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       _syncDebounce?.cancel();
       _syncDebounce = Timer(const Duration(milliseconds: 500), _syncWidgets);
     });
+
+    // 구글 캘린더: 조용히 로그인 복구 + 첫 동기화.
+    if (!kIsWeb) {
+      try {
+        await ref.read(gcalControllerProvider.notifier).restore();
+      } catch (e, s) {
+        debugPrint('gcal restore 실패(무시): $e\n$s');
+      }
+      // 일정이 바뀌면(로컬 편집) 원격으로 밀기 (1.5초 디바운스).
+      _schedulesSub = ref.read(scheduleRepoProvider).watchAll().listen((_) {
+        _gcalDebounce?.cancel();
+        _gcalDebounce = Timer(const Duration(milliseconds: 1500), () {
+          ref.read(gcalControllerProvider.notifier).syncNow(refreshList: false);
+        });
+      });
+    }
 
     if (!kIsWeb) {
       try {

@@ -77,6 +77,28 @@ class WidgetBridge {
     }
   }
 
+  /// 구글 캘린더 목록(JSON 배열 [{id,name,color}])을 네이티브로 전달.
+  /// 1×1 위젯 팝업의 캘린더(종류) 스피너가 이 값을 읽는다.
+  static Future<void> setGcalCalendars(String jsonList) async {
+    if (kIsWeb) return;
+    try {
+      await _channel.invokeMethod('setGcalCalendars', {'json': jsonList});
+    } catch (e) {
+      debugPrint('setGcalCalendars 실패(무시): $e');
+    }
+  }
+
+  /// 1×1 위젯 팝업으로 입력된 항목 큐를 1회성으로 가져온다(가져오면 비움).
+  /// JSON 배열 문자열, 없으면 null.
+  static Future<String?> consumeQuickAddQueue() async {
+    if (kIsWeb) return null;
+    try {
+      return await _channel.invokeMethod<String>('consumeQuickAddQueue');
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 백업 JSON 을 문서창(SAF)으로 저장. true=저장됨, null/false=취소·실패.
   static Future<bool> saveBackup(String filename, String content) async {
     if (kIsWeb) return false;

@@ -138,6 +138,28 @@ class MainActivity : FlutterActivity() {
                         result.success(pendingAction)
                         pendingAction = null
                     }
+                    "setGcalCalendars" -> {
+                        // 1×1 팝업 스피너용 캘린더(종류) 목록 저장.
+                        getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
+                            .edit()
+                            .putString(WidgetPrefs.KEY_GCAL_CALENDARS,
+                                call.argument<String>("json") ?: "[]")
+                            .apply()
+                        WidgetPrefs.updateAllWidgets(this)
+                        result.success(true)
+                    }
+                    "consumeQuickAddQueue" -> {
+                        // 위젯 팝업으로 쌓인 입력 큐를 1회성으로 넘기고 비운다.
+                        val prefs = getSharedPreferences(
+                            WidgetPrefs.FILE, Context.MODE_PRIVATE
+                        )
+                        val queue = prefs.getString(
+                            WidgetPrefs.KEY_QUICK_ADD_QUEUE, null
+                        )
+                        prefs.edit()
+                            .remove(WidgetPrefs.KEY_QUICK_ADD_QUEUE).apply()
+                        result.success(queue)
+                    }
                     "saveBackup" -> {
                         backupResult = result
                         backupContent = call.argument<String>("content") ?: ""

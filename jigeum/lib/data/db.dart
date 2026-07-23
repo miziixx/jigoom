@@ -84,6 +84,34 @@ class Schedules extends Table {
   BoolColumn get done => boolean().withDefault(const Constant(false))();
   TextColumn get routineId => text().nullable()(); // 루틴에서 생성됐으면 그 id
   DateTimeColumn get createdAt => dateTime()();
+  // ---- 구글 캘린더 동기화(v7) ----
+  BoolColumn get allDay => boolean().withDefault(const Constant(false))();
+  TextColumn get gcalCalendarId => text().nullable()(); // 어느 구글 캘린더(종류)
+  TextColumn get gcalId => text().nullable()(); // 원격 이벤트 id (연결됨)
+  TextColumn get gcalEtag => text().nullable()(); // 충돌 감지용 etag
+  BoolColumn get dirty =>
+      boolean().withDefault(const Constant(false))(); // 원격에 밀어야 함
+  BoolColumn get deleted =>
+      boolean().withDefault(const Constant(false))(); // 삭제 툼스톤(동기화 전)
+  DateTimeColumn get updatedAt => dateTime().nullable()(); // 로컬 최종 수정(LWW)
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 사용자의 구글 캘린더 목록. selected=동기화 대상(종류별 선택).
+class GcalCalendars extends Table {
+  TextColumn get id => text()(); // 캘린더 id (primary / xxx@group.calendar…)
+  TextColumn get summary => text()(); // 표시 이름
+  TextColumn get colorHex =>
+      text().withDefault(const Constant('#4A5A66'))(); // 구글 색
+  BoolColumn get selected =>
+      boolean().withDefault(const Constant(false))(); // 동기화 on/off
+  BoolColumn get primaryCal =>
+      boolean().withDefault(const Constant(false))(); // 주 캘린더
+  TextColumn get accessRole =>
+      text().withDefault(const Constant('reader'))(); // reader|writer|owner
+  TextColumn get syncToken => text().nullable()(); // 증분 동기화 토큰
 
   @override
   Set<Column> get primaryKey => {id};
@@ -124,14 +152,15 @@ class Routines extends Table {
   Schedules,
   Routines,
   TimeBlocks,
-  FocusSessions
+  FocusSessions,
+  GcalCalendars
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -165,6 +194,16 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(nodes, nodes.obstacleNote);
             await m.addColumn(nodes, nodes.focusSessionId);
             await m.createTable(focusSessions);
+          }
+          if (from < 7) {
+            await m.addColumn(schedules, schedules.allDay);
+            await m.addColumn(schedules, schedules.gcalCalendarId);
+            await m.addColumn(schedules, schedules.gcalId);
+            await m.addColumn(schedules, schedules.gcalEtag);
+            await m.addColumn(schedules, schedules.dirty);
+            await m.addColumn(schedules, schedules.deleted);
+            await m.addColumn(schedules, schedules.updatedAt);
+            await m.createTable(gcalCalendars);
           }
         },
       );

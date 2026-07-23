@@ -20,6 +20,14 @@ dependencies:
   timezone: ^0.9.4
   # home_widget 플러그인은 기기 크래시로 사용 안 함 — 위젯은 네이티브(MethodChannel) 직접 구현.
   cupertino_icons: ^1.0.8
+  # 구글 캘린더 연동 — OAuth 로그인 + Calendar API.
+  # (Android 는 GCP 에 등록한 OAuth 클라이언트[패키지명+SHA-1]로 자동 매칭 →
+  #  docs/google-calendar-setup.md 참고. 코드에 clientId 하드코딩 불필요.)
+  google_sign_in: ^6.2.2
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.6.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:

@@ -17,10 +17,13 @@ class ScheduleRepository {
   Stream<List<Schedule>> watchForDate(DateTime date) {
     final d = dateOnly(date);
     final q = db.select(db.schedules)
-      ..where((s) => s.date.equals(d))
+      ..where((s) => s.date.equals(d) & s.deleted.equals(false))
       ..orderBy([(s) => OrderingTerm.asc(s.startMin)]);
     return q.watch();
   }
+
+  /// 전체 일정 변경 스트림 — 구글 동기화 트리거용(디바운스해서 사용).
+  Stream<List<Schedule>> watchAll() => db.select(db.schedules).watch();
 
   /// 기간(start~end, 포함) 일정 — 달력 점 표시용.
   Stream<List<Schedule>> watchForRange(DateTime start, DateTime end) {
@@ -28,7 +31,9 @@ class ScheduleRepository {
     final e = dateOnly(end);
     final q = db.select(db.schedules)
       ..where((x) =>
-          x.date.isBiggerOrEqualValue(s) & x.date.isSmallerOrEqualValue(e))
+          x.date.isBiggerOrEqualValue(s) &
+          x.date.isSmallerOrEqualValue(e) &
+          x.deleted.equals(false))
       ..orderBy([(x) => OrderingTerm.asc(x.date)]);
     return q.watch();
   }
@@ -41,6 +46,11 @@ class ScheduleRepository {
     required int startMin,
     required int endMin,
     String? routineId,
+    bool allDay = false,
+    String? gcalCalendarId,
+    String? gcalId,
+    String? gcalEtag,
+    bool dirty = true, // 로컬 생성 → 원격에 밀어야 함(기본). 원격에서 온 건 false.
   }) async {
     final id = _uuid.v4();
     await db.into(db.schedules).insert(SchedulesCompanion.insert(
@@ -53,21 +63,44 @@ class ScheduleRepository {
           endMin: endMin,
           routineId: Value(routineId),
           createdAt: DateTime.now(),
+          allDay: Value(allDay),
+          gcalCalendarId: Value(gcalCalendarId),
+          gcalId: Value(gcalId),
+          gcalEtag: Value(gcalEtag),
+          dirty: Value(dirty),
+          updatedAt: Value(DateTime.now()),
         ));
     return id;
   }
 
+  /// 로컬 수정 — dirty 표시 + updatedAt 갱신(원격으로 밀리도록).
   Future<void> updateSchedule(Schedule s) {
-    return db.update(db.schedules).replace(s);
+    return db.update(db.schedules).replace(
+          s.copyWith(dirty: true, updatedAt: Value(DateTime.now())),
+        );
   }
 
   Future<void> toggleDone(String id, bool done) async {
-    await (db.update(db.schedules)..where((s) => s.id.equals(id)))
-        .write(SchedulesCompanion(done: Value(done)));
+    await (db.update(db.schedules)..where((s) => s.id.equals(id))).write(
+        SchedulesCompanion(
+            done: Value(done),
+            dirty: const Value(true),
+            updatedAt: Value(DateTime.now())));
   }
 
+  /// 삭제. 원격과 연결된(gcalId) 일정은 툼스톤으로 남겨 동기화 때 원격도 지운다.
   Future<void> deleteSchedule(String id) async {
-    await (db.delete(db.schedules)..where((s) => s.id.equals(id))).go();
+    final row = await (db.select(db.schedules)..where((s) => s.id.equals(id)))
+        .getSingleOrNull();
+    if (row != null && row.gcalId != null) {
+      await (db.update(db.schedules)..where((s) => s.id.equals(id))).write(
+          SchedulesCompanion(
+              deleted: const Value(true),
+              dirty: const Value(true),
+              updatedAt: Value(DateTime.now())));
+    } else {
+      await (db.delete(db.schedules)..where((s) => s.id.equals(id))).go();
+    }
   }
 
   // ------------------------------------------------------------- 루틴
@@ -133,6 +166,7 @@ class ScheduleRepository {
       startMin: r.startMin,
       endMin: r.endMin,
       routineId: routineId,
+      dirty: false, // 루틴 자동 생성분은 원격에 밀지 않음(로컬 전용).
     );
   }
 

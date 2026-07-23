@@ -18,6 +18,10 @@ object WidgetPrefs {
     const val KEY_TT_TEXT = "tt_text"
     const val KEY_CAL_FOOT = "cal_foot" // 캘린더 위젯 하단: 음력·일진·별자리
 
+    // 구글 캘린더 연동. 1×1 팝업 스피너용 목록 + 입력 큐(앱이 비워 동기화).
+    const val KEY_GCAL_CALENDARS = "gcal_calendars" // JSON [{id,name,color}]
+    const val KEY_QUICK_ADD_QUEUE = "quick_add_queue" // JSON [{title,calendarId,allDay,at}]
+
     // 앱에서 선택한 테마의 6토큰(앱과 위젯 톤 일치). 기본 = MANILA.
     const val KEY_PAPER = "t_paper"
     const val KEY_INK = "t_ink"
@@ -66,6 +70,7 @@ object WidgetPrefs {
             MatrixWidgetProvider::class.java to MatrixWidgetProvider(),
             TimeTrackWidgetProvider::class.java to TimeTrackWidgetProvider(),
             CalendarWidgetProvider::class.java to CalendarWidgetProvider(),
+            QuickAddWidgetProvider::class.java to QuickAddWidgetProvider(),
         ).forEach { (cls, provider) ->
             val ids = manager.getAppWidgetIds(ComponentName(context, cls))
             if (ids.isNotEmpty()) provider.onUpdate(context, manager, ids)
