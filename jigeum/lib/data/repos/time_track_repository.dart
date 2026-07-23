@@ -23,6 +23,16 @@ class TimeTrackRepository {
     return q.watch();
   }
 
+  /// 기간(포함) 내 기록 블록들.
+  Stream<List<TimeBlock>> watchForRange(DateTime start, DateTime end) {
+    final s = dateOnly(start);
+    final e = dateOnly(end);
+    final q = db.select(db.timeBlocks)
+      ..where((t) => t.date.isBetweenValues(s, e))
+      ..orderBy([(t) => OrderingTerm.asc(t.block)]);
+    return q.watch();
+  }
+
   Future<TimeBlock?> getBlock(DateTime date, int block) {
     return (db.select(db.timeBlocks)
           ..where((t) => t.date.equals(dateOnly(date)) & t.block.equals(block)))

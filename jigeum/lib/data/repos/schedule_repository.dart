@@ -51,6 +51,8 @@ class ScheduleRepository {
     String? gcalId,
     String? gcalEtag,
     bool dirty = true, // 로컬 생성 → 원격에 밀어야 함(기본). 원격에서 온 건 false.
+    int? reminderMin,
+    String? repeatRule,
   }) async {
     final id = _uuid.v4();
     await db.into(db.schedules).insert(SchedulesCompanion.insert(
@@ -69,6 +71,8 @@ class ScheduleRepository {
           gcalEtag: Value(gcalEtag),
           dirty: Value(dirty),
           updatedAt: Value(DateTime.now()),
+          reminderMin: Value(reminderMin),
+          repeatRule: Value(repeatRule),
         ));
     return id;
   }

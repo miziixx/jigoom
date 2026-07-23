@@ -37,6 +37,16 @@ class _DailyPlanBodyState extends ConsumerState<DailyPlanBody> {
             .valueOrNull ??
         const [];
     final focus = [...q1, ...q2].take(5).toList();
+    final records =
+        ref.watch(timeBlocksForDateProvider(_date)).valueOrNull ?? const [];
+    final ticks =
+        ref.watch(habitTicksOnDateProvider(_date)).valueOrNull ?? const [];
+    final habits = ref.watch(habitsProvider).valueOrNull ?? const [];
+    final habitName = {for (final h in habits) h.id: h.title};
+    final doneHabits = ticks
+        .map((tk2) => habitName[tk2.habitId] ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
 
     return Container(
       color: tk.paper,
@@ -120,6 +130,52 @@ class _DailyPlanBodyState extends ConsumerState<DailyPlanBody> {
                       ),
                     ],
                   ),
+                ),
+              ),
+          // 기록 (타임트래커)
+          SectionLabel('RECORD', count: records.length),
+          if (records.isEmpty)
+            emptyNote(context, '이 날 기록이 없어요')
+          else
+            for (final b in records)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('⏱', style: AppText.metaSans(tk.inkSoft)),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                        width: 44,
+                        child: Text(blockLabel(b.block),
+                            style: AppText.meta(tk.inkSoft))),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(b.content,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body(tk.ink))),
+                  ],
+                ),
+              ),
+          // 습관 (완료)
+          SectionLabel('HABIT', count: doneHabits.length),
+          if (doneHabits.isEmpty)
+            emptyNote(context, '이 날 완료한 습관이 없어요')
+          else
+            for (final name in doneHabits)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+                child: Row(
+                  children: [
+                    Text('✓', style: AppText.glyph(tk.mark, size: 14)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body(tk.ink))),
+                  ],
                 ),
               ),
         ],

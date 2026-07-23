@@ -12,6 +12,7 @@ import 'features/capture/quick_capture_input.dart';
 import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
+import 'features/outline/folder_create_sheet.dart';
 import 'features/outline/outline_view.dart';
 import 'features/schedule/calendar_view.dart';
 import 'features/schedule/time_hub.dart';
@@ -200,14 +201,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     await ref.read(habitRepoProvider).addHabit(name.trim());
   }
 
-  /// 새 폴더(카테고리) 생성 — 아웃라인 최상위에 추가.
+  /// 새 폴더(카테고리) 생성 — 탐색기/스킬트리형 시트에서 위치까지 골라 추가.
   Future<void> _newFolder() async {
-    final title =
-        await showInputDialog(context, title: '새 폴더', hint: '예: 회사, 집, 공부');
-    if (title == null || title.trim().isEmpty) return;
-    await ref
-        .read(nodeRepoProvider)
-        .create(type: NodeType.folder, title: title.trim());
+    await showFolderCreateSheet(context);
   }
 
   /// 새 목표 → 저장 직후 첫 2분 행동 시트 (규칙 5).
