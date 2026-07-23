@@ -11,6 +11,7 @@ import '../../data/db.dart';
 import '../../providers.dart';
 import '../focus/focus_timer_view.dart';
 import 'node_detail_sheet.dart';
+import 'plant_view.dart';
 import 'stuck_sheet.dart';
 
 /// 오늘 뷰 (홈) — 편집(에디토리얼) 목차형.
@@ -105,6 +106,9 @@ class _TodayViewState extends ConsumerState<TodayView> {
               overflow: TextOverflow.ellipsis,
               style: AppText.meta(tk.mark, size: 11)),
         ),
+
+      // 오늘의 식물 — 완료·시작이 쌓일수록 자라는 잔잔한 보상
+      const PlantBand(),
 
       // GOAL — 오늘의 목표 (탭해서 편집)
       Padding(
