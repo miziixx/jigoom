@@ -41,6 +41,25 @@ final focusSessionRepoProvider = Provider<FocusSessionRepository>((ref) {
   return FocusSessionRepository(ref.watch(dbProvider));
 });
 
+/// 오늘 "시작한" 집중 세션 수 (완료 아닌 시작을 세는 자기효능감 지표).
+final startedTodayProvider = StreamProvider<int>((ref) {
+  return ref.watch(focusSessionRepoProvider).watchStartedCount(todayDate());
+});
+
+/// 정원 뷰 — 기간 내 날짜별 시작 수.
+final startedCountsInRangeProvider = StreamProvider.family<Map<DateTime, int>,
+    ({DateTime start, DateTime end})>((ref, r) {
+  return ref
+      .watch(focusSessionRepoProvider)
+      .watchStartedCountsInRange(r.start, r.end);
+});
+
+/// 정원 뷰 — 기간 내 날짜별 완료(승리) 수.
+final winCountsInRangeProvider = StreamProvider.family<Map<DateTime, int>,
+    ({DateTime start, DateTime end})>((ref, r) {
+  return ref.watch(nodeRepoProvider).watchWinCountsInRange(r.start, r.end);
+});
+
 /// 인박스 (parentId=null, type=memo, open)
 final inboxProvider = StreamProvider<List<Node>>((ref) {
   return ref.watch(nodeRepoProvider).watchInbox();

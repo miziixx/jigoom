@@ -26,6 +26,9 @@ class AppSettings {
     this.calSaju = true, // 캘린더에 사주(일진·오늘 기운) 표시
     this.calAstro = true, // 캘린더에 점성학(별자리) 표시
     this.fontKey = kDefaultFontKey, // 앱 글꼴(번들 한글 폰트 중 선택)
+    this.quietMode = false, // 방해 금지 — 브리핑·상주 알림 억제(하이퍼포커스 보호)
+    this.variedNudges = true, // 알림 문구를 매번 조금씩 바꿔 무뎌짐 방지
+    this.reduceMotion = false, // 모션·완료 팝업 최소화(센서리 예민 대응)
   });
 
   final String themeKey; // 내장 10종 중 하나 (기본 manila)
@@ -46,6 +49,9 @@ class AppSettings {
   final bool calSaju; // 캘린더 상세에 일진·오늘 기운 표시
   final bool calAstro; // 캘린더 상세에 별자리 표시
   final String fontKey; // 앱 글꼴 키(kFonts)
+  final bool quietMode; // 방해 금지(브리핑·상주 알림 억제)
+  final bool variedNudges; // 알림 문구 변주
+  final bool reduceMotion; // 모션·완료 팝업 최소화
 
   /// 사주(오늘의 운세)를 계산할 수 있는가.
   bool get hasBirth => birth != null;
@@ -77,6 +83,9 @@ class AppSettings {
     bool? calSaju,
     bool? calAstro,
     String? fontKey,
+    bool? quietMode,
+    bool? variedNudges,
+    bool? reduceMotion,
   }) =>
       AppSettings(
         themeKey: themeKey ?? this.themeKey,
@@ -97,6 +106,9 @@ class AppSettings {
         calSaju: calSaju ?? this.calSaju,
         calAstro: calAstro ?? this.calAstro,
         fontKey: fontKey ?? this.fontKey,
+        quietMode: quietMode ?? this.quietMode,
+        variedNudges: variedNudges ?? this.variedNudges,
+        reduceMotion: reduceMotion ?? this.reduceMotion,
       );
 }
 
@@ -125,6 +137,9 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _kCalSaju = 'cal_saju';
   static const _kCalAstro = 'cal_astro';
   static const _kFontKey = 'font_key';
+  static const _kQuietMode = 'quiet_mode';
+  static const _kVariedNudges = 'varied_nudges';
+  static const _kReduceMotion = 'reduce_motion';
 
   Future<void> _load() async {
     final scale = await _get(_kScale);
@@ -145,6 +160,9 @@ class SettingsController extends StateNotifier<AppSettings> {
     final calSaju = await _get(_kCalSaju);
     final calAstro = await _get(_kCalAstro);
     final fontKey = await _get(_kFontKey);
+    final quietMode = await _get(_kQuietMode);
+    final variedNudges = await _get(_kVariedNudges);
+    final reduceMotion = await _get(_kReduceMotion);
     state = AppSettings(
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
@@ -166,6 +184,9 @@ class SettingsController extends StateNotifier<AppSettings> {
       calSaju: calSaju == null ? true : calSaju == '1',
       calAstro: calAstro == null ? true : calAstro == '1',
       fontKey: fontKey ?? kDefaultFontKey,
+      quietMode: quietMode == '1',
+      variedNudges: variedNudges == null ? true : variedNudges == '1',
+      reduceMotion: reduceMotion == '1',
     );
   }
 
@@ -266,6 +287,21 @@ class SettingsController extends StateNotifier<AppSettings> {
   Future<void> setWeightDelta(int v) async {
     state = state.copyWith(weightDelta: v);
     await _set(_kWeight, '$v');
+  }
+
+  Future<void> setQuietMode(bool v) async {
+    state = state.copyWith(quietMode: v);
+    await _set(_kQuietMode, v ? '1' : '0');
+  }
+
+  Future<void> setVariedNudges(bool v) async {
+    state = state.copyWith(variedNudges: v);
+    await _set(_kVariedNudges, v ? '1' : '0');
+  }
+
+  Future<void> setReduceMotion(bool v) async {
+    state = state.copyWith(reduceMotion: v);
+    await _set(_kReduceMotion, v ? '1' : '0');
   }
 
   Future<String?> _get(String key) async {
