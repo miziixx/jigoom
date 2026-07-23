@@ -99,6 +99,38 @@ class Schedules extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 루틴 블록(그룹) — 순서 있는 스텝 묶음. 예: "모닝 루틴".
+class RoutineGroups extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  TextColumn get weekdays =>
+      text().withDefault(const Constant('1,2,3,4,5,6,7'))(); // 1=월~7=일
+  BoolColumn get collapsed => boolean().withDefault(const Constant(false))();
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 루틴 스텝 — 블록 안의 한 줄. trigger("눈 뜨면"·"07:20")로 "뭐 다음에 뭐"를 잇는다.
+/// 하루 체크는 lastDone(자정 기준)이 오늘이면 완료. streak=연속 일수(근사).
+class RoutineSteps extends Table {
+  TextColumn get id => text()();
+  TextColumn get groupId => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  TextColumn get trigger =>
+      text().withDefault(const Constant(''))(); // "눈 뜨면"·"07:20"·""
+  TextColumn get title => text()();
+  IntColumn get streak => integer().withDefault(const Constant(0))();
+  DateTimeColumn get lastDone => dateTime().nullable()(); // 마지막 완료(자정 기준)
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// 사용자의 구글 캘린더 목록. selected=동기화 대상(종류별 선택).
 class GcalCalendars extends Table {
   TextColumn get id => text()(); // 캘린더 id (primary / xxx@group.calendar…)
@@ -153,14 +185,16 @@ class Routines extends Table {
   Routines,
   TimeBlocks,
   FocusSessions,
-  GcalCalendars
+  GcalCalendars,
+  RoutineGroups,
+  RoutineSteps
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -204,6 +238,10 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(schedules, schedules.deleted);
             await m.addColumn(schedules, schedules.updatedAt);
             await m.createTable(gcalCalendars);
+          }
+          if (from < 8) {
+            await m.createTable(routineGroups);
+            await m.createTable(routineSteps);
           }
         },
       );
