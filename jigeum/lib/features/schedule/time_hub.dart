@@ -151,7 +151,7 @@ class _TimeHubState extends ConsumerState<TimeHub> {
         _scheduleKey.currentState?.addSchedule();
         break;
       case 3:
-        showRoutineEditSheet(context);
+        showRoutineGroupSheet(context);
         break;
       case 4:
         showTimeTrackInput(context, ref,

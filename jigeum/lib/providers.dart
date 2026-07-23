@@ -8,6 +8,7 @@ import 'data/repos/focus_session_repository.dart';
 import 'data/repos/gcal_repository.dart';
 import 'data/repos/habit_repository.dart';
 import 'data/repos/node_repository.dart';
+import 'data/repos/routine_builder_repository.dart';
 import 'data/repos/schedule_repository.dart';
 import 'data/repos/time_track_repository.dart';
 
@@ -93,6 +94,19 @@ final scheduleRepoProvider = Provider<ScheduleRepository>((ref) {
 /// 구글 캘린더 저장소 (캘린더 목록 + 동기화 상태).
 final gcalRepoProvider = Provider<GcalRepository>((ref) {
   return GcalRepository(ref.watch(dbProvider));
+});
+
+/// 루틴 블록(그룹) + 순서 스텝 저장소.
+final routineBuilderRepoProvider = Provider<RoutineBuilderRepository>((ref) {
+  return RoutineBuilderRepository(ref.watch(dbProvider));
+});
+
+final routineGroupsProvider = StreamProvider<List<RoutineGroup>>((ref) {
+  return ref.watch(routineBuilderRepoProvider).watchGroups();
+});
+
+final routineStepsProvider = StreamProvider<List<RoutineStep>>((ref) {
+  return ref.watch(routineBuilderRepoProvider).watchSteps();
 });
 
 final schedulesForDateProvider =
