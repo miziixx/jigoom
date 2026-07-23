@@ -53,6 +53,14 @@ class FocusSessionRepository {
     return q.watch().map((rows) => rows.length);
   }
 
+  /// [start] 이후 시작 시각의 시(hour) 표본 — 에너지 피크 분석용.
+  Stream<List<int>> watchStartedHoursSince(DateTime start) {
+    final s = DateTime(start.year, start.month, start.day);
+    final q = db.select(db.focusSessions)
+      ..where((x) => x.startedAt.isBiggerOrEqualValue(s));
+    return q.watch().map((rows) => [for (final r in rows) r.startedAt.hour]);
+  }
+
   /// 기간 내 "시작한" 세션 수를 날짜(자정)별로 집계 — 정원 뷰용.
   Stream<Map<DateTime, int>> watchStartedCountsInRange(
       DateTime start, DateTime end) {

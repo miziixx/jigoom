@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/coach.dart';
 import '../../core/constants.dart';
 import '../../core/dialogs.dart';
+import '../../core/energy.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
@@ -72,11 +74,32 @@ class _TodayViewState extends ConsumerState<TodayView> {
         break;
       }
     }
+    // 에너지 사이클 — 집중 피크(사주 運氣를 행동 데이터로 근사).
+    final peak = ref.watch(energyPeakProvider);
+    final peakStr = peak != null ? peakLabel(peak.startHour, peak.endHour) : null;
+    final inPeakNow = peak != null &&
+        (now.hour == peak.startHour || now.hour == (peak.startHour + 1) % 24);
+
     final scaffoldParts = <String>[
       if (startedToday > 0) '오늘 $startedToday번 시작',
       if (nextSchedule != null)
         '다음 · ${nextSchedule.title} 까지 ${_untilLabel(nextSchedule.startMin - nowMin)}',
+      if (peakStr != null) '피크 $peakStr',
     ];
+
+    // 코치 한마디 (페르소나 톤).
+    final streak = ref.watch(streakProvider);
+    final coachMsg = coachLine(
+      sky.coachPersona,
+      CoachContext(
+        partOfDay: partOfDay(now.hour),
+        pending: today.length,
+        startedToday: startedToday,
+        streak: streak,
+        peakLabel: peakStr,
+        inPeakNow: inPeakNow,
+      ),
+    );
 
     final children = <Widget>[
       // 큰 날짜 (Sans) + 요일 (Mono meta)
@@ -106,6 +129,14 @@ class _TodayViewState extends ConsumerState<TodayView> {
               overflow: TextOverflow.ellipsis,
               style: AppText.meta(tk.mark, size: 11)),
         ),
+
+      // 코치 한마디 (설정한 페르소나 톤)
+      Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
+        child: Text('“$coachMsg”',
+            style: AppText.body(tk.inkSoft).copyWith(
+                fontStyle: FontStyle.italic, height: 1.3)),
+      ),
 
       // 오늘의 식물 — 완료·시작이 쌓일수록 자라는 잔잔한 보상
       const PlantBand(),

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants.dart';
+import 'core/energy.dart';
 import 'data/backup_service.dart';
 import 'data/db.dart';
 import 'data/repos/focus_session_repository.dart';
@@ -58,6 +59,49 @@ final startedCountsInRangeProvider = StreamProvider.family<Map<DateTime, int>,
 final winCountsInRangeProvider = StreamProvider.family<Map<DateTime, int>,
     ({DateTime start, DateTime end})>((ref, r) {
   return ref.watch(nodeRepoProvider).watchWinCountsInRange(r.start, r.end);
+});
+
+/// 에너지 피크 — 최근 30일 완료·시작 시각에서 집중 피크 2시간 창(표본 부족 시 null).
+final _doneHoursProvider =
+    StreamProvider.family<List<int>, DateTime>((ref, start) {
+  return ref.watch(nodeRepoProvider).watchDoneHoursSince(start);
+});
+
+final _startedHoursProvider =
+    StreamProvider.family<List<int>, DateTime>((ref, start) {
+  return ref.watch(focusSessionRepoProvider).watchStartedHoursSince(start);
+});
+
+final energyPeakProvider =
+    Provider<({int startHour, int endHour, int count})?>((ref) {
+  final start = todayDate().subtract(const Duration(days: 30));
+  final done = ref.watch(_doneHoursProvider(start)).valueOrNull ?? const <int>[];
+  final started =
+      ref.watch(_startedHoursProvider(start)).valueOrNull ?? const <int>[];
+  return peakWindow([...done, ...started]);
+});
+
+/// 연속기록 — 오늘부터 거슬러 '물 준 날'이 이어진 일수(오늘 0이면 어제 기준, 벌점 없음).
+final streakProvider = Provider<int>((ref) {
+  final today = todayDate();
+  final start = today.subtract(const Duration(days: 60));
+  final wins = ref
+          .watch(winCountsInRangeProvider((start: start, end: today)))
+          .valueOrNull ??
+      const <DateTime, int>{};
+  final starts = ref
+          .watch(startedCountsInRangeProvider((start: start, end: today)))
+          .valueOrNull ??
+      const <DateTime, int>{};
+  int water(DateTime d) => (wins[d] ?? 0) + (starts[d] ?? 0);
+  var streak = 0;
+  var d = today;
+  if (water(today) == 0) d = today.subtract(const Duration(days: 1));
+  while (water(d) > 0) {
+    streak++;
+    d = d.subtract(const Duration(days: 1));
+  }
+  return streak;
 });
 
 /// 인박스 (parentId=null, type=memo, open)

@@ -189,6 +189,17 @@ class NodeRepository {
     return q.watch();
   }
 
+  /// [start] 이후 완료 시각의 시(hour) 표본 — 에너지 피크 분석용.
+  Stream<List<int>> watchDoneHoursSince(DateTime start) {
+    final s = dateOnly(start);
+    final q = db.select(db.nodes)
+      ..where((n) =>
+          n.status.equals(NodeStatus.done) &
+          n.doneAt.isBiggerOrEqualValue(s));
+    return q.watch().map((rows) =>
+        [for (final n in rows) if (n.doneAt != null) n.doneAt!.hour]);
+  }
+
   /// 기간 내 완료(승리)를 날짜(자정)별 개수로 집계 — 정원 뷰용.
   Stream<Map<DateTime, int>> watchWinCountsInRange(
       DateTime start, DateTime end) {
