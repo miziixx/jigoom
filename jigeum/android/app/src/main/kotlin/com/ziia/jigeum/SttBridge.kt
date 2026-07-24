@@ -34,6 +34,7 @@ class SttBridge(
     companion object {
         const val CHANNEL = "jigeum/stt"
         const val REQ_AUDIO_PERM = 7110
+        const val REQ_SPEECH = 7111
     }
 
     private val channel = MethodChannel(messenger, CHANNEL)
@@ -61,7 +62,7 @@ class SttBridge(
                 }
             }
             "start" -> {
-                startListening(call.argument<String>("localeId") ?: "ko_KR")
+                launchRecognitionDialog(call.argument<String>("localeId") ?: "ko_KR")
                 result.success(null)
             }
             "stop" -> {
@@ -129,6 +130,58 @@ class SttBridge(
         }
         notifyStatus("listening")
         r.startListening(intent)
+    }
+
+    /**
+     * 구글 기본 음성 입력 다이얼로그(ACTION_RECOGNIZE_SPEECH)를 띄운다.
+     * 백그라운드 SpeechRecognizer 서비스가 일부 기기(삼성 등)에서 "언어 없음"을
+     * 뱉는 문제를 우회 — 다이얼로그 방식은 구글 앱이 온라인/다운로드를 스스로
+     * 처리해 거의 모든 기기에서 동작한다. 결과는 [onSpeechResult] 로 돌아온다.
+     */
+    private fun launchRecognitionDialog(localeId: String) {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, localeId)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, localeId)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "말해 주세요")
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, activity.packageName)
+        }
+        try {
+            notifyStatus("listening")
+            activity.startActivityForResult(intent, REQ_SPEECH)
+        } catch (_: Exception) {
+            notifyStatus("error")
+            channel.invokeMethod(
+                "onError",
+                mapOf("code" to -1, "message" to "음성 입력을 열 수 없어요 (구글 앱 필요)")
+            )
+        }
+    }
+
+    /** MainActivity.onActivityResult 에서 위임 — 다이얼로그 결과 처리. */
+    fun onSpeechResult(resultCode: Int, data: Intent?) {
+        if (resultCode != Activity.RESULT_OK || data == null) {
+            notifyStatus("done") // 사용자가 취소.
+            return
+        }
+        val texts =
+            data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+        val text = texts?.firstOrNull()?.trim() ?: ""
+        if (text.isEmpty()) {
+            notifyStatus("done")
+            channel.invokeMethod(
+                "onError",
+                mapOf("code" to -2, "message" to "못 알아들었어요 (다시 말해줘)")
+            )
+            return
+        }
+        channel.invokeMethod(
+            "onResult", mapOf("text" to text, "confidence" to -1.0)
+        )
+        notifyStatus("done")
     }
 
     fun dispose() {

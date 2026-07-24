@@ -67,6 +67,11 @@ class MainActivity : FlutterActivity() {
         requestCode: Int, resultCode: Int, data: Intent?
     ) {
         super.onActivityResult(requestCode, resultCode, data)
+        // 음성 다이얼로그 결과는 STT 브리지로 위임.
+        if (requestCode == SttBridge.REQ_SPEECH) {
+            stt?.onSpeechResult(resultCode, data)
+            return
+        }
         val res = backupResult ?: return
         backupResult = null
         try {
