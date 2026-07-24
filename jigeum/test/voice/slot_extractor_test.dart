@@ -2,6 +2,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jigeum/features/voice/models/intent_type.dart';
 import 'package:jigeum/features/voice/models/time_parse_result.dart';
+import 'package:jigeum/features/voice/models/voice_result.dart';
 import 'package:jigeum/features/voice/pipeline/ko_datetime_parser.dart';
 import 'package:jigeum/features/voice/pipeline/slot_extractor.dart';
 import 'package:jigeum/features/voice/pipeline/text_normalizer.dart';
