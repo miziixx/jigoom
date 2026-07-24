@@ -27,7 +27,14 @@ class IntentClassifier {
   final Set<String> knownHabits;
 
   /// 정규화문 [text] 와 시간 파싱 [tp] 로부터 인텐트를 분류한다.
-  IntentScore classify(String text, TimeParseResult tp) {
+  ///
+  /// [userLexicon] 은 §11-1 자동학습으로 임계를 넘긴 `키워드→인텐트` 사전.
+  /// 해당 키워드가 문장에 있으면 그 인텐트에 가점한다(말투 개인화).
+  IntentScore classify(
+    String text,
+    TimeParseResult tp, {
+    Map<String, IntentType> userLexicon = const <String, IntentType>{},
+  }) {
     final scores = <IntentType, int>{};
     void add(IntentType i, int pts) {
       if (pts == 0) return;
@@ -129,6 +136,15 @@ class IntentClassifier {
       add(IntentType.goalToday, VoiceScores.strongSignal + VoiceScores.keyword);
     } else if (text.contains('오늘') && text.contains('목표')) {
       add(IntentType.goalToday, VoiceScores.strongSignal);
+    }
+
+    // --- 4-1) 개인화 사전(§11-1) — 학습된 표현이 있으면 그 인텐트에 가점 -----
+    if (userLexicon.isNotEmpty) {
+      userLexicon.forEach((key, intent) {
+        if (key.isNotEmpty && intent != IntentType.none && text.contains(key)) {
+          add(intent, VoiceScores.userLexicon);
+        }
+      });
     }
 
     // --- 5) 최고점/2등격차 산출 --------------------------------------------
