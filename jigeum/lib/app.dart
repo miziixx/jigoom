@@ -16,8 +16,10 @@ import 'features/outline/folder_create_sheet.dart';
 import 'features/outline/outline_view.dart';
 import 'features/schedule/calendar_view.dart';
 import 'features/schedule/time_hub.dart';
+import 'features/inbox/inbox_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
+import 'features/voice/ui/global_mic_button.dart';
 import 'features/today/intention_sheet.dart';
 import 'features/today/today_view.dart';
 import 'features/today/two_minute_sheet.dart';
@@ -99,6 +101,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       drawer: _buildDrawer(context),
+      // 전역 마이크 — 어느 화면에서나 "말로 담기"(§9 진입점). 하단 담기 바와
+      // 겹치지 않도록 상단(입력바 위)에 띄운다.
+      floatingActionButton: GlobalMicButton(
+        stt: ref.watch(sttServiceProvider),
+        controller: ref.watch(voiceControllerProvider),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       // 입력바가 키보드 위로 따라 올라오도록 body 에 배치.
       body: SafeArea(
         bottom: false,
@@ -232,6 +241,10 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _openCalendar() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
 
+  /// 보류함 — 음성 미인식·되돌린 원문 목록. 여기서 다시 분류하거나 버린다.
+  void _openInbox() => Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => InboxScreen(repository: ref.read(inboxRepoProvider))));
+
   /// 사이드바 메뉴 (에디토리얼) — 번호 + 라벨 + › 캐럿, 얇은 규칙선.
   Widget _buildDrawer(BuildContext context) {
     final tk = t(context);
@@ -281,7 +294,8 @@ class _AppShellState extends ConsumerState<AppShell> {
               Container(height: 1, color: tk.ink),
               row('01', '달력', _openCalendar),
               row('02', '오늘의 운세', _openFortune),
-              row('03', '설정', _openSettings, last: true),
+              row('03', '보류함', _openInbox),
+              row('04', '설정', _openSettings, last: true),
             ],
           ),
         ),

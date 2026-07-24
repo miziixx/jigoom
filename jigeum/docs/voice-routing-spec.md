@@ -394,7 +394,15 @@ Claude Code가 4·6번 커밋을 끝냈다고 하려면 아래가 기대대로 �
 - ✅ 커밋11 자동학습(UserLexicon — 빈도 카운터, 분류기 가점, `recordCorrection`)
 - ✅ 커밋10 로직: `VoiceExecutor`(seam) + `VoiceController`(실행/보류/되돌리기/다르게담기) — 순수 Dart 검증.
 - 🧪 커밋10 위젯: `global_mic_button` · `voice_feedback`(스낵바) · `inbox_screen` — **Flutter 미검증**(기기에서 `flutter analyze`/실행 확인 필요).
-- ⏭️ (통합) `VoiceExecutor` 를 앱이 구현해 A~J drift repository 실제 생성 연결 + Inbox 영속화 + AppShell 에 마이크 버튼 배치.
+- 🧪 (통합, 커밋12) `AppVoiceExecutor`(`features/voice/app_voice_executor.dart`) — 라우팅 결정을 실제 drift
+  repository 로 연결. A 빠른담기·B 매트릭스·C 일정·G 목표·I 오늘의목표·D 지금기록은 생성+되돌리기 faithful,
+  E 습관(체크는 등록명 대조, 실패 시 추가)·F 루틴(그룹+스텝)·J 포커스는 생성만(되돌리기 API 미구현 no-op).
+  nav/help 계열은 UI 동작이라 executor 생성 대상 아님(마이크 버튼 후속 처리).
+- 🧪 (통합, 커밋12) `providers.dart` 배선: `sttServiceProvider`·`inboxRepoProvider`(인메모리)·`voiceRouterProvider`·
+  `voiceExecutorProvider`·`voiceControllerProvider`. `AppShell` 에 전역 마이크 FAB(endTop) + 드로어 "03 보류함".
+  **Flutter 미검증**(기기에서 `flutter analyze`/실행 확인 필요).
+- ⏭️ (남은 통합) Inbox 영속화(drift 테이블/마이그레이션) · habitCheck 이름→id 조회 정식 API · 습관/포커스 되돌리기 API ·
+  nav/help 음성 동작(화면 전환·시트)의 마이크 버튼 연결 · FAB 위치·담기 바 겹침 기기 튜닝.
 
 ### 라우팅 단정 규칙(커밋8 코퍼스 활성화 시 확정)
 - §8 표의 `route` 는 "인텐트 기본 지점"이다. **확정(S≥3, D≥1)일 때만** 그 지점으로 간다.

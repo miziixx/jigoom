@@ -12,6 +12,12 @@ import 'data/repos/node_repository.dart';
 import 'data/repos/routine_builder_repository.dart';
 import 'data/repos/schedule_repository.dart';
 import 'data/repos/time_track_repository.dart';
+import 'features/inbox/inbox_repository.dart';
+import 'features/voice/app_voice_executor.dart';
+import 'features/voice/stt_service.dart';
+import 'features/voice/voice_controller.dart';
+import 'features/voice/voice_executor.dart';
+import 'features/voice/voice_router.dart';
 
 /// 포커스·매트릭스 위젯 탭 진입 시 빠른 담기 입력창(모달)을 여는 트리거.
 /// 값이 증가할 때마다 AppShell 이 showQuickCaptureInput 을 띄운다.
@@ -244,6 +250,38 @@ final focusProvider = FutureProvider<Node?>((ref) {
   // today 노드가 바뀌면 포커스도 재계산
   ref.watch(todayNodesProvider);
   return ref.watch(nodeRepoProvider).selectFocus();
+});
+
+// ---------------------------------------------------------------------------
+// 음성 라우팅 (§1~§11, 커밋10 통합). 파이프라인 로직은 검증됨, 배선은 기기 확인 필요.
+// ---------------------------------------------------------------------------
+
+/// STT 서비스 — 네이티브(SpeechRecognizer) MethodChannel 구현.
+final sttServiceProvider = Provider<SttService>((ref) {
+  final s = MethodChannelSttService();
+  ref.onDispose(s.dispose);
+  return s;
+});
+
+/// 보류함 저장소. 현재는 인메모리(세션 한정) — 영속화는 후속 작업(§5 TODO).
+final inboxRepoProvider = Provider<InboxRepository>((ref) {
+  return InMemoryInboxRepository();
+});
+
+/// 라우터 — 정규화·시간파싱·분류·슬롯·세 갈래 결정(순수 Dart).
+final voiceRouterProvider = Provider<VoiceRouter>((ref) => VoiceRouter());
+
+/// 실행 seam 의 앱 구현 — A~J drift repository 로 side effect 연결.
+final voiceExecutorProvider =
+    Provider<VoiceExecutor>((ref) => AppVoiceExecutor(ref));
+
+/// 오케스트레이터 — handle/undo/reclassify. 마이크 버튼이 이걸 호출한다.
+final voiceControllerProvider = Provider<VoiceController>((ref) {
+  return VoiceController(
+    router: ref.watch(voiceRouterProvider),
+    inbox: ref.watch(inboxRepoProvider),
+    executor: ref.watch(voiceExecutorProvider),
+  );
 });
 
 /// 매트릭스 사분면
