@@ -66,7 +66,7 @@ class IntentLexicon {
     IntentType.habitAdd: ['만들어', '추가', '만들기'],
     IntentType.routineAdd: ['스텝', '추가'],
     IntentType.goalAdd: ['세울래', '세우자', '하고싶어', '이루고싶어'],
-    IntentType.todoAdd: ['넣어줘', '넣어', '담아줘'],
+    IntentType.todoAdd: ['넣어줘', '담아줘'],
   };
 
   /// 약신호 — 홀로는 확정 못 하지만 S>0 을 만들어 **빠른담기(A)** 로 안착시킨다.
