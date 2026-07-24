@@ -18,6 +18,16 @@ PERMISSIONS = """    <uses-permission android:name="android.permission.POST_NOTI
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+"""
+
+# 음성 인식(SttBridge/SpeechRecognizer)용. Android 11+ 는 이 <queries> 가 없으면
+# SpeechRecognizer.isRecognitionAvailable 가 false 를 돌려줘 마이크가 안 열린다.
+QUERIES = """    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 """
 
 RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:exported="true" android:label="지금 · 포커스">
@@ -74,6 +84,15 @@ def patch_manifest() -> None:
     # 권한 (중복 방지)
     if "POST_NOTIFICATIONS" not in text:
         text = re.sub(r"(<manifest[^>]*>\n)", r"\1" + PERMISSIONS, text, count=1)
+
+    # 음성 인식 권한 (기존 매니페스트가 이미 패치된 경우 대비 오디오 권한만 별도 삽입)
+    if "RECORD_AUDIO" not in text:
+        audio = '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
+        text = re.sub(r"(<manifest[^>]*>\n)", r"\1" + audio, text, count=1)
+
+    # SpeechRecognizer <queries> (중복 방지)
+    if "RecognitionService" not in text:
+        text = re.sub(r"(<manifest[^>]*>\n)", r"\1" + QUERIES, text, count=1)
 
     # 앱 라벨
     text = re.sub(r'android:label="[^"]*"', 'android:label="지금"', text, count=1)
