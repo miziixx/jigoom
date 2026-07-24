@@ -8,6 +8,7 @@ import 'package:jigeum/features/voice/stt_service.dart';
 class FakeSttService implements SttService {
   final _statusCtrl = StreamController<SttStatus>.broadcast();
   final _resultCtrl = StreamController<SttResult>.broadcast();
+  final _errorCtrl = StreamController<String>.broadcast();
 
   /// 호출된 명령 로그(검증용).
   final List<String> calls = [];
@@ -20,6 +21,9 @@ class FakeSttService implements SttService {
 
   @override
   Stream<SttResult> get results => _resultCtrl.stream;
+
+  @override
+  Stream<String> get errors => _errorCtrl.stream;
 
   @override
   Future<bool> isAvailable() async {
@@ -49,7 +53,11 @@ class FakeSttService implements SttService {
   Future<void> dispose() async {
     await _statusCtrl.close();
     await _resultCtrl.close();
+    await _errorCtrl.close();
   }
+
+  /// 테스트 헬퍼 — 오류 메시지 주입.
+  void emitError(String message) => _errorCtrl.add(message);
 
   // --- 테스트 헬퍼 ---------------------------------------------------------
 

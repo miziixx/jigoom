@@ -79,6 +79,9 @@ abstract class SttService {
   /// 부분/최종 결과 스트림.
   Stream<SttResult> get results;
 
+  /// 사람이 읽을 오류 메시지 스트림(마이크 버튼이 스낵바로 띄운다).
+  Stream<String> get errors;
+
   /// 받아쓰기 시작. [localeId] 기본 한국어.
   Future<void> start({String localeId = 'ko_KR'});
 
@@ -106,12 +109,16 @@ class MethodChannelSttService implements SttService {
   final MethodChannel _channel;
   final _statusCtrl = StreamController<SttStatus>.broadcast();
   final _resultCtrl = StreamController<SttResult>.broadcast();
+  final _errorCtrl = StreamController<String>.broadcast();
 
   @override
   Stream<SttStatus> get status => _statusCtrl.stream;
 
   @override
   Stream<SttResult> get results => _resultCtrl.stream;
+
+  @override
+  Stream<String> get errors => _errorCtrl.stream;
 
   @override
   Future<bool> requestPermission() async {
@@ -140,6 +147,7 @@ class MethodChannelSttService implements SttService {
     _channel.setMethodCallHandler(null);
     await _statusCtrl.close();
     await _resultCtrl.close();
+    await _errorCtrl.close();
   }
 
   /// 네이티브 → Dart 콜백 처리. 테스트에서 직접 호출해 검증할 수 있다.
@@ -160,6 +168,8 @@ class MethodChannelSttService implements SttService {
         _statusCtrl.add(_statusFromNative(raw));
       case 'onError':
         _statusCtrl.add(SttStatus.error);
+        final msg = (call.arguments as Map?)?.cast<String, dynamic>();
+        _errorCtrl.add((msg?['message'] as String?) ?? '음성 인식 오류');
     }
   }
 

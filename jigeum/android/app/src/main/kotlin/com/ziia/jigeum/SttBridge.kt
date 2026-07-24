@@ -97,8 +97,9 @@ class SttBridge(
             )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, localeId)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            // 온디바이스 우선(가능 기기에서 오프라인). 미지원이면 시스템이 무시.
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+            // 오프라인 강제 금지 — 한국어 온디바이스 모델이 없는 폰에서 오프라인을
+            // 강제하면 결과 없이 조용히 실패한다. 온라인 인식으로 폴백되게 둔다.
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
         }
         notifyStatus("listening")
         r.startListening(intent)
@@ -121,7 +122,25 @@ class SttBridge(
 
     override fun onError(error: Int) {
         notifyStatus("error")
-        channel.invokeMethod("onError", mapOf("code" to error))
+        channel.invokeMethod(
+            "onError", mapOf("code" to error, "message" to errorMessage(error)))
+    }
+
+    /** SpeechRecognizer 오류 코드를 사람이 읽을 한국어 메시지로. */
+    private fun errorMessage(code: Int): String = when (code) {
+        SpeechRecognizer.ERROR_AUDIO -> "마이크 오류"
+        SpeechRecognizer.ERROR_CLIENT -> "인식기 준비 실패 (다시 시도)"
+        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "마이크 권한이 없어요"
+        SpeechRecognizer.ERROR_NETWORK -> "네트워크 오류 (온라인 인식 필요)"
+        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "네트워크 시간 초과"
+        SpeechRecognizer.ERROR_NO_MATCH -> "못 알아들었어요 (다시 말해줘)"
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "인식기가 바빠요 (잠시 후)"
+        SpeechRecognizer.ERROR_SERVER -> "음성 서버 오류"
+        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "말이 없어서 종료했어요"
+        SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "한국어 미지원 기기"
+        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ->
+            "한국어 음성 데이터 없음 (구글 앱에서 다운로드 필요)"
+        else -> "음성 인식 오류 (코드 $code)"
     }
 
     override fun onReadyForSpeech(params: Bundle?) = notifyStatus("listening")

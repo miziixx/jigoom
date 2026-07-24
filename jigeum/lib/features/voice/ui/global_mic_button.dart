@@ -32,6 +32,7 @@ class GlobalMicButton extends StatefulWidget {
 class _GlobalMicButtonState extends State<GlobalMicButton> {
   StreamSubscription<SttStatus>? _statusSub;
   StreamSubscription<SttResult>? _resultSub;
+  StreamSubscription<String>? _errorSub;
   bool _listening = false;
 
   @override
@@ -41,6 +42,20 @@ class _GlobalMicButtonState extends State<GlobalMicButton> {
       if (mounted) setState(() => _listening = s == SttStatus.listening);
     });
     _resultSub = widget.stt.results.listen(_onResult);
+    // 인식 실패를 조용히 삼키지 않고 사람이 읽을 메시지로 띄운다.
+    _errorSub = widget.stt.errors.listen(_onError);
+  }
+
+  void _onError(String message) {
+    if (!mounted) return;
+    final t = Theme.of(context).extension<AppTokens>()!;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: t.mark,
+        content: Text('🎙️ $message', style: AppText.body(t.paper)),
+      ));
   }
 
   Future<void> _onResult(SttResult r) async {
@@ -76,6 +91,7 @@ class _GlobalMicButtonState extends State<GlobalMicButton> {
   void dispose() {
     _statusSub?.cancel();
     _resultSub?.cancel();
+    _errorSub?.cancel();
     super.dispose();
   }
 
