@@ -7,6 +7,7 @@ on:
       - main
       - claude/goal-app-mvp-sj7lun
       - claude/jigeum-google-calendar-sync-lqeo5b
+      - claude/voice-routing-spec-impl-ugttwn
     paths:
       - 'jigeum/**'
       - '.github/workflows/jigeum-apk.yml'
@@ -97,18 +98,22 @@ jobs:
       # main 에 올라오면 롤링 최신 릴리즈로, 연동 브랜치면 프리뷰 릴리즈로 게시
       # → 폰에서 바로 설치 가능한 APK 링크가 생긴다.
       - name: Publish APK to Release
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/jigeum-google-calendar-sync-lqeo5b'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/jigeum-google-calendar-sync-lqeo5b' || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref == 'refs/heads/main' && 'jigeum-latest' || 'jigeum-gcal-preview' }}
-          name: ${{ github.ref == 'refs/heads/main' && '지금 (Editorial) — 최신 APK' || '지금 — 구글 캘린더 연동 프리뷰 APK' }}
+          tag_name: >-
+            ${{ github.ref == 'refs/heads/main' && 'jigeum-latest'
+             || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn' && 'jigeum-voice-preview'
+             || 'jigeum-gcal-preview' }}
+          name: >-
+            ${{ github.ref == 'refs/heads/main' && '지금 (Editorial) — 최신 APK'
+             || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn' && '지금 — 음성 라우팅 프리뷰 APK'
+             || '지금 — 구글 캘린더 연동 프리뷰 APK' }}
           body: |
             `지금` 앱 빌드 (arm64 release).
-            구글 캘린더(폰 캘린더) 연동 + 1×1 빠른 추가 위젯 포함.
             커밋 ${{ github.sha }} 기준 자동 게시.
 
             설치: 아래 app-release.apk 를 폰에서 받아 실행 → "출처를 알 수 없는 앱" 허용 후 설치.
-            연동: 앱 설정 → GOOGLE CALENDAR → 캘린더 연동 켜기 → 권한 허용.
           files: jigeum/build/app/outputs/flutter-apk/app-release.apk
           make_latest: ${{ github.ref == 'refs/heads/main' }}
           prerelease: ${{ github.ref != 'refs/heads/main' }}
