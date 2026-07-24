@@ -30,8 +30,18 @@ class GardenPage extends ConsumerWidget {
             .watch(startedCountsInRangeProvider((start: start, end: today)))
             .valueOrNull ??
         const <DateTime, int>{};
+    final habitTicks = ref
+            .watch(habitTicksInRangeProvider((start: start, end: today)))
+            .valueOrNull ??
+        const [];
+    final habitByDay = <DateTime, int>{};
+    for (final ht in habitTicks) {
+      final d = DateTime(ht.date.year, ht.date.month, ht.date.day);
+      habitByDay[d] = (habitByDay[d] ?? 0) + 1;
+    }
 
-    int waterOf(DateTime d) => (wins[d] ?? 0) + (starts[d] ?? 0);
+    int waterOf(DateTime d) =>
+        (wins[d] ?? 0) + (starts[d] ?? 0) + (habitByDay[d] ?? 0);
 
     var total = 0;
     var activeDays = 0;
@@ -89,7 +99,7 @@ class GardenPage extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 0),
-              child: Text('완료·시작이 쌓일수록 그날의 식물이 자라요. 시들지 않아요.',
+              child: Text('완료·시작·습관이 쌓일수록 그날의 식물이 자라요. 시들지 않아요.',
                   style: AppText.meta(tk.inkSoft, size: 12)),
             ),
             Padding(

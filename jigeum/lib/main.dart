@@ -175,8 +175,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       if (!kIsWeb) {
         NotificationService.instance
           ..quietMode = settings.quietMode
-          ..variedNudges = settings.variedNudges
-          ..coachPersona = settings.coachPersona;
+          ..variedNudges = settings.variedNudges;
         await NotificationService.instance.showOngoingFocus(focus?.title);
       }
 
@@ -210,8 +209,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         final settings = ref.read(settingsProvider);
         NotificationService.instance
           ..quietMode = settings.quietMode
-          ..variedNudges = settings.variedNudges
-          ..coachPersona = settings.coachPersona;
+          ..variedNudges = settings.variedNudges;
         final wins = await repo.winsCountForDate(todayDate());
         await NotificationService.instance.scheduleEvening(wins);
       }
@@ -262,8 +260,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         final settings = ref.read(settingsProvider);
         NotificationService.instance
           ..quietMode = settings.quietMode
-          ..variedNudges = settings.variedNudges
-          ..coachPersona = settings.coachPersona;
+          ..variedNudges = settings.variedNudges;
         final q2 = await ref.read(nodeRepoProvider).selectFocus();
         await NotificationService.instance.scheduleMorning(q2?.title);
       } catch (e, s) {

@@ -19,9 +19,6 @@ class NotificationService {
   /// 알림 문구 변주 — 켜지면 브리핑 문구를 매번 조금씩 바꿔 무뎌짐을 줄인다.
   bool variedNudges = true;
 
-  /// 코치 페르소나 키 — 브리핑 톤에 반영(격려/차분/분석/단호).
-  String coachPersona = 'warm';
-
   /// 날짜 기반 회전 인덱스(변주용) — 같은 날은 같은 문구, 날이 바뀌면 달라짐.
   int _rotate(int len) =>
       len <= 1 ? 0 : DateTime.now().day % len;
@@ -134,17 +131,8 @@ class NotificationService {
   }
 
   String _morningTail() {
-    switch (coachPersona) {
-      case 'firm':
-        return '· 딱 2분, 지금';
-      case 'calm':
-        return '· 천천히 하나만';
-      case 'analyst':
-        return '· 아침이 시작에 유리해요';
-      case 'warm':
-      default:
-        return '부터 딱 2분만';
-    }
+    const tails = ['부터 딱 2분만', '· 천천히 하나만', '· 아침에 시작이 유리해요'];
+    return tails[_rotate(tails.length)];
   }
 
   /// 저녁 20:30: "오늘의 승리 {N}개". N=0이면 보내지 않음.

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -342,26 +344,25 @@ class _DayViewState extends ConsumerState<DayView> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.fromLTRB(kGutter, 3, kGutter, 0),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 5,
+            runSpacing: 2,
             children: [
-              Flexible(
-                child: Text(
-                  [
-                    lunarLabel(_date),
-                    if (settings.showSaju) iljinLabel(_date),
-                    if (settings.showZodiac) byeoljariLabel(_date),
-                    moonName(_date),
-                  ].join(' · '),
-                  textAlign: TextAlign.center,
-                  style: AppText.metaSans(tk.inkSoft),
-                ),
+              Text(
+                '${[
+                  lunarLabel(_date),
+                  if (settings.showSaju) iljinLabel(_date),
+                  if (settings.showZodiac) byeoljariLabel(_date),
+                ].join(' · ')} ·',
+                style: AppText.metaSans(tk.inkSoft),
               ),
-              if (isSonEomneunNal(_date)) ...[
-                const SizedBox(width: 8),
+              MoonPhaseGlyph(date: _date, size: 13),
+              Text(moonName(_date), style: AppText.metaSans(tk.inkSoft)),
+              if (isSonEomneunNal(_date))
                 Text('손없는날', style: AppText.chip(tk.mark)),
-              ],
             ],
           ),
         ),
@@ -377,4 +378,88 @@ class _DayViewState extends ConsumerState<DayView> {
           child: Text(g, style: AppText.glyph(tk.inkSoft, size: 20)),
         ),
       );
+}
+
+/// 달 위상 글리프 — 그날 음력 일(1~30) 기준 달 모양을 직관적으로 그린다.
+/// 밝은 면은 종이/잉크 밝은색, 그림자 면은 어두운색으로 위상(초승·상현·보름…)을 표현.
+class MoonPhaseGlyph extends StatelessWidget {
+  const MoonPhaseGlyph({super.key, required this.date, this.size = 13});
+  final DateTime date;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return CustomPaint(
+      size: Size.square(size),
+      painter: _MoonPainter(
+        day: lunarOf(date).day,
+        shadow: tk.isDark ? tk.paper2 : tk.inkSoft,
+        lit: tk.isDark ? tk.ink : tk.paper,
+        outline: tk.inkSoft,
+      ),
+    );
+  }
+}
+
+class _MoonPainter extends CustomPainter {
+  _MoonPainter({
+    required this.day,
+    required this.shadow,
+    required this.lit,
+    required this.outline,
+  });
+  final int day; // 음력 일 1~30
+  final Color shadow;
+  final Color lit;
+  final Color outline;
+
+  static const double _period = 29.53;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.width / 2;
+    final c = Offset(r, r);
+    final phase = ((day - 1) % _period) / _period; // 0=삭 · 0.5=보름
+    final waxing = phase < 0.5; // 차오르는 중이면 오른쪽이 밝음
+    // 명암 경계(터미네이터) 타원의 가로 반지름(부호 포함).
+    final xr = math.cos(phase * 2 * math.pi) * r;
+    final exr = xr.abs().clamp(0.5, r).toDouble();
+
+    // 전체 원을 그림자(어두운 면)로 채운다.
+    canvas.drawCircle(c, r, Paint()..color = shadow..isAntiAlias = true);
+
+    // 밝은(빛 받는) 반쪽을 얹는다.
+    final lp = Path()..moveTo(c.dx, c.dy - r);
+    if (waxing) {
+      lp.arcToPoint(Offset(c.dx, c.dy + r),
+          radius: Radius.circular(r), clockwise: true);
+      lp.arcToPoint(Offset(c.dx, c.dy - r),
+          radius: Radius.elliptical(exr, r), clockwise: xr < 0);
+    } else {
+      lp.arcToPoint(Offset(c.dx, c.dy + r),
+          radius: Radius.circular(r), clockwise: false);
+      lp.arcToPoint(Offset(c.dx, c.dy - r),
+          radius: Radius.elliptical(exr, r), clockwise: xr >= 0);
+    }
+    lp.close();
+    canvas.drawPath(lp, Paint()..color = lit..isAntiAlias = true);
+
+    // 테두리.
+    canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..color = outline
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..isAntiAlias = true);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MoonPainter old) =>
+      old.day != day ||
+      old.shadow != shadow ||
+      old.lit != lit ||
+      old.outline != outline;
 }
