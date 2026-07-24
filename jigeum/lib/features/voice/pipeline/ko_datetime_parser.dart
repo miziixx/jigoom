@@ -21,9 +21,22 @@ class KoDateTimeParser {
   // (활성화는 향후 설정 플래그로. 여기서는 오검출 방지가 우선.)
 
   /// 과거 시제 신호(§3-3 1순위, §3-2 past_markers).
+  ///
+  /// 사용자 말투 ⑤: 과거형이면 기록. "~ㅁ" 명사형 과거("주문넣음/퇴근찍음/결제함")도
+  /// 실제 발화에서 잦아 포함한다(오검출 위험이 낮은 구체 동사형만).
   static const List<String> _pastMarkers = [
     '했어', '했다', '끝냈어', '방금', '아까', '마쳤어', '했음',
+    '넣음', '찍음', '출발함', '결제함', '나감', '들어옴', '썼어',
+    '왔음', '갔음', '샀음', '봤음', '먹었음', '작업했다',
   ];
+
+  /// 양력 고정 공휴일·기념일 → (월, 일). 음력(설날·추석)은 매년 날짜가 달라
+  /// 별도 로드맵(§13)으로 미룬다.
+  static const Map<String, List<int>> _solarHolidays = {
+    '신정': [1, 1], '삼일절': [3, 1], '어린이날': [5, 5], '현충일': [6, 6],
+    '제헌절': [7, 17], '광복절': [8, 15], '개천절': [10, 3], '한글날': [10, 9],
+    '크리스마스이브': [12, 24], '크리스마스': [12, 25], '성탄절': [12, 25],
+  };
 
   /// 순우리말 수사 → 정수(시/일 공용, 0~12 상식선). 긴 표기 우선.
   static const Map<String, int> _nativeNum = {
@@ -44,11 +57,17 @@ class KoDateTimeParser {
   static final RegExp _reDurMin = RegExp(r'(\d+)\s*분(?:만|정도|쯤)?');
   static final RegExp _reDaysLater =
       RegExp('($_nn|\\d+)\\s*일\\s*(?:뒤|후)(?:에)?');
-  static final RegExp _reMonthDay = RegExp(r'(\d+)\s*월\s*(\d+)\s*일(?:에)?');
+  // 연도(사용자 말투: "29년/30년/내년"). 2자리는 2000년대로 본다.
+  static final RegExp _reYear = RegExp(r'(내년|올해|작년)|(\d{2,4})\s*년');
+  // "다음달/담달/이번달" 월 오프셋(뒤에 N일 이 올 때).
+  static final RegExp _reMonthOffset = RegExp(r'(다음|담|낼)\s*달|이번\s*달');
+  static final RegExp _reMonthDay = RegExp(r'(\d+)\s*월\s*(\d+)\s*일(?:날|에)?');
   static final RegExp _reWeekday = RegExp(
-      r'(?:(이번|다음|담)\s*주\s*)?([월화수목금토일])요일(?:에)?');
-  static final RegExp _reRelDay = RegExp(r'(오늘|내일|모레|글피|어제)(?:에)?');
-  static final RegExp _reDayOfMonth = RegExp(r'(\d+)\s*일(?!\s*(?:뒤|후))(?:에)?');
+      r'(?:(이번|다음|담)\s*주\s*)?([월화수목금토일])요일(?:날|에)?');
+  static final RegExp _reRelDay =
+      RegExp(r'(낼모레|오늘|내일|모레|글피|어제|낼)(?:날|에)?');
+  static final RegExp _reDayOfMonth =
+      RegExp(r'(\d+)\s*일(?!\s*(?:뒤|후))(?:날|에)?');
 
   static const Map<String, int> _weekdayNum = {
     '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6, '일': 7,
@@ -102,6 +121,50 @@ class KoDateTimeParser {
       }
     }
 
+    // --- 3-5) 연도·월오프셋·공휴일 사전 처리 ------------------------------
+    int? explicitYear; // 명시 연도(29년/내년 …). 있으면 롤오버 안 함.
+    for (final m in _reYear.allMatches(text)) {
+      if (_overlaps(spans, m.start, m.end)) continue;
+      if (m.group(1) != null) {
+        explicitYear = switch (m.group(1)) {
+          '내년' => ref.year + 1,
+          '작년' => ref.year - 1,
+          _ => ref.year, // 올해
+        };
+      } else {
+        final y = int.parse(m.group(2)!);
+        explicitYear = y < 100 ? 2000 + y : y; // "29년" → 2029
+      }
+      spans.add(SpanRange(m.start, m.end));
+      break;
+    }
+
+    int? monthOffset; // 0=이번달, 1=다음달 (뒤에 N일 이 올 때만 의미).
+    for (final m in _reMonthOffset.allMatches(text)) {
+      if (_overlaps(spans, m.start, m.end)) continue;
+      monthOffset = m.group(1) != null ? 1 : 0; // (다음|담|낼)달 → +1, 이번달 → 0
+      spans.add(SpanRange(m.start, m.end));
+      break;
+    }
+
+    // 양력 공휴일명("광복절날") — 다른 날짜 규칙보다 우선.
+    for (final entry in _solarHolidays.entries) {
+      final i = text.indexOf(entry.key);
+      if (i < 0) continue;
+      var end = i + entry.key.length;
+      if (end < text.length && text[end] == '날') end += 1; // "광복절날"
+      if (_overlaps(spans, i, end)) continue;
+      final y = explicitYear ?? ref.year;
+      var cand = _safeDate(y, entry.value[0], entry.value[1]);
+      if (cand != null && explicitYear == null && cand.isBefore(today)) {
+        cand = _safeDate(y + 1, entry.value[0], entry.value[1]);
+      }
+      if (cand == null) continue;
+      date = cand;
+      spans.add(SpanRange(i, end));
+      break;
+    }
+
     // --- 4) 날짜 — 앞선 규칙이 이기고, 하나만 채운다 ---------------------
     for (final rule in <MapEntry<RegExp, DateTime? Function(RegExpMatch)>>[
       MapEntry(_reDaysLater, (m) {
@@ -111,9 +174,11 @@ class KoDateTimeParser {
       MapEntry(_reMonthDay, (m) {
         final mo = int.parse(m.group(1)!);
         final d = int.parse(m.group(2)!);
-        var y = ref.year;
+        final y = explicitYear ?? ref.year;
         var cand = _safeDate(y, mo, d);
-        if (cand != null && cand.isBefore(today)) cand = _safeDate(y + 1, mo, d);
+        if (cand != null && explicitYear == null && cand.isBefore(today)) {
+          cand = _safeDate(y + 1, mo, d);
+        }
         return cand;
       }),
       MapEntry(_reWeekday, (m) {
@@ -125,8 +190,8 @@ class KoDateTimeParser {
       MapEntry(_reRelDay, (m) {
         return switch (m.group(1)) {
           '오늘' => today,
-          '내일' => today.add(const Duration(days: 1)),
-          '모레' => today.add(const Duration(days: 2)),
+          '내일' || '낼' => today.add(const Duration(days: 1)),
+          '모레' || '낼모레' => today.add(const Duration(days: 2)),
           '글피' => today.add(const Duration(days: 3)),
           '어제' => today.subtract(const Duration(days: 1)),
           _ => null,
@@ -134,9 +199,14 @@ class KoDateTimeParser {
       }),
       MapEntry(_reDayOfMonth, (m) {
         final d = int.parse(m.group(1)!);
-        var cand = _safeDate(ref.year, ref.month, d);
-        if (cand != null && cand.isBefore(today)) {
-          cand = _safeDate(ref.year, ref.month + 1, d);
+        final y = explicitYear ?? ref.year;
+        final mo = ref.month + (monthOffset ?? 0);
+        var cand = _safeDate(y, mo, d);
+        if (cand != null &&
+            explicitYear == null &&
+            monthOffset == null &&
+            cand.isBefore(today)) {
+          cand = _safeDate(y, mo + 1, d);
         }
         return cand;
       }),

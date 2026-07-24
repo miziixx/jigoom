@@ -62,12 +62,13 @@ class SlotExtractor {
         return VoiceSlots(title: name, habitName: name);
 
       case IntentType.habitCheck:
-        // 등록 습관명 중 문장에 포함된 것을 대상 이름으로.
+        // 등록 습관명 우선. 없으면 구조어를 걷어낸 나머지를 대상 이름으로.
         final matched = knownHabits.firstWhere(
           (h) => h.isNotEmpty && normalized.contains(h),
           orElse: () => '',
         );
-        final name = matched.isEmpty ? null : matched;
+        final name =
+            matched.isNotEmpty ? matched : _nullIfEmpty(_strip(base, intent));
         return VoiceSlots(title: name, habitName: name);
 
       case IntentType.routineAdd:
@@ -102,8 +103,13 @@ class SlotExtractor {
   ///  1) 공백을 포함한 구(예: "할 일로")는 긴 것부터 문자열 치환.
   ///  2) 나머지는 토큰 단위로, stripword 를 **포함하는** 토큰을 통째 제거.
   String _strip(String base, IntentType intent) {
-    final words = IntentLexicon.stripWords[intent];
-    if (words == null || base.isEmpty) return base.trim();
+    if (base.isEmpty) return base.trim();
+    // 담기·기입 동사(적어줘/추가해줘/넣어놔 …)는 어느 인텐트에서든 제목이 아니다.
+    final words = <String>[
+      ...?IntentLexicon.stripWords[intent],
+      ...IntentLexicon.addVerbs,
+    ];
+    if (words.isEmpty) return base.trim();
 
     final phrases = words.where((w) => w.contains(' ')).toList()
       ..sort((a, b) => b.length.compareTo(a.length));

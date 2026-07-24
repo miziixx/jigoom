@@ -33,6 +33,15 @@ class IntentLexicon {
     '할래', '하자', '해야', '예정', '잡아', '넣어줘', '만들어',
   ];
 
+  /// 담기·기입 동사(사용자 말투 ③ "~줘/~놔/~바"). "적어줘/추가해줘/넣어놔" 처럼
+  /// 무언가를 **등록**하려는 신호. 단독이면 할일(A)로 약하게, 날짜와 함께면
+  /// 일정(C)으로 강하게 끈다(분류기에서 처리). 제목에서는 걷어낸다.
+  static const List<String> addVerbs = [
+    '적어줘', '적어놔', '적어주고', '써줘', '써놔',
+    '추가해줘', '추가하고', '추가', '넣어줘', '넣어놔', '넣어놓', '넣고', '넣어',
+    '메모해줘', '메모', '기록해줘', '걸어줘', '띄워줘', '등록',
+  ];
+
   /// "이동·도움" 계열(§3-3 6번) — 추가형과 겹치지 않는 독립 명령. 트리거가
   /// 하나만 맞아도 강신호로 본다.
   static const Set<IntentType> commandIntents = {
@@ -50,6 +59,8 @@ class IntentLexicon {
     IntentType.todoMatrix: ['중요', '급해', '긴급', '당장', '오늘까지', '빨리'],
     IntentType.logNow: ['기록'],
     IntentType.habitAdd: ['습관', '매일', '꾸준히'],
+    // habit.check — 명시적 체크·완료 동사(§11-2 등록 습관명 대조는 분류기가 별도로).
+    IntentType.habitCheck: ['체크', '틱', '채웠어', '다했어', '성공'],
     IntentType.routineAdd: ['루틴', '아침루틴', '저녁루틴'],
     IntentType.goalAdd: ['목표'],
     // goal.today 의 "오늘 목표" 근접은 분류기가 특례로 처리(§3-3 5). 여기엔
@@ -86,6 +97,7 @@ class IntentLexicon {
     IntentType.todoMatrix: ['중요', '급해', '긴급', '당장', '오늘까지', '빨리', '이거', '이것', '그거', '그것'],
     IntentType.logNow: ['기록', '했어', '방금', '아까'],
     IntentType.habitAdd: ['습관', '매일', '꾸준히', '만들어', '만들기', '추가'],
+    IntentType.habitCheck: ['습관에', '습관', '체크해줘', '체크', '틱', '채웠어', '다했어', '성공', '해줘'],
     IntentType.routineAdd: ['루틴에', '루틴', '스텝', '추가'],
     IntentType.goalAdd: ['목표', '세울래', '세우자', '하고싶어', '이루고싶어'],
     IntentType.goalToday: ['오늘은', '오늘', '목표는', '목표'],

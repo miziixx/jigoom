@@ -36,6 +36,9 @@ class IntentClassifier {
 
     // --- 1) 트리거 사전 매칭 -------------------------------------------------
     for (final intent in IntentLexicon.primary.keys) {
+      // habit.check 는 완료·체크동사가 결정적이라 아래에서 특례로 처리.
+      if (intent == IntentType.habitCheck) continue;
+
       final primaryHits =
           IntentLexicon.primary[intent]!.where(text.contains).length;
 
@@ -70,6 +73,9 @@ class IntentClassifier {
       }
     }
 
+    // 담기·기입 동사(적어줘/추가해줘/넣어놔 …) 존재 여부(사용자 말투 ③).
+    final hasAddVerb = IntentLexicon.addVerbs.any(text.contains);
+
     // --- 2) 시간 단서 가점(§2-1) --------------------------------------------
     final hasFutureDate = tp.date != null && !tp.isPast;
     if (hasFutureDate && tp.time != null) {
@@ -77,6 +83,11 @@ class IntentClassifier {
     } else if (hasFutureDate) {
       add(IntentType.scheduleAdd, VoiceScores.futureDateOnly); // 금요일 류
       add(IntentType.todoAdd, VoiceScores.futureDateTodoBonus); // 마감일 후보
+      // 날짜 + 담기동사("1월 1일날 데이트 적어줘") → 확정 일정으로 끌어올린다.
+      if (hasAddVerb) add(IntentType.scheduleAdd, VoiceScores.keyword);
+    } else if (hasAddVerb) {
+      // 날짜 없이 담기동사만("자기 전에 약 먹기 추가해줘") → 최소 A 안착(미인식 방지).
+      add(IntentType.todoAdd, 1);
     }
 
     if (tp.durationMin != null) {
@@ -94,15 +105,23 @@ class IntentClassifier {
     // --- 3) 과거 시제(§3-3 1순위) -------------------------------------------
     if (tp.isPast) {
       add(IntentType.logNow, VoiceScores.pastTense);
-      // 등록 습관명과 일치하면 habit.check 로 강하게 끈다(§11-2). 일반 log.now
-      // (pastTense)보다 확실히 앞서야 하므로 강신호 + 키워드로 얹는다.
-      for (final h in knownHabits) {
-        if (h.isNotEmpty && text.contains(h)) {
-          add(IntentType.habitCheck,
-              VoiceScores.strongSignal + VoiceScores.keyword);
-          break;
-        }
+    }
+
+    // --- 3-1) habit.check 특례 ---------------------------------------------
+    // (a) 명시적 체크·완료동사("체크해줘/다 채웠어/성공")가 결정적. 습관 문맥이면 더.
+    // (b) 완료동사 없이 과거 + 등록 습관명 일치("물 마시기 했어")도 체크로(§11-2).
+    final checkVerb =
+        IntentLexicon.primary[IntentType.habitCheck]!.any(text.contains);
+    final habitNameHit =
+        knownHabits.any((h) => h.isNotEmpty && text.contains(h));
+    if (checkVerb) {
+      add(IntentType.habitCheck, VoiceScores.strongSignal);
+      if (text.contains('습관') || habitNameHit) {
+        add(IntentType.habitCheck, VoiceScores.keyword);
       }
+    } else if (tp.isPast && habitNameHit) {
+      add(IntentType.habitCheck,
+          VoiceScores.strongSignal + VoiceScores.keyword);
     }
 
     // --- 4) goal.today 특례(§3-3 5) — "오늘"+"목표" 근접 -------------------
