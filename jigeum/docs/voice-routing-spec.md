@@ -392,8 +392,9 @@ Claude Code가 4·6번 커밋을 끝냈다고 하려면 아래가 기대대로 �
 - ✅ 커밋9 보류함(Inbox) 데이터 계층(InboxItem + InboxRepository, 인메모리 검증)
 - ✅ 금액 슬롯(KoMoneyParser + `amount`)
 - ✅ 커밋11 자동학습(UserLexicon — 빈도 카운터, 분류기 가점, `recordCorrection`)
-- ⏭️ 커밋10 전역 마이크 UI + 보류함 화면 + 확정 스낵바/되돌리기 (Flutter — 기기 검증 필요)
-- ⏭️ (통합) 라우터 → 기존 A~J repository 실제 생성 호출 연결 + 앱 저장소 영속화
+- ✅ 커밋10 로직: `VoiceExecutor`(seam) + `VoiceController`(실행/보류/되돌리기/다르게담기) — 순수 Dart 검증.
+- 🧪 커밋10 위젯: `global_mic_button` · `voice_feedback`(스낵바) · `inbox_screen` — **Flutter 미검증**(기기에서 `flutter analyze`/실행 확인 필요).
+- ⏭️ (통합) `VoiceExecutor` 를 앱이 구현해 A~J drift repository 실제 생성 연결 + Inbox 영속화 + AppShell 에 마이크 버튼 배치.
 
 ### 라우팅 단정 규칙(커밋8 코퍼스 활성화 시 확정)
 - §8 표의 `route` 는 "인텐트 기본 지점"이다. **확정(S≥3, D≥1)일 때만** 그 지점으로 간다.
