@@ -9,8 +9,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jigeum/features/voice/models/intent_type.dart';
 import 'package:jigeum/features/voice/models/time_parse_result.dart';
+import 'package:jigeum/features/voice/models/voice_result.dart';
 import 'package:jigeum/features/voice/pipeline/ko_datetime_parser.dart';
 import 'package:jigeum/features/voice/pipeline/text_normalizer.dart';
+import 'package:jigeum/features/voice/voice_router.dart';
 
 /// §8 한 문장의 기대치.
 class Case {
@@ -174,15 +176,39 @@ void main() {
     });
   });
 
-  // 커밋6~8 이후 활성화: 정규화문 → 분류 → 슬롯 → 라우팅 전 구간 검증.
-  group('§8 코퍼스 — 인텐트·라우팅·슬롯 (커밋6~8)', () {
+  // 커밋6~8 완료로 활성화: 정규화문 → 분류 → 슬롯 → 라우팅 전 구간 검증.
+  //
+  // 라우팅 단정은 §2 세 갈래 결정에 맞춘다. §8 표의 route 는 "인텐트의 기본
+  // 지점"이라, 확정(confirm)일 때만 그 지점으로 간다. 임계 미달이면 §2 대로
+  // 빠른담기(A)로, 미인식이면 보류함으로 떨어지는 게 정답이다.
+  //  - "금요일에 장보기"(§8 "C 또는 A")·"파란색 그거 처리"(애매) → A 안착.
+  //  - 인텐트 자체는 최고점이라 확정 여부와 무관하게 §8 기대치와 같아야 한다.
+  group('§8 코퍼스 — 인텐트·라우팅·슬롯', () {
+    final router = VoiceRouter();
     for (final c in corpus) {
       test('"${c.raw}" → ${c.intent.code} / ${c.route.label}', () {
-        // TODO(커밋8): VoiceRouter 로 전 구간 실행 후
-        //   expect(result.intent, c.intent);
-        //   expect(result.routedTo, c.route);
-        //   if (c.title != null) expect(result.slots.title, c.title);
-      }, skip: '커밋6~8(IntentClassifier/SlotExtractor/VoiceRouter) 이후 활성화');
+        final r = router.analyze(c.raw, now: base);
+
+        // 인텐트: 최고점 인텐트는 §8 기대치와 일치(안전망은 none).
+        expect(r.intent, c.intent, reason: '인텐트');
+
+        // 라우팅: 세 갈래 결정에 따라.
+        switch (r.decision) {
+          case RouteDecision.inbox:
+            expect(r.routedTo, RoutePoint.inbox, reason: '미인식→보류함');
+            expect(c.route, RoutePoint.inbox, reason: '§8 도 보류함이어야');
+          case RouteDecision.quickCapture:
+            // 애매 폴백은 항상 A. §8 route 가 A(정상)거나 "C 또는 A" 애매.
+            expect(r.routedTo, RoutePoint.quickCapture, reason: '애매→A');
+          case RouteDecision.confirm:
+            expect(r.routedTo, c.route, reason: '확정 라우팅');
+        }
+
+        // 슬롯 제목/내용(있을 때만).
+        if (c.title != null) {
+          expect(r.slots.title, c.title, reason: '제목/내용');
+        }
+      });
     }
   });
 }
