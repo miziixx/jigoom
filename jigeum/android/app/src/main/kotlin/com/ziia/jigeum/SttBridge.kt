@@ -2,10 +2,12 @@ package com.ziia.jigeum
 
 import android.Manifest
 import android.app.Activity
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognitionListener
+import android.speech.RecognitionService
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import androidx.core.app.ActivityCompat
@@ -85,9 +87,33 @@ class SttBridge(
         permResult = null
     }
 
+    /**
+     * 구글 음성 인식 서비스를 우선 사용한다. 삼성 등 일부 기기는 기본 인식기가
+     * 구글이 아니어서(빅스비 등) 한국어 데이터를 받아도 "언어 없음"이 나온다.
+     * 구글 서비스가 있으면 그걸 콕 집어 쓰고, 없으면 시스템 기본으로 폴백.
+     */
+    private fun createRecognizer(): SpeechRecognizer {
+        try {
+            val services = activity.packageManager.queryIntentServices(
+                Intent(RecognitionService.SERVICE_INTERFACE), 0
+            )
+            val google = services.firstOrNull {
+                it.serviceInfo?.packageName == "com.google.android.googlequicksearchbox"
+            }
+            if (google != null) {
+                val comp = ComponentName(
+                    google.serviceInfo.packageName, google.serviceInfo.name)
+                return SpeechRecognizer.createSpeechRecognizer(activity, comp)
+            }
+        } catch (_: Exception) {
+            // 조회 실패 시 기본 인식기로 폴백.
+        }
+        return SpeechRecognizer.createSpeechRecognizer(activity)
+    }
+
     private fun startListening(localeId: String) {
         recognizer?.destroy()
-        val r = SpeechRecognizer.createSpeechRecognizer(activity)
+        val r = createRecognizer()
         r.setRecognitionListener(this)
         recognizer = r
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
