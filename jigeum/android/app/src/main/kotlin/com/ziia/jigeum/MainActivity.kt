@@ -36,6 +36,9 @@ class MainActivity : FlutterActivity() {
 
     private var pendingAction: String? = null
 
+    // 음성(STT) 브리지 — 'jigeum/stt' 채널.
+    private var stt: SttBridge? = null
+
     // SAF 진행 중 콜백/데이터
     private var backupResult: MethodChannel.Result? = null
     private var backupContent: String? = null
@@ -49,11 +52,14 @@ class MainActivity : FlutterActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQ_CALENDAR_PERM) {
-            val granted = grantResults.isNotEmpty() &&
-                grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-            permResult?.success(granted)
-            permResult = null
+        val granted = grantResults.isNotEmpty() &&
+            grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+        when (requestCode) {
+            REQ_CALENDAR_PERM -> {
+                permResult?.success(granted)
+                permResult = null
+            }
+            SttBridge.REQ_AUDIO_PERM -> stt?.onAudioPermissionResult(granted)
         }
     }
 
@@ -102,6 +108,12 @@ class MainActivity : FlutterActivity() {
         captureAction(intent)
     }
 
+    override fun onDestroy() {
+        stt?.dispose()
+        stt = null
+        super.onDestroy()
+    }
+
     private fun captureAction(intent: Intent?) {
         when (intent?.action) {
             ACTION_QUICK_CAPTURE -> pendingAction = "quick_capture"
@@ -112,6 +124,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        stt = SttBridge(this, flutterEngine.dartExecutor.binaryMessenger)
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger, "jigeum/widget"
         ).setMethodCallHandler { call, result ->

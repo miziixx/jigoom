@@ -86,7 +86,13 @@ flutter test
 ```xml
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<!-- 음성 라우팅(SttBridge, 'jigeum/stt' 채널)용 마이크 권한 -->
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
 ```
+
+> `SttBridge.kt` 는 이미 저장소에 포함되어 있고 `MainActivity` 가 등록한다.
+> 온디바이스 STT 는 기기의 음성 인식 엔진에 의존하므로, 오프라인 인식은
+> 해당 언어팩이 설치된 기기에서만 동작한다.
 
 > `FocusWidgetProvider.kt`, `res/layout/focus_widget.xml`, `res/drawable/*`,
 > `res/xml/focus_widget_info.xml` 는 이미 이 저장소에 포함되어 있습니다.
