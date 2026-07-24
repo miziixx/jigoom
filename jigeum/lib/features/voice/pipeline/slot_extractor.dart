@@ -14,12 +14,15 @@ import '../data/intent_lexicon.dart';
 import '../models/intent_type.dart';
 import '../models/time_parse_result.dart';
 import '../models/voice_result.dart';
+import 'ko_money_parser.dart';
 
 class SlotExtractor {
   const SlotExtractor({this.knownHabits = const <String>{}});
 
   /// §11-2 등록 습관명 — habit.check 대상 이름 확정에 쓴다.
   final Set<String> knownHabits;
+
+  static const KoMoneyParser _money = KoMoneyParser();
 
   /// [intent] 에 맞는 슬롯을 [normalized] 와 [tp] 로부터 뽑는다.
   VoiceSlots extract(
@@ -32,15 +35,19 @@ class SlotExtractor {
 
     switch (intent) {
       case IntentType.scheduleAdd:
+        final tm = _titleMoney(base, intent);
         return VoiceSlots(
-          title: _nullIfEmpty(_strip(base, intent)),
+          title: tm.title,
+          amount: tm.amount,
           date: tp.date,
           time: tp.time,
         );
 
       case IntentType.todoAdd:
+        final tm = _titleMoney(base, intent);
         return VoiceSlots(
-          title: _nullIfEmpty(_strip(base, intent)),
+          title: tm.title,
+          amount: tm.amount,
           date: tp.date, // 마감일 후보(있으면).
         );
 
@@ -52,8 +59,10 @@ class SlotExtractor {
         );
 
       case IntentType.logNow:
+        final tm = _titleMoney(base, intent);
         return VoiceSlots(
-          title: _nullIfEmpty(_strip(base, intent)),
+          title: tm.title,
+          amount: tm.amount,
           durationMin: tp.durationMin,
         );
 
@@ -98,6 +107,21 @@ class SlotExtractor {
   }
 
   // -------------------------------------------------------------- 제목 정리
+
+  /// 구조어를 걷어낸 제목에서 금액(원)까지 분리한다(§13). 금액 문자열은 제목에서
+  /// 제거하고 [amount](원)로 뽑는다. (예: "10만원 보험료" → 제목 "보험료", amount 100000)
+  ({String? title, int? amount}) _titleMoney(String base, IntentType intent) {
+    var title = _strip(base, intent);
+    final mp = _money.parse(title);
+    if (mp.amount == null || mp.matchText == null) {
+      return (title: _nullIfEmpty(title), amount: null);
+    }
+    title = title
+        .replaceAll(mp.matchText!, ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    return (title: _nullIfEmpty(title), amount: mp.amount);
+  }
 
   /// [base] 에서 [intent] 의 stripWords 를 걷어낸다.
   ///  1) 공백을 포함한 구(예: "할 일로")는 긴 것부터 문자열 치환.

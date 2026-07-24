@@ -57,6 +57,7 @@ class VoiceSlots {
     this.habitName,
     this.text,
     this.navDest,
+    this.amount,
   });
 
   /// 제목/내용(일정·할일·기록·목표 공용).
@@ -92,6 +93,9 @@ class VoiceSlots {
   /// 이동 목적지(nav.move).
   final String? navDest;
 
+  /// 금액(원). 지출·결제 발화에서 뽑는다(§13). 없으면 null.
+  final int? amount;
+
   VoiceSlots copyWith({
     String? title,
     bool? important,
@@ -104,6 +108,7 @@ class VoiceSlots {
     String? habitName,
     String? text,
     String? navDest,
+    int? amount,
   }) =>
       VoiceSlots(
         title: title ?? this.title,
@@ -117,6 +122,7 @@ class VoiceSlots {
         habitName: habitName ?? this.habitName,
         text: text ?? this.text,
         navDest: navDest ?? this.navDest,
+        amount: amount ?? this.amount,
       );
 }
 

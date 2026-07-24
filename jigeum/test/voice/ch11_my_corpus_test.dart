@@ -27,6 +27,7 @@ class Exp {
     this.time,
     this.durationMin,
     this.isPast,
+    this.amount,
     this.note,
   });
 
@@ -38,6 +39,7 @@ class Exp {
   final ParsedTime? time;
   final int? durationMin;
   final bool? isPast;
+  final int? amount;
 
   /// 범위 밖/미지원 사유(문서용). 있으면 안전망만 검증하는 케이스임을 표시.
   final String? note;
@@ -58,12 +60,14 @@ final Map<String, List<Exp>> corpus = {
         route: RoutePoint.schedule,
         date: DateTime(2029, 3, 13),
         time: const ParsedTime(14, 0),
-        note: '금액(9만원) 미지원 → 제목에 잔류'),
+        title: '보험료',
+        amount: 90000),
     Exp('24일날 10만원 보험료 추가해줘',
         intent: IntentType.scheduleAdd,
         route: RoutePoint.schedule,
         date: DateTime(2026, 7, 24),
-        note: '금액(10만원) 미지원'),
+        title: '보험료',
+        amount: 100000),
     Exp('담주 화요일 3시에 치과 잡아줘',
         intent: IntentType.scheduleAdd,
         route: RoutePoint.schedule,
@@ -179,18 +183,32 @@ final Map<String, List<Exp>> corpus = {
   ],
   '지출/금액 (⑥ 만원단위, 미지원)': [
     Exp('어제 점심 만이천원 썼어',
-        intent: IntentType.logNow, route: RoutePoint.logNow, isPast: true),
+        intent: IntentType.logNow,
+        route: RoutePoint.logNow,
+        isPast: true,
+        title: '점심',
+        amount: 12000),
     Exp('이번달 관리비 15만 오천원 나감',
-        intent: IntentType.logNow, route: RoutePoint.logNow, isPast: true),
+        intent: IntentType.logNow,
+        route: RoutePoint.logNow,
+        isPast: true,
+        title: '관리비',
+        amount: 155000),
     Exp('30년 5월에 적금 만기 200 들어옴',
-        intent: IntentType.logNow, route: RoutePoint.logNow, isPast: true),
+        intent: IntentType.logNow,
+        route: RoutePoint.logNow,
+        isPast: true,
+        note: 'bare수(200, 원 없음) 만원단위 미지원'),
     Exp('25일날 월세 60 빠져나가는거 등록',
         intent: IntentType.scheduleAdd,
         route: RoutePoint.schedule,
         date: DateTime(2026, 7, 25),
-        note: '금액(60만원) 미지원'),
+        note: 'bare수(60, 원 없음) 만원단위 미지원'),
     Exp('아까 카페에서 오천원 결제함',
-        intent: IntentType.logNow, route: RoutePoint.logNow, isPast: true),
+        intent: IntentType.logNow,
+        route: RoutePoint.logNow,
+        isPast: true,
+        amount: 5000),
   ],
   '복합 명령 (④ 미지원)': [
     Exp('낼모레 안경사기 추가해줘 아 거기에 돗수 다시재기 메모추가해줘',
@@ -250,6 +268,9 @@ void main() {
           }
           if (e.isPast != null) {
             expect(res.timeParse.isPast, e.isPast, reason: '과거 시제');
+          }
+          if (e.amount != null) {
+            expect(res.slots.amount, e.amount, reason: '금액(원)');
           }
         });
       }
