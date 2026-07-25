@@ -148,6 +148,16 @@ class IntentClassifier {
       add(IntentType.timeTrack, VoiceScores.strongSignal * 2);
     }
 
+    // --- 3-3) 운세(점보기) 특례 — 주제어(사주·타로) + 보는 동작 -------------
+    // '사주/타로'는 "사주공부·타로공부·사주웹앱 기획"처럼 주제어로도 흔해 단독으론
+    // 안 잡고, 실제로 "봐줘/볼래/풀이"처럼 보는 동작과 함께일 때만 운세로 끈다.
+    const fortuneTopics = ['사주', '타로', '점괘'];
+    const fortuneViewVerbs = ['봐줘', '봐 줘', '봐', '볼래', '보기', '풀이', '풀어'];
+    if (fortuneTopics.any(text.contains) &&
+        fortuneViewVerbs.any(text.contains)) {
+      add(IntentType.helpFortune, VoiceScores.strongSignal);
+    }
+
     // --- 4) goal.today 특례(§3-3 5) — "오늘"+"목표" 근접 -------------------
     if (text.contains('오늘 목표')) {
       add(IntentType.goalToday, VoiceScores.strongSignal + VoiceScores.keyword);
