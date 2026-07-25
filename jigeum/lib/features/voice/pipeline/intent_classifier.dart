@@ -61,8 +61,9 @@ class IntentClassifier {
       // 추가형: primary 는 각 +keyword. 단, 매트릭스(중요·긴급)는 강신호로 본다 —
       // 실말투는 마커 하나("급함/중요")로 확신되므로 한 건만으로 확정 임계에 닿게
       // 한다(그러지 않으면 매번 빠른담기 A 로 샌다).
-      final perHit = intent == IntentType.todoMatrix
-          ? VoiceScores.strongSignal
+      final perHit = (intent == IntentType.todoMatrix ||
+              intent == IntentType.habitAdd)
+          ? VoiceScores.strongSignal // 매트릭스·습관추가는 마커 1개로도 확정 임계에 닿게
           : VoiceScores.keyword;
       add(intent, primaryHits * perHit);
 
@@ -127,10 +128,9 @@ class IntentClassifier {
     final habitNameHit =
         knownHabits.any((h) => h.isNotEmpty && text.contains(h));
     if (checkVerb) {
-      add(IntentType.habitCheck, VoiceScores.strongSignal);
-      if (text.contains('습관') || habitNameHit) {
-        add(IntentType.habitCheck, VoiceScores.keyword);
-      }
+      // 체크·완료 동사는 결정적 — 과거시제 logNow(+3)와 동점으로 A 로 새지 않게
+      // 강신호+키워드(=5)로 확실히 앞세운다.
+      add(IntentType.habitCheck, VoiceScores.strongSignal + VoiceScores.keyword);
     } else if (tp.isPast && habitNameHit) {
       add(IntentType.habitCheck,
           VoiceScores.strongSignal + VoiceScores.keyword);
