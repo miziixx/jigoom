@@ -58,7 +58,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
       children: [
         // 헤더 — 판단 끄라는 안내 + 카운터.
         Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 6),
+          padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 14, AppSpace.gutter, 6),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -89,7 +89,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
               bottom: BorderSide(color: tk.line, width: 1),
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 12),
+          padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 12, AppSpace.gutter, 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -136,7 +136,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
               ? _empty(tk)
               : ListView.separated(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: kGutter, vertical: 10),
+                      horizontal: AppSpace.gutter, vertical: 10),
                   itemCount: _items.length,
                   separatorBuilder: (_, __) =>
                       Divider(height: 1, color: tk.line),
@@ -164,7 +164,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
 
   Widget _empty(AppTokens tk) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(kGutter),
+          padding: const EdgeInsets.all(AppSpace.gutter),
           child: Text(
             '떠오르는 대로 적고 엔터.\n엔진이 알아서 일정·할일·매트릭스로 갈라 담아요.',
             textAlign: TextAlign.center,
