@@ -47,23 +47,25 @@ void main() {
   group('라우터 연동', () {
     test('3회 학습되면 보류함을 탈출해 A로 안착', () {
       final router = VoiceRouter();
-      final r0 = router.analyze('왈츠 배우기', now: base);
+      // 학습 전엔 '행동형 어미'도 없는 모호한 말이라 보류함. (행동형 명사구
+      // "왈츠 배우기"는 이제 폴백으로 바로 A 이므로 학습 예시는 모호한 말로.)
+      final r0 = router.analyze('왈츠 그거', now: base);
       expect(r0.intent, IntentType.none, reason: '학습 전엔 미인식');
       expect(r0.routedTo, RoutePoint.inbox);
 
       for (var i = 0; i < 3; i++) {
-        router.learning.record('왈츠 배우기', IntentType.todoAdd);
+        router.learning.record('왈츠 그거', IntentType.todoAdd);
       }
-      final r1 = router.analyze('왈츠 배우기', now: base);
+      final r1 = router.analyze('왈츠 그거', now: base);
       expect(r1.intent, IntentType.todoAdd);
       expect(r1.routedTo, RoutePoint.quickCapture);
     });
 
     test('임계 미달(2회)은 아직 미학습', () {
       final router = VoiceRouter();
-      router.learning.record('왈츠 배우기', IntentType.todoAdd);
-      router.learning.record('왈츠 배우기', IntentType.todoAdd);
-      expect(router.analyze('왈츠 배우기', now: base).intent, IntentType.none);
+      router.learning.record('왈츠 그거', IntentType.todoAdd);
+      router.learning.record('왈츠 그거', IntentType.todoAdd);
+      expect(router.analyze('왈츠 그거', now: base).intent, IntentType.none);
     });
 
     test('recordCorrection 은 제목을 키로 학습해 재분류를 반영', () {

@@ -152,12 +152,16 @@ class IntentClassifier {
       });
     }
 
-    // --- 4-2) 빈 명사구 폴백 -----------------------------------------------
-    // 아무 신호도 못 잡았지만 'someday(언젠가/나중에)' 신호도 없으면, 짧은 할일
-    // 명사구("장보기/우유 사오기")로 보고 빠른담기(A)에 안착시킨다. S==0 → 보류함
-    // 실종(§0 "말은 버리지 않는다")을 막는다. someday 신호가 있으면 그대로 보류함.
+    // --- 4-2) 행동형 명사구 폴백 -------------------------------------------
+    // 아무 트리거도 없지만 **행동형 어미**(~기/정리/청소/주문 …)로 끝나는 짧은
+    // 할일("장보기/베란다 정리/사진 백업")이면 빠른담기(A)에 안착시킨다. 반대로
+    // 행동형도 아니고 someday 도 아닌 진짜 모호한 말("어… 그거 있잖아 뭐였지")은
+    // 그대로 보류함으로 둔다(§0 안전망 유지). someday 신호는 항상 보류함.
+    final trimmed = text.trim();
+    final looksActionable = trimmed.endsWith('기') ||
+        IntentLexicon.actionEndings.any(trimmed.endsWith);
     if (scores.isEmpty &&
-        text.trim().isNotEmpty &&
+        looksActionable &&
         !IntentLexicon.somedayMarkers.any(text.contains)) {
       add(IntentType.todoAdd, 1);
     }
