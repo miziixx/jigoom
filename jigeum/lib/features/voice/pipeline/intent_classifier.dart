@@ -58,8 +58,13 @@ class IntentClassifier {
         continue;
       }
 
-      // 추가형: primary 는 각 +keyword.
-      add(intent, primaryHits * VoiceScores.keyword);
+      // 추가형: primary 는 각 +keyword. 단, 매트릭스(중요·긴급)는 강신호로 본다 —
+      // 실말투는 마커 하나("급함/중요")로 확신되므로 한 건만으로 확정 임계에 닿게
+      // 한다(그러지 않으면 매번 빠른담기 A 로 샌다).
+      final perHit = intent == IntentType.todoMatrix
+          ? VoiceScores.strongSignal
+          : VoiceScores.keyword;
+      add(intent, primaryHits * perHit);
 
       // co 트리거는 primary 가 잡힌 뒤에만(오검출 방지).
       if (primaryHits > 0) {
@@ -145,6 +150,16 @@ class IntentClassifier {
           add(intent, VoiceScores.userLexicon);
         }
       });
+    }
+
+    // --- 4-2) 빈 명사구 폴백 -----------------------------------------------
+    // 아무 신호도 못 잡았지만 'someday(언젠가/나중에)' 신호도 없으면, 짧은 할일
+    // 명사구("장보기/우유 사오기")로 보고 빠른담기(A)에 안착시킨다. S==0 → 보류함
+    // 실종(§0 "말은 버리지 않는다")을 막는다. someday 신호가 있으면 그대로 보류함.
+    if (scores.isEmpty &&
+        text.trim().isNotEmpty &&
+        !IntentLexicon.somedayMarkers.any(text.contains)) {
+      add(IntentType.todoAdd, 1);
     }
 
     // --- 5) 최고점/2등격차 산출 --------------------------------------------

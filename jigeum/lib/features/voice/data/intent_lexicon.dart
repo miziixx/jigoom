@@ -27,6 +27,12 @@ class IntentLexicon {
     '했어', '했다', '끝냈어', '방금', '아까', '마쳤어', '했음',
   ];
 
+  /// 'someday(언젠가·나중에)' 신호. 이게 있으면 트리거 없는 명사구라도
+  /// 빠른담기 폴백을 태우지 않고 보류함(언젠가함)에 그대로 둔다.
+  static const List<String> somedayMarkers = [
+    '언젠가', '나중', '여유되면', '시간되면',
+  ];
+
   /// 의도 어미 — 미래/추가형(§3-2 future_markers). 이미 잡힌 추가형 인텐트를
   /// 소폭 보강한다(단독으로 인텐트를 만들지는 않음).
   static const List<String> futureMarkers = [
@@ -56,7 +62,11 @@ class IntentLexicon {
     // todo.add 는 §3-2 에 별도 목록이 없다(A 는 폴백 지점). "할 일로 담아줘" 류의
     // 명시적 담기 표현만 primary 로 둔다.
     IntentType.todoAdd: ['할일', '할 일', '투두', '담아', '담아줘', '리스트', '목록'],
-    IntentType.todoMatrix: ['중요', '급해', '긴급', '당장', '오늘까지', '빨리'],
+    IntentType.todoMatrix: [
+      '중요', '급해', '급함', '급하', '긴급', '당장', '오늘까지', '오늘 안',
+      '빨리', '임박', '필수', '필요', '코앞', '연체', '마지막날', '얼마 안남',
+      '지금 바로'
+    ],
     IntentType.logNow: ['기록'],
     IntentType.habitAdd: ['습관', '매일', '꾸준히'],
     // habit.check — 명시적 체크·완료 동사(§11-2 등록 습관명 대조는 분류기가 별도로).
