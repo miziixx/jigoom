@@ -19,7 +19,6 @@ import 'features/schedule/time_hub.dart';
 import 'features/inbox/inbox_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
-import 'features/voice/ui/global_mic_button.dart';
 import 'features/today/intention_sheet.dart';
 import 'features/today/today_view.dart';
 import 'features/today/two_minute_sheet.dart';
@@ -101,13 +100,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       drawer: _buildDrawer(context),
-      // 전역 마이크 — 어느 화면에서나 "말로 담기"(§9 진입점). 하단 담기 바와
-      // 겹치지 않도록 상단(입력바 위)에 띄운다.
-      floatingActionButton: GlobalMicButton(
-        stt: ref.watch(sttServiceProvider),
-        controller: ref.watch(voiceControllerProvider),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+      // 음성 마이크는 일단 제거(한국어 STT 미동작 + 마스트헤드 메뉴 가림).
+      // 분류 엔진은 유지 — 이후 타이핑 '쏟아내기'에 재사용한다.
       // 입력바가 키보드 위로 따라 올라오도록 body 에 배치.
       body: SafeArea(
         bottom: false,
