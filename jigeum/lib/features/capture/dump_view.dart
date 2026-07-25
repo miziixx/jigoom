@@ -1,8 +1,9 @@
-/// 쏟아내기(brain dump) 화면. 기획: "판단 끄고 다 뱉기 → 엔진이 자동 분류".
+/// 쏟아내기(brain dump) 화면. 기획: "판단 끄고 다 뱉기 → 엔진이 미리 갈라 →
+/// 확인(고치기) → 한 번에 담기".
 ///
-/// 칩 없는 초간단 입력 하나. 적고 엔터 → 같은 분류 엔진([VoiceController])이
-/// 일정/할일/매트릭스/… 로 알아서 갈라 실제로 담고, 방금 담은 게 태그와 함께
-/// 위로 쌓인다. 음성 없이 타이핑만으로 "쏟아내면 갈라진다".
+/// 적고 엔터 → 같은 분류 엔진([VoiceController])이 **부작용 없이 미리 분류**해
+/// 대기줄에 쌓는다(아직 안 담김). 잘못 갈린 건 버킷 태그를 탭해 바꾸고(학습 신호),
+/// 다 되면 [담기]로 한 번에 실제로 담는다. 음성 없이 타이핑만으로.
 library;
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
+import '../voice/models/intent_type.dart';
+import '../voice/models/voice_result.dart';
 
 class DumpView extends ConsumerStatefulWidget {
   const DumpView({super.key});
@@ -19,17 +22,22 @@ class DumpView extends ConsumerStatefulWidget {
   ConsumerState<DumpView> createState() => _DumpViewState();
 }
 
-/// 방금 쏟아낸 한 줄 + 어디로 갈렸는지.
-class _Dumped {
-  const _Dumped(this.text, this.bucket);
-  final String text;
-  final String bucket; // 예: "일정", "빠른담기"
-}
+/// 확인 단계에서 고를 수 있는 버킷들(흔한 순).
+const _pickable = <RoutePoint>[
+  RoutePoint.schedule,
+  RoutePoint.quickCapture,
+  RoutePoint.matrix,
+  RoutePoint.logNow,
+  RoutePoint.habit,
+  RoutePoint.timeTrack,
+  RoutePoint.inbox,
+];
 
 class _DumpViewState extends ConsumerState<DumpView> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
-  final List<_Dumped> _items = [];
+  // 대기줄 — 아직 안 담은, 미리 분류된 것들(최신 위).
+  final List<VoiceResult> _pending = [];
 
   @override
   void dispose() {
@@ -38,16 +46,66 @@ class _DumpViewState extends ConsumerState<DumpView> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  void _submit() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     _controller.clear();
     _focus.requestFocus();
-    // 같은 엔진으로 분류 + 실제 담기. 메시지 "○○에 담았어요"에서 버킷만 뽑는다.
-    final fb = await ref.read(voiceControllerProvider).handle(text);
+    // 부작용 없이 분류만(담기는 나중에 한꺼번에).
+    final r = ref.read(voiceControllerProvider).classify(text);
+    setState(() => _pending.insert(0, r));
+  }
+
+  Future<void> _pickBucket(int i) async {
+    final tk = t(context);
+    final chosen = await showModalBottomSheet<RoutePoint>(
+      context: context,
+      backgroundColor: tk.paper,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 16, AppSpace.gutter, 6),
+              child: Text('어디로 보낼까요?',
+                  style: AppText.meta(tk.inkSoft, size: 11)),
+            ),
+            for (final rp in _pickable)
+              ListTile(
+                title: Text(rp.label, style: AppText.body(tk.ink)),
+                trailing: _pending[i].routedTo == rp
+                    ? Icon(Icons.check, color: tk.mark, size: 18)
+                    : null,
+                onTap: () => Navigator.pop(context, rp),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    final rerouted =
+        ref.read(voiceControllerProvider).reroute(_pending[i], chosen);
+    setState(() => _pending[i] = rerouted);
+  }
+
+  Future<void> _commitAll() async {
+    if (_pending.isEmpty) return;
+    final n = _pending.length;
+    final ctrl = ref.read(voiceControllerProvider);
+    for (final r in _pending) {
+      await ctrl.commit(r);
+    }
     if (!mounted) return;
-    final bucket = fb.message.replaceAll(RegExp(r'(에|으로|로) 담았어요$'), '').trim();
-    setState(() => _items.insert(0, _Dumped(text, bucket)));
+    setState(_pending.clear);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: t(context).ink,
+        content: Text('$n개 정리 완료',
+            style: AppText.body(t(context).paper)),
+      ));
   }
 
   @override
@@ -56,7 +114,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 헤더 — 판단 끄라는 안내 + 카운터.
+        // 헤더.
         Padding(
           padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 14, AppSpace.gutter, 6),
           child: Row(
@@ -69,13 +127,12 @@ class _DumpViewState extends ConsumerState<DumpView> {
                     Text('판단은 나중에 · 생각나는 대로',
                         style: AppText.meta(tk.inkSoft, size: 11)),
                     const SizedBox(height: 2),
-                    Text('머릿속을 비워요',
-                        style: AppText.hTitle(tk.ink)),
+                    Text('머릿속을 비워요', style: AppText.hTitle(tk.ink)),
                   ],
                 ),
               ),
-              if (_items.isNotEmpty)
-                Text('${_items.length}개 쏟아냄',
+              if (_pending.isNotEmpty)
+                Text('${_pending.length}개 대기',
                     style: AppText.meta(tk.mark, size: 11)),
             ],
           ),
@@ -91,7 +148,6 @@ class _DumpViewState extends ConsumerState<DumpView> {
           ),
           padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 12, AppSpace.gutter, 12),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Padding(
                 padding: const EdgeInsets.only(right: 8, bottom: 2),
@@ -130,43 +186,94 @@ class _DumpViewState extends ConsumerState<DumpView> {
           ),
         ),
 
-        // 방금 쏟아낸 것들 — 엔진이 어디로 갈랐는지 태그와 함께.
+        // 대기줄 — 엔진이 갈라놓은 버킷. 탭해서 고칠 수 있음.
         Expanded(
-          child: _items.isEmpty
+          child: _pending.isEmpty
               ? _empty(tk)
               : ListView.separated(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpace.gutter, vertical: 10),
-                  itemCount: _items.length,
+                      horizontal: AppSpace.gutter, vertical: 8),
+                  itemCount: _pending.length,
                   separatorBuilder: (_, __) =>
                       Divider(height: 1, color: tk.line),
-                  itemBuilder: (_, i) => _row(tk, _items[i]),
+                  itemBuilder: (_, i) => _row(tk, i),
                 ),
         ),
+
+        // 담기 바 — 대기 중일 때만.
+        if (_pending.isNotEmpty)
+          Container(
+            decoration: BoxDecoration(
+              color: tk.paper,
+              border: Border(top: BorderSide(color: tk.ink, width: 1)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 10, AppSpace.gutter, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text('태그를 탭하면 다른 곳으로 옮겨요',
+                          style: AppText.meta(tk.inkSoft, size: 11)),
+                    ),
+                    GestureDetector(
+                      onTap: _commitAll,
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        color: tk.ink,
+                        child: Text('${_pending.length}개 담기',
+                            style: AppText.nav(tk.paper, active: true)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _row(AppTokens tk, _Dumped d) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        child: Row(
-          children: [
-            Expanded(child: Text(d.text, style: AppText.body(tk.ink))),
-            const SizedBox(width: 10),
-            Container(
+  Widget _row(AppTokens tk, int i) {
+    final r = _pending[i];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Expanded(child: Text(r.rawText, style: AppText.body(tk.ink))),
+          const SizedBox(width: 10),
+          // 버킷 태그 — 탭해서 재분류.
+          GestureDetector(
+            onTap: () => _pickBucket(i),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(border: Border.all(color: tk.line)),
-              child: Text(d.bucket, style: AppText.meta(tk.inkSoft, size: 11)),
+              decoration: BoxDecoration(border: Border.all(color: tk.mark)),
+              child: Text(r.routedTo.label,
+                  style: AppText.meta(tk.mark, size: 11)),
             ),
-          ],
-        ),
-      );
+          ),
+          GestureDetector(
+            onTap: () => setState(() => _pending.removeAt(i)),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: Icon(Icons.close, size: 16, color: tk.inkSoft),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _empty(AppTokens tk) => Center(
         child: Padding(
           padding: const EdgeInsets.all(AppSpace.gutter),
           child: Text(
-            '떠오르는 대로 적고 엔터.\n엔진이 알아서 일정·할일·매트릭스로 갈라 담아요.',
+            '떠오르는 대로 적고 엔터.\n엔진이 미리 갈라두면, 확인하고 한 번에 담아요.',
             textAlign: TextAlign.center,
             style: AppText.meta(tk.inkSoft, size: 13),
           ),

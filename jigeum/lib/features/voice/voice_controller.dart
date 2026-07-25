@@ -128,6 +128,30 @@ class VoiceController {
     );
   }
 
+  // ------------------------------------------------- 쏟아내기 스테이징 API
+
+  /// 부작용 없이 분류만 한다(쏟아내기 화면: 담기 전 미리보기·확인용).
+  VoiceResult classify(String rawText, {DateTime? now}) =>
+      router.analyze(rawText, now: now);
+
+  /// [result] 를 [target] 지점으로 바꾼 새 결과(슬롯·시간 유지). 사용자가 확인
+  /// 단계에서 고치는 것이므로 §11-1 학습 신호로도 기록한다(다음부터 그리로 가점).
+  VoiceResult reroute(VoiceResult result, RoutePoint target) {
+    final intent = _intentForRoute(target);
+    router.recordCorrection(result, intent);
+    return _forceResult(result, intent, target);
+  }
+
+  /// [result] 대로 실제로 담는다(스테이징 커밋). 보류함 지점이면 원문을 보류함에.
+  Future<void> commit(VoiceResult result) async {
+    if (result.decision == RouteDecision.inbox ||
+        result.routedTo == RoutePoint.inbox) {
+      inbox.add(result.rawText, sttConfidence: null);
+    } else {
+      await executor.createEntity(result);
+    }
+  }
+
   // ---------------------------------------------------------------- helpers
 
   /// 현재 착지 외의 유력 대안 1~2개(§11-4). 추가형 위주로 흔한 오분류 짝을 제시.

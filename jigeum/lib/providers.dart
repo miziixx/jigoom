@@ -13,6 +13,7 @@ import 'data/repos/routine_builder_repository.dart';
 import 'data/repos/schedule_repository.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/inbox/inbox_repository.dart';
+import 'features/inbox/persistent_inbox_repository.dart';
 import 'features/voice/app_voice_executor.dart';
 import 'features/voice/stt_service.dart';
 import 'features/voice/voice_controller.dart';
@@ -263,9 +264,12 @@ final sttServiceProvider = Provider<SttService>((ref) {
   return s;
 });
 
-/// 보류함 저장소. 현재는 인메모리(세션 한정) — 영속화는 후속 작업(§5 TODO).
+/// 보류함 저장소. drift `Settings` kv 에 write-through 로 영속화(앱 재시작에도 유지).
+/// 동기 인터페이스는 유지하고 내부에서 비동기 저장 — 자세한 건 구현 주석 참고.
 final inboxRepoProvider = Provider<InboxRepository>((ref) {
-  return InMemoryInboxRepository();
+  final repo = PersistentInboxRepository(ref.watch(dbProvider));
+  ref.onDispose(repo.dispose);
+  return repo;
 });
 
 /// 라우터 — 정규화·시간파싱·분류·슬롯·세 갈래 결정(순수 Dart).

@@ -29,6 +29,25 @@ class InboxScreen extends StatefulWidget {
 
 class _InboxScreenState extends State<InboxScreen> {
   @override
+  void initState() {
+    super.initState();
+    // 영속 저장소는 시작 시 비동기로 로드된다 → 로드/변경 시 목록 갱신.
+    final repo = widget.repository;
+    if (repo is Listenable) repo.addListener(_onRepoChanged);
+  }
+
+  @override
+  void dispose() {
+    final repo = widget.repository;
+    if (repo is Listenable) repo.removeListener(_onRepoChanged);
+    super.dispose();
+  }
+
+  void _onRepoChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).extension<AppTokens>()!;
     final items = widget.repository.list(status: InboxStatus.pending);
