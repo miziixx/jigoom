@@ -1,0 +1,38 @@
+name: Voice Eval (fast)
+
+# 음성 분류 정확도 튜닝용 경량 워크플로. APK 빌드/릴리즈 없이 analyze + test 만
+# 돌려 ~2분 안에 혼동행렬(내 코퍼스 eval)을 로그로 뽑는다. jigeum-apk.yml 은
+# 그대로 두고(설치용 APK 담당), 이건 빠른 피드백 전용.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/voice-routing-spec-impl-ugttwn
+    paths:
+      - 'jigeum/lib/features/voice/**'
+      - 'jigeum/test/voice/**'
+      - '.github/workflows/voice-eval.yml'
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jigeum
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 음성 파이프라인은 순수 Dart(드리프트/DB 비의존)라 코드 생성 없이 바로 테스트.
+      - name: Run voice tests (+corpus eval)
+        run: flutter test test/voice/
