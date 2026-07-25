@@ -187,7 +187,9 @@ class KoDateTimeParser {
       MapEntry(_reWeekday, (m) {
         final target = _weekdayNum[m.group(2)]!;
         var ahead = ((target - today.weekday) % 7 + 7) % 7;
-        if (m.group(1) != null) ahead += 7; // 다음주/담주
+        final g1 = m.group(1);
+        // '다음주/담주'만 +7. '이번주'는 이번 주 내(다가오는 그 요일)로 둔다.
+        if (g1 == '다음' || g1 == '담') ahead += 7;
         return today.add(Duration(days: ahead));
       }),
       MapEntry(_reRelDay, (m) {
@@ -223,6 +225,13 @@ class KoDateTimeParser {
         spans.add(SpanRange(m.start, m.end));
         break;
       }
+    }
+
+    // 월오프셋(다음달)만 있고 구체 일자를 못 뽑았으면 그 달 1일로 본다.
+    // "다음달 첫째주/보름날/학원비 빠지는거" 등 → 정확한 날은 몰라도 '미래 일정'
+    // 으로는 확정(라우팅 목적). 이번달(offset 0)은 1일이 과거일 수 있어 제외.
+    if (date == null && (monthOffset ?? 0) >= 1) {
+      date = _safeDate(explicitYear ?? ref.year, ref.month + monthOffset!, 1);
     }
 
     // --- 5) 과거 시제 --------------------------------------------------

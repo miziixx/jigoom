@@ -107,6 +107,9 @@ class IntentLexicon {
   /// (§8 "파란색 그거 처리" → 미인식(보류함)이 아니라 애매(A) 여야 함)
   static const Map<IntentType, List<String>> weak = {
     IntentType.todoAdd: ['처리', '해줘', '해결', '정리'],
+    // 미래 예정 지출/이체(§ 일정) — "다음달 5일 통신비 빠져/빠지는거/자동이체".
+    // 과거 지출("빠져나감")은 pastMarkers(나감)로 logNow 가 이기므로 안전.
+    IntentType.scheduleAdd: ['빠져', '빠지는거', '나가는거', '들어가는거', '자동이체'],
   };
 
   /// 제목/내용에서 걷어낼 구조어(인텐트별). 파서가 시간부를 잘라낸 **뒤**,
