@@ -59,6 +59,7 @@ class SlotExtractor {
         );
 
       case IntentType.logNow:
+      case IntentType.timeTrack:
         final tm = _titleMoney(base, intent);
         return VoiceSlots(
           title: tm.title,
