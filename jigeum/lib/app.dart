@@ -7,21 +7,19 @@ import 'core/journal.dart';
 import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
+import 'features/capture/dump_view.dart';
 import 'features/capture/quick_capture_bar.dart';
 import 'features/capture/quick_capture_input.dart';
 import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
 import 'features/matrix/matrix_view.dart';
-import 'features/outline/folder_create_sheet.dart';
-import 'features/outline/outline_view.dart';
+import 'features/outline/outline_screen.dart';
 import 'features/schedule/calendar_view.dart';
 import 'features/schedule/time_hub.dart';
 import 'features/inbox/inbox_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
-import 'features/today/intention_sheet.dart';
 import 'features/today/today_view.dart';
-import 'features/today/two_minute_sheet.dart';
 import 'providers.dart';
 
 /// 셸: 오늘 / 매트릭스 / 아웃라인 / 전체.
@@ -76,11 +74,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  static const _titles = ['오늘', '매트릭스', '아웃라인', '일과', '습관', '전체'];
+  static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체'];
   static const _navLabels = [
     'today',
     'matrix',
-    'outline',
+    'dump',
     'time',
     'habit',
     'all'
@@ -91,7 +89,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final body = switch (_index) {
       0 => const TodayView(),
       1 => const MatrixView(),
-      2 => const OutlineView(),
+      2 => const DumpView(),
       3 => const TimeHub(),
       4 => const HabitView(),
       _ => const AllView(),
@@ -114,8 +112,10 @@ class _AppShellState extends ConsumerState<AppShell> {
               ),
             ),
             Expanded(child: body),
-            // 하단 담기 바는 할 일 계열 탭에만 (시간=3, 습관=4 제외).
-            if (_index != 3 && _index != 4) const QuickCaptureBar(),
+            // 하단 담기 바는 할 일 계열 탭에만 (쏟아내기=2·시간=3·습관=4 제외 —
+            // 쏟아내기는 자체 입력, 시간·습관은 담기 바 불필요).
+            if (_index != 2 && _index != 3 && _index != 4)
+              const QuickCaptureBar(),
             _bottomNav(context),
           ],
         ),
@@ -126,10 +126,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   /// 마스트헤드 우측: 탭별 액션 + ≡ MENU (모노).
   List<Widget> _mastheadActions(BuildContext ctx) {
     final actions = <Widget>[];
-    if (_index == 2) {
-      actions.add(_act('+폴더', _newFolder));
-      actions.add(_act('+목표', _newGoal));
-    } else if (_index == 4) {
+    if (_index == 4) {
       actions.add(_act('+습관', _newHabit));
     }
     actions.add(_act('≡ MENU', () => Scaffold.of(ctx).openDrawer()));
@@ -204,27 +201,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     await ref.read(habitRepoProvider).addHabit(name.trim());
   }
 
-  /// 새 폴더(카테고리) 생성 — 탐색기/스킬트리형 시트에서 위치까지 골라 추가.
-  Future<void> _newFolder() async {
-    await showFolderCreateSheet(context);
-  }
-
-  /// 새 목표 → 저장 직후 첫 2분 행동 시트 (규칙 5).
-  Future<void> _newGoal() async {
-    final title =
-        await showInputDialog(context, title: '새 목표', hint: '이루고 싶은 것');
-    if (title == null || title.trim().isEmpty || !mounted) return;
-    final repo = ref.read(nodeRepoProvider);
-    final id = await repo.create(type: NodeType.goal, title: title.trim());
-    if (!mounted) return;
-    final saved = await showTwoMinuteSheet(context, ref,
-        goalId: id, goalTitle: title.trim());
-    // 첫 행동을 실제로 정했을 때만 이어서 실행의도(선택) 시트.
-    if (saved == true && mounted) {
-      await showIntentionSheet(context, ref,
-          goalId: id, goalTitle: title.trim());
-    }
-  }
+  /// 아웃라인 — 하단 탭에서 사이드바로 이동. 폴더·목표 정리용.
+  void _openOutline() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const OutlineScreen()));
 
   void _openSettings() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
@@ -286,10 +265,11 @@ class _AppShellState extends ConsumerState<AppShell> {
               Text('MENU', style: AppText.meta(tk.inkSoft, size: 10)),
               const SizedBox(height: 10),
               Container(height: 1, color: tk.ink),
-              row('01', '달력', _openCalendar),
-              row('02', '오늘의 운세', _openFortune),
-              row('03', '보류함', _openInbox),
-              row('04', '설정', _openSettings, last: true),
+              row('01', '아웃라인', _openOutline),
+              row('02', '달력', _openCalendar),
+              row('03', '오늘의 운세', _openFortune),
+              row('04', '보류함', _openInbox),
+              row('05', '설정', _openSettings, last: true),
             ],
           ),
         ),
