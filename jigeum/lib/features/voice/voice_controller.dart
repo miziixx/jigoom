@@ -142,6 +142,15 @@ class VoiceController {
     return _forceResult(result, intent, target);
   }
 
+  /// 저장된 쏟아내기 항목 복원용: 원문을 다시 분류하고, 사용자가 골라둔
+  /// [route] 로 강제한다. 앱 재시작 복원 경로이므로 **학습은 기록하지 않는다**
+  /// (교정 학습은 [reroute] 시점에 이미 한 번 반영됨 — 중복 가점 방지).
+  VoiceResult restage(String rawText, RoutePoint route, {DateTime? now}) {
+    final base = router.analyze(rawText, now: now);
+    if (route == base.routedTo) return base;
+    return _forceResult(base, _intentForRoute(route), route);
+  }
+
   /// [result] 대로 실제로 담는다(스테이징 커밋). 보류함 지점이면 원문을 보류함에.
   Future<void> commit(VoiceResult result) async {
     if (result.decision == RouteDecision.inbox ||

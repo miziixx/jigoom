@@ -14,6 +14,7 @@ import '../../core/theme.dart';
 import '../../providers.dart';
 import '../voice/models/intent_type.dart';
 import '../voice/models/voice_result.dart';
+import 'dump_staging.dart';
 
 class DumpView extends ConsumerStatefulWidget {
   const DumpView({super.key});
@@ -36,8 +37,6 @@ const _pickable = <RoutePoint>[
 class _DumpViewState extends ConsumerState<DumpView> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
-  // 대기줄 — 아직 안 담은, 미리 분류된 것들(최신 위).
-  final List<VoiceResult> _pending = [];
 
   @override
   void dispose() {
@@ -51,13 +50,16 @@ class _DumpViewState extends ConsumerState<DumpView> {
     if (text.isEmpty) return;
     _controller.clear();
     _focus.requestFocus();
-    // 부작용 없이 분류만(담기는 나중에 한꺼번에).
+    // 부작용 없이 분류만(담기는 나중에 한꺼번에). 대기줄은 화면 밖 provider 가
+    // 들고 있어 탭 이동·앱 재시작에도 안 사라진다.
     final r = ref.read(voiceControllerProvider).classify(text);
-    setState(() => _pending.insert(0, r));
+    ref.read(dumpStagingProvider.notifier).addResult(r);
   }
 
   Future<void> _pickBucket(int i) async {
     final tk = t(context);
+    final pending = ref.read(dumpStagingProvider);
+    if (i >= pending.length) return;
     final chosen = await showModalBottomSheet<RoutePoint>(
       context: context,
       backgroundColor: tk.paper,
@@ -74,7 +76,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
             for (final rp in _pickable)
               ListTile(
                 title: Text(rp.label, style: AppText.body(tk.ink)),
-                trailing: _pending[i].routedTo == rp
+                trailing: pending[i].routedTo == rp
                     ? Icon(Icons.check, color: tk.mark, size: 18)
                     : null,
                 onTap: () => Navigator.pop(context, rp),
@@ -84,20 +86,22 @@ class _DumpViewState extends ConsumerState<DumpView> {
       ),
     );
     if (chosen == null || !mounted) return;
-    final rerouted =
-        ref.read(voiceControllerProvider).reroute(_pending[i], chosen);
-    setState(() => _pending[i] = rerouted);
+    final cur = ref.read(dumpStagingProvider);
+    if (i >= cur.length) return;
+    final rerouted = ref.read(voiceControllerProvider).reroute(cur[i], chosen);
+    ref.read(dumpStagingProvider.notifier).replaceAt(i, rerouted);
   }
 
   Future<void> _commitAll() async {
-    if (_pending.isEmpty) return;
-    final n = _pending.length;
+    final pending = ref.read(dumpStagingProvider);
+    if (pending.isEmpty) return;
+    final n = pending.length;
     final ctrl = ref.read(voiceControllerProvider);
-    for (final r in _pending) {
+    for (final r in pending) {
       await ctrl.commit(r);
     }
+    ref.read(dumpStagingProvider.notifier).clear();
     if (!mounted) return;
-    setState(_pending.clear);
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
@@ -111,6 +115,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
+    final pending = ref.watch(dumpStagingProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -131,8 +136,8 @@ class _DumpViewState extends ConsumerState<DumpView> {
                   ],
                 ),
               ),
-              if (_pending.isNotEmpty)
-                Text('${_pending.length}개 대기',
+              if (pending.isNotEmpty)
+                Text('${pending.length}개 대기',
                     style: AppText.meta(tk.mark, size: 11)),
             ],
           ),
@@ -188,20 +193,20 @@ class _DumpViewState extends ConsumerState<DumpView> {
 
         // 대기줄 — 엔진이 갈라놓은 버킷. 탭해서 고칠 수 있음.
         Expanded(
-          child: _pending.isEmpty
+          child: pending.isEmpty
               ? _empty(tk)
               : ListView.separated(
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSpace.gutter, vertical: 8),
-                  itemCount: _pending.length,
+                  itemCount: pending.length,
                   separatorBuilder: (_, __) =>
                       Divider(height: 1, color: tk.line),
-                  itemBuilder: (_, i) => _row(tk, i),
+                  itemBuilder: (_, i) => _row(tk, pending[i], i),
                 ),
         ),
 
         // 담기 바 — 대기 중일 때만.
-        if (_pending.isNotEmpty)
+        if (pending.isNotEmpty)
           Container(
             decoration: BoxDecoration(
               color: tk.paper,
@@ -224,7 +229,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
                         color: tk.ink,
-                        child: Text('${_pending.length}개 담기',
+                        child: Text('${pending.length}개 담기',
                             style: AppText.nav(tk.paper, active: true)),
                       ),
                     ),
@@ -237,8 +242,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
     );
   }
 
-  Widget _row(AppTokens tk, int i) {
-    final r = _pending[i];
+  Widget _row(AppTokens tk, VoiceResult r, int i) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
@@ -257,7 +261,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
             ),
           ),
           GestureDetector(
-            onTap: () => setState(() => _pending.removeAt(i)),
+            onTap: () => ref.read(dumpStagingProvider.notifier).removeAt(i),
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.only(left: 6),
