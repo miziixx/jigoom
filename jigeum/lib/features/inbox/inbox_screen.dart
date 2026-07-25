@@ -28,18 +28,20 @@ class InboxScreen extends StatefulWidget {
 }
 
 class _InboxScreenState extends State<InboxScreen> {
+  /// 저장소가 [Listenable] 이면(영속 구현) 로드/변경을 구독해 목록을 갱신한다.
+  Listenable? _repoListenable;
+
   @override
   void initState() {
     super.initState();
-    // 영속 저장소는 시작 시 비동기로 로드된다 → 로드/변경 시 목록 갱신.
     final repo = widget.repository;
-    if (repo is Listenable) repo.addListener(_onRepoChanged);
+    _repoListenable = repo is Listenable ? repo : null;
+    _repoListenable?.addListener(_onRepoChanged);
   }
 
   @override
   void dispose() {
-    final repo = widget.repository;
-    if (repo is Listenable) repo.removeListener(_onRepoChanged);
+    _repoListenable?.removeListener(_onRepoChanged);
     super.dispose();
   }
 

@@ -10,7 +10,6 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/db.dart';
