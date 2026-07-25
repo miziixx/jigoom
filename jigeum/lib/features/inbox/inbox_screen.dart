@@ -34,8 +34,10 @@ class _InboxScreenState extends State<InboxScreen> {
   @override
   void initState() {
     super.initState();
+    // Listenable 은 InboxRepository 의 상위형이 아니라 `is` 승격이 안 되므로
+    // (구현체만 둘 다 만족) 명시적으로 캐스팅한다.
     final repo = widget.repository;
-    _repoListenable = repo is Listenable ? repo : null;
+    _repoListenable = repo is Listenable ? repo as Listenable : null;
     _repoListenable?.addListener(_onRepoChanged);
   }
 
