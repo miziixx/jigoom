@@ -23,6 +23,7 @@ String bucketOf(RoutePoint r) => switch (r) {
       RoutePoint.matrix => '매트릭스',
       RoutePoint.logNow => '지금기록',
       RoutePoint.habit => '습관',
+      RoutePoint.timeTrack => '타임트래커',
       RoutePoint.inbox => '보류함',
       _ => '기타',
     };
@@ -40,7 +41,9 @@ void main() {
     expect(rows.length, greaterThan(500));
 
     const cats = ['일정', '빠른담기', '매트릭스', '지금기록', '습관', '보류함', '타임트래커'];
-    const buckets = ['일정', '빠른담기', '매트릭스', '지금기록', '습관', '보류함', '기타'];
+    const buckets = [
+      '일정', '빠른담기', '매트릭스', '지금기록', '습관', '보류함', '타임트래커', '기타'
+    ];
 
     final conf = {
       for (final c in cats) c: {for (final b in buckets) b: 0}
@@ -67,15 +70,12 @@ void main() {
       conf[cat]![pred] = conf[cat]![pred]! + 1;
       catTotal[cat] = catTotal[cat]! + 1;
 
-      final matchable = cat != '타임트래커';
-      final ok = matchable && pred == cat;
+      final ok = pred == cat; // 타임트래커도 이제 버킷이 있어 매칭 대상.
 
       if (!isTypo) {
-        if (matchable) {
-          cleanTot++;
-          if (ok) cleanOk++;
-        }
-      } else if (matchable) {
+        cleanTot++;
+        if (ok) cleanOk++;
+      } else {
         typoTot++;
         if (ok) typoRawOk++;
         if (norm.isNotEmpty) {
@@ -84,7 +84,7 @@ void main() {
         }
       }
 
-      if (matchable && !ok && misses.length < 80) {
+      if (!ok && misses.length < 80) {
         misses.add('  [기대 $cat → 예측 $pred] $sent');
       }
     }
@@ -98,12 +98,8 @@ void main() {
           .map((x) => '$x:${conf[c]![x]}')
           .join('  ');
       final total = catTotal[c]!;
-      if (c == '타임트래커') {
-        b.writeln('  $c ($total) → $dist   [엔진에 버킷 없음]');
-      } else {
-        final acc = total == 0 ? 0.0 : conf[c]![c]! * 100 / total;
-        b.writeln('  $c ($total) → $dist   [${acc.toStringAsFixed(1)}%]');
-      }
+      final acc = total == 0 ? 0.0 : conf[c]![c]! * 100 / total;
+      b.writeln('  $c ($total) → $dist   [${acc.toStringAsFixed(1)}%]');
     }
 
     final cleanAcc = cleanTot == 0 ? 0.0 : cleanOk * 100 / cleanTot;

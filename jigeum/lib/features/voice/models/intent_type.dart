@@ -39,6 +39,9 @@ enum IntentType {
   /// 포커스 시작 → J. 분.
   focusStart('focus.start'),
 
+  /// 타임트래커 — 시계 찍기/타이머 시작/기간 기록("지금부터 시작/9시에 퇴근 찍음").
+  timeTrack('time.track'),
+
   /// 화면 이동. 목적지.
   navMove('nav.move'),
 
@@ -67,7 +70,8 @@ enum IntentType {
         IntentType.routineAdd ||
         IntentType.goalAdd ||
         IntentType.goalToday ||
-        IntentType.focusStart =>
+        IntentType.focusStart ||
+        IntentType.timeTrack =>
           true,
         _ => false,
       };
@@ -105,6 +109,9 @@ enum RoutePoint {
   /// J 포커스.
   focus('J', '포커스'),
 
+  /// 타임트래커(시계·기간 기록).
+  timeTrack('-', '타임트래커'),
+
   /// 화면 전환(달력·습관 등).
   nav('-', '이동'),
 
@@ -140,6 +147,7 @@ RoutePoint defaultRoutePointOf(IntentType intent) => switch (intent) {
       IntentType.goalAdd => RoutePoint.goal,
       IntentType.goalToday => RoutePoint.goalToday,
       IntentType.focusStart => RoutePoint.focus,
+      IntentType.timeTrack => RoutePoint.timeTrack,
       IntentType.navMove => RoutePoint.nav,
       IntentType.helpStuck => RoutePoint.helpStuck,
       IntentType.helpFortune => RoutePoint.helpFortune,

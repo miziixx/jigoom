@@ -77,8 +77,9 @@ class AppVoiceExecutor extends VoiceExecutor {
         await repo.setDayGoal(today, prev.isEmpty ? line : '$prev\n$line');
         return _DayGoalRef(today, prev);
 
-      // D 지금기록 — 현재 30분 블록 내용에 덧붙인다.
+      // D 지금기록 / 타임트래커 — 현재 30분 블록 내용에 덧붙인다.
       case RoutePoint.logNow:
+      case RoutePoint.timeTrack:
         final repo = _ref.read(timeTrackRepoProvider);
         final today = todayDate();
         final block = TimeTrackRepository.blockOfNow();

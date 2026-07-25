@@ -91,6 +91,8 @@ class IntentLexicon {
     // 단독으로 쓰는 표현만.
     IntentType.goalToday: ['오늘은'],
     IntentType.focusStart: ['집중', '몰입', '타이머'],
+    // 타임트래커 — 시계 찍기/타이머 시작(분류기 특례가 '찍/지금부터'를 강신호로).
+    IntentType.timeTrack: ['찍음', '찍었어', '찍어', '지금부터'],
     IntentType.navMove: ['보여줘', '열어줘', '가자', '이동', '화면', '달력'],
     IntentType.helpStuck: ['막혔어', '못하겠어', '안돼', '하기싫어', '미루고싶어'],
     IntentType.helpFortune: ['운세', '사주', '오늘 운', '별자리'],

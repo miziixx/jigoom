@@ -136,6 +136,18 @@ class IntentClassifier {
           VoiceScores.strongSignal + VoiceScores.keyword);
     }
 
+    // --- 3-2) 타임트래커 특례 — 시계 찍기/타이머 시작/기간 기록 --------------
+    // '찍(찍음/찍었어)' 시계 이벤트, '지금부터' 타이머 시작은 결정적. "N시간 …
+    // 했다고 넣어줘/기록해줘"(기간+기록동사)도 타임트래커. 과거시제 logNow(+3,
+    // 기간이면 +5)보다 확실히 앞서게 강신호×2(=6)로 얹는다.
+    if (text.contains('찍') || text.contains('지금부터')) {
+      add(IntentType.timeTrack, VoiceScores.strongSignal * 2);
+    } else if (tp.durationMin != null &&
+        tp.isPast &&
+        (text.contains('넣어') || text.contains('기록'))) {
+      add(IntentType.timeTrack, VoiceScores.strongSignal * 2);
+    }
+
     // --- 4) goal.today 특례(§3-3 5) — "오늘"+"목표" 근접 -------------------
     if (text.contains('오늘 목표')) {
       add(IntentType.goalToday, VoiceScores.strongSignal + VoiceScores.keyword);
