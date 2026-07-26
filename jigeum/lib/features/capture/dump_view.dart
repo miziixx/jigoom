@@ -166,7 +166,11 @@ class _DumpViewState extends ConsumerState<DumpView> {
                     Text('판단은 나중에 · 생각나는 대로',
                         style: AppText.meta(tk.inkSoft, size: 11)),
                     const SizedBox(height: 2),
-                    Text('머릿속을 비워요', style: AppText.hTitle(tk.ink)),
+                    // 상단 Masthead("쏟아내기", 19px)가 이미 큰 제목이라
+                    // 본문 헤더는 한 단계 낮춰(16px) 제목이 이중으로 커 보이던
+                    // 것 완화 — 다른 탭과 위계 균형.
+                    Text('머릿속을 비워요',
+                        style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
                   ],
                 ),
               ),
