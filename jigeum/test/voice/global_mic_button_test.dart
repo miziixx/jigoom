@@ -53,7 +53,8 @@ void main() {
     await tester.pump();
 
     expect(stt.calls, ['isAvailable', 'requestPermission', 'start:ko_KR']);
-    expect(find.text('듣는 중'), findsOneWidget);
+    // 부분결과가 오기 전 기본 캡션. 받아쓴 글자가 오면 이 자리를 대체한다.
+    expect(find.text('듣는 중…'), findsOneWidget);
   });
 
   testWidgets('STT 미지원이면 시작하지 않고 안내한다', (tester) async {
