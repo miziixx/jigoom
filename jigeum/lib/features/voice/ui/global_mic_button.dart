@@ -21,10 +21,16 @@ class GlobalMicButton extends StatefulWidget {
     super.key,
     required this.stt,
     required this.controller,
+    this.onFinalText,
   });
 
   final SttService stt;
   final VoiceController controller;
+
+  /// 최종 받아쓰기 텍스트를 가로채는 훅. 지정되면 기본 라우팅(handle+스낵바)
+  /// 대신 이 콜백에 텍스트를 넘긴다 — 쏟아내기 탭에서 마이크 결과를 즉시
+  /// 실행하지 않고 대기줄에 쌓는 데 쓴다. 미지정이면 기존 동작.
+  final Future<void> Function(String text)? onFinalText;
 
   @override
   State<GlobalMicButton> createState() => _GlobalMicButtonState();
@@ -78,6 +84,12 @@ class _GlobalMicButtonState extends State<GlobalMicButton> {
     }
     if (mounted) setState(() => _partial = '');
     if (r.text.trim().isEmpty) return;
+    // 훅이 있으면(쏟아내기 탭) 즉시 라우팅 대신 대기줄에 넘긴다.
+    final override = widget.onFinalText;
+    if (override != null) {
+      await override(r.text);
+      return;
+    }
     final fb =
         await widget.controller.handle(r.text, sttConfidence: r.confidence);
     if (!mounted) return;
