@@ -41,6 +41,12 @@ class SttBridge(
     private var recognizer: SpeechRecognizer? = null
     private var permResult: MethodChannel.Result? = null
 
+    /** 마지막 start 의 로케일 — 다이얼로그 폴백 때 재사용. */
+    private var currentLocale: String = "ko_KR"
+
+    /** 이번 세션에서 다이얼로그 폴백을 이미 썼는지(무한 폴백 방지). */
+    private var dialogFallbackUsed = false
+
     init {
         channel.setMethodCallHandler { call, result -> handle(call, result) }
     }
@@ -62,7 +68,12 @@ class SttBridge(
                 }
             }
             "start" -> {
-                launchRecognitionDialog(call.argument<String>("localeId") ?: "ko_KR")
+                // 앱 안에서 바로 받아쓰기(팝업 없음). 부분결과가 실시간으로
+                // Dart(onPartial)로 흘러 화면에 글자가 찍힌다. 이 기기가 한국어
+                // 인라인 인식을 못 하면 onError 에서 구글 다이얼로그로 1회 폴백.
+                currentLocale = call.argument<String>("localeId") ?: "ko_KR"
+                dialogFallbackUsed = false
+                startListening(currentLocale)
                 result.success(null)
             }
             "stop" -> {
@@ -123,10 +134,26 @@ class SttBridge(
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, localeId)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, localeId)
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, activity.packageName)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             // 오프라인 강제 금지 — 한국어 온디바이스 모델이 없는 폰에서 오프라인을
             // 강제하면 결과 없이 조용히 실패한다. 온라인 인식으로 폴백되게 둔다.
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
+            // 말 끝나자마자 잘리는 것 완화 — 한 박자 쉬어도 이어 말하게 침묵
+            // 허용을 넉넉히. (엔진이 무시할 수도 있는 advisory 값)
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
+                2000L
+            )
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
+                2000L
+            )
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,
+                1500L
+            )
         }
         notifyStatus("listening")
         r.startListening(intent)
@@ -200,9 +227,27 @@ class SttBridge(
     }
 
     override fun onError(error: Int) {
+        // 인라인 인식기가 이 기기에서 한국어를 못 돌리는 부류의 오류면(삼성 등
+        // 기본 인식기가 빅스비라 "언어 없음"), 구글 음성 다이얼로그로 1회만
+        // 조용히 폴백한다. 사용자가 안 말해서 난 no-match/timeout 은 그대로 알린다.
+        if (!dialogFallbackUsed && shouldFallbackToDialog(error)) {
+            dialogFallbackUsed = true
+            recognizer?.destroy()
+            recognizer = null
+            launchRecognitionDialog(currentLocale)
+            return
+        }
         notifyStatus("error")
         channel.invokeMethod(
             "onError", mapOf("code" to error, "message" to errorMessage(error)))
+    }
+
+    /** 인라인 인식이 이 기기에서 불가능함을 뜻하는 오류인가(→ 다이얼로그 폴백). */
+    private fun shouldFallbackToDialog(code: Int): Boolean = when (code) {
+        SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED,
+        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE,
+        SpeechRecognizer.ERROR_CLIENT -> true
+        else -> false
     }
 
     /** SpeechRecognizer 오류 코드를 사람이 읽을 한국어 메시지로. */
