@@ -88,7 +88,10 @@ jobs:
       - name: Build release APK (arm64 only)
         run: flutter build apk --release --target-platform android-arm64
 
+      # Actions 아티팩트는 임시(14일)·보조용 — 스토리지 쿼터가 차도 아래 릴리즈
+      # 게시(영구 자산)는 막지 않도록 continue-on-error 로 둔다.
       - name: Upload APK
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: jigeum-arm64-apk
