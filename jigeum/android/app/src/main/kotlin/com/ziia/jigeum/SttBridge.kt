@@ -128,13 +128,17 @@ class SttBridge(
         val r = createRecognizer()
         r.setRecognitionListener(this)
         recognizer = r
+        // EXTRA_LANGUAGE 는 BCP-47(하이픈, 예: ko-KR)을 기대한다. 언더스코어
+        // (ko_KR)를 넘기면 인라인 SpeechRecognizer 가 로케일을 못 읽고 기기 기본
+        // 언어(영어)로 인식해버린다. 반드시 하이픈으로 정규화해서 넘긴다.
+        val bcp47 = localeId.replace('_', '-')
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, localeId)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, localeId)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, bcp47)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, bcp47)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, activity.packageName)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             // 오프라인 강제 금지 — 한국어 온디바이스 모델이 없는 폰에서 오프라인을
@@ -166,13 +170,14 @@ class SttBridge(
      * 처리해 거의 모든 기기에서 동작한다. 결과는 [onSpeechResult] 로 돌아온다.
      */
     private fun launchRecognitionDialog(localeId: String) {
+        val bcp47 = localeId.replace('_', '-')
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, localeId)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, localeId)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, bcp47)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, bcp47)
             putExtra(RecognizerIntent.EXTRA_PROMPT, "말해 주세요")
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, activity.packageName)
         }
