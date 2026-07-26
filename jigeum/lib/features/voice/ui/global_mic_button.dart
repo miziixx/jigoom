@@ -37,12 +37,19 @@ class _GlobalMicButtonState extends State<GlobalMicButton> {
   bool _listening = false;
   bool _busy = false;
 
+  /// 지금까지 받아쓴 중간 텍스트(부분결과). 듣는 동안 실시간으로 갱신되어
+  /// 마이크 위 캡션에 그대로 찍힌다. 최종 결과가 오거나 종료되면 비운다.
+  String _partial = '';
+
   @override
   void initState() {
     super.initState();
     _statusSub = widget.stt.status.listen((s) {
       if (!mounted) return;
-      setState(() => _listening = s == SttStatus.listening);
+      setState(() {
+        _listening = s == SttStatus.listening;
+        if (!_listening) _partial = ''; // 종료/오류 시 캡션 정리.
+      });
     });
     _resultSub = widget.stt.results.listen(_onResult);
     // 인식 실패를 조용히 삼키지 않고 사람이 읽을 메시지로 띄운다.
@@ -64,7 +71,13 @@ class _GlobalMicButtonState extends State<GlobalMicButton> {
   void _showNotice(String message) => _onError(message);
 
   Future<void> _onResult(SttResult r) async {
-    if (!r.isFinal || r.text.trim().isEmpty) return;
+    // 부분결과: 화면에 실시간으로 글자만 갱신하고 라우팅은 하지 않는다.
+    if (!r.isFinal) {
+      if (mounted) setState(() => _partial = r.text);
+      return;
+    }
+    if (mounted) setState(() => _partial = '');
+    if (r.text.trim().isEmpty) return;
     final fb =
         await widget.controller.handle(r.text, sttConfidence: r.confidence);
     if (!mounted) return;
@@ -132,6 +145,7 @@ class _GlobalMicButtonState extends State<GlobalMicButton> {
           child: _listening
               ? Container(
                   key: const ValueKey('voice-listening-label'),
+                  constraints: const BoxConstraints(maxWidth: 240),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                   decoration: BoxDecoration(
@@ -139,7 +153,12 @@ class _GlobalMicButtonState extends State<GlobalMicButton> {
                     border: Border.all(color: t.paper.withValues(alpha: 0.4)),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text('듣는 중', style: AppText.meta(t.paper, size: 11)),
+                  child: Text(
+                    _partial.isEmpty ? '듣는 중…' : _partial,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.meta(t.paper, size: 11),
+                  ),
                 )
               : const SizedBox.shrink(),
         ),
