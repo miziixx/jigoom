@@ -178,51 +178,57 @@ class _DumpViewState extends ConsumerState<DumpView> {
         ),
 
         // 입력 — 칩 없이 프롬프트 한 줄.
-        Container(
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: tk.ink, width: 1),
-              bottom: BorderSide(color: tk.line, width: 1),
-            ),
-          ),
-          padding: const EdgeInsets.fromLTRB(
-              AppSpace.gutter, 12, AppSpace.gutter, 12),
-          child: Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8, bottom: 2),
-                child: Text('›', style: AppText.glyph(tk.mark, size: 16)),
+        // 구분선은 화면 끝까지 꽉 채우지 않고 좌우 gutter 여백에 맞춰 들인다
+        // (헤더/본문 정렬선과 일치 — 선만 튀어 보이던 것 해소).
+        Padding(
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: tk.ink, width: 1),
+                bottom: BorderSide(color: tk.line, width: 1),
               ),
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focus,
-                  autofocus: true,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _submit(),
-                  cursorColor: tk.mark,
-                  style: AppText.body(tk.ink),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: '적고 엔터 · 또 적고 엔터_',
-                    hintStyle: AppText.meta(tk.inkSoft, size: 13),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8, bottom: 2),
+                  child: Text('›', style: AppText.glyph(tk.mark, size: 16)),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focus,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _submit(),
+                    cursorColor: tk.mark,
+                    style: AppText.body(tk.ink),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: '적고 엔터 · 또 적고 엔터_',
+                      hintStyle: AppText.meta(tk.inkSoft, size: 13),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
                 ),
-              ),
-              GestureDetector(
-                onTap: _submit,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Text('쏟기', style: AppText.nav(tk.ink, active: true)),
+                GestureDetector(
+                  onTap: _submit,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 4),
+                    child:
+                        Text('쏟기', style: AppText.nav(tk.ink, active: true)),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
 
