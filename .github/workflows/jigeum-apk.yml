@@ -71,21 +71,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 고정 릴리즈 서명키를 시크릿에서 복원(있을 때만). 이게 있으면 모든 빌드가
-      # 같은 키로 서명돼 폰에서 삭제 없이 덮어쓰기 업데이트가 된다. 없으면 아래
-      # 패치가 스킵돼 기존처럼 debug 키로 서명(설치 시 기존 앱 삭제 필요).
-      - name: Restore signing keystore
-        env:
-          JIGEUM_KEYSTORE_B64: ${{ secrets.JIGEUM_KEYSTORE_B64 }}
-        run: |
-          if [ -n "$JIGEUM_KEYSTORE_B64" ]; then
-            echo "$JIGEUM_KEYSTORE_B64" | base64 -d > tool/jigeum-release.jks
-            echo "keystore restored ($(wc -c < tool/jigeum-release.jks) bytes)"
-          else
-            echo "no JIGEUM_KEYSTORE_B64 secret — release stays debug-signed"
-          fi
-
-      - name: Patch Android (widget receiver, permissions, label, minSdk, signing)
+      - name: Patch Android (widget receiver, permissions, label, minSdk)
         run: python3 tool/ci_patch_android.py
 
       - name: Drift code generation

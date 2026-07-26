@@ -8,21 +8,11 @@
 로컬 개발자는 README 의 수동 통합 안내를 따르면 됨. 이 스크립트는 재실행 안전(idempotent).
 """
 import re
-import shutil
 import sys
 from pathlib import Path
 
 APP = Path("android/app")
 MANIFEST = APP / "src/main/AndroidManifest.xml"
-
-# 고정 릴리즈 서명키(개인 사이드로드용). 이게 없으면 flutter 가 매 빌드마다 새
-# debug 키로 서명 → 서명 불일치로 기존 설치본 위에 업데이트가 거부된다. 고정키로
-# 서명하면 삭제 없이 덮어쓰기 업데이트가 된다. (Play 스토어 배포용 아님)
-KEYSTORE_SRC = Path("tool/jigeum-release.jks")
-KEYSTORE_DST = APP / "jigeum-release.jks"
-STORE_PW = "jigeum2026"
-KEY_ALIAS = "jigeum"
-KEY_PW = "jigeum2026"
 
 PERMISSIONS = """    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -167,55 +157,6 @@ def patch_desugaring() -> None:
     print(f"patched {f.name} (core library desugaring)")
 
 
-def patch_signing() -> None:
-    """release 빌드를 고정 keystore 로 서명하게 build.gradle(.kts) 패치.
-    keystore 를 앱 모듈로 복사하고, signingConfigs.release 를 주입한 뒤 release
-    buildType 의 서명을 debug→release 로 바꾼다 (idempotent)."""
-    f = _app_gradle()
-    if not f or not KEYSTORE_SRC.exists():
-        print("signing: keystore/gradle 없음 — 스킵")
-        return
-    shutil.copyfile(KEYSTORE_SRC, KEYSTORE_DST)
-    t = f.read_text(encoding="utf-8")
-    kts = f.name.endswith(".kts")
-
-    if "jigeum-release.jks" not in t:
-        if kts:
-            block = (
-                '    signingConfigs {\n'
-                '        create("release") {\n'
-                '            storeFile = file("jigeum-release.jks")\n'
-                f'            storePassword = "{STORE_PW}"\n'
-                f'            keyAlias = "{KEY_ALIAS}"\n'
-                f'            keyPassword = "{KEY_PW}"\n'
-                '        }\n'
-                '    }\n'
-            )
-            t = re.sub(r"\n([ \t]*)buildTypes\s*\{",
-                       "\n" + block + r"\1buildTypes {", t, count=1)
-            t = re.sub(
-                r'signingConfig\s*=\s*signingConfigs\.getByName\("debug"\)',
-                'signingConfig = signingConfigs.getByName("release")', t)
-        else:
-            block = (
-                '    signingConfigs {\n'
-                '        release {\n'
-                '            storeFile file("jigeum-release.jks")\n'
-                f"            storePassword '{STORE_PW}'\n"
-                f"            keyAlias '{KEY_ALIAS}'\n"
-                f"            keyPassword '{KEY_PW}'\n"
-                '        }\n'
-                '    }\n'
-            )
-            t = re.sub(r"\n([ \t]*)buildTypes\s*\{",
-                       "\n" + block + r"\1buildTypes {", t, count=1)
-            t = re.sub(r'signingConfig\s+signingConfigs\.debug',
-                       'signingConfig signingConfigs.release', t)
-
-    f.write_text(t, encoding="utf-8")
-    print(f"patched {f.name} (release signing — 고정 keystore)")
-
-
 if __name__ == "__main__":
     if not MANIFEST.exists():
         print("AndroidManifest not found — run flutter create first", file=sys.stderr)
@@ -223,4 +164,3 @@ if __name__ == "__main__":
     patch_manifest()
     patch_min_sdk()
     patch_desugaring()
-    patch_signing()
