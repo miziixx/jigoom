@@ -6,6 +6,8 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognitionService
 import android.speech.RecognizerIntent
@@ -47,6 +49,11 @@ class SttBridge(
     /** 이번 세션에서 다이얼로그 폴백을 이미 썼는지(무한 폴백 방지). */
     private var dialogFallbackUsed = false
 
+    /** 이번 세션에서 일시적 오류(서버 끊김/바쁨) 자동 재시도를 이미 썼는지. */
+    private var transientRetryUsed = false
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     init {
         channel.setMethodCallHandler { call, result -> handle(call, result) }
     }
@@ -73,6 +80,7 @@ class SttBridge(
                 // 인라인 인식을 못 하면 onError 에서 구글 다이얼로그로 1회 폴백.
                 currentLocale = call.argument<String>("localeId") ?: "ko_KR"
                 dialogFallbackUsed = false
+                transientRetryUsed = false
                 startListening(currentLocale)
                 result.success(null)
             }
@@ -81,6 +89,7 @@ class SttBridge(
                 result.success(null)
             }
             "cancel" -> {
+                mainHandler.removeCallbacksAndMessages(null) // 예약된 재시도 취소.
                 recognizer?.cancel()
                 result.success(null)
             }
@@ -217,6 +226,7 @@ class SttBridge(
     }
 
     fun dispose() {
+        mainHandler.removeCallbacksAndMessages(null) // 예약된 재시도 취소.
         recognizer?.destroy()
         recognizer = null
         channel.setMethodCallHandler(null)
@@ -242,6 +252,15 @@ class SttBridge(
             launchRecognitionDialog(currentLocale)
             return
         }
+        // 서버 끊김(11)·인식기 바쁨(8) 등 일시적 오류는 사용자에게 딱딱한 코드를
+        // 던지지 않고 새 인식기로 1회 조용히 재시도한다(빠른 재탭 시 흔함).
+        if (!transientRetryUsed && isTransient(error)) {
+            transientRetryUsed = true
+            recognizer?.destroy()
+            recognizer = null
+            mainHandler.postDelayed({ startListening(currentLocale) }, 350)
+            return
+        }
         notifyStatus("error")
         channel.invokeMethod(
             "onError", mapOf("code" to error, "message" to errorMessage(error)))
@@ -255,6 +274,14 @@ class SttBridge(
         else -> false
     }
 
+    /** 잠깐 뒤 다시 하면 풀리는 일시적 오류인가(→ 1회 자동 재시도). */
+    private fun isTransient(code: Int): Boolean = when (code) {
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY,       // 8
+        SpeechRecognizer.ERROR_SERVER_DISCONNECTED,   // 11
+        SpeechRecognizer.ERROR_TOO_MANY_REQUESTS -> true  // 10
+        else -> false
+    }
+
     /** SpeechRecognizer 오류 코드를 사람이 읽을 한국어 메시지로. */
     private fun errorMessage(code: Int): String = when (code) {
         SpeechRecognizer.ERROR_AUDIO -> "마이크 오류"
@@ -263,8 +290,10 @@ class SttBridge(
         SpeechRecognizer.ERROR_NETWORK -> "네트워크 오류 (온라인 인식 필요)"
         SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "네트워크 시간 초과"
         SpeechRecognizer.ERROR_NO_MATCH -> "못 알아들었어요 (다시 말해줘)"
-        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "인식기가 바빠요 (잠시 후)"
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "인식기가 바빠요 (다시 눌러줘)"
         SpeechRecognizer.ERROR_SERVER -> "음성 서버 오류"
+        SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> "연결이 끊겼어요 (다시 눌러줘)"
+        SpeechRecognizer.ERROR_TOO_MANY_REQUESTS -> "잠시 뒤 다시 시도해줘"
         SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "말이 없어서 종료했어요"
         SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "한국어 미지원 기기"
         SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ->

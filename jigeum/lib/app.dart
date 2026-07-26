@@ -6,6 +6,7 @@ import 'core/journal.dart';
 import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
+import 'features/capture/dump_staging.dart';
 import 'features/capture/dump_view.dart';
 import 'features/capture/quick_capture_bar.dart';
 import 'features/capture/quick_capture_input.dart';
@@ -97,6 +98,18 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: GlobalMicButton(
           stt: ref.watch(sttServiceProvider),
           controller: ref.watch(voiceControllerProvider),
+          // 쏟아내기 탭(2)에선 마이크 결과를 즉시 라우팅하지 않고, 타이핑과
+          // 똑같이 분류만 해서 대기줄에 쌓는다("여기에 나오게").
+          onFinalText: _index == 2
+              ? (text) async {
+                  final results =
+                      ref.read(voiceControllerProvider).classifyMany(text);
+                  final staging = ref.read(dumpStagingProvider.notifier);
+                  for (final r in results) {
+                    staging.addResult(r);
+                  }
+                }
+              : null,
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
