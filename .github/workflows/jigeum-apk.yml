@@ -88,16 +88,6 @@ jobs:
       - name: Build release APK (arm64 only)
         run: flutter build apk --release --target-platform android-arm64
 
-      # Actions 아티팩트는 임시(14일)·보조용 — 스토리지 쿼터가 차도 아래 릴리즈
-      # 게시(영구 자산)는 막지 않도록 continue-on-error 로 둔다.
-      - name: Upload APK
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: jigeum-arm64-apk
-          path: jigeum/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 14
-
       # main 에 올라오면 롤링 최신 릴리즈로, 연동 브랜치면 프리뷰 릴리즈로 게시
       # → 폰에서 바로 설치 가능한 APK 링크가 생긴다.
       - name: Publish APK to Release
