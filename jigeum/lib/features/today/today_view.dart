@@ -75,7 +75,8 @@ class _TodayViewState extends ConsumerState<TodayView> {
     }
     // 에너지 사이클 — 집중 피크(사주 運氣를 행동 데이터로 근사).
     final peak = ref.watch(energyPeakProvider);
-    final peakStr = peak != null ? peakLabel(peak.startHour, peak.endHour) : null;
+    final peakStr =
+        peak != null ? peakLabel(peak.startHour, peak.endHour) : null;
 
     final scaffoldParts = <String>[
       if (startedToday > 0) '오늘 $startedToday번 시작',
@@ -142,9 +143,8 @@ class _TodayViewState extends ConsumerState<TodayView> {
       focus.when(
         loading: () => const SizedBox.shrink(),
         error: (_, __) => const SizedBox.shrink(),
-        data: (node) => node == null
-            ? const SizedBox.shrink()
-            : _FocusBlock(node: node),
+        data: (node) =>
+            node == null ? const SizedBox.shrink() : _FocusBlock(node: node),
       ),
 
       // TO-DO
@@ -203,8 +203,7 @@ class _FocusBlock extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(kGutter, 26, kGutter, 12),
           child: Row(
             children: [
-              Text('› NOW',
-                  style: AppText.sec(tk.mark)),
+              Text('› NOW', style: AppText.sec(tk.mark)),
               const SizedBox(width: 12),
               Expanded(child: Container(height: 1, color: tk.line)),
             ],
@@ -229,8 +228,7 @@ class _FocusBlock extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(node.title, style: AppText.body(tk.ink)),
-                      if (node.nextStep != null &&
-                          node.nextStep!.isNotEmpty)
+                      if (node.nextStep != null && node.nextStep!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 3),
                           child: Text('다음 · ${node.nextStep}',
@@ -312,8 +310,7 @@ class SimpleTile extends ConsumerWidget {
     final tk = t(context);
     final repo = ref.read(nodeRepoProvider);
     final done = node.status == NodeStatus.done;
-    final showDeadline =
-        node.date != null && node.date != todayDate() && !done;
+    final showDeadline = node.date != null && node.date != todayDate() && !done;
     final pri = done
         ? null
         : priorityLabel(context,
@@ -343,8 +340,7 @@ class SimpleTile extends ConsumerWidget {
                 children: [
                   Text(node.title,
                       style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
-                          decoration:
-                              done ? TextDecoration.lineThrough : null,
+                          decoration: done ? TextDecoration.lineThrough : null,
                           decorationColor: tk.inkSoft),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
@@ -355,6 +351,13 @@ class SimpleTile extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppText.meta(tk.inkSoft)),
+                    ),
+                  if (done && node.doneAt != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                          '${DateFormat('HH:mm').format(node.doneAt!)} 완료',
+                          style: AppText.meta(tk.mark, size: 10)),
                     ),
                 ],
               ),

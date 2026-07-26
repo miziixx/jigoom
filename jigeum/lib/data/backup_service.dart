@@ -21,6 +21,8 @@ class BackupService {
     final ticks = await db.select(db.habitTicks).get();
     final schedules = await db.select(db.schedules).get();
     final routines = await db.select(db.routines).get();
+    final routineGroups = await db.select(db.routineGroups).get();
+    final routineSteps = await db.select(db.routineSteps).get();
     final timeBlocks = await db.select(db.timeBlocks).get();
 
     String? d(DateTime? v) => v?.toIso8601String();
@@ -66,7 +68,11 @@ class BackupService {
       ],
       'habitTicks': [
         for (final t in ticks)
-          {'habitId': t.habitId, 'date': d(t.date)}
+          {
+            'habitId': t.habitId,
+            'date': d(t.date),
+            'completedAt': d(t.completedAt),
+          }
       ],
       'schedules': [
         for (final s in schedules)
@@ -79,6 +85,7 @@ class BackupService {
             'startMin': s.startMin,
             'endMin': s.endMin,
             'done': s.done,
+            'doneAt': d(s.doneAt),
             'routineId': s.routineId,
             'createdAt': d(s.createdAt),
             'allDay': s.allDay,
@@ -102,6 +109,32 @@ class BackupService {
             'weekdays': r.weekdays,
             'active': r.active,
             'createdAt': d(r.createdAt),
+          }
+      ],
+      'routineGroups': [
+        for (final g in routineGroups)
+          {
+            'id': g.id,
+            'title': g.title,
+            'sortOrder': g.sortOrder,
+            'weekdays': g.weekdays,
+            'collapsed': g.collapsed,
+            'active': g.active,
+            'createdAt': d(g.createdAt),
+          }
+      ],
+      'routineSteps': [
+        for (final s in routineSteps)
+          {
+            'id': s.id,
+            'groupId': s.groupId,
+            'sortOrder': s.sortOrder,
+            'trigger': s.trigger,
+            'title': s.title,
+            'streak': s.streak,
+            'lastDone': d(s.lastDone),
+            'lastDoneAt': d(s.lastDoneAt),
+            'createdAt': d(s.createdAt),
           }
       ],
       'timeBlocks': [
@@ -163,7 +196,10 @@ class BackupService {
     final ticks = [
       for (final m in (map['habitTicks'] as List? ?? const []))
         HabitTicksCompanion.insert(
-            habitId: m['habitId'] as String, date: pr(m['date']))
+          habitId: m['habitId'] as String,
+          date: pr(m['date']),
+          completedAt: Value(p(m['completedAt'])),
+        )
     ];
     final schedules = [
       for (final m in (map['schedules'] as List? ?? const []))
@@ -176,6 +212,7 @@ class BackupService {
           startMin: m['startMin'] as int,
           endMin: m['endMin'] as int,
           done: Value(m['done'] as bool? ?? false),
+          doneAt: Value(p(m['doneAt'])),
           routineId: Value(m['routineId'] as String?),
           createdAt: pr(m['createdAt']),
           allDay: Value(m['allDay'] as bool? ?? false),
@@ -185,6 +222,32 @@ class BackupService {
           dirty: Value(m['dirty'] as bool? ?? false),
           deleted: Value(m['deleted'] as bool? ?? false),
           updatedAt: Value(p(m['updatedAt'])),
+        )
+    ];
+    final routineGroups = [
+      for (final m in (map['routineGroups'] as List? ?? const []))
+        RoutineGroupsCompanion.insert(
+          id: m['id'] as String,
+          title: m['title'] as String,
+          sortOrder: Value(m['sortOrder'] as int? ?? 0),
+          weekdays: Value(m['weekdays'] as String? ?? '1,2,3,4,5,6,7'),
+          collapsed: Value(m['collapsed'] as bool? ?? false),
+          active: Value(m['active'] as bool? ?? true),
+          createdAt: pr(m['createdAt']),
+        )
+    ];
+    final routineSteps = [
+      for (final m in (map['routineSteps'] as List? ?? const []))
+        RoutineStepsCompanion.insert(
+          id: m['id'] as String,
+          groupId: m['groupId'] as String,
+          sortOrder: Value(m['sortOrder'] as int? ?? 0),
+          trigger: Value(m['trigger'] as String? ?? ''),
+          title: m['title'] as String,
+          streak: Value(m['streak'] as int? ?? 0),
+          lastDone: Value(p(m['lastDone'])),
+          lastDoneAt: Value(p(m['lastDoneAt'])),
+          createdAt: pr(m['createdAt']),
         )
     ];
     final routines = [
@@ -217,6 +280,8 @@ class BackupService {
       await db.delete(db.nodes).go();
       await db.delete(db.schedules).go();
       await db.delete(db.routines).go();
+      await db.delete(db.routineSteps).go();
+      await db.delete(db.routineGroups).go();
       await db.delete(db.timeBlocks).go();
       for (final n in nodes) {
         await db.into(db.nodes).insert(n);
@@ -235,6 +300,12 @@ class BackupService {
       }
       for (final r in routines) {
         await db.into(db.routines).insert(r);
+      }
+      for (final g in routineGroups) {
+        await db.into(db.routineGroups).insert(g);
+      }
+      for (final s in routineSteps) {
+        await db.into(db.routineSteps).insert(s);
       }
       for (final t in timeBlocks) {
         await db.into(db.timeBlocks).insert(t);

@@ -11,7 +11,7 @@ class AppSettings {
     this.themeKey = kDefaultThemeKey,
     this.fontScale = 1.0,
     this.weightDelta = 0,
-    this.systemFont = false,
+    this.systemFont = true,
     this.skyMode = 'both',
     this.birth,
     this.birthHasTime = false,
@@ -25,7 +25,7 @@ class AppSettings {
     this.astroLevel = 'general', // 점성학 풀이 설명 레벨
     this.calSaju = true, // 캘린더에 사주(일진·오늘 기운) 표시
     this.calAstro = true, // 캘린더에 점성학(별자리) 표시
-    this.fontKey = kDefaultFontKey, // 앱 글꼴(번들 한글 폰트 중 선택)
+    this.fontKey = kDefaultFontKey, // 시스템 글꼴을 끈 경우 쓸 앱 내장 글꼴
     this.quietMode = false, // 방해 금지 — 브리핑·상주 알림 억제(하이퍼포커스 보호)
     this.variedNudges = true, // 알림 문구를 매번 조금씩 바꿔 무뎌짐 방지
     this.reduceMotion = false, // 모션·완료 팝업 최소화(센서리 예민 대응)
@@ -34,7 +34,7 @@ class AppSettings {
   final String themeKey; // 내장 10종 중 하나 (기본 manila)
   final double fontScale; // 0.85 ~ 1.4
   final int weightDelta; // -1 ~ +2 (얇게 ~ 굵게)
-  final bool systemFont; // true면 라벨·숫자도 기기 글꼴(모노 끄기)
+  final bool systemFont; // true면 폰 시스템 글꼴 사용(fontFamily 지정 안 함)
   final String skyMode; // 'both' | 'zodiac' | 'saju' | 'none'
   final DateTime? birth; // 생년월일(+시각) — 항상 '양력' 시각으로 저장(civil).
   final bool birthHasTime; // 태어난 시각을 입력했는가(시주 포함 여부)
@@ -48,7 +48,7 @@ class AppSettings {
   final String astroLevel; // 점성학 풀이 레벨 키(explain.dart)
   final bool calSaju; // 캘린더 상세에 일진·오늘 기운 표시
   final bool calAstro; // 캘린더 상세에 별자리 표시
-  final String fontKey; // 앱 글꼴 키(kFonts)
+  final String fontKey; // 앱 내장 글꼴 키(kFonts)
   final bool quietMode; // 방해 금지(브리핑·상주 알림 억제)
   final bool variedNudges; // 알림 문구 변주
   final bool reduceMotion; // 모션·완료 팝업 최소화
@@ -167,7 +167,7 @@ class SettingsController extends StateNotifier<AppSettings> {
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
       weightDelta: int.tryParse(weight ?? '') ?? 0,
-      systemFont: sysFont == '1',
+      systemFont: sysFont == null ? true : sysFont == '1',
       skyMode: sky ?? 'both',
       birth: (birthStr == null || birthStr.isEmpty)
           ? null
@@ -305,9 +305,8 @@ class SettingsController extends StateNotifier<AppSettings> {
   }
 
   Future<String?> _get(String key) async {
-    final row =
-        await (db.select(db.settings)..where((s) => s.key.equals(key)))
-            .getSingleOrNull();
+    final row = await (db.select(db.settings)..where((s) => s.key.equals(key)))
+        .getSingleOrNull();
     return row?.value;
   }
 

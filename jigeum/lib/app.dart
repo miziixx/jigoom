@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'core/constants.dart';
 import 'core/dialogs.dart';
 import 'core/journal.dart';
 import 'core/theme.dart';
@@ -20,6 +19,7 @@ import 'features/inbox/inbox_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
 import 'features/today/today_view.dart';
+import 'features/voice/ui/global_mic_button.dart';
 import 'providers.dart';
 
 /// 셸: 오늘 / 매트릭스 / 아웃라인 / 전체.
@@ -60,8 +60,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onCalendarLaunch() {
     if (!mounted) return;
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const CalendarScreen()));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
   }
 
   void _onTimeTrackLaunch() {
@@ -75,14 +75,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체'];
-  static const _navLabels = [
-    'today',
-    'matrix',
-    'dump',
-    'time',
-    'habit',
-    'all'
-  ];
+  static const _navLabels = ['today', 'matrix', 'dump', 'time', 'habit', 'all'];
 
   @override
   Widget build(BuildContext context) {
@@ -98,8 +91,16 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       drawer: _buildDrawer(context),
-      // 음성 마이크는 일단 제거(한국어 STT 미동작 + 마스트헤드 메뉴 가림).
-      // 분류 엔진은 유지 — 이후 타이핑 '쏟아내기'에 재사용한다.
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+            bottom: _index == 2 || _index == 3 || _index == 4 ? 62 : 130),
+        child: GlobalMicButton(
+          stt: ref.watch(sttServiceProvider),
+          controller: ref.watch(voiceControllerProvider),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      // 음성 마이크는 마스트헤드와 하단 입력바를 가리지 않도록 떠 있는 버튼으로 둔다.
       // 입력바가 키보드 위로 따라 올라오도록 body 에 배치.
       body: SafeArea(
         bottom: false,
@@ -139,8 +140,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: Padding(
           // 세로 여백으로 터치 영역 확보.
           padding: const EdgeInsets.only(left: 10, top: 8, bottom: 8),
-          child: Text(label,
-              style: AppText.meta(t(context).inkSoft, size: 11)),
+          child: Text(label, style: AppText.meta(t(context).inkSoft, size: 11)),
         ),
       );
 
@@ -195,8 +195,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   /// 새 습관 만들기 (이름만 — 카테고리는 상세에서).
   Future<void> _newHabit() async {
-    final name = await showInputDialog(context,
-        title: '새 습관', hint: '예: 아침 산책, 물 마시기');
+    final name =
+        await showInputDialog(context, title: '새 습관', hint: '예: 아침 산책, 물 마시기');
     if (name == null || name.trim().isEmpty) return;
     await ref.read(habitRepoProvider).addHabit(name.trim());
   }

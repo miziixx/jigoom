@@ -29,8 +29,8 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
     _weekStart = now.subtract(Duration(days: now.weekday % 7)); // 일=0
   }
 
-  void _shiftWeek(int delta) => setState(
-      () => _weekStart = _weekStart.add(Duration(days: 7 * delta)));
+  void _shiftWeek(int delta) =>
+      setState(() => _weekStart = _weekStart.add(Duration(days: 7 * delta)));
 
   @override
   Widget build(BuildContext context) {
@@ -49,13 +49,11 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
 
     // 습관·기록 인디케이터 (그날 완료 습관 수 / 기록 블록 수).
     final ticks = ref
-            .watch(habitTicksInRangeProvider(
-                (start: _weekStart, end: weekEnd)))
+            .watch(habitTicksInRangeProvider((start: _weekStart, end: weekEnd)))
             .valueOrNull ??
         const [];
     final blocks = ref
-            .watch(timeBlocksInRangeProvider(
-                (start: _weekStart, end: weekEnd)))
+            .watch(timeBlocksInRangeProvider((start: _weekStart, end: weekEnd)))
             .valueOrNull ??
         const [];
     final habitCount = <DateTime, int>{};
@@ -190,8 +188,7 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                 else
                   for (final s in sorted)
                     InkWell(
-                      onTap: () =>
-                          showScheduleEditSheet(context, existing: s),
+                      onTap: () => showScheduleEditSheet(context, existing: s),
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
@@ -200,15 +197,28 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                                 style: AppText.meta(tk.inkSoft, size: 10)),
                             const SizedBox(width: 6),
                             Expanded(
-                              child: Text(s.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppText.body(
-                                          s.done ? tk.inkSoft : tk.ink)
-                                      .copyWith(
-                                          decoration: s.done
-                                              ? TextDecoration.lineThrough
-                                              : null)),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(s.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppText.body(
+                                              s.done ? tk.inkSoft : tk.ink)
+                                          .copyWith(
+                                              decoration: s.done
+                                                  ? TextDecoration.lineThrough
+                                                  : null)),
+                                  if (s.done && s.doneAt != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(
+                                          '${DateFormat('HH:mm').format(s.doneAt!)} 완료',
+                                          style:
+                                              AppText.meta(tk.mark, size: 10)),
+                                    ),
+                                ],
+                              ),
                             ),
                             GestureDetector(
                               onTap: () => ref

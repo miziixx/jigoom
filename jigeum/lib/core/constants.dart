@@ -19,16 +19,15 @@ class AppSpace {
 /// 각진 모서리가 편집 시그니처. (DESIGN_SYSTEM §4)
 const double kRadius = 0.0;
 
-/// 라벨·기호·영문·숫자용 모노스페이스. (JetBrains Mono 미번들 → generic monospace)
+/// 라벨·기호·영문·숫자용 모노스페이스 fallback.
 const kMonoFamily = 'monospace';
 
-/// 한글 본문·제목용 산세리프 기본값. 번들 Pretendard(assets/fonts) — 기기·폰트설정과
-/// 무관하게 앱이 항상 이 글꼴로 렌더된다. (Flutter 는 폰 커스텀 글꼴을 못 읽어
-/// 번들이 유일한 확실한 방법.) 실제 적용 글꼴은 설정(fontKey)으로 고를 수 있고,
-/// theme.dart 의 전역 `appSans` 가 이를 반영한다.
-const String? kSansFamily = 'Pretendard';
+/// 한글 본문·제목용 기본값. null 이면 Flutter/플랫폼 기본 글꼴을 사용하므로
+/// 폰에서 적용 중인 시스템 글꼴 계열을 가장 자연스럽게 따라간다.
+const String? kSansFamily = null;
 
 /// 사용자가 고를 수 있는 번들 한글 글꼴.
+/// 앱 전체 톤이 흔들리지 않도록 본문용 고딕 계열만 노출한다.
 class AppFont {
   const AppFont(this.key, this.name, this.family, this.sample,
       [this.oneWeight = false]);
@@ -42,17 +41,9 @@ class AppFont {
 const kDefaultFontKey = 'pretendard';
 
 const List<AppFont> kFonts = [
-  // 고딕
   AppFont('pretendard', '프리텐다드', 'Pretendard', '가나다 AaBb 123'),
   AppFont('nanum', '나눔고딕', 'NanumGothic', '가나다 AaBb 123'),
-  // 명조
-  AppFont('myeongjo', '나눔명조', 'NanumMyeongjo', '가나다 AaBb 123'),
-  // 둥근
-  AppFont('jua', '주아', 'Jua', '가나다 AaBb 123', true),
   AppFont('gowun', '고운돋움', 'GowunDodum', '가나다 AaBb 123', true),
-  // 디스플레이
-  AppFont('dohyeon', '도현', 'DoHyeon', '가나다 AaBb 123', true),
-  AppFont('blackhan', '검은고딕', 'BlackHanSans', '가나다 AaBb 123', true),
 ];
 
 /// 폰트 키 → pubspec family. 알 수 없으면 기본(Pretendard).
@@ -196,7 +187,8 @@ String monthGanziHanja(DateTime d) {
 String monthLabel(DateTime d) => '${monthGanziHanja(d)}月';
 
 /// 년·월·일 한자 라벨 — 예: "丙午年 乙未月 丁酉日".
-String sajuLabel(DateTime d) => '${yearLabel(d)} ${monthLabel(d)} ${iljinLabel(d)}';
+String sajuLabel(DateTime d) =>
+    '${yearLabel(d)} ${monthLabel(d)} ${iljinLabel(d)}';
 
 /// 년주(年柱) 60갑자 index — 입춘 이전은 전년. 천간=%10, 지지=%12.
 int yearGanziIndex(DateTime d) => _yearGanziIndex(d);
@@ -218,27 +210,103 @@ int monthBranchIndex(DateTime d) => sajuMonthBranch(d);
 // index: 0 물병 … 11 염소 (월 순서에 맞춘 배열).
 const _zodiacCut = [20, 19, 21, 20, 21, 22, 23, 23, 23, 23, 23, 22];
 const _zodiacNames = [
-  '물병자리', '물고기자리', '양자리', '황소자리', '쌍둥이자리', '게자리',
-  '사자자리', '처녀자리', '천칭자리', '전갈자리', '사수자리', '염소자리',
+  '물병자리',
+  '물고기자리',
+  '양자리',
+  '황소자리',
+  '쌍둥이자리',
+  '게자리',
+  '사자자리',
+  '처녀자리',
+  '천칭자리',
+  '전갈자리',
+  '사수자리',
+  '염소자리',
 ];
-const _zodiacSymbol = ['♒', '♓', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑'];
+const _zodiacSymbol = [
+  '♒',
+  '♓',
+  '♈',
+  '♉',
+  '♊',
+  '♋',
+  '♌',
+  '♍',
+  '♎',
+  '♏',
+  '♐',
+  '♑'
+];
 const _zodiacEng = [
-  'Aquarius', 'Pisces', 'Aries', 'Taurus', 'Gemini', 'Cancer',
-  'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn',
+  'Aquarius',
+  'Pisces',
+  'Aries',
+  'Taurus',
+  'Gemini',
+  'Cancer',
+  'Leo',
+  'Virgo',
+  'Libra',
+  'Scorpio',
+  'Sagittarius',
+  'Capricorn',
 ];
 const _zodiacRange = [
-  '1.20–2.18', '2.19–3.20', '3.21–4.19', '4.20–5.20', '5.21–6.21', '6.22–7.22',
-  '7.23–8.22', '8.23–9.22', '9.23–10.22', '10.23–11.22', '11.23–12.21', '12.22–1.19',
+  '1.20–2.18',
+  '2.19–3.20',
+  '3.21–4.19',
+  '4.20–5.20',
+  '5.21–6.21',
+  '6.22–7.22',
+  '7.23–8.22',
+  '8.23–9.22',
+  '9.23–10.22',
+  '10.23–11.22',
+  '11.23–12.21',
+  '12.22–1.19',
 ];
-const _zodiacElement = ['공기', '물', '불', '흙', '공기', '물', '불', '흙', '공기', '물', '불', '흙'];
+const _zodiacElement = [
+  '공기',
+  '물',
+  '불',
+  '흙',
+  '공기',
+  '물',
+  '불',
+  '흙',
+  '공기',
+  '물',
+  '불',
+  '흙'
+];
 const _zodiacPlanet = [
-  '천왕성', '해왕성', '화성', '금성', '수성', '달',
-  '태양', '수성', '금성', '명왕성', '목성', '토성',
+  '천왕성',
+  '해왕성',
+  '화성',
+  '금성',
+  '수성',
+  '달',
+  '태양',
+  '수성',
+  '금성',
+  '명왕성',
+  '목성',
+  '토성',
 ];
 // 황도 12궁 한자 (중국 점성 명칭).
 const _zodiacHanja = [
-  '寶瓶', '雙魚', '白羊', '金牛', '雙子', '巨蟹',
-  '獅子', '處女', '天秤', '天蠍', '人馬', '磨羯',
+  '寶瓶',
+  '雙魚',
+  '白羊',
+  '金牛',
+  '雙子',
+  '巨蟹',
+  '獅子',
+  '處女',
+  '天秤',
+  '天蠍',
+  '人馬',
+  '磨羯',
 ];
 
 /// 별자리 데이터 묶음.
@@ -254,8 +322,13 @@ class Zodiac {
   final String hanja; // 巨蟹
 }
 
-Zodiac _zodiacAt(int i) => Zodiac(_zodiacNames[i], _zodiacSymbol[i],
-    _zodiacEng[i], _zodiacRange[i], _zodiacElement[i], _zodiacPlanet[i],
+Zodiac _zodiacAt(int i) => Zodiac(
+    _zodiacNames[i],
+    _zodiacSymbol[i],
+    _zodiacEng[i],
+    _zodiacRange[i],
+    _zodiacElement[i],
+    _zodiacPlanet[i],
     _zodiacHanja[i]);
 
 int _zodiacIndex(DateTime d) {

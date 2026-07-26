@@ -67,6 +67,7 @@ class Habits extends Table {
 class HabitTicks extends Table {
   TextColumn get habitId => text()();
   DateTimeColumn get date => dateTime()(); // 자정 기준 날짜만
+  DateTimeColumn get completedAt => dateTime().nullable()(); // 실제 체크한 시각
 
   @override
   Set<Column> get primaryKey => {habitId, date};
@@ -78,10 +79,12 @@ class Schedules extends Table {
   DateTimeColumn get date => dateTime()(); // 자정 기준 날짜
   TextColumn get title => text()();
   TextColumn get note => text().withDefault(const Constant(''))();
-  IntColumn get color => integer().withDefault(const Constant(0))(); // 팔레트 index
+  IntColumn get color =>
+      integer().withDefault(const Constant(0))(); // 팔레트 index
   IntColumn get startMin => integer()(); // 0~1439 (하루 분 단위)
   IntColumn get endMin => integer()();
   BoolColumn get done => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get doneAt => dateTime().nullable()();
   TextColumn get routineId => text().nullable()(); // 루틴에서 생성됐으면 그 id
   DateTimeColumn get createdAt => dateTime()();
   // ---- 구글 캘린더 동기화(v7) ----
@@ -130,6 +133,7 @@ class RoutineSteps extends Table {
   TextColumn get title => text()();
   IntColumn get streak => integer().withDefault(const Constant(0))();
   DateTimeColumn get lastDone => dateTime().nullable()(); // 마지막 완료(자정 기준)
+  DateTimeColumn get lastDoneAt => dateTime().nullable()(); // 실제 완료 시각
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -195,11 +199,10 @@ class Routines extends Table {
   RoutineSteps
 ])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor])
-      : super(executor ?? _openConnection());
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -251,6 +254,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 9) {
             await m.addColumn(schedules, schedules.reminderMin);
             await m.addColumn(schedules, schedules.repeatRule);
+          }
+          if (from < 10) {
+            await m.addColumn(habitTicks, habitTicks.completedAt);
+            await m.addColumn(schedules, schedules.doneAt);
+            await m.addColumn(routineSteps, routineSteps.lastDoneAt);
           }
         },
       );

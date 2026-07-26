@@ -56,21 +56,6 @@ flutter:
           weight: 400
         - asset: assets/fonts/NanumGothic-Bold.ttf
           weight: 700
-    - family: NanumMyeongjo
-      fonts:
-        - asset: assets/fonts/NanumMyeongjo-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/NanumMyeongjo-Bold.ttf
-          weight: 700
-    - family: Jua
-      fonts:
-        - asset: assets/fonts/Jua-Regular.ttf
     - family: GowunDodum
       fonts:
         - asset: assets/fonts/GowunDodum-Regular.ttf
-    - family: DoHyeon
-      fonts:
-        - asset: assets/fonts/DoHyeon-Regular.ttf
-    - family: BlackHanSans
-      fonts:
-        - asset: assets/fonts/BlackHanSans-Regular.ttf

@@ -86,8 +86,20 @@ flutter test
 ```xml
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.READ_CALENDAR" />
+<uses-permission android:name="android.permission.WRITE_CALENDAR" />
 <!-- 음성 라우팅(SttBridge, 'jigeum/stt' 채널)용 마이크 권한 -->
 <uses-permission android:name="android.permission.RECORD_AUDIO" />
+```
+
+Android 11 이상에서 음성 인식 서비스를 찾기 위한 package visibility 선언:
+
+```xml
+<queries>
+    <intent>
+        <action android:name="android.speech.RecognitionService" />
+    </intent>
+</queries>
 ```
 
 > `SttBridge.kt` 는 이미 저장소에 포함되어 있고 `MainActivity` 가 등록한다.
@@ -99,8 +111,9 @@ flutter test
 
 ### 폰트
 
-`assets/fonts/Pretendard-Regular.otf`, `Pretendard-SemiBold.otf` 를 번들해야 합니다
-(google_fonts 아님). 없으면 pubspec 의 fonts 항목을 임시로 주석 처리.
+기본값은 휴대폰 시스템 글꼴입니다. 설정에서 **휴대폰 글꼴 사용**을 끄면
+`assets/fonts/` 에 번들된 Pretendard, NanumGothic, GowunDodum 중 하나를
+앱 전용 글꼴로 선택할 수 있습니다.
 
 ## 빌드
 

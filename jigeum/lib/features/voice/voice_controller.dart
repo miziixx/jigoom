@@ -10,6 +10,7 @@ import '../inbox/inbox_item.dart';
 import '../inbox/inbox_repository.dart';
 import 'models/intent_type.dart';
 import 'models/voice_result.dart';
+import 'pipeline/utterance_splitter.dart';
 import 'voice_executor.dart';
 import 'voice_router.dart';
 
@@ -53,11 +54,13 @@ class VoiceController {
     required this.router,
     required this.inbox,
     this.executor = const VoiceExecutor(),
+    this.splitter = const UtteranceSplitter(),
   });
 
   final VoiceRouter router;
   final InboxRepository inbox;
   final VoiceExecutor executor;
+  final UtteranceSplitter splitter;
 
   VoiceExecution? _last;
 
@@ -70,6 +73,19 @@ class VoiceController {
     double? sttConfidence,
     DateTime? now,
   }) async {
+    final fragments = splitter.split(rawText);
+    final actionable = fragments.where((f) => !f.skipped).toList();
+    final skippedCount = fragments.length - actionable.length;
+    if (actionable.length > 1 || skippedCount > 0) {
+      return _handleFragments(
+        rawText,
+        actionable,
+        skippedCount: skippedCount,
+        sttConfidence: sttConfidence,
+        now: now,
+      );
+    }
+
     final result = router.analyze(rawText, now: now);
 
     // 미인식 → 보류함(§0: 말은 버리지 않는다).
@@ -96,6 +112,19 @@ class VoiceController {
   Future<void> undo() async {
     final last = _last;
     if (last == null) return;
+    if (last.entityRef case _BatchRef(:final items)) {
+      for (final item in items.reversed) {
+        if (item.toInbox) {
+          if (item.entityRef case InboxItem(:final id)) {
+            inbox.remove(id);
+          }
+        } else {
+          await executor.deleteEntity(item.result, item.entityRef);
+        }
+      }
+      _last = null;
+      return;
+    }
     if (last.toInbox) {
       // 이미 보류함 건이면 그대로 둔다(원문 보존이 목적).
     } else {
@@ -134,6 +163,15 @@ class VoiceController {
   VoiceResult classify(String rawText, {DateTime? now}) =>
       router.analyze(rawText, now: now);
 
+  /// 부작용 없이 긴 입력을 여러 조각으로 나눠 분류한다(쏟아내기/음성 공용).
+  List<VoiceResult> classifyMany(String rawText, {DateTime? now}) {
+    final fragments = splitter.split(rawText).where((f) => !f.skipped);
+    final results = [
+      for (final f in fragments) router.analyze(f.text, now: now)
+    ];
+    return results.isEmpty ? [router.analyze(rawText, now: now)] : results;
+  }
+
   /// [result] 를 [target] 지점으로 바꾼 새 결과(슬롯·시간 유지). 사용자가 확인
   /// 단계에서 고치는 것이므로 §11-1 학습 신호로도 기록한다(다음부터 그리로 가점).
   VoiceResult reroute(VoiceResult result, RoutePoint target) {
@@ -142,13 +180,44 @@ class VoiceController {
     return _forceResult(result, intent, target);
   }
 
+  /// 쏟아내기 → 아이젠하워 매트릭스 드래그용. 착지는 매트릭스로 고정하고,
+  /// 손으로 놓은 사분면의 중요/긴급 축을 슬롯에 새긴다.
+  VoiceResult rerouteToMatrixQuadrant(
+    VoiceResult result, {
+    required bool important,
+    required bool urgent,
+  }) {
+    router.recordCorrection(result, IntentType.todoMatrix);
+    return _forceResult(
+      result,
+      IntentType.todoMatrix,
+      RoutePoint.matrix,
+      slots: result.slots.copyWith(important: important, urgent: urgent),
+    );
+  }
+
   /// 저장된 쏟아내기 항목 복원용: 원문을 다시 분류하고, 사용자가 골라둔
   /// [route] 로 강제한다. 앱 재시작 복원 경로이므로 **학습은 기록하지 않는다**
   /// (교정 학습은 [reroute] 시점에 이미 한 번 반영됨 — 중복 가점 방지).
-  VoiceResult restage(String rawText, RoutePoint route, {DateTime? now}) {
+  VoiceResult restage(
+    String rawText,
+    RoutePoint route, {
+    DateTime? now,
+    bool? important,
+    bool? urgent,
+  }) {
     final base = router.analyze(rawText, now: now);
-    if (route == base.routedTo) return base;
-    return _forceResult(base, _intentForRoute(route), route);
+    final shouldForceMatrix =
+        route == RoutePoint.matrix && important != null && urgent != null;
+    if (route == base.routedTo && !shouldForceMatrix) return base;
+    return _forceResult(
+      base,
+      _intentForRoute(route),
+      route,
+      slots: shouldForceMatrix
+          ? base.slots.copyWith(important: important, urgent: urgent)
+          : null,
+    );
   }
 
   /// [result] 대로 실제로 담는다(스테이징 커밋). 보류함 지점이면 원문을 보류함에.
@@ -162,6 +231,65 @@ class VoiceController {
   }
 
   // ---------------------------------------------------------------- helpers
+
+  Future<VoiceFeedback> _handleFragments(
+    String rawText,
+    List<VoiceFragment> fragments, {
+    required int skippedCount,
+    double? sttConfidence,
+    DateTime? now,
+  }) async {
+    if (fragments.isEmpty) {
+      final item = inbox.add(rawText, sttConfidence: sttConfidence);
+      final result = router.analyze(rawText, now: now);
+      _last = VoiceExecution(result: result, entityRef: item, toInbox: true);
+      return VoiceFeedback(
+        message: skippedCount > 0 ? '뺀 내용만 있어서 담지 않았어요' : '보류함에 담았어요',
+        undoable: skippedCount == 0,
+      );
+    }
+
+    final executions = <VoiceExecution>[];
+    for (final fragment in fragments) {
+      final result = router.analyze(fragment.text, now: now);
+      if (result.decision == RouteDecision.inbox) {
+        final item = inbox.add(fragment.text, sttConfidence: sttConfidence);
+        executions.add(VoiceExecution(
+          result: result,
+          entityRef: item,
+          toInbox: true,
+        ));
+      } else {
+        final ref = await executor.createEntity(result);
+        executions.add(VoiceExecution(
+          result: result,
+          entityRef: ref,
+          toInbox: false,
+        ));
+      }
+    }
+
+    _last = VoiceExecution(
+      result: router.analyze(rawText, now: now),
+      entityRef: _BatchRef(executions),
+      toInbox: false,
+    );
+
+    final counts = <RoutePoint, int>{};
+    for (final e in executions) {
+      counts[e.result.routedTo] = (counts[e.result.routedTo] ?? 0) + 1;
+    }
+    final summary = counts.entries
+        .map((e) => '${e.key.label} ${e.value}')
+        .take(3)
+        .join(', ');
+    final skipped = skippedCount > 0 ? ' · $skippedCount개 제외' : '';
+    return VoiceFeedback(
+      message: '${executions.length}개로 나눠 담았어요'
+          '${summary.isEmpty ? '' : ': $summary'}$skipped',
+      undoable: true,
+    );
+  }
 
   /// 현재 착지 외의 유력 대안 1~2개(§11-4). 추가형 위주로 흔한 오분류 짝을 제시.
   List<RoutePoint> _reclassifyChips(VoiceResult r) {
@@ -188,7 +316,11 @@ class VoiceController {
 
   /// 재분류용으로 인텐트/라우팅만 바꾼 결과를 만든다(슬롯·시간은 유지).
   VoiceResult _forceResult(
-          VoiceResult base, IntentType intent, RoutePoint route) =>
+    VoiceResult base,
+    IntentType intent,
+    RoutePoint route, {
+    VoiceSlots? slots,
+  }) =>
       VoiceResult(
         rawText: base.rawText,
         normalizedText: base.normalizedText,
@@ -197,7 +329,13 @@ class VoiceController {
         runnerUpGap: base.runnerUpGap,
         decision: RouteDecision.confirm,
         routedTo: route,
-        slots: base.slots,
+        slots: slots ?? base.slots,
         timeParse: base.timeParse,
       );
+}
+
+class _BatchRef {
+  const _BatchRef(this.items);
+
+  final List<VoiceExecution> items;
 }

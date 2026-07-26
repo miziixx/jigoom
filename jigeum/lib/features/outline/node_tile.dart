@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../core/journal.dart';
@@ -63,12 +64,24 @@ class NodeTile extends StatelessWidget {
             ),
             GlyphCheck(done: done, onTap: onToggleDone ?? () {}),
             Expanded(
-              child: Text(node.title,
-                  style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
-                      decoration: done ? TextDecoration.lineThrough : null,
-                      decorationColor: tk.inkSoft),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(node.title,
+                      style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
+                          decoration: done ? TextDecoration.lineThrough : null,
+                          decorationColor: tk.inkSoft),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                  if (done && node.doneAt != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                          '${DateFormat('HH:mm').format(node.doneAt!)} 완료',
+                          style: AppText.meta(tk.mark, size: 10)),
+                    ),
+                ],
+              ),
             ),
             if (pri != null) ...[
               const SizedBox(width: 10),
