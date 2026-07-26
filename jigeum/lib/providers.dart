@@ -100,7 +100,17 @@ final streakProvider = Provider<int>((ref) {
           .watch(startedCountsInRangeProvider((start: start, end: today)))
           .valueOrNull ??
       const <DateTime, int>{};
-  int water(DateTime d) => (wins[d] ?? 0) + (starts[d] ?? 0);
+  final habitTicks = ref
+          .watch(habitTicksInRangeProvider((start: start, end: today)))
+          .valueOrNull ??
+      const [];
+  final habitByDay = <DateTime, int>{};
+  for (final ht in habitTicks) {
+    final d = DateTime(ht.date.year, ht.date.month, ht.date.day);
+    habitByDay[d] = (habitByDay[d] ?? 0) + 1;
+  }
+  int water(DateTime d) =>
+      (wins[d] ?? 0) + (starts[d] ?? 0) + (habitByDay[d] ?? 0);
   var streak = 0;
   var d = today;
   if (water(today) == 0) d = today.subtract(const Duration(days: 1));

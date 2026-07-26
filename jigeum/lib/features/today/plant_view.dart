@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
@@ -10,7 +11,7 @@ import '../../providers.dart';
 import 'garden_page.dart';
 
 /// 오늘의 식물 — 완료·시작이 쌓일수록 자라는 잔잔한 선화(에디토리얼) 보상.
-/// 경쟁·점수·시들기 없음. "물"은 오늘 완료(승리) + 오늘 시작 횟수.
+/// 경쟁·점수·시들기 없음. "물"은 오늘 완료(한 일) + 시작(집중) + 완료한 습관·루틴.
 class PlantBand extends ConsumerWidget {
   const PlantBand({super.key});
 
@@ -46,9 +47,17 @@ class PlantBand extends ConsumerWidget {
     final tk = t(context);
     final reduceMotion =
         ref.watch(settingsProvider.select((s) => s.reduceMotion));
+    final today = todayDate();
     final wins = ref.watch(todayWinsProvider).valueOrNull ?? const [];
     final started = ref.watch(startedTodayProvider).valueOrNull ?? 0;
-    final water = wins.length + started;
+    // 물 = 오늘 완료(한 일) + 시작(집중) + 완료한 습관 + 완료한 루틴 스텝.
+    final habitTicks =
+        ref.watch(habitTicksOnDateProvider(today)).valueOrNull ?? const [];
+    final steps = ref.watch(routineStepsProvider).valueOrNull ?? const [];
+    final routineDone = steps
+        .where((s) => s.lastDone != null && dateOnly(s.lastDone!) == today)
+        .length;
+    final water = wins.length + started + habitTicks.length + routineDone;
     final stage = stageOf(water);
 
     final caption = water <= 0

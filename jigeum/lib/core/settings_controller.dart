@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db.dart';
 import '../providers.dart';
-import 'coach.dart';
 import 'constants.dart';
 import 'theme.dart';
 
@@ -30,7 +29,6 @@ class AppSettings {
     this.quietMode = false, // 방해 금지 — 브리핑·상주 알림 억제(하이퍼포커스 보호)
     this.variedNudges = true, // 알림 문구를 매번 조금씩 바꿔 무뎌짐 방지
     this.reduceMotion = false, // 모션·완료 팝업 최소화(센서리 예민 대응)
-    this.coachPersona = kDefaultCoachKey, // 코치 톤(격려/차분/분석/단호)
   });
 
   final String themeKey; // 내장 10종 중 하나 (기본 manila)
@@ -54,7 +52,6 @@ class AppSettings {
   final bool quietMode; // 방해 금지(브리핑·상주 알림 억제)
   final bool variedNudges; // 알림 문구 변주
   final bool reduceMotion; // 모션·완료 팝업 최소화
-  final String coachPersona; // 코치 페르소나 키(coach.dart)
 
   /// 사주(오늘의 운세)를 계산할 수 있는가.
   bool get hasBirth => birth != null;
@@ -89,7 +86,6 @@ class AppSettings {
     bool? quietMode,
     bool? variedNudges,
     bool? reduceMotion,
-    String? coachPersona,
   }) =>
       AppSettings(
         themeKey: themeKey ?? this.themeKey,
@@ -113,7 +109,6 @@ class AppSettings {
         quietMode: quietMode ?? this.quietMode,
         variedNudges: variedNudges ?? this.variedNudges,
         reduceMotion: reduceMotion ?? this.reduceMotion,
-        coachPersona: coachPersona ?? this.coachPersona,
       );
 }
 
@@ -145,7 +140,6 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _kQuietMode = 'quiet_mode';
   static const _kVariedNudges = 'varied_nudges';
   static const _kReduceMotion = 'reduce_motion';
-  static const _kCoachPersona = 'coach_persona';
 
   Future<void> _load() async {
     final scale = await _get(_kScale);
@@ -169,7 +163,6 @@ class SettingsController extends StateNotifier<AppSettings> {
     final quietMode = await _get(_kQuietMode);
     final variedNudges = await _get(_kVariedNudges);
     final reduceMotion = await _get(_kReduceMotion);
-    final coachPersona = await _get(_kCoachPersona);
     state = AppSettings(
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
@@ -194,7 +187,6 @@ class SettingsController extends StateNotifier<AppSettings> {
       quietMode: quietMode == '1',
       variedNudges: variedNudges == null ? true : variedNudges == '1',
       reduceMotion: reduceMotion == '1',
-      coachPersona: coachPersona ?? kDefaultCoachKey,
     );
   }
 
@@ -310,11 +302,6 @@ class SettingsController extends StateNotifier<AppSettings> {
   Future<void> setReduceMotion(bool v) async {
     state = state.copyWith(reduceMotion: v);
     await _set(_kReduceMotion, v ? '1' : '0');
-  }
-
-  Future<void> setCoachPersona(String key) async {
-    state = state.copyWith(coachPersona: key);
-    await _set(_kCoachPersona, key);
   }
 
   Future<String?> _get(String key) async {
