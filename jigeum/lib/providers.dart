@@ -30,6 +30,10 @@ final ValueNotifier<int> timeTrackLaunchRequest = ValueNotifier<int>(0);
 /// 캘린더 위젯 탭 진입 시 달력 화면을 여는 트리거.
 final ValueNotifier<int> calendarLaunchRequest = ValueNotifier<int>(0);
 
+/// 위젯 음성 버튼 탭 진입 시 마이크를 시작해 즉시 분류·라우팅하는 트리거.
+/// 값이 증가할 때마다 AppShell 이 음성 캡처를 시작한다.
+final ValueNotifier<int> voiceCaptureRequest = ValueNotifier<int>(0);
+
 final dbProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
   ref.onDispose(db.close);

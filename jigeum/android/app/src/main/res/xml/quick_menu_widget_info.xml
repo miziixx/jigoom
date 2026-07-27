@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 3×1 빠른 입력 메뉴 위젯. 가로 3칸(약 250dp) × 세로 1칸(약 40dp). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/quick_menu_widget"
+    android:previewLayout="@layout/quick_menu_widget"
+    android:resizeMode="horizontal"
+    android:widgetCategory="home_screen" />

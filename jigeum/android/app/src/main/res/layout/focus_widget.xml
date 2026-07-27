@@ -59,5 +59,17 @@
                 android:textColor="#26241F"
                 android:text="오늘 할 일을 정해볼까요" />
         </LinearLayout>
+
+        <!-- 오른쪽 끝 마이크 — 이 칸만 음성 캡처(나머지는 빠른 담기). -->
+        <TextView
+            android:id="@+id/widget_mic"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:paddingLeft="10dp"
+            android:paddingRight="4dp"
+            android:textSize="18sp"
+            android:contentDescription="음성으로 담기"
+            android:text="🎙" />
     </LinearLayout>
 </FrameLayout>

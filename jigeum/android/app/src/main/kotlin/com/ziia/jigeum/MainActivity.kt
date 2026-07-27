@@ -29,6 +29,7 @@ class MainActivity : FlutterActivity() {
         const val ACTION_QUICK_CAPTURE = "com.ziia.jigeum.QUICK_CAPTURE"
         const val ACTION_TIME_TRACK = "com.ziia.jigeum.TIME_TRACK"
         const val ACTION_OPEN_CALENDAR = "com.ziia.jigeum.OPEN_CALENDAR"
+        const val ACTION_VOICE_CAPTURE = "com.ziia.jigeum.VOICE_CAPTURE"
         const val REQ_SAVE_BACKUP = 7101
         const val REQ_OPEN_BACKUP = 7102
         const val REQ_CALENDAR_PERM = 7103
@@ -124,6 +125,7 @@ class MainActivity : FlutterActivity() {
             ACTION_QUICK_CAPTURE -> pendingAction = "quick_capture"
             ACTION_TIME_TRACK -> pendingAction = "time_track"
             ACTION_OPEN_CALENDAR -> pendingAction = "open_calendar"
+            ACTION_VOICE_CAPTURE -> pendingAction = "voice_capture"
         }
     }
 
