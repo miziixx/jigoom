@@ -96,9 +96,7 @@ class GoalApp extends ConsumerStatefulWidget {
 class _GoalAppState extends ConsumerState<GoalApp> {
   AppLifecycleListener? _lifecycle;
   StreamSubscription<dynamic>? _nodesSub;
-  StreamSubscription<dynamic>? _schedulesSub;
   Timer? _syncDebounce;
-  Timer? _gcalDebounce;
 
   @override
   void initState() {
@@ -108,8 +106,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       onResume: () {
         _runDailyRoutine();
         _checkLaunchAction();
-        // 복귀할 때마다 위젯 팝업 큐 비우고 구글 캘린더 동기화.
-        ref.read(gcalControllerProvider.notifier).syncNow(refreshList: false);
+        // 구글 캘린더는 자동 동기화하지 않는다 — 사용자가 설정에서 "지금
+        // 동기화" 버튼을 눌렀을 때만 동기화한다.
       },
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _startup());
@@ -118,9 +116,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
   @override
   void dispose() {
     _syncDebounce?.cancel();
-    _gcalDebounce?.cancel();
     _nodesSub?.cancel();
-    _schedulesSub?.cancel();
     _lifecycle?.dispose();
     super.dispose();
   }
@@ -238,31 +234,14 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       _syncDebounce = Timer(const Duration(milliseconds: 500), _syncWidgets);
     });
 
-    // 구글 캘린더: 조용히 로그인 복구 + 첫 동기화.
+    // 구글 캘린더: 조용히 연결 상태만 복구(목록 로드). 자동 동기화는 하지
+    // 않는다 — 사용자가 설정에서 "지금 동기화"를 눌렀을 때만 동기화한다.
     if (!kIsWeb) {
       try {
         await ref.read(gcalControllerProvider.notifier).restore();
       } catch (e, s) {
         debugPrint('gcal restore 실패(무시): $e\n$s');
       }
-      // 일정이 바뀌면(로컬 편집) 원격으로 밀기 (1.5초 디바운스).
-      _schedulesSub = ref.read(scheduleRepoProvider).watchAll().listen((_) {
-        // 동기화가 원격 일정을 가져와 DB 에 쓰면 그 쓰기도 이 watch 를 깨운다.
-        // 그대로 두면 sync→쓰기→watch→sync 무한 루프가 된다. 동기화 중이거나
-        // 방금(쿨다운 내) 끝났으면 "내가 쓴 것"으로 보고 재트리거하지 않는다.
-        // (쿨다운 중 놓친 로컬 편집은 dirty 로 남아 다음 동기화 때 밀린다.)
-        final gcal = ref.read(gcalControllerProvider);
-        if (gcal.syncing) return;
-        final last = gcal.lastSyncAt;
-        if (last != null &&
-            DateTime.now().difference(last) < const Duration(seconds: 4)) {
-          return;
-        }
-        _gcalDebounce?.cancel();
-        _gcalDebounce = Timer(const Duration(milliseconds: 1500), () {
-          ref.read(gcalControllerProvider.notifier).syncNow(refreshList: false);
-        });
-      });
     }
 
     if (!kIsWeb) {
