@@ -45,6 +45,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     timeTrackLaunchRequest.addListener(_onTimeTrackLaunch);
     // 캘린더 위젯 탭 진입 → 달력 화면.
     calendarLaunchRequest.addListener(_onCalendarLaunch);
+    // 위젯 음성 버튼 진입 → 마이크 시작(결과는 GlobalMicButton 구독이 라우팅).
+    voiceCaptureRequest.addListener(_onVoiceCapture);
   }
 
   @override
@@ -52,6 +54,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     quickCaptureFocusRequest.removeListener(_onQuickCapture);
     timeTrackLaunchRequest.removeListener(_onTimeTrackLaunch);
     calendarLaunchRequest.removeListener(_onCalendarLaunch);
+    voiceCaptureRequest.removeListener(_onVoiceCapture);
     super.dispose();
   }
 
@@ -74,6 +77,36 @@ class _AppShellState extends ConsumerState<AppShell> {
       date: DateTime.now(),
       block: TimeTrackRepository.blockOfNow(),
     );
+  }
+
+  /// 위젯 음성 버튼으로 앱이 열렸을 때 마이크를 시작한다. 받아쓴 결과는
+  /// 화면에 떠 있는 GlobalMicButton 의 구독이 그대로 분류·라우팅(하이브리드)한다.
+  Future<void> _onVoiceCapture() async {
+    if (!mounted) return;
+    final stt = ref.read(sttServiceProvider);
+    try {
+      if (!await stt.isAvailable()) {
+        _voiceNotice('이 기기에서 음성 인식을 찾지 못했어요.');
+        return;
+      }
+      if (!await stt.requestPermission()) {
+        _voiceNotice('마이크 권한이 꺼져 있어요. 앱 권한에서 마이크를 허용해 주세요.');
+        return;
+      }
+      await stt.start(localeId: 'ko_KR');
+    } catch (_) {
+      _voiceNotice('음성 인식을 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+    }
+  }
+
+  void _voiceNotice(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('🎙️ $message'),
+      ));
   }
 
   static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체'];

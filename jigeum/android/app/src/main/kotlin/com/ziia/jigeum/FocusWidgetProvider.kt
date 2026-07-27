@@ -33,6 +33,16 @@ class FocusWidgetProvider : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // 마이크 칸 → 앱을 열어 음성 캡처(분류·라우팅).
+        val voice = Intent(context, MainActivity::class.java).apply {
+            action = MainActivity.ACTION_VOICE_CAPTURE
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val voicePending = PendingIntent.getActivity(
+            context, 14, voice,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         for (widgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.focus_widget).apply {
                 setTextViewText(R.id.widget_title, title)
@@ -42,7 +52,9 @@ class FocusWidgetProvider : AppWidgetProvider() {
                 setTextColor(R.id.widget_check, pal.mark)
                 setTextColor(R.id.widget_now, pal.mark)
                 setTextColor(R.id.widget_title, pal.ink)
+                setTextColor(R.id.widget_mic, pal.mark)
                 setOnClickPendingIntent(R.id.widget_root, pending)
+                setOnClickPendingIntent(R.id.widget_mic, voicePending)
             }
             appWidgetManager.updateAppWidget(widgetId, views)
         }

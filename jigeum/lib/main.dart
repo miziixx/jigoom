@@ -130,6 +130,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       timeTrackLaunchRequest.value++;
     } else if (action == 'open_calendar') {
       calendarLaunchRequest.value++;
+    } else if (action == 'voice_capture') {
+      voiceCaptureRequest.value++;
     }
   }
 
