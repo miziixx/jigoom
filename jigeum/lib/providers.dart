@@ -34,6 +34,9 @@ final ValueNotifier<int> calendarLaunchRequest = ValueNotifier<int>(0);
 /// 값이 증가할 때마다 AppShell 이 음성 캡처를 시작한다.
 final ValueNotifier<int> voiceCaptureRequest = ValueNotifier<int>(0);
 
+/// 목표 위젯 탭 진입 시 오늘의 목표 편집기를 여는 트리거.
+final ValueNotifier<int> goalEditRequest = ValueNotifier<int>(0);
+
 final dbProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
   ref.onDispose(db.close);

@@ -132,6 +132,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       calendarLaunchRequest.value++;
     } else if (action == 'voice_capture') {
       voiceCaptureRequest.value++;
+    } else if (action == 'edit_goal') {
+      goalEditRequest.value++;
     }
   }
 
@@ -185,6 +187,10 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         '지금 ${blockLabel(nowBlock)}',
         cur?.content ?? '탭해서 기록',
       );
+
+      // 오늘의 목표 위젯: 오늘 날짜의 목표(여러 줄)를 반영.
+      final goal = await ref.read(scheduleRepoProvider).getDayGoal(todayDate());
+      await WidgetBridge.updateGoal(goal ?? '');
     } catch (e, s) {
       debugPrint('widget sync 실패(무시): $e\n$s');
     }

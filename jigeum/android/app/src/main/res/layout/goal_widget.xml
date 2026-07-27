@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 4×2 오늘의 목표 위젯. 탭하면 앱이 떠서 목표 편집기를 연다.
+     벡터 드로어블은 일부 런처에서 실패하므로 텍스트만 쓴다. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/goal_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+
+        <TextView
+            android:id="@+id/goal_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textAllCaps="true"
+            android:letterSpacing="0.14"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:textColor="#B5443A"
+            android:layout_marginBottom="8dp"
+            android:text="GOAL · 오늘의 목표" />
+
+        <TextView
+            android:id="@+id/goal_text"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:maxLines="5"
+            android:ellipsize="end"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:lineSpacingExtra="4dp"
+            android:textColor="#26241F"
+            android:text="탭해서 오늘의 목표 적기" />
+    </LinearLayout>
+</FrameLayout>
