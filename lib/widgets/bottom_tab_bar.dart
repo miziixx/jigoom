@@ -89,6 +89,114 @@ class LogroomBottomNav extends StatelessWidget {
   }
 }
 
+// ──────────────────────────────────────────────────────────────
+// Dashboard bottom nav  (홈 | 기록 | 캘린더 | 더보기)  — 4개 고정
+// ──────────────────────────────────────────────────────────────
+
+class DashboardBottomNav extends StatelessWidget {
+  /// 현재 활성 menuId (DASHBOARD / LIST / CAL / ...).
+  final String activeMenu;
+
+  /// menuId 로 이동 (DASHBOARD, LIST, CAL, MORE).
+  final void Function(String menuId) onTap;
+
+  const DashboardBottomNav({
+    super.key,
+    required this.activeMenu,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const items = <(String, String, String)>[
+      ('DASHBOARD', '홈', '◆'),
+      ('LIST', '기록', '≡'),
+      ('CAL', '캘린더', '▦'),
+      ('MORE', '더보기', '⋯'),
+    ];
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: kSurface,
+          border: Border(top: BorderSide(color: kBorder, width: 1)),
+        ),
+        child: Row(
+          children: [
+            for (int i = 0; i < items.length; i++) ...[
+              if (i > 0) Container(width: 1, color: kBorder),
+              Expanded(
+                child: _DashNavItem(
+                  menuId: items[i].$1,
+                  label: items[i].$2,
+                  symbol: items[i].$3,
+                  selected: activeMenu == items[i].$1,
+                  onTap: () => onTap(items[i].$1),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DashNavItem extends StatefulWidget {
+  final String menuId;
+  final String label;
+  final String symbol;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DashNavItem({
+    required this.menuId,
+    required this.label,
+    required this.symbol,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  State<_DashNavItem> createState() => _DashNavItemState();
+}
+
+class _DashNavItemState extends State<_DashNavItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = widget.selected ? kMint : (_hovered ? kText : kDim);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: Container(
+          color: widget.selected
+              ? kMint.withValues(alpha: 0.06)
+              : Colors.transparent,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(widget.symbol, style: mono(color: fg, fontSize: 13)),
+              const SizedBox(height: 2),
+              Text(
+                widget.label,
+                style: monoLabel(color: fg, fontSize: 8, letterSpacing: 1.2),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class Nemo2TestBottomNav extends StatelessWidget {
   final List<String> menus;
   final String activeMenu;

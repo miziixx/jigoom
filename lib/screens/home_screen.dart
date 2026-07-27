@@ -33,6 +33,7 @@ import 'schedule_screen.dart';
 import 'today_screen.dart';
 import 'graph_screen.dart';
 import 'brain_screen.dart';
+import 'dashboard_screen.dart';
 
 // Below this width → mobile overlay sidebar; above → desktop inline sidebar
 const _kNarrowBreak = 700.0;
@@ -63,6 +64,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final _folders = <Folder>[];
   final _tabs = <QuickTab>[];
   final _bottomMenus = <String>['TODAY', 'LIST', 'CAL', 'MORE'];
+  // 개인 대시보드 뷰 (nemo2test 기본 착지 화면)
+  bool _dashboardOpen = false;
   final _scrollController = ScrollController();
   final _inputBarKey = GlobalKey();
   final _memoKeys = <String, GlobalKey>{};
@@ -109,6 +112,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    // nemo2test 는 개인 대시보드를 기본 착지 화면으로 연다.
+    _dashboardOpen = isNemo2Test;
     WidgetsBinding.instance.addObserver(this);
     themeNotifier.addListener(_onThemeChanged);
     _loadData();
@@ -1498,6 +1503,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   String get _activeBottomMenu {
+    if (_dashboardOpen) return 'DASHBOARD';
     if (_todayOpen) return 'TODAY';
     if (_calendarOpen) return 'CAL';
     if (_scheduleOpen) return 'EVENTS';
@@ -1512,7 +1518,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _selectBottomMenu(String menu, {bool narrow = false}) {
+    // 대시보드 외 메뉴로 이동하면 항상 대시보드 뷰를 닫는다.
+    if (menu != 'DASHBOARD' && _dashboardOpen) {
+      setState(() => _dashboardOpen = false);
+    }
     switch (menu) {
+      case 'DASHBOARD':
+        setState(() {
+          _dashboardOpen = true;
+          _calendarOpen = false;
+          _statsOpen = false;
+          _scheduleOpen = false;
+          _todayOpen = false;
+          _tagsOpen = false;
+          _graphOpen = false;
+          _brainOpen = false;
+          _tasksOnly = false;
+          _searchOpen = false;
+          _selectedTabId = null;
+          if (narrow) _sidebarOpen = false;
+        });
+        break;
       case 'TODAY':
         setState(() {
           _todayOpen = true;
@@ -2457,6 +2483,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _tagsOpen = false;
         _graphOpen = false;
         _brainOpen = false;
+        // nemo2test 는 하위 화면에서 뒤로가기 시 대시보드로 복귀.
+        if (isNemo2Test) _dashboardOpen = true;
       });
       return;
     }
@@ -2931,8 +2959,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Container(height: 1, color: kBorder),
                 ],
 
-                // ── Main area: search OR calendar view OR memo list ──
-                if (_searchOpen) ...[
+                // ── Main area: dashboard OR search OR calendar OR list ──
+                if (_dashboardOpen) ...[
+                  Expanded(
+                    child: DashboardScreen(
+                      memos: _memos,
+                      streak: streak,
+                      onOpen: (menuId) =>
+                          _selectBottomMenu(menuId, narrow: isNarrow),
+                    ),
+                  ),
+                ] else if (_searchOpen) ...[
                   Builder(
                     builder: (context) {
                       final results = _getSearchResults();
@@ -3406,11 +3443,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                 Container(height: 1, color: kBorder),
                 if (isNemo2Test)
-                  Nemo2TestBottomNav(
-                    menus: _bottomMenus,
+                  DashboardBottomNav(
                     activeMenu: _activeBottomMenu,
                     onTap: (menu) => _selectBottomMenu(menu, narrow: isNarrow),
-                    onReplace: _showBottomMenuReplaceSheet,
                   )
                 else if (isLogroomUi)
                   LogroomBottomNav(
