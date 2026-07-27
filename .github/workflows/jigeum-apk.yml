@@ -8,6 +8,7 @@ on:
       - claude/goal-app-mvp-sj7lun
       - claude/jigeum-google-calendar-sync-lqeo5b
       - claude/voice-routing-spec-impl-ugttwn
+      - claude/dashboard-app-separation-3eqy4i
     paths:
       - 'jigeum/**'
       - '.github/workflows/jigeum-apk.yml'
@@ -101,16 +102,18 @@ jobs:
       # main 에 올라오면 롤링 최신 릴리즈로, 연동 브랜치면 프리뷰 릴리즈로 게시
       # → 폰에서 바로 설치 가능한 APK 링크가 생긴다.
       - name: Publish APK to Release
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/jigeum-google-calendar-sync-lqeo5b' || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/jigeum-google-calendar-sync-lqeo5b' || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn' || github.ref == 'refs/heads/claude/dashboard-app-separation-3eqy4i'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: >-
             ${{ github.ref == 'refs/heads/main' && 'jigeum-latest'
              || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn' && 'jigeum-voice-preview'
+             || github.ref == 'refs/heads/claude/dashboard-app-separation-3eqy4i' && 'jigeum-dashboard-preview'
              || 'jigeum-gcal-preview' }}
           name: >-
             ${{ github.ref == 'refs/heads/main' && '지금 (Editorial) — 최신 APK'
              || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn' && '지금 — 음성 라우팅 프리뷰 APK'
+             || github.ref == 'refs/heads/claude/dashboard-app-separation-3eqy4i' && '지금 — 대시보드 프리뷰 APK'
              || '지금 — 구글 캘린더 연동 프리뷰 APK' }}
           body: |
             `지금` 앱 빌드 (arm64 release).
