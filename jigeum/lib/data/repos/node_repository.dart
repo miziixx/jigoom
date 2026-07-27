@@ -56,8 +56,11 @@ class NodeRepository {
     final d = dateOnly(date);
     final q = db.select(db.nodes)
       ..where((n) =>
-          n.status.equals(NodeStatus.open) &
-          (n.date.equals(d) | n.date.isNull()) &
+          // 날짜 없는 건 open 만 (미분류 서랍은 오늘 뷰에 쏟아지지 않게),
+          // 오늘 날짜가 붙은 건 서랍(미분류)이어도 오늘 뷰에 보인다.
+          ((n.status.equals(NodeStatus.open) &
+                  (n.date.equals(d) | n.date.isNull())) |
+              (n.status.equals(NodeStatus.drawer) & n.date.equals(d))) &
           n.type.equals(NodeType.folder).not())
       ..orderBy([
         (n) => OrderingTerm.desc(n.important),
@@ -172,7 +175,9 @@ class NodeRepository {
   Stream<List<Node>> watchForDate(DateTime date) {
     final d = dateOnly(date);
     final q = db.select(db.nodes)
-      ..where((n) => n.date.equals(d) & n.status.equals(NodeStatus.open))
+      ..where((n) =>
+          n.date.equals(d) &
+          n.status.isIn([NodeStatus.open, NodeStatus.drawer]))
       ..orderBy([(n) => OrderingTerm.asc(n.sortOrder)]);
     return q.watch();
   }
@@ -246,10 +251,10 @@ class NodeRepository {
     final id = _uuid.v4();
     final order = await _nextSortOrder(parentId);
 
-    // Q4 자동 서랍: 날짜 없는 미분류 task 만 서랍으로.
-    // 날짜가 있으면(오늘 할 일 등) 분류 없이도 목록에 그대로 보인다.
+    // Q4 자동 서랍: 중요/긴급을 아직 안 고른 task 는 날짜가 있어도 일단 서랍에.
+    // (서랍 = 미분류 보관함. 날짜가 있으면 오늘/일자 뷰에는 그대로 보인다.)
     var status = NodeStatus.open;
-    if (type == NodeType.task && !important && !urgent && date == null) {
+    if (type == NodeType.task && !important && !urgent) {
       status = NodeStatus.drawer;
     }
 
@@ -384,7 +389,7 @@ class NodeRepository {
     final overdue = await (db.select(db.nodes)
           ..where((n) =>
               n.date.isSmallerThanValue(today) &
-              n.status.equals(NodeStatus.open)))
+              n.status.isIn([NodeStatus.open, NodeStatus.drawer])))
         .get();
 
     for (final n in overdue) {
@@ -475,15 +480,31 @@ class NodeRepository {
   // ---------------------------------------------------------------------------
 
   /// 사분면별 open task 스트림. (important, urgent) 로 분류.
-  Stream<List<Node>> watchQuadrant({required bool important, required bool urgent}) {
+  ///
+  /// [from]·[to] 를 주면 그 기간(양끝 포함)으로 좁힌다. 날짜가 없는 task 는
+  /// "언제든 할 수 있는 일"이라 기간과 무관하게 항상 포함한다.
+  Stream<List<Node>> watchQuadrant({
+    required bool important,
+    required bool urgent,
+    DateTime? from,
+    DateTime? to,
+  }) {
     final q = db.select(db.nodes)
-      ..where((n) =>
-          n.type.equals(NodeType.task) &
-          n.important.equals(important) &
-          n.urgent.equals(urgent) &
-          (urgent || important
-              ? n.status.equals(NodeStatus.open)
-              : n.status.equals(NodeStatus.drawer)))
+      ..where((n) {
+        var w = n.type.equals(NodeType.task) &
+            n.important.equals(important) &
+            n.urgent.equals(urgent) &
+            (urgent || important
+                ? n.status.equals(NodeStatus.open)
+                : n.status.equals(NodeStatus.drawer));
+        if (from != null && to != null) {
+          w = w &
+              (n.date.isNull() |
+                  (n.date.isBiggerOrEqualValue(dateOnly(from)) &
+                      n.date.isSmallerOrEqualValue(dateOnly(to))));
+        }
+        return w;
+      })
       ..orderBy([(n) => OrderingTerm.asc(n.sortOrder)]);
     return q.watch();
   }
