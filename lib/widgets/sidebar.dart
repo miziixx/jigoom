@@ -290,7 +290,7 @@ class _SidebarState extends State<Sidebar> {
                 ),
                 if (_memoExpanded) ...[
                   _SubFolderRow(
-                    label: isNemo2Test ? 'INBOX' : 'inbox',
+                    label: 'inbox',
                     isActive:
                         widget.activeSection == 'memo' &&
                         widget.selectedFolderId == null,
@@ -542,13 +542,13 @@ class _SidebarState extends State<Sidebar> {
 
                 // ── MAIN NAV ────────────────────────────────
                 _SdRow(
-                  sym: isNemo2Test ? '' : '●',
+                  sym: '●',
                   label: 'TODAY',
                   isActive: widget.activeSection == 'today',
                   onTap: widget.onSelectToday,
                 ),
                 _SdRow(
-                  sym: isNemo2Test ? '' : '≡',
+                  sym: '≡',
                   label: 'ENTRIES',
                   isActive: widget.activeSection == 'memo',
                   count: widget.noteCount,
@@ -567,7 +567,7 @@ class _SidebarState extends State<Sidebar> {
                 ),
                 if (_memoExpanded) ...[
                   _SdSubRow(
-                    label: isNemo2Test ? 'INBOX' : 'inbox',
+                    label: 'inbox',
                     isActive:
                         widget.activeSection == 'memo' &&
                         widget.selectedFolderId == null,
@@ -578,19 +578,19 @@ class _SidebarState extends State<Sidebar> {
                 _SdSep(),
 
                 _SdRow(
-                  sym: isNemo2Test ? '' : '△',
+                  sym: '△',
                   label: 'CALENDAR',
                   isActive: widget.activeSection == 'calendar',
                   onTap: widget.onSelectCalendar,
                 ),
                 _SdRow(
-                  sym: isNemo2Test ? '' : '△',
+                  sym: '△',
                   label: 'EVENTS',
                   isActive: widget.activeSection == 'event',
                   onTap: widget.onSelectSchedule,
                 ),
                 _SdRow(
-                  sym: isNemo2Test ? '' : '□',
+                  sym: '□',
                   label: 'TASKS',
                   isActive: widget.activeSection == 'tasks',
                   count: widget.taskCount,
@@ -599,18 +599,17 @@ class _SidebarState extends State<Sidebar> {
                 _SdSep(),
 
                 _SdRow(
-                  sym: isNemo2Test ? '' : '#',
+                  sym: '#',
                   label: 'TAGS',
                   isActive: widget.activeSection == 'tags',
                   onTap: widget.onSelectTags,
                 ),
-                if (!isNemo2Test)
-                  _SdRow(
-                    sym: '?',
-                    label: 'SEARCH',
-                    isActive: widget.activeSection == 'search',
-                    onTap: widget.onSelectSearch,
-                  ),
+                _SdRow(
+                  sym: '?',
+                  label: 'SEARCH',
+                  isActive: widget.activeSection == 'search',
+                  onTap: widget.onSelectSearch,
+                ),
                 _SdSep(),
 
                 // HABITS
@@ -644,7 +643,7 @@ class _SidebarState extends State<Sidebar> {
                 _SdSep(),
 
                 _SdRow(
-                  sym: isNemo2Test ? '' : '∑',
+                  sym: '∑',
                   label: 'STATS',
                   isActive: widget.activeSection == 'stats',
                   onTap: widget.onSelectStats,
@@ -662,7 +661,7 @@ class _SidebarState extends State<Sidebar> {
                   onTap: widget.onSelectBrain ?? () {},
                 ),
                 _SdRow(
-                  sym: isNemo2Test ? '' : '⚙',
+                  sym: '⚙',
                   label: 'SETTINGS',
                   isActive: false,
                   onTap: widget.onSettingsTap,

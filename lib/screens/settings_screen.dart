@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_theme.dart';
 import '../flavor.dart';
-import 'dev_center_screen.dart';
 import '../models/entry_display_mode.dart';
 import '../services/backup_service.dart';
 import '../services/storage_service.dart';
@@ -67,7 +66,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late AppThemeMode _initialThemeMode;
   bool _saved = false;
   bool _restoring = false;
-  int _versionTapCount = 0;
   Timer? _versionTapTimer;
   Timer? _colorSaveDebounce;
   late TextEditingController _apiKeyCtrl;
@@ -407,26 +405,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _onVersionTap() {
-    if (!isNemo2Test) return;
-    _versionTapTimer?.cancel();
-    _versionTapCount++;
-    if (_versionTapCount >= 5) {
-      _versionTapCount = 0;
-      Navigator.push(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const DevCenterScreen(),
-          transitionsBuilder: (_, anim, __, child) => FadeTransition(
-            opacity: anim,
-            child: child,
-          ),
-        ),
-      );
-      return;
-    }
-    _versionTapTimer = Timer(const Duration(seconds: 2), () {
-      _versionTapCount = 0;
-    });
+    // Dev Center(nemo2test 전용)는 제거됨 — 버전 탭은 더 이상 동작하지 않는다.
   }
 
   Future<void> _doImportTxt() async {

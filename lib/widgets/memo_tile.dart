@@ -1021,17 +1021,7 @@ class _MemoTileState extends State<MemoTile> {
       child: inner,
     );
 
-    Widget _card(Widget child) => isNemo2Test
-        ? Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: kBorder.withValues(alpha: 0.35)),
-            ),
-            clipBehavior: Clip.hardEdge,
-            child: child,
-          )
-        : child;
+    Widget _card(Widget child) => child;
 
     if (_isSystemMemo) return _card(withTapRegion);
 
@@ -1890,32 +1880,7 @@ class _MemoTileState extends State<MemoTile> {
         );
       } else if (m.group(5) != null) {
         final linkText = m.group(5)!;
-        if (isNemo2Test) {
-          // [[id:MEMO_ID|제목]] 포맷이면 id로 직접 이동, 아니면 제목 검색.
-          final idMatch = RegExp(r'^id:([^|]+)\|(.+)$').firstMatch(linkText);
-          final display = idMatch != null ? idMatch.group(2)! : linkText;
-          final rec = TapGestureRecognizer()
-            ..onTap = () {
-              if (idMatch != null) {
-                _a.onNavigateToMemo?.call(idMatch.group(1)!);
-              } else {
-                _a.onWikiLinkTap?.call(linkText);
-              }
-            };
-          children.add(
-            TextSpan(
-              text: display,
-              style: base.copyWith(
-                color: kMint,
-                decoration: TextDecoration.underline,
-                decorationColor: kMint.withValues(alpha: 0.5),
-              ),
-              recognizer: rec,
-            ),
-          );
-        } else {
-          children.add(TextSpan(text: '[[${linkText}]]'));
-        }
+        children.add(TextSpan(text: '[[${linkText}]]'));
       }
       lastEnd = m.end;
     }
@@ -1927,7 +1892,9 @@ class _MemoTileState extends State<MemoTile> {
   }
 
   Widget _buildBacklinks() {
-    if (!isNemo2Test || widget.allMemos.isEmpty) return const SizedBox.shrink();
+    // nemo2test 전용 기능 제거됨 — 항상 비표시.
+    return const SizedBox.shrink();
+    // ignore: dead_code
     final linked =
         BacklinkService.linkedBacklinks(widget.memo, widget.allMemos);
     final unlinked =
@@ -1980,7 +1947,9 @@ class _MemoTileState extends State<MemoTile> {
   }
 
   Widget _buildRelatedMemos() {
-    if (!isNemo2Test || widget.allMemos.isEmpty) return const SizedBox.shrink();
+    // nemo2test 전용 기능 제거됨 — 항상 비표시.
+    return const SizedBox.shrink();
+    // ignore: dead_code
     final others = widget.allMemos.where((m) => m.id != widget.memo.id).toList();
     final related = LocalSearchService.search(widget.memo.content, others, limit: 3);
     if (related.isEmpty) return const SizedBox.shrink();

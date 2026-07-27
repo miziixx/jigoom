@@ -146,7 +146,6 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   DateTime _todayBasis(Memo memo) {
-    if (isNemo2Test && memo.scheduledAt != null) return memo.scheduledAt!;
     return memo.createdAt;
   }
 

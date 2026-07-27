@@ -306,7 +306,9 @@ class _InputBarState extends State<InputBar> {
 
   /// 커서 앞에 닫히지 않은 `[[검색어`가 있으면 매칭 메모 후보를 반환.
   List<Memo> _computeWikiSuggestions() {
-    if (!isNemo2Test || widget.allMemos.isEmpty) return const [];
+    // nemo2test 전용 위키 링크 제안 제거됨.
+    return const [];
+    // ignore: dead_code
     final sel = _controller.selection;
     if (!sel.isValid || !sel.isCollapsed) return const [];
     final pos = sel.baseOffset.clamp(0, _controller.text.length);
@@ -521,7 +523,9 @@ class _InputBarState extends State<InputBar> {
   }
 
   List<_SuggestionChipData> _suggestionsForText(String raw) {
-    if (!isNemo2Test) return const [];
+    // nemo2test 전용 추천 칩 제거됨.
+    return const [];
+    // ignore: dead_code
     final text = raw.trim().toLowerCase();
     if (text.isEmpty || _draftKind != _LogroomDraftKind.entry) return const [];
     if (!_hasMinimumSuggestionText(text)) return const [];
@@ -1932,12 +1936,6 @@ String _contentForDraftKind(String raw) {
                               tooltip: '이미지',
                               active: _pendingImages.isNotEmpty,
                               onTap: _pickImage,
-                            ),
-                          if (!kIsWeb && isNemo2Test)
-                            _ToolBtn(
-                              icon: Icons.document_scanner_outlined,
-                              tooltip: '스샷 텍스트 읽기',
-                              onTap: _pickImageForOcr,
                             ),
                         ],
                       ),

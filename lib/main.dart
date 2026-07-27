@@ -36,10 +36,6 @@ void main() async {
   applyEntryDisplayMode(await StorageService.loadEntryDisplayMode());
   await NotificationService.init();
   await WidgetService.init();
-  if (isNemo2Test) {
-    LocalApiService.start().ignore();
-    NotificationService.scheduleWeeklyBrief().ignore();
-  }
   // Sync system UI overlay with current theme (also synced on every applyColors call)
   syncSystemUiOverlay();
   runApp(const MemoApp());

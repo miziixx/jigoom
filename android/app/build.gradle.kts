@@ -43,10 +43,6 @@ android {
             dimension = "version"
             applicationId = "com.example.memo_app_v2"
         }
-        create("nemo2test") {
-            dimension = "version"
-            applicationId = "com.example.memo_app_v2_test"
-        }
         create("logroomtemp") {
             dimension = "version"
             applicationId = "com.example.logroomtemp"

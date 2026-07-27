@@ -16,7 +16,6 @@ Future<void> initFlavor() async {
 String get flavorName => _flavorName;
 bool get isStoreFlavor => _flavorName == 'store' || _flavorName == 'nemo2store';
 bool get isNemo2 => _flavorName == 'nemo2' || _flavorName == 'nemo2store';
-bool get isNemo2Test => _flavorName == 'nemo2test';
 bool get isLogroom => _flavorName == 'logroom';
 bool get isLogroomTemp => _flavorName == 'logroomtemp';
-bool get isLogroomUi => isLogroom || isLogroomTemp || isNemo2Test;
+bool get isLogroomUi => isLogroom || isLogroomTemp;

@@ -214,14 +214,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final initialContent = _stripSharedMemoText(raw);
 
-    // 빠른 캡처: nemo2test는 확인 다이얼로그 없이 즉시 저장하고 실행취소 제공.
-    if (isNemo2Test) {
-      final body = initialContent.isEmpty ? tags : '$initialContent\n$tags';
-      _addMemoWithSource(body, detectedUrl);
-      _showCapturedSnackbar();
-      return;
-    }
-
     _showShareDialog(
       initialContent: initialContent,
       detectedUrl: detectedUrl,
@@ -626,7 +618,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<Memo> _getSearchResults() {
     final q = _searchQuery.trim();
     if (q.isEmpty) return [];
-    if (isNemo2Test) return LocalSearchService.search(q, _memos);
     return _memos.where((m) {
       if (m.content.toLowerCase().contains(q.toLowerCase())) return true;
       if (m.tags.any((t) => t.toLowerCase().contains(q.toLowerCase()))) return true;
@@ -2461,12 +2452,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onRestoreConfirmed: _applyBackupData,
           onClearCache: _clearAllCache,
           onImportTxt: _importTxtMemos,
-          onExportMarkdown: isNemo2Test
-              ? () => BackupService.exportMarkdown(
-                    memos: _memos,
-                    folders: _folders,
-                  )
-              : null,
+          onExportMarkdown: null,
         ),
         transitionsBuilder: (_, anim, __, child) => SlideTransition(
           position: Tween<Offset>(
@@ -2604,10 +2590,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _flatItems = items;
     // Header path
     final folderName = _selectedFolderId == null
-        ? (isNemo2Test ? '/INBOX' : '/inbox')
+        ? ('/inbox')
         : '/${_folders.firstWhere(
             (f) => f.id == _selectedFolderId,
-            orElse: () => Folder(id: '', name: isNemo2Test ? 'INBOX' : 'inbox'),
+            orElse: () => Folder(id: '', name: 'inbox'),
           ).name}';
     final selectedPath = _calendarOpen
         ? 'CAL'
@@ -3172,13 +3158,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       contextLabel: _selectedTag != null
                           ? '#$_selectedTag'
                           : (_selectedFolderId == null
-                                ? (isNemo2Test ? 'INBOX' : 'inbox')
+                                ? ('inbox')
                                 : _folders
                                       .firstWhere(
                                         (f) => f.id == _selectedFolderId,
                                         orElse: () => Folder(
                                           id: '',
-                                          name: isNemo2Test ? 'INBOX' : 'inbox',
+                                          name: 'inbox',
                                         ),
                                       )
                                       .name),
@@ -3297,7 +3283,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             controller: _scrollController,
                             keyboardDismissBehavior:
                                 ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: EdgeInsets.only(top: isNemo2Test ? 6 : 0, bottom: 12),
+                            padding: const EdgeInsets.only(top: 0, bottom: 12),
                             itemCount: items.length,
                             itemBuilder: (context, index) {
                               final item = items[index];
@@ -3924,7 +3910,7 @@ class _AppHeader extends StatelessWidget {
         height: 30,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Text(
-          isNemo2Test ? '/INBOX' : '/inbox',
+          '/inbox',
           style: mono(
             color: selectedFolderId == null ? kMint : kText,
             fontSize: 12,
@@ -4193,10 +4179,6 @@ class _AppHeader extends StatelessWidget {
                         !tasksOnly,
                   ),
                 ),
-                if (isNemo2Test) ...[
-                  const SizedBox(width: 2),
-                  _DailyNoteBtn(onTap: onDailyNote),
-                ],
                 const SizedBox(width: 2),
                 _SearchToggleBtn(active: searchOpen, onTap: onSearchTap),
               ],
@@ -4287,7 +4269,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             isDosTheme
                 ? 'NO LOGS FOUND.'
-                : (isNemo2Test ? 'INBOX is empty.' : 'inbox is empty.'),
+                : 'inbox is empty.',
             style: mono(color: kDim, fontSize: 13),
           ),
           const SizedBox(height: 6),
