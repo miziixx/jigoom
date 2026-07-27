@@ -80,13 +80,14 @@ class _AppShellState extends ConsumerState<AppShell> {
   static const _navLabels = ['today', 'matrix', 'dump', 'time', 'habit', 'all'];
 
   /// 하이브리드 음성 라우팅용 — 각 탭에서 "단서 없는 말"이 보류함 대신 갈 홈.
-  /// 쏟아내기(2)는 대기줄로 따로 처리하고, 전체(5)는 홈이 없어 보류함 유지.
+  /// 보류함으로 직행하는 일을 최소화한다: 쏟아내기(2)만 대기줄로 따로 처리하고,
+  /// 나머지(오늘·전체·그 외)는 전부 오늘 할 일로 담는다.
   static RoutePoint? _voiceInboxFallback(int index) => switch (index) {
-        0 => RoutePoint.quickCapture, // 오늘 → 오늘 할 일
         1 => RoutePoint.matrix, // 매트릭스 → 서랍(Q4)
         3 => RoutePoint.timeTrack, // 일과 → 현재 블록 기록
         4 => RoutePoint.habit, // 습관 → 습관
-        _ => null, // 쏟아내기·전체 → 보류함(기존)
+        2 => null, // 쏟아내기 → 대기줄(스테이징)로 따로
+        _ => RoutePoint.quickCapture, // 오늘·전체·그 외 → 오늘 할 일
       };
 
   @override
