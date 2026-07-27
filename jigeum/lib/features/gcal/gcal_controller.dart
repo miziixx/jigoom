@@ -59,10 +59,9 @@ class GcalController extends StateNotifier<GcalState> {
   Future<void> restore() async {
     final ok = await _bridge.hasPermission();
     state = state.copyWith(connected: ok);
-    if (ok) {
-      await refreshCalendarList();
-      await syncNow(refreshList: false);
-    }
+    // 목록만 조용히 채우고, 실제 동기화는 사용자가 버튼을 눌렀을 때만 한다
+    // (자동 동기화 없음 — "지금 동기화"/"연동 켜기"/캘린더 선택 시에만).
+    if (ok) await refreshCalendarList();
   }
 
   /// 캘린더 권한 요청 → 목록 로드 → 첫 동기화.
