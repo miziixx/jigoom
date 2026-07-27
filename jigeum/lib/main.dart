@@ -247,6 +247,17 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       }
       // 일정이 바뀌면(로컬 편집) 원격으로 밀기 (1.5초 디바운스).
       _schedulesSub = ref.read(scheduleRepoProvider).watchAll().listen((_) {
+        // 동기화가 원격 일정을 가져와 DB 에 쓰면 그 쓰기도 이 watch 를 깨운다.
+        // 그대로 두면 sync→쓰기→watch→sync 무한 루프가 된다. 동기화 중이거나
+        // 방금(쿨다운 내) 끝났으면 "내가 쓴 것"으로 보고 재트리거하지 않는다.
+        // (쿨다운 중 놓친 로컬 편집은 dirty 로 남아 다음 동기화 때 밀린다.)
+        final gcal = ref.read(gcalControllerProvider);
+        if (gcal.syncing) return;
+        final last = gcal.lastSyncAt;
+        if (last != null &&
+            DateTime.now().difference(last) < const Duration(seconds: 4)) {
+          return;
+        }
         _gcalDebounce?.cancel();
         _gcalDebounce = Timer(const Duration(milliseconds: 1500), () {
           ref.read(gcalControllerProvider.notifier).syncNow(refreshList: false);
