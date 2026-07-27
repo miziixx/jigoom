@@ -16,6 +16,7 @@ object WidgetPrefs {
     const val KEY_OPACITY = "opacity" // 0~100
     const val KEY_TT_LABEL = "tt_label"
     const val KEY_TT_TEXT = "tt_text"
+    const val KEY_GOAL = "day_goal" // 오늘의 목표(여러 줄, 개행 구분)
     const val KEY_CAL_FOOT = "cal_foot" // 캘린더 위젯 하단: 음력·일진·별자리
 
     // 구글 캘린더 연동. 1×1 팝업 스피너용 목록 + 입력 큐(앱이 비워 동기화).
@@ -71,6 +72,8 @@ object WidgetPrefs {
             TimeTrackWidgetProvider::class.java to TimeTrackWidgetProvider(),
             CalendarWidgetProvider::class.java to CalendarWidgetProvider(),
             QuickAddWidgetProvider::class.java to QuickAddWidgetProvider(),
+            QuickMenuWidgetProvider::class.java to QuickMenuWidgetProvider(),
+            GoalWidgetProvider::class.java to GoalWidgetProvider(),
         ).forEach { (cls, provider) ->
             val ids = manager.getAppWidgetIds(ComponentName(context, cls))
             if (ids.isNotEmpty()) provider.onUpdate(context, manager, ids)

@@ -20,6 +20,7 @@ import 'features/schedule/time_hub.dart';
 import 'features/inbox/inbox_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
+import 'features/today/goal_editor.dart';
 import 'features/today/today_view.dart';
 import 'features/voice/ui/global_mic_button.dart';
 import 'providers.dart';
@@ -47,6 +48,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     calendarLaunchRequest.addListener(_onCalendarLaunch);
     // 위젯 음성 버튼 진입 → 마이크 시작(결과는 GlobalMicButton 구독이 라우팅).
     voiceCaptureRequest.addListener(_onVoiceCapture);
+    // 목표 위젯 진입 → 오늘의 목표 편집기.
+    goalEditRequest.addListener(_onGoalEdit);
   }
 
   @override
@@ -55,6 +58,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     timeTrackLaunchRequest.removeListener(_onTimeTrackLaunch);
     calendarLaunchRequest.removeListener(_onCalendarLaunch);
     voiceCaptureRequest.removeListener(_onVoiceCapture);
+    goalEditRequest.removeListener(_onGoalEdit);
     super.dispose();
   }
 
@@ -97,6 +101,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     } catch (_) {
       _voiceNotice('음성 인식을 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
     }
+  }
+
+  Future<void> _onGoalEdit() async {
+    if (!mounted) return;
+    await showGoalEditor(context, ref);
   }
 
   void _voiceNotice(String message) {

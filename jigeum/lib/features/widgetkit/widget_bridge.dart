@@ -36,6 +36,16 @@ class WidgetBridge {
     }
   }
 
+  /// 오늘의 목표(여러 줄, 개행 구분)를 목표 위젯에 반영.
+  static Future<void> updateGoal(String goal) async {
+    if (kIsWeb) return;
+    try {
+      await _channel.invokeMethod('updateGoal', {'goal': goal});
+    } catch (e) {
+      debugPrint('updateGoal 실패(무시): $e');
+    }
+  }
+
   /// 타임트래커 위젯 갱신 (지금 블록 라벨 + 마지막 기록).
   static Future<void> updateTimeTrack(String label, String text) async {
     if (kIsWeb) return;
