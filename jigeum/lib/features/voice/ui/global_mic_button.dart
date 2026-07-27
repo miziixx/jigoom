@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme.dart';
+import '../models/intent_type.dart';
 import '../stt_service.dart';
 import '../voice_controller.dart';
 import 'voice_feedback.dart';
@@ -22,6 +23,7 @@ class GlobalMicButton extends StatefulWidget {
     required this.stt,
     required this.controller,
     this.onFinalText,
+    this.inboxFallback,
   });
 
   final SttService stt;
@@ -31,6 +33,10 @@ class GlobalMicButton extends StatefulWidget {
   /// 대신 이 콜백에 텍스트를 넘긴다 — 쏟아내기 탭에서 마이크 결과를 즉시
   /// 실행하지 않고 대기줄에 쌓는 데 쓴다. 미지정이면 기존 동작.
   final Future<void> Function(String text)? onFinalText;
+
+  /// 하이브리드 라우팅: 명확한 단서가 없어 보류함으로 갈 결과를, 대신 이
+  /// 목적지(현재 화면의 홈)로 담는다. 미지정이면 기존대로 보류함.
+  final RoutePoint? inboxFallback;
 
   @override
   State<GlobalMicButton> createState() => _GlobalMicButtonState();
@@ -90,8 +96,11 @@ class _GlobalMicButtonState extends State<GlobalMicButton> {
       await override(r.text);
       return;
     }
-    final fb =
-        await widget.controller.handle(r.text, sttConfidence: r.confidence);
+    final fb = await widget.controller.handle(
+      r.text,
+      sttConfidence: r.confidence,
+      inboxFallback: widget.inboxFallback,
+    );
     if (!mounted) return;
     showVoiceFeedback(
       context,
