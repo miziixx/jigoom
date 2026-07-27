@@ -183,10 +183,15 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       final ttRepo = ref.read(timeTrackRepoProvider);
       final nowBlock = TimeTrackRepository.blockOfNow();
       final cur = await ttRepo.getBlock(todayDate(), nowBlock);
-      await WidgetBridge.updateTimeTrack(
-        '지금 ${blockLabel(nowBlock)}',
-        cur?.content ?? '탭해서 기록',
-      );
+      // 기록이 있으면 실제 작성 시각(HH:mm)을 뒤에 붙여 위젯에 보여준다.
+      String ttText = cur?.content ?? '탭해서 기록';
+      final wAt = cur?.updatedAt;
+      if (cur?.content != null && cur!.content.isNotEmpty && wAt != null) {
+        final hh = wAt.hour.toString().padLeft(2, '0');
+        final mm = wAt.minute.toString().padLeft(2, '0');
+        ttText = '${cur.content}  ·  ✎ $hh:$mm';
+      }
+      await WidgetBridge.updateTimeTrack('지금 ${blockLabel(nowBlock)}', ttText);
 
       // 오늘의 목표 위젯: 오늘 날짜의 목표(여러 줄)를 반영.
       final goal = await ref.read(scheduleRepoProvider).getDayGoal(todayDate());
