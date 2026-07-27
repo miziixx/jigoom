@@ -112,8 +112,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    // nemo2test 는 개인 대시보드를 기본 착지 화면으로 연다.
-    _dashboardOpen = isNemo2Test;
+    // 개인 대시보드를 기본 착지 화면으로 연다 (모든 플레이버).
+    _dashboardOpen = true;
     WidgetsBinding.instance.addObserver(this);
     themeNotifier.addListener(_onThemeChanged);
     _loadData();
@@ -1502,6 +1502,74 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return result;
   }
 
+  // 메모 입력바 — 리스트 뷰와 대시보드 뷰에서 공용으로 쓴다.
+  // 두 뷰는 상호 배타적으로 렌더되므로 같은 _inputBarKey 재사용이 안전하다.
+  Widget _buildInputBar(int streak) {
+    return InputBar(
+      key: _inputBarKey,
+      allMemos: _memos,
+      onSubmit:
+          (
+            c,
+            isCl,
+            rem,
+            fid,
+            imgs,
+            rep,
+            sched,
+            rangeEnd,
+            schedRep,
+            endType,
+            endCount,
+            endDate,
+          ) {
+            final editing = _editingMemo;
+            if (editing != null) {
+              _updateMemoFromInput(
+                editing,
+                c,
+                isCl,
+                rem,
+                fid,
+                imgs,
+                rep,
+                sched,
+                rangeEnd,
+                schedRep,
+                endType,
+                endCount,
+                endDate,
+              );
+              return;
+            }
+            _addMemo(
+              c,
+              isCl,
+              rem,
+              fid,
+              imgs,
+              rep,
+              sched,
+              rangeEnd,
+              schedRep,
+              endType,
+              endCount,
+              endDate,
+            );
+          },
+      folders: _folders,
+      currentFolderId: _selectedFolderId,
+      habitActivated: _habitActivated,
+      goalActivated: _goalActivated,
+      dayCount: _dayCount,
+      streak: streak,
+      onActivateHabit: _activateHabit,
+      onActivateGoal: _activateGoal,
+      editingMemo: _editingMemo,
+      onCancelEdit: () => setState(() => _editingMemo = null),
+    );
+  }
+
   String get _activeBottomMenu {
     if (_dashboardOpen) return 'DASHBOARD';
     if (_todayOpen) return 'TODAY';
@@ -2483,8 +2551,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _tagsOpen = false;
         _graphOpen = false;
         _brainOpen = false;
-        // nemo2test 는 하위 화면에서 뒤로가기 시 대시보드로 복귀.
-        if (isNemo2Test) _dashboardOpen = true;
+        // 하위 화면에서 뒤로가기 시 대시보드로 복귀.
+        _dashboardOpen = true;
       });
       return;
     }
@@ -2961,6 +3029,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                 // ── Main area: dashboard OR search OR calendar OR list ──
                 if (_dashboardOpen) ...[
+                  _buildInputBar(streak),
+                  Container(height: 1, color: kBorder),
                   Expanded(
                     child: DashboardScreen(
                       memos: _memos,
@@ -3375,171 +3445,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Flexible(
                     flex: 0,
                     fit: FlexFit.loose,
-                    child: InputBar(
-                      key: _inputBarKey,
-                      allMemos: _memos,
-                      onSubmit:
-                          (
-                            c,
-                            isCl,
-                            rem,
-                            fid,
-                            imgs,
-                            rep,
-                            sched,
-                            rangeEnd,
-                            schedRep,
-                            endType,
-                            endCount,
-                            endDate,
-                          ) {
-                            final editing = _editingMemo;
-                            if (editing != null) {
-                              _updateMemoFromInput(
-                                editing,
-                                c,
-                                isCl,
-                                rem,
-                                fid,
-                                imgs,
-                                rep,
-                                sched,
-                                rangeEnd,
-                                schedRep,
-                                endType,
-                                endCount,
-                                endDate,
-                              );
-                              return;
-                            }
-                            _addMemo(
-                              c,
-                              isCl,
-                              rem,
-                              fid,
-                              imgs,
-                              rep,
-                              sched,
-                              rangeEnd,
-                              schedRep,
-                              endType,
-                              endCount,
-                              endDate,
-                            );
-                          },
-                      folders: _folders,
-                      currentFolderId: _selectedFolderId,
-                      habitActivated: _habitActivated,
-                      goalActivated: _goalActivated,
-                      dayCount: _dayCount,
-                      streak: streak,
-                      onActivateHabit: _activateHabit,
-                      onActivateGoal: _activateGoal,
-                      editingMemo: _editingMemo,
-                      onCancelEdit: () => setState(() => _editingMemo = null),
-                    ),
+                    child: _buildInputBar(streak),
                   ),
                 ],
 
                 Container(height: 1, color: kBorder),
-                if (isNemo2Test)
-                  DashboardBottomNav(
-                    activeMenu: _activeBottomMenu,
-                    onTap: (menu) => _selectBottomMenu(menu, narrow: isNarrow),
-                  )
-                else if (isLogroomUi)
-                  LogroomBottomNav(
-                    todaySelected: _todayOpen,
-                    entriesSelected:
-                        !_calendarOpen &&
-                        !_statsOpen &&
-                        !_scheduleOpen &&
-                        !_todayOpen &&
-                        !_tagsOpen &&
-                        !_tasksOnly &&
-                        !_searchOpen,
-                    calendarSelected: _calendarOpen,
-                    onTodayTap: () => setState(() {
-                      _todayOpen = !_todayOpen;
-                      _calendarOpen = false;
-                      _statsOpen = false;
-                      _scheduleOpen = false;
-                      _tagsOpen = false;
-          _graphOpen = false;
-          _brainOpen = false;
-                      _tasksOnly = false;
-                      _selectedTabId = null;
-                    }),
-                    onEntriesTap: () => setState(() {
-                      _selectedFolderId = null;
-                      _selectedTag = null;
-                      _selectedTabId = null;
-                      _calendarOpen = false;
-                      _statsOpen = false;
-                      _scheduleOpen = false;
-                      _tasksOnly = false;
-                      _tagsOpen = false;
-          _graphOpen = false;
-          _brainOpen = false;
-                      _todayOpen = false;
-                      _searchOpen = false;
-                    }),
-                    onCalendarTap: () => setState(() {
-                      _calendarOpen = true;
-                      _selectedTabId = null;
-                      _statsOpen = false;
-                      _scheduleOpen = false;
-                      _todayOpen = false;
-                      _tagsOpen = false;
-          _graphOpen = false;
-          _brainOpen = false;
-                      _tasksOnly = false;
-                      _selectedTag = null;
-                      if (isNarrow) _sidebarOpen = false;
-                    }),
-                    onMoreTap: () => setState(() => _sidebarOpen = true),
-                  )
-                else
-                  BottomTabBar(
-                    tabs: _tabs,
-                    selectedTabId: _selectedTabId,
-                    onSelect: _selectTab,
-                    canAdd: _tabs.length < 5,
-                    onAddTap: () => _showTabDialog(null),
-                    onLongPress: (tab) => _confirmDeleteTab(tab),
-                    locked: _tabLocked,
-                    calendarSelected: _calendarOpen,
-                    onCalendarTap: () => setState(() {
-                      if (!_calendarOpen) {
-                        _calendarOpen = true;
-                        _selectedTabId = null;
-                        _statsOpen = false;
-                        _scheduleOpen = false;
-                      }
-                    }),
-                    statsSelected: _statsOpen,
-                    onStatsTap: () => setState(() {
-                      if (!_statsOpen) {
-                        _statsOpen = true;
-                        _calendarOpen = false;
-                        _scheduleOpen = false;
-                        _todayOpen = false;
-                        _selectedTabId = null;
-                      }
-                    }),
-                    todaySelected: _todayOpen,
-                    onTodayTap: () => setState(() {
-                      _todayOpen = !_todayOpen;
-                      _calendarOpen = false;
-                      _statsOpen = false;
-                      _scheduleOpen = false;
-                      _tagsOpen = false;
-          _graphOpen = false;
-          _brainOpen = false;
-                      _tasksOnly = false;
-                      _selectedTabId = null;
-                    }),
-                  ),
+                // 대시보드 하단탭 — 모든 플레이버 공용 (홈/기록/캘린더/더보기).
+                DashboardBottomNav(
+                  activeMenu: _activeBottomMenu,
+                  onTap: (menu) => _selectBottomMenu(menu, narrow: isNarrow),
+                ),
               ],
             );
 
