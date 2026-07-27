@@ -72,6 +72,7 @@ class VoiceController {
     String rawText, {
     double? sttConfidence,
     DateTime? now,
+    RoutePoint? inboxFallback,
   }) async {
     final fragments = splitter.split(rawText);
     final actionable = fragments.where((f) => !f.skipped).toList();
@@ -83,6 +84,7 @@ class VoiceController {
         skippedCount: skippedCount,
         sttConfidence: sttConfidence,
         now: now,
+        inboxFallback: inboxFallback,
       );
     }
 
@@ -90,6 +92,19 @@ class VoiceController {
 
     // 미인식 → 보류함(§0: 말은 버리지 않는다).
     if (result.decision == RouteDecision.inbox) {
+      // 하이브리드: 현재 화면 대체 목적지가 지정되면 보류함 대신 그리로 담는다
+      // (예: 투데이에서 애매한 말 → 오늘 할 일). 명확히 분류된 건 위 결과대로 감.
+      if (inboxFallback != null) {
+        final forced = _forceResult(
+            result, _intentForRoute(inboxFallback), inboxFallback);
+        final ref = await executor.createEntity(forced);
+        _last = VoiceExecution(result: forced, entityRef: ref, toInbox: false);
+        return VoiceFeedback(
+          message: '${inboxFallback.label}에 담았어요',
+          undoable: true,
+          reclassifyTo: _reclassifyChips(forced),
+        );
+      }
       final item = inbox.add(rawText, sttConfidence: sttConfidence);
       _last = VoiceExecution(result: result, entityRef: item, toInbox: true);
       return VoiceFeedback(
@@ -238,6 +253,7 @@ class VoiceController {
     required int skippedCount,
     double? sttConfidence,
     DateTime? now,
+    RoutePoint? inboxFallback,
   }) async {
     if (fragments.isEmpty) {
       final item = inbox.add(rawText, sttConfidence: sttConfidence);
@@ -253,12 +269,24 @@ class VoiceController {
     for (final fragment in fragments) {
       final result = router.analyze(fragment.text, now: now);
       if (result.decision == RouteDecision.inbox) {
-        final item = inbox.add(fragment.text, sttConfidence: sttConfidence);
-        executions.add(VoiceExecution(
-          result: result,
-          entityRef: item,
-          toInbox: true,
-        ));
+        // 하이브리드: 대체 목적지가 있으면 이 조각도 보류함 대신 현재 화면으로.
+        if (inboxFallback != null) {
+          final forced = _forceResult(
+              result, _intentForRoute(inboxFallback), inboxFallback);
+          final ref = await executor.createEntity(forced);
+          executions.add(VoiceExecution(
+            result: forced,
+            entityRef: ref,
+            toInbox: false,
+          ));
+        } else {
+          final item = inbox.add(fragment.text, sttConfidence: sttConfidence);
+          executions.add(VoiceExecution(
+            result: result,
+            entityRef: item,
+            toInbox: true,
+          ));
+        }
       } else {
         final ref = await executor.createEntity(result);
         executions.add(VoiceExecution(

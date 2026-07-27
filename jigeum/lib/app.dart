@@ -8,6 +8,7 @@ import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
 import 'features/capture/dump_staging.dart';
 import 'features/capture/dump_view.dart';
+import 'features/voice/models/intent_type.dart';
 import 'features/capture/quick_capture_bar.dart';
 import 'features/capture/quick_capture_input.dart';
 import 'features/fortune/fortune_view.dart';
@@ -78,6 +79,16 @@ class _AppShellState extends ConsumerState<AppShell> {
   static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체'];
   static const _navLabels = ['today', 'matrix', 'dump', 'time', 'habit', 'all'];
 
+  /// 하이브리드 음성 라우팅용 — 각 탭에서 "단서 없는 말"이 보류함 대신 갈 홈.
+  /// 쏟아내기(2)는 대기줄로 따로 처리하고, 전체(5)는 홈이 없어 보류함 유지.
+  static RoutePoint? _voiceInboxFallback(int index) => switch (index) {
+        0 => RoutePoint.quickCapture, // 오늘 → 오늘 할 일
+        1 => RoutePoint.matrix, // 매트릭스 → 서랍(Q4)
+        3 => RoutePoint.timeTrack, // 일과 → 현재 블록 기록
+        4 => RoutePoint.habit, // 습관 → 습관
+        _ => null, // 쏟아내기·전체 → 보류함(기존)
+      };
+
   @override
   Widget build(BuildContext context) {
     final body = switch (_index) {
@@ -110,6 +121,9 @@ class _AppShellState extends ConsumerState<AppShell> {
                   }
                 }
               : null,
+          // 하이브리드: 명확한 단서가 없는 말은 보류함이 아니라 지금 보고 있는
+          // 화면의 홈으로 담는다(오늘→할일, 매트릭스→서랍, 시간→블록, 습관→습관).
+          inboxFallback: _voiceInboxFallback(_index),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
