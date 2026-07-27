@@ -163,6 +163,7 @@ class TimeBlocks extends Table {
   DateTimeColumn get date => dateTime()(); // 자정 기준 날짜
   IntColumn get block => integer()(); // 0~47 (30분 단위)
   TextColumn get content => text()(); // 'text' 는 drift 빌더명과 충돌 → content
+  DateTimeColumn get updatedAt => dateTime().nullable()(); // 실제 작성/수정 시각
 
   @override
   Set<Column> get primaryKey => {date, block};
@@ -202,7 +203,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -259,6 +260,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(habitTicks, habitTicks.completedAt);
             await m.addColumn(schedules, schedules.doneAt);
             await m.addColumn(routineSteps, routineSteps.lastDoneAt);
+          }
+          if (from < 11) {
+            await m.addColumn(timeBlocks, timeBlocks.updatedAt);
           }
         },
       );

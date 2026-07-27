@@ -50,6 +50,10 @@ class TimeTrackRepository {
       return;
     }
     await db.into(db.timeBlocks).insertOnConflictUpdate(
-        TimeBlocksCompanion.insert(date: d, block: block, content: t));
+        TimeBlocksCompanion.insert(
+            date: d,
+            block: block,
+            content: t,
+            updatedAt: Value(DateTime.now())));
   }
 }
