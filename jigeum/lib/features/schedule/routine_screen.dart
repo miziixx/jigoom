@@ -62,6 +62,37 @@ class RoutineScreen extends StatelessWidget {
       );
 }
 
+// ─────────────────────────────────────────── 드래그용 평면 아이템
+
+/// 블록·스텝을 한 줄짜리 리스트로 편 것. 하나의 ReorderableListView 안에
+/// 헤더와 스텝이 같이 들어가야 스텝을 **다른 블록으로** 끌어 옮길 수 있다.
+sealed class _Item {
+  const _Item();
+  Key get key;
+}
+
+class _HeaderItem extends _Item {
+  const _HeaderItem(this.group, this.steps);
+  final RoutineGroup group;
+  final List<RoutineStep> steps;
+  @override
+  Key get key => ValueKey('g:${group.id}');
+}
+
+class _StepItem extends _Item {
+  const _StepItem(this.step);
+  final RoutineStep step;
+  @override
+  Key get key => ValueKey('s:${step.id}');
+}
+
+class _AddItem extends _Item {
+  const _AddItem(this.groupId);
+  final String groupId;
+  @override
+  Key get key => ValueKey('a:$groupId');
+}
+
 /// 루틴 화면 본문 — 블록(그룹) + 순서 스텝. 아래에 레거시 시간자동 루틴.
 class RoutineBody extends ConsumerWidget {
   const RoutineBody({super.key});
@@ -92,13 +123,34 @@ class RoutineBody extends ConsumerWidget {
       );
     }
 
+    // 평면화: [헤더, 스텝…, 스텝추가] × 블록 수.
+    final items = <_Item>[
+      for (final g in groups) ...[
+        _HeaderItem(g, byGroup[g.id] ?? const []),
+        if (!g.collapsed) ...[
+          for (final s in byGroup[g.id] ?? const <RoutineStep>[]) _StepItem(s),
+          _AddItem(g.id),
+        ],
+      ],
+    ];
+
     return Container(
       color: tk.paper,
       child: ListView(
         padding: const EdgeInsets.only(top: 4, bottom: 40),
         children: [
-          for (final g in groups)
-            _GroupBlock(group: g, steps: byGroup[g.id] ?? const []),
+          ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            padding: EdgeInsets.zero,
+            onReorder: (oldIndex, newIndex) =>
+                _onReorder(ref, items, groups, oldIndex, newIndex),
+            children: [
+              for (var i = 0; i < items.length; i++)
+                _itemWidget(items[i], i),
+            ],
+          ),
           // 새 블록 추가
           Padding(
             padding: const EdgeInsets.fromLTRB(kGutter, 20, kGutter, 0),
@@ -123,6 +175,51 @@ class RoutineBody extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Widget _itemWidget(_Item item, int index) {
+    return switch (item) {
+      _HeaderItem(:final group, :final steps) =>
+        _GroupHeader(key: item.key, group: group, steps: steps, index: index),
+      _StepItem(:final step) => _StepRow(key: item.key, step: step, index: index),
+      _AddItem(:final groupId) => _AddStepRow(key: item.key, groupId: groupId),
+    };
+  }
+
+  /// 드래그 결과 반영. 헤더를 옮기면 블록 순서, 스텝을 옮기면 (다른 블록 포함)
+  /// 스텝의 소속·순서를 다시 계산한다.
+  void _onReorder(WidgetRef ref, List<_Item> items, List<RoutineGroup> groups,
+      int oldIndex, int newIndex) {
+    if (groups.isEmpty) return;
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (oldIndex == newIndex) return;
+
+    final moved = items[oldIndex];
+    if (moved is _AddItem) return; // 손잡이가 없어 여기 올 일은 없지만 방어.
+
+    final reordered = [...items];
+    reordered.insert(newIndex, reordered.removeAt(oldIndex));
+
+    final repo = ref.read(routineBuilderRepoProvider);
+    if (moved is _HeaderItem) {
+      repo.reorderGroups([
+        for (final it in reordered)
+          if (it is _HeaderItem) it.group.id,
+      ]);
+      return;
+    }
+
+    // 스텝: 위로 훑어 만나는 헤더가 그 스텝의 새 블록.
+    final layout = <String, List<String>>{};
+    var current = groups.first.id;
+    for (final it in reordered) {
+      if (it is _HeaderItem) {
+        current = it.group.id;
+      } else if (it is _StepItem) {
+        (layout[current] ??= []).add(it.step.id);
+      }
+    }
+    repo.applyStepLayout(layout);
   }
 
   Widget _legacyCard(
@@ -169,31 +266,36 @@ class RoutineBody extends ConsumerWidget {
   }
 }
 
-/// 한 블록(그룹) — 헤더(접기) + 순서 스텝(드래그 재정렬) + 스텝 추가.
-class _GroupBlock extends ConsumerWidget {
-  const _GroupBlock({required this.group, required this.steps});
+/// 블록 헤더 — 탭=접기, 롱프레스=수정, 손잡이로 블록 통째 이동.
+class _GroupHeader extends ConsumerWidget {
+  const _GroupHeader({
+    super.key,
+    required this.group,
+    required this.steps,
+    required this.index,
+  });
   final RoutineGroup group;
   final List<RoutineStep> steps;
+  final int index;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tk = t(context);
     final repo = ref.read(routineBuilderRepoProvider);
     final today = todayDate();
-    bool doneToday(RoutineStep s) =>
-        s.lastDone != null && dateOnly(s.lastDone!) == today;
-    final doneCount = steps.where(doneToday).length;
+    final doneCount = steps
+        .where((s) => s.lastDone != null && dateOnly(s.lastDone!) == today)
+        .length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 헤더
         GestureDetector(
           onTap: () => repo.setGroupCollapsed(group.id, !group.collapsed),
           onLongPress: () => showRoutineGroupSheet(context, existing: group),
           behavior: HitTestBehavior.opaque,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 18, kGutter, 8),
+            padding: const EdgeInsets.fromLTRB(kGutter, 18, 0, 8),
             child: Row(
               children: [
                 SizedBox(
@@ -211,6 +313,16 @@ class _GroupBlock extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Text('$doneCount/${steps.length}',
                     style: AppText.meta(tk.inkSoft, size: 10)),
+                const Spacer(),
+                // 블록 손잡이 — 블록 전체를 위아래로 옮긴다.
+                ReorderableDragStartListener(
+                  index: index,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: kGutter - 8),
+                    child: Text('≡', style: AppText.glyph(tk.inkSoft, size: 16)),
+                  ),
+                ),
               ],
             ),
           ),
@@ -219,39 +331,53 @@ class _GroupBlock extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: kGutter),
           child: Container(height: 1, color: tk.ink),
         ),
-        if (!group.collapsed) ...[
-          ReorderableListView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            padding: EdgeInsets.zero,
-            onReorder: (oldIndex, newIndex) {
-              if (newIndex > oldIndex) newIndex -= 1;
-              final ids = steps.map((s) => s.id).toList();
-              final moved = ids.removeAt(oldIndex);
-              ids.insert(newIndex, moved);
-              repo.reorderSteps(ids);
-            },
-            children: [
-              for (var i = 0; i < steps.length; i++)
-                _StepRow(
-                  key: ValueKey(steps[i].id),
-                  step: steps[i],
-                  index: i,
-                  doneToday: doneToday(steps[i]),
-                ),
-            ],
+      ],
+    );
+  }
+}
+
+/// "+ 스텝 추가" 줄 + 자주 쓰는 스텝 추천(알약 칩). 칩을 탭하면 바로 추가된다.
+class _AddStepRow extends ConsumerWidget {
+  const _AddStepRow({super.key, required this.groupId});
+  final String groupId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tk = t(context);
+    final suggestions =
+        ref.watch(routineStepSuggestionsProvider(groupId)).valueOrNull ??
+            const <String>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () => showRoutineStepSheet(context, groupId: groupId),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(kGutter + 60, 11, kGutter, 11),
+            child:
+                Text('+ 스텝 추가', style: AppText.meta(tk.inkSoft, size: 11)),
           ),
-          // 스텝 추가
-          GestureDetector(
-            onTap: () => showRoutineStepSheet(context, groupId: group.id),
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(kGutter + 60, 11, kGutter, 11),
-              child: Text('+ 스텝 추가', style: AppText.meta(tk.inkSoft, size: 11)),
+        ),
+        if (suggestions.isNotEmpty)
+          Padding(
+            padding:
+                const EdgeInsets.fromLTRB(kGutter + 60, 0, kGutter, 12),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final s in suggestions)
+                  PillChip(
+                    label: s,
+                    onTap: () => ref
+                        .read(routineBuilderRepoProvider)
+                        .addStep(groupId, title: s),
+                  ),
+              ],
             ),
           ),
-        ],
       ],
     );
   }
@@ -263,17 +389,17 @@ class _StepRow extends ConsumerWidget {
     super.key,
     required this.step,
     required this.index,
-    required this.doneToday,
   });
   final RoutineStep step;
   final int index;
-  final bool doneToday;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tk = t(context);
     final repo = ref.read(routineBuilderRepoProvider);
     final trigger = step.trigger.trim();
+    final doneToday =
+        step.lastDone != null && dateOnly(step.lastDone!) == todayDate();
 
     return Container(
       decoration:
@@ -474,11 +600,36 @@ class _StepSheetState extends ConsumerState<_StepSheet> {
       children: [
         _promptField(tk, _title, '무엇을 하나요? (예: 공복에 물 한 잔)',
             autofocus: !editing),
+        _suggestionPills(
+          ref.watch(routineStepSuggestionsProvider(widget.groupId)).valueOrNull,
+          (v) => setState(() => _title.text = v),
+        ),
         const SizedBox(height: 14),
         Text('언제 (트리거)', style: AppText.meta(tk.inkSoft, size: 10)),
         const SizedBox(height: 6),
         _promptField(tk, _trigger, '예: 눈 뜨면 · 07:20 · 집 나서면 (비우면 “그다음”)'),
+        // 트리거 밑 — 자주 쓰는 트리거 추천.
+        _suggestionPills(
+          ref.watch(routineTriggerSuggestionsProvider).valueOrNull,
+          (v) => setState(() => _trigger.text = v),
+        ),
       ],
+    );
+  }
+
+  /// 추천 알약 칩 줄. 탭하면 해당 칸이 그 텍스트로 채워진다.
+  Widget _suggestionPills(List<String>? items, ValueChanged<String> onPick) {
+    if (items == null || items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, left: 16),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final s in items)
+            PillChip(label: s, onTap: () => onPick(s)),
+        ],
+      ),
     );
   }
 }

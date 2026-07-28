@@ -208,6 +208,22 @@ final routineStepsProvider = StreamProvider<List<RoutineStep>>((ref) {
   return ref.watch(routineBuilderRepoProvider).watchSteps();
 });
 
+/// 자주 쓰는 스텝 제목 추천 (블록별 — 그 블록에 이미 있는 건 뺀다).
+final routineStepSuggestionsProvider =
+    FutureProvider.family<List<String>, String?>((ref, groupId) async {
+  ref.watch(routineStepsProvider); // 스텝이 바뀌면 추천도 다시 계산
+  return ref
+      .watch(routineBuilderRepoProvider)
+      .frequentStepTitles(excludeInGroup: groupId);
+});
+
+/// 자주 쓰는 트리거("언제") 추천.
+final routineTriggerSuggestionsProvider =
+    FutureProvider<List<String>>((ref) async {
+  ref.watch(routineStepsProvider);
+  return ref.watch(routineBuilderRepoProvider).frequentTriggers();
+});
+
 final schedulesForDateProvider =
     StreamProvider.family<List<Schedule>, DateTime>((ref, date) {
   return ref.watch(scheduleRepoProvider).watchForDate(date);
@@ -305,11 +321,20 @@ final voiceControllerProvider = Provider<VoiceController>((ref) {
   );
 });
 
-/// 매트릭스 사분면
+/// 매트릭스 기간 필터 — 기본은 "오늘만".
+final matrixRangeProvider =
+    StateProvider<MatrixRange>((ref) => MatrixRange.today);
+
+/// 매트릭스 사분면 (현재 선택된 기간 기준)
 final quadrantProvider =
     StreamProvider.family<List<Node>, ({bool important, bool urgent})>(
         (ref, key) {
-  return ref
-      .watch(nodeRepoProvider)
-      .watchQuadrant(important: key.important, urgent: key.urgent);
+  final range = ref.watch(matrixRangeProvider);
+  final span = range.span(todayDate());
+  return ref.watch(nodeRepoProvider).watchQuadrant(
+        important: key.important,
+        urgent: key.urgent,
+        from: span?.from,
+        to: span?.to,
+      );
 });

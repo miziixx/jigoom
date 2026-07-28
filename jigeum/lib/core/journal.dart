@@ -140,6 +140,39 @@ Widget emptyNote(BuildContext context, String text) {
   );
 }
 
+/// 알약(pill) 칩 — 배경색 있는 작은 텍스트 아이콘. 추천/기간 선택처럼
+/// "탭해서 고르는 짧은 텍스트"에만 쓴다. (선택됨 = 잉크 채움, 아니면 line 채움)
+class PillChip extends StatelessWidget {
+  const PillChip({
+    super.key,
+    required this.label,
+    this.selected = false,
+    this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? tk.ink : tk.line,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(label,
+            style: AppText.chip(selected ? tk.paper : tk.inkSoft)),
+      ),
+    );
+  }
+}
+
 /// 마감 라벨 (우측 메타). 임박(오늘/내일) = ink, 그 외 = inkSoft. 채움 배지 아님.
 Widget deadlineLabel(BuildContext context, DateTime date) {
   final tk = t(context);

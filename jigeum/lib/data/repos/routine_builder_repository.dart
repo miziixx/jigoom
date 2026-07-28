@@ -106,6 +106,78 @@ class RoutineBuilderRepository {
     });
   }
 
+  /// 스텝을 다른 블록으로 옮기며 순서까지 한 번에 반영.
+  /// [stepIdsByGroup] = 화면에 보이는 그대로 (blockId → 그 안의 스텝 id 순서).
+  Future<void> applyStepLayout(Map<String, List<String>> stepIdsByGroup) async {
+    await db.transaction(() async {
+      for (final entry in stepIdsByGroup.entries) {
+        final ids = entry.value;
+        for (var i = 0; i < ids.length; i++) {
+          await (db.update(db.routineSteps)..where((s) => s.id.equals(ids[i])))
+              .write(RoutineStepsCompanion(
+                  groupId: Value(entry.key), sortOrder: Value(i)));
+        }
+      }
+    });
+  }
+
+  /// 자주 쓰는 스텝 제목 — 지금까지 만든 스텝 중 많이 쓴 순서.
+  /// (같은 블록에 이미 있는 제목은 [excludeInGroup] 으로 빼고 추천한다.)
+  Future<List<String>> frequentStepTitles({
+    String? excludeInGroup,
+    int limit = 6,
+  }) async {
+    final rows = await db.select(db.routineSteps).get();
+    final used = excludeInGroup == null
+        ? const <String>{}
+        : rows
+            .where((s) => s.groupId == excludeInGroup)
+            .map((s) => s.title.trim())
+            .toSet();
+    return _rank(
+      rows.map((s) => s.title).toList(),
+      // 아직 쓴 게 없을 때 보여줄 기본 추천.
+      fallback: const ['물 한 잔', '스트레칭', '이불 정리', '오늘 할 일 3개', '산책', '일기'],
+      exclude: used,
+      limit: limit,
+    );
+  }
+
+  /// 자주 쓰는 트리거 — "언제" 칸 추천.
+  Future<List<String>> frequentTriggers({int limit = 6}) async {
+    final rows = await db.select(db.routineSteps).get();
+    return _rank(
+      rows.map((s) => s.trigger).toList(),
+      fallback: const ['눈 뜨면', '씻고 나서', '밥 먹고', '집 나서면', '집 오면', '자기 전'],
+      limit: limit,
+    );
+  }
+
+  /// 값들을 사용 횟수 내림차순으로 정렬해 상위 [limit] 개. 모자라면 [fallback] 로 채움.
+  List<String> _rank(
+    List<String> values, {
+    required List<String> fallback,
+    Set<String> exclude = const {},
+    required int limit,
+  }) {
+    final counts = <String, int>{};
+    for (final raw in values) {
+      final v = raw.trim();
+      if (v.isEmpty || exclude.contains(v)) continue;
+      counts[v] = (counts[v] ?? 0) + 1;
+    }
+    final ranked = counts.keys.toList()
+      ..sort((a, b) {
+        final c = counts[b]!.compareTo(counts[a]!);
+        return c != 0 ? c : a.compareTo(b);
+      });
+    for (final f in fallback) {
+      if (ranked.length >= limit) break;
+      if (!counts.containsKey(f) && !exclude.contains(f)) ranked.add(f);
+    }
+    return ranked.take(limit).toList();
+  }
+
   /// 하루 체크 토글. 오늘 완료면 해제, 아니면 완료 + 연속(streak) 갱신.
   Future<void> toggleStepDone(RoutineStep s) async {
     final today = todayDate();
