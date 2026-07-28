@@ -13,6 +13,7 @@ import 'features/capture/quick_capture_bar.dart';
 import 'features/capture/quick_capture_input.dart';
 import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
+import 'features/home/home_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_screen.dart';
 import 'features/schedule/calendar_view.dart';
@@ -35,7 +36,8 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  int _index = 0;
+  // 6 = 홈(대시보드). 기존 탭 인덱스(0~5)는 그대로 유지해 음성/FAB 로직 보존.
+  int _index = 6;
 
   @override
   void initState() {
@@ -118,8 +120,15 @@ class _AppShellState extends ConsumerState<AppShell> {
       ));
   }
 
-  static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체'];
-  static const _navLabels = ['today', 'matrix', 'dump', 'time', 'habit', 'all'];
+  static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체', '홈'];
+
+  /// 하단에 노출하는 탭 (인덱스, 라벨) — 6개를 4개로 정리. 나머지는 ≡ MENU.
+  static const _bottomTabs = <(int, String)>[
+    (6, 'home'),
+    (0, 'today'),
+    (3, 'time'),
+    (2, 'dump'),
+  ];
 
   /// 하이브리드 음성 라우팅용 — 각 탭에서 "단서 없는 말"이 보류함 대신 갈 홈.
   /// 보류함으로 직행하는 일을 최소화한다: 쏟아내기(2)만 대기줄로 따로 처리하고,
@@ -140,6 +149,11 @@ class _AppShellState extends ConsumerState<AppShell> {
       2 => const DumpView(),
       3 => const TimeHub(),
       4 => const HabitView(),
+      6 => HomeView(
+          onOpenTab: (i) => setState(() => _index = i),
+          onOpenCalendar: _openCalendar,
+          onOpenFortune: _openFortune,
+        ),
       _ => const AllView(),
     };
 
@@ -227,10 +241,10 @@ class _AppShellState extends ConsumerState<AppShell> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           child: Row(
             children: [
-              for (var i = 0; i < _navLabels.length; i++)
+              for (final tab in _bottomTabs)
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => _index = i),
+                    onTap: () => setState(() => _index = tab.$1),
                     behavior: HitTestBehavior.opaque,
                     child: Container(
                       alignment: Alignment.center,
@@ -241,17 +255,18 @@ class _AppShellState extends ConsumerState<AppShell> {
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                              color: _index == i ? tk.ink : Colors.transparent,
+                              color:
+                                  _index == tab.$1 ? tk.ink : Colors.transparent,
                               width: 1.5,
                             ),
                           ),
                         ),
-                        child: Text(_navLabels[i],
+                        child: Text(tab.$2,
                             maxLines: 1,
                             overflow: TextOverflow.visible,
                             style: AppText.nav(
-                                _index == i ? tk.ink : tk.inkSoft,
-                                active: _index == i)),
+                                _index == tab.$1 ? tk.ink : tk.inkSoft,
+                                active: _index == tab.$1)),
                       ),
                     ),
                   ),
@@ -335,11 +350,14 @@ class _AppShellState extends ConsumerState<AppShell> {
               Text('MENU', style: AppText.meta(tk.inkSoft, size: 10)),
               const SizedBox(height: 10),
               Container(height: 1, color: tk.ink),
-              row('01', '아웃라인', _openOutline),
-              row('02', '달력', _openCalendar),
-              row('03', '오늘의 운세', _openFortune),
-              row('04', '보류함', _openInbox),
-              row('05', '설정', _openSettings, last: true),
+              row('01', '매트릭스', () => setState(() => _index = 1)),
+              row('02', '습관', () => setState(() => _index = 4)),
+              row('03', '전체', () => setState(() => _index = 5)),
+              row('04', '아웃라인', _openOutline),
+              row('05', '달력', _openCalendar),
+              row('06', '오늘의 운세', _openFortune),
+              row('07', '보류함', _openInbox),
+              row('08', '설정', _openSettings, last: true),
             ],
           ),
         ),
