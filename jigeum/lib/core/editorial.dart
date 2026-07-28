@@ -150,32 +150,29 @@ class EdSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 7),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text('§ ',
-                    style: AppText.meta(tk.mark, size: 10)),
-                Expanded(
-                  child: Text(title,
-                      style: AppText.hTitle(tk.ink).copyWith(
-                          fontSize: 14, height: 1.1, letterSpacing: -0.2)),
-                ),
-                if (action != null)
-                  EdTextAction(label: action!, onTap: onAction),
-              ],
-            ),
+    // v17: 섹션 상단에 얇은 규칙선, 그 아래 세리프 제목(§ 없음).
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 20),
+        Container(height: 1, color: tk.line),
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(title,
+                    style: AppText.serif(tk.ink,
+                        size: 16, height: 1.1, letterSpacing: -0.4)),
+              ),
+              if (action != null)
+                EdTextAction(label: action!, onTap: onAction),
+            ],
           ),
-          Container(height: 1, color: tk.ink),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -348,12 +345,10 @@ class EdTaskRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
-                      fontSize: 14,
-                      decoration:
-                          done ? TextDecoration.lineThrough : null,
-                      decorationColor: tk.inkSoft,
-                    ),
+                    // v17: 완료는 취소선이 아니라 흐림(opacity)으로.
+                    style: AppText.body(
+                            done ? tk.ink.withValues(alpha: 0.55) : tk.ink)
+                        .copyWith(fontSize: 13),
                   ),
                   if (tags.isNotEmpty) ...[
                     const SizedBox(height: 6),
@@ -417,11 +412,8 @@ class EdTag extends StatelessWidget {
       EdTagKind.today => tk.mark,
       EdTagKind.urgent => AppState.error,
     };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-      decoration: BoxDecoration(border: Border.all(color: c, width: 1)),
-      child: Text(label, style: AppText.chip(c).copyWith(fontSize: 9)),
-    );
+    // v17: 태그는 박스 없이 작은 모노 텍스트. today/urgent 만 포인트색.
+    return Text(label, style: AppText.chip(c).copyWith(fontSize: 9));
   }
 }
 
