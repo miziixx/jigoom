@@ -361,9 +361,9 @@ class SimpleTile extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(node.title,
-                      style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
-                          decoration: done ? TextDecoration.lineThrough : null,
-                          decorationColor: tk.inkSoft),
+                      // v17: 완료는 취소선이 아니라 흐림(opacity)으로 — EdTaskRow와 통일.
+                      style: AppText.body(
+                          done ? tk.ink.withValues(alpha: 0.5) : tk.ink),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
                   if (node.note.isNotEmpty)

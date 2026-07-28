@@ -8,16 +8,32 @@ import '../../providers.dart';
 import '../capture/quick_capture_input.dart';
 import 'quadrant_list.dart';
 
-/// 매트릭스 뷰 — 2×2. 카드가 아니라 1px 규칙선 십자로 나눈다.
+/// 매트릭스 뷰 — 2×2. 카드/두꺼운 테두리 없이, 네 영역을 옅은 저채도 배경으로
+/// 구분하고 사이에 여백만 둔다(v17: 십자 규칙선·중복선·좌측 세로선 제거).
 /// 각 칸: 대문자 모노 라벨 + 카운트 + 상위 3개. Q4(서랍)는 개수만.
 class MatrixView extends ConsumerWidget {
   const MatrixView({super.key});
 
+  static const double _gap = 10;
+
+  /// 영역 배경 — 테마 포인트/잉크를 아주 낮은 알파로 깐 저채도 틴트.
+  /// 색 면적을 넓히되 채도는 낮아 편집디자인의 흰 여백을 해치지 않는다.
+  static Widget _area(AppTokens tk, Color tint, Widget child) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: tint,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: child,
+      );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tk = t(context);
-    Widget vline() => Container(width: 1, color: tk.line);
-    Widget hline() => Container(height: 1, color: tk.line);
+    // 저채도 틴트: 긴급·중요는 포인트색, 중요는 잉크, 긴급은 옅게, 서랍은 중립.
+    final tintUI = tk.mark.withValues(alpha: 0.06);
+    final tintI = tk.ink.withValues(alpha: 0.035);
+    final tintU = tk.inkSoft.withValues(alpha: 0.05);
+    final tintDrawer = tk.line.withValues(alpha: 0.35);
 
     return Container(
       color: tk.paper,
@@ -28,33 +44,42 @@ class MatrixView extends ConsumerWidget {
           Expanded(
             child: Row(
               children: [
-                const Expanded(
-                    child: _Cell(
-                        label: 'URGENT+IMPORTANT',
-                        important: true,
-                        urgent: true,
-                        mark: true)),
-                vline(),
-                const Expanded(
-                    child: _Cell(
-                        label: 'IMPORTANT',
-                        important: true,
-                        urgent: false,
-                        emphasis: true)),
+                Expanded(
+                    child: _area(
+                        tk,
+                        tintUI,
+                        const _Cell(
+                            label: 'URGENT+IMPORTANT',
+                            important: true,
+                            urgent: true,
+                            mark: true))),
+                const SizedBox(width: _gap),
+                Expanded(
+                    child: _area(
+                        tk,
+                        tintI,
+                        const _Cell(
+                            label: 'IMPORTANT',
+                            important: true,
+                            urgent: false,
+                            emphasis: true))),
               ],
             ),
           ),
-          hline(),
+          const SizedBox(height: _gap),
           Expanded(
             child: Row(
               children: [
-                const Expanded(
-                    child: _Cell(
-                        label: 'URGENT',
-                        important: false,
-                        urgent: true)),
-                vline(),
-                const Expanded(child: _DrawerCell()),
+                Expanded(
+                    child: _area(
+                        tk,
+                        tintU,
+                        const _Cell(
+                            label: 'URGENT',
+                            important: false,
+                            urgent: true))),
+                const SizedBox(width: _gap),
+                Expanded(child: _area(tk, tintDrawer, const _DrawerCell())),
               ],
             ),
           ),
