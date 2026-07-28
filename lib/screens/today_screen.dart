@@ -321,7 +321,7 @@ class _TodayScreenState extends State<TodayScreen> {
                     style: mono(
                       color: kMint,
                       fontSize: tsAlt,
-                      fontWeight: FontWeight.normal,
+                      fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -341,7 +341,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 style: mono(
                   color: _editing ? kMint : kDim,
                   fontSize: 11,
-                  fontWeight: _editing ? FontWeight.normal : FontWeight.normal,
+                  fontWeight: _editing ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ),
@@ -503,7 +503,7 @@ class _InnerTabBtn extends StatelessWidget {
                 style: monoLabel(
                   color: isActive ? kAccent : kDim,
                   fontSize: 11,
-                  fontWeight: isActive ? FontWeight.normal : FontWeight.normal,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                   letterSpacing: 1.0,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -559,7 +559,7 @@ class _SectionHeader extends StatelessWidget {
         style: monoLabel(
           color: kText,
           fontSize: 10,
-          fontWeight: FontWeight.normal,
+          fontWeight: FontWeight.w600,
           letterSpacing: 1.8,
         ),
       ),
@@ -599,7 +599,7 @@ class _CollapsibleSectionHeader extends StatelessWidget {
               style: monoLabel(
                 color: kText,
                 fontSize: tsSmall,
-                fontWeight: FontWeight.normal,
+                fontWeight: FontWeight.w600,
                 letterSpacing: 1.6,
               ),
             ),
@@ -1403,168 +1403,109 @@ class _TimelogSectionState extends State<_TimelogSection> {
   }
 
   void _startEdit(int hour) {
-    // 기존 값을 줄바꿈 기준으로 나눠 여러 항목으로 편집한다 (하위호환).
-    final existing = (_entries[hour] ?? '')
-        .split('\n')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-    final ctrls = <TextEditingController>[
-      for (final item in existing) TextEditingController(text: item),
-      if (existing.isEmpty) TextEditingController(),
-    ];
-
+    final ctrl = _ctrls.putIfAbsent(
+      hour,
+      () => TextEditingController(text: _entries[hour] ?? ''),
+    );
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetCtx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheet) {
-            final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
-            return Padding(
-              padding: EdgeInsets.only(bottom: bottomInset),
-              child: SafeArea(
-                top: false,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: kSurface,
-                    border: Border(top: BorderSide(color: kBorder)),
+        final bottomInset = MediaQuery.of(sheetCtx).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: SafeArea(
+            top: false,
+            child: Container(
+              decoration: BoxDecoration(
+                color: kSurface,
+                border: Border(top: BorderSide(color: kBorder)),
+              ),
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${hour.toString().padLeft(2, '0')}:00',
+                    style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5),
                   ),
-                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: ctrl,
+                    autofocus: true,
+                    style: mono(color: kText, fontSize: 12),
+                    cursorColor: kMint,
+                    maxLines: 3,
+                    minLines: 1,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 7,
+                      ),
+                      filled: true,
+                      fillColor: kBg,
+                      hintText: '이 시간에 뭘 했나요...',
+                      hintStyle: mono(
+                        color: kDim.withValues(alpha: 0.5),
+                        fontSize: 11,
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: kBorder),
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: kBorder),
+                        borderRadius: BorderRadius.zero,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: kMint),
+                        borderRadius: BorderRadius.zero,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Text(
-                        '${hour.toString().padLeft(2, '0')}:00',
-                        style: mono(color: kDim, fontSize: 10, letterSpacing: 0.5),
-                      ),
-                      const SizedBox(height: 8),
-                      for (int i = 0; i < ctrls.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            children: [
-                              Text('·', style: mono(color: kMint, fontSize: 13)),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: TextField(
-                                  controller: ctrls[i],
-                                  autofocus: i == ctrls.length - 1,
-                                  style: mono(color: kText, fontSize: 12),
-                                  cursorColor: kMint,
-                                  textInputAction: TextInputAction.next,
-                                  onSubmitted: (_) => setSheet(
-                                    () => ctrls.add(TextEditingController()),
-                                  ),
-                                  decoration: InputDecoration(
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 7,
-                                    ),
-                                    filled: true,
-                                    fillColor: kBg,
-                                    hintText: '이 시간에 뭘 했나요...',
-                                    hintStyle: mono(
-                                      color: kDim.withValues(alpha: 0.5),
-                                      fontSize: 11,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderSide: BorderSide(color: kBorder),
-                                      borderRadius: BorderRadius.zero,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(color: kBorder),
-                                      borderRadius: BorderRadius.zero,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(color: kMint),
-                                      borderRadius: BorderRadius.zero,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              if (ctrls.length > 1) ...[
-                                const SizedBox(width: 4),
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () =>
-                                      setSheet(() => ctrls.removeAt(i).dispose()),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(4),
-                                    child: Text(
-                                      '✕',
-                                      style: mono(
-                                        color: kDim.withValues(alpha: 0.7),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: 2),
                       GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () =>
-                            setSheet(() => ctrls.add(TextEditingController())),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Text(
-                            '+ 항목 추가',
-                            style: mono(color: kMint, fontSize: 11),
-                          ),
+                        onTap: () => Navigator.pop(context),
+                        child: Text(
+                          '취소',
+                          style: mono(color: kDim, fontSize: 11),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Text(
-                              '취소',
-                              style: mono(color: kDim, fontSize: 11),
-                            ),
+                      const SizedBox(width: 16),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            final v = ctrl.text.trim();
+                            if (v.isEmpty) {
+                              _entries.remove(hour);
+                            } else {
+                              _entries[hour] = v;
+                            }
+                          });
+                          _persist();
+                          Navigator.pop(context);
+                        },
+                        child: Text(
+                          '저장',
+                          style: mono(
+                            color: kMint,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(width: 16),
-                          GestureDetector(
-                            onTap: () {
-                              final items = ctrls
-                                  .map((c) => c.text.trim())
-                                  .where((t) => t.isNotEmpty)
-                                  .toList();
-                              setState(() {
-                                if (items.isEmpty) {
-                                  _entries.remove(hour);
-                                } else {
-                                  _entries[hour] = items.join('\n');
-                                }
-                              });
-                              _persist();
-                              Navigator.pop(context);
-                            },
-                            child: Text(
-                              '저장',
-                              style: mono(
-                                color: kMint,
-                                fontSize: 11,
-                                fontWeight: FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         );
       },
     );
@@ -1647,42 +1588,14 @@ class _TimeRow extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(4, 5, 0, 5),
-                  child: !has
-                      ? Text(
-                          '...',
-                          style: mono(
-                            color: kDim.withValues(alpha: 0.35),
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (final item in text!
-                                .split('\n')
-                                .map((e) => e.trim())
-                                .where((e) => e.isNotEmpty))
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('· ',
-                                      style: mono(
-                                          color: kMint, fontSize: 12, height: 1.4)),
-                                  Expanded(
-                                    child: Text(
-                                      item,
-                                      style: mono(
-                                        color: kText,
-                                        fontSize: 12,
-                                        height: 1.4,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
+                  child: Text(
+                    has ? text! : '...',
+                    style: mono(
+                      color: has ? kText : kDim.withValues(alpha: 0.35),
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1750,7 +1663,7 @@ class _TodayEntrySummary extends StatelessWidget {
                 style: mono(
                   color: kMint,
                   fontSize: tsSmall,
-                  fontWeight: FontWeight.normal,
+                  fontWeight: FontWeight.bold,
                   letterSpacing: 0.3,
                 ),
               ),

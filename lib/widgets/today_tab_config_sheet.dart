@@ -140,7 +140,7 @@ class _TodayTabConfigSheetState extends State<TodayTabConfigSheet> {
                       style: mono(
                         color: kText,
                         fontSize: 12,
-                        fontWeight: FontWeight.normal,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -295,7 +295,7 @@ class _SheetBtn extends StatelessWidget {
       onTap: onTap,
       child: Text(
         label,
-        style: mono(color: color, fontSize: 12, fontWeight: FontWeight.normal),
+        style: mono(color: color, fontSize: 12, fontWeight: FontWeight.bold),
       ),
     );
   }

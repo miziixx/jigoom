@@ -3598,7 +3598,7 @@ List<TextSpan> _highlightSpans(String text, String query, TextStyle base) {
         style: base.copyWith(
           color: kMint,
           backgroundColor: kMint.withValues(alpha: 0.18),
-          fontWeight: FontWeight.normal,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -3637,7 +3637,7 @@ class _SearchBar extends StatelessWidget {
             style: mono(
               color: kMint,
               fontSize: 14,
-              fontWeight: FontWeight.normal,
+              fontWeight: FontWeight.bold,
             ),
           ),
           Expanded(
@@ -4188,7 +4188,7 @@ class _AppHeader extends StatelessWidget {
                         style: mono(
                           color: kTeal,
                           fontSize: 13,
-                          fontWeight: FontWeight.normal,
+                          fontWeight: FontWeight.bold,
                           letterSpacing: 1,
                         ),
                       ),
@@ -4279,7 +4279,7 @@ class _ViewBtn extends StatelessWidget {
         style: mono(
           color: active ? kMint : kDim,
           fontSize: 10,
-          fontWeight: active ? FontWeight.normal : FontWeight.normal,
+          fontWeight: active ? FontWeight.bold : FontWeight.normal,
         ),
       ),
     );
@@ -4651,7 +4651,7 @@ class _TagGroupHeaderState extends State<_TagGroupHeader> {
                 style: mono(
                   color: kMint.withValues(alpha: 0.7),
                   fontSize: 10,
-                  fontWeight: FontWeight.normal,
+                  fontWeight: FontWeight.bold,
                   letterSpacing: 0.8,
                 ),
               ),

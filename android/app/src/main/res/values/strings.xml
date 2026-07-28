@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">지금</string>
-    <string name="widget_memo">지금</string>
-    <string name="widget_quick">지금 quick</string>
-    <string name="widget_list">지금 list</string>
-    <string name="widget_calendar">지금 cal</string>
+    <string name="app_name">nemo</string>
+    <string name="widget_memo">nemo</string>
+    <string name="widget_quick">nemo quick</string>
+    <string name="widget_list">nemo list</string>
+    <string name="widget_calendar">nemo cal</string>
 </resources>

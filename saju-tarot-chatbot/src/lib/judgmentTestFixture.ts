@@ -1,0 +1,78 @@
+import type { CompactEvidence } from "./compactEvidence.js";
+
+export function mockCompactEvidence(): CompactEvidence {
+  return {
+    dayMaster: "임",
+    strength: { label: "중화", detail: "돕는 힘과 쓰는 힘이 비슷합니다." },
+    elementFlow: {
+      strongest: ["수"],
+      weakest: ["화"],
+      balance: { wood: 1, fire: 0, earth: 2, metal: 2, water: 3 },
+    },
+    usefulElements: {
+      yongshin: ["화"],
+      heesin: ["목"],
+      unfavorable: ["수"],
+      note: "억부 중심 + 조후 보정",
+    },
+    topFindings: ["직업·돈 쪽 변동과 점검 신호가 함께 있습니다."],
+    domainScores: [
+      {
+        domain: "career",
+        label: "직업·일",
+        activation: "high",
+        balance: "mixed",
+        activationScore: 78,
+        benefit: 42,
+        risk: 38,
+        summary: "직업 영역이 크게 움직이지만 기회와 부담이 섞여 있습니다.",
+        evidenceIds: ["domain_1"],
+      },
+      {
+        domain: "money",
+        label: "돈·재물",
+        activation: "mid",
+        balance: "caution",
+        activationScore: 54,
+        benefit: 20,
+        risk: 68,
+        summary: "돈 영역은 지출과 수익 변동을 점검해야 합니다.",
+        evidenceIds: ["domain_2"],
+      },
+      {
+        domain: "startup",
+        label: "창업·독립",
+        activation: "mid",
+        balance: "caution",
+        activationScore: 50,
+        benefit: 28,
+        risk: 64,
+        summary: "창업은 바로 키우기보다 작게 검증해야 합니다.",
+        evidenceIds: ["domain_3"],
+      },
+      {
+        domain: "health",
+        label: "건강·컨디션",
+        activation: "mid",
+        balance: "caution",
+        activationScore: 44,
+        benefit: 12,
+        risk: 48,
+        summary: "회복 리듬 점검이 필요합니다.",
+        evidenceIds: ["domain_4"],
+      },
+    ],
+    riskFlags: ["출생 시간을 몰라 시주 기반 세부 판단은 낮은 확신으로 말해야 한다."],
+    evidenceIds: {
+      natal_core: "일주 임술, 일간 임",
+      five_elements: "오행 분포 목:1 화:0 토:2 금:2 수:3",
+      strength: "강약 중화: 돕는 힘과 쓰는 힘이 비슷합니다.",
+      useful_elements: "용신 화 / 희신 목 / 기신 수",
+      current_luck: "현재 대운 갑신 / 세운 병오 / 월운 계미",
+      domain_1: "직업 운 신호",
+      domain_2: "돈 위험 신호",
+      domain_3: "창업 위험 신호",
+      domain_4: "건강 주의 신호",
+    },
+  };
+}

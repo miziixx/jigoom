@@ -1,0 +1,1156 @@
+import { Lunar, Solar } from "lunar-javascript";
+import type {
+  BirthInfo,
+  CompatibilityResult,
+  FiveElementBalance,
+  GyeokgukInfo,
+  LuckCycles,
+  MonthFlowInfo,
+  SajuChart,
+  SajuPillar,
+  SinsalCategory,
+  SinsalHit,
+  StrengthAssessment,
+  TimeCorrection,
+  YearFlowInfo,
+  YongshinCandidates,
+} from "../types/index.js";
+
+import { BIRTH_PLACES } from "../data/birthPlaces.js";
+import { iljuTraitOf } from "../data/iljuTraits.js";
+
+// 한국 서머타임 시행 기간 (시계가 1시간 빨랐던 기간 → 사주 계산 시 -60분)
+// 주의: 경계일 출생자는 출생 시각 기준 재확인이 필요할 수 있다
+const DST_PERIODS: Array<[string, string]> = [
+  ["1948-06-01", "1948-09-13"],
+  ["1949-04-03", "1949-09-11"],
+  ["1950-04-01", "1950-09-10"],
+  ["1951-05-06", "1951-09-09"],
+  ["1955-05-05", "1955-09-09"],
+  ["1956-05-20", "1956-09-30"],
+  ["1957-05-05", "1957-09-22"],
+  ["1958-05-04", "1958-09-21"],
+  ["1959-05-03", "1959-09-20"],
+  ["1960-05-01", "1960-09-18"],
+  ["1987-05-10", "1987-10-11"],
+  ["1988-05-08", "1988-10-09"],
+];
+
+// 한국 표준시 기준 경선: 1954-03-21 ~ 1961-08-09 는 동경 127.5도(UTC+8:30)였다
+function standardMeridianFor(dateStr: string): number {
+  return dateStr >= "1954-03-21" && dateStr <= "1961-08-09" ? 127.5 : 135;
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+interface CorrectedBirth {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  correction: TimeCorrection | null;
+}
+
+/**
+ * 출생 시각을 사주 계산용 시각으로 보정한다.
+ * 1. 음력 입력이면 먼저 양력으로 변환
+ * 2. 서머타임 기간이면 -60분 (시계가 실제보다 1시간 빨랐음)
+ * 3. 출생지 경도와 당시 표준시 기준 경선의 차이만큼 보정 (진태양시 근사)
+ * 시간을 모르면 보정 없이 날짜만 정규화한다.
+ */
+export function correctBirthTime(birthInfo: BirthInfo): CorrectedBirth {
+  const { calendarType, year, month, day, hour } = birthInfo;
+  const minute = birthInfo.minute ?? 0;
+
+  // 음력 → 양력 정규화 (윤달이면 lunar-javascript 규약대로 월을 음수로 전달)
+  let sy = year;
+  let sm = month;
+  let sd = day;
+  if (calendarType === "lunar") {
+    const lunarMonth = birthInfo.isLeapMonth ? -Math.abs(month) : month;
+    const solar = Lunar.fromYmdHms(year, lunarMonth, day, hour ?? 12, minute, 0).getSolar();
+    sy = solar.getYear();
+    sm = solar.getMonth();
+    sd = solar.getDay();
+  }
+
+  if (hour === null) {
+    return { year: sy, month: sm, day: sd, hour: 12, minute: 0, correction: null };
+  }
+
+  const dateStr = `${sy}-${pad2(sm)}-${pad2(sd)}`;
+  const applied: string[] = [];
+  let offsetMinutes = 0;
+
+  if (DST_PERIODS.some(([start, end]) => dateStr >= start && dateStr <= end)) {
+    offsetMinutes -= 60;
+    applied.push("서머타임 -60분");
+  }
+
+  const place = birthInfo.birthPlace && birthInfo.birthPlace !== "none" ? BIRTH_PLACES[birthInfo.birthPlace] : null;
+  if (place) {
+    const meridian = standardMeridianFor(dateStr);
+    const lonOffset = Math.round((place.longitude - meridian) * 4);
+    offsetMinutes += lonOffset;
+    applied.push(
+      `${place.label} 경도 보정 ${lonOffset >= 0 ? "+" : ""}${lonOffset}분${meridian === 127.5 ? " (당시 표준시 UTC+8:30 기준)" : ""}`,
+    );
+  }
+
+  const dt = new Date(sy, sm - 1, sd, hour, minute);
+  dt.setMinutes(dt.getMinutes() + offsetMinutes);
+
+  const corrected = {
+    year: dt.getFullYear(),
+    month: dt.getMonth() + 1,
+    day: dt.getDate(),
+    hour: dt.getHours(),
+    minute: dt.getMinutes(),
+  };
+
+  // 시주 경계(홀수시 정각) 근처 ±15분이면 시주가 바뀔 수 있음을 경고
+  const minutesOfDay = corrected.hour * 60 + corrected.minute;
+  let boundaryWarning: string | null = null;
+  for (let boundary = 1; boundary <= 23; boundary += 2) {
+    const diff = Math.abs(minutesOfDay - boundary * 60);
+    if (Math.min(diff, 1440 - diff) <= 15) {
+      boundaryWarning = `보정 후 시각이 시주 경계(${boundary}시)와 ${Math.min(diff, 1440 - diff)}분 차이라 시주가 달라질 수 있습니다. 출생 시각을 분 단위로 확인해보세요.`;
+      break;
+    }
+  }
+
+  const correction: TimeCorrection | null =
+    applied.length > 0 || boundaryWarning
+      ? {
+          applied,
+          correctedDateTime: `${corrected.year}-${pad2(corrected.month)}-${pad2(corrected.day)} ${pad2(corrected.hour)}:${pad2(corrected.minute)}`,
+          boundaryWarning,
+        }
+      : null;
+
+  return { ...corrected, correction };
+}
+
+/** 보정된 시각으로 Lunar 객체를 만든다 (모든 계산의 공통 진입점) */
+function birthToLunar(birthInfo: BirthInfo): { lunar: Lunar; correction: TimeCorrection | null } {
+  const c = correctBirthTime(birthInfo);
+  return {
+    lunar: Solar.fromYmdHms(c.year, c.month, c.day, c.hour, c.minute, 0).getLunar(),
+    correction: c.correction,
+  };
+}
+
+/**
+ * 원국 사주(EightChar)를 만든다. 23~24시 출생 시 자시 처리 방식을 반영한다.
+ * - 기본(야자시, lateNightZi !== "early"): 당일 일주 유지 (lunar-javascript 기본 sect 2)
+ * - 조자시(lateNightZi === "early"): 자시부터 다음날 일주 (sect 1)
+ */
+function eightCharOf(lunar: Lunar, birthInfo: BirthInfo) {
+  const ec = lunar.getEightChar();
+  // setSect: 23~24시 자시 처리 유파. 타입 정의에 없어 캐스팅 (런타임 지원 확인됨)
+  if (birthInfo.lateNightZi === "early") (ec as unknown as { setSect(n: number): void }).setSect(1);
+  return ec;
+}
+
+// 천간/지지 별 오행 매핑 (고정된 전통 배속, 라이브러리 버전에 의존하지 않음)
+export const GAN_WUXING: Record<string, keyof FiveElementBalance> = {
+  갑: "wood",
+  을: "wood",
+  병: "fire",
+  정: "fire",
+  무: "earth",
+  기: "earth",
+  경: "metal",
+  신: "metal",
+  임: "water",
+  계: "water",
+};
+
+export const ZHI_WUXING: Record<string, keyof FiveElementBalance> = {
+  자: "water",
+  축: "earth",
+  인: "wood",
+  묘: "wood",
+  진: "earth",
+  사: "fire",
+  오: "fire",
+  미: "earth",
+  신: "metal",
+  유: "metal",
+  술: "earth",
+  해: "water",
+};
+
+// lunar-javascript 는 한자(甲子 등)를 반환하므로 한글 표기로 변환한다
+const HANJA_TO_HANGUL: Record<string, string> = {
+  甲: "갑",
+  乙: "을",
+  丙: "병",
+  丁: "정",
+  戊: "무",
+  己: "기",
+  庚: "경",
+  辛: "신",
+  壬: "임",
+  癸: "계",
+  子: "자",
+  丑: "축",
+  寅: "인",
+  卯: "묘",
+  辰: "진",
+  巳: "사",
+  午: "오",
+  未: "미",
+  申: "신",
+  酉: "유",
+  戌: "술",
+  亥: "해",
+};
+
+export function toHangul(hanja: string): string {
+  return [...hanja].map((ch) => HANJA_TO_HANGUL[ch] ?? ch).join("");
+}
+
+// ── 음양 (천간: 갑병무경임=양 / 지지: 자인진오신술=양) ──────────
+const YANG_GAN = new Set(["갑", "병", "무", "경", "임"]);
+const YANG_ZHI = new Set(["자", "인", "진", "오", "신", "술"]);
+
+// ── 지장간 (여기·중기·정기, 마지막이 정기) ──────────
+const HIDDEN_STEMS: Record<string, string[]> = {
+  자: ["임", "계"],
+  축: ["계", "신", "기"],
+  인: ["무", "병", "갑"],
+  묘: ["갑", "을"],
+  진: ["을", "계", "무"],
+  사: ["무", "경", "병"],
+  오: ["병", "기", "정"],
+  미: ["정", "을", "기"],
+  신: ["무", "임", "경"],
+  유: ["경", "신"],
+  술: ["신", "정", "무"],
+  해: ["무", "갑", "임"],
+};
+
+export const ELEMENT_KO: Record<keyof FiveElementBalance, string> = {
+  wood: "목",
+  fire: "화",
+  earth: "토",
+  metal: "금",
+  water: "수",
+};
+
+// 오행 상생: 목→화→토→금→수→목
+const GENERATES: Record<keyof FiveElementBalance, keyof FiveElementBalance> = {
+  wood: "fire",
+  fire: "earth",
+  earth: "metal",
+  metal: "water",
+  water: "wood",
+};
+
+// 오행 상극: 목→토, 토→수, 수→화, 화→금, 금→목
+const OVERCOMES: Record<keyof FiveElementBalance, keyof FiveElementBalance> = {
+  wood: "earth",
+  earth: "water",
+  water: "fire",
+  fire: "metal",
+  metal: "wood",
+};
+
+/**
+ * 일간과 대상 천간의 관계로 십성을 판정한다 (전통 규칙).
+ * 오행 관계(비겁/인성/식상/재성/관성) × 음양 동이(편/정)로 결정된다.
+ */
+export function tenGodOf(dayGan: string, targetGan: string): string {
+  const dayEl = GAN_WUXING[dayGan];
+  const targetEl = GAN_WUXING[targetGan];
+  if (!dayEl || !targetEl) return "?";
+  const samePolarity = YANG_GAN.has(dayGan) === YANG_GAN.has(targetGan);
+
+  if (targetEl === dayEl) return samePolarity ? "비견" : "겁재";
+  if (GENERATES[targetEl] === dayEl) return samePolarity ? "편인" : "정인";
+  if (GENERATES[dayEl] === targetEl) return samePolarity ? "식신" : "상관";
+  if (OVERCOMES[dayEl] === targetEl) return samePolarity ? "편재" : "정재";
+  return samePolarity ? "편관" : "정관";
+}
+
+// ── 12운성 (일간 기준: 양간 순행, 음간 역행) ──────────
+const TWELVE_STAGES = ["장생", "목욕", "관대", "건록", "제왕", "쇠", "병", "사", "묘", "절", "태", "양"];
+const BRANCH_ORDER = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
+const GAN_ORDER = ["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"];
+// 각 일간의 장생 지지
+const CHANGSHENG: Record<string, string> = {
+  갑: "해",
+  병: "인",
+  무: "인",
+  경: "사",
+  임: "신",
+  을: "오",
+  정: "유",
+  기: "유",
+  신: "자",
+  계: "묘",
+};
+
+export function twelveStageOf(dayGan: string, zhi: string): string {
+  const start = BRANCH_ORDER.indexOf(CHANGSHENG[dayGan] ?? "");
+  const target = BRANCH_ORDER.indexOf(zhi);
+  if (start < 0 || target < 0) return "?";
+  const steps = YANG_GAN.has(dayGan) ? (target - start + 12) % 12 : (start - target + 12) % 12;
+  return TWELVE_STAGES[steps];
+}
+
+/** 일주의 순중공망 지지 2개 (60갑자 순 기준) */
+export function gongmangOf(dayGan: string, dayZhi: string): string {
+  const g = GAN_ORDER.indexOf(dayGan);
+  const z = BRANCH_ORDER.indexOf(dayZhi);
+  if (g < 0 || z < 0) return "?";
+  let i = g;
+  while (i % 12 !== z) i += 10; // 60갑자에서 일주의 인덱스 찾기
+  const decadeStart = Math.floor(i / 10) * 10;
+  return BRANCH_ORDER[(decadeStart + 10) % 12] + BRANCH_ORDER[(decadeStart + 11) % 12];
+}
+
+// ── 신살(神煞) 테이블 ──────────
+// 신살 분류: 길신(도움)·흉살(주의)·특수(양면). 미지정은 특수로 처리.
+const SINSAL_CATEGORY: Record<string, SinsalCategory> = {
+  // 길신
+  천을귀인: "길신", 태극귀인: "길신", 문창귀인: "길신", 학당귀인: "길신",
+  천덕귀인: "길신", 월덕귀인: "길신", 금여: "길신", 암록: "길신",
+  장성살: "길신", 반안살: "길신",
+  // 흉살
+  겁살: "흉살", 재살: "흉살", 천살: "흉살", 월살: "흉살", 망신살: "흉살",
+  육해살: "흉살", 양인: "흉살", 비인: "흉살", 급각살: "흉살", 단교관살: "흉살",
+  원진살: "흉살", 귀문관살: "흉살", 고신살: "흉살", 과숙살: "흉살",
+  백호대살: "흉살", 천라: "흉살", 지망: "흉살",
+  // 특수(양면) — 관법·조합에 따라 길흉이 갈림
+  지살: "특수", 역마살: "특수", 년살: "특수", 화개살: "특수",
+  홍염살: "특수", 괴강: "특수",
+};
+
+// 12지 순서 (인덱스 계산용)
+const ZHI_ORDER = ["자", "축", "인", "묘", "진", "사", "오", "미", "신", "유", "술", "해"];
+
+// 각 지지가 속한 삼합국의 생지(生地) — 12신살 기준점
+const SAENGJI_OF: Record<string, string> = {
+  인: "인", 오: "인", 술: "인", // 화국 生=인
+  신: "신", 자: "신", 진: "신", // 수국 生=신
+  사: "사", 유: "사", 축: "사", // 금국 生=사
+  해: "해", 묘: "해", 미: "해", // 목국 生=해
+};
+
+// 십이신살(十二神殺): 생지 기준 (생지-3)부터 12지 순서로 배정
+const TWELVE_SINSAL: Array<{ name: string; gloss: string }> = [
+  { name: "겁살", gloss: "빼앗김·큰 변동·강제성의 기운. 방심 금물" },
+  { name: "재살", gloss: "송사·구속·관재수(수옥살). 대립·다툼 주의" },
+  { name: "천살", gloss: "예기치 못한 하늘의 재해·불가항력의 기운" },
+  { name: "지살", gloss: "이동·변동·타향·활동의 기운(역마와 유사)" },
+  { name: "년살", gloss: "도화(桃花) — 매력·인기·이성운의 기운" },
+  { name: "월살", gloss: "고갈·메마름(고초살). 소모·정체를 조심" },
+  { name: "망신살", gloss: "체면 손상·구설·내부 노출의 기운" },
+  { name: "장성살", gloss: "권위·리더십·중심에 서는 기운. 최고의 길살" },
+  { name: "반안살", gloss: "출세·승진·안정된 자리(말안장)의 기운" },
+  { name: "역마살", gloss: "이동·변화·해외·활동·분주함의 기운" },
+  { name: "육해살", gloss: "지연·질병·소모·발목잡힘의 기운" },
+  { name: "화개살", gloss: "고독·몰입·예술·종교·연구·재능의 기운" },
+];
+
+// 천을귀인: 일간 기준 최고 길신 지지
+const CHEONEUL: Record<string, string[]> = {
+  갑: ["축", "미"], 무: ["축", "미"], 경: ["축", "미"],
+  을: ["자", "신"], 기: ["자", "신"],
+  병: ["해", "유"], 정: ["해", "유"],
+  신: ["인", "오"],
+  임: ["사", "묘"], 계: ["사", "묘"],
+};
+
+// 태극귀인: 일간 기준
+const TAEGEUK: Record<string, string[]> = {
+  갑: ["자", "오"], 을: ["자", "오"],
+  병: ["묘", "유"], 정: ["묘", "유"],
+  무: ["진", "술", "축", "미"], 기: ["진", "술", "축", "미"],
+  경: ["인", "해"], 신: ["인", "해"],
+  임: ["사", "신"], 계: ["사", "신"],
+};
+
+// 문창귀인: 일간 기준 (식신이 록을 얻는 지지)
+const MUNCHANG: Record<string, string> = {
+  갑: "사", 을: "오", 병: "신", 정: "유", 무: "신", 기: "유", 경: "해", 신: "자", 임: "인", 계: "묘",
+};
+
+// 학당귀인: 일간의 장생지
+const HAKDANG: Record<string, string> = {
+  갑: "해", 을: "오", 병: "인", 정: "유", 무: "인", 기: "유", 경: "사", 신: "자", 임: "신", 계: "묘",
+};
+
+// 금여(金輿): 일간 기준
+const GEUMYEO: Record<string, string> = {
+  갑: "진", 을: "사", 병: "미", 정: "신", 무: "미", 기: "신", 경: "술", 신: "해", 임: "축", 계: "인",
+};
+
+// 암록(暗祿): 일간 록과 육합하는 지지
+const AMROK: Record<string, string> = {
+  갑: "해", 을: "술", 병: "신", 정: "미", 무: "신", 기: "미", 경: "사", 신: "진", 임: "인", 계: "축",
+};
+
+// 홍염살(紅艶殺): 일간 기준
+const HONGYEOM: Record<string, string> = {
+  갑: "오", 을: "오", 병: "인", 정: "미", 무: "진", 기: "진", 경: "술", 신: "유", 임: "자", 계: "신",
+};
+
+// 양인(羊刃): 일간(양간) 기준 겁재의 왕지
+const YANGIN: Record<string, string> = { 갑: "묘", 병: "오", 무: "오", 경: "유", 임: "자" };
+// 비인(飛刃): 양인을 충하는 지지
+const BIIN: Record<string, string> = { 갑: "유", 병: "자", 무: "자", 경: "묘", 임: "오" };
+
+// 백호대살 / 괴강 (기둥 간지 단위)
+const BAEKHO = new Set(["갑진", "을미", "병술", "정축", "무진", "임술", "계축"]);
+const GOEGANG = new Set(["경진", "경술", "무술", "임진", "임술"]);
+
+// 월덕귀인: 월지 삼합국 기준 천간 (원국 천간에 있으면 성립)
+const WOLDEOK: Record<string, string> = {
+  인: "병", 오: "병", 술: "병",
+  신: "임", 자: "임", 진: "임",
+  해: "갑", 묘: "갑", 미: "갑",
+  사: "경", 유: "경", 축: "경",
+};
+
+// 천덕귀인: 월지 기준 (대상이 천간이면 천간에서, 지지면 지지에서 성립)
+const CHEONDEOK: Record<string, string> = {
+  인: "정", 묘: "신", 진: "임", 사: "신", 오: "해", 미: "갑",
+  신: "계", 유: "인", 술: "병", 해: "을", 자: "사", 축: "경",
+};
+const GAN_SET = new Set(["갑", "을", "병", "정", "무", "기", "경", "신", "임", "계"]);
+
+// 원진살 / 귀문관살 (지지 쌍 — 원국에 두 지지가 모두 있으면 성립)
+const WONJIN_PAIRS = ["자미", "축오", "인유", "묘신", "진해", "사술"];
+const GWIMUN_PAIRS = ["자유", "축오", "인미", "묘신", "진해", "사술"];
+
+// 고신살 / 과숙살: 년지(또는 일지) 기준
+const GOSIN_GWASUK: Array<{ base: string[]; gosin: string; gwasuk: string }> = [
+  { base: ["해", "자", "축"], gosin: "인", gwasuk: "술" },
+  { base: ["인", "묘", "진"], gosin: "사", gwasuk: "축" },
+  { base: ["사", "오", "미"], gosin: "신", gwasuk: "진" },
+  { base: ["신", "유", "술"], gosin: "해", gwasuk: "미" },
+];
+
+// 급각살: 월지 계절 기준 지지 쌍
+const GEUPGAK: Array<{ months: string[]; zhis: string[] }> = [
+  { months: ["인", "묘", "진"], zhis: ["해", "자"] },
+  { months: ["사", "오", "미"], zhis: ["묘", "미"] },
+  { months: ["신", "유", "술"], zhis: ["인", "술"] },
+  { months: ["해", "자", "축"], zhis: ["축", "진"] },
+];
+
+// 단교관살: 월지별 특정 지지
+const DANGYO: Record<string, string> = {
+  인: "인", 묘: "묘", 진: "신", 사: "축", 오: "술", 미: "유",
+  신: "진", 유: "사", 술: "오", 해: "미", 자: "해", 축: "자",
+};
+
+/** 기준 지지(삼합)로 12신살 → {지지: 신살} 매핑을 만든다 */
+function twelveSinsalMap(anchorZhi: string): Record<string, { name: string; gloss: string }> {
+  const saengji = SAENGJI_OF[anchorZhi];
+  if (!saengji) return {};
+  const start = (ZHI_ORDER.indexOf(saengji) - 3 + 12) % 12;
+  const map: Record<string, { name: string; gloss: string }> = {};
+  for (let i = 0; i < 12; i++) {
+    map[ZHI_ORDER[(start + i) % 12]] = TWELVE_SINSAL[i];
+  }
+  return map;
+}
+
+/**
+ * 원국 4기둥의 신살을 종합 계산한다.
+ * - 십이신살: 년지·일지 삼합 기준 (겁살·재살·천살·지살·년살(도화)·월살·망신·장성·반안·역마·육해·화개)
+ * - 일간 기준 길신: 천을·태극귀인, 문창·학당귀인, 금여, 암록
+ * - 일간 기준 흉·특수: 양인, 비인, 홍염살
+ * - 월지 기준: 천덕·월덕귀인, 급각살, 단교관살
+ * - 지지 쌍: 원진살, 귀문관살
+ * - 년지 기준: 고신살, 과숙살
+ * - 기둥 간지: 백호대살, 괴강
+ * - 원국 조합: 천라(술+해), 지망(진+사)
+ * 관법에 따라 판정이 갈리는 신살이 많아 "참고용" 근거로 전달한다.
+ */
+function computeSinsal(
+  dayGan: string,
+  dayZhi: string,
+  yearZhi: string,
+  monthZhi: string,
+  gans: PositionedChar[],
+  zhis: PositionedChar[],
+): SinsalHit[] {
+  const hits: SinsalHit[] = [];
+  const seen = new Set<string>();
+  const zhiSet = new Set(zhis.map((z) => z.char));
+  const zhiAt = (char: string) => zhis.filter((z) => z.char === char).map((z) => `${z.label} ${z.char}`);
+  const ganAt = (char: string) => gans.filter((g) => g.char === char).map((g) => `${g.label} ${g.char}`);
+  const add = (name: string, position: string, gloss: string) => {
+    const key = `${name}|${position}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    hits.push({ name, position, gloss, category: SINSAL_CATEGORY[name] ?? "특수" });
+  };
+
+  // ── 십이신살 (년지·일지 삼합 기준) ──
+  for (const anchor of [yearZhi, dayZhi]) {
+    const map = twelveSinsalMap(anchor);
+    for (const z of zhis) {
+      const s = map[z.char];
+      if (s) add(s.name, `${z.label} ${z.char}`, s.gloss);
+    }
+  }
+
+  // ── 일간 기준 길신 (지지) ──
+  const byDayGanZhi: Array<[Record<string, string | string[]>, string, string]> = [
+    [CHEONEUL, "천을귀인", "귀인의 도움을 받기 쉬운 최고의 길신"],
+    [TAEGEUK, "태극귀인", "위기에서 반전·귀함을 얻는 길신"],
+    [MUNCHANG, "문창귀인", "총명·학문·시험·글재주의 길신"],
+    [HAKDANG, "학당귀인", "배움·연구·교육에 강한 길신(일간 장생지)"],
+    [GEUMYEO, "금여", "온화한 성정·배우자 복·안락의 길신"],
+    [AMROK, "암록", "숨은 복·귀인의 은밀한 도움(일간 록의 육합)"],
+    [HONGYEOM, "홍염살", "끼·매력·이성의 관심을 끄는 기운(도화 계열)"],
+  ];
+  for (const [table, name, gloss] of byDayGanZhi) {
+    const t = table[dayGan];
+    const chars = Array.isArray(t) ? t : t ? [t] : [];
+    for (const c of chars) for (const pos of zhiAt(c)) add(name, pos, gloss);
+  }
+
+  // ── 양인 / 비인 (일간 양간) ──
+  const yangin = YANGIN[dayGan];
+  if (yangin) for (const pos of zhiAt(yangin)) add("양인", pos, "강한 추진력·기세. 과하면 다툼·사고 주의");
+  const biin = BIIN[dayGan];
+  if (biin) for (const pos of zhiAt(biin)) add("비인", pos, "양인을 충하는 자리. 급격한 결단·돌발 변동의 기운");
+
+  // ── 월덕·천덕귀인 (월지 기준) ──
+  const woldeok = WOLDEOK[monthZhi];
+  if (woldeok) for (const pos of ganAt(woldeok)) add("월덕귀인", pos, "재난을 덜고 복을 더하는 길신(월지 삼합)");
+  const cheondeok = CHEONDEOK[monthZhi];
+  if (cheondeok) {
+    const targets = GAN_SET.has(cheondeok) ? ganAt(cheondeok) : zhiAt(cheondeok);
+    for (const pos of targets) add("천덕귀인", pos, "하늘이 돕는 최고의 길신. 흉을 길로 돌림");
+  }
+
+  // ── 급각살 / 단교관살 (월지 기준) ──
+  const geupgak = GEUPGAK.find((g) => g.months.includes(monthZhi));
+  if (geupgak) for (const c of geupgak.zhis) for (const pos of zhiAt(c)) add("급각살", pos, "손발·관절·다침의 기운. 신체 관리 유의");
+  const dangyo = DANGYO[monthZhi];
+  if (dangyo) for (const pos of zhiAt(dangyo)) add("단교관살", pos, "넘어짐·낙상·좌절의 기운(급각살과 함께 보는 흉살)");
+
+  // ── 원진살 / 귀문관살 (지지 쌍) ──
+  for (const pair of WONJIN_PAIRS) {
+    const [a, b] = [pair[0], pair[1]];
+    if (zhiSet.has(a) && zhiSet.has(b)) add("원진살", `${a}-${b}`, "미워하면서도 못 벗어나는 애증·불화의 기운");
+  }
+  for (const pair of GWIMUN_PAIRS) {
+    const [a, b] = [pair[0], pair[1]];
+    if (zhiSet.has(a) && zhiSet.has(b)) add("귀문관살", `${a}-${b}`, "예민·직관·집착·신경과민의 기운");
+  }
+
+  // ── 고신살 / 과숙살 (년지 기준) ──
+  const gg = GOSIN_GWASUK.find((g) => g.base.includes(yearZhi));
+  if (gg) {
+    for (const pos of zhiAt(gg.gosin)) add("고신살", pos, "홀로됨·고독·관계 단절의 기운(남성에게 더 무겁게 봄)");
+    for (const pos of zhiAt(gg.gwasuk)) add("과숙살", pos, "외로움·이별·독수공방의 기운(여성에게 더 무겁게 봄)");
+  }
+
+  // ── 천라지망 (원국 조합) ──
+  if (zhiSet.has("술") && zhiSet.has("해")) add("천라", "술+해", "하늘 그물 — 답답함·구속·정체의 기운");
+  if (zhiSet.has("진") && zhiSet.has("사")) add("지망", "진+사", "땅 그물 — 얽매임·구속·정체의 기운");
+
+  // ── 백호대살 / 괴강 (기둥 간지) ──
+  for (let i = 0; i < zhis.length; i++) {
+    const label = zhis[i].label.replace("지", "주");
+    const gz = (gans[i]?.char ?? "") + zhis[i].char;
+    if (BAEKHO.has(gz)) add("백호대살", `${label} ${gz}`, "기세가 강해 성취가 크나 급변·건강 관리 필요");
+    if (GOEGANG.has(gz)) add("괴강", `${label} ${gz}`, "카리스마·결단력이 강한 리더 기질");
+  }
+
+  return hits;
+}
+
+/** 조후(계절 조화) 관점의 간단 노트 — 월지 계절 기준 */
+function seasonNoteOf(monthZhi: string, dayGan: string): string {
+  const dayEl = ELEMENT_KO[GAN_WUXING[dayGan]];
+  if (["해", "자", "축"].includes(monthZhi))
+    return `겨울(${monthZhi}월) 출생 — 한랭한 계절이라 조후상 화(따뜻함)의 역할이 중요. 일간 ${dayGan}(${dayEl}) 기준.`;
+  if (["사", "오", "미"].includes(monthZhi))
+    return `여름(${monthZhi}월) 출생 — 더운 계절이라 조후상 수(식힘)의 역할이 중요. 일간 ${dayGan}(${dayEl}) 기준.`;
+  if (["인", "묘", "진"].includes(monthZhi))
+    return `봄(${monthZhi}월) 출생 — 목 기운이 왕성한 계절. 일간 ${dayGan}(${dayEl}) 기준으로 계절 기운과의 관계를 본다.`;
+  return `가을(${monthZhi}월) 출생 — 금 기운이 왕성한 계절. 일간 ${dayGan}(${dayEl}) 기준으로 계절 기운과의 관계를 본다.`;
+}
+
+// ── 합충형파해 짝 테이블 ──────────
+const GAN_HE: Record<string, string> = { 갑기: "토", 을경: "금", 병신: "수", 정임: "목", 무계: "화" };
+const ZHI_LIUHE: Record<string, string> = { 자축: "토", 인해: "목", 묘술: "화", 진유: "금", 사신: "수", 오미: "화" };
+const ZHI_CHONG = new Set(["자오", "축미", "인신", "묘유", "진술", "사해"]);
+const ZHI_XING = new Set(["인사", "사신", "인신", "축술", "술미", "축미", "자묘"]);
+const ZHI_SELF_XING = new Set(["진", "오", "유", "해"]);
+const ZHI_PO = new Set(["자유", "축진", "인해", "묘오", "사신", "술미"]);
+const ZHI_HAI = new Set(["자미", "축오", "인사", "묘진", "신해", "유술"]);
+// 삼합 [왕지 포함 3글자, 결과 오행]
+const SANHE: Array<{ group: string[]; wangZhi: string; element: string }> = [
+  { group: ["인", "오", "술"], wangZhi: "오", element: "화" },
+  { group: ["사", "유", "축"], wangZhi: "유", element: "금" },
+  { group: ["신", "자", "진"], wangZhi: "자", element: "수" },
+  { group: ["해", "묘", "미"], wangZhi: "묘", element: "목" },
+];
+const FANGHE: Array<{ group: string[]; element: string }> = [
+  { group: ["인", "묘", "진"], element: "목" },
+  { group: ["사", "오", "미"], element: "화" },
+  { group: ["신", "유", "술"], element: "금" },
+  { group: ["해", "자", "축"], element: "수" },
+];
+
+function pairKey(a: string, b: string): string {
+  // 테이블이 한 방향으로만 정의되어 있어 양방향 모두 확인한다
+  return a + b;
+}
+
+interface PositionedChar {
+  label: string;
+  char: string;
+}
+
+/** 4주(또는 3주)의 천간합·지지 합충형파해를 모두 찾아 사람이 읽을 수 있는 목록으로 반환 */
+function computeInteractions(gans: PositionedChar[], zhis: PositionedChar[]): string[] {
+  const found: string[] = [];
+
+  for (let i = 0; i < gans.length; i++) {
+    for (let j = i + 1; j < gans.length; j++) {
+      const a = gans[i];
+      const b = gans[j];
+      const he = GAN_HE[pairKey(a.char, b.char)] ?? GAN_HE[pairKey(b.char, a.char)];
+      if (he) found.push(`${a.label}-${b.label} ${a.char}${b.char}합(${he})`);
+    }
+  }
+
+  // 테이블에 정의된 정식 명칭 순서(예: 자오충)로 표기하기 위해 매칭된 키를 그대로 쓴다
+  const matchKey = (set: Set<string>, keys: string[]) => keys.find((k) => set.has(k));
+
+  for (let i = 0; i < zhis.length; i++) {
+    for (let j = i + 1; j < zhis.length; j++) {
+      const a = zhis[i];
+      const b = zhis[j];
+      const keys = [pairKey(a.char, b.char), pairKey(b.char, a.char)];
+      const liuheKey = keys.find((k) => ZHI_LIUHE[k] !== undefined);
+      if (liuheKey) found.push(`${a.label}-${b.label} ${liuheKey}합(${ZHI_LIUHE[liuheKey]})`);
+      const chong = matchKey(ZHI_CHONG, keys);
+      if (chong) found.push(`${a.label}-${b.label} ${chong}충`);
+      const xing = matchKey(ZHI_XING, keys);
+      if (xing) found.push(`${a.label}-${b.label} ${xing}형`);
+      if (a.char === b.char && ZHI_SELF_XING.has(a.char))
+        found.push(`${a.label}-${b.label} ${a.char}${a.char} 자형`);
+      const po = matchKey(ZHI_PO, keys);
+      if (po) found.push(`${a.label}-${b.label} ${po}파`);
+      const hai = matchKey(ZHI_HAI, keys);
+      if (hai) found.push(`${a.label}-${b.label} ${hai}해`);
+    }
+  }
+
+  const present = new Set(zhis.map((z) => z.char));
+  for (const { group, wangZhi, element } of SANHE) {
+    const hits = group.filter((g) => present.has(g));
+    if (hits.length === 3) {
+      found.push(`지지 ${group.join("")} 삼합(${element})`);
+    } else if (hits.length === 2 && hits.includes(wangZhi)) {
+      found.push(`지지 ${hits.join("")} 반합(${element})`);
+    }
+  }
+  for (const { group, element } of FANGHE) {
+    if (group.every((g) => present.has(g))) found.push(`지지 ${group.join("")} 방합(${element})`);
+  }
+
+  return found;
+}
+
+// 간이 억부법: 위치별 가중치 (월지가 가장 큼 = 계절의 힘)
+const STRENGTH_WEIGHTS = { 연간: 1, 연지: 1.2, 월간: 1.2, 월지: 2.5, 일지: 1.5, 시간: 1, 시지: 1.2 };
+
+function assessStrength(
+  dayGan: string,
+  gans: PositionedChar[],
+  zhis: PositionedChar[],
+): StrengthAssessment {
+  const dayEl = GAN_WUXING[dayGan];
+  const helpsDay = (el: keyof FiveElementBalance | undefined) =>
+    el !== undefined && (el === dayEl || GENERATES[el] === dayEl);
+
+  let supportScore = 0;
+  let totalScore = 0;
+  const supporters: string[] = [];
+
+  for (const { label, char } of gans) {
+    if (label === "일간") continue;
+    const w = STRENGTH_WEIGHTS[label as keyof typeof STRENGTH_WEIGHTS] ?? 1;
+    totalScore += w;
+    if (helpsDay(GAN_WUXING[char])) {
+      supportScore += w;
+      supporters.push(`${label} ${char}`);
+    }
+  }
+  for (const { label, char } of zhis) {
+    const w = STRENGTH_WEIGHTS[label as keyof typeof STRENGTH_WEIGHTS] ?? 1;
+    totalScore += w;
+    if (helpsDay(ZHI_WUXING[char])) {
+      supportScore += w;
+      supporters.push(`${label} ${char}`);
+    }
+  }
+
+  const ratio = supportScore / totalScore;
+  const label: StrengthAssessment["label"] = ratio >= 0.5 ? "신강" : ratio <= 0.35 ? "신약" : "중화";
+
+  const monthZhi = zhis.find((z) => z.label === "월지");
+  const deLing = monthZhi ? helpsDay(ZHI_WUXING[monthZhi.char]) : false;
+  const detail = [
+    `일간을 돕는 세력(비겁·인성): ${supporters.length > 0 ? supporters.join(", ") : "없음"}`,
+    `월지 ${monthZhi?.char ?? "?"}은(는) 일간을 ${deLing ? "돕는 오행 (득령)" : "돕지 않는 오행 (실령)"}`,
+    `점수 ${supportScore.toFixed(1)}/${totalScore.toFixed(1)} (위치 가중치 기반 간이 판정)`,
+  ].join(" · ");
+
+  return { supportScore, totalScore, label, detail };
+}
+
+function suggestYongshin(dayGan: string, strength: StrengthAssessment, fiveElements: FiveElementBalance): YongshinCandidates {
+  const dayEl = GAN_WUXING[dayGan];
+  const inseong = (Object.keys(GENERATES) as Array<keyof FiveElementBalance>).find((el) => GENERATES[el] === dayEl)!;
+  const sikSang = GENERATES[dayEl];
+  const jaeSeong = OVERCOMES[dayEl];
+  const gwanSeong = (Object.keys(OVERCOMES) as Array<keyof FiveElementBalance>).find((el) => OVERCOMES[el] === dayEl)!;
+
+  const note =
+    "간이 억부법 기준 후보이며, 조후(계절 조화) 등 다른 관법으로는 달라질 수 있는 참고용입니다.";
+
+  if (strength.label === "신약") {
+    // 신약 → 인성이 1차 용신, 비겁이 희신(용신을 돕고 일간을 직접 강화)
+    const yongshin = [ELEMENT_KO[inseong]];
+    const heesin = [ELEMENT_KO[dayEl]];
+    return {
+      supportive: [...yongshin, ...heesin],
+      yongshin,
+      heesin,
+      unfavorable: [ELEMENT_KO[gwanSeong], ELEMENT_KO[jaeSeong], ELEMENT_KO[sikSang]],
+      note: `신약 → 일간을 돕는 인성(${ELEMENT_KO[inseong]})이 1차 용신, 비겁(${ELEMENT_KO[dayEl]})이 희신 후보. ${note}`,
+    };
+  }
+  if (strength.label === "신강") {
+    // 신강 → 힘을 빼는 관성/식상이 용신, 재성이 희신(관성을 생하고 식상 흐름을 받음)
+    const yongshin = [ELEMENT_KO[gwanSeong], ELEMENT_KO[sikSang]];
+    const heesin = [ELEMENT_KO[jaeSeong]];
+    return {
+      supportive: [...yongshin, ...heesin],
+      yongshin,
+      heesin,
+      unfavorable: [ELEMENT_KO[dayEl], ELEMENT_KO[inseong]],
+      note: `신강 → 힘을 덜어내는 관성(${ELEMENT_KO[gwanSeong]})·식상(${ELEMENT_KO[sikSang]})이 용신, 재성(${ELEMENT_KO[jaeSeong]})이 희신 후보. ${note}`,
+    };
+  }
+
+  const entries = Object.entries(fiveElements) as Array<[keyof FiveElementBalance, number]>;
+  const min = Math.min(...entries.map(([, v]) => v));
+  const lacking = entries.filter(([, v]) => v === min).map(([el]) => ELEMENT_KO[el]);
+  return {
+    supportive: lacking,
+    yongshin: lacking,
+    heesin: [],
+    unfavorable: [],
+    note: `중화에 가까움 → 특정 용신보다 부족한 오행(${lacking.join("·")}) 보완이 우선. ${note}`,
+  };
+}
+
+// ── 격국(格局) 판정 ──────────
+const GYEOKGUK_BY_TENGOD: Record<string, { name: string; gloss: string }> = {
+  비견: { name: "건록격", gloss: "자립심과 주체성이 강한 구조. 스스로 개척하는 힘이 중심이에요." },
+  겁재: { name: "양인격", gloss: "기세와 추진력이 강한 구조. 큰 힘을 잘 쓰면 성취가 크고, 과하면 마찰을 조심해요." },
+  식신: { name: "식신격", gloss: "표현·생산·먹을 복의 구조. 꾸준히 만들어내는 힘이 재물로 이어져요." },
+  상관: { name: "상관격", gloss: "재능·표현·창의의 구조. 틀을 깨는 감각이 강하지만 말·규칙 관리가 중요해요." },
+  편재: { name: "편재격", gloss: "큰 재물·사업 수완의 구조. 활동 범위가 넓고 기회 포착이 빨라요." },
+  정재: { name: "정재격", gloss: "성실·안정적 재물의 구조. 꾸준히 모으고 관리하는 힘이 강해요." },
+  편관: { name: "편관격(칠살격)", gloss: "책임·압박·도전의 구조. 강한 추진력이 있지만 부담을 잘 다스려야 해요." },
+  정관: { name: "정관격", gloss: "명예·규범·조직의 구조. 반듯하고 신뢰받는 자리에 잘 맞아요." },
+  편인: { name: "편인격", gloss: "직관·전문성·독특한 학문의 구조. 몰입력이 강해요." },
+  정인: { name: "정인격", gloss: "학문·명예·보호의 구조. 배우고 정리하는 힘이 강점이에요." },
+};
+
+function computeGyeokguk(dayGan: string, monthZhi: string, strength: StrengthAssessment): GyeokgukInfo {
+  const stems = HIDDEN_STEMS[monthZhi] ?? [];
+  const main = stems[stems.length - 1] ?? "";
+  const tenGod = tenGodOf(dayGan, main);
+  const base = GYEOKGUK_BY_TENGOD[tenGod] ?? { name: "일반격", gloss: "뚜렷한 격이 잡히지 않는 균형형 구조예요." };
+
+  const ratio = strength.supportScore / strength.totalScore;
+  // 극도로 치우치면 종격 후보로 표시 (참고용)
+  if (ratio <= 0.2) {
+    return {
+      name: `${base.name} · 종격(從格) 후보`,
+      basis: `월지 ${monthZhi}의 정기(${main}) 기준 ${tenGod} + 일간이 매우 약함(지지세력 ${(ratio * 100).toFixed(0)}%)`,
+      gloss: `${base.gloss} 다만 일간이 매우 약해, 강한 세력을 따라가는 종격으로 볼 여지도 있어요(관법에 따라 달라지는 참고용).`,
+    };
+  }
+  if (ratio >= 0.8) {
+    return {
+      name: `${base.name} · 종왕/종강격 후보`,
+      basis: `월지 ${monthZhi}의 정기(${main}) 기준 ${tenGod} + 일간이 매우 강함(지지세력 ${(ratio * 100).toFixed(0)}%)`,
+      gloss: `${base.gloss} 다만 일간이 매우 강해, 그 힘을 그대로 쓰는 종왕/종강격으로 볼 여지도 있어요(참고용).`,
+    };
+  }
+  return {
+    name: base.name,
+    basis: `월지 ${monthZhi}의 정기(${main}) 기준 일간과의 관계 = ${tenGod}`,
+    gloss: base.gloss,
+  };
+}
+
+function toPillar(ganZhiHanja: string): SajuPillar {
+  const ganZhi = toHangul(ganZhiHanja);
+  return {
+    gan: ganZhi[0] ?? "",
+    zhi: ganZhi[1] ?? "",
+    ganZhi,
+  };
+}
+
+function addElement(balance: FiveElementBalance, char: string, table: Record<string, keyof FiveElementBalance>) {
+  const key = table[char];
+  if (key) balance[key] += 1;
+}
+
+/**
+ * 생년월일시를 받아 연주/월주/일주/시주와 오행 분포, 십성을 계산한다.
+ * 출생 시간을 모르면(hour === null) 시주는 계산하지 않는다.
+ * (연/월/일주는 시각과 무관하므로 정오를 임시값으로 넣어 계산해도 정확하다)
+ */
+export function computeSajuChart(birthInfo: BirthInfo): SajuChart {
+  const { hour } = birthInfo;
+  const { lunar, correction } = birthToLunar(birthInfo);
+
+  const ec = eightCharOf(lunar, birthInfo);
+
+  const yearPillar = toPillar(ec.getYear());
+  const monthPillar = toPillar(ec.getMonth());
+  const dayPillar = toPillar(ec.getDay());
+  const timePillar = hour === null ? null : toPillar(ec.getTime());
+
+  const fiveElements: FiveElementBalance = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
+  for (const pillar of [yearPillar, monthPillar, dayPillar, timePillar]) {
+    if (!pillar) continue;
+    addElement(fiveElements, pillar.gan, GAN_WUXING);
+    addElement(fiveElements, pillar.zhi, ZHI_WUXING);
+  }
+
+  const dayGan = dayPillar.gan;
+
+  // 위치가 붙은 천간/지지 목록 (시주는 모르면 제외)
+  const gans: PositionedChar[] = [
+    { label: "연간", char: yearPillar.gan },
+    { label: "월간", char: monthPillar.gan },
+    { label: "일간", char: dayGan },
+    ...(timePillar ? [{ label: "시간", char: timePillar.gan }] : []),
+  ];
+  const zhis: PositionedChar[] = [
+    { label: "연지", char: yearPillar.zhi },
+    { label: "월지", char: monthPillar.zhi },
+    { label: "일지", char: dayPillar.zhi },
+    ...(timePillar ? [{ label: "시지", char: timePillar.zhi }] : []),
+  ];
+
+  // 천간 십성 (일간 기준, 전통 규칙으로 직접 계산)
+  const tenGods = gans
+    .filter((g) => g.label !== "일간")
+    .map((g) => `${g.label} ${g.char}: ${tenGodOf(dayGan, g.char)}`);
+  if (!timePillar) tenGods.push("시간: 출생시간 모름");
+
+  // 음양 분포
+  let yang = 0;
+  for (const g of gans) if (YANG_GAN.has(g.char)) yang += 1;
+  for (const z of zhis) if (YANG_ZHI.has(z.char)) yang += 1;
+  const totalChars = gans.length + zhis.length;
+
+  // 지장간 + 지지 십성(정기 기준)
+  const hiddenStems = zhis.map((z) => `${z.label} ${z.char}: ${(HIDDEN_STEMS[z.char] ?? []).join("·")}`);
+  const branchTenGods = zhis.map((z) => {
+    const stems = HIDDEN_STEMS[z.char] ?? [];
+    const main = stems[stems.length - 1] ?? "";
+    return `${z.label} ${z.char}(정기 ${main}): ${tenGodOf(dayGan, main)}`;
+  });
+
+  const interactions = computeInteractions(gans, zhis);
+  const strength = assessStrength(dayGan, gans, zhis);
+  const yongshin = suggestYongshin(dayGan, strength, fiveElements);
+
+  const twelveStages = zhis.map((z) => `${z.label} ${z.char}: ${twelveStageOf(dayGan, z.char)}`);
+  const gongmangZhis = gongmangOf(dayGan, dayPillar.zhi);
+  const gongmangHits = zhis.filter((z) => gongmangZhis.includes(z.char)).map((z) => `${z.label} ${z.char}`);
+  const gongmang = `${gongmangZhis} 공망${gongmangHits.length > 0 ? ` (원국 내 해당: ${gongmangHits.join(", ")})` : " (원국 내 해당 지지 없음)"}`;
+
+  const sinsal = computeSinsal(dayGan, dayPillar.zhi, yearPillar.zhi, monthPillar.zhi, gans, zhis);
+  const gyeokguk = computeGyeokguk(dayGan, monthPillar.zhi, strength);
+  const iljuTrait = iljuTraitOf(dayPillar.ganZhi);
+
+  return {
+    year: yearPillar,
+    month: monthPillar,
+    day: dayPillar,
+    hour: timePillar,
+    fiveElements,
+    tenGods,
+    dayMasterGan: dayGan,
+    yinYang: { yang, yin: totalChars - yang },
+    hiddenStems,
+    branchTenGods,
+    interactions,
+    strength,
+    yongshin,
+    twelveStages,
+    gongmang,
+    seasonNote: seasonNoteOf(monthPillar.zhi, dayGan),
+    sinsal,
+    iljuTrait,
+    gyeokguk,
+    timeCorrection: correction ?? undefined,
+  };
+}
+
+/**
+ * 대운/세운/월운을 계산한다.
+ * - 대운: 만세력 기준 10년 단위 흐름 (성별에 따라 순행/역행이 달라져 gender 필요)
+ * - 세운: 올해의 간지 (입춘 기준)
+ * - 월운: 이번 달의 간지 (절기 기준 월주)
+ */
+/** 운(대운/세운 등)의 간지 하나가 원국과 새로 맺는 합충형파해를 찾는다 */
+function luckVsNatal(
+  label: string,
+  ganZhi: string,
+  natalGans: PositionedChar[],
+  natalZhis: PositionedChar[],
+): string[] {
+  if (ganZhi.length < 2) return [];
+  const base = new Set(computeInteractions(natalGans, natalZhis));
+  const combined = computeInteractions(
+    [{ label, char: ganZhi[0] }, ...natalGans],
+    [{ label, char: ganZhi[1] }, ...natalZhis],
+  );
+  // 운 글자가 개입해서 "새로 생긴" 관계만 남긴다 (삼합 완성 포함)
+  return combined.filter((s) => !base.has(s)).map((s) => (s.includes(label) ? s : `${label} ${ganZhi} 개입 → ${s}`));
+}
+
+export interface LuckCycleOptions {
+  /** 올해 1~12월 월운 흐름까지 계산 (월간/연간 흐름 리딩용) */
+  includeMonthlyFlow?: boolean;
+}
+
+export function computeLuckCycles(
+  birthInfo: BirthInfo,
+  now: Date = new Date(),
+  options: LuckCycleOptions = {},
+): LuckCycles {
+  const { lunar } = birthToLunar(birthInfo);
+  const ec = eightCharOf(lunar, birthInfo);
+  const birthSolarYear = lunar.getSolar().getYear();
+
+  const yun = ec.getYun(birthInfo.gender === "male" ? 1 : 0);
+  const nowYear = now.getFullYear();
+
+  // 첫 항목은 대운 시작 전 구간이라 간지가 비어 있을 수 있음 → 제외
+  const daYun = yun
+    .getDaYun()
+    .filter((dy) => dy.getGanZhi() !== "")
+    .slice(0, 8)
+    .map((dy) => ({
+      startAge: dy.getStartAge(),
+      endAge: dy.getEndAge(),
+      startYear: dy.getStartYear(),
+      endYear: dy.getEndYear(),
+      ganZhi: toHangul(dy.getGanZhi()),
+      current: dy.getStartYear() <= nowYear && nowYear <= dy.getEndYear(),
+    }));
+
+  const nowLunar = Solar.fromDate(now).getLunar();
+  const currentDaYun = daYun.find((dy) => dy.current)?.ganZhi ?? null;
+  const yearGanZhi = toHangul(nowLunar.getYearInGanZhiByLiChun());
+  const monthGanZhi = toHangul(nowLunar.getMonthInGanZhi());
+  const dayGanZhi = toHangul(nowLunar.getDayInGanZhi());
+
+  // 원국 기둥 (운과의 상호작용 계산용)
+  const yearP = toPillar(ec.getYear());
+  const monthP = toPillar(ec.getMonth());
+  const dayP = toPillar(ec.getDay());
+  const timeP = birthInfo.hour === null ? null : toPillar(ec.getTime());
+  const natalGans: PositionedChar[] = [
+    { label: "연간", char: yearP.gan },
+    { label: "월간", char: monthP.gan },
+    { label: "일간", char: dayP.gan },
+    ...(timeP ? [{ label: "시간", char: timeP.gan }] : []),
+  ];
+  const natalZhis: PositionedChar[] = [
+    { label: "연지", char: yearP.zhi },
+    { label: "월지", char: monthP.zhi },
+    { label: "일지", char: dayP.zhi },
+    ...(timeP ? [{ label: "시지", char: timeP.zhi }] : []),
+  ];
+
+  const luckInteractions = [
+    ...(currentDaYun ? luckVsNatal(`대운 ${currentDaYun}`, currentDaYun, natalGans, natalZhis) : []),
+    ...luckVsNatal(`세운 ${yearGanZhi}`, yearGanZhi, natalGans, natalZhis),
+    ...luckVsNatal(`월운 ${monthGanZhi}`, monthGanZhi, natalGans, natalZhis),
+    ...luckVsNatal(`일진 ${dayGanZhi}`, dayGanZhi, natalGans, natalZhis),
+  ];
+
+  let monthlyFlow: MonthFlowInfo[] | undefined;
+  if (options.includeMonthlyFlow) {
+    monthlyFlow = [];
+    for (let m = 1; m <= 12; m++) {
+      // 절기 경계(매달 4~8일경)를 피해 15일 정오 기준으로 그 달의 월주를 뽑는다
+      const midLunar = Solar.fromYmdHms(nowYear, m, 15, 12, 0, 0).getLunar();
+      const ganZhi = toHangul(midLunar.getMonthInGanZhi());
+      monthlyFlow.push({
+        month: m,
+        ganZhi,
+        interactions: luckVsNatal(`${m}월 월운 ${ganZhi}`, ganZhi, natalGans, natalZhis),
+      });
+    }
+  }
+
+  // 올해부터 10년치 세운 흐름 (입춘 기준, 연중 6/15로 경계 회피)
+  const yearlyFlow: YearFlowInfo[] = [];
+  for (let i = 0; i < 10; i++) {
+    const y = nowYear + i;
+    const yLunar = Solar.fromYmdHms(y, 6, 15, 12, 0, 0).getLunar();
+    const ganZhi = toHangul(yLunar.getYearInGanZhiByLiChun());
+    yearlyFlow.push({
+      year: y,
+      age: y - birthSolarYear,
+      ganZhi,
+      interactions: luckVsNatal(`${y}년 세운 ${ganZhi}`, ganZhi, natalGans, natalZhis),
+      current: y === nowYear,
+    });
+  }
+
+  return {
+    monthlyFlow,
+    yearlyFlow,
+    daYun,
+    currentDaYun,
+    yearGanZhi,
+    monthGanZhi,
+    dayGanZhi,
+    year: nowYear,
+    month: now.getMonth() + 1,
+    luckInteractions,
+  };
+}
+
+// ── 궁합 (두 사주 비교) ──────────
+
+/** 두 사람 기질 사이 관계를 판정한다 (표면은 사주 용어 없이 쉬운 말) */
+function dayMasterRelation(ganA: string, ganB: string): { text: string; score: number } {
+  const he = GAN_HE[pairKey(ganA, ganB)] ?? GAN_HE[pairKey(ganB, ganA)];
+  if (he) return { text: "두 사람은 기질이 자석처럼 서로 끌리고, 부족한 부분을 채워주는 궁합이에요.", score: 22 };
+  const elA = GAN_WUXING[ganA];
+  const elB = GAN_WUXING[ganB];
+  if (elA === elB) return { text: "기본 성향이 비슷해 말이 잘 통해요. 편한 대신 은근한 경쟁이 될 수도 있어요.", score: 10 };
+  if (GENERATES[elA] === elB) return { text: "한 사람이 다른 사람을 북돋아 주고 챙겨주는, 힘이 되는 궁합이에요.", score: 16 };
+  if (GENERATES[elB] === elA) return { text: "서로 힘이 되어주며 기대고 기댈 수 있는 궁합이에요.", score: 16 };
+  return { text: "서로 자극을 주고받는 궁합이에요. 부딪히기도 하지만 다름을 인정하면 함께 성장해요.", score: 4 };
+}
+
+/** 두 사람 지지 사이의 인연(합충)을 세되, 표시는 사주 용어 없이 쉬운 말로 묶는다 */
+function crossBranchRelations(
+  zhisA: string[],
+  zhisB: string[],
+): { good: string[]; bad: string[]; goodCount: number; badCount: number } {
+  const goodSet = new Set<string>();
+  const badSet = new Set<string>();
+  let goodCount = 0;
+  let badCount = 0;
+  for (const a of zhisA) {
+    for (const b of zhisB) {
+      const keys = [a + b, b + a];
+      if (keys.some((k) => ZHI_LIUHE[k] !== undefined)) { goodCount += 1; goodSet.add("서로 잘 맞아 붙는 부분이 있어요"); }
+      if (keys.some((k) => ZHI_CHONG.has(k))) { badCount += 1; badSet.add("가끔 세게 부딪히기 쉬운 부분이 있어요"); }
+      if (keys.some((k) => ZHI_XING.has(k))) { badCount += 1; badSet.add("서로 조율이 필요한 부분이 있어요"); }
+      if (keys.some((k) => ZHI_PO.has(k))) { badCount += 1; badSet.add("계획이 엇갈리기 쉬운 부분이 있어요"); }
+      if (keys.some((k) => ZHI_HAI.has(k))) { badCount += 1; badSet.add("은근히 신경 쓰이는 부분이 있어요"); }
+    }
+  }
+  // 여러 면에서 잘 맞물리는 조합(삼합/반합)
+  const present = new Set([...zhisA, ...zhisB]);
+  for (const { group, wangZhi } of SANHE) {
+    const inA = group.some((g) => zhisA.includes(g));
+    const inB = group.some((g) => zhisB.includes(g));
+    const hits = group.filter((g) => present.has(g));
+    if (inA && inB && hits.length >= 2 && hits.includes(wangZhi)) { goodCount += 1; goodSet.add("여러 면에서 손발이 잘 맞아요"); }
+  }
+  return { good: [...goodSet], bad: [...badSet], goodCount, badCount };
+}
+
+/** 두 사람이 서로 부족한 부분을 채워주는 정도 (표면은 사주 용어 없이) */
+function elementComplement(a: FiveElementBalance, b: FiveElementBalance): { text: string; score: number } {
+  const keys = Object.keys(a) as Array<keyof FiveElementBalance>;
+  let complement = 0;
+  for (const k of keys) {
+    // 한쪽이 부족(0~1)한데 다른 쪽이 넉넉(2+)하면 보완
+    if (a[k] <= 1 && b[k] >= 2) complement += 1;
+    if (b[k] <= 1 && a[k] >= 2) complement += 1;
+  }
+  const score = Math.min(20, complement * 5);
+  const text =
+    complement > 0
+      ? `서로 부족한 부분을 ${complement}가지 방향에서 채워줘요. 함께 있으면 균형이 잘 맞아요.`
+      : "기본 성향이 비슷해 크게 보완되진 않지만, 결이 맞아 편안한 편이에요.";
+  return { text, score };
+}
+
+/**
+ * 두 사람의 사주 궁합을 계산한다 (결정론적, 참고용).
+ * 일간 관계 + 지지 합충 + 오행 보완을 종합해 0~100 점수로 환산한다.
+ */
+export function computeCompatibility(birthA: BirthInfo, birthB: BirthInfo): CompatibilityResult {
+  const chartA = computeSajuChart(birthA);
+  const chartB = computeSajuChart(birthB);
+
+  const zhisA = [chartA.year.zhi, chartA.month.zhi, chartA.day.zhi, ...(chartA.hour ? [chartA.hour.zhi] : [])];
+  const zhisB = [chartB.year.zhi, chartB.month.zhi, chartB.day.zhi, ...(chartB.hour ? [chartB.hour.zhi] : [])];
+
+  const dm = dayMasterRelation(chartA.dayMasterGan, chartB.dayMasterGan);
+  const branches = crossBranchRelations(zhisA, zhisB);
+  const elements = elementComplement(chartA.fiveElements, chartB.fiveElements);
+
+  const branchScore = Math.max(-14, Math.min(18, branches.goodCount * 7 - branches.badCount * 5));
+  const raw = 55 + dm.score + branchScore + elements.score;
+  const score = Math.max(0, Math.min(100, Math.round(raw)));
+
+  const breakdown = [
+    { label: "두 사람의 기질", score: Math.round((dm.score / 22) * 100), note: dm.text },
+    {
+      label: "함께 있을 때 흐름",
+      score: Math.max(0, Math.min(100, 50 + branchScore * 3)),
+      note:
+        (branches.good.length ? `잘 맞음: ${branches.good.join(", ")}` : "뚜렷하게 붙는 부분은 없어요") +
+        (branches.bad.length ? ` / 주의: ${branches.bad.join(", ")}` : " / 큰 충돌은 없어요"),
+    },
+    { label: "서로 채워주는 부분", score: Math.round((elements.score / 20) * 100), note: elements.text },
+  ];
+
+  const summary =
+    score >= 75
+      ? "서로 잘 맞고 보완이 되는 좋은 궁합이에요. 다른 점도 성장으로 쓰기 좋아요."
+      : score >= 55
+        ? "무난하게 잘 어울리는 궁합이에요. 몇 가지만 서로 배려하면 편안해요."
+        : "결이 다른 부분이 있는 궁합이에요. 서로의 다름을 이해하려는 노력이 관계를 키워요.";
+
+  return {
+    score,
+    dayMasterRelation: dm.text,
+    branchRelations: [...branches.good, ...branches.bad],
+    elementComplement: elements.text,
+    summary,
+    breakdown,
+  };
+}
