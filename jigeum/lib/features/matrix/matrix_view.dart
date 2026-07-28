@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
@@ -23,6 +24,7 @@ class MatrixView extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 8),
       child: Column(
         children: [
+          const _RangeBar(),
           Expanded(
             child: Row(
               children: [
@@ -56,6 +58,37 @@ class MatrixView extends ConsumerWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 맨 위 기간 선택 바 — 알약 칩. 기본값은 "오늘".
+/// 날짜 없는 할 일은 기간과 상관없이 늘 보인다(언제든 할 수 있는 일).
+class _RangeBar extends ConsumerWidget {
+  const _RangeBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tk = t(context);
+    final current = ref.watch(matrixRangeProvider);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          for (final r in MatrixRange.values)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: PillChip(
+                label: r.label,
+                selected: r == current,
+                onTap: () =>
+                    ref.read(matrixRangeProvider.notifier).state = r,
+              ),
+            ),
+          const Spacer(),
+          Text('날짜 없는 일 포함', style: AppText.meta(tk.inkSoft, size: 10)),
         ],
       ),
     );
@@ -188,10 +221,37 @@ class _DrawerCell extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text('${nodes.length}', style: AppText.hTitle(tk.ink)),
+                const SizedBox(width: 6),
+                Text('미분류', style: AppText.meta(tk.inkSoft)),
+              ],
+            ),
             const SizedBox(height: 8),
-            Text('${nodes.length}', style: AppText.hTitle(tk.ink)),
-            const SizedBox(height: 2),
-            Text('언젠가 서랍', style: AppText.meta(tk.inkSoft)),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  for (final n in nodes.take(3))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(n.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.body(tk.ink)),
+                    ),
+                  if (nodes.length > 3)
+                    Text('+${nodes.length - 3}',
+                        style: AppText.meta(tk.inkSoft)),
+                  if (nodes.isEmpty)
+                    Text('— 비어 있어요', style: AppText.meta(tk.inkSoft)),
+                ],
+              ),
+            ),
           ],
         ),
       ),

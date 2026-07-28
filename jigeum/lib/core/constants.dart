@@ -116,6 +116,35 @@ DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 DateTime todayDate() => dateOnly(DateTime.now());
 
+/// 매트릭스 상단 기간 필터. 기본은 [today] — "오늘만".
+enum MatrixRange {
+  today('오늘'),
+  week('이번 주'),
+  month('이번 달'),
+  all('전체');
+
+  const MatrixRange(this.label);
+  final String label;
+
+  /// 이 기간의 날짜 범위(양끝 포함). [all] 은 null = 제한 없음.
+  ({DateTime from, DateTime to})? span(DateTime today) {
+    final d = dateOnly(today);
+    switch (this) {
+      case MatrixRange.today:
+        return (from: d, to: d);
+      case MatrixRange.week:
+        final start = d.subtract(Duration(days: d.weekday - 1)); // 월요일
+        return (from: start, to: start.add(const Duration(days: 6)));
+      case MatrixRange.month:
+        final start = DateTime(d.year, d.month, 1);
+        final end = DateTime(d.year, d.month + 1, 0);
+        return (from: start, to: end);
+      case MatrixRange.all:
+        return null;
+    }
+  }
+}
+
 // ------------------------------------------------------------------ 일진(日辰)
 // 날짜의 60갑자(천간+지지). 기준: 2000-01-07 = 갑자(甲子, index 0).
 // (교차검증: 1900-01-01 = 갑술 과 일치)
