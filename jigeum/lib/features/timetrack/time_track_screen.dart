@@ -78,7 +78,7 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
     final theme = Theme.of(context);
     final blocks =
         ref.watch(timeBlocksForDateProvider(_date)).valueOrNull ?? const [];
-    final byIndex = {for (final b in blocks) b.block: b.content};
+    final byIndex = {for (final b in blocks) b.block: b};
     final nowBlock = TimeTrackRepository.blockOfNow();
     final filled = byIndex.length;
 
@@ -124,9 +124,9 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
                 padding: const EdgeInsets.only(top: 6, bottom: 16),
                 itemCount: 48,
                 itemBuilder: (_, i) {
-                  final text = byIndex[i];
+                  final b = byIndex[i];
                   final isNow = _isToday && i == nowBlock;
-                  return _row(theme, i, text, isNow);
+                  return _row(theme, i, b?.content, isNow, b?.updatedAt);
                 },
               ),
             ),
@@ -135,7 +135,8 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
       );
   }
 
-  Widget _row(ThemeData theme, int i, String? text, bool isNow) {
+  Widget _row(
+      ThemeData theme, int i, String? text, bool isNow, DateTime? writtenAt) {
     final tk = t(context);
     final hasText = text != null && text.isNotEmpty;
     return InkWell(
@@ -166,6 +167,15 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            // 실제 작성/수정 시각 (기록이 있을 때만)
+            if (hasText && writtenAt != null) ...[
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text('✎ ${DateFormat('HH:mm').format(writtenAt)}',
+                    style: AppText.meta(tk.mark, size: 10)),
+              ),
+            ],
           ],
         ),
       ),

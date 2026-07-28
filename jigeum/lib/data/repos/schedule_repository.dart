@@ -88,6 +88,7 @@ class ScheduleRepository {
     await (db.update(db.schedules)..where((s) => s.id.equals(id))).write(
         SchedulesCompanion(
             done: Value(done),
+            doneAt: Value(done ? DateTime.now() : null),
             dirty: const Value(true),
             updatedAt: Value(DateTime.now())));
   }

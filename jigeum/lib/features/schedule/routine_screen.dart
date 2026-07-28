@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../core/journal.dart';
@@ -106,8 +107,8 @@ class RoutineBody extends ConsumerWidget {
               behavior: HitTestBehavior.opaque,
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration:
-                    BoxDecoration(border: Border(top: BorderSide(color: tk.ink))),
+                decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: tk.ink))),
                 child: Text('+ 새 루틴 블록',
                     style: AppText.meta(tk.ink, size: 11)
                         .copyWith(letterSpacing: 1.2)),
@@ -189,8 +190,7 @@ class _GroupBlock extends ConsumerWidget {
         // 헤더
         GestureDetector(
           onTap: () => repo.setGroupCollapsed(group.id, !group.collapsed),
-          onLongPress: () =>
-              showRoutineGroupSheet(context, existing: group),
+          onLongPress: () => showRoutineGroupSheet(context, existing: group),
           behavior: HitTestBehavior.opaque,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(kGutter, 18, kGutter, 8),
@@ -248,8 +248,7 @@ class _GroupBlock extends ConsumerWidget {
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(kGutter + 60, 11, kGutter, 11),
-              child: Text('+ 스텝 추가',
-                  style: AppText.meta(tk.inkSoft, size: 11)),
+              child: Text('+ 스텝 추가', style: AppText.meta(tk.inkSoft, size: 11)),
             ),
           ),
         ],
@@ -293,8 +292,7 @@ class _StepRow extends ConsumerWidget {
                   child: Text(
                     trigger.isEmpty ? '그다음' : trigger,
                     textAlign: TextAlign.right,
-                    style: AppText.meta(
-                        trigger.isEmpty ? tk.inkSoft : tk.ink,
+                    style: AppText.meta(trigger.isEmpty ? tk.inkSoft : tk.ink,
                         size: 10),
                   ),
                 ),
@@ -306,17 +304,15 @@ class _StepRow extends ConsumerWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => repo.toggleStepDone(step),
-                onLongPress: () => showRoutineStepSheet(
-                    context, groupId: step.groupId, existing: step),
+                onLongPress: () => showRoutineStepSheet(context,
+                    groupId: step.groupId, existing: step),
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(14, 11, 8, 11),
+                  padding: const EdgeInsets.fromLTRB(14, 11, 8, 11),
                   child: Row(
                     children: [
                       Text(doneToday ? '■' : '□',
-                          style: AppText.glyph(
-                              doneToday ? tk.ink : tk.inkSoft,
+                          style: AppText.glyph(doneToday ? tk.ink : tk.inkSoft,
                               size: 15)),
                       const SizedBox(width: 9),
                       Expanded(
@@ -331,7 +327,15 @@ class _StepRow extends ConsumerWidget {
                               : AppText.body(tk.ink),
                         ),
                       ),
-                      if (step.streak > 0)
+                      if (doneToday && step.lastDoneAt != null)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Text(
+                              '${DateFormat('HH:mm').format(step.lastDoneAt!)} 완료'
+                              '${step.streak > 0 ? ' · ×${step.streak}' : ''}',
+                              style: AppText.meta(tk.mark, size: 10)),
+                        )
+                      else if (step.streak > 0)
                         Padding(
                           padding: const EdgeInsets.only(left: 8),
                           child: Text('×${step.streak}',
@@ -348,8 +352,7 @@ class _StepRow extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: kGutter - 8),
                 child: Center(
-                  child: Text('≡',
-                      style: AppText.glyph(tk.inkSoft, size: 16)),
+                  child: Text('≡', style: AppText.glyph(tk.inkSoft, size: 16)),
                 ),
               ),
             ),
@@ -404,7 +407,7 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
               await ref
                   .read(routineBuilderRepoProvider)
                   .deleteGroup(widget.existing!.id);
-              if (mounted) Navigator.of(context).pop();
+              if (context.mounted) Navigator.of(context).pop();
             }
           : null,
       onSave: _save,
@@ -448,8 +451,7 @@ class _StepSheetState extends ConsumerState<_StepSheet> {
       await repo.addStep(widget.groupId,
           trigger: _trigger.text.trim(), title: title);
     } else {
-      await repo.updateStep(e.id,
-          trigger: _trigger.text.trim(), title: title);
+      await repo.updateStep(e.id, trigger: _trigger.text.trim(), title: title);
     }
     if (mounted) Navigator.of(context).pop();
   }
@@ -465,7 +467,7 @@ class _StepSheetState extends ConsumerState<_StepSheet> {
               await ref
                   .read(routineBuilderRepoProvider)
                   .deleteStep(widget.existing!.id);
-              if (mounted) Navigator.of(context).pop();
+              if (context.mounted) Navigator.of(context).pop();
             }
           : null,
       onSave: _save,
@@ -549,8 +551,7 @@ class _SheetFrame extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
                   color: tk.ink,
-                  child: Text('저장',
-                      style: AppText.nav(tk.paper, active: true)),
+                  child: Text('저장', style: AppText.nav(tk.paper, active: true)),
                 ),
               ),
             ],

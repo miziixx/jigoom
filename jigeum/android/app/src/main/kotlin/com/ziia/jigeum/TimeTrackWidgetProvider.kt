@@ -34,6 +34,16 @@ class TimeTrackWidgetProvider : AppWidgetProvider() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // 마이크 칸 → 앱을 열어 음성 캡처(분류·라우팅).
+        val voice = Intent(context, MainActivity::class.java).apply {
+            action = MainActivity.ACTION_VOICE_CAPTURE
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val voicePending = PendingIntent.getActivity(
+            context, 15, voice,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         for (widgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.time_track_widget).apply {
                 setTextViewText(R.id.tt_label, label)
@@ -44,7 +54,9 @@ class TimeTrackWidgetProvider : AppWidgetProvider() {
                 setInt(R.id.tt_bar, "setBackgroundColor", pal.mark)
                 setTextColor(R.id.tt_label, pal.inkSoft)
                 setTextColor(R.id.tt_text, pal.ink)
+                setTextColor(R.id.tt_mic, pal.mark)
                 setOnClickPendingIntent(R.id.tt_root, pending)
+                setOnClickPendingIntent(R.id.tt_mic, voicePending)
             }
             appWidgetManager.updateAppWidget(widgetId, views)
         }

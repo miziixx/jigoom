@@ -61,8 +61,7 @@ class SttResult {
   int get hashCode => Object.hash(text, confidence, isFinal);
 
   @override
-  String toString() =>
-      'SttResult("$text", conf: $confidence, final: $isFinal)';
+  String toString() => 'SttResult("$text", conf: $confidence, final: $isFinal)';
 }
 
 /// STT 서비스 계약. 상위 코드는 이 인터페이스에만 의존한다.
@@ -122,25 +121,27 @@ class MethodChannelSttService implements SttService {
 
   @override
   Future<bool> requestPermission() async {
-    final ok = await _channel.invokeMethod<bool>('requestPermission');
+    final ok = await _invoke<bool>('requestPermission');
+    if (ok == false) _statusCtrl.add(SttStatus.denied);
     return ok ?? false;
   }
 
   @override
   Future<bool> isAvailable() async {
-    final ok = await _channel.invokeMethod<bool>('isAvailable');
+    final ok = await _invoke<bool>('isAvailable');
+    if (ok == false) _statusCtrl.add(SttStatus.unavailable);
     return ok ?? false;
   }
 
   @override
   Future<void> start({String localeId = 'ko_KR'}) =>
-      _channel.invokeMethod<void>('start', {'localeId': localeId});
+      _invoke<void>('start', {'localeId': localeId});
 
   @override
-  Future<void> stop() => _channel.invokeMethod<void>('stop');
+  Future<void> stop() => _invoke<void>('stop');
 
   @override
-  Future<void> cancel() => _channel.invokeMethod<void>('cancel');
+  Future<void> cancel() => _invoke<void>('cancel');
 
   @override
   Future<void> dispose() async {
@@ -181,4 +182,18 @@ class MethodChannelSttService implements SttService {
         'error' => SttStatus.error,
         _ => SttStatus.idle,
       };
+
+  Future<T?> _invoke<T>(String method, [Object? arguments]) async {
+    try {
+      return await _channel.invokeMethod<T>(method, arguments);
+    } on MissingPluginException {
+      _statusCtrl.add(SttStatus.unavailable);
+      _errorCtrl.add('이 환경에서는 음성 인식을 쓸 수 없어요. 안드로이드 앱에서 실행해 주세요.');
+      return null;
+    } on PlatformException catch (e) {
+      _statusCtrl.add(SttStatus.error);
+      _errorCtrl.add(e.message ?? '음성 인식 오류');
+      return null;
+    }
+  }
 }

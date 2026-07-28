@@ -73,36 +73,106 @@ class ThemeSpec {
 
 /// 내장 10종 — 9 라이트 + 1 다크(NOIR). 기본 MANILA. (DESIGN_SYSTEM §1-1)
 const List<ThemeSpec> kThemes = [
-  ThemeSpec('manila', 'MANILA', AppTokens(
-      paper: Color(0xFFF4F1EA), paper2: Color(0xFFEFEBE2), ink: Color(0xFF26241F),
-      inkSoft: Color(0xFF9A948A), line: Color(0xFFD8D2C6), mark: Color(0xFFB5443A))),
-  ThemeSpec('newsprint', 'NEWSPRINT', AppTokens(
-      paper: Color(0xFFEDEBE6), paper2: Color(0xFFE6E3DC), ink: Color(0xFF1C1C1A),
-      inkSoft: Color(0xFF8C8A84), line: Color(0xFFD2CFC8), mark: Color(0xFFC4362B))),
-  ThemeSpec('sage', 'SAGE', AppTokens(
-      paper: Color(0xFFE9EAE0), paper2: Color(0xFFE1E3D6), ink: Color(0xFF2E362B),
-      inkSoft: Color(0xFF949A88), line: Color(0xFFCFD3C3), mark: Color(0xFF5E7048))),
-  ThemeSpec('midnight', 'MIDNIGHT', AppTokens(
-      paper: Color(0xFFEFE9DD), paper2: Color(0xFFE8E1D2), ink: Color(0xFF1B2A3A),
-      inkSoft: Color(0xFF8C93A0), line: Color(0xFFD5CFC0), mark: Color(0xFFB5443A))),
-  ThemeSpec('terracotta', 'TERRACOTTA', AppTokens(
-      paper: Color(0xFFF0E4D8), paper2: Color(0xFFE9DACB), ink: Color(0xFF3A2A20),
-      inkSoft: Color(0xFFA8917E), line: Color(0xFFE0CCB8), mark: Color(0xFFC0603A))),
-  ThemeSpec('olive', 'OLIVE', AppTokens(
-      paper: Color(0xFFEAE7D6), paper2: Color(0xFFE2DEC9), ink: Color(0xFF33321F),
-      inkSoft: Color(0xFF9A9678), line: Color(0xFFD3CFB6), mark: Color(0xFF7A6A2E))),
-  ThemeSpec('slate', 'SLATE', AppTokens(
-      paper: Color(0xFFE6E8EA), paper2: Color(0xFFDDE0E3), ink: Color(0xFF23292E),
-      inkSoft: Color(0xFF8A9196), line: Color(0xFFCDD1D4), mark: Color(0xFF4A5A66))),
-  ThemeSpec('rose', 'DUSTY ROSE', AppTokens(
-      paper: Color(0xFFF0E7E4), paper2: Color(0xFFE9DBD7), ink: Color(0xFF322523),
-      inkSoft: Color(0xFFA8908C), line: Color(0xFFDDCCC8), mark: Color(0xFFA64B54))),
-  ThemeSpec('plum', 'PLUM', AppTokens(
-      paper: Color(0xFFECE6EA), paper2: Color(0xFFE3DBE1), ink: Color(0xFF2C2330),
-      inkSoft: Color(0xFF978C9C), line: Color(0xFFD6CCD6), mark: Color(0xFF7A4A6E))),
-  ThemeSpec('noir', 'NOIR', AppTokens(
-      paper: Color(0xFF201E1A), paper2: Color(0xFF2A2722), ink: Color(0xFFEDE7D9),
-      inkSoft: Color(0xFF7A756B), line: Color(0xFF3A3630), mark: Color(0xFFD46A4A))),
+  ThemeSpec(
+      'manila',
+      'MANILA',
+      AppTokens(
+          paper: Color(0xFFF4F1EA),
+          paper2: Color(0xFFEFEBE2),
+          ink: Color(0xFF26241F),
+          inkSoft: Color(0xFF9A948A),
+          line: Color(0xFFD8D2C6),
+          mark: Color(0xFFB5443A))),
+  ThemeSpec(
+      'newsprint',
+      'NEWSPRINT',
+      AppTokens(
+          paper: Color(0xFFEDEBE6),
+          paper2: Color(0xFFE6E3DC),
+          ink: Color(0xFF1C1C1A),
+          inkSoft: Color(0xFF8C8A84),
+          line: Color(0xFFD2CFC8),
+          mark: Color(0xFFC4362B))),
+  ThemeSpec(
+      'sage',
+      'SAGE',
+      AppTokens(
+          paper: Color(0xFFE9EAE0),
+          paper2: Color(0xFFE1E3D6),
+          ink: Color(0xFF2E362B),
+          inkSoft: Color(0xFF949A88),
+          line: Color(0xFFCFD3C3),
+          mark: Color(0xFF5E7048))),
+  ThemeSpec(
+      'midnight',
+      'MIDNIGHT',
+      AppTokens(
+          paper: Color(0xFFEFE9DD),
+          paper2: Color(0xFFE8E1D2),
+          ink: Color(0xFF1B2A3A),
+          inkSoft: Color(0xFF8C93A0),
+          line: Color(0xFFD5CFC0),
+          mark: Color(0xFFB5443A))),
+  ThemeSpec(
+      'terracotta',
+      'TERRACOTTA',
+      AppTokens(
+          paper: Color(0xFFF0E4D8),
+          paper2: Color(0xFFE9DACB),
+          ink: Color(0xFF3A2A20),
+          inkSoft: Color(0xFFA8917E),
+          line: Color(0xFFE0CCB8),
+          mark: Color(0xFFC0603A))),
+  ThemeSpec(
+      'olive',
+      'OLIVE',
+      AppTokens(
+          paper: Color(0xFFEAE7D6),
+          paper2: Color(0xFFE2DEC9),
+          ink: Color(0xFF33321F),
+          inkSoft: Color(0xFF9A9678),
+          line: Color(0xFFD3CFB6),
+          mark: Color(0xFF7A6A2E))),
+  ThemeSpec(
+      'slate',
+      'SLATE',
+      AppTokens(
+          paper: Color(0xFFE6E8EA),
+          paper2: Color(0xFFDDE0E3),
+          ink: Color(0xFF23292E),
+          inkSoft: Color(0xFF8A9196),
+          line: Color(0xFFCDD1D4),
+          mark: Color(0xFF4A5A66))),
+  ThemeSpec(
+      'rose',
+      'DUSTY ROSE',
+      AppTokens(
+          paper: Color(0xFFF0E7E4),
+          paper2: Color(0xFFE9DBD7),
+          ink: Color(0xFF322523),
+          inkSoft: Color(0xFFA8908C),
+          line: Color(0xFFDDCCC8),
+          mark: Color(0xFFA64B54))),
+  ThemeSpec(
+      'plum',
+      'PLUM',
+      AppTokens(
+          paper: Color(0xFFECE6EA),
+          paper2: Color(0xFFE3DBE1),
+          ink: Color(0xFF2C2330),
+          inkSoft: Color(0xFF978C9C),
+          line: Color(0xFFD6CCD6),
+          mark: Color(0xFF7A4A6E))),
+  ThemeSpec(
+      'noir',
+      'NOIR',
+      AppTokens(
+          paper: Color(0xFF201E1A),
+          paper2: Color(0xFF2A2722),
+          ink: Color(0xFFEDE7D9),
+          inkSoft: Color(0xFF7A756B),
+          line: Color(0xFF3A3630),
+          mark: Color(0xFFD46A4A))),
 ];
 
 const String kDefaultThemeKey = 'manila';
@@ -122,15 +192,17 @@ AppTokens t(BuildContext context) =>
 /// AppText 를 직접 호출하는 위젯들도 이 값을 반영한다.
 int appWeightDelta = 0;
 
-/// 라벨·기호·숫자용 글꼴. 기본 = 모노. 설정 "글꼴 하나로 통일" 이 켜지면
-/// 본문 글꼴(appSans)로 바뀌어 앱 전체가 같은 글꼴을 쓴다. AppTheme.build 에서 갱신.
-String? appMono = kMonoFamily;
+/// 라벨·기호·숫자용 글꼴. 기본은 null 로 두어 폰 시스템 글꼴을 따른다.
+/// AppTheme.build 에서 갱신.
+String? appMono = kSansFamily;
 
-/// 한글 본문·제목 글꼴. 설정(fontKey)에서 고른 번들 폰트로 AppTheme.build 에서 갱신.
+/// 한글 본문·제목 글꼴. 기본은 null 로 두어 폰 시스템 글꼴을 따른다.
+/// AppTheme.build 에서 갱신.
 String? appSans = kSansFamily;
 
-/// 편집 타이포 (DESIGN_SYSTEM §3 두 벌 하이브리드).
-/// 한글 내용 = Sans(기기 기본), 라벨·기호·영문·숫자 = Mono. 색은 토큰을 주입.
+/// 편집 타이포 (DESIGN_SYSTEM §3).
+/// 기본은 폰 시스템 글꼴, 내장 글꼴 모드에서는 선택한 앱 폰트로 전체를 맞춘다.
+/// 색은 토큰을 주입.
 class AppText {
   /// 화면 타이틀 (한글, Sans 19/Bold).
   static TextStyle hTitle(Color c, [int? wd]) => TextStyle(
@@ -204,8 +276,8 @@ class AppText {
       color: c);
 
   /// 체크박스·기호 글리프 (Mono 15).
-  static TextStyle glyph(Color c, {double size = 15}) => TextStyle(
-      fontFamily: appMono, fontSize: size, height: 1, color: c);
+  static TextStyle glyph(Color c, {double size = 15}) =>
+      TextStyle(fontFamily: appMono, fontSize: size, height: 1, color: c);
 }
 
 /// 6토큰 → ThemeData. 편집 원칙(radius 0 · shadow none · 잉크 하나)을 강제한다.
@@ -215,19 +287,17 @@ class AppTheme {
           bool systemFont = false,
           String fontKey = kDefaultFontKey}) =>
       build(tokensForKey(key),
-          weightDelta: weightDelta,
-          systemFont: systemFont,
-          fontKey: fontKey);
+          weightDelta: weightDelta, systemFont: systemFont, fontKey: fontKey);
 
   static ThemeData build(AppTokens tk,
       {int weightDelta = 0,
       bool systemFont = false,
       String fontKey = kDefaultFontKey}) {
     appWeightDelta = weightDelta; // 전역 반영 (AppText 직접 호출부용)
-    // 본문 글꼴: 설정에서 고른 번들 한글 폰트.
-    appSans = familyForFontKey(fontKey);
-    // 라벨 글꼴: 기본 모노, "글꼴 하나로 통일" 켜지면 본문과 같은 글꼴.
-    appMono = systemFont ? appSans : kMonoFamily;
+    // 시스템 글꼴 사용 시 fontFamily 를 지정하지 않아 폰 기본 글꼴을 따른다.
+    // 끄면 앱에 번들된 폰트를 쓰되 라벨·숫자까지 같은 글꼴로 맞춘다.
+    appSans = systemFont ? kSansFamily : familyForFontKey(fontKey);
+    appMono = appSans;
     final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);
 
@@ -302,8 +372,8 @@ class AppTheme {
         rangePickerElevation: 0,
         todayForegroundColor: WidgetStatePropertyAll(tk.ink),
         todayBorder: BorderSide(color: tk.ink, width: 1),
-        dayForegroundColor: WidgetStateProperty.resolveWith((s) =>
-            s.contains(WidgetState.selected) ? tk.paper : tk.ink),
+        dayForegroundColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected) ? tk.paper : tk.ink),
         dayBackgroundColor: WidgetStateProperty.resolveWith((s) =>
             s.contains(WidgetState.selected) ? tk.ink : Colors.transparent),
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -340,8 +410,7 @@ class AppTheme {
           foregroundColor: tk.ink,
           padding: const EdgeInsets.all(6),
           minimumSize: const Size(34, 34),
-          shape:
-              const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ),
@@ -361,7 +430,8 @@ class AppTheme {
           side: BorderSide(color: tk.ink, width: 1),
         ),
       ),
-      listTileTheme: ListTileThemeData(iconColor: tk.inkSoft, textColor: tk.ink),
+      listTileTheme:
+          ListTileThemeData(iconColor: tk.inkSoft, textColor: tk.ink),
       dialogTheme: DialogThemeData(
         backgroundColor: tk.paper,
         surfaceTintColor: Colors.transparent,
@@ -393,16 +463,16 @@ class AppTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          textStyle: TextStyle(
-              fontFamily: appSans, fontWeight: bold, fontSize: 15),
+          textStyle:
+              TextStyle(fontFamily: appSans, fontWeight: bold, fontSize: 15),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: tk.inkSoft,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          textStyle: TextStyle(
-              fontFamily: appSans, fontWeight: reg, fontSize: 14),
+          textStyle:
+              TextStyle(fontFamily: appSans, fontWeight: reg, fontSize: 14),
         ),
       ),
       // 칩(필터): 각진 1px 규칙선, 선택 시 잉크 반전. 체크 없음.

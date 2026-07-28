@@ -68,4 +68,56 @@ void main() {
     expect(exec.created.last.routedTo, RoutePoint.matrix);
     expect(exec.created.last.intent, IntentType.todoMatrix);
   });
+
+  test('쏟아내기 드래그 → 매트릭스 사분면 축을 슬롯에 저장', () {
+    final staged = c.classify('블로그 글 구조 잡기', now: base);
+    final moved = c.rerouteToMatrixQuadrant(
+      staged,
+      important: true,
+      urgent: false,
+    );
+
+    expect(moved.routedTo, RoutePoint.matrix);
+    expect(moved.intent, IntentType.todoMatrix);
+    expect(moved.slots.important, isTrue);
+    expect(moved.slots.urgent, isFalse);
+  });
+
+  test('긴 중얼거림 → 여러 조각으로 나눠 각각 담기', () async {
+    final fb = await c.handle(
+      '내일 3시에 치과 예약하고 장보기 넣고 중요한 보고서 정리 해야 되고 아침 루틴에 스트레칭 추가',
+      now: base,
+    );
+
+    expect(fb.message, contains('4개로 나눠 담았어요'));
+    expect(exec.created.length, 4);
+    expect(exec.created.map((r) => r.rawText), [
+      '내일 3시에 치과 예약',
+      '장보기',
+      '중요한 보고서 정리',
+      '아침 루틴에 스트레칭 추가',
+    ]);
+    expect(exec.created.map((r) => r.routedTo), contains(RoutePoint.schedule));
+    expect(exec.created.map((r) => r.routedTo), contains(RoutePoint.matrix));
+    expect(exec.created.map((r) => r.routedTo), contains(RoutePoint.routine));
+  });
+
+  test('빼고/말고 말투 → 제외 조각은 만들지 않음', () async {
+    final fb = await c.handle(
+      '치과 예약 빼고 장보기 넣고 물 마시기 습관 만들어',
+      now: base,
+    );
+
+    expect(fb.message, contains('1개 제외'));
+    expect(exec.created.map((r) => r.rawText), ['장보기', '물 마시기 습관 만들어']);
+  });
+
+  test('멀티 담기 되돌리기 → 만든 항목들을 모두 삭제', () async {
+    await c.handle('장보기 넣고 중요한 보고서 정리 해야 되고', now: base);
+
+    await c.undo();
+
+    expect(exec.created.length, 2);
+    expect(exec.deleted, ['e1', 'e0']);
+  });
 }

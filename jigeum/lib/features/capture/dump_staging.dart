@@ -40,6 +40,8 @@ class DumpStagingNotifier extends Notifier<List<VoiceResult>> {
           ctrl.restage(
             (e as Map<String, dynamic>)['raw'] as String,
             _routeByName(e['route'] as String?),
+            important: e['important'] as bool?,
+            urgent: e['urgent'] as bool?,
           ),
       ];
       if (restored.isNotEmpty) state = restored;
@@ -50,7 +52,13 @@ class DumpStagingNotifier extends Notifier<List<VoiceResult>> {
 
   Future<void> _persist(List<VoiceResult> items) async {
     final json = jsonEncode([
-      for (final r in items) {'raw': r.rawText, 'route': r.routedTo.name},
+      for (final r in items)
+        {
+          'raw': r.rawText,
+          'route': r.routedTo.name,
+          'important': r.slots.important,
+          'urgent': r.slots.urgent,
+        },
     ]);
     await ref.read(nodeRepoProvider).setSetting(_key, json);
   }

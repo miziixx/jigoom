@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
-import '../../core/dialogs.dart';
 import '../../core/energy.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
@@ -11,6 +10,7 @@ import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 import '../focus/focus_timer_view.dart';
+import 'goal_editor.dart';
 import 'node_detail_sheet.dart';
 import 'plant_view.dart';
 import 'stuck_sheet.dart';
@@ -37,12 +37,53 @@ class _TodayViewState extends ConsumerState<TodayView> {
   }
 
   Future<void> _editGoal() async {
-    final v = await showInputDialog(context,
-        title: '오늘의 목표', kicker: 'GOAL', hint: '오늘 이루고 싶은 것', initial: _goal);
-    if (v == null) return;
-    final g = v.trim();
-    await ref.read(scheduleRepoProvider).setDayGoal(todayDate(), g);
+    final g = await showGoalEditor(context, ref);
+    if (g == null) return;
     if (mounted) setState(() => _goal = g);
+  }
+
+  /// 오늘의 목표 블록 — 맨 위, 크고 굵게, 여러 줄 리스트. 탭해서 편집.
+  Widget _goalBlock(AppTokens tk) {
+    final lines = _goal
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    final goalStyle = AppText.hTitle(tk.ink).copyWith(fontSize: 22, height: 1.3);
+    return InkWell(
+      onTap: _editGoal,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('GOAL', style: AppText.sec(tk.mark)),
+                const SizedBox(width: 12),
+                Expanded(child: Container(height: 1, color: tk.line)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (lines.isEmpty)
+              Text('탭해서 오늘의 목표 적기',
+                  style: goalStyle.copyWith(color: tk.inkSoft))
+            else
+              for (final line in lines)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('★ ', style: goalStyle.copyWith(color: tk.mark)),
+                      Expanded(child: Text(line, style: goalStyle)),
+                    ],
+                  ),
+                ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -75,7 +116,8 @@ class _TodayViewState extends ConsumerState<TodayView> {
     }
     // 에너지 사이클 — 집중 피크(사주 運氣를 행동 데이터로 근사).
     final peak = ref.watch(energyPeakProvider);
-    final peakStr = peak != null ? peakLabel(peak.startHour, peak.endHour) : null;
+    final peakStr =
+        peak != null ? peakLabel(peak.startHour, peak.endHour) : null;
 
     final scaffoldParts = <String>[
       if (startedToday > 0) '오늘 $startedToday번 시작',
@@ -85,6 +127,9 @@ class _TodayViewState extends ConsumerState<TodayView> {
     ];
 
     final children = <Widget>[
+      // GOAL — 오늘의 목표 (맨 위, 크고 굵게, 탭해서 편집)
+      _goalBlock(tk),
+
       // 큰 날짜 (Sans) + 요일 (Mono meta)
       Padding(
         padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
@@ -116,35 +161,12 @@ class _TodayViewState extends ConsumerState<TodayView> {
       // 오늘의 식물 — 완료·시작이 쌓일수록 자라는 잔잔한 보상
       const PlantBand(),
 
-      // GOAL — 오늘의 목표 (탭해서 편집)
-      Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 20, kGutter, 0),
-        child: Row(
-          children: [
-            Text('GOAL', style: AppText.sec(tk.mark)),
-            const SizedBox(width: 12),
-            Expanded(child: Container(height: 1, color: tk.line)),
-          ],
-        ),
-      ),
-      InkWell(
-        onTap: _editGoal,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
-          child: Text(_goal.isEmpty ? '탭해서 오늘의 목표 적기' : _goal,
-              style: _goal.isEmpty
-                  ? AppText.meta(tk.inkSoft, size: 13)
-                  : AppText.body(tk.ink)),
-        ),
-      ),
-
       // NOW — 지금 이것부터
       focus.when(
         loading: () => const SizedBox.shrink(),
         error: (_, __) => const SizedBox.shrink(),
-        data: (node) => node == null
-            ? const SizedBox.shrink()
-            : _FocusBlock(node: node),
+        data: (node) =>
+            node == null ? const SizedBox.shrink() : _FocusBlock(node: node),
       ),
 
       // TO-DO
@@ -203,8 +225,7 @@ class _FocusBlock extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(kGutter, 26, kGutter, 12),
           child: Row(
             children: [
-              Text('› NOW',
-                  style: AppText.sec(tk.mark)),
+              Text('› NOW', style: AppText.sec(tk.mark)),
               const SizedBox(width: 12),
               Expanded(child: Container(height: 1, color: tk.line)),
             ],
@@ -229,8 +250,7 @@ class _FocusBlock extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(node.title, style: AppText.body(tk.ink)),
-                      if (node.nextStep != null &&
-                          node.nextStep!.isNotEmpty)
+                      if (node.nextStep != null && node.nextStep!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 3),
                           child: Text('다음 · ${node.nextStep}',
@@ -312,8 +332,7 @@ class SimpleTile extends ConsumerWidget {
     final tk = t(context);
     final repo = ref.read(nodeRepoProvider);
     final done = node.status == NodeStatus.done;
-    final showDeadline =
-        node.date != null && node.date != todayDate() && !done;
+    final showDeadline = node.date != null && node.date != todayDate() && !done;
     final pri = done
         ? null
         : priorityLabel(context,
@@ -343,8 +362,7 @@ class SimpleTile extends ConsumerWidget {
                 children: [
                   Text(node.title,
                       style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
-                          decoration:
-                              done ? TextDecoration.lineThrough : null,
+                          decoration: done ? TextDecoration.lineThrough : null,
                           decorationColor: tk.inkSoft),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
@@ -355,6 +373,13 @@ class SimpleTile extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppText.meta(tk.inkSoft)),
+                    ),
+                  if (done && node.doneAt != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                          '${DateFormat('HH:mm').format(node.doneAt!)} 완료',
+                          style: AppText.meta(tk.mark, size: 10)),
                     ),
                 ],
               ),

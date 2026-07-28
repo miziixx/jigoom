@@ -49,5 +49,17 @@
                 android:textColor="#26241F"
                 android:text="탭해서 기록" />
         </LinearLayout>
+
+        <!-- 오른쪽 끝 마이크 — 이 칸만 음성 캡처(나머지는 기록 입력). -->
+        <TextView
+            android:id="@+id/tt_mic"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:paddingLeft="10dp"
+            android:paddingRight="4dp"
+            android:textSize="18sp"
+            android:contentDescription="음성으로 기록"
+            android:text="🎙" />
     </LinearLayout>
 </FrameLayout>

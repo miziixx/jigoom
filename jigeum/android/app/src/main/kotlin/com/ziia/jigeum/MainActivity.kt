@@ -29,6 +29,8 @@ class MainActivity : FlutterActivity() {
         const val ACTION_QUICK_CAPTURE = "com.ziia.jigeum.QUICK_CAPTURE"
         const val ACTION_TIME_TRACK = "com.ziia.jigeum.TIME_TRACK"
         const val ACTION_OPEN_CALENDAR = "com.ziia.jigeum.OPEN_CALENDAR"
+        const val ACTION_VOICE_CAPTURE = "com.ziia.jigeum.VOICE_CAPTURE"
+        const val ACTION_EDIT_GOAL = "com.ziia.jigeum.EDIT_GOAL"
         const val REQ_SAVE_BACKUP = 7101
         const val REQ_OPEN_BACKUP = 7102
         const val REQ_CALENDAR_PERM = 7103
@@ -124,6 +126,8 @@ class MainActivity : FlutterActivity() {
             ACTION_QUICK_CAPTURE -> pendingAction = "quick_capture"
             ACTION_TIME_TRACK -> pendingAction = "time_track"
             ACTION_OPEN_CALENDAR -> pendingAction = "open_calendar"
+            ACTION_VOICE_CAPTURE -> pendingAction = "voice_capture"
+            ACTION_EDIT_GOAL -> pendingAction = "edit_goal"
         }
     }
 
@@ -176,6 +180,15 @@ class MainActivity : FlutterActivity() {
                                 call.argument("label") ?: "지금")
                             .putString(WidgetPrefs.KEY_TT_TEXT,
                                 call.argument("text") ?: "탭해서 기록")
+                            .apply()
+                        WidgetPrefs.updateAllWidgets(this)
+                        result.success(true)
+                    }
+                    "updateGoal" -> {
+                        getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
+                            .edit()
+                            .putString(WidgetPrefs.KEY_GOAL,
+                                call.argument("goal") ?: "")
                             .apply()
                         WidgetPrefs.updateAllWidgets(this)
                         result.success(true)

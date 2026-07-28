@@ -77,8 +77,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             height: 1,
             color: tk.line,
           ),
-          for (var w = 0; w < 6; w++)
-            _weekRow(tk, gridStart, w, today, counts),
+          for (var w = 0; w < 6; w++) _weekRow(tk, gridStart, w, today, counts),
           _selectedDetail(tk),
         ],
       ),
@@ -156,8 +155,9 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < 7; i++)
-            Expanded(child: _cell(tk, gridStart.add(Duration(days: week * 7 + i)),
-                today, counts)),
+            Expanded(
+                child: _cell(tk, gridStart.add(Duration(days: week * 7 + i)),
+                    today, counts)),
         ],
       ),
     );
@@ -201,8 +201,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
               term ?? lunarShort(day),
               maxLines: 1,
               overflow: TextOverflow.clip,
-              style: AppText.metaSans(term != null ? tk.mark : subColor,
-                  size: 8),
+              style:
+                  AppText.metaSans(term != null ? tk.mark : subColor, size: 8),
             ),
             const SizedBox(height: 2),
             Container(
@@ -221,14 +221,17 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
 
   Widget _selectedDetail(AppTokens tk) {
     final d = _selected;
-    final items = ref.watch(schedulesForDateProvider(d)).valueOrNull ?? const [];
-    final records = ref.watch(timeBlocksForDateProvider(d)).valueOrNull ?? const [];
-    final ticks = ref.watch(habitTicksOnDateProvider(d)).valueOrNull ?? const [];
+    final items =
+        ref.watch(schedulesForDateProvider(d)).valueOrNull ?? const [];
+    final records =
+        ref.watch(timeBlocksForDateProvider(d)).valueOrNull ?? const [];
+    final ticks =
+        ref.watch(habitTicksOnDateProvider(d)).valueOrNull ?? const [];
     final habits = ref.watch(habitsProvider).valueOrNull ?? const [];
     final habitName = {for (final h in habits) h.id: h.title};
     final doneHabits = ticks
-        .map((t) => habitName[t.habitId] ?? '')
-        .where((s) => s.isNotEmpty)
+        .map((t) => (name: habitName[t.habitId] ?? '', time: t.completedAt))
+        .where((h) => h.name.isNotEmpty)
         .toList();
     final term = solarTermName(d);
     final settings = ref.watch(settingsProvider);
@@ -303,8 +306,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         else
           for (final s in items)
             InkWell(
-              onTap: () =>
-                  showScheduleEditSheet(context, existing: s),
+              onTap: () => showScheduleEditSheet(context, existing: s),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
                 child: Row(
@@ -315,10 +317,27 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                             style: AppText.meta(tk.inkSoft))),
                     const SizedBox(width: 8),
                     Expanded(
-                        child: Text(s.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppText.body(tk.ink))),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(s.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.body(s.done ? tk.inkSoft : tk.ink)
+                                  .copyWith(
+                                      decoration: s.done
+                                          ? TextDecoration.lineThrough
+                                          : null)),
+                          if (s.done && s.doneAt != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                  '${DateFormat('HH:mm').format(s.doneAt!)} 완료',
+                                  style: AppText.meta(tk.mark, size: 10)),
+                            ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -354,18 +373,32 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         if (doneHabits.isEmpty)
           emptyNote(context, '이 날 완료한 습관이 없어요')
         else
-          for (final name in doneHabits)
+          for (final habit in doneHabits)
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('✓', style: AppText.glyph(tk.mark, size: 14)),
                   const SizedBox(width: 8),
                   Expanded(
-                      child: Text(name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.body(tk.ink))),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(habit.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body(tk.ink)),
+                        if (habit.time != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                                '${DateFormat('HH:mm').format(habit.time!)} 완료',
+                                style: AppText.meta(tk.mark, size: 10)),
+                          ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
