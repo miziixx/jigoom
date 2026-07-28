@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
+import '../../core/editorial.dart';
 import '../../core/energy.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
@@ -25,7 +26,8 @@ class TodayView extends ConsumerStatefulWidget {
 }
 
 class _TodayViewState extends ConsumerState<TodayView> {
-  bool _winsOpen = false;
+  /// 오늘 목록 필터 — 0 전체 · 1 미완료 · 2 중요 · 3 긴급.
+  int _filter = 0;
   String _goal = '';
 
   @override
@@ -84,6 +86,33 @@ class _TodayViewState extends ConsumerState<TodayView> {
         ),
       ),
     );
+  }
+
+  /// 필터에 맞춰 오늘 항목을 타일 목록으로. 미완료(open)+완료(wins)를 합쳐
+  /// 필터링하므로 '전체·중요·긴급'에서 완료 항목도 계속 보이고 토글도 된다.
+  List<Widget> _filteredTiles(
+      BuildContext context, List<Node> open, List<Node> wins) {
+    final all = <Node>[...open, ...wins];
+    final List<Node> list;
+    switch (_filter) {
+      case 1: // 미완료
+        list = open;
+        break;
+      case 2: // 중요
+        list = all.where((n) => n.important).toList();
+        break;
+      case 3: // 긴급
+        list = all.where((n) => n.urgent).toList();
+        break;
+      default: // 전체
+        list = all;
+    }
+    if (list.isEmpty) {
+      return [
+        emptyNote(context, _filter == 0 ? '아래에 적으면 여기 쌓여요' : '해당하는 일이 없어요'),
+      ];
+    }
+    return [for (final n in list) SimpleTile(node: n)];
   }
 
   @override
@@ -169,25 +198,17 @@ class _TodayViewState extends ConsumerState<TodayView> {
             node == null ? const SizedBox.shrink() : _FocusBlock(node: node),
       ),
 
-      // TO-DO
-      SectionLabel('TO-DO', count: today.length),
-      if (today.isEmpty)
-        emptyNote(context, '아래에 적으면 여기 쌓여요')
-      else
-        for (final n in today) SimpleTile(node: n),
-
-      // DONE (오늘의 승리)
-      if (wins.isNotEmpty) ...[
-        SectionLabel(
-          'DONE',
-          count: wins.length,
-          onTap: () => setState(() => _winsOpen = !_winsOpen),
-          trailing: Text(_winsOpen ? '−' : '+',
-              style: AppText.meta(tk.inkSoft, size: 13)),
+      // 필터 — 전체 / 미완료 / 중요 / 긴급 (박스 없는 텍스트 탭 + 얇은 밑줄).
+      // 완료 항목은 '전체'에서 계속 보이고 토글도 가능(아무것도 숨기지 않음).
+      Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 22, kGutter, 2),
+        child: EdTabs(
+          labels: const ['전체', '미완료', '중요', '긴급'],
+          index: _filter,
+          onChanged: (i) => setState(() => _filter = i),
         ),
-        if (_winsOpen)
-          for (final n in wins) SimpleTile(node: n),
-      ],
+      ),
+      ..._filteredTiles(context, today, wins),
 
       const SizedBox(height: 16),
     ];
