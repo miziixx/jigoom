@@ -184,7 +184,7 @@ class _N2TestNavItemState extends State<_N2TestNavItem> {
             widget.label,
             style: mono(
               color: fg,
-              fontSize: 12,
+              fontSize: 10,
               fontWeight: widget.selected ? FontWeight.bold : FontWeight.w400,
             ),
             maxLines: 1,
@@ -234,11 +234,11 @@ class _LrNavItemState extends State<_LrNavItem> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(widget.symbol, style: mono(color: fg, fontSize: 12)),
+                Text(widget.symbol, style: mono(color: fg, fontSize: 10)),
                 const SizedBox(height: 1),
                 Text(
                   widget.label.toUpperCase(),
-                  style: monoLabel(color: fg, fontSize: 9, letterSpacing: 1.0),
+                  style: monoLabel(color: fg, fontSize: 7, letterSpacing: 1.0),
                 ),
               ],
             ),
@@ -291,7 +291,7 @@ class BottomTabBar extends StatelessWidget {
     return MediaQuery(
       data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
       child: SizedBox(
-        height: 34,
+        height: 28,
         child: Row(
           children: [
             // Left fluid area: tabs flex-fill equally
@@ -317,7 +317,7 @@ class BottomTabBar extends StatelessWidget {
                               '탭추가',
                               style: mono(
                                 color: kDim.withValues(alpha: 0.25),
-                                fontSize: 12,
+                                fontSize: 10,
                               ),
                             ),
                           )
@@ -390,7 +390,7 @@ class _TabChipState extends State<_TabChip> {
                   onTap: widget.onDelete,
                   child: Text(
                     '삭제',
-                    style: mono(color: Colors.red.shade300, fontSize: 11),
+                    style: mono(color: Colors.red.shade300, fontSize: 9),
                   ),
                 ),
                 const SizedBox(width: 2),
@@ -398,7 +398,7 @@ class _TabChipState extends State<_TabChip> {
               Flexible(
                 child: Text(
                   label,
-                  style: mono(color: fg, fontSize: 12),
+                  style: mono(color: fg, fontSize: 10),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -439,7 +439,7 @@ class _AddPlaceholderState extends State<_AddPlaceholder> {
             '탭추가',
             style: mono(
               color: _hovered ? kDim : kDim.withValues(alpha: 0.3),
-              fontSize: 12,
+              fontSize: 10,
             ),
           ),
         ),
@@ -514,7 +514,7 @@ class _TodayBtnState extends State<_TodayBtn> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
-          child: Text('TODAY', style: monoLabel(color: fg, fontSize: 11)),
+          child: Text('TODAY', style: monoLabel(color: fg, fontSize: 9.5)),
         ),
       ),
     );
@@ -551,7 +551,7 @@ class _CalBtnState extends State<_CalBtn> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
-          child: Text('CAL', style: monoLabel(color: fg, fontSize: 11)),
+          child: Text('CAL', style: monoLabel(color: fg, fontSize: 9.5)),
         ),
       ),
     );
@@ -588,7 +588,7 @@ class _StatsBtnState extends State<_StatsBtn> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
           alignment: Alignment.center,
-          child: Text('STATS', style: monoLabel(color: fg, fontSize: 11)),
+          child: Text('STATS', style: monoLabel(color: fg, fontSize: 9.5)),
         ),
       ),
     );

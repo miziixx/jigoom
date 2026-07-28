@@ -39,7 +39,7 @@ class _ScrollPickerDialogState extends State<ScrollPickerDialog> {
 
   double _contentWidth() {
     if (widget.labels.isEmpty) return 48;
-    final style = mono(fontSize: 13, fontWeight: FontWeight.normal);
+    final style = mono(fontSize: 13, fontWeight: FontWeight.bold);
     final tp = TextPainter(
       text: TextSpan(text: widget.labels.first, style: style),
       textDirection: TextDirection.ltr,
@@ -81,7 +81,7 @@ class _ScrollPickerDialogState extends State<ScrollPickerDialog> {
                       style: mono(
                         color: isSel ? kMint : kDim,
                         fontSize: 13,
-                        fontWeight: isSel ? FontWeight.normal : FontWeight.normal,
+                        fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   ),

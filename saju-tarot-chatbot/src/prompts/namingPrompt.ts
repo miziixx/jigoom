@@ -1,0 +1,300 @@
+import {
+  NAMING_MODE_LABEL,
+  type NameComparison,
+  type NameEvaluation,
+  type NamingBrief,
+  type NamingRecommendOptions,
+} from "../lib/naming.js";
+
+export const NAMING_SYSTEM_PROMPT = [
+  "당신은 전통 작명 관점의 계산 결과를 사용자가 이해하기 쉬운 생활 언어로 번역하는 이름 감정 해설가다.",
+  "계산 자체를 새로 만들거나, 제공되지 않은 한자 뜻·자원오행·획수를 꾸며내지 않는다.",
+  "법적 등록 가능성, 인명용 한자 해당 여부, 상표권·상호권 가능성을 확정적으로 말하지 않는다.",
+  "사용자가 입력한 이름을 나쁜 이름, 불행한 이름, 피해야 할 이름으로 단정하지 않는다.",
+  "발음오행, 사주 보완 기운, 수리성명학은 전통 해석 관점의 참고 자료라고 설명한다.",
+  "공포감, 운명 단정, 부모에게 죄책감을 주는 표현을 쓰지 않는다.",
+  "좋다/나쁘다로 끝내지 말고, 어떤 점을 살리고 어떤 점을 보완하면 좋은지 현실 행동으로 연결한다.",
+  "한자어를 남발하지 말고 쉬운 말을 먼저 쓴다. 전문 용어는 '전문가 근거 보기'에 보존한다.",
+  "마크다운 표는 쓰지 않는다. 제목과 bullet은 사용할 수 있다.",
+  "[금지 — 절대 하지 말 것]",
+  "- '이 이름을 쓰면 반드시/무조건/확실히 (성공/부자/행운)입니다' 같은 단정",
+  "- '이 이름은 돈을 불러옵니다', '이 이름은 인생을 바꿉니다' 같은 운명 예언",
+  "- '이 이름은 상표 등록 가능합니다', '법적으로 문제 없습니다' 같은 법적 확정",
+  "- '이 이름을 쓰면 사업이 성공합니다' 같은 사업 보장",
+  "[권장 — 대신 이렇게 표현]",
+  "- '사주 보완 관점에서는 유리한 방향입니다'",
+  "- '브랜드 이미지상 어울리는 편입니다'",
+  "- '상표권, 도메인, SNS 계정 등은 별도로 확인이 필요합니다'",
+  "- '이름은 방향성과 인상을 돕는 요소이며 결과를 보장하지 않습니다'",
+].join("\n");
+
+export const NAMING_RECOMMEND_SYSTEM_PROMPT = [
+  "당신은 전통 작명 관점(발음오행·사주 보완)을 근거로 실제 이름 후보를 직접 지어 주는 작명 도우미다.",
+  "가장 중요한 임무는 '실제로 쓸 수 있는 구체적인 이름'을 요청 개수만큼 빠짐없이 뽑아 주는 것이다. 방향 설명만 하고 실제 이름을 주지 않으면 실패다.",
+  "요청받은 개수만큼 서로 겹치지 않는 이름을 제시한다. 개수를 줄이거나 '예시'로 얼버무리지 않는다.",
+  "제공된 '보완하면 좋은 기운'과 '어울리는 초성' 근거 안에서만 이름을 제안한다. 근거와 무관한 이름을 지어내지 않는다.",
+  "각 이름은 자연스럽고 실제로 부르기 좋은 한국 이름이어야 한다. 어색하거나 놀림받기 쉬운 조합은 피한다.",
+  "각 이름마다 한자 표기와 뜻(예: 民俊 / 백성 민, 뛰어날 준)을 함께 제안하되, 그 한자가 실제 인명용 한자인지·획수 수리가 어떤지는 단정하지 않는다.",
+  "특정 이름을 '완벽한 이름', '무조건 좋은 이름'으로 단정하지 않는다. 어디까지나 사주 보완·소리 흐름 관점의 참고 제안이다.",
+  "점수·순위를 스스로 매기지 않는다. 점수는 시스템이 계산하니, 너는 이름과 근거만 제시한다.",
+  "법적 등록 가능성, 인명용 한자 해당 여부, 상표권·상호권 가능성을 확정적으로 말하지 않는다.",
+  "공포감, 운명 단정, 부모에게 죄책감을 주는 표현을 쓰지 않는다.",
+  "[금지 — 절대 하지 말 것]",
+  "- '이 이름을 쓰면 반드시/무조건/확실히 (성공/부자/행운)입니다' 같은 단정",
+  "- '이 이름은 돈을 불러옵니다', '이 이름은 인생을 바꿉니다' 같은 운명 예언",
+  "- '이 이름은 상표 등록이 가능합니다', '법적으로 문제 없습니다' 같은 법적 확정",
+  "- '이 이름을 쓰면 사업이 성공합니다', '이 이름은 대박이 확실합니다' 같은 사업/재정 보장",
+  "[권장 — 대신 이렇게 표현]",
+  "- '사주 보완 관점에서는 도움이 되는 방향입니다'",
+  "- '브랜드/활동명으로서 어울리는 편입니다'",
+  "- '상표권, 도메인, SNS 계정, 사업자등록상 중복 여부는 별도로 확인이 필요합니다'",
+  "- '이름은 방향성과 인상을 돕는 요소이며 결과를 보장하지 않습니다'",
+  "반드시 지정된 JSON 형식으로만 답한다. JSON 앞뒤에 설명 문장이나 코드펜스(```)를 붙이지 않는다.",
+].join("\n");
+
+export function buildNamingRecommendMessage(brief: NamingBrief, options: NamingRecommendOptions): string {
+  const { purpose, school, surname, gender, syllableCount, count } = options;
+  const modeLabel = NAMING_MODE_LABEL[purpose.mode];
+  const wantCount = count && count > 0 ? count : 24;
+  const wantSyllable = syllableCount && syllableCount > 0 ? syllableCount : 2;
+
+  // Mode-specific recommendation guidance
+  const getRecommendationGuidance = (mode: string): string[] => {
+    switch (mode) {
+      case "baby":
+        return [
+          "[아기 이름 추천 포인트]",
+          "- 부족한 사주 기운을 담으면서도 자연스러운 이름을 우선한다.",
+          "- 발음오행 흐름이 부드럽고 상생하는 음절 배치를 선호한다.",
+          "- 성과 조합했을 때 전체 리듬이 자연스러운지 확인한다.",
+          "- 아이가 자라서도 어색하지 않을 이름을 고른다.",
+          "- 놀림받기 쉽거나 부정적 의미로 들리는 발음 조합은 피한다.",
+        ];
+      case "rename":
+        return [
+          "[개명 이름 추천 포인트]",
+          "- 현재 이름과 충분히 다른 이미지를 만들어 심리적 변화를 돕는다.",
+          "- 사주 보완을 통해 새로운 운기를 끌어온다는 감각을 자극한다.",
+          "- 성과의 조화는 물론, 개명 후 오래 쓸 수 있는 안정감을 중시한다.",
+          "- 지나치게 생소하거나 과한 이름은 피한다.",
+          "- 한자 의미와 발음이 일치하는 좋은 조합을 우선한다.",
+        ];
+      case "stage":
+        return [
+          "[예명·활동명 추천 포인트]",
+          "- 한 번에 기억되고, 검색하기 좋은 이름을 최우선한다.",
+          "- 활동 분야(배우/작가/크리에이터 등)와 잘 어울리는 이미지를 센다.",
+          "- 발음이 명확하고 부르기 좋은 리듬감을 선호한다.",
+          "- 개성 있으면서도 지나치게 작위적이거나 유치하지 않은 선을 지킨다.",
+          "- 원하는 공개 이미지를 자연스럽게 전달하는 이름을 고른다.",
+          "- 오래 써도 유행을 타지 않는 이름을 고려한다.",
+        ];
+      case "brand":
+        return [
+          "[브랜드명·상호 추천 포인트]",
+          "- 업종과 타깃 고객층을 직관적으로 전달하는 이름을 우선한다.",
+          "- 고객이 한 번에 기억하고, 검색·SNS에서 찾기 쉬운 이름을 선호한다.",
+          "- 말하기 쉽고, 적으면서도 부담 없는 발음을 중시한다.",
+          "- 지나치게 흔하거나 유사한 브랜드와 구별되는지 확인한다.",
+          "- 부정적 연상이나 예상치 못한 의미가 없는지 검토한다.",
+          "- 대표자 사주 보완과 업종 기운의 조화를 느껴지게 한다.",
+          "- 유행을 따르되 5년 이상 사용할 수 있는 지속성을 고려한다.",
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const guidance = getRecommendationGuidance(purpose.mode);
+
+  return [
+    "[요청]",
+    "아래 사주 보완 근거에 맞춰, 실제로 쓸 수 있는 구체적인 이름 후보를 지어라.",
+    `이름 후보는 정확히 ${wantCount}개, 서로 겹치지 않게 제안한다. 개수를 줄이지 마라.`,
+    surname?.trim()
+      ? `성(姓)은 '${surname.trim()}'으로 고정한다. JSON의 name 필드에는 성을 제외한 이름 부분만 담아라(성은 시스템이 붙인다).`
+      : `성이 지정되지 않았으니 name 필드에는 이름(또는 브랜드·활동명) 부분만 담아라.`,
+    `★ 각 name(이름 부분)은 성을 빼고 정확히 ${wantSyllable}글자여야 한다. 아래 예시가 2글자라도 무시하고 반드시 ${wantSyllable}글자로 지어라.`,
+    "",
+    "[출력 형식 — 아래 JSON 객체 하나만 출력한다. 다른 텍스트·코드펜스 금지]",
+    "{",
+    '  "direction": "보완 기운과 어울리는 소리 방향을 2~3문장으로 쉽게 설명",',
+    '  "candidates": [',
+    '    { "name": "민준", "hanja": "民俊", "hanjaMeaning": "백성 민, 뛰어날 준", "sound": "ㅁ·ㅈ 소리가 이 사주 보완 기운에 어떻게 맞는지 한 줄", "image": "실제로 불렀을 때의 인상 한 줄" }',
+    "  ]",
+    "}",
+    `- name: 성을 제외한 이름 부분(한글), 정확히 ${wantSyllable}글자.`,
+    "- hanja/hanjaMeaning: 어울리는 한자 표기와 뜻. 확신이 없으면 비워도 된다.",
+    "- sound: 사용한 초성·발음오행이 보완 기운에 맞는 이유 한 줄.",
+    "- image: 부르는 느낌·인상 한 줄.",
+    `- candidates 배열 길이는 정확히 ${wantCount}개.`,
+    "",
+    "[소리 배치 규칙 — 반드시 지켜 다양하게]",
+    `- 보완 기운 초성(${brief.recommendedChoseong.join("·")})은 '첫 글자'에만 넣지 마라. 이름의 어느 한 음절(첫·가운데·끝 어디든)에 최소 한 번만 들어가면 충분하다.`,
+    `- 모든 후보가 같은 초성으로 시작하면 안 된다. 시작 소리를 여러 자음으로 최대한 다양하게 흩어라. '${brief.recommendedChoseong[0] ?? "ㄱ"}○○' 꼴만 반복하는 것은 금지.`,
+    brief.cautionChoseong.length
+      ? `- 부담 초성(${brief.cautionChoseong.join("·")})만 피하고, 나머지 자음(ㄴ·ㄷ·ㄹ·ㅅ·ㅈ·ㅊ·ㅌ·ㅇ·ㅎ 등)은 자유롭게 섞어 서로 다른 이름을 만들어라.`
+      : `- 나머지 음절은 다른 자음을 자유롭게 섞어 서로 다른 이름을 만들어라.`,
+    `- 예: 보완 초성이 ${brief.recommendedChoseong[0] ?? "ㄱ"}이라도 '${brief.recommendedChoseong[0] ?? "가"}○'로만 시작하지 말고, 끝 글자나 가운데 음절에 넣거나(○${brief.recommendedChoseong[0] ?? "건"}), 시작음을 바꿔 다양화하라.`,
+    "",
+    "[작명 조건]",
+    `작명 목적: ${modeLabel}`,
+    `성별/대상 선호: ${gender?.trim() || "미지정 (자연스럽게 반영)"}`,
+    `원하는 이미지: ${purpose.desiredImage?.trim() || "미입력"}`,
+    `피하고 싶은 발음/느낌: ${purpose.avoidSounds?.trim() || "미입력"}`,
+    `추가 메모: ${purpose.purposeNote?.trim() || "미입력"}`,
+    `발음오행 기준: ${school === "given-name" ? "이름 중심 기준" : "전체 이름 기준"}`,
+    "",
+    ...guidance,
+    "",
+    "[사주 보완 근거 — 이 안에서만 이름을 지어라]",
+    `보완하면 좋은 기운: ${brief.neededLabel}`,
+    `보완 기운을 직접 담는 초성: ${brief.recommendedChoseong.join(", ")}`,
+    brief.supportingChoseong.length
+      ? `보완 기운을 상생으로 살려주는 기운: ${brief.supportingLabel} (초성 ${brief.supportingChoseong.join(", ")})`
+      : `상생으로 살려주는 기운은 이 사주에선 부담이 될 수 있어 권하지 않음(직접 담는 초성 위주로).`,
+    `과하면 부담이 되어 몰리지 않게 할 기운: ${brief.avoidLabel ?? "특별히 없음"}${brief.cautionChoseong.length ? ` (초성 ${brief.cautionChoseong.join(", ")})` : ""}`,
+    `근거 요약: ${brief.note}`,
+    "",
+    "[주의]",
+    "이름 후보는 사주 보완·소리 흐름 관점의 참고 제안이며, 절대적인 길흉이 아니다.",
+    "아기 이름·개명 이름은 실제 출생신고·개명 신청 전 전자가족관계등록시스템/관할 기관에서 인명용 한자·글자 수·동일 이름 등 등록 요건을 최종 확인해야 한다(이 안내는 direction에 한 문장 녹여라).",
+  ].join("\n");
+}
+
+export function buildNamingUserMessage(evaluation: NameEvaluation, comparison?: NameComparison | null): string {
+  const soundLines = evaluation.sound.syllables
+    .map((s) => `- ${s.syllable}: 초성 ${s.choseong}, 발음오행 ${s.elementLabel}`)
+    .join("\n");
+  const relationLines =
+    evaluation.sound.relations.length > 0
+      ? evaluation.sound.relations.map((r) => `- ${r.from} → ${r.to}: ${r.relation}`).join("\n")
+      : "- 인접 음절 관계 없음";
+  const suriLines = evaluation.suri
+    ? evaluation.suri.levels.map((l) => `- ${l.name}: ${l.total}획, ${l.level}`).join("\n")
+    : "- 한자 획수 미입력: 수리 판단은 하지 않음";
+  const comparisonLines =
+    comparison && comparison.candidates.length > 1
+      ? comparison.candidates
+          .map(
+            (candidate, index) =>
+              `- ${index + 1}위 ${candidate.name}: 종합 ${candidate.overall}, 소리 ${candidate.sound.harmony}, 사주 보완 ${candidate.fit.level}, 보완 기운 ${candidate.fit.neededLabel}, 획수 ${candidate.suri ? candidate.suri.summary : "미입력"}`,
+          )
+          .join("\n")
+      : "- 후보 비교 없음";
+  const purpose = evaluation.purpose;
+  const modeLabel = purpose ? NAMING_MODE_LABEL[purpose.mode] : "일반 이름 감정";
+
+  // Mode-specific evaluation criteria
+  const getEvaluationCriteria = (mode: string): string[] => {
+    switch (mode) {
+      case "baby":
+        return [
+          "✓ 사주 오행 보완: 부족한 기운을 담는지",
+          "✓ 발음오행 흐름: 음절 간 상생 흐름이 부드러운지",
+          "✓ 한자 의미: 한자가 있을 때 글자 뜻이 좋은지",
+          "✓ 획수 수리: 수리 계산상 길한 흐름인지",
+          "✓ 성장 후 인상: 아이가 자라면서도 자연스러운 이름인지",
+          "✓ 부정적 발음 회피: 놀림받거나 부정적 의미로 들리지 않는지",
+        ];
+      case "rename":
+        return [
+          "✓ 현재 이름과의 차이: 새 이름이 현재와 얼마나 다른 이미지를 만드는지",
+          "✓ 사주 보완: 부족한 기운을 보완하는지",
+          "✓ 사회적 인상: 개명으로 얻을 수 있는 사회적 변화",
+          "✓ 발음과 의미: 음장과 한자 의미가 일치하는지",
+          "✓ 안정감: 개명 후에도 오래 쓸 수 있는 안정적인 이름인지",
+          "✓ 무리 없음: 지나치게 과한 이름이 아닌지",
+        ];
+      case "stage":
+        return [
+          "✓ 기억성: 한 번에 기억되기 좋은 이름인지",
+          "✓ 활동 분야 어울림: 활동 분야(배우/작가/유튜버 등)와 어울리는지",
+          "✓ 발음 리듬: 부르기 좋고 리듬감 있는지",
+          "✓ 개성: 충분히 차별화되고 개성 있는지",
+          "✓ 공개 이미지: 원하는 공개 이미지와 일치하는지",
+          "✓ 검색 호명: 검색할 때 정확히 나오고 호명이 어색하지 않은지",
+          "✓ 지속성: 오래 써도 유행 타지 않고 부담 없는지",
+          "✓ 작위성 회피: 지나치게 작위적이거나 유치한 느낌이 아닌지",
+        ];
+      case "brand":
+        return [
+          "✓ 업종 적합성: 업종(카페/패션/IT 등)과 어울리는지",
+          "✓ 타깃 고객 인상: 타깃 고객층이 원하는 이미지를 전달하는지",
+          "✓ 기억성: 고객이 쉽게 기억하고 찾을 수 있는지",
+          "✓ 발음 용이: 말하고 적기 쉬운지",
+          "✓ 브랜딩 적합성: 검색, SNS 계정, 상표 관점에서 적합한지",
+          "✓ 흔함 정도: 지나치게 흔하거나 유사한 브랜드가 많지 않은지",
+          "✓ 부정적 연상: 부정적인 의미나 연상이 없는지",
+          "✓ 트렌드 회피: 유행을 따르되 오래 쓸 수 있는 트렌드리스 요소 포함",
+          "✓ 대표자 사주 연결: 대표자 사주 보완과 업종 기운이 조화로운지",
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const criteria = getEvaluationCriteria(purpose?.mode ?? "baby");
+
+  return [
+    "[요청]",
+    "아래 이름 감정 계산 결과만 근거로 사용해, 사용자에게 보여줄 이름 해석 리포트를 작성해라.",
+    "계산되지 않은 자원오행, 한자 뜻, 실제 법적 작명 적합성은 말하지 마라.",
+    "등록 가능 여부, 인명용 한자 여부, 상표·상호 사용 가능성은 최종 확인이 필요한 사항으로만 안내해라.",
+    "",
+    "[출력 구조]",
+    "# 한 줄 결론",
+    "# 쉬운 풀이",
+    "# 현실에서 느껴지는 인상",
+    "# 보완하면 더 좋아지는 점",
+    "# 이름을 쓸 때의 팁",
+    comparison && comparison.candidates.length > 1 ? "# 후보 비교 종합평" : "",
+    "# 전문가 근거 보기",
+    "",
+    "[분량]",
+    "전체 1000~1500자. 짧은 bullet을 섞어 읽기 좋게 써라.",
+    "",
+    "[계산 결과]",
+    `이름: ${evaluation.name}`,
+    `작명 목적: ${modeLabel}`,
+    `원하는 이미지: ${purpose?.desiredImage?.trim() || "미입력"}`,
+    `피하고 싶은 발음/느낌: ${purpose?.avoidSounds?.trim() || "미입력"}`,
+    `추가 메모: ${purpose?.purposeNote?.trim() || "미입력"}`,
+    `발음오행 기준: ${evaluation.schoolLabel}`,
+    `종합 판정: ${evaluation.overall}`,
+    `헤드라인: ${evaluation.headline}`,
+    "",
+    "[평가 기준 — 이 목적의 이름을 평가할 때 중점 사항]",
+    ...criteria,
+    "",
+    "[후보 비교]",
+    comparison?.summary ?? "후보 비교 없음",
+    comparisonLines,
+    "",
+    "[소리의 기운]",
+    soundLines,
+    `발음오행 흐름 판정: ${evaluation.sound.harmony}`,
+    `발음오행 메모: ${evaluation.sound.note}`,
+    "",
+    "[음절 사이 관계]",
+    relationLines,
+    "",
+    "[사주 보완 적합도]",
+    `보완하면 좋은 기운: ${evaluation.fit.neededLabel}`,
+    `과하면 부담이 되는 기운: ${evaluation.fit.avoidLabel ?? "없음"}`,
+    `보완 기운을 직접 담는가: ${evaluation.fit.suppliesNeeded ? "예" : "아니오"}`,
+    `보완 기운을 상생으로 살리는가: ${evaluation.fit.supportsNeeded ? "예" : "아니오"}`,
+    `부담 기운으로 쏠리는가: ${evaluation.fit.leansAvoid ? "예" : "아니오"}`,
+    `사주 적합도: ${evaluation.fit.level}`,
+    `사주 적합도 메모: ${evaluation.fit.note}`,
+    "",
+    "[획수 수리]",
+    suriLines,
+    evaluation.suri ? `수리 요약: ${evaluation.suri.summary}` : "수리 요약: 획수 미입력으로 생략",
+    "",
+    "[주의]",
+    "이름은 절대적인 길흉 판정이 아니라, 불릴 때의 소리 흐름과 사주 보완 관점의 참고 자료라고 자연스럽게 설명해라.",
+    "아기 이름·개명 이름은 실제 출생신고 또는 개명 신청 전 전자가족관계등록시스템/관할 기관에서 최종 확인이 필요하다고 안내해라.",
+    "예명·활동명·브랜드명은 상표, 도메인, SNS 계정, 기존 사용 여부를 별도로 확인해야 한다고 안내해라.",
+  ].join("\n");
+}

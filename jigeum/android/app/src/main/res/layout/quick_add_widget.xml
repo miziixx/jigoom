@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 1×1 빠른 추가 위젯 — 큰 + 글리프 + 작은 라벨. 탭하면 팝업. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/qa_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/qa_plus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+"
+        android:textSize="30sp"
+        android:textColor="#26241F" />
+
+    <TextView
+        android:id="@+id/qa_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="담기"
+        android:fontFamily="monospace"
+        android:letterSpacing="0.08"
+        android:textSize="10sp"
+        android:textColor="#9A948A" />
+</LinearLayout>
