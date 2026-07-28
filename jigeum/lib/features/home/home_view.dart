@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
+import '../../core/editorial.dart';
 import '../../core/fortune.dart';
 import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
@@ -124,7 +125,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
     };
 
     return ReorderableListView(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+      padding: const EdgeInsets.fromLTRB(Ed.gutter, 16, Ed.gutter, 24),
       onReorder: _onReorder,
       proxyDecorator: (child, i, a) =>
           Material(color: Colors.transparent, child: child),
@@ -152,7 +153,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: tk.paper2,
+          color: Colors.transparent,
           border: Border.all(color: tk.line),
         ),
         child: Column(
