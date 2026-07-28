@@ -1,0 +1,64 @@
+name: Build Preview APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/app-ui-ux-improvements-2ckax1
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [personal, store, nemo2, nemo2store, nemo2test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK (${{ matrix.flavor }} debug)
+        run: flutter build apk --flavor ${{ matrix.flavor }} --debug --android-skip-build-dependency-validation
+
+      - name: Upload APK artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.flavor }}-debug
+          path: build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-debug.apk
+          retention-days: 14
+
+      - name: Publish APK to Release
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-ui-preview
+          name: UI 개선 프리뷰 APK (버전별)
+          body: |
+            UI 개선 5종 적용 프리뷰 빌드 (debug).
+            커밋 ${{ github.sha }} 기준 자동 게시.
+
+            당신 앱에 맞는 버전(app-<flavor>-debug.apk)을 골라 설치하세요.
+            ※ CI 디버그 서명이라 폰의 기존 앱과 서명이 다르면 덮어설치가
+              안 될 수 있습니다. 그 경우 기존 앱 삭제 후 설치(데이터는 백업으로 복원).
+          files: build/app/outputs/flutter-apk/app-${{ matrix.flavor }}-debug.apk
+          prerelease: true
