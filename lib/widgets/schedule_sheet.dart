@@ -808,7 +808,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                         style: mono(
                           color: kMint,
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.normal,
                         ),
                       ),
                     ),
@@ -851,7 +851,7 @@ class _ScheduleSheetState extends State<_ScheduleSheet> {
                         ? kMint
                         : kDim.withValues(alpha: 0.5),
                     fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -1221,7 +1221,7 @@ class _MiniCalendar extends StatelessWidget {
                                   ? fontSize
                                   : fontSize - 1,
                               fontWeight: isHighlighted || isToday
-                                  ? FontWeight.bold
+                                  ? FontWeight.normal
                                   : FontWeight.normal,
                             ),
                           ),
@@ -1270,7 +1270,7 @@ class _SectionHeader extends StatelessWidget {
             style: mono(
               color: kText,
               fontSize: 11,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.normal,
             ),
           ),
           const SizedBox(height: 4),
@@ -1376,7 +1376,7 @@ class _SegBtn extends StatelessWidget {
           style: mono(
             color: selected ? kMint : kDim.withValues(alpha: 0.5),
             fontSize: 12,
-            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            fontWeight: selected ? FontWeight.normal : FontWeight.normal,
           ),
         ),
       ),
@@ -1412,7 +1412,7 @@ class _RepeatUnitBtn extends StatelessWidget {
           style: mono(
             color: selected ? kMint : kDim.withValues(alpha: 0.5),
             fontSize: 12,
-            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            fontWeight: selected ? FontWeight.normal : FontWeight.normal,
           ),
         ),
       ),
@@ -1464,7 +1464,7 @@ class _WeekdayRow extends StatelessWidget {
                 style: mono(
                   color: isSel ? baseColor : kDim.withValues(alpha: 0.5),
                   fontSize: 11,
-                  fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: isSel ? FontWeight.normal : FontWeight.normal,
                 ),
               ),
             ),
@@ -1641,7 +1641,7 @@ class _CompactTimeInputState extends State<_CompactTimeInput> {
         alignment: Alignment.center,
         child: Text(
           _fmt(widget.value),
-          style: mono(color: kMint, fontSize: 15, fontWeight: FontWeight.bold),
+          style: mono(color: kMint, fontSize: 15, fontWeight: FontWeight.normal),
         ),
       ),
     );
@@ -1700,7 +1700,7 @@ class _TimeDirectInputDialogState extends State<_TimeDirectInputDialog> {
         keyboardType: TextInputType.number,
         maxLength: 2,
         textAlign: TextAlign.center,
-        style: mono(color: kMint, fontSize: 22, fontWeight: FontWeight.bold),
+        style: mono(color: kMint, fontSize: 22, fontWeight: FontWeight.normal),
         onSubmitted: (_) => _submit(),
         decoration: InputDecoration(
           hintText: '${widget.min}–${widget.max}',

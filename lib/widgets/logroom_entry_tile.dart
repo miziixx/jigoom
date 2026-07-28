@@ -1198,7 +1198,7 @@ class _MinimalTypeLabel extends StatelessWidget {
         style: mono(
           color: checked ? _doneAccentColor() : kMint,
           fontSize: tsTiny,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.normal,
           height: 1.15,
         ),
       ),

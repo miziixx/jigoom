@@ -270,7 +270,7 @@ class _SidebarState extends State<Sidebar> {
               style: mono(
                 color: kMint,
                 fontSize: 11,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.normal,
                 letterSpacing: 1.5,
               ),
             ),
@@ -381,7 +381,7 @@ class _SidebarState extends State<Sidebar> {
                         style: mono(
                           color: kMint.withValues(alpha: 0.65),
                           fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.normal,
                           letterSpacing: 1.2,
                         ),
                       ),
@@ -429,7 +429,7 @@ class _SidebarState extends State<Sidebar> {
                     style: mono(
                       color: kMint.withValues(alpha: 0.65),
                       fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.normal,
                       letterSpacing: 1.2,
                     ),
                   ),
@@ -706,7 +706,7 @@ class _SidebarState extends State<Sidebar> {
             style: mono(
               color: active ? kBg : kText,
               fontSize: 12,
-              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+              fontWeight: active ? FontWeight.normal : FontWeight.normal,
             ).copyWith(backgroundColor: active ? kText : Colors.transparent),
           ),
         ),

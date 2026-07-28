@@ -2220,7 +2220,7 @@ class _MinimalTool extends StatelessWidget {
           style: mono(
             color: active ? kMint : kDim,
             fontSize: 9,
-            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+            fontWeight: active ? FontWeight.normal : FontWeight.normal,
             height: 1.15,
           ),
         ),
@@ -2251,7 +2251,7 @@ class _MinimalSubmitBtn extends StatelessWidget {
           style: mono(
             color: kMint,
             fontSize: 10,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.normal,
             height: 1.15,
           ),
         ),
@@ -2454,7 +2454,7 @@ class _AddBtnState extends State<_AddBtn> {
             style: mono(
               color: kBg,
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.normal,
             ),
           ),
         ),
@@ -2596,7 +2596,7 @@ class _TextFmtBtnState extends State<_TextFmtBtn> {
               fontFamily: kFontFamily,
               fontSize: 12,
               color: color,
-              fontWeight: widget.bold ? FontWeight.bold : FontWeight.normal,
+              fontWeight: widget.bold ? FontWeight.normal : FontWeight.normal,
               fontStyle: widget.italic ? FontStyle.italic : FontStyle.normal,
               decoration: widget.strike ? TextDecoration.lineThrough : null,
               decorationColor: color,

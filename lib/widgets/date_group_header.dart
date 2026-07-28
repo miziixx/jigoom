@@ -107,7 +107,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
                   style: mono(
                     color: isToday ? kMint : kDim,
                     fontSize: tsSmall,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.normal,
                     letterSpacing: 0.8,
                   ),
                   maxLines: 1,
@@ -183,7 +183,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
                     style: monoLabel(
                       color: labelColor,
                       fontSize: tsSmall,
-                      fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: isToday ? FontWeight.normal : FontWeight.normal,
                       letterSpacing: 1.8,
                     ),
                   ),
@@ -280,7 +280,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
                 style: mono(
                   color: kBg,
                   fontSize: tsAlt,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.normal,
                 ),
               ),
               Expanded(
@@ -289,7 +289,7 @@ class _DateGroupHeaderState extends State<DateGroupHeader> {
                   style: mono(
                     color: kBg,
                     fontSize: tsAlt,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.normal,
                     letterSpacing: isToday ? 0.8 : 0.4,
                   ),
                   maxLines: 2,

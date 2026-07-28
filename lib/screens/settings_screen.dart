@@ -1019,7 +1019,7 @@ class _SectionHeader extends StatelessWidget {
           style: monoLabel(
             color: kText,
             fontSize: 12,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.normal,
             letterSpacing: 1.8,
           ),
         ),
@@ -1815,7 +1815,7 @@ class _PaletteSlotCardState extends State<_PaletteSlotCard> {
                   style: mono(
                     color: textColor,
                     fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
               ),

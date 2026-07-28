@@ -335,7 +335,7 @@ class _DateHeaderState extends State<_DateHeader> {
                   color: color,
                   fontSize: 11,
                   fontWeight: widget.isToday
-                      ? FontWeight.w600
+                      ? FontWeight.normal
                       : FontWeight.normal,
                   letterSpacing: 1.4,
                 ),
