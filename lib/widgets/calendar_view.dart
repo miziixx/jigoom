@@ -300,7 +300,7 @@ class _CalendarViewState extends State<CalendarView> {
               color: kBg,
               fontSize: 11,
               letterSpacing: 1,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.normal,
             ),
           ),
           const SizedBox(width: 10),
@@ -359,7 +359,7 @@ class _CalendarViewState extends State<CalendarView> {
     final now = DateTime.now();
     final isCurrentMonth = _year == now.year && _month == now.month;
     final labelColor = isCurrentMonth ? kMint : kText;
-    final weight = isCurrentMonth ? FontWeight.bold : FontWeight.normal;
+    final weight = isCurrentMonth ? FontWeight.normal : FontWeight.normal;
 
     return Container(
       color: kBg,
@@ -511,7 +511,7 @@ class _CalendarViewState extends State<CalendarView> {
                   color: kBg,
                   fontSize: 11,
                   letterSpacing: 1,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.normal,
                 ),
               ),
               const SizedBox(width: 10),
@@ -669,7 +669,7 @@ class _DayCellState extends State<_DayCell> {
                     color: dayColor,
                     fontSize: widget.isSelected || widget.isToday ? 13 : 12,
                     fontWeight: widget.isToday
-                        ? FontWeight.bold
+                        ? FontWeight.normal
                         : FontWeight.normal,
                     height: 1.1,
                   ),

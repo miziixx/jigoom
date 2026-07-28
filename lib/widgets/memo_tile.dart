@@ -1734,7 +1734,7 @@ class _MemoTileState extends State<MemoTile> {
             style: mono(
               color: kTeal.withValues(alpha: 0.6),
               fontSize: 11,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.normal,
             ),
           ),
           Expanded(
@@ -1856,7 +1856,7 @@ class _MemoTileState extends State<MemoTile> {
         children.add(
           TextSpan(
             text: m.group(1),
-            style: base.copyWith(fontWeight: FontWeight.bold),
+            style: base.copyWith(fontWeight: FontWeight.normal),
           ),
         );
       } else if (m.group(2) != null) {
@@ -2325,7 +2325,7 @@ class _EditFmtBtnState extends State<_EditFmtBtn> {
               fontFamily: kFontFamily,
               fontSize: 12,
               color: color,
-              fontWeight: widget.bold ? FontWeight.bold : FontWeight.normal,
+              fontWeight: widget.bold ? FontWeight.normal : FontWeight.normal,
               fontStyle: widget.italic ? FontStyle.italic : FontStyle.normal,
               decoration: widget.strike ? TextDecoration.lineThrough : null,
               decorationColor: color,

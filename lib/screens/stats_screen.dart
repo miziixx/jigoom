@@ -568,7 +568,7 @@ class _StatsViewState extends State<StatsView> {
                     color: kBg,
                     fontSize: 11,
                     letterSpacing: 1,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
                 const SizedBox(width: 10),
