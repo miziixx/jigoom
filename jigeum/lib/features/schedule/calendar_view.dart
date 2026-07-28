@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
+import '../../core/editorial.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
@@ -281,8 +282,13 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
           child: Row(
             children: [
-              Text('${moonEmoji(d)} ${moonName(d)}',
-                  style: AppText.metaSans(tk.inkSoft)),
+              EdMoonPhase(
+                  phase: moonPhaseFraction(d),
+                  size: 12,
+                  color: tk.inkSoft,
+                  bg: tk.paper),
+              const SizedBox(width: 6),
+              Text(moonName(d), style: AppText.metaSans(tk.inkSoft)),
               if (isSonEomneunNal(d)) ...[
                 const SizedBox(width: 10),
                 Container(
