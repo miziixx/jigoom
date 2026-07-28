@@ -214,12 +214,10 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                                   Text(s.title,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: AppText.body(
-                                              s.done ? tk.inkSoft : tk.ink)
-                                          .copyWith(
-                                              decoration: s.done
-                                                  ? TextDecoration.lineThrough
-                                                  : null)),
+                                      // v17: 완료는 취소선이 아니라 흐림으로 통일.
+                                      style: AppText.body(s.done
+                                          ? tk.ink.withValues(alpha: 0.5)
+                                          : tk.ink)),
                                   if (s.done && s.doneAt != null)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 2),

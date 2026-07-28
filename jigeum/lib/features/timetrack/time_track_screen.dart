@@ -24,11 +24,15 @@ Future<void> showTimeTrackInput(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text('$label 기록'),
+      // 다중 기록: 줄바꿈으로 한 시간대에 여러 작업을 적을 수 있다.
       content: TextField(
         controller: controller,
         autofocus: true,
-        decoration: const InputDecoration(hintText: '이 시간에 뭐 했어요?'),
-        onSubmitted: (v) => Navigator.of(ctx).pop(v),
+        minLines: 1,
+        maxLines: 6,
+        keyboardType: TextInputType.multiline,
+        decoration: const InputDecoration(
+            hintText: '이 시간에 뭐 했어요?\n(줄바꿈으로 여러 개)'),
       ),
       actions: [
         TextButton(
@@ -138,14 +142,24 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
   Widget _row(
       ThemeData theme, int i, String? text, bool isNow, DateTime? writtenAt) {
     final tk = t(context);
-    final hasText = text != null && text.isNotEmpty;
+    final hasText = text != null && text.trim().isNotEmpty;
+    // 한 시간대 안의 여러 기록 — 줄바꿈으로 나눠 각 줄을 표시.
+    final lines = hasText
+        ? text.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList()
+        : const <String>[];
     return InkWell(
       onTap: () => showTimeTrackInput(context, ref, date: _date, block: i),
       child: Container(
         decoration: BoxDecoration(
           border: Border(
+            // 기록된 행만 포인트 컬러 강조(지금은 진하게, 나머지 기록은 옅게).
             left: BorderSide(
-                color: isNow ? tk.mark : Colors.transparent, width: 2),
+                color: isNow
+                    ? tk.mark
+                    : (hasText
+                        ? tk.mark.withValues(alpha: 0.35)
+                        : Colors.transparent),
+                width: 2),
             bottom: BorderSide(color: tk.line, width: 1),
           ),
         ),
@@ -160,12 +174,32 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                hasText ? text : '—',
-                style: AppText.body(hasText ? tk.ink : tk.inkSoft),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              child: !hasText
+                  ? Text('—', style: AppText.body(tk.inkSoft))
+                  : lines.length <= 1
+                      ? Text(lines.isEmpty ? '—' : lines.first,
+                          style: AppText.body(tk.ink),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis)
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final line in lines)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 2),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('— ',
+                                        style: AppText.body(tk.inkSoft)),
+                                    Expanded(
+                                        child: Text(line,
+                                            style: AppText.body(tk.ink))),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
             ),
             // 실제 작성/수정 시각 (기록이 있을 때만)
             if (hasText && writtenAt != null) ...[

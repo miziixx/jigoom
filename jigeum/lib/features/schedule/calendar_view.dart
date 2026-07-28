@@ -194,9 +194,22 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         padding: const EdgeInsets.only(top: 4),
         child: Column(
           children: [
-            Text('${day.day}',
-                style: AppText.meta(numColor, size: 12).copyWith(
-                    fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
+            // 양력 날짜 + 달 모양(실제 도형).
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('${day.day}',
+                    style: AppText.meta(numColor, size: 12).copyWith(
+                        fontWeight:
+                            isToday ? FontWeight.w700 : FontWeight.w400)),
+                const SizedBox(width: 3),
+                EdMoonPhase(
+                    phase: moonPhaseFraction(day),
+                    size: 7,
+                    color: subColor,
+                    bg: tk.paper),
+              ],
+            ),
             const SizedBox(height: 2),
             Text(
               term ?? lunarShort(day),
@@ -329,11 +342,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                           Text(s.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppText.body(s.done ? tk.inkSoft : tk.ink)
-                                  .copyWith(
-                                      decoration: s.done
-                                          ? TextDecoration.lineThrough
-                                          : null)),
+                              // v17: 완료는 취소선이 아니라 흐림으로 통일.
+                              style: AppText.body(s.done
+                                  ? tk.ink.withValues(alpha: 0.5)
+                                  : tk.ink)),
                           if (s.done && s.doneAt != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
