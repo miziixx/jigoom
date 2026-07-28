@@ -66,30 +66,35 @@ class SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
-    final row = Row(
+    // v17: 섹션 상단에 얇은 규칙선, 그 아래 라벨 + 카운트 + trailing.
+    final block = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: AppText.sec(tk.ink)),
-        if (count != null) ...[
-          const SizedBox(width: 8),
-          Text('/ $count', style: AppText.meta(tk.inkSoft)),
-        ],
-        const SizedBox(width: 12),
-        Expanded(child: Container(height: 1, color: tk.line)),
-        if (trailing != null) ...[
-          const SizedBox(width: 10),
-          trailing!,
-        ],
+        Container(height: 1, color: tk.line),
+        const SizedBox(height: 7),
+        Row(
+          children: [
+            Text(label, style: AppText.sec(tk.ink)),
+            if (count != null) ...[
+              const SizedBox(width: 8),
+              Text('/ $count', style: AppText.meta(tk.inkSoft)),
+            ],
+            const Spacer(),
+            if (trailing != null) trailing!,
+          ],
+        ),
       ],
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(kGutter, 18, kGutter, 8),
       child: (onTap == null && onLongPress == null)
-          ? row
+          ? block
           : GestureDetector(
               onTap: onTap,
               onLongPress: onLongPress,
               behavior: HitTestBehavior.opaque,
-              child: row),
+              child: block),
     );
   }
 }
@@ -162,9 +167,11 @@ class PillChip extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        // v17: 알약 금지 — 각진(살짝 둥근) 칩.
         decoration: BoxDecoration(
-          color: selected ? tk.ink : tk.line,
-          borderRadius: BorderRadius.circular(999),
+          color: selected ? tk.ink : Colors.transparent,
+          border: Border.all(color: selected ? tk.ink : tk.line, width: 1),
+          borderRadius: BorderRadius.circular(3),
         ),
         child: Text(label,
             style: AppText.chip(selected ? tk.paper : tk.inkSoft)),
