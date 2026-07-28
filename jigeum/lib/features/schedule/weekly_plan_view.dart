@@ -4,6 +4,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
+import '../../core/editorial.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
@@ -140,8 +141,18 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text('${moonEmoji(day)} ${lunarShort(day)}',
-                    style: AppText.metaSans(tk.inkSoft, size: 9)),
+                Row(
+                  children: [
+                    EdMoonPhase(
+                        phase: moonPhaseFraction(day),
+                        size: 9,
+                        color: tk.inkSoft,
+                        bg: tk.paper),
+                    const SizedBox(width: 4),
+                    Text(lunarShort(day),
+                        style: AppText.metaSans(tk.inkSoft, size: 9)),
+                  ],
+                ),
                 if (settings.showSaju)
                   Text(iljinLabel(day),
                       maxLines: 1,
