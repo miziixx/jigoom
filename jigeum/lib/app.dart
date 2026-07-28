@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'core/constants.dart';
 import 'core/dialogs.dart';
 import 'core/journal.dart';
 import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
+import 'features/capture/dump_staging.dart';
 import 'features/capture/dump_view.dart';
+import 'features/voice/models/intent_type.dart';
 import 'features/capture/quick_capture_bar.dart';
 import 'features/capture/quick_capture_input.dart';
 import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
+import 'features/home/home_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/outline/outline_screen.dart';
 import 'features/schedule/calendar_view.dart';
@@ -19,7 +21,9 @@ import 'features/schedule/time_hub.dart';
 import 'features/inbox/inbox_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
+import 'features/today/goal_editor.dart';
 import 'features/today/today_view.dart';
+import 'features/voice/ui/global_mic_button.dart';
 import 'providers.dart';
 
 /// 셸: 오늘 / 매트릭스 / 아웃라인 / 전체.
@@ -32,7 +36,8 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  int _index = 0;
+  // 6 = 홈(대시보드). 기존 탭 인덱스(0~5)는 그대로 유지해 음성/FAB 로직 보존.
+  int _index = 6;
 
   @override
   void initState() {
@@ -43,6 +48,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     timeTrackLaunchRequest.addListener(_onTimeTrackLaunch);
     // 캘린더 위젯 탭 진입 → 달력 화면.
     calendarLaunchRequest.addListener(_onCalendarLaunch);
+    // 위젯 음성 버튼 진입 → 마이크 시작(결과는 GlobalMicButton 구독이 라우팅).
+    voiceCaptureRequest.addListener(_onVoiceCapture);
+    // 목표 위젯 진입 → 오늘의 목표 편집기.
+    goalEditRequest.addListener(_onGoalEdit);
   }
 
   @override
@@ -50,6 +59,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     quickCaptureFocusRequest.removeListener(_onQuickCapture);
     timeTrackLaunchRequest.removeListener(_onTimeTrackLaunch);
     calendarLaunchRequest.removeListener(_onCalendarLaunch);
+    voiceCaptureRequest.removeListener(_onVoiceCapture);
+    goalEditRequest.removeListener(_onGoalEdit);
     super.dispose();
   }
 
@@ -60,8 +71,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onCalendarLaunch() {
     if (!mounted) return;
-    Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const CalendarScreen()));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
   }
 
   void _onTimeTrackLaunch() {
@@ -74,15 +85,61 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체'];
-  static const _navLabels = [
-    'today',
-    'matrix',
-    'dump',
-    'time',
-    'habit',
-    'all'
+  /// 위젯 음성 버튼으로 앱이 열렸을 때 마이크를 시작한다. 받아쓴 결과는
+  /// 화면에 떠 있는 GlobalMicButton 의 구독이 그대로 분류·라우팅(하이브리드)한다.
+  Future<void> _onVoiceCapture() async {
+    if (!mounted) return;
+    final stt = ref.read(sttServiceProvider);
+    try {
+      if (!await stt.isAvailable()) {
+        _voiceNotice('이 기기에서 음성 인식을 찾지 못했어요.');
+        return;
+      }
+      if (!await stt.requestPermission()) {
+        _voiceNotice('마이크 권한이 꺼져 있어요. 앱 권한에서 마이크를 허용해 주세요.');
+        return;
+      }
+      await stt.start(localeId: 'ko_KR');
+    } catch (_) {
+      _voiceNotice('음성 인식을 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+    }
+  }
+
+  Future<void> _onGoalEdit() async {
+    if (!mounted) return;
+    await showGoalEditor(context, ref);
+  }
+
+  void _voiceNotice(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('🎙️ $message'),
+      ));
+  }
+
+  static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체', '홈'];
+
+  /// 하단에 노출하는 탭 (인덱스, 라벨) — 6개를 4개로 정리. 나머지는 ≡ MENU.
+  static const _bottomTabs = <(int, String)>[
+    (6, 'home'),
+    (0, 'today'),
+    (3, 'time'),
+    (2, 'dump'),
   ];
+
+  /// 하이브리드 음성 라우팅용 — 각 탭에서 "단서 없는 말"이 보류함 대신 갈 홈.
+  /// 보류함으로 직행하는 일을 최소화한다: 쏟아내기(2)만 대기줄로 따로 처리하고,
+  /// 나머지(오늘·전체·그 외)는 전부 오늘 할 일로 담는다.
+  static RoutePoint? _voiceInboxFallback(int index) => switch (index) {
+        1 => RoutePoint.matrix, // 매트릭스 → 서랍(Q4)
+        3 => RoutePoint.timeTrack, // 일과 → 현재 블록 기록
+        4 => RoutePoint.habit, // 습관 → 습관
+        2 => null, // 쏟아내기 → 대기줄(스테이징)로 따로
+        _ => RoutePoint.quickCapture, // 오늘·전체·그 외 → 오늘 할 일
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -92,14 +149,42 @@ class _AppShellState extends ConsumerState<AppShell> {
       2 => const DumpView(),
       3 => const TimeHub(),
       4 => const HabitView(),
+      6 => HomeView(
+          onOpenTab: (i) => setState(() => _index = i),
+          onOpenCalendar: _openCalendar,
+          onOpenFortune: _openFortune,
+        ),
       _ => const AllView(),
     };
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
       drawer: _buildDrawer(context),
-      // 음성 마이크는 일단 제거(한국어 STT 미동작 + 마스트헤드 메뉴 가림).
-      // 분류 엔진은 유지 — 이후 타이핑 '쏟아내기'에 재사용한다.
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+            bottom: _index == 2 || _index == 3 || _index == 4 ? 62 : 130),
+        child: GlobalMicButton(
+          stt: ref.watch(sttServiceProvider),
+          controller: ref.watch(voiceControllerProvider),
+          // 쏟아내기 탭(2)에선 마이크 결과를 즉시 라우팅하지 않고, 타이핑과
+          // 똑같이 분류만 해서 대기줄에 쌓는다("여기에 나오게").
+          onFinalText: _index == 2
+              ? (text) async {
+                  final results =
+                      ref.read(voiceControllerProvider).classifyMany(text);
+                  final staging = ref.read(dumpStagingProvider.notifier);
+                  for (final r in results) {
+                    staging.addResult(r);
+                  }
+                }
+              : null,
+          // 하이브리드: 명확한 단서가 없는 말은 보류함이 아니라 지금 보고 있는
+          // 화면의 홈으로 담는다(오늘→할일, 매트릭스→서랍, 시간→블록, 습관→습관).
+          inboxFallback: _voiceInboxFallback(_index),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      // 음성 마이크는 마스트헤드와 하단 입력바를 가리지 않도록 떠 있는 버튼으로 둔다.
       // 입력바가 키보드 위로 따라 올라오도록 body 에 배치.
       body: SafeArea(
         bottom: false,
@@ -139,8 +224,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: Padding(
           // 세로 여백으로 터치 영역 확보.
           padding: const EdgeInsets.only(left: 10, top: 8, bottom: 8),
-          child: Text(label,
-              style: AppText.meta(t(context).inkSoft, size: 11)),
+          child: Text(label, style: AppText.meta(t(context).inkSoft, size: 11)),
         ),
       );
 
@@ -157,10 +241,10 @@ class _AppShellState extends ConsumerState<AppShell> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           child: Row(
             children: [
-              for (var i = 0; i < _navLabels.length; i++)
+              for (final tab in _bottomTabs)
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => _index = i),
+                    onTap: () => setState(() => _index = tab.$1),
                     behavior: HitTestBehavior.opaque,
                     child: Container(
                       alignment: Alignment.center,
@@ -171,17 +255,18 @@ class _AppShellState extends ConsumerState<AppShell> {
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                              color: _index == i ? tk.ink : Colors.transparent,
+                              color:
+                                  _index == tab.$1 ? tk.ink : Colors.transparent,
                               width: 1.5,
                             ),
                           ),
                         ),
-                        child: Text(_navLabels[i],
+                        child: Text(tab.$2,
                             maxLines: 1,
                             overflow: TextOverflow.visible,
                             style: AppText.nav(
-                                _index == i ? tk.ink : tk.inkSoft,
-                                active: _index == i)),
+                                _index == tab.$1 ? tk.ink : tk.inkSoft,
+                                active: _index == tab.$1)),
                       ),
                     ),
                   ),
@@ -195,8 +280,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   /// 새 습관 만들기 (이름만 — 카테고리는 상세에서).
   Future<void> _newHabit() async {
-    final name = await showInputDialog(context,
-        title: '새 습관', hint: '예: 아침 산책, 물 마시기');
+    final name =
+        await showInputDialog(context, title: '새 습관', hint: '예: 아침 산책, 물 마시기');
     if (name == null || name.trim().isEmpty) return;
     await ref.read(habitRepoProvider).addHabit(name.trim());
   }
@@ -265,11 +350,14 @@ class _AppShellState extends ConsumerState<AppShell> {
               Text('MENU', style: AppText.meta(tk.inkSoft, size: 10)),
               const SizedBox(height: 10),
               Container(height: 1, color: tk.ink),
-              row('01', '아웃라인', _openOutline),
-              row('02', '달력', _openCalendar),
-              row('03', '오늘의 운세', _openFortune),
-              row('04', '보류함', _openInbox),
-              row('05', '설정', _openSettings, last: true),
+              row('01', '매트릭스', () => setState(() => _index = 1)),
+              row('02', '습관', () => setState(() => _index = 4)),
+              row('03', '전체', () => setState(() => _index = 5)),
+              row('04', '아웃라인', _openOutline),
+              row('05', '달력', _openCalendar),
+              row('06', '오늘의 운세', _openFortune),
+              row('07', '보류함', _openInbox),
+              row('08', '설정', _openSettings, last: true),
             ],
           ),
         ),

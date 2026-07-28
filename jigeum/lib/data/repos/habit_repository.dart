@@ -19,8 +19,7 @@ class HabitRepository {
   }
 
   Stream<List<HabitTick>> watchTicks(String habitId) {
-    final q = db.select(db.habitTicks)
-      ..where((t) => t.habitId.equals(habitId));
+    final q = db.select(db.habitTicks)..where((t) => t.habitId.equals(habitId));
     return q.watch();
   }
 
@@ -72,8 +71,11 @@ class HabitRepository {
           .go();
       return false;
     }
-    await db.into(db.habitTicks).insert(
-        HabitTicksCompanion.insert(habitId: habitId, date: d));
+    await db.into(db.habitTicks).insert(HabitTicksCompanion.insert(
+          habitId: habitId,
+          date: d,
+          completedAt: Value(DateTime.now()),
+        ));
     return true;
   }
 }

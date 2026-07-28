@@ -60,6 +60,7 @@ class _Rec {
     this.cat,
     this.title, {
     this.minute,
+    this.completedAt,
     this.done = false,
     this.onToggle,
     this.checkable = false,
@@ -67,6 +68,7 @@ class _Rec {
   final _Cat cat;
   final String title;
   final int? minute; // 0~1439, null=시간 없음(정렬 뒤로)
+  final DateTime? completedAt;
   final bool done;
   final VoidCallback? onToggle; // null=토글 불가(읽기전용/오늘 아님)
   final bool checkable; // 체크박스 표시 여부
@@ -110,6 +112,7 @@ class _DayViewState extends ConsumerState<DayView> {
       for (final s in schedules)
         _Rec(_Cat.sched, s.title,
             minute: s.startMin,
+            completedAt: s.doneAt,
             done: s.done,
             checkable: true,
             onToggle: () =>
@@ -118,11 +121,17 @@ class _DayViewState extends ConsumerState<DayView> {
         _Rec(_Cat.done, n.title,
             minute: n.doneAt == null
                 ? null
-                : n.doneAt!.hour * 60 + n.doneAt!.minute),
+                : n.doneAt!.hour * 60 + n.doneAt!.minute,
+            completedAt: n.doneAt),
       for (final tk2 in ticks)
         if ((habitName[tk2.habitId] ?? '').isNotEmpty)
           _Rec(_Cat.habit, habitName[tk2.habitId]!,
-              done: true, checkable: true),
+              minute: tk2.completedAt == null
+                  ? null
+                  : tk2.completedAt!.hour * 60 + tk2.completedAt!.minute,
+              completedAt: tk2.completedAt,
+              done: true,
+              checkable: true),
       for (final s in steps)
         if (dayGroupIds.contains(s.groupId))
           _Rec(
@@ -130,6 +139,10 @@ class _DayViewState extends ConsumerState<DayView> {
             groupName[s.groupId] == null
                 ? s.title
                 : '${groupName[s.groupId]} · ${s.title}',
+            minute: !routineDone(s) || s.lastDoneAt == null
+                ? null
+                : s.lastDoneAt!.hour * 60 + s.lastDoneAt!.minute,
+            completedAt: routineDone(s) ? s.lastDoneAt : null,
             done: routineDone(s),
             checkable: true,
             onToggle: isToday
@@ -219,19 +232,31 @@ class _DayViewState extends ConsumerState<DayView> {
           if (r.minute != null) ...[
             SizedBox(
               width: 38,
-              child: Text(minToShort(r.minute!),
-                  style: AppText.meta(tk.inkSoft)),
+              child:
+                  Text(minToShort(r.minute!), style: AppText.meta(tk.inkSoft)),
             ),
             const SizedBox(width: 6),
           ],
           Expanded(
-            child: Text(
-              r.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.body(r.done ? tk.inkSoft : tk.ink).copyWith(
-                  decoration: r.done ? TextDecoration.lineThrough : null,
-                  decorationColor: tk.inkSoft),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  r.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.body(r.done ? tk.inkSoft : tk.ink).copyWith(
+                      decoration: r.done ? TextDecoration.lineThrough : null,
+                      decorationColor: tk.inkSoft),
+                ),
+                if (r.completedAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                        '${DateFormat('HH:mm').format(r.completedAt!)} 완료',
+                        style: AppText.meta(tk.mark, size: 10)),
+                  ),
+              ],
             ),
           ),
           if (r.checkable) ...[
@@ -240,8 +265,7 @@ class _DayViewState extends ConsumerState<DayView> {
               onTap: r.onToggle,
               behavior: HitTestBehavior.opaque,
               child: Text(r.done ? '■' : '□',
-                  style: AppText.glyph(
-                      r.onToggle == null ? tk.inkSoft : tk.ink,
+                  style: AppText.glyph(r.onToggle == null ? tk.inkSoft : tk.ink,
                       size: 14)),
             ),
           ],
@@ -324,8 +348,11 @@ class _DayViewState extends ConsumerState<DayView> {
           padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
           child: Row(
             children: [
-              _arrow(tk, '‹',
-                  () => setState(() => _date = _date.subtract(const Duration(days: 1)))),
+              _arrow(
+                  tk,
+                  '‹',
+                  () => setState(
+                      () => _date = _date.subtract(const Duration(days: 1)))),
               Expanded(
                 child: GestureDetector(
                   onTap: () => setState(() => _date = today),
@@ -338,8 +365,11 @@ class _DayViewState extends ConsumerState<DayView> {
                   ),
                 ),
               ),
-              _arrow(tk, '›',
-                  () => setState(() => _date = _date.add(const Duration(days: 1)))),
+              _arrow(
+                  tk,
+                  '›',
+                  () => setState(
+                      () => _date = _date.add(const Duration(days: 1)))),
             ],
           ),
         ),
@@ -427,7 +457,12 @@ class _MoonPainter extends CustomPainter {
     final exr = xr.abs().clamp(0.5, r).toDouble();
 
     // 전체 원을 그림자(어두운 면)로 채운다.
-    canvas.drawCircle(c, r, Paint()..color = shadow..isAntiAlias = true);
+    canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..color = shadow
+          ..isAntiAlias = true);
 
     // 밝은(빛 받는) 반쪽을 얹는다.
     final lp = Path()..moveTo(c.dx, c.dy - r);
@@ -443,7 +478,11 @@ class _MoonPainter extends CustomPainter {
           radius: Radius.elliptical(exr, r), clockwise: xr >= 0);
     }
     lp.close();
-    canvas.drawPath(lp, Paint()..color = lit..isAntiAlias = true);
+    canvas.drawPath(
+        lp,
+        Paint()
+          ..color = lit
+          ..isAntiAlias = true);
 
     // 테두리.
     canvas.drawCircle(

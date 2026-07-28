@@ -116,8 +116,11 @@ class RoutineBuilderRepository {
       final back = newStreak > 0
           ? Value(today.subtract(const Duration(days: 1)))
           : const Value<DateTime?>(null);
-      await (db.update(db.routineSteps)..where((x) => x.id.equals(s.id)))
-          .write(RoutineStepsCompanion(streak: Value(newStreak), lastDone: back));
+      await (db.update(db.routineSteps)..where((x) => x.id.equals(s.id))).write(
+          RoutineStepsCompanion(
+              streak: Value(newStreak),
+              lastDone: back,
+              lastDoneAt: const Value(null)));
     } else {
       final yesterday = today.subtract(const Duration(days: 1));
       final continued =
@@ -125,7 +128,9 @@ class RoutineBuilderRepository {
       final newStreak = continued ? s.streak + 1 : 1;
       await (db.update(db.routineSteps)..where((x) => x.id.equals(s.id))).write(
           RoutineStepsCompanion(
-              streak: Value(newStreak), lastDone: Value(today)));
+              streak: Value(newStreak),
+              lastDone: Value(today),
+              lastDoneAt: Value(DateTime.now())));
     }
   }
 

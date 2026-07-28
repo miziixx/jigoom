@@ -9,7 +9,12 @@ import 'package:flutter/services.dart';
 ///
 /// 시간은 epoch millis(로컬 기준 순간)로 주고받는다. 모든 진입점은 예외를 삼킨다.
 class DeviceCalendarBridge {
-  static const _channel = MethodChannel('jigeum/calendar');
+  // 캘린더 네이티브 핸들러(calendarPermission/requestCalendarPermission/
+  // listCalendars/queryEvents/insertEvent/updateEvent/deleteEvent)는
+  // MainActivity 가 'jigeum/widget' 채널에 등록한다. 반드시 동일 채널이어야
+  // 호출이 닿는다 — 예전엔 'jigeum/calendar' 로 어긋나 권한을 허용해도 앱이
+  // 항상 '허용 안 함'으로 보던 버그가 있었다.
+  static const _channel = MethodChannel('jigeum/widget');
 
   /// 캘린더 권한이 이미 허용됐는지(프롬프트 없이 확인).
   Future<bool> hasPermission() async {

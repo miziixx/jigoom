@@ -190,6 +190,13 @@ class _HabitRow extends ConsumerWidget {
     final tickSet = {for (final t in ticks) dateOnly(t.date)};
     final today = todayDate();
     final todayDone = tickSet.contains(today);
+    DateTime? completedAt;
+    for (final tick in ticks) {
+      if (dateOnly(tick.date) == today) {
+        completedAt = tick.completedAt;
+        break;
+      }
+    }
     final streak = currentStreak(tickSet, today);
     final total = today.difference(dateOnly(habit.createdAt)).inDays + 1;
     final percent = total == 0 ? 0 : (tickSet.length * 100 / total).round();
@@ -222,11 +229,22 @@ class _HabitRow extends ConsumerWidget {
                   style: AppText.body(todayDone ? tk.inkSoft : tk.ink)),
             ),
             const SizedBox(width: 8),
-            Text(
-                returns > 0
-                    ? '${streak}연속 · $percent% · 복귀 $returns회'
-                    : '${streak}연속 · $percent%',
-                style: AppText.meta(tk.inkSoft, size: 10)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                    returns > 0
+                        ? '$streak연속 · $percent% · 복귀 $returns회'
+                        : '$streak연속 · $percent%',
+                    style: AppText.meta(tk.inkSoft, size: 10)),
+                if (completedAt != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('${DateFormat('HH:mm').format(completedAt)} 완료',
+                        style: AppText.meta(tk.mark, size: 10)),
+                  ),
+              ],
+            ),
             const SizedBox(width: 6),
             Text('›', style: AppText.glyph(tk.inkSoft, size: 13)),
           ],
@@ -331,6 +349,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       }
       return c;
     }
+
     final thisWeek = lastNDone(0, 7);
     final lastWeek = lastNDone(7, 14);
 
@@ -364,7 +383,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 runSpacing: 8,
                 children: [
                   _rangeChip('7일', () => _setQuick('7일', 7), _label == '7일'),
-                  _rangeChip('30일', () => _setQuick('30일', 30), _label == '30일'),
+                  _rangeChip(
+                      '30일', () => _setQuick('30일', 30), _label == '30일'),
                   _rangeChip('전체', () => _setQuick('전체', null), _label == '전체'),
                   _rangeChip(_label.contains('~') ? _label : '기간 선택',
                       _pickRange, _label.contains('~')),
@@ -409,8 +429,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _bar(tk,
-                              wTotal[i] == 0 ? 0 : wDone[i] / wTotal[i],
+                          _bar(tk, wTotal[i] == 0 ? 0 : wDone[i] / wTotal[i],
                               highlight: i == bestWi),
                           const SizedBox(height: 4),
                           Text(_weekdayNames[i],
@@ -460,7 +479,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   for (var i = 0; i < gridDays; i++)
                     _dot(tk,
                         day: _start.add(Duration(days: i)),
-                        filled: tickSet.contains(_start.add(Duration(days: i)))),
+                        filled:
+                            tickSet.contains(_start.add(Duration(days: i)))),
                 ],
               ),
             ),

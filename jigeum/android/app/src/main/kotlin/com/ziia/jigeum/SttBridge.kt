@@ -6,6 +6,8 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognitionService
 import android.speech.RecognizerIntent
@@ -41,6 +43,17 @@ class SttBridge(
     private var recognizer: SpeechRecognizer? = null
     private var permResult: MethodChannel.Result? = null
 
+    /** 마지막 start 의 로케일 — 다이얼로그 폴백 때 재사용. */
+    private var currentLocale: String = "ko_KR"
+
+    /** 이번 세션에서 다이얼로그 폴백을 이미 썼는지(무한 폴백 방지). */
+    private var dialogFallbackUsed = false
+
+    /** 이번 세션에서 일시적 오류(서버 끊김/바쁨) 자동 재시도를 이미 썼는지. */
+    private var transientRetryUsed = false
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     init {
         channel.setMethodCallHandler { call, result -> handle(call, result) }
     }
@@ -62,7 +75,13 @@ class SttBridge(
                 }
             }
             "start" -> {
-                launchRecognitionDialog(call.argument<String>("localeId") ?: "ko_KR")
+                // 앱 안에서 바로 받아쓰기(팝업 없음). 부분결과가 실시간으로
+                // Dart(onPartial)로 흘러 화면에 글자가 찍힌다. 이 기기가 한국어
+                // 인라인 인식을 못 하면 onError 에서 구글 다이얼로그로 1회 폴백.
+                currentLocale = call.argument<String>("localeId") ?: "ko_KR"
+                dialogFallbackUsed = false
+                transientRetryUsed = false
+                startListening(currentLocale)
                 result.success(null)
             }
             "stop" -> {
@@ -70,6 +89,7 @@ class SttBridge(
                 result.success(null)
             }
             "cancel" -> {
+                mainHandler.removeCallbacksAndMessages(null) // 예약된 재시도 취소.
                 recognizer?.cancel()
                 result.success(null)
             }
@@ -117,16 +137,36 @@ class SttBridge(
         val r = createRecognizer()
         r.setRecognitionListener(this)
         recognizer = r
+        // EXTRA_LANGUAGE 는 BCP-47(하이픈, 예: ko-KR)을 기대한다. 언더스코어
+        // (ko_KR)를 넘기면 인라인 SpeechRecognizer 가 로케일을 못 읽고 기기 기본
+        // 언어(영어)로 인식해버린다. 반드시 하이픈으로 정규화해서 넘긴다.
+        val bcp47 = localeId.replace('_', '-')
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, localeId)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, bcp47)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, bcp47)
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, activity.packageName)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             // 오프라인 강제 금지 — 한국어 온디바이스 모델이 없는 폰에서 오프라인을
             // 강제하면 결과 없이 조용히 실패한다. 온라인 인식으로 폴백되게 둔다.
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
+            // 말 끝나자마자 잘리는 것 완화 — 한 박자 쉬어도 이어 말하게 침묵
+            // 허용을 넉넉히. (엔진이 무시할 수도 있는 advisory 값)
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
+                2000L
+            )
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
+                2000L
+            )
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,
+                1500L
+            )
         }
         notifyStatus("listening")
         r.startListening(intent)
@@ -139,13 +179,14 @@ class SttBridge(
      * 처리해 거의 모든 기기에서 동작한다. 결과는 [onSpeechResult] 로 돌아온다.
      */
     private fun launchRecognitionDialog(localeId: String) {
+        val bcp47 = localeId.replace('_', '-')
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, localeId)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, localeId)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, bcp47)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, bcp47)
             putExtra(RecognizerIntent.EXTRA_PROMPT, "말해 주세요")
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, activity.packageName)
         }
@@ -185,6 +226,7 @@ class SttBridge(
     }
 
     fun dispose() {
+        mainHandler.removeCallbacksAndMessages(null) // 예약된 재시도 취소.
         recognizer?.destroy()
         recognizer = null
         channel.setMethodCallHandler(null)
@@ -200,9 +242,44 @@ class SttBridge(
     }
 
     override fun onError(error: Int) {
+        // 인라인 인식기가 이 기기에서 한국어를 못 돌리는 부류의 오류면(삼성 등
+        // 기본 인식기가 빅스비라 "언어 없음"), 구글 음성 다이얼로그로 1회만
+        // 조용히 폴백한다. 사용자가 안 말해서 난 no-match/timeout 은 그대로 알린다.
+        if (!dialogFallbackUsed && shouldFallbackToDialog(error)) {
+            dialogFallbackUsed = true
+            recognizer?.destroy()
+            recognizer = null
+            launchRecognitionDialog(currentLocale)
+            return
+        }
+        // 서버 끊김(11)·인식기 바쁨(8) 등 일시적 오류는 사용자에게 딱딱한 코드를
+        // 던지지 않고 새 인식기로 1회 조용히 재시도한다(빠른 재탭 시 흔함).
+        if (!transientRetryUsed && isTransient(error)) {
+            transientRetryUsed = true
+            recognizer?.destroy()
+            recognizer = null
+            mainHandler.postDelayed({ startListening(currentLocale) }, 350)
+            return
+        }
         notifyStatus("error")
         channel.invokeMethod(
             "onError", mapOf("code" to error, "message" to errorMessage(error)))
+    }
+
+    /** 인라인 인식이 이 기기에서 불가능함을 뜻하는 오류인가(→ 다이얼로그 폴백). */
+    private fun shouldFallbackToDialog(code: Int): Boolean = when (code) {
+        SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED,
+        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE,
+        SpeechRecognizer.ERROR_CLIENT -> true
+        else -> false
+    }
+
+    /** 잠깐 뒤 다시 하면 풀리는 일시적 오류인가(→ 1회 자동 재시도). */
+    private fun isTransient(code: Int): Boolean = when (code) {
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY,       // 8
+        SpeechRecognizer.ERROR_SERVER_DISCONNECTED,   // 11
+        SpeechRecognizer.ERROR_TOO_MANY_REQUESTS -> true  // 10
+        else -> false
     }
 
     /** SpeechRecognizer 오류 코드를 사람이 읽을 한국어 메시지로. */
@@ -213,8 +290,10 @@ class SttBridge(
         SpeechRecognizer.ERROR_NETWORK -> "네트워크 오류 (온라인 인식 필요)"
         SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "네트워크 시간 초과"
         SpeechRecognizer.ERROR_NO_MATCH -> "못 알아들었어요 (다시 말해줘)"
-        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "인식기가 바빠요 (잠시 후)"
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "인식기가 바빠요 (다시 눌러줘)"
         SpeechRecognizer.ERROR_SERVER -> "음성 서버 오류"
+        SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> "연결이 끊겼어요 (다시 눌러줘)"
+        SpeechRecognizer.ERROR_TOO_MANY_REQUESTS -> "잠시 뒤 다시 시도해줘"
         SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "말이 없어서 종료했어요"
         SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "한국어 미지원 기기"
         SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ->

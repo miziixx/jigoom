@@ -33,7 +33,6 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             const SectionLabel('THEME'),
             _ThemePicker(current: s.themeKey, onPick: ctrl.setThemeKey),
-
             const SectionLabel('TYPE'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
@@ -65,19 +64,21 @@ class SettingsScreen extends ConsumerWidget {
             ),
             _switchRow(
               context,
-              title: '글꼴 하나로 통일',
-              sub: '라벨·숫자(모노)까지 아래에서 고른 글꼴로',
+              title: '휴대폰 글꼴 사용',
+              sub: '폰 설정의 기본 글꼴을 앱 전체에 적용하기',
               value: s.systemFont,
               onChanged: ctrl.setSystemFont,
             ),
-
             const SectionLabel('FONT'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-              child: Text('앱 전체 글꼴', style: AppText.body(tk.ink)),
+              child: Text(
+                s.systemFont ? '지금은 휴대폰 글꼴을 사용 중' : '앱 내장 글꼴',
+                style: AppText.body(tk.ink),
+              ),
             ),
-            _FontPicker(current: s.fontKey, onPick: ctrl.setFontKey),
-
+            if (!s.systemFont)
+              _FontPicker(current: s.fontKey, onPick: ctrl.setFontKey),
             const SectionLabel('SKY'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
@@ -85,14 +86,13 @@ class SettingsScreen extends ConsumerWidget {
                   style: AppText.body(tk.ink)),
             ),
             _SkyPicker(current: s.skyMode, onPick: ctrl.setSkyMode),
-
             const SectionLabel('SAJU'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-              child: Text('오늘의 운세용 — 생년월일과 태어난 시각', style: AppText.body(tk.ink)),
+              child:
+                  Text('오늘의 운세용 — 생년월일과 태어난 시각', style: AppText.body(tk.ink)),
             ),
             _SajuTile(settings: s, ctrl: ctrl),
-
             const SectionLabel('FOCUS'),
             _switchRow(
               context,
@@ -118,13 +118,10 @@ class SettingsScreen extends ConsumerWidget {
               value: s.reduceMotion,
               onChanged: ctrl.setReduceMotion,
             ),
-
             const SectionLabel('GOOGLE CALENDAR'),
             const GcalSettingsSection(),
-
             const SectionLabel('WIDGET'),
             const _WidgetOpacityTile(),
-
             const SectionLabel('DATA'),
             _menuTile(context, '↑', '백업 내보내기', '모든 데이터를 파일로 저장',
                 () => _export(context, ref)),
@@ -137,9 +134,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _sliderRow(BuildContext context,
-      {required String label,
-      required String value,
-      required Widget slider}) {
+      {required String label, required String value, required Widget slider}) {
     final tk = t(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
@@ -185,8 +180,8 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _menuTile(BuildContext context, String glyph, String title,
-      String sub, VoidCallback onTap) {
+  Widget _menuTile(BuildContext context, String glyph, String title, String sub,
+      VoidCallback onTap) {
     final tk = t(context);
     return InkWell(
       onTap: onTap,
@@ -277,6 +272,8 @@ class _FontPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
+    final selected =
+        kFonts.any((f) => f.key == current) ? current : kDefaultFontKey;
     return Padding(
       padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
       child: Column(
@@ -291,8 +288,8 @@ class _FontPicker extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: current == f.key ? tk.ink : tk.line,
-                    width: current == f.key ? 1.5 : 1,
+                    color: selected == f.key ? tk.ink : tk.line,
+                    width: selected == f.key ? 1.5 : 1,
                   ),
                 ),
                 child: Row(
@@ -304,9 +301,8 @@ class _FontPicker extends StatelessWidget {
                           Row(
                             children: [
                               Text(f.name,
-                                  style: AppText.meta(current == f.key
-                                      ? tk.ink
-                                      : tk.inkSoft)),
+                                  style: AppText.meta(
+                                      selected == f.key ? tk.ink : tk.inkSoft)),
                               if (f.oneWeight) ...[
                                 const SizedBox(width: 8),
                                 Text('굵기 고정',
@@ -324,7 +320,7 @@ class _FontPicker extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (current == f.key)
+                    if (selected == f.key)
                       Text('›', style: AppText.glyph(tk.mark, size: 18)),
                   ],
                 ),
@@ -368,8 +364,7 @@ class _ThemePicker extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Expanded(
-                            child: Container(color: spec.tokens.paper)),
+                        Expanded(child: Container(color: spec.tokens.paper)),
                         Expanded(child: Container(color: spec.tokens.ink)),
                         Expanded(child: Container(color: spec.tokens.mark)),
                       ],
@@ -466,8 +461,7 @@ class _SajuTile extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                  child: Text('생년월일·시각 입력하기',
-                      style: AppText.body(tk.ink))),
+                  child: Text('생년월일·시각 입력하기', style: AppText.body(tk.ink))),
               Text('입력', style: AppText.meta(tk.mark, size: 12)),
             ],
           ),
@@ -504,8 +498,7 @@ class _SajuTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('$dateStr · $timeStr',
-                          style: AppText.body(tk.ink)),
+                      Text('$dateStr · $timeStr', style: AppText.body(tk.ink)),
                       const SizedBox(height: 3),
                       Text(
                           '$calLabel · ${settings.birthMale ? '남' : '여'} · '
@@ -653,7 +646,8 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
           padding: const EdgeInsets.only(bottom: 40),
           children: [
             const SectionLabel('성별 (대운 계산)'),
-            _seg(['남', '여'], _male ? 0 : 1, (i) => setState(() => _male = i == 0)),
+            _seg(['남', '여'], _male ? 0 : 1,
+                (i) => setState(() => _male = i == 0)),
             const SectionLabel('달력'),
             _seg(['양력', '음력'], _cal == 'solar' ? 0 : 1,
                 (i) => setState(() => _cal = i == 0 ? 'solar' : 'lunar')),
@@ -662,8 +656,7 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
                 padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
                 child: Row(
                   children: [
-                    Expanded(
-                        child: Text('윤달', style: AppText.body(tk.ink))),
+                    Expanded(child: Text('윤달', style: AppText.body(tk.ink))),
                     Switch(
                         value: _leap,
                         onChanged: (v) => setState(() => _leap = v)),
@@ -675,16 +668,15 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
             if (_cal == 'lunar')
               Padding(
                 padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
-                child: Text('→ $preview', style: AppText.meta(tk.mark, size: 12)),
+                child:
+                    Text('→ $preview', style: AppText.meta(tk.mark, size: 12)),
               ),
             const SectionLabel('태어난 시각'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
               child: Row(
                 children: [
-                  Expanded(
-                      child: Text('시각을 몰라요',
-                          style: AppText.body(tk.ink))),
+                  Expanded(child: Text('시각을 몰라요', style: AppText.body(tk.ink))),
                   Switch(
                       value: _timeUnknown,
                       onChanged: (v) => setState(() => _timeUnknown = v)),
@@ -782,8 +774,8 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
             ),
             Expanded(
               flex: 2,
-              child: _wheel(31, _day - 1,
-                  (i) => setState(() => _day = i + 1), (i) => '${i + 1}일'),
+              child: _wheel(31, _day - 1, (i) => setState(() => _day = i + 1),
+                  (i) => '${i + 1}일'),
             ),
           ],
         ),
@@ -887,8 +879,8 @@ class _SajuEditorPageState extends State<SajuEditorPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          border: Border.all(
-              color: sel ? tk.ink : tk.line, width: sel ? 1.5 : 1),
+          border:
+              Border.all(color: sel ? tk.ink : tk.line, width: sel ? 1.5 : 1),
         ),
         child: Text(r.name, style: AppText.chip(sel ? tk.ink : tk.inkSoft)),
       ),

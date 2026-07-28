@@ -70,6 +70,22 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quick_add_widget_info" />
         </receiver>
+        <receiver android:name=".QuickMenuWidgetProvider" android:exported="true" android:label="지금 · 빠른 입력 메뉴">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_menu_widget_info" />
+        </receiver>
+        <receiver android:name=".GoalWidgetProvider" android:exported="true" android:label="지금 · 오늘의 목표">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/goal_widget_info" />
+        </receiver>
         <activity
             android:name=".QuickAddActivity"
             android:exported="false"

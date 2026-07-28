@@ -34,6 +34,25 @@ const _pickable = <RoutePoint>[
   RoutePoint.inbox,
 ];
 
+class _MatrixTarget {
+  const _MatrixTarget(this.label, this.help,
+      {required this.important, required this.urgent, this.mark = false});
+
+  final String label;
+  final String help;
+  final bool important;
+  final bool urgent;
+  final bool mark;
+}
+
+const _matrixTargets = [
+  _MatrixTarget('URGENT+IMPORTANT', '오늘 바로 처리',
+      important: true, urgent: true, mark: true),
+  _MatrixTarget('IMPORTANT', '목표로 키우기', important: true, urgent: false),
+  _MatrixTarget('URGENT', '빨리 비우기', important: false, urgent: true),
+  _MatrixTarget('DRAWER', '언젠가 서랍', important: false, urgent: false),
+];
+
 class _DumpViewState extends ConsumerState<DumpView> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
@@ -52,8 +71,11 @@ class _DumpViewState extends ConsumerState<DumpView> {
     _focus.requestFocus();
     // 부작용 없이 분류만(담기는 나중에 한꺼번에). 대기줄은 화면 밖 provider 가
     // 들고 있어 탭 이동·앱 재시작에도 안 사라진다.
-    final r = ref.read(voiceControllerProvider).classify(text);
-    ref.read(dumpStagingProvider.notifier).addResult(r);
+    final results = ref.read(voiceControllerProvider).classifyMany(text);
+    final staging = ref.read(dumpStagingProvider.notifier);
+    for (final r in results) {
+      staging.addResult(r);
+    }
   }
 
   Future<void> _pickBucket(int i) async {
@@ -69,9 +91,10 @@ class _DumpViewState extends ConsumerState<DumpView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 16, AppSpace.gutter, 6),
-              child: Text('어디로 보낼까요?',
-                  style: AppText.meta(tk.inkSoft, size: 11)),
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpace.gutter, 16, AppSpace.gutter, 6),
+              child:
+                  Text('어디로 보낼까요?', style: AppText.meta(tk.inkSoft, size: 11)),
             ),
             for (final rp in _pickable)
               ListTile(
@@ -92,6 +115,17 @@ class _DumpViewState extends ConsumerState<DumpView> {
     ref.read(dumpStagingProvider.notifier).replaceAt(i, rerouted);
   }
 
+  void _moveToQuadrant(int i, _MatrixTarget target) {
+    final pending = ref.read(dumpStagingProvider);
+    if (i < 0 || i >= pending.length) return;
+    final rerouted = ref.read(voiceControllerProvider).rerouteToMatrixQuadrant(
+          pending[i],
+          important: target.important,
+          urgent: target.urgent,
+        );
+    ref.read(dumpStagingProvider.notifier).replaceAt(i, rerouted);
+  }
+
   Future<void> _commitAll() async {
     final pending = ref.read(dumpStagingProvider);
     if (pending.isEmpty) return;
@@ -107,8 +141,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
       ..showSnackBar(SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: t(context).ink,
-        content: Text('$n개 정리 완료',
-            style: AppText.body(t(context).paper)),
+        content: Text('$n개 정리 완료', style: AppText.body(t(context).paper)),
       ));
   }
 
@@ -121,7 +154,8 @@ class _DumpViewState extends ConsumerState<DumpView> {
       children: [
         // 헤더.
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 14, AppSpace.gutter, 6),
+          padding: const EdgeInsets.fromLTRB(
+              AppSpace.gutter, 14, AppSpace.gutter, 6),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -132,7 +166,11 @@ class _DumpViewState extends ConsumerState<DumpView> {
                     Text('판단은 나중에 · 생각나는 대로',
                         style: AppText.meta(tk.inkSoft, size: 11)),
                     const SizedBox(height: 2),
-                    Text('머릿속을 비워요', style: AppText.hTitle(tk.ink)),
+                    // 상단 Masthead("쏟아내기", 19px)가 이미 큰 제목이라
+                    // 본문 헤더는 한 단계 낮춰(16px) 제목이 이중으로 커 보이던
+                    // 것 완화 — 다른 탭과 위계 균형.
+                    Text('머릿속을 비워요',
+                        style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
                   ],
                 ),
               ),
@@ -144,50 +182,57 @@ class _DumpViewState extends ConsumerState<DumpView> {
         ),
 
         // 입력 — 칩 없이 프롬프트 한 줄.
-        Container(
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: tk.ink, width: 1),
-              bottom: BorderSide(color: tk.line, width: 1),
-            ),
-          ),
-          padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 12, AppSpace.gutter, 12),
-          child: Row(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8, bottom: 2),
-                child: Text('›', style: AppText.glyph(tk.mark, size: 16)),
+        // 구분선은 화면 끝까지 꽉 채우지 않고 좌우 gutter 여백에 맞춰 들인다
+        // (헤더/본문 정렬선과 일치 — 선만 튀어 보이던 것 해소).
+        Padding(
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: tk.ink, width: 1),
+                bottom: BorderSide(color: tk.line, width: 1),
               ),
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focus,
-                  autofocus: true,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _submit(),
-                  cursorColor: tk.mark,
-                  style: AppText.body(tk.ink),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: '적고 엔터 · 또 적고 엔터_',
-                    hintStyle: AppText.meta(tk.inkSoft, size: 13),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8, bottom: 2),
+                  child: Text('›', style: AppText.glyph(tk.mark, size: 16)),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focus,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _submit(),
+                    cursorColor: tk.mark,
+                    style: AppText.body(tk.ink),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: '적고 엔터 · 또 적고 엔터_',
+                      hintStyle: AppText.meta(tk.inkSoft, size: 13),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
                 ),
-              ),
-              GestureDetector(
-                onTap: _submit,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Text('쏟기', style: AppText.nav(tk.ink, active: true)),
+                GestureDetector(
+                  onTap: _submit,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 4),
+                    child:
+                        Text('쏟기', style: AppText.nav(tk.ink, active: true)),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
 
@@ -195,13 +240,20 @@ class _DumpViewState extends ConsumerState<DumpView> {
         Expanded(
           child: pending.isEmpty
               ? _empty(tk)
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpace.gutter, vertical: 8),
-                  itemCount: pending.length,
-                  separatorBuilder: (_, __) =>
-                      Divider(height: 1, color: tk.line),
-                  itemBuilder: (_, i) => _row(tk, pending[i], i),
+              : Column(
+                  children: [
+                    _matrixDropBoard(tk),
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpace.gutter, vertical: 8),
+                        itemCount: pending.length,
+                        separatorBuilder: (_, __) =>
+                            Divider(height: 1, color: tk.line),
+                        itemBuilder: (_, i) => _row(tk, pending[i], i),
+                      ),
+                    ),
+                  ],
                 ),
         ),
 
@@ -215,11 +267,12 @@ class _DumpViewState extends ConsumerState<DumpView> {
             child: SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(AppSpace.gutter, 10, AppSpace.gutter, 10),
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpace.gutter, 10, AppSpace.gutter, 10),
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text('태그를 탭하면 다른 곳으로 옮겨요',
+                      child: Text('길게 눌러 매트릭스에 놓거나, 태그를 탭해 바꿔요',
                           style: AppText.meta(tk.inkSoft, size: 11)),
                     ),
                     GestureDetector(
@@ -243,7 +296,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
   }
 
   Widget _row(AppTokens tk, VoiceResult r, int i) {
-    return Padding(
+    final child = Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
@@ -270,6 +323,91 @@ class _DumpViewState extends ConsumerState<DumpView> {
           ),
         ],
       ),
+    );
+    return LongPressDraggable<int>(
+      data: i,
+      feedback: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: 220,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: tk.paper,
+            border: Border.all(color: tk.ink, width: 1),
+          ),
+          child: Text(r.rawText,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.body(tk.ink)),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: 0.35, child: child),
+      child: child,
+    );
+  }
+
+  Widget _matrixDropBoard(AppTokens tk) {
+    Widget lineH() => Container(height: 1, color: tk.line);
+    Widget lineV() => Container(width: 1, color: tk.line);
+
+    return Container(
+      margin:
+          const EdgeInsets.fromLTRB(AppSpace.gutter, 10, AppSpace.gutter, 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: tk.line, width: 1),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _dropCell(tk, _matrixTargets[0])),
+              lineV(),
+              Expanded(child: _dropCell(tk, _matrixTargets[1])),
+            ],
+          ),
+          lineH(),
+          Row(
+            children: [
+              Expanded(child: _dropCell(tk, _matrixTargets[2])),
+              lineV(),
+              Expanded(child: _dropCell(tk, _matrixTargets[3])),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dropCell(AppTokens tk, _MatrixTarget target) {
+    return DragTarget<int>(
+      onWillAcceptWithDetails: (_) => true,
+      onAcceptWithDetails: (details) => _moveToQuadrant(details.data, target),
+      builder: (context, candidates, rejected) {
+        final active = candidates.isNotEmpty;
+        final color =
+            target.mark ? tk.mark : (target.important ? tk.ink : tk.inkSoft);
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          height: 74,
+          padding: const EdgeInsets.all(10),
+          color: active ? tk.paper2 : tk.paper,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(target.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.sec(active ? tk.ink : color)),
+              const SizedBox(height: 6),
+              Text(target.help,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.meta(tk.inkSoft, size: 10)),
+            ],
+          ),
+        );
+      },
     );
   }
 

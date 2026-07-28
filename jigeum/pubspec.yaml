@@ -31,6 +31,13 @@ dev_dependencies:
   drift_dev: ^2.20.0
   build_runner: ^2.4.12
 
+# 전이 의존성 jni 를 1.0.0 으로 고정 — 새로 배포된 jni 1.0.1 의 android/build.gradle
+# (line 84 `kotlin()`)이 현재 Gradle 스캐폴드와 안 맞아 릴리즈 빌드가 깨진다.
+# 1.0.0 은 동일 잠금(jni_flutter 1.0.1)에서 정상 빌드되던 버전. jni 가 gradle
+# 을 고치면 이 override 제거 가능.
+dependency_overrides:
+  jni: 1.0.0
+
 flutter:
   uses-material-design: true
   assets:
@@ -56,21 +63,6 @@ flutter:
           weight: 400
         - asset: assets/fonts/NanumGothic-Bold.ttf
           weight: 700
-    - family: NanumMyeongjo
-      fonts:
-        - asset: assets/fonts/NanumMyeongjo-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/NanumMyeongjo-Bold.ttf
-          weight: 700
-    - family: Jua
-      fonts:
-        - asset: assets/fonts/Jua-Regular.ttf
     - family: GowunDodum
       fonts:
         - asset: assets/fonts/GowunDodum-Regular.ttf
-    - family: DoHyeon
-      fonts:
-        - asset: assets/fonts/DoHyeon-Regular.ttf
-    - family: BlackHanSans
-      fonts:
-        - asset: assets/fonts/BlackHanSans-Regular.ttf

@@ -96,9 +96,7 @@ class GoalApp extends ConsumerStatefulWidget {
 class _GoalAppState extends ConsumerState<GoalApp> {
   AppLifecycleListener? _lifecycle;
   StreamSubscription<dynamic>? _nodesSub;
-  StreamSubscription<dynamic>? _schedulesSub;
   Timer? _syncDebounce;
-  Timer? _gcalDebounce;
 
   @override
   void initState() {
@@ -108,8 +106,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       onResume: () {
         _runDailyRoutine();
         _checkLaunchAction();
-        // 복귀할 때마다 위젯 팝업 큐 비우고 구글 캘린더 동기화.
-        ref.read(gcalControllerProvider.notifier).syncNow(refreshList: false);
+        // 구글 캘린더는 자동 동기화하지 않는다 — 사용자가 설정에서 "지금
+        // 동기화" 버튼을 눌렀을 때만 동기화한다.
       },
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _startup());
@@ -118,9 +116,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
   @override
   void dispose() {
     _syncDebounce?.cancel();
-    _gcalDebounce?.cancel();
     _nodesSub?.cancel();
-    _schedulesSub?.cancel();
     _lifecycle?.dispose();
     super.dispose();
   }
@@ -134,6 +130,10 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       timeTrackLaunchRequest.value++;
     } else if (action == 'open_calendar') {
       calendarLaunchRequest.value++;
+    } else if (action == 'voice_capture') {
+      voiceCaptureRequest.value++;
+    } else if (action == 'edit_goal') {
+      goalEditRequest.value++;
     }
   }
 
@@ -183,10 +183,19 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       final ttRepo = ref.read(timeTrackRepoProvider);
       final nowBlock = TimeTrackRepository.blockOfNow();
       final cur = await ttRepo.getBlock(todayDate(), nowBlock);
-      await WidgetBridge.updateTimeTrack(
-        '지금 ${blockLabel(nowBlock)}',
-        cur?.content ?? '탭해서 기록',
-      );
+      // 기록이 있으면 실제 작성 시각(HH:mm)을 뒤에 붙여 위젯에 보여준다.
+      String ttText = cur?.content ?? '탭해서 기록';
+      final wAt = cur?.updatedAt;
+      if (cur?.content != null && cur!.content.isNotEmpty && wAt != null) {
+        final hh = wAt.hour.toString().padLeft(2, '0');
+        final mm = wAt.minute.toString().padLeft(2, '0');
+        ttText = '${cur.content}  ·  ✎ $hh:$mm';
+      }
+      await WidgetBridge.updateTimeTrack('지금 ${blockLabel(nowBlock)}', ttText);
+
+      // 오늘의 목표 위젯: 오늘 날짜의 목표(여러 줄)를 반영.
+      final goal = await ref.read(scheduleRepoProvider).getDayGoal(todayDate());
+      await WidgetBridge.updateGoal(goal ?? '');
     } catch (e, s) {
       debugPrint('widget sync 실패(무시): $e\n$s');
     }
@@ -238,20 +247,14 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       _syncDebounce = Timer(const Duration(milliseconds: 500), _syncWidgets);
     });
 
-    // 구글 캘린더: 조용히 로그인 복구 + 첫 동기화.
+    // 구글 캘린더: 조용히 연결 상태만 복구(목록 로드). 자동 동기화는 하지
+    // 않는다 — 사용자가 설정에서 "지금 동기화"를 눌렀을 때만 동기화한다.
     if (!kIsWeb) {
       try {
         await ref.read(gcalControllerProvider.notifier).restore();
       } catch (e, s) {
         debugPrint('gcal restore 실패(무시): $e\n$s');
       }
-      // 일정이 바뀌면(로컬 편집) 원격으로 밀기 (1.5초 디바운스).
-      _schedulesSub = ref.read(scheduleRepoProvider).watchAll().listen((_) {
-        _gcalDebounce?.cancel();
-        _gcalDebounce = Timer(const Duration(milliseconds: 1500), () {
-          ref.read(gcalControllerProvider.notifier).syncNow(refreshList: false);
-        });
-      });
     }
 
     if (!kIsWeb) {

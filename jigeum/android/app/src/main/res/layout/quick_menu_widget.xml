@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 3×1 빠른 입력 메뉴 위젯 — 목적지 3개 + 음성. 각 칸을 탭하면 앱이 떠서
+     해당 입력을 바로 연다(음성은 마이크 시작 → 즉시 분류·라우팅).
+     벡터 드로어블은 일부 런처(삼성 One UI)에서 실패하므로 텍스트만 쓴다. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/qm_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/qm_todo"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="빠른담기"
+        android:textSize="13sp"
+        android:textColor="#26241F" />
+
+    <TextView
+        android:id="@+id/qm_schedule"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="일정"
+        android:textSize="13sp"
+        android:textColor="#26241F" />
+
+    <TextView
+        android:id="@+id/qm_log"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="기록"
+        android:textSize="13sp"
+        android:textColor="#26241F" />
+
+    <TextView
+        android:id="@+id/qm_voice"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="🎙 음성"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#B5443A" />
+</LinearLayout>
