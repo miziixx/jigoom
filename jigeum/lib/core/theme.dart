@@ -200,18 +200,35 @@ String? appMono = kSansFamily;
 /// AppTheme.build 에서 갱신.
 String? appSans = kSansFamily;
 
+/// 제목/헤딩용 세리프(명조). v17 에디토리얼 — 헤딩만 세리프.
+String appSerif = kSerifFamily;
+
 /// 편집 타이포 (DESIGN_SYSTEM §3).
 /// 기본은 폰 시스템 글꼴, 내장 글꼴 모드에서는 선택한 앱 폰트로 전체를 맞춘다.
 /// 색은 토큰을 주입.
 class AppText {
-  /// 화면 타이틀 (한글, Sans 19/Bold).
+  /// 화면 타이틀 (한글, 세리프/명조 19/Medium). v17 에디토리얼 — 얇은 세리프.
   static TextStyle hTitle(Color c, [int? wd]) => TextStyle(
-      fontFamily: appSans,
+      fontFamily: appSerif,
       fontSize: 19,
-      fontWeight: shiftWeight(FontWeight.w700, wd ?? appWeightDelta),
+      fontWeight: shiftWeight(FontWeight.w500, wd ?? appWeightDelta),
       height: 1.2,
-      letterSpacing: -0.2,
+      letterSpacing: -0.4,
       color: c);
+
+  /// 임의 크기 세리프 헤딩 (제목·큰 숫자·목표). v17 시그니처.
+  static TextStyle serif(Color c,
+          {double size = 22,
+          FontWeight weight = FontWeight.w500,
+          double height = 1.2,
+          double? letterSpacing}) =>
+      TextStyle(
+          fontFamily: appSerif,
+          fontSize: size,
+          fontWeight: weight,
+          height: height,
+          letterSpacing: letterSpacing ?? -size * 0.03,
+          color: c);
 
   /// 할 일 제목·본문 (한글, Sans 15/Medium).
   static TextStyle body(Color c, [int? wd]) => TextStyle(
