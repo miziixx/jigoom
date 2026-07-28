@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">nemo</string>
-    <string name="widget_memo">nemo</string>
-    <string name="widget_quick">nemo quick</string>
-    <string name="widget_list">nemo list</string>
-    <string name="widget_calendar">nemo cal</string>
-</resources>

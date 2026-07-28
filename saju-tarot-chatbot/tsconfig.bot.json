@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "noEmit": true,
-    "composite": false
-  },
-  "include": ["bot", "src/types", "api/telegram-webhook.ts"],
-  "references": []
-}
