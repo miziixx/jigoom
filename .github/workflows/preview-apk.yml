@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - claude/app-ui-ux-improvements-2ckax1
+      - main
 
 permissions:
   contents: write
