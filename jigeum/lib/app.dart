@@ -132,14 +132,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     'MY DAY',
   ];
 
-  /// 하단에 노출하는 탭 (인덱스, 라벨) — 6개를 4개로 정리. 나머지는 ≡ MENU.
-  static const _bottomTabs = <(int, String)>[
-    (6, '홈'),
-    (0, '오늘'),
-    (3, '일과'),
-    (2, '쏟기'),
-  ];
-
   /// 하이브리드 음성 라우팅용 — 각 탭에서 "단서 없는 말"이 보류함 대신 갈 홈.
   /// 보류함으로 직행하는 일을 최소화한다: 쏟아내기(2)만 대기줄로 따로 처리하고,
   /// 나머지(오늘·전체·그 외)는 전부 오늘 할 일로 담는다.
@@ -239,10 +231,38 @@ class _AppShellState extends ConsumerState<AppShell> {
         ),
       );
 
-  /// 하단 탭 — 소문자 모노, 상단 규칙선, 활성 = ink + 밑줄.
-  /// 각 탭은 Expanded + 세로 여백으로 셀 전체가 터치되도록 함.
+  /// 하단 탭 — 홈/오늘/＋(담기)/일과/전체. 활성 = 세이지 밑줄, 가운데 초록 ＋ 원.
   Widget _bottomNav(BuildContext context) {
     final tk = t(context);
+
+    Widget item(int idx, String label) {
+      final active = _index == idx;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _index = idx),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Container(
+              padding: const EdgeInsets.only(bottom: 3),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: active ? tk.mark : Colors.transparent,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              child: Text(label,
+                  style:
+                      AppText.nav(active ? tk.mark : tk.inkSoft, active: active)),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
           border: Border(top: BorderSide(color: tk.line, width: 1))),
@@ -252,37 +272,32 @@ class _AppShellState extends ConsumerState<AppShell> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           child: Row(
             children: [
-              for (final tab in _bottomTabs)
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _index = tab.$1),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      alignment: Alignment.center,
-                      // 넉넉한 터치 영역(≈44dp).
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      child: Container(
-                        padding: const EdgeInsets.only(bottom: 3),
+              item(6, '홈'),
+              item(0, '오늘'),
+              // 가운데 ＋ — 빠른 담기.
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => showQuickCaptureInput(context, ref),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: _index == tab.$1
-                                  ? tk.mark
-                                  : Colors.transparent,
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                        child: Text(tab.$2,
-                            maxLines: 1,
-                            overflow: TextOverflow.visible,
-                            style: AppText.nav(
-                                _index == tab.$1 ? tk.mark : tk.inkSoft,
-                                active: _index == tab.$1)),
+                            color: tk.mark, shape: BoxShape.circle),
+                        child: Icon(Icons.add, color: tk.paper, size: 24),
                       ),
-                    ),
+                      const SizedBox(height: 3),
+                      Text('담기', style: AppText.nav(tk.inkSoft)),
+                    ],
                   ),
                 ),
+              ),
+              item(3, '일과'),
+              item(5, '전체'),
             ],
           ),
         ),
@@ -362,9 +377,9 @@ class _AppShellState extends ConsumerState<AppShell> {
               Text('MENU', style: AppText.meta(tk.inkSoft, size: 10)),
               const SizedBox(height: 10),
               Container(height: 1, color: tk.ink),
-              row('01', '매트릭스', () => setState(() => _index = 1)),
-              row('02', '습관', () => setState(() => _index = 4)),
-              row('03', '전체', () => setState(() => _index = 5)),
+              row('01', '쏟아내기', () => setState(() => _index = 2)),
+              row('02', '매트릭스', () => setState(() => _index = 1)),
+              row('03', '습관', () => setState(() => _index = 4)),
               row('04', '아웃라인', _openOutline),
               row('05', '달력', _openCalendar),
               row('06', '오늘의 운세', _openFortune),
