@@ -232,41 +232,86 @@ class _TodayHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final tk = t(context);
     final d = fortune.date;
-    final wd = ['월', '화', '수', '목', '금', '토', '일'][d.weekday - 1];
+    final cats = fortune.categories;
+    final kw = cats.isNotEmpty ? cats.first.title : '정리';
+    final goodFlow = cats.length > 1 ? cats[1].title : fortune.todayTenGod;
+    final action =
+        cats.isNotEmpty ? '${cats.first.title} 하나만 작게 시작하기' : '가장 가까운 일 하나만';
+
+    Widget box(String value, String label) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+            decoration: BoxDecoration(border: Border.all(color: tk.line)),
+            child: Column(
+              children: [
+                Text(value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.hTitle(tk.ink).copyWith(fontSize: 14)),
+                const SizedBox(height: 4),
+                Text(label, style: AppText.meta(tk.inkSoft, size: 9)),
+              ],
+            ),
+          ),
+        );
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 4),
+      padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('${d.year}.${_2(d.month)}.${_2(d.day)} ($wd)',
-              style: AppText.meta(tk.inkSoft, size: 12)),
-          const SizedBox(height: 6),
+          Center(
+              child: Text('${_2(d.month)} / ${_2(d.day)}',
+                  style: AppText.meta(tk.inkSoft, size: 11))),
+          const SizedBox(height: 10),
+          Text('오늘의 흐름 · ${fortune.overallGrade}',
+              textAlign: TextAlign.center,
+              style: AppText.hTitle(tk.ink).copyWith(fontSize: 24, height: 1.2)),
+          const SizedBox(height: 8),
+          Text(
+            '일진 ${fortune.todayPillar.hanja}(${fortune.todayPillar.kor}일) · '
+            '오늘 기운은 나에게 「${fortune.todayTenGod}」',
+            textAlign: TextAlign.center,
+            style: AppText.meta(tk.inkSoft, size: 11).copyWith(height: 1.5),
+          ),
+          const SizedBox(height: 16),
+          Row(children: [
+            box(kw, '키워드'),
+            const SizedBox(width: 8),
+            box('${fortune.overall}%', '집중 흐름'),
+            const SizedBox(width: 8),
+            box(goodFlow, '좋은 흐름'),
+          ]),
+          const SizedBox(height: 24),
+          // § 오늘의 행동 카드
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('${fortune.overall}',
-                  style: TextStyle(
-                      fontFamily: kMonoFamily,
-                      fontSize: 44,
-                      height: 1,
-                      fontWeight: FontWeight.w700,
-                      color: tk.ink)),
-              const SizedBox(width: 6),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text('점 · ${fortune.overallGrade}',
-                    style: AppText.meta(tk.mark, size: 13)),
-              ),
+              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
+              Text('오늘의 행동 카드',
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+              const Spacer(),
+              Text('작게 시작', style: AppText.meta(tk.inkSoft, size: 11)),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            '오늘 일진 ${fortune.todayPillar.hanja}(${fortune.todayPillar.kor}일)'
-            '${fortune.solarTerm != null ? ' · 절기 ${fortune.solarTerm}' : ''}',
-            style: AppText.meta(tk.inkSoft),
-          ),
-          Text('오늘 기운은 나에게 「${fortune.todayTenGod}」',
-              style: AppText.meta(tk.inkSoft)),
+          const SizedBox(height: 8),
+          Container(height: 1, color: tk.line),
+          const SizedBox(height: 18),
+          Center(child: Container(width: 36, height: 3, color: tk.mark)),
+          const SizedBox(height: 12),
+          Text('ONE SMALL ACTION',
+              textAlign: TextAlign.center,
+              style: AppText.meta(tk.inkSoft, size: 10)
+                  .copyWith(letterSpacing: 2)),
+          const SizedBox(height: 10),
+          Text(action,
+              textAlign: TextAlign.center,
+              style: AppText.hTitle(tk.ink).copyWith(fontSize: 21, height: 1.3)),
+          const SizedBox(height: 8),
+          Text('작게 시작해서 끝내는 경험을 먼저 만들어요.',
+              textAlign: TextAlign.center,
+              style: AppText.meta(tk.inkSoft, size: 11).copyWith(height: 1.5)),
+          const SizedBox(height: 8),
         ],
       ),
     );

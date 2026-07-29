@@ -152,84 +152,77 @@ class _DumpViewState extends ConsumerState<DumpView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 헤더.
+        // FREE NOTE 카드 — 지금 떠오르는 걸 전부 적고 '쏟아내기'.
         Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpace.gutter, 14, AppSpace.gutter, 6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('판단은 나중에 · 생각나는 대로',
-                        style: AppText.meta(tk.inkSoft, size: 11)),
-                    const SizedBox(height: 2),
-                    // 상단 Masthead("쏟아내기", 19px)가 이미 큰 제목이라
-                    // 본문 헤더는 한 단계 낮춰(16px) 제목이 이중으로 커 보이던
-                    // 것 완화 — 다른 탭과 위계 균형.
-                    Text('머릿속을 비워요',
-                        style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
-                  ],
-                ),
-              ),
-              if (pending.isNotEmpty)
-                Text('${pending.length}개 대기',
-                    style: AppText.meta(tk.mark, size: 11)),
-            ],
-          ),
-        ),
-
-        // 입력 — 칩 없이 프롬프트 한 줄.
-        // 구분선은 화면 끝까지 꽉 채우지 않고 좌우 gutter 여백에 맞춰 들인다
-        // (헤더/본문 정렬선과 일치 — 선만 튀어 보이던 것 해소).
-        Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppSpace.gutter),
+              AppSpace.gutter, 10, AppSpace.gutter, 4),
           child: Container(
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: tk.ink, width: 1),
-                bottom: BorderSide(color: tk.line, width: 1),
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
+            decoration: BoxDecoration(border: Border.all(color: tk.line)),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 8, bottom: 2),
-                  child: Text('›', style: AppText.glyph(tk.mark, size: 16)),
+                Text('FREE NOTE',
+                    style: AppText.meta(tk.inkSoft, size: 9)
+                        .copyWith(letterSpacing: 1.4)),
+                const SizedBox(height: 8),
+                Center(
+                    child: Text('BRAIN DUMP',
+                        style: AppText.meta(tk.inkSoft, size: 10)
+                            .copyWith(letterSpacing: 2))),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _controller,
+                  focusNode: _focus,
+                  autofocus: true,
+                  minLines: 3,
+                  maxLines: 6,
+                  keyboardType: TextInputType.multiline,
+                  textAlign: TextAlign.center,
+                  cursorColor: tk.mark,
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 17, height: 1.4),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: '지금 떠오르는 걸 전부 적어요.\n정리는 나중에 하면 돼요.',
+                    hintStyle: AppText.hTitle(tk.inkSoft)
+                        .copyWith(fontSize: 16, height: 1.4),
+                    hintMaxLines: 2,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
                 ),
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focus,
-                    autofocus: true,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _submit(),
-                    cursorColor: tk.mark,
-                    style: AppText.body(tk.ink),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: '적고 엔터 · 또 적고 엔터_',
-                      hintStyle: AppText.meta(tk.inkSoft, size: 13),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
+                const SizedBox(height: 10),
+                Container(height: 1, color: tk.line),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => _focus.requestFocus(),
+                      behavior: HitTestBehavior.opaque,
+                      child: Row(
+                        children: [
+                          Icon(Icons.mic_none, size: 17, color: tk.inkSoft),
+                          const SizedBox(width: 6),
+                          Text('말로 적기',
+                              style: AppText.meta(tk.inkSoft, size: 11)),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: _submit,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 4),
-                    child: Text('쏟아내기',
-                        style: AppText.nav(tk.mark, active: true)),
-                  ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: _submit,
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 10),
+                        color: tk.mark,
+                        child: Text('쏟아내기',
+                            style: AppText.body(tk.paper).copyWith(fontSize: 12)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -241,7 +234,26 @@ class _DumpViewState extends ConsumerState<DumpView> {
           child: pending.isEmpty
               ? _empty(tk)
               : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSpace.gutter, 18, AppSpace.gutter, 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('§ ',
+                              style: AppText.hTitle(tk.mark)
+                                  .copyWith(fontSize: 15)),
+                          Text('아직 분류하지 않음',
+                              style: AppText.hTitle(tk.ink)
+                                  .copyWith(fontSize: 18)),
+                          const Spacer(),
+                          Text('${pending.length}개',
+                              style: AppText.meta(tk.inkSoft, size: 11)),
+                        ],
+                      ),
+                    ),
                     _matrixDropBoard(tk),
                     Expanded(
                       child: ListView.separated(
@@ -300,17 +312,29 @@ class _DumpViewState extends ConsumerState<DumpView> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          Expanded(child: Text(r.rawText, style: AppText.body(tk.ink))),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(r.rawText, style: AppText.body(tk.ink)),
+                const SizedBox(height: 4),
+                Text('→ ${r.routedTo.label}',
+                    style: AppText.meta(tk.inkSoft, size: 10)),
+              ],
+            ),
+          ),
           const SizedBox(width: 10),
-          // 버킷 태그 — 탭해서 재분류.
+          // 분류하기 — 탭해서 버킷 선택/재분류.
           GestureDetector(
             onTap: () => _pickBucket(i),
             behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(border: Border.all(color: tk.mark)),
-              child: Text(r.routedTo.label,
-                  style: AppText.meta(tk.mark, size: 11)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('분류하기', style: AppText.meta(tk.mark, size: 11)),
+                const SizedBox(width: 3),
+                Text('›', style: AppText.glyph(tk.mark, size: 14)),
+              ],
             ),
           ),
           GestureDetector(
