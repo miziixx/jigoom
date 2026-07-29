@@ -9,7 +9,6 @@ import 'features/all/all_view.dart';
 import 'features/capture/dump_staging.dart';
 import 'features/capture/dump_view.dart';
 import 'features/voice/models/intent_type.dart';
-import 'features/capture/quick_capture_bar.dart';
 import 'features/capture/quick_capture_input.dart';
 import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
@@ -200,10 +199,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               ),
             ),
             Expanded(child: body),
-            // 하단 담기 바는 할 일 계열 탭에만 (쏟아내기=2·시간=3·습관=4 제외 —
-            // 쏟아내기는 자체 입력, 시간·습관은 담기 바 불필요).
-            if (_index != 2 && _index != 3 && _index != 4)
-              const QuickCaptureBar(),
+            // v17: 하단 '빠르게 담기' 바 제거 — 가운데 ＋(담기)가 그 역할을 한다.
             _bottomNav(context),
           ],
         ),
