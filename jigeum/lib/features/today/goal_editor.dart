@@ -29,11 +29,10 @@ Future<String?> showGoalEditor(BuildContext context, WidgetRef ref) async {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('GOAL', style: AppText.sec(tk.inkSoft)),
-            const SizedBox(height: 6),
-            Text('오늘의 목표', style: AppText.hTitle(tk.ink)),
-            const SizedBox(height: 2),
-            Text('한 줄에 하나씩', style: AppText.meta(tk.inkSoft, size: 12)),
+            Text('[ 오늘의 목표 ]', style: AppText.hTitle(tk.ink)),
+            const SizedBox(height: 4),
+            Text('이루고 싶은 결과를 짧게, 한 줄에 하나씩.',
+                style: AppText.meta(tk.inkSoft, size: 12)),
           ],
         ),
         content: TextField(
@@ -59,7 +58,7 @@ Future<String?> showGoalEditor(BuildContext context, WidgetRef ref) async {
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('취소')),
-          TextButton(
+          FilledButton(
               onPressed: () => Navigator.of(ctx).pop(controller.text),
               child: const Text('저장')),
         ],

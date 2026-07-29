@@ -20,15 +20,7 @@ Future<String?> showInputDialog(
         titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
         contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
         actionsPadding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(kicker, style: AppText.sec(tk.inkSoft)),
-            const SizedBox(height: 6),
-            Text(title, style: AppText.hTitle(tk.ink)),
-          ],
-        ),
+        title: Text('[ $title ]', style: AppText.hTitle(tk.ink)),
         content: TextField(
           controller: controller,
           autofocus: true,
