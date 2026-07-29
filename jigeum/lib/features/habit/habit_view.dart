@@ -12,6 +12,18 @@ import 'habit_stats.dart';
 
 const _weekdayNames = ['월', '화', '수', '목', '금', '토', '일'];
 
+/// 빠른 시작 — 흔한 습관을 한 번 탭으로 추가(레퍼런스 습관 화면의 빠른 시작).
+const _quickStartPresets = <String>[
+  '물 마시기',
+  '산책하기',
+  '스트레칭',
+  '독서',
+  '명상',
+  '일기 쓰기',
+  '영양제',
+  '정리정돈',
+];
+
 // ---------------------------------------------------------------- 분석 헬퍼
 // 스칼라 계산(현재/최장 연속·복귀·최근 실행일)은 habit_stats.dart 로 분리
 // (Flutter 비의존 → 유닛테스트). 여기엔 UI 결합된 요일/주별 집계만 둔다.
@@ -66,9 +78,17 @@ class HabitView extends ConsumerWidget {
     if (habits.isEmpty) {
       return Container(
         color: tk.paper,
-        alignment: Alignment.topLeft,
-        padding: const EdgeInsets.only(top: 26),
-        child: emptyNote(context, '오른쪽 위 + 로 습관을 만들어보세요'),
+        child: ListView(
+          padding: const EdgeInsets.only(top: 22, bottom: 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 2),
+              child: Text('오른쪽 위 +로 직접 만들거나, 아래에서 바로 시작해요',
+                  style: AppText.meta(tk.inkSoft, size: 13)),
+            ),
+            const _QuickStartHabits(existingTitles: {}),
+          ],
+        ),
       );
     }
 
@@ -133,6 +153,9 @@ class HabitView extends ConsumerWidget {
       }
     }
 
+    rows.add(const SizedBox(height: 20));
+    rows.add(_QuickStartHabits(
+        existingTitles: {for (final h in habits) h.title}));
     rows.add(const SizedBox(height: 16));
 
     return Container(
@@ -172,6 +195,54 @@ class HabitView extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 빠른 시작 프리셋 — 박스 없는 한 줄 텍스트 액션(하단 hairline). 탭하면 바로 추가.
+class _QuickStartHabits extends ConsumerWidget {
+  const _QuickStartHabits({required this.existingTitles});
+  final Set<String> existingTitles;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tk = t(context);
+    final presets =
+        _quickStartPresets.where((p) => !existingTitles.contains(p)).toList();
+    if (presets.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionLabel('빠른 시작'),
+        for (final p in presets)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () async {
+              await ref.read(habitRepoProvider).addHabit(p);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context)
+                  ..clearSnackBars()
+                  ..showSnackBar(SnackBar(
+                    content: Text("'$p' 습관을 추가했어요"),
+                    duration: const Duration(milliseconds: 1200),
+                  ));
+              }
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: tk.line, width: 1)),
+              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: kGutter, vertical: 12),
+              child: Row(
+                children: [
+                  Text('＋ ', style: AppText.glyph(tk.mark, size: 15)),
+                  Expanded(child: Text(p, style: AppText.body(tk.ink))),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
