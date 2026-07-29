@@ -245,9 +245,9 @@ class _DayViewState extends ConsumerState<DayView> {
                   r.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.body(r.done ? tk.inkSoft : tk.ink).copyWith(
-                      decoration: r.done ? TextDecoration.lineThrough : null,
-                      decorationColor: tk.inkSoft),
+                  // v17: 완료는 취소선이 아니라 흐림으로 통일.
+                  style: AppText.body(
+                      r.done ? tk.ink.withValues(alpha: 0.5) : tk.ink),
                 ),
                 if (r.completedAt != null)
                   Padding(
