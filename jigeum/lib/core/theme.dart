@@ -93,16 +93,17 @@ const List<ThemeSpec> kThemes = [
           inkSoft: Color(0xFF8C8A84),
           line: Color(0xFFD2CFC8),
           mark: Color(0xFFC4362B))),
+  // SAGE — v17 레퍼런스 팔레트(warm paper + sage green primary).
   ThemeSpec(
       'sage',
       'SAGE',
       AppTokens(
-          paper: Color(0xFFE9EAE0),
-          paper2: Color(0xFFE1E3D6),
-          ink: Color(0xFF2E362B),
-          inkSoft: Color(0xFF949A88),
-          line: Color(0xFFCFD3C3),
-          mark: Color(0xFF5E7048))),
+          paper: Color(0xFFF5F3EE), // --bg
+          paper2: Color(0xFFECEAE3), // --surface-2
+          ink: Color(0xFF242722), // --ink
+          inkSoft: Color(0xFF72766F), // --muted
+          line: Color(0xFFE4E1D8), // --line
+          mark: Color(0xFF4E6659))), // --primary
   ThemeSpec(
       'midnight',
       'MIDNIGHT',
@@ -175,7 +176,7 @@ const List<ThemeSpec> kThemes = [
           mark: Color(0xFFD46A4A))),
 ];
 
-const String kDefaultThemeKey = 'manila';
+const String kDefaultThemeKey = 'sage';
 
 AppTokens tokensForKey(String key) {
   for (final t in kThemes) {
