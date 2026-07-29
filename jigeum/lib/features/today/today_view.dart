@@ -44,44 +44,59 @@ class _TodayViewState extends ConsumerState<TodayView> {
     if (mounted) setState(() => _goal = g);
   }
 
-  /// 오늘의 목표 블록 — 맨 위, 크고 굵게, 여러 줄 리스트. 탭해서 편집.
-  Widget _goalBlock(AppTokens tk) {
+  /// 오늘의 목표 블록 — v17: 중앙 정렬. 짧은 초록 밑줄 + TODAY'S GOAL + 큰 세리프
+  /// 목표 + 안내문 + 진행바(오늘 완료/전체). 탭해서 편집.
+  Widget _goalBlock(AppTokens tk, int done, int total) {
     final lines = _goal
         .split('\n')
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
         .toList();
+    final pct = total == 0 ? 0.0 : (done / total).clamp(0.0, 1.0);
     final goalStyle = AppText.hTitle(tk.ink).copyWith(fontSize: 22, height: 1.3);
     return InkWell(
       onTap: _editGoal,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 4),
+        padding: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 4),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Text('GOAL', style: AppText.sec(tk.mark)),
-                const SizedBox(width: 12),
-                Expanded(child: Container(height: 1, color: tk.line)),
-              ],
-            ),
+            Center(child: Container(width: 36, height: 3, color: tk.mark)),
             const SizedBox(height: 12),
+            Text("TODAY'S GOAL",
+                textAlign: TextAlign.center,
+                style: AppText.meta(tk.inkSoft, size: 10)
+                    .copyWith(letterSpacing: 1.4)),
+            const SizedBox(height: 8),
             if (lines.isEmpty)
-              Text('탭해서 오늘의 목표 적기',
+              Text('탭해서 오늘의 목표를 적어요',
+                  textAlign: TextAlign.center,
                   style: goalStyle.copyWith(color: tk.inkSoft))
             else
               for (final line in lines)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Text(line, textAlign: TextAlign.center, style: goalStyle),
+            const SizedBox(height: 10),
+            Text('오늘 가장 중요한 결과 하나. 탭해서 언제든 수정할 수 있어요.',
+                textAlign: TextAlign.center,
+                style: AppText.meta(tk.inkSoft, size: 11).copyWith(height: 1.5)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Stack(
                     children: [
-                      Text('★ ', style: goalStyle.copyWith(color: tk.mark)),
-                      Expanded(child: Text(line, style: goalStyle)),
+                      Container(height: 6, color: tk.paper2),
+                      FractionallySizedBox(
+                        widthFactor: pct,
+                        child: Container(height: 6, color: tk.mark),
+                      ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 10),
+                Text('$done / $total', style: AppText.meta(tk.inkSoft, size: 11)),
+              ],
+            ),
           ],
         ),
       ),
@@ -156,8 +171,8 @@ class _TodayViewState extends ConsumerState<TodayView> {
     ];
 
     final children = <Widget>[
-      // GOAL — 오늘의 목표 (맨 위, 크고 굵게, 탭해서 편집)
-      _goalBlock(tk),
+      // GOAL — 오늘의 목표 (중앙 정렬 + 진행바, 탭해서 편집)
+      _goalBlock(tk, wins.length, today.length + wins.length),
 
       // 큰 날짜 (Sans) + 요일 (Mono meta)
       Padding(
