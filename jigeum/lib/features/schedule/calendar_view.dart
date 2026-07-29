@@ -172,11 +172,15 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final term = solarTermName(day);
     final hasSched = (counts[day] ?? 0) > 0;
     final sunday = day.weekday % 7 == 0;
+    final settings = ref.watch(settingsProvider);
 
     final numColor = !inMonth
         ? tk.inkSoft.withValues(alpha: 0.4)
         : (sunday ? tk.mark : tk.ink);
     final subColor = !inMonth ? tk.inkSoft.withValues(alpha: 0.4) : tk.inkSoft;
+    // 셀 보조줄: 절기 > 일진 한자(사주 켜짐) > 음력 — 레퍼런스 셀 정보구조.
+    final subText =
+        term ?? (settings.showSaju ? iljinLabel(day) : lunarShort(day));
 
     return GestureDetector(
       onTap: () => setState(() => _selected = day),
@@ -212,7 +216,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             ),
             const SizedBox(height: 2),
             Text(
-              term ?? lunarShort(day),
+              subText,
               maxLines: 1,
               overflow: TextOverflow.clip,
               style:
