@@ -403,9 +403,15 @@ class _DayViewState extends ConsumerState<DayView> {
   Widget _arrow(AppTokens tk, String g, VoidCallback onTap) => GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Text(g, style: AppText.glyph(tk.inkSoft, size: 20)),
+        child: Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: tk.line),
+          ),
+          child: Text(g, style: AppText.glyph(tk.inkSoft, size: 16)),
         ),
       );
 }

@@ -31,9 +31,9 @@ class SettingsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
-            const SectionLabel('THEME'),
+            const SectionLabel('테마'),
             _ThemePicker(current: s.themeKey, onPick: ctrl.setThemeKey),
-            const SectionLabel('TYPE'),
+            const SectionLabel('글자와 화면'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
               child: Text('지금 할 것 · 오늘의 기록', style: AppText.body(tk.ink)),
@@ -69,7 +69,7 @@ class SettingsScreen extends ConsumerWidget {
               value: s.systemFont,
               onChanged: ctrl.setSystemFont,
             ),
-            const SectionLabel('FONT'),
+            const SectionLabel('글꼴'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
               child: Text(
@@ -79,21 +79,21 @@ class SettingsScreen extends ConsumerWidget {
             ),
             if (!s.systemFont)
               _FontPicker(current: s.fontKey, onPick: ctrl.setFontKey),
-            const SectionLabel('SKY'),
+            const SectionLabel('별자리·만세력'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
               child: Text('별자리·만세력(일진) 표시 — 오늘·일정·달력·플랜 모든 화면',
                   style: AppText.body(tk.ink)),
             ),
             _SkyPicker(current: s.skyMode, onPick: ctrl.setSkyMode),
-            const SectionLabel('SAJU'),
+            const SectionLabel('사주 설정'),
             Padding(
               padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
               child:
                   Text('오늘의 운세용 — 생년월일과 태어난 시각', style: AppText.body(tk.ink)),
             ),
             _SajuTile(settings: s, ctrl: ctrl),
-            const SectionLabel('FOCUS'),
+            const SectionLabel('집중 설정'),
             _switchRow(
               context,
               title: '방해 금지',
@@ -120,9 +120,9 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SectionLabel('GOOGLE CALENDAR'),
             const GcalSettingsSection(),
-            const SectionLabel('WIDGET'),
+            const SectionLabel('위젯'),
             const _WidgetOpacityTile(),
-            const SectionLabel('DATA'),
+            const SectionLabel('백업'),
             _menuTile(context, '↑', '백업 내보내기', '모든 데이터를 파일로 저장',
                 () => _export(context, ref)),
             _menuTile(context, '↓', '백업 가져오기 (복원)', '파일에서 전체 되돌리기',
