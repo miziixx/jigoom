@@ -355,8 +355,12 @@ Future<void> showDoneFeedback(BuildContext context, WidgetRef ref) async {
     ));
 }
 
-/// 편집형 할 일 줄: 글리프 체크 · 제목(한글 Sans) · 메타(메모/마감) · 우선순위 라벨.
-/// 완료 = 글리프 ■ + 제목 inkSoft + 취소선. 스와이프 우=완료, 좌=삭제.
+/// #해시태그 태그 — v17 레퍼런스(#오늘·#중요·#긴급). accent=포인트색.
+Widget _hash(AppTokens tk, String label, {bool accent = false}) =>
+    Text('#$label',
+        style: AppText.meta(accent ? tk.mark : tk.inkSoft, size: 10));
+
+/// 편집형 할 일 줄: 글리프 체크 · 제목 · #해시태그 태그. 스와이프 우=완료, 좌=삭제.
 class SimpleTile extends ConsumerWidget {
   const SimpleTile({super.key, required this.node, this.showStar = true});
 
@@ -368,11 +372,6 @@ class SimpleTile extends ConsumerWidget {
     final tk = t(context);
     final repo = ref.read(nodeRepoProvider);
     final done = node.status == NodeStatus.done;
-    final showDeadline = node.date != null && node.date != todayDate() && !done;
-    final pri = done
-        ? null
-        : priorityLabel(context,
-            urgent: node.urgent, important: node.important);
 
     final tile = InkWell(
       onTap: () => showNodeDetailSheet(context, node),
@@ -417,20 +416,29 @@ class SimpleTile extends ConsumerWidget {
                           '${DateFormat('HH:mm').format(node.doneAt!)} 완료',
                           style: AppText.meta(tk.mark, size: 10)),
                     ),
+                  if (!done)
+                    Builder(builder: (_) {
+                      final tags = <Widget>[];
+                      if (node.date == todayDate()) {
+                        tags.add(_hash(tk, '오늘', accent: true));
+                      } else if (node.date != null) {
+                        tags.add(
+                            _hash(tk, DateFormat('M/d').format(node.date!)));
+                      }
+                      if (node.important) {
+                        tags.add(_hash(tk, '중요', accent: true));
+                      }
+                      if (node.urgent) tags.add(_hash(tk, '긴급', accent: true));
+                      if (tags.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child:
+                            Wrap(spacing: 8, runSpacing: 2, children: tags),
+                      );
+                    }),
                 ],
               ),
             ),
-            if (showDeadline) ...[
-              const SizedBox(width: 10),
-              Padding(
-                padding: const EdgeInsets.only(top: 1),
-                child: deadlineLabel(context, node.date!),
-              ),
-            ],
-            if (pri != null) ...[
-              const SizedBox(width: 10),
-              Padding(padding: const EdgeInsets.only(top: 2), child: pri),
-            ],
           ],
         ),
       ),
