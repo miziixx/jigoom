@@ -121,13 +121,23 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체', '홈'];
+  // 제목 위 모노 eyebrow (v17 레퍼런스 헤더). _titles 와 인덱스 정렬.
+  static const _eyebrows = [
+    'TODAY',
+    'MATRIX',
+    'DUMP',
+    'SCHEDULE',
+    'HABIT',
+    'ALL',
+    'MY DAY',
+  ];
 
   /// 하단에 노출하는 탭 (인덱스, 라벨) — 6개를 4개로 정리. 나머지는 ≡ MENU.
   static const _bottomTabs = <(int, String)>[
-    (6, 'home'),
-    (0, 'today'),
-    (3, 'time'),
-    (2, 'dump'),
+    (6, '홈'),
+    (0, '오늘'),
+    (3, '일과'),
+    (2, '쏟기'),
   ];
 
   /// 하이브리드 음성 라우팅용 — 각 탭에서 "단서 없는 말"이 보류함 대신 갈 홈.
@@ -193,6 +203,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             Builder(
               builder: (ctx) => Masthead(
                 title: _titles[_index],
+                eyebrow: _eyebrows[_index],
                 actions: _mastheadActions(ctx),
               ),
             ),
@@ -255,8 +266,9 @@ class _AppShellState extends ConsumerState<AppShell> {
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                              color:
-                                  _index == tab.$1 ? tk.ink : Colors.transparent,
+                              color: _index == tab.$1
+                                  ? tk.mark
+                                  : Colors.transparent,
                               width: 1.5,
                             ),
                           ),
@@ -265,7 +277,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                             maxLines: 1,
                             overflow: TextOverflow.visible,
                             style: AppText.nav(
-                                _index == tab.$1 ? tk.ink : tk.inkSoft,
+                                _index == tab.$1 ? tk.mark : tk.inkSoft,
                                 active: _index == tab.$1)),
                       ),
                     ),

@@ -227,8 +227,8 @@ class _DumpViewState extends ConsumerState<DumpView> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 4),
-                    child:
-                        Text('쏟기', style: AppText.nav(tk.ink, active: true)),
+                    child: Text('쏟아내기',
+                        style: AppText.nav(tk.mark, active: true)),
                   ),
                 ),
               ],
