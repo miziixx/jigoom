@@ -92,66 +92,15 @@ class HabitView extends ConsumerWidget {
       );
     }
 
-    final today = todayDate();
-    // 오늘 완료 수 + 전체 최근 30일 평균 완료율 (각 습관 ticks 를 watch).
-    var todayDone = 0;
-    var rateSum = 0.0;
-    for (final h in habits) {
-      final ticks = ref.watch(habitTicksProvider(h.id)).valueOrNull ?? const [];
-      final set = {for (final t in ticks) dateOnly(t.date)};
-      if (set.contains(today)) todayDone++;
-      final span =
-          (today.difference(dateOnly(h.createdAt)).inDays + 1).clamp(1, 30);
-      var d30 = 0;
-      for (var i = 0; i < span; i++) {
-        if (set.contains(today.subtract(Duration(days: i)))) d30++;
-      }
-      rateSum += d30 / span;
-    }
-    final avgPct = (rateSum / habits.length * 100).round();
-
-    final byCat = <String, List<Habit>>{};
-    for (final h in habits) {
-      byCat.putIfAbsent(h.category, () => []).add(h);
-    }
-    final cats = byCat.keys.toList()
-      ..sort((a, b) {
-        if (a.isEmpty) return -1;
-        if (b.isEmpty) return 1;
-        return a.compareTo(b);
-      });
-
+    // § 오늘의 습관 + 인덱스(01/02…) 카드행.
     final rows = <Widget>[
-      _overview(tk, todayDone, habits.length, avgPct),
-    ];
-
-    for (var ci = 0; ci < cats.length; ci++) {
-      final lastCat = ci == cats.length - 1;
-      final catCont = lastCat ? '    ' : '│   ';
-      final list = byCat[cats[ci]]!;
-
-      rows.add(Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 4),
-        child: Row(
-          children: [
-            Text(lastCat ? '└─ ' : '├─ ',
-                style: AppText.glyph(tk.inkSoft, size: 13)),
-            Text(cats[ci].isEmpty ? 'GENERAL' : cats[ci].toUpperCase(),
-                style: AppText.sec(tk.ink)),
-            const SizedBox(width: 8),
-            Text('${list.length}', style: AppText.meta(tk.inkSoft, size: 10)),
-          ],
+      _habitSectionHead(tk),
+      for (var i = 0; i < habits.length; i++)
+        _HabitRow(
+          habit: habits[i],
+          prefix: (i + 1).toString().padLeft(2, '0'),
         ),
-      ));
-
-      for (var hi = 0; hi < list.length; hi++) {
-        final lastH = hi == list.length - 1;
-        rows.add(_HabitRow(
-          habit: list[hi],
-          prefix: '$catCont${lastH ? '└─ ' : '├─ '}',
-        ));
-      }
-    }
+    ];
 
     rows.add(const SizedBox(height: 20));
     rows.add(_QuickStartHabits(
@@ -164,35 +113,23 @@ class HabitView extends ConsumerWidget {
     );
   }
 
-  /// 상단 오늘 요약 스트립 + 진행바.
-  Widget _overview(AppTokens tk, int done, int total, int avgPct) {
-    final rate = total == 0 ? 0.0 : done / total;
+  /// § 오늘의 습관 — 세리프 섹션 헤더 + 규칙선.
+  Widget _habitSectionHead(AppTokens tk) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 4),
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('오늘 ', style: AppText.meta(tk.inkSoft)),
-              Text('$done/$total', style: AppText.hTitle(tk.ink)),
-              const Spacer(),
-              Text('최근 30일 $avgPct%', style: AppText.meta(tk.inkSoft)),
+              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
+              Text('오늘의 습관',
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
             ],
           ),
           const SizedBox(height: 8),
-          // 진행바 (오늘 완료율)
-          Stack(
-            children: [
-              Container(height: 4, color: tk.line),
-              FractionallySizedBox(
-                widthFactor: rate,
-                child: Container(height: 4, color: tk.ink),
-              ),
-            ],
-          ),
+          Container(height: 1, color: tk.line),
         ],
       ),
     );

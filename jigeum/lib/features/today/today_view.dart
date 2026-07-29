@@ -4,17 +4,14 @@ import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../core/editorial.dart';
-import '../../core/energy.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
-import '../focus/focus_timer_view.dart';
+import '../capture/quick_capture_input.dart';
 import 'goal_editor.dart';
 import 'node_detail_sheet.dart';
-import 'plant_view.dart';
-import 'stuck_sheet.dart';
 
 /// 오늘 뷰 (홈) — 편집(에디토리얼) 목차형.
 /// 큰 날짜(Sans) → NOW(포커스) → TO-DO → DONE, 규칙선으로 구분. 카드 없음.
@@ -130,93 +127,51 @@ class _TodayViewState extends ConsumerState<TodayView> {
     return [for (final n in list) SimpleTile(node: n)];
   }
 
+  /// § 오늘 할 일 + 추가 (레퍼런스 헤더).
+  Widget _todoSectionHead() {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 22, kGutter, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
+              Text('오늘 할 일',
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => showQuickCaptureInput(context, ref),
+                behavior: HitTestBehavior.opaque,
+                child: Text('＋ 추가', style: AppText.meta(tk.mark, size: 11)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(height: 1, color: tk.line),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
-    final focus = ref.watch(focusProvider);
     final today = ref.watch(todayNodesProvider).valueOrNull ?? const [];
     final wins = ref.watch(todayWinsProvider).valueOrNull ?? const [];
-    final sky = ref.watch(settingsProvider);
-    final now = DateTime.now();
-
-    final metaParts = <String>[DateFormat('EEEE', 'ko').format(now)];
-    if (sky.showSaju) metaParts.add(sajuLabel(now));
-    if (sky.showZodiac) metaParts.add(byeoljariLabel(now));
-
-    // 시작 카운트(완료 아닌 '시작'을 세는 자기효능감) + 다음 일정까지 남은 시간(시간 실명 대응).
-    final startedToday = ref.watch(startedTodayProvider).valueOrNull ?? 0;
-    final todaySchedules =
-        ref.watch(schedulesForDateProvider(todayDate())).valueOrNull ??
-            const [];
-    final nowMin = now.hour * 60 + now.minute;
-    final upcoming = [...todaySchedules]
-      ..sort((a, b) => a.startMin.compareTo(b.startMin));
-    Schedule? nextSchedule;
-    for (final s in upcoming) {
-      if (!s.done && !s.allDay && s.startMin > nowMin) {
-        nextSchedule = s;
-        break;
-      }
-    }
-    // 에너지 사이클 — 집중 피크(사주 運氣를 행동 데이터로 근사).
-    final peak = ref.watch(energyPeakProvider);
-    final peakStr =
-        peak != null ? peakLabel(peak.startHour, peak.endHour) : null;
-
-    final scaffoldParts = <String>[
-      if (startedToday > 0) '오늘 $startedToday번 시작',
-      if (nextSchedule != null)
-        '다음 · ${nextSchedule.title} 까지 ${_untilLabel(nextSchedule.startMin - nowMin)}',
-      if (peakStr != null) '피크 $peakStr',
-    ];
 
     final children = <Widget>[
       // GOAL — 오늘의 목표 (중앙 정렬 + 진행바, 탭해서 편집)
       _goalBlock(tk, wins.length, today.length + wins.length),
 
-      // 큰 날짜 (Sans) + 요일 (Mono meta)
-      Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(DateFormat('M월 d일', 'ko').format(now),
-                style: AppText.hTitle(tk.ink)),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(metaParts.join(' · '),
-                  style: AppText.metaSans(tk.inkSoft)),
-            ),
-          ],
-        ),
-      ),
-
-      // 시작 카운트 + 다음 일정 카운트다운 (있을 때만)
-      if (scaffoldParts.isNotEmpty)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
-          child: Text(scaffoldParts.join('   ·   '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.meta(tk.inkSoft, size: 11)),
-        ),
-
-      // 오늘의 식물 — 완료·시작이 쌓일수록 자라는 잔잔한 보상
-      const PlantBand(),
-
-      // NOW — 지금 이것부터
-      focus.when(
-        loading: () => const SizedBox.shrink(),
-        error: (_, __) => const SizedBox.shrink(),
-        data: (node) =>
-            node == null ? const SizedBox.shrink() : _FocusBlock(node: node),
-      ),
+      // § 오늘 할 일 + 추가 (레퍼런스 헤더)
+      _todoSectionHead(),
 
       // 필터 — 전체 / 미완료 / 중요 / 긴급 (박스 없는 텍스트 탭 + 얇은 밑줄).
-      // 완료 항목은 '전체'에서 계속 보이고 토글도 가능(아무것도 숨기지 않음).
       Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 22, kGutter, 2),
+        padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 2),
         child: EdTabs(
           labels: const ['전체', '미완료', '중요', '긴급'],
           index: _filter,
@@ -234,108 +189,6 @@ class _TodayViewState extends ConsumerState<TodayView> {
         padding: EdgeInsets.zero,
         children: children,
       ),
-    );
-  }
-}
-
-/// 남은 시간 라벨 — 60분 미만은 분, 그 이상은 시간+분.
-String _untilLabel(int minutes) {
-  if (minutes < 60) return '$minutes분';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
-  return m == 0 ? '$h시간' : '$h시간 $m분';
-}
-
-/// 포커스 블록 — 카드가 아니라 라벨 + 규칙선 + 한 줄. mark 캐럿으로 강조.
-class _FocusBlock extends ConsumerWidget {
-  const _FocusBlock({required this.node});
-  final Node node;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tk = t(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 26, kGutter, 12),
-          child: Row(
-            children: [
-              Text('› NOW', style: AppText.sec(tk.mark)),
-              const SizedBox(width: 12),
-              Expanded(child: Container(height: 1, color: tk.line)),
-            ],
-          ),
-        ),
-        InkWell(
-          onTap: () => showNodeDetailSheet(context, node),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 0, kGutter, 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GlyphCheck(
-                  done: false,
-                  onTap: () async {
-                    await ref.read(nodeRepoProvider).complete(node.id);
-                    if (context.mounted) showDoneFeedback(context, ref);
-                  },
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(node.title, style: AppText.body(tk.ink)),
-                      if (node.nextStep != null && node.nextStep!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 3),
-                          child: Text('다음 · ${node.nextStep}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.meta(tk.inkSoft)),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // 지금 조금만 시작 — 생각 단계를 줄여 바로 진입. + 막혔을 때 탈출구.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 4),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () =>
-                    openFocusTimer(context, node: node, autoStartMinutes: 3),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: tk.line, width: 1),
-                  ),
-                  child: Text('▷ 3분만 시작', style: AppText.chip(tk.ink)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => showStuckSheet(context, ref, node),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: tk.line, width: 1),
-                  ),
-                  child: Text('막혔어', style: AppText.chip(tk.inkSoft)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -437,6 +290,14 @@ class SimpleTile extends ConsumerWidget {
                       );
                     }),
                 ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => showNodeDetailSheet(context, node),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8, top: 1),
+                child: Text('···', style: AppText.glyph(tk.inkSoft, size: 16)),
               ),
             ),
           ],

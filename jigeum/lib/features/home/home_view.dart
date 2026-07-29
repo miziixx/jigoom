@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../core/journal.dart';
+import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
@@ -101,8 +102,117 @@ class _HomeViewState extends ConsumerState<HomeView> {
           _goalCard(tk, goalLine, doneCount, totalTasks, pct),
           _sectionTitle(tk, '오늘 할 일', '전체 보기', () => widget.onOpenTab(0)),
           _todoPreview(tk, open),
+          _sectionTitle(tk, '다음 일정', '달력', widget.onOpenCalendar),
+          _scheduleBlock(tk, schedules),
+          _sectionTitle(tk, '오늘의 습관', '전체', () => widget.onOpenTab(4)),
+          _habitListBlock(tk, habits, ticks),
+          _sectionTitle(tk, '오늘의 운세', '자세히', widget.onOpenFortune),
+          _fortuneBlock(tk),
           const SizedBox(height: 8),
         ],
+      ),
+    );
+  }
+
+  // ── 다음 일정 ──────────────────────────────────────────
+  Widget _scheduleBlock(AppTokens tk, List<Schedule> schedules) {
+    final upcoming = schedules.where((s) => !s.done).toList();
+    if (upcoming.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
+        child: Text('오늘 일정이 없어요', style: AppText.body(tk.inkSoft)),
+      );
+    }
+    return Column(
+      children: [
+        for (final s in upcoming.take(3))
+          GestureDetector(
+            onTap: widget.onOpenCalendar,
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              decoration:
+                  BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: kGutter, vertical: 12),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 48,
+                    child: Text(s.allDay ? '종일' : _hhmm(s.startMin),
+                        style: AppText.meta(tk.inkSoft)),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(s.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.body(tk.ink)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ── 오늘의 습관 ────────────────────────────────────────
+  Widget _habitListBlock(
+      AppTokens tk, List<Habit> habits, List<HabitTick> ticks) {
+    if (habits.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
+        child: Text('습관을 추가해 보세요', style: AppText.body(tk.inkSoft)),
+      );
+    }
+    final done = {for (final t in ticks) t.habitId};
+    return Column(
+      children: [
+        for (final h in habits.take(4))
+          GestureDetector(
+            onTap: () => widget.onOpenTab(4),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              decoration:
+                  BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: kGutter, vertical: 12),
+              child: Row(
+                children: [
+                  Text(done.contains(h.id) ? '✓' : '○',
+                      style: AppText.glyph(
+                          done.contains(h.id) ? tk.mark : tk.inkSoft,
+                          size: 14)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(h.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.body(
+                            done.contains(h.id)
+                                ? tk.ink.withValues(alpha: 0.5)
+                                : tk.ink)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ── 오늘의 운세 ────────────────────────────────────────
+  Widget _fortuneBlock(AppTokens tk) {
+    final hasBirth = ref.watch(settingsProvider).birth != null;
+    return GestureDetector(
+      onTap: widget.onOpenFortune,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
+        child: Text(
+          hasBirth ? '오늘의 흐름 · 사주·점성 분석 보기 ›' : '생년월일을 입력하면 오늘의 운세가 보여요',
+          style: AppText.body(hasBirth ? tk.ink : tk.inkSoft),
+        ),
       ),
     );
   }

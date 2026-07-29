@@ -17,8 +17,17 @@ class CalendarScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('달력')),
-        body: const SafeArea(child: CalendarView()),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Masthead(
+                  eyebrow: 'CALENDAR',
+                  title: '달력',
+                  onBack: () => Navigator.of(context).pop()),
+              const Expanded(child: CalendarView()),
+            ],
+          ),
+        ),
       );
 }
 
