@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
+import '../../core/dialogs.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
@@ -135,69 +136,162 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
     return ListView(padding: EdgeInsets.zero, children: rows);
   }
 
+  Future<void> _newNode(String type, String title) async {
+    final name = await showInputDialog(context,
+        title: type == NodeType.folder ? '새 폴더' : '새 목표', hint: '이름');
+    if (name == null || name.trim().isEmpty) return;
+    await ref.read(nodeRepoProvider).create(type: type, title: name.trim());
+  }
+
   // ------------------------------------------------------------ 트리 모드
   Widget _tree() {
     final roots = ref.watch(rootsProvider).valueOrNull ?? const [];
-    if (roots.isEmpty) {
-      return Align(
-        alignment: Alignment.topLeft,
-        child: emptyNote(context, '아직 아무것도 없어요'),
-      );
-    }
+    final rows = <Widget>[_folderGoalHeader()];
 
-    final sections = <Node>[];
-    final loose = <Node>[];
-    for (final n in roots) {
-      if (n.type == NodeType.folder || n.type == NodeType.goal) {
-        sections.add(n);
-      } else {
-        loose.add(n);
-      }
-    }
-
-    final rows = <Widget>[];
-
-    void addTasks(List<Node> list, int depth) {
+    void render(List<Node> list, int depth) {
       for (final n in list) {
-        rows.add(_swipeable(n, _TaskRow(node: n, depth: depth)));
         final children =
             ref.watch(childrenProvider(n.id)).valueOrNull ?? const [];
-        if (children.isNotEmpty && !_collapsed.contains(n.id)) {
-          addTasks(children, depth + 1);
+        final isSection =
+            n.type == NodeType.folder || n.type == NodeType.goal;
+        final row = _iconRow(n, depth, children);
+        rows.add(isSection ? row : _swipeable(n, row));
+        if (children.isNotEmpty &&
+            isSection &&
+            !_collapsed.contains(n.id)) {
+          render(children, depth + 1);
+        } else if (children.isNotEmpty && !isSection) {
+          render(children, depth + 1);
         }
       }
     }
 
-    if (loose.isNotEmpty) {
-      rows.add(SectionLabel('TASKS', count: loose.length));
-      addTasks(loose, 0);
+    if (roots.isEmpty) {
+      rows.add(emptyNote(context, '아직 아무것도 없어요'));
+    } else {
+      render(roots, 0);
     }
-
-    for (final s in sections) {
-      final children =
-          ref.watch(childrenProvider(s.id)).valueOrNull ?? const [];
-      final open = !_collapsed.contains(s.id);
-      rows.add(SectionLabel(
-        s.type == NodeType.goal ? '★ ${s.title}' : s.title,
-        count: children.length,
-        onTap: () => setState(() {
-          open ? _collapsed.add(s.id) : _collapsed.remove(s.id);
-        }),
-        onLongPress: () => showNodeDetailSheet(context, s),
-        trailing: Text(open ? '−' : '+',
-            style: AppText.meta(t(context).inkSoft, size: 13)),
-      ));
-      if (open) {
-        if (children.isEmpty) {
-          rows.add(emptyNote(context, '비어 있어요'));
-        } else {
-          addTasks(children, 0);
-        }
-      }
-    }
-
     rows.add(const SizedBox(height: 16));
     return ListView(padding: EdgeInsets.zero, children: rows);
+  }
+
+  /// § 폴더와 목표 + 폴더 / + 목표.
+  Widget _folderGoalHeader() {
+    final tk = t(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
+              Text('폴더와 목표',
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _newNode(NodeType.folder, ''),
+                behavior: HitTestBehavior.opaque,
+                child: Text('＋ 폴더', style: AppText.meta(tk.mark, size: 11)),
+              ),
+              const SizedBox(width: 14),
+              GestureDetector(
+                onTap: () => _newNode(NodeType.goal, ''),
+                behavior: HitTestBehavior.opaque,
+                child: Text('＋ 목표', style: AppText.meta(tk.mark, size: 11)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(height: 1, color: tk.line),
+        ],
+      ),
+    );
+  }
+
+  /// 아이콘박스 트리 행 — [F/G/T] + 제목 + 메타 + (섹션 −/+ · 할 일 ›).
+  Widget _iconRow(Node n, int depth, List<Node> children) {
+    final tk = t(context);
+    final isFolder = n.type == NodeType.folder;
+    final isGoal = n.type == NodeType.goal;
+    final isSection = isFolder || isGoal;
+    final done = n.status == NodeStatus.done;
+    final open = !_collapsed.contains(n.id);
+    final letter = isFolder ? 'F' : (isGoal ? 'G' : 'T');
+
+    String meta;
+    if (isFolder) {
+      final t = children.where((c) => c.type == NodeType.task).length;
+      final g = children.where((c) => c.type == NodeType.goal).length;
+      meta = [if (t > 0) '할 일 $t개', if (g > 0) '목표 $g개'].join(' · ');
+      if (meta.isEmpty) meta = '비어 있음';
+    } else if (isGoal) {
+      final total = children.length;
+      final doneC = children.where((c) => c.status == NodeStatus.done).length;
+      meta = total == 0
+          ? '목표'
+          : '진행률 ${(doneC / total * 100).round()}%';
+    } else {
+      meta = n.date == todayDate()
+          ? '오늘'
+          : (n.date != null
+              ? '${n.date!.month}/${n.date!.day}'
+              : (n.note.isNotEmpty ? n.note : ''));
+    }
+
+    return GestureDetector(
+      onTap: () => isSection
+          ? setState(() =>
+              open ? _collapsed.add(n.id) : _collapsed.remove(n.id))
+          : showNodeDetailSheet(context, n),
+      onLongPress: () => showNodeDetailSheet(context, n),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        padding: EdgeInsets.fromLTRB(kGutter + depth * 20, 12, kGutter, 12),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(color: tk.line),
+                color: isSection ? tk.paper2 : Colors.transparent,
+              ),
+              child: Text(letter,
+                  style: AppText.meta(tk.inkSoft, size: 11)),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(n.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.body(
+                          done ? tk.ink.withValues(alpha: 0.5) : tk.ink)),
+                  if (meta.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(meta,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.meta(tk.inkSoft, size: 9)),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(isSection ? (open ? '−' : '+') : '›',
+                style: AppText.glyph(tk.mark, size: 16)),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _swipeable(Node node, Widget child) {
@@ -259,10 +353,10 @@ class _MonoChip extends StatelessWidget {
 /// 편집형 할 일 줄 (아웃라인): 글리프 체크 + 제목 + 마감/하위진행 메타 + 우선순위.
 class _TaskRow extends ConsumerWidget {
   const _TaskRow(
-      {required this.node, this.depth = 0, this.showDeadline = true});
+      {required this.node, this.showDeadline = true});
 
   final Node node;
-  final int depth;
+  
   final bool showDeadline;
 
   @override
@@ -282,7 +376,7 @@ class _TaskRow extends ConsumerWidget {
     return InkWell(
       onTap: () => showNodeDetailSheet(context, node),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(kGutter + depth * 18, 7, kGutter, 7),
+        padding: const EdgeInsets.fromLTRB(kGutter, 7, kGutter, 7),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -229,14 +229,19 @@ class _HomeViewState extends ConsumerState<HomeView> {
     int habitTotal,
     Schedule? next,
   ) {
+    final tintA = tk.paper2; // 대각 체커보드(짙은 톤)
+    final tintB = tk.paper2.withValues(alpha: 0.4); // 옅은 톤
     final cells = <Widget>[
       _summaryCell(tk, '01', '오늘 할 일', '$doneCount / $totalTasks',
-          '${open.length}개 남음', () => widget.onOpenTab(0)),
+          '${open.length}개 남음', () => widget.onOpenTab(0),
+          tint: tintA),
       _summaryCell(tk, '02', '기록 시간', hoursStr,
           filledBlocks == 0 ? '아직 없음' : '$filledBlocks칸 기록',
-          () => widget.onOpenTab(3)),
+          () => widget.onOpenTab(3),
+          tint: tintB),
       _summaryCell(tk, '03', '습관', '$habitDone / $habitTotal',
-          habitTotal == 0 ? '추가해 보세요' : '오늘 완료', () => widget.onOpenTab(4)),
+          habitTotal == 0 ? '추가해 보세요' : '오늘 완료', () => widget.onOpenTab(4),
+          tint: tintB),
       _summaryCell(
           tk,
           '04',
@@ -246,7 +251,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
               ? '오늘 일정 없음'
               : (next.allDay ? '종일' : _hhmm(next.startMin)),
           widget.onOpenCalendar,
-          big: next != null),
+          big: next != null,
+          tint: tintA),
     ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: kGutter),
@@ -270,7 +276,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
 
   Widget _summaryCell(AppTokens tk, String idx, String label, String value,
       String sub, VoidCallback onTap,
-      {bool big = true}) {
+      {bool big = true, required Color tint}) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -278,7 +284,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
         height: 100,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: tk.mark.withValues(alpha: 0.045),
+          color: tint,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
