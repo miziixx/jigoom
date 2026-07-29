@@ -160,7 +160,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      drawer: _buildDrawer(context),
+      endDrawer: _buildDrawer(context),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(
             bottom: _index == 2 || _index == 3 || _index == 4 ? 62 : 130),
@@ -213,7 +213,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (_index == 4) {
       actions.add(_act('+습관', _newHabit));
     }
-    actions.add(_act('≡ MENU', () => Scaffold.of(ctx).openDrawer()));
+    actions.add(_act('≡ MENU', () => Scaffold.of(ctx).openEndDrawer()));
     return actions;
   }
 
@@ -330,8 +330,10 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _buildDrawer(BuildContext context) {
     final tk = t(context);
 
+    // tabIndex 가 지정된 항목은 현재 탭이면 좌측 포인트선으로 강조.
     Widget row(String index, String label, VoidCallback onTap,
-        {bool last = false}) {
+        {int? tabIndex}) {
+      final current = tabIndex != null && _index == tabIndex;
       return GestureDetector(
         onTap: () {
           Navigator.of(context).pop(); // 드로어 닫기
@@ -340,47 +342,88 @@ class _AppShellState extends ConsumerState<AppShell> {
         behavior: HitTestBehavior.opaque,
         child: Container(
           decoration: BoxDecoration(
-            border: last
-                ? null
-                : Border(bottom: BorderSide(color: tk.line, width: 1)),
+            border: Border(bottom: BorderSide(color: tk.line, width: 1)),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 11),
+          padding: const EdgeInsets.symmetric(vertical: 13),
           child: Row(
             children: [
+              Container(
+                width: 3,
+                height: 20,
+                color: current ? tk.mark : Colors.transparent,
+              ),
+              const SizedBox(width: 10),
               SizedBox(
-                width: 30,
+                width: 26,
                 child: Text(index, style: AppText.meta(tk.inkSoft, size: 11)),
               ),
-              Expanded(child: Text(label, style: AppText.body(tk.ink))),
-              Text('›', style: AppText.glyph(tk.mark, size: 18)),
+              Expanded(
+                child: Text(label,
+                    style: AppText.body(current ? tk.mark : tk.ink)),
+              ),
+              Text('›', style: AppText.glyph(tk.inkSoft, size: 16)),
             ],
           ),
         ),
       );
     }
 
+    // v17: 우측에서 열림(endDrawer) · × 닫기 · 부제 · 11개(+보류함).
     return Drawer(
       backgroundColor: tk.paper,
+      shape: const RoundedRectangleBorder(),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: kGutter),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
             children: [
-              const SizedBox(height: 20),
-              Text('지금', style: AppText.hTitle(tk.ink)),
-              const SizedBox(height: 4),
-              Text('MENU', style: AppText.meta(tk.inkSoft, size: 10)),
-              const SizedBox(height: 10),
-              Container(height: 1, color: tk.ink),
-              row('01', '쏟아내기', () => setState(() => _index = 2)),
-              row('02', '매트릭스', () => setState(() => _index = 1)),
-              row('03', '습관', () => setState(() => _index = 4)),
-              row('04', '아웃라인', _openOutline),
-              row('05', '달력', _openCalendar),
-              row('06', '오늘의 운세', _openFortune),
-              row('07', '보류함', _openInbox),
-              row('08', '설정', _openSettings, last: true),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('지금', style: AppText.hTitle(tk.ink)),
+                        const SizedBox(height: 4),
+                        Text('내 하루를 바깥에 꺼내두는 곳',
+                            style: AppText.meta(tk.inkSoft, size: 10)),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: tk.line),
+                      ),
+                      child: Text('×', style: AppText.glyph(tk.ink, size: 20)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(height: 1, color: tk.line),
+              row('01', '홈', () => setState(() => _index = 6), tabIndex: 6),
+              row('02', '오늘', () => setState(() => _index = 0), tabIndex: 0),
+              row('03', '매트릭스', () => setState(() => _index = 1),
+                  tabIndex: 1),
+              row('04', '일과', () => setState(() => _index = 3), tabIndex: 3),
+              row('05', '쏟아내기', () => setState(() => _index = 2),
+                  tabIndex: 2),
+              row('06', '전체', () => setState(() => _index = 5), tabIndex: 5),
+              row('07', '아웃라인', _openOutline),
+              row('08', '습관', () => setState(() => _index = 4), tabIndex: 4),
+              row('09', '달력', _openCalendar),
+              row('10', '오늘의 운세', _openFortune),
+              row('11', '설정', _openSettings),
+              row('12', '보류함', _openInbox),
             ],
           ),
         ),

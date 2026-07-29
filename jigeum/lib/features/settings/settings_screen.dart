@@ -25,10 +25,17 @@ class SettingsScreen extends ConsumerWidget {
     final ctrl = ref.read(settingsProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('설정')),
-      body: Container(
-        color: tk.paper,
-        child: ListView(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Masthead(
+                eyebrow: 'SETTINGS',
+                title: '설정',
+                onBack: () => Navigator.of(context).pop()),
+            Expanded(
+              child: Container(
+                color: tk.paper,
+                child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
             const SectionLabel('테마'),
@@ -127,6 +134,10 @@ class SettingsScreen extends ConsumerWidget {
                 () => _export(context, ref)),
             _menuTile(context, '↓', '백업 가져오기 (복원)', '파일에서 전체 되돌리기',
                 () => _import(context, ref)),
+          ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

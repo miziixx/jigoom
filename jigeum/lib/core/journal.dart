@@ -17,12 +17,19 @@ const double kGutter = AppSpace.gutter;
 /// 마스트헤드 아래 강한 규칙선 (1px ink, 좌우 gutter 인셋).
 class Masthead extends StatelessWidget {
   const Masthead(
-      {super.key, required this.title, this.actions, this.eyebrow});
+      {super.key,
+      required this.title,
+      this.actions,
+      this.eyebrow,
+      this.onBack});
   final String title;
   final List<Widget>? actions;
 
   /// 제목 위 모노 eyebrow (예: MY DAY / TODAY / DUMP). v17 레퍼런스 헤더.
   final String? eyebrow;
+
+  /// 지정 시 제목 왼쪽에 원형 ← 뒤로가기 (푸시 화면용).
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +42,23 @@ class Masthead extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (onBack != null) ...[
+                GestureDetector(
+                  onTap: onBack,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: tk.line),
+                    ),
+                    child: Text('←', style: AppText.glyph(tk.ink, size: 18)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
