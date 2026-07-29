@@ -144,7 +144,17 @@ class SettingsController extends StateNotifier<AppSettings> {
   Future<void> _load() async {
     final scale = await _get(_kScale);
     final weight = await _get(_kWeight);
-    final theme = await _get(_kTheme);
+    var theme = await _get(_kTheme);
+    // v17: 옛 기본값(manila)을 쓰던 설치를 HTML 팔레트(sage)로 1회 이관.
+    // 이관 후 사용자가 다시 다른 테마를 고르면 그 선택이 유지된다.
+    final sageMigrated = await _get('v17_sage_migrated');
+    if (sageMigrated != '1') {
+      if (theme == null || theme == 'manila') {
+        theme = 'sage';
+        await _set(_kTheme, 'sage');
+      }
+      await _set('v17_sage_migrated', '1');
+    }
     final sysFont = await _get(_kSystemFont);
     final sky = await _get(_kSkyMode);
     final birthStr = await _get(_kBirth);
