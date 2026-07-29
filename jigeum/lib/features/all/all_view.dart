@@ -3,26 +3,51 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
+import '../../core/editorial.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
+import '../capture/quick_capture_input.dart';
 import '../today/today_view.dart';
 
-/// 전체 탭 — 편집형 목차: TO-DO / LATER / DONE 을 라벨 + 규칙선으로 구분.
-class AllView extends ConsumerWidget {
+/// 전체 탭 — 편집형 목차: 전체 할 일(날짜 필터) / LATER / DONE.
+class AllView extends ConsumerStatefulWidget {
   const AllView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AllView> createState() => _AllViewState();
+}
+
+class _AllViewState extends ConsumerState<AllView> {
+  /// 0 전체 · 1 오늘 · 2 7일 · 3 이번 달.
+  int _range = 0;
+
+  bool _inRange(Node n) {
+    if (_range == 0) return true;
+    final d = n.date;
+    if (d == null) return false; // 날짜 없는 일은 '전체'에서만.
+    final today = todayDate();
+    return switch (_range) {
+      1 => dateOnly(d) == today,
+      2 => !dateOnly(d).isBefore(today) &&
+          dateOnly(d).isBefore(today.add(const Duration(days: 7))),
+      3 => d.year == today.year && d.month == today.month,
+      _ => true,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tk = t(context);
     final all = ref.watch(allNodesProvider).valueOrNull ?? const [];
 
-    final open = all
+    final openAll = all
         .where(
             (n) => n.status == NodeStatus.open && n.type != NodeType.folder)
         .toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final open = openAll.where(_inRange).toList();
     final later = all.where((n) => n.status == NodeStatus.drawer).toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final doneList = all.where((n) => n.status == NodeStatus.done).toList()
@@ -41,46 +66,20 @@ class AllView extends ConsumerWidget {
     final maxC = weekCounts.fold<int>(1, (a, b) => b > a ? b : a);
     const wd = ['일', '월', '화', '수', '목', '금', '토'];
 
-    rows.add(const SectionLabel('OVERVIEW'));
+    // ── § 전체 할 일 + 날짜 필터(전체/오늘/7일/이번 달/기간) ──────────
+    rows.add(_sectionHead(tk, '전체 할 일', '＋ 할 일',
+        () => showQuickCaptureInput(context, ref)));
     rows.add(Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
-      child: Text('진행 ${open.length} · 나중 ${later.length} · 오늘 완료 ${doneOn(today)}',
-          style: AppText.body(tk.ink)),
-    ));
-    rows.add(Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 3, kGutter, 0),
-      child: Text('이번주 완료 $weekTotal', style: AppText.meta(tk.inkSoft)),
-    ));
-    rows.add(Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          for (var i = 0; i < 7; i++)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      height: 4 + 40 * weekCounts[i] / maxC,
-                      color: weekCounts[i] > 0 ? tk.ink : tk.line,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(wd[week[i].weekday % 7],
-                        style: AppText.meta(tk.inkSoft, size: 9)),
-                  ],
-                ),
-              ),
-            ),
-        ],
+      padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 4),
+      child: EdTabs(
+        labels: const ['전체', '오늘', '7일', '이번 달', '기간'],
+        index: _range,
+        onChanged: (i) => setState(() => _range = i),
       ),
     ));
-
-    rows.add(SectionLabel('TO-DO', count: open.length));
     if (open.isEmpty) {
-      rows.add(emptyNote(context, '담아둔 게 없어요'));
+      rows.add(emptyNote(
+          context, _range == 0 ? '담아둔 게 없어요' : '이 기간엔 할 일이 없어요'));
     } else {
       for (final n in open) {
         rows.add(SimpleTile(node: n));
@@ -119,11 +118,81 @@ class AllView extends ConsumerWidget {
       }
     }
 
+    // ── 종합 대시보드 (맨 아래) ──────────────────────────────
+    rows.add(const SectionLabel('OVERVIEW'));
+    rows.add(Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
+      child: Text(
+          '진행 ${openAll.length} · 나중 ${later.length} · 오늘 완료 ${doneOn(today)}',
+          style: AppText.body(tk.ink)),
+    ));
+    rows.add(Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 3, kGutter, 0),
+      child: Text('이번주 완료 $weekTotal', style: AppText.meta(tk.inkSoft)),
+    ));
+    rows.add(Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < 7; i++)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      height: 4 + 40 * weekCounts[i] / maxC,
+                      color: weekCounts[i] > 0 ? tk.mark : tk.line,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(wd[week[i].weekday % 7],
+                        style: AppText.meta(tk.inkSoft, size: 9)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    ));
+
     rows.add(const SizedBox(height: 16));
 
     return Container(
       color: tk.paper,
       child: ListView(padding: EdgeInsets.zero, children: rows),
+    );
+  }
+
+  /// § 세리프 섹션 제목 + 우측 액션 + 하단 헤어라인.
+  Widget _sectionHead(
+      AppTokens tk, String title, String action, VoidCallback onAction) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 18, kGutter, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
+              Text(title, style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+              const Spacer(),
+              GestureDetector(
+                onTap: onAction,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 2),
+                  child: Text(action, style: AppText.meta(tk.mark, size: 11)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(height: 1, color: tk.line),
+        ],
+      ),
     );
   }
 }
