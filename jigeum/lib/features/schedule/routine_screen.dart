@@ -446,11 +446,10 @@ class _StepRow extends ConsumerWidget {
                           step.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: doneToday
-                              ? AppText.body(tk.inkSoft).copyWith(
-                                  decoration: TextDecoration.lineThrough,
-                                  decorationColor: tk.inkSoft)
-                              : AppText.body(tk.ink),
+                          // v17: 완료는 취소선이 아니라 흐림으로 통일.
+                          style: AppText.body(doneToday
+                              ? tk.ink.withValues(alpha: 0.5)
+                              : tk.ink),
                         ),
                       ),
                       if (doneToday && step.lastDoneAt != null)

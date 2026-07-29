@@ -33,6 +33,7 @@ class CalendarView extends ConsumerStatefulWidget {
 class _CalendarViewState extends ConsumerState<CalendarView> {
   late DateTime _month; // 보이는 달의 1일
   late DateTime _selected; // 선택된 날짜
+  int _detailTab = 0; // 선택일 상세: 0 일정 · 1 기록 · 2 습관
 
   @override
   void initState() {
@@ -323,38 +324,104 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
             child: Text('절기 · $term', style: AppText.meta(tk.mark)),
           ),
-        SectionLabel('SCHEDULE', count: items.length),
-        if (items.isEmpty)
-          emptyNote(context, '이 날 일정이 없어요')
-        else
-          for (final s in items)
-            InkWell(
-              onTap: () => showScheduleEditSheet(context, existing: s),
-              child: Padding(
+        // 상세 탭 — 일정 / 기록 / 습관 (박스 없는 텍스트 탭 + 밑줄).
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 4),
+          child: EdTabs(
+            labels: const ['일정', '기록', '습관'],
+            index: _detailTab,
+            onChanged: (i) => setState(() => _detailTab = i),
+          ),
+        ),
+        const SizedBox(height: 6),
+        if (_detailTab == 0) ...[
+          if (items.isEmpty)
+            emptyNote(context, '이 날 일정이 없어요')
+          else
+            for (final s in items)
+              InkWell(
+                onTap: () => showScheduleEditSheet(context, existing: s),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                          width: 44,
+                          child: Text(minToShort(s.startMin),
+                              style: AppText.meta(tk.inkSoft))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(s.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppText.body(s.done
+                                    ? tk.ink.withValues(alpha: 0.5)
+                                    : tk.ink)),
+                            if (s.done && s.doneAt != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                    '${DateFormat('HH:mm').format(s.doneAt!)} 완료',
+                                    style: AppText.meta(tk.mark, size: 10)),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+        ] else if (_detailTab == 1) ...[
+          if (records.isEmpty)
+            emptyNote(context, '이 날 기록이 없어요')
+          else
+            for (final b in records)
+              Padding(
                 padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
                         width: 44,
-                        child: Text(minToShort(s.startMin),
+                        child: Text(blockLabel(b.block),
                             style: AppText.meta(tk.inkSoft))),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(b.content,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body(tk.ink))),
+                  ],
+                ),
+              ),
+        ] else ...[
+          if (doneHabits.isEmpty)
+            emptyNote(context, '이 날 완료한 습관이 없어요')
+          else
+            for (final habit in doneHabits)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('✓', style: AppText.glyph(tk.mark, size: 14)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(s.title,
+                          Text(habit.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              // v17: 완료는 취소선이 아니라 흐림으로 통일.
-                              style: AppText.body(s.done
-                                  ? tk.ink.withValues(alpha: 0.5)
-                                  : tk.ink)),
-                          if (s.done && s.doneAt != null)
+                              style: AppText.body(tk.ink)),
+                          if (habit.time != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
-                                  '${DateFormat('HH:mm').format(s.doneAt!)} 완료',
+                                  '${DateFormat('HH:mm').format(habit.time!)} 완료',
                                   style: AppText.meta(tk.mark, size: 10)),
                             ),
                         ],
@@ -363,67 +430,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                   ],
                 ),
               ),
-            ),
-
-        // 기록 (타임트래커)
-        SectionLabel('RECORD', count: records.length),
-        if (records.isEmpty)
-          emptyNote(context, '이 날 기록이 없어요')
-        else
-          for (final b in records)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                      width: 44,
-                      child: Text(blockLabel(b.block),
-                          style: AppText.meta(tk.inkSoft))),
-                  const SizedBox(width: 8),
-                  Expanded(
-                      child: Text(b.content,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.body(tk.ink))),
-                ],
-              ),
-            ),
-
-        // 습관 (완료)
-        SectionLabel('HABIT', count: doneHabits.length),
-        if (doneHabits.isEmpty)
-          emptyNote(context, '이 날 완료한 습관이 없어요')
-        else
-          for (final habit in doneHabits)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('✓', style: AppText.glyph(tk.mark, size: 14)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(habit.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppText.body(tk.ink)),
-                        if (habit.time != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                                '${DateFormat('HH:mm').format(habit.time!)} 완료',
-                                style: AppText.meta(tk.mark, size: 10)),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        ],
         const SizedBox(height: 16),
       ],
     );
