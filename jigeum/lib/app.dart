@@ -211,9 +211,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   List<Widget> _mastheadActions(BuildContext ctx) {
     final actions = <Widget>[];
     if (_index == 4) {
-      actions.add(_act('+습관', _newHabit));
+      actions.add(_act('＋ 습관', _newHabit));
     }
-    actions.add(_act('≡ MENU', () => Scaffold.of(ctx).openEndDrawer()));
+    actions.add(_menuBtn(ctx));
     return actions;
   }
 
@@ -226,6 +226,29 @@ class _AppShellState extends ConsumerState<AppShell> {
           child: Text(label, style: AppText.meta(t(context).inkSoft, size: 11)),
         ),
       );
+
+  /// 레퍼런스 .menu-btn — 원형(테두리) 안 햄버거(3줄) 아이콘.
+  Widget _menuBtn(BuildContext ctx) {
+    final tk = t(context);
+    Widget line() => Container(width: 15, height: 1.4, color: tk.ink);
+    return GestureDetector(
+      onTap: () => Scaffold.of(ctx).openEndDrawer(),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(left: 10),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: tk.line),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [line(), const SizedBox(height: 4), line(), const SizedBox(height: 4), line()],
+        ),
+      ),
+    );
+  }
 
   /// 하단 탭 — 홈/오늘/＋(담기)/일과/전체. 활성 = 세이지 밑줄, 가운데 초록 ＋ 원.
   Widget _bottomNav(BuildContext context) {

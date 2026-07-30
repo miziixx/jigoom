@@ -26,3 +26,8 @@ android/key.properties
 
 # macOS
 .DS_Store
+
+# Local desktop scaffold / generated (not part of the mobile app)
+/linux/
+/.metadata
+/test/widget_test.dart

@@ -210,51 +210,61 @@ class _HabitRow extends ConsumerWidget {
     final percent = total == 0 ? 0 : (tickSet.length * 100 / total).round();
     final returns = returnCount(tickSet, dateOnly(habit.createdAt), today);
 
+    // 레퍼런스 메타: "매일 · N일 연속" (+ 복귀·완료시각). 시간대 데이터는 없어 생략.
+    final metaBits = <String>['매일', '$streak일 연속'];
+    if (percent > 0) metaBits.add('$percent%');
+    if (returns > 0) metaBits.add('복귀 $returns회');
+    if (completedAt != null) {
+      metaBits.add('${DateFormat('HH:mm').format(completedAt)} 완료');
+    }
+
     return InkWell(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => HabitDetailScreen(habit: habit),
       )),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 7, kGutter, 7),
+      child: Container(
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        padding: const EdgeInsets.fromLTRB(kGutter, 11, kGutter, 11),
         child: Row(
           children: [
-            Text(prefix, style: AppText.glyph(tk.inkSoft, size: 13)),
+            // 번호 박스 (레퍼런스 .habit-icon: 29px, 테두리, 투명 배경).
+            Container(
+              width: 29,
+              height: 29,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(color: tk.line),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(prefix, style: AppText.meta(tk.inkSoft, size: 10)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(habit.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.body(todayDone ? tk.inkSoft : tk.ink)),
+                  const SizedBox(height: 3),
+                  Text(metaBits.join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.meta(tk.inkSoft, size: 9)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            // 우측 체크박스 (레퍼런스 .check) — 탭하면 오늘 완료 토글.
             GestureDetector(
               onTap: () =>
                   ref.read(habitRepoProvider).toggleTick(habit.id, today),
               behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Text(todayDone ? '■' : '□',
-                    style: AppText.glyph(tk.ink, size: 15)),
-              ),
+              child: Text(todayDone ? '■' : '□',
+                  style: AppText.glyph(tk.ink, size: 18)),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(habit.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.body(todayDone ? tk.inkSoft : tk.ink)),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                    returns > 0
-                        ? '$streak연속 · $percent% · 복귀 $returns회'
-                        : '$streak연속 · $percent%',
-                    style: AppText.meta(tk.inkSoft, size: 10)),
-                if (completedAt != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text('${DateFormat('HH:mm').format(completedAt)} 완료',
-                        style: AppText.meta(tk.mark, size: 10)),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 6),
-            Text('›', style: AppText.glyph(tk.inkSoft, size: 13)),
           ],
         ),
       ),

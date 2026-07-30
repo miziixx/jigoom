@@ -225,19 +225,37 @@ class _HomeViewState extends ConsumerState<HomeView> {
 
   // ── HERO ────────────────────────────────────────────────
   Widget _hero(AppTokens tk, DateTime now) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 18, kGutter, 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 좌측 날짜 (모노, 세로 여백)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(DateFormat('MM / dd').format(now),
-                style: AppText.meta(tk.inkSoft, size: 11)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
+    // 레퍼런스 hero — 카드/배경 없이 상단 잉크·하단 라인 헤어라인, 좌측 여백에
+    // 날짜(모노)와 동심원 그래픽, 우측에 본문.
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: tk.ink, width: 0.75),
+          bottom: BorderSide(color: tk.line),
+        ),
+      ),
+      child: ClipRect(
+        child: Stack(
+          children: [
+            Positioned(
+              left: kGutter,
+              bottom: 10,
+              child: _ConcentricRings(size: 104, color: tk.ink),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 18, kGutter, 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 좌측 날짜 (모노, 세로 여백)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(DateFormat('MM / dd').format(now),
+                        style: AppText.meta(tk.inkSoft, size: 11)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -259,10 +277,14 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     _outlineBtn(tk, '목표 수정', _editGoal),
                   ],
                 ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -526,4 +548,45 @@ class _HomeViewState extends ConsumerState<HomeView> {
       ],
     );
   }
+}
+
+/// 레퍼런스 hero 좌측 여백의 동심원 그래픽 — 아주 옅은 잉크 링을 겹쳐 그린다.
+class _ConcentricRings extends StatelessWidget {
+  const _ConcentricRings({required this.size, required this.color});
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(painter: _RingsPainter(color)),
+      );
+}
+
+class _RingsPainter extends CustomPainter {
+  _RingsPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxR = size.width / 2;
+    final p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    // 촘촘한 동심원 (repeating-radial-gradient 근사).
+    for (var r = maxR; r > 4; r -= 8.5) {
+      p.color = color.withValues(alpha: 0.045);
+      canvas.drawCircle(center, r, p);
+    }
+    // 30% 반경 강조 링.
+    p
+      ..color = color.withValues(alpha: 0.09)
+      ..strokeWidth = 1.2;
+    canvas.drawCircle(center, maxR * 0.3, p);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RingsPainter old) => old.color != color;
 }
