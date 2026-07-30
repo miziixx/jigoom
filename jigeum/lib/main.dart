@@ -291,6 +291,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       themeMode: ThemeMode.light,
       builder: (context, child) {
         final mq = MediaQuery.of(context);
+        final tk = t(context);
         return MediaQuery(
           // 폰트 크기: 시스템 배율에 앱 설정 배율을 곱함.
           data: mq.copyWith(
@@ -299,8 +300,35 @@ class _GoalAppState extends ConsumerState<GoalApp> {
           child: ValueListenableBuilder<String?>(
             valueListenable: gError,
             builder: (context, err, _) {
-              if (err != null) return _ErrorScreen(message: err);
-              return child ?? const SizedBox.shrink();
+              final content = err != null
+                  ? _ErrorScreen(message: err)
+                  : (child ?? const SizedBox.shrink());
+              // 레퍼런스 .phone — 앱 전체를 감싸는 바깥 여백 + 둥근 테두리 프레임.
+              return ColoredBox(
+                color: tk.paper2,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: tk.paper,
+                        border: Border.all(color: tk.line, width: 1),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        // 이미 바깥 SafeArea 로 인셋했으니 안쪽 화면의 중복 인셋 제거.
+                        child: MediaQuery.removePadding(
+                          context: context,
+                          removeTop: true,
+                          removeBottom: true,
+                          child: content,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
             },
           ),
         );

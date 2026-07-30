@@ -43,7 +43,7 @@ class Masthead extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 12),
+          padding: const EdgeInsets.fromLTRB(kGutter, 20, kGutter, 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
