@@ -122,7 +122,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     'TODAY',
     'MATRIX',
     'DUMP',
-    'SCHEDULE',
+    'ROUTINE',
     'HABIT',
     'ALL',
     'MY DAY',

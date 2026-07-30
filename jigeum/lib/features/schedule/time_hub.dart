@@ -68,7 +68,7 @@ class _TimeHubState extends ConsumerState<TimeHub> {
         onTap: () => setState(() => _sub = i),
         behavior: HitTestBehavior.opaque,
         child: Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: const EdgeInsets.only(right: 18),
           child: Container(
             padding: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
@@ -77,8 +77,9 @@ class _TimeHubState extends ConsumerState<TimeHub> {
                     color: sel ? tk.ink : Colors.transparent, width: 1.5),
               ),
             ),
+            // 레퍼런스: 모노 탭, 활성만 밑줄.
             child: Text(label,
-                style: AppText.nav(sel ? tk.ink : tk.inkSoft, active: sel)),
+                style: AppText.meta(sel ? tk.ink : tk.inkSoft, size: 13)),
           ),
         ),
       );

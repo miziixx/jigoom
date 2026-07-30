@@ -193,9 +193,12 @@ AppTokens t(BuildContext context) =>
 /// AppText 를 직접 호출하는 위젯들도 이 값을 반영한다.
 int appWeightDelta = 0;
 
-/// 라벨·기호·숫자용 글꼴. 기본은 null 로 두어 폰 시스템 글꼴을 따른다.
-/// AppTheme.build 에서 갱신.
-String? appMono = kSansFamily;
+/// 라벨·기호·숫자용 글꼴. 레퍼런스처럼 라틴/숫자는 모노스페이스로 —
+/// 한글 등 모노에 없는 글자는 [appMonoFallback] 로 렌더. AppTheme.build 에서 갱신.
+String? appMono = kMonoFamily;
+
+/// 모노 스타일의 한글 폴백(라틴=모노, 한글=산세리프 — v17 레퍼런스와 동일).
+List<String> appMonoFallback = const ['Pretendard'];
 
 /// 한글 본문·제목 글꼴. 기본은 null 로 두어 폰 시스템 글꼴을 따른다.
 /// AppTheme.build 에서 갱신.
@@ -244,6 +247,7 @@ class AppText {
   /// 섹션 대문자 라벨 (Mono 11/Bold, +0.14em).
   static TextStyle sec(Color c) => TextStyle(
       fontFamily: appMono,
+      fontFamilyFallback: appMonoFallback,
       fontSize: 11,
       fontWeight: FontWeight.w700,
       height: 1,
@@ -253,6 +257,7 @@ class AppText {
   /// 우선순위 라벨 (Mono 10, +0.12em).
   static TextStyle pri(Color c, {bool bold = false}) => TextStyle(
       fontFamily: appMono,
+      fontFamilyFallback: appMonoFallback,
       fontSize: 10,
       fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
       height: 1,
@@ -262,6 +267,7 @@ class AppText {
   /// 카운트·날짜·시간·메뉴·빈 상태 (Mono 11, +0.05em).
   static TextStyle meta(Color c, {double size = 11}) => TextStyle(
       fontFamily: appMono,
+      fontFamilyFallback: appMonoFallback,
       fontSize: size,
       fontWeight: FontWeight.w400,
       height: 1.3,
@@ -279,6 +285,7 @@ class AppText {
   /// 하단 탭 (Mono 10 소문자, +0.04em).
   static TextStyle nav(Color c, {bool active = false}) => TextStyle(
       fontFamily: appMono,
+      fontFamilyFallback: appMonoFallback,
       fontSize: 10,
       fontWeight: active ? FontWeight.w700 : FontWeight.w400,
       height: 1,
@@ -288,6 +295,7 @@ class AppText {
   /// 칩 (Mono 10, +0.08em — 한글 허용).
   static TextStyle chip(Color c) => TextStyle(
       fontFamily: appMono,
+      fontFamilyFallback: appMonoFallback,
       fontSize: 10,
       fontWeight: FontWeight.w400,
       height: 1,
@@ -295,8 +303,12 @@ class AppText {
       color: c);
 
   /// 체크박스·기호 글리프 (Mono 15).
-  static TextStyle glyph(Color c, {double size = 15}) =>
-      TextStyle(fontFamily: appMono, fontSize: size, height: 1, color: c);
+  static TextStyle glyph(Color c, {double size = 15}) => TextStyle(
+      fontFamily: appMono,
+      fontFamilyFallback: appMonoFallback,
+      fontSize: size,
+      height: 1,
+      color: c);
 }
 
 /// 6토큰 → ThemeData. 편집 원칙(radius 0 · shadow none · 잉크 하나)을 강제한다.
@@ -316,7 +328,11 @@ class AppTheme {
     // 시스템 글꼴 사용 시 fontFamily 를 지정하지 않아 폰 기본 글꼴을 따른다.
     // 끄면 앱에 번들된 폰트를 쓰되 라벨·숫자까지 같은 글꼴로 맞춘다.
     appSans = systemFont ? kSansFamily : familyForFontKey(fontKey);
-    appMono = appSans;
+    // 라벨·시간·eyebrow·탭은 모노스페이스(레퍼런스). 한글은 산세리프로 폴백.
+    appMono = kMonoFamily;
+    appMonoFallback = systemFont
+        ? const <String>[]
+        : <String>[familyForFontKey(fontKey) ?? 'Pretendard'];
     final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);
 
