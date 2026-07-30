@@ -160,7 +160,7 @@ class _QuadCell extends ConsumerWidget {
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: quad.tint,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
               border: hover
                   ? Border.all(color: tk.mark, width: 1.5)
                   : Border.all(color: Colors.transparent, width: 1.5),
@@ -173,8 +173,11 @@ class _QuadCell extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(quad.title,
-                      style: AppText.hTitle(tk.ink)
-                          .copyWith(fontSize: 14, height: 1.3)),
+                      // 레퍼런스 .quad h3 — 세리프 아닌 산세리프(inherit) 굵기 500.
+                      style: AppText.body(tk.ink).copyWith(
+                          fontSize: 14,
+                          height: 1.3,
+                          fontWeight: FontWeight.w500)),
                 ),
                 Container(
                   width: 8,
