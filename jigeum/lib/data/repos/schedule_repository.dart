@@ -16,8 +16,13 @@ class ScheduleRepository {
   // ------------------------------------------------------------- 일정
   Stream<List<Schedule>> watchForDate(DateTime date) {
     final d = dateOnly(date);
+    // 여러 날 일정도 걸치는 모든 날에 보이게: 시작일 <= d <= (끝일 ?? 시작일).
     final q = db.select(db.schedules)
-      ..where((s) => s.date.equals(d) & s.deleted.equals(false))
+      ..where((s) =>
+          s.deleted.equals(false) &
+          s.date.isSmallerOrEqualValue(d) &
+          (s.endDate.isBiggerOrEqualValue(d) |
+              (s.endDate.isNull() & s.date.equals(d))))
       ..orderBy([(s) => OrderingTerm.asc(s.startMin)]);
     return q.watch();
   }
@@ -40,6 +45,7 @@ class ScheduleRepository {
 
   Future<String> addSchedule({
     required DateTime date,
+    DateTime? endDate,
     required String title,
     String note = '',
     int color = 0,
@@ -58,6 +64,7 @@ class ScheduleRepository {
     await db.into(db.schedules).insert(SchedulesCompanion.insert(
           id: id,
           date: dateOnly(date),
+          endDate: Value(endDate == null ? null : dateOnly(endDate)),
           title: title,
           note: Value(note),
           color: Value(color),

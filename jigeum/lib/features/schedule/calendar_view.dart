@@ -356,7 +356,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
                     children: [
                       SizedBox(
                           width: 44,
-                          child: Text(minToShort(s.startMin),
+                          child: Text(s.allDay ? '종일' : minToShort(s.startMin),
                               style: AppText.meta(tk.inkSoft))),
                       const SizedBox(width: 8),
                       Expanded(

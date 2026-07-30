@@ -204,7 +204,7 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
                           children: [
-                            Text(minToShort(s.startMin),
+                            Text(s.allDay ? '종일' : minToShort(s.startMin),
                                 style: AppText.meta(tk.inkSoft, size: 10)),
                             const SizedBox(width: 6),
                             Expanded(

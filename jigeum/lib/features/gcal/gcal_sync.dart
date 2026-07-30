@@ -101,6 +101,7 @@ class GcalSync {
       if (local == null) {
         await scheduleRepo.addSchedule(
           date: rf.date,
+          endDate: rf.endDate,
           title: rf.title,
           note: rf.note,
           startMin: rf.startMin,
@@ -117,6 +118,7 @@ class GcalSync {
           calendarId: c.id,
           gcalId: rf.gcalId,
           date: rf.date,
+          endDate: rf.endDate,
           startMin: rf.startMin,
           endMin: rf.endMin,
           allDay: rf.allDay,

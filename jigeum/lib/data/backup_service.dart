@@ -79,6 +79,7 @@ class BackupService {
           {
             'id': s.id,
             'date': d(s.date),
+            'endDate': s.endDate == null ? null : d(s.endDate!),
             'title': s.title,
             'note': s.note,
             'color': s.color,
@@ -146,7 +147,11 @@ class BackupService {
 
   // --------------------------------------------------------------- 복원
   /// 전체 교체 복원. 형식이 맞지 않으면 예외 → 기존 데이터는 건드리지 않음.
-  Future<void> importJson(String jsonStr) async {
+  /// 백업 복원.
+  /// - [merge] false(기본): 전체 교체 — 현재 데이터를 모두 지우고 백업만 남긴다.
+  /// - [merge] true: 병합(덮어쓰기) — 현재 데이터는 두고, 백업을 그 위에 얹는다
+  ///   (같은 id 는 백업 값으로 덮어쓰고, 백업에 없는 내 기록은 유지).
+  Future<void> importJson(String jsonStr, {bool merge = false}) async {
     final map = jsonDecode(jsonStr) as Map<String, dynamic>;
     if (map['app'] != 'jigeum') {
       throw const FormatException('지금(jigeum) 백업 파일이 아니에요');
@@ -206,6 +211,7 @@ class BackupService {
         SchedulesCompanion.insert(
           id: m['id'] as String,
           date: pr(m['date']),
+          endDate: Value(p(m['endDate'])),
           title: m['title'] as String,
           note: Value(m['note'] as String? ?? ''),
           color: Value(m['color'] as int? ?? 0),
@@ -273,42 +279,46 @@ class BackupService {
         )
     ];
 
+    // 병합이면 같은 키를 백업 값으로 덮어쓰고(upsert), 전체 교체면 단순 insert.
+    final mode = merge ? InsertMode.insertOrReplace : InsertMode.insert;
     await db.transaction(() async {
-      await db.delete(db.habitTicks).go();
-      await db.delete(db.habits).go();
-      await db.delete(db.settings).go();
-      await db.delete(db.nodes).go();
-      await db.delete(db.schedules).go();
-      await db.delete(db.routines).go();
-      await db.delete(db.routineSteps).go();
-      await db.delete(db.routineGroups).go();
-      await db.delete(db.timeBlocks).go();
+      if (!merge) {
+        await db.delete(db.habitTicks).go();
+        await db.delete(db.habits).go();
+        await db.delete(db.settings).go();
+        await db.delete(db.nodes).go();
+        await db.delete(db.schedules).go();
+        await db.delete(db.routines).go();
+        await db.delete(db.routineSteps).go();
+        await db.delete(db.routineGroups).go();
+        await db.delete(db.timeBlocks).go();
+      }
       for (final n in nodes) {
-        await db.into(db.nodes).insert(n);
+        await db.into(db.nodes).insert(n, mode: mode);
       }
       for (final s in settings) {
-        await db.into(db.settings).insert(s);
+        await db.into(db.settings).insert(s, mode: mode);
       }
       for (final h in habits) {
-        await db.into(db.habits).insert(h);
+        await db.into(db.habits).insert(h, mode: mode);
       }
       for (final t in ticks) {
-        await db.into(db.habitTicks).insert(t);
+        await db.into(db.habitTicks).insert(t, mode: mode);
       }
       for (final s in schedules) {
-        await db.into(db.schedules).insert(s);
+        await db.into(db.schedules).insert(s, mode: mode);
       }
       for (final r in routines) {
-        await db.into(db.routines).insert(r);
+        await db.into(db.routines).insert(r, mode: mode);
       }
       for (final g in routineGroups) {
-        await db.into(db.routineGroups).insert(g);
+        await db.into(db.routineGroups).insert(g, mode: mode);
       }
       for (final s in routineSteps) {
-        await db.into(db.routineSteps).insert(s);
+        await db.into(db.routineSteps).insert(s, mode: mode);
       }
       for (final t in timeBlocks) {
-        await db.into(db.timeBlocks).insert(t);
+        await db.into(db.timeBlocks).insert(t, mode: mode);
       }
     });
   }

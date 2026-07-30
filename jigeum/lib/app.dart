@@ -6,9 +6,7 @@ import 'core/journal.dart';
 import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
-import 'features/capture/dump_staging.dart';
 import 'features/capture/dump_view.dart';
-import 'features/voice/models/intent_type.dart';
 import 'features/capture/quick_capture_input.dart';
 import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
@@ -22,7 +20,6 @@ import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
 import 'features/today/goal_editor.dart';
 import 'features/today/today_view.dart';
-import 'features/voice/ui/global_mic_button.dart';
 import 'providers.dart';
 
 /// 셸: 오늘 / 매트릭스 / 아웃라인 / 전체.
@@ -131,17 +128,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     'MY DAY',
   ];
 
-  /// 하이브리드 음성 라우팅용 — 각 탭에서 "단서 없는 말"이 보류함 대신 갈 홈.
-  /// 보류함으로 직행하는 일을 최소화한다: 쏟아내기(2)만 대기줄로 따로 처리하고,
-  /// 나머지(오늘·전체·그 외)는 전부 오늘 할 일로 담는다.
-  static RoutePoint? _voiceInboxFallback(int index) => switch (index) {
-        1 => RoutePoint.matrix, // 매트릭스 → 서랍(Q4)
-        3 => RoutePoint.timeTrack, // 일과 → 현재 블록 기록
-        4 => RoutePoint.habit, // 습관 → 습관
-        2 => null, // 쏟아내기 → 대기줄(스테이징)로 따로
-        _ => RoutePoint.quickCapture, // 오늘·전체·그 외 → 오늘 할 일
-      };
-
   @override
   Widget build(BuildContext context) {
     final body = switch (_index) {
@@ -161,32 +147,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       endDrawer: _buildDrawer(context),
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(
-            bottom: _index == 2 || _index == 3 || _index == 4 ? 62 : 130),
-        child: GlobalMicButton(
-          stt: ref.watch(sttServiceProvider),
-          controller: ref.watch(voiceControllerProvider),
-          // 쏟아내기 탭(2)에선 마이크 결과를 즉시 라우팅하지 않고, 타이핑과
-          // 똑같이 분류만 해서 대기줄에 쌓는다("여기에 나오게").
-          onFinalText: _index == 2
-              ? (text) async {
-                  final results =
-                      ref.read(voiceControllerProvider).classifyMany(text);
-                  final staging = ref.read(dumpStagingProvider.notifier);
-                  for (final r in results) {
-                    staging.addResult(r);
-                  }
-                }
-              : null,
-          // 하이브리드: 명확한 단서가 없는 말은 보류함이 아니라 지금 보고 있는
-          // 화면의 홈으로 담는다(오늘→할일, 매트릭스→서랍, 시간→블록, 습관→습관).
-          inboxFallback: _voiceInboxFallback(_index),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      // 음성 마이크는 마스트헤드와 하단 입력바를 가리지 않도록 떠 있는 버튼으로 둔다.
-      // 입력바가 키보드 위로 따라 올라오도록 body 에 배치.
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -250,6 +210,15 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
+  /// 현재 탭에 맞는 빠른 담기 유형 — 습관 탭→습관, 일과→일정, 쏟아내기→메모,
+  /// 그 외(홈·오늘·매트릭스·전체)→할 일.
+  static String _captureTypeForTab(int index) => switch (index) {
+        4 => 'habit',
+        3 => 'schedule',
+        2 => 'memo',
+        _ => 'task',
+      };
+
   /// 하단 탭 — 홈/오늘/＋(담기)/일과/전체. 활성 = 세이지 밑줄, 가운데 초록 ＋ 원.
   Widget _bottomNav(BuildContext context) {
     final tk = t(context);
@@ -293,10 +262,11 @@ class _AppShellState extends ConsumerState<AppShell> {
             children: [
               item(6, '홈'),
               item(0, '오늘'),
-              // 가운데 ＋ — 빠른 담기.
+              // 가운데 ＋ — 지금 머무는 메뉴에 맞춰 담기(유형 자동 선택).
               Expanded(
                 child: GestureDetector(
-                  onTap: () => showQuickCaptureInput(context, ref),
+                  onTap: () => showQuickCaptureInput(context, ref,
+                      presetType: _captureTypeForTab(_index)),
                   behavior: HitTestBehavior.opaque,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
