@@ -213,7 +213,7 @@ class AppText {
   /// 화면 타이틀 (한글, 세리프/명조 19/Medium). v17 에디토리얼 — 얇은 세리프.
   static TextStyle hTitle(Color c, [int? wd]) => TextStyle(
       fontFamily: appSerif,
-      fontSize: 19,
+      fontSize: 17,
       fontWeight: shiftWeight(FontWeight.w500, wd ?? appWeightDelta),
       height: 1.2,
       letterSpacing: -0.4,
@@ -236,8 +236,8 @@ class AppText {
   /// 할 일 제목·본문 (한글, Sans 15/Medium).
   static TextStyle body(Color c, [int? wd]) => TextStyle(
       fontFamily: appSans,
-      // 레퍼런스 편집 타이포: 본문/할 일은 작고 가볍게. Pretendard Regular(400).
-      fontSize: 13,
+      // 레퍼런스 편집 타이포: 본문/할 일은 작고 가볍게(명조 Regular 400).
+      fontSize: 12,
       fontWeight: shiftWeight(FontWeight.w400, wd ?? appWeightDelta),
       height: 1.42,
       letterSpacing: -0.2,

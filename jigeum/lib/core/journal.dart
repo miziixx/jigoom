@@ -77,10 +77,10 @@ class Masthead extends StatelessWidget {
                       ),
                     Text(title,
                         style: AppText.hTitle(tk.ink).copyWith(
-                            fontSize: 26,
+                            fontSize: 22,
                             fontWeight: FontWeight.w400,
                             height: 1.12,
-                            letterSpacing: -1.3)),
+                            letterSpacing: -1.0)),
                   ],
                 ),
               ),
