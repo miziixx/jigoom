@@ -10,6 +10,8 @@ Future<String?> showInputDialog(
   String kicker = 'NEW',
   String hint = '',
   String initial = '',
+  String? subtitle,
+  String? fieldLabel,
 }) {
   final controller = TextEditingController(text: initial);
   return showDialog<String>(
@@ -20,8 +22,27 @@ Future<String?> showInputDialog(
         titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
         contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
         actionsPadding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-        title: Text('[ $title ]', style: AppText.hTitle(tk.ink)),
-        content: TextField(
+        // 레퍼런스 모달: 브래킷 세리프 제목 + (부제) + (필드 라벨) + 언더라인 입력.
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('[ $title ]', style: AppText.hTitle(tk.ink)),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(subtitle, style: AppText.meta(tk.inkSoft, size: 12)),
+            ],
+          ],
+        ),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (fieldLabel != null) ...[
+              Text(fieldLabel, style: AppText.meta(tk.inkSoft, size: 10)),
+              const SizedBox(height: 8),
+            ],
+            TextField(
           controller: controller,
           autofocus: true,
           textInputAction: TextInputAction.done,
@@ -37,6 +58,8 @@ Future<String?> showInputDialog(
                 borderSide: BorderSide(color: tk.ink, width: 1.5)),
           ),
           onSubmitted: (v) => Navigator.of(ctx).pop(v),
+            ),
+          ],
         ),
         actions: [
           TextButton(
