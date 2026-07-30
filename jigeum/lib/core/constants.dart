@@ -12,8 +12,8 @@ class AppSpace {
   static const s6 = 32.0;
   static const s8 = 48.0;
 
-  /// 편집 gutter — 화면 좌우 여백. 잡지 마진의 시그니처. (22px)
-  static const gutter = 22.0;
+  /// 화면 좌우 여백(콘텐츠 거터). 레퍼런스 .screen 모바일 padding(16px)에 맞춤.
+  static const gutter = 16.0;
 }
 
 /// 각진 모서리가 편집 시그니처. (DESIGN_SYSTEM §4)
@@ -26,9 +26,9 @@ const kMonoFamily = 'monospace';
 /// 폰에서 적용 중인 시스템 글꼴 계열을 가장 자연스럽게 따라간다.
 const String? kSansFamily = null;
 
-/// 제목/헤딩용 세리프(명조). v17 에디토리얼 시그니처 — 얇은 세리프 제목.
-/// 본문·라벨은 산세리프를 유지하고 헤딩만 이 글꼴을 쓴다.
-const String kSerifFamily = 'NanumMyeongjo';
+/// 제목/헤딩용 세리프. 레퍼런스(jigeum_free_editorial_v17)의 제목 세리프
+/// "Noto Serif KR" 을 번들해서 그대로 사용. 본문·라벨은 산세리프 유지.
+const String kSerifFamily = 'NotoSerifKR';
 
 /// 사용자가 고를 수 있는 번들 한글 글꼴.
 /// 앱 전체 톤이 흔들리지 않도록 본문용 고딕 계열만 노출한다.
