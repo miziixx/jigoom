@@ -137,22 +137,35 @@ class _QuadCell extends ConsumerWidget {
     final top = nodes.take(3).toList();
     final more = nodes.length - top.length;
 
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => QuadrantListScreen(
-            title: quad.sub,
+    // 다른 칸에서 끌어온 할 일을 이 칸의 중요/긴급 값으로 재분류.
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (_) => true,
+      onAcceptWithDetails: (d) => ref.read(nodeRepoProvider).setMatrix(
+            d.data,
             important: quad.important,
-            urgent: quad.urgent),
-      )),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 168),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: quad.tint,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
+            urgent: quad.urgent,
+          ),
+      builder: (context, candidate, rejected) {
+        final hover = candidate.isNotEmpty;
+        return GestureDetector(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => QuadrantListScreen(
+                title: quad.sub,
+                important: quad.important,
+                urgent: quad.urgent),
+          )),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 168),
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: quad.tint,
+              borderRadius: BorderRadius.circular(8),
+              border: hover
+                  ? Border.all(color: tk.mark, width: 1.5)
+                  : Border.all(color: Colors.transparent, width: 1.5),
+            ),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -193,8 +206,10 @@ class _QuadCell extends ConsumerWidget {
                 child: Text('+$more', style: AppText.meta(tk.inkSoft, size: 10)),
               ),
           ],
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -207,7 +222,7 @@ class _QuadTask extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tk = t(context);
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,6 +241,28 @@ class _QuadTask extends ConsumerWidget {
           ),
         ],
       ),
+    );
+    // 길게 눌러 다른 칸으로 끌어 옮기기(중요/긴급 재분류). 짧게 탭은 완료.
+    return LongPressDraggable<String>(
+      data: node.id as String,
+      hapticFeedbackOnStart: true,
+      feedback: Material(
+        color: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: tk.paper,
+            border: Border.all(color: tk.mark, width: 1.5),
+          ),
+          child: Text(node.title as String,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.body(tk.ink).copyWith(fontSize: 12)),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: 0.35, child: row),
+      child: row,
     );
   }
 }

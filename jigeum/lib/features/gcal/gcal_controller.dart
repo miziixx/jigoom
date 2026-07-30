@@ -109,7 +109,12 @@ class GcalController extends StateNotifier<GcalState> {
   Future<void> setCalendarSelected(String id, bool selected) async {
     await _gcalRepo.setSelected(id, selected);
     await _pushCalendarsToWidget();
-    if (selected) await syncNow(refreshList: false);
+    if (selected) {
+      await syncNow(refreshList: false);
+    } else {
+      // 끄면 그 캘린더 일정을 바로 안 보이게 제거(다시 켜면 재동기화).
+      await _gcalRepo.deleteSyncedForCalendar(id);
+    }
   }
 
   /// 위젯 팝업 큐를 비우고 양방향 동기화. [refreshList] 면 캘린더 목록도 갱신.
