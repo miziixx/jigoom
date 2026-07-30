@@ -47,6 +47,7 @@ const kDefaultFontKey = 'pretendard';
 const List<AppFont> kFonts = [
   AppFont('pretendard', '프리텐다드', 'Pretendard', '가나다 AaBb 123'),
   AppFont('nanum', '나눔고딕', 'NanumGothic', '가나다 AaBb 123'),
+  AppFont('myeongjo', '나눔명조', 'NanumMyeongjo', '가나다 AaBb 123'),
   AppFont('gowun', '고운돋움', 'GowunDodum', '가나다 AaBb 123', true),
 ];
 

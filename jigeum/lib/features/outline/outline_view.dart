@@ -31,8 +31,12 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
   // ---------------------------------------------------------------- 필터바
 
   Future<void> _newNode(String type, String title) async {
+    final isFolder = type == NodeType.folder;
     final name = await showInputDialog(context,
-        title: type == NodeType.folder ? '새 폴더' : '새 목표', hint: '이름');
+        title: isFolder ? '새 폴더' : '새 목표',
+        subtitle: isFolder ? '관련된 일을 묶어둘 폴더예요.' : '이루고 싶은 결과를 짧게 적어주세요.',
+        fieldLabel: isFolder ? '폴더 이름' : '목표 이름',
+        hint: isFolder ? '폴더 이름' : '이루고 싶은 것');
     if (name == null || name.trim().isEmpty) return;
     await ref.read(nodeRepoProvider).create(type: type, title: name.trim());
   }
