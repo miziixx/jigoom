@@ -11,6 +11,7 @@ import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../settings/settings_screen.dart';
+import '../shell/app_drawer.dart';
 
 /// 오늘의 운세 + 사주 정밀 분석 대시보드.
 /// 설정의 생년월일(양력 변환)·시각·출생지·성별로 오프라인 계산.
@@ -23,10 +24,25 @@ class FortuneView extends ConsumerWidget {
     final s = ref.watch(settingsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('오늘의 운세')),
-      body: Container(
-        color: tk.paper,
-        child: s.hasBirth ? _FortuneBody(settings: s) : const _EmptyState(),
+      backgroundColor: tk.paper,
+      endDrawer: const AppDrawer(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Masthead(
+                eyebrow: 'FORTUNE',
+                title: '오늘의 운세',
+                onBack: () => Navigator.of(context).pop(),
+                showMenu: true),
+            Expanded(
+              child: Container(
+                color: tk.paper,
+                child:
+                    s.hasBirth ? _FortuneBody(settings: s) : const _EmptyState(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

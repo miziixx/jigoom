@@ -7,7 +7,9 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../core/journal.dart';
 import '../../core/theme.dart';
+import '../shell/app_drawer.dart';
 import 'inbox_item.dart';
 import 'inbox_repository.dart';
 
@@ -53,22 +55,33 @@ class _InboxScreenState extends State<InboxScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).extension<AppTokens>()!;
+    final tk = Theme.of(context).extension<AppTokens>()!;
     final items = widget.repository.list(status: InboxStatus.pending);
     return Scaffold(
-      backgroundColor: t.paper,
-      appBar: AppBar(
-        backgroundColor: t.paper,
-        elevation: 0,
-        title: Text('보류함', style: AppText.hTitle(t.ink)),
-      ),
-      body: items.isEmpty
-          ? Center(child: Text('비어 있어요', style: AppText.meta(t.inkSoft)))
-          : ListView.separated(
-              itemCount: items.length,
-              separatorBuilder: (_, __) => Divider(height: 1, color: t.line),
-              itemBuilder: (context, i) => _row(context, t, items[i]),
+      backgroundColor: tk.paper,
+      endDrawer: const AppDrawer(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Masthead(
+                eyebrow: 'ON HOLD',
+                title: '보류함',
+                onBack: () => Navigator.of(context).pop(),
+                showMenu: true),
+            Expanded(
+              child: items.isEmpty
+                  ? Center(
+                      child: Text('비어 있어요', style: AppText.meta(tk.inkSoft)))
+                  : ListView.separated(
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: tk.line),
+                      itemBuilder: (context, i) => _row(context, tk, items[i]),
+                    ),
             ),
+          ],
+        ),
+      ),
     );
   }
 

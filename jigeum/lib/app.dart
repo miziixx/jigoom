@@ -12,11 +12,9 @@ import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
 import 'features/home/home_view.dart';
 import 'features/matrix/matrix_view.dart';
-import 'features/outline/outline_screen.dart';
 import 'features/schedule/calendar_view.dart';
 import 'features/schedule/time_hub.dart';
-import 'features/inbox/inbox_screen.dart';
-import 'features/settings/settings_screen.dart';
+import 'features/shell/app_drawer.dart';
 import 'features/timetrack/time_track_screen.dart';
 import 'features/today/goal_editor.dart';
 import 'features/today/today_view.dart';
@@ -33,7 +31,9 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   // 6 = 홈(대시보드). 기존 탭 인덱스(0~5)는 그대로 유지해 음성/FAB 로직 보존.
-  int _index = 6;
+  // 사이드바 드로어가 어느 화면에서든 탭을 바꿀 수 있게 provider 로 관리한다.
+  int get _index => ref.read(homeTabProvider);
+  void _setTab(int i) => ref.read(homeTabProvider.notifier).state = i;
 
   @override
   void initState() {
@@ -130,6 +130,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    // 탭 인덱스 변화(드로어·바텀내브)에 셸이 다시 그려지도록 구독.
+    ref.watch(homeTabProvider);
     final body = switch (_index) {
       0 => const TodayView(),
       1 => const MatrixView(),
@@ -137,7 +139,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       3 => const TimeHub(),
       4 => const HabitView(),
       6 => HomeView(
-          onOpenTab: (i) => setState(() => _index = i),
+          onOpenTab: _setTab,
           onOpenCalendar: _openCalendar,
           onOpenFortune: _openFortune,
         ),
@@ -146,7 +148,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      endDrawer: _buildDrawer(context),
+      endDrawer: const AppDrawer(),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -227,7 +229,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       final active = _index == idx;
       return Expanded(
         child: GestureDetector(
-          onTap: () => setState(() => _index = idx),
+          onTap: () => _setTab(idx),
           behavior: HitTestBehavior.opaque,
           child: Container(
             alignment: Alignment.center,
@@ -306,129 +308,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     await ref.read(habitRepoProvider).addHabit(name.trim());
   }
 
-  /// 아웃라인 — 하단 탭에서 사이드바로 이동. 폴더·목표 정리용.
-  void _openOutline() => Navigator.of(context)
-      .push(MaterialPageRoute(builder: (_) => const OutlineScreen()));
-
-  void _openSettings() => Navigator.of(context)
-      .push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
-
+  // 홈 히어로에서 여는 화면(달력·운세)만 셸에 남긴다. 나머지 사이드바
+  // 항목은 공용 [AppDrawer] 가 직접 연다.
   void _openFortune() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const FortuneView()));
 
   void _openCalendar() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
-
-  /// 보류함 — 음성 미인식·되돌린 원문 목록. 여기서 다시 분류하거나 버린다.
-  void _openInbox() => Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => InboxScreen(repository: ref.read(inboxRepoProvider))));
-
-  /// 사이드바 메뉴 (에디토리얼) — 번호 + 라벨 + › 캐럿, 얇은 규칙선.
-  Widget _buildDrawer(BuildContext context) {
-    final tk = t(context);
-
-    // tabIndex 가 지정된 항목은 현재 탭이면 좌측 포인트선으로 강조.
-    Widget row(String index, String label, VoidCallback onTap,
-        {int? tabIndex}) {
-      final current = tabIndex != null && _index == tabIndex;
-      return GestureDetector(
-        onTap: () {
-          Navigator.of(context).pop(); // 드로어 닫기
-          onTap();
-        },
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: tk.line, width: 1)),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 11),
-          child: Row(
-            children: [
-              Container(
-                width: 2,
-                height: 16,
-                color: current ? tk.mark : Colors.transparent,
-              ),
-              const SizedBox(width: 11),
-              SizedBox(
-                width: 24,
-                child: Text(index, style: AppText.meta(tk.inkSoft, size: 9)),
-              ),
-              Expanded(
-                // 레퍼런스 drawer-item strong: 11px/450 — 작고 가볍게.
-                child: Text(label,
-                    style: AppText.body(current ? tk.mark : tk.ink).copyWith(
-                        fontSize: 12, fontWeight: FontWeight.w400)),
-              ),
-              Text('›', style: AppText.glyph(tk.inkSoft, size: 14)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // v17: 우측에서 열림(endDrawer) · × 닫기 · 부제 · 11개(+보류함).
-    return Drawer(
-      backgroundColor: tk.paper,
-      shape: const RoundedRectangleBorder(),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: kGutter),
-          child: ListView(
-            children: [
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('지금',
-                            style: AppText.hTitle(tk.ink).copyWith(
-                                fontSize: 24, letterSpacing: -1.0)),
-                        const SizedBox(height: 4),
-                        Text('내 하루를 바깥에 꺼내두는 곳',
-                            style: AppText.meta(tk.inkSoft, size: 9)),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: tk.line),
-                      ),
-                      child: Text('×', style: AppText.glyph(tk.ink, size: 20)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(height: 1, color: tk.line),
-              row('01', '홈', () => setState(() => _index = 6), tabIndex: 6),
-              row('02', '오늘', () => setState(() => _index = 0), tabIndex: 0),
-              row('03', '매트릭스', () => setState(() => _index = 1),
-                  tabIndex: 1),
-              row('04', '일과', () => setState(() => _index = 3), tabIndex: 3),
-              row('05', '쏟아내기', () => setState(() => _index = 2),
-                  tabIndex: 2),
-              row('06', '전체', () => setState(() => _index = 5), tabIndex: 5),
-              row('07', '아웃라인', _openOutline),
-              row('08', '습관', () => setState(() => _index = 4), tabIndex: 4),
-              row('09', '달력', _openCalendar),
-              row('10', '오늘의 운세', _openFortune),
-              row('11', '설정', _openSettings),
-              row('12', '보류함', _openInbox),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

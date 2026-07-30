@@ -9,6 +9,7 @@ import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
+import '../shell/app_drawer.dart';
 import 'schedule_edit_sheet.dart';
 
 /// 달력 화면 — 드로어에서 바로 여는 독립 진입(Scaffold 래퍼).
@@ -17,13 +18,15 @@ class CalendarScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+        endDrawer: const AppDrawer(),
         body: SafeArea(
           child: Column(
             children: [
               Masthead(
                   eyebrow: 'CALENDAR',
                   title: '달력',
-                  onBack: () => Navigator.of(context).pop()),
+                  onBack: () => Navigator.of(context).pop(),
+                  showMenu: true),
               const Expanded(child: CalendarView()),
             ],
           ),
