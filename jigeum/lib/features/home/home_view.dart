@@ -225,16 +225,11 @@ class _HomeViewState extends ConsumerState<HomeView> {
 
   // ── HERO ────────────────────────────────────────────────
   Widget _hero(AppTokens tk, DateTime now) {
-    // 레퍼런스 hero — 카드/배경 없이 하단 라인 헤어라인, 좌측 여백에
-    // 날짜(모노)와 동심원 그래픽, 우측에 본문.
-    // 상단 테두리는 마스트헤드 하단 규칙선과 겹쳐 "줄 두 개"로 보여서 제거.
+    // 레퍼런스 hero — 카드/배경 없이 좌측 여백에 날짜(모노)와 동심원 그래픽,
+    // 우측에 본문. 위·아래 테두리는 모두 제거(아래 _rule 이 구분선 역할).
+    // (상단 선은 마스트헤드 규칙선과, 하단 전체폭 선은 _rule 과 겹쳐서 뺌.)
     return Container(
       margin: const EdgeInsets.only(top: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: tk.line),
-        ),
-      ),
       child: ClipRect(
         child: Stack(
           children: [

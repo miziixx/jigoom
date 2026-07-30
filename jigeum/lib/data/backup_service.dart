@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import 'db.dart';
+import 'repos/gcal_repository.dart';
 
 /// 전체 데이터 백업/복원 (JSON).
 /// 복원은 전체 교체: 현재 데이터를 지우고 백업 시점으로 되돌린다.
@@ -321,5 +322,9 @@ class BackupService {
         await db.into(db.timeBlocks).insert(t, mode: mode);
       }
     });
+
+    // 합치기 복원은 같은 구글 일정을 다른 로컬 id 로 다시 넣어 중복시킬 수 있으니
+    // 복원 직후 gcalId 기준으로 중복 행을 정리한다.
+    await dedupeGcalSchedules(db);
   }
 }

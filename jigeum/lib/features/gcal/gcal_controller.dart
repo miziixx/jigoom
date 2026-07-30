@@ -59,6 +59,8 @@ class GcalController extends StateNotifier<GcalState> {
   Future<void> restore() async {
     final ok = await _bridge.hasPermission();
     state = state.copyWith(connected: ok);
+    // 백업 '합치기' 복원 등으로 이미 생긴 구글 일정 중복을 앱 시작 시 정리.
+    await _gcalRepo.dedupeByGcalId();
     // 목록만 조용히 채우고, 실제 동기화는 사용자가 버튼을 눌렀을 때만 한다
     // (자동 동기화 없음 — "지금 동기화"/"연동 켜기"/캘린더 선택 시에만).
     if (ok) await refreshCalendarList();

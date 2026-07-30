@@ -177,6 +177,38 @@ class GcalRepository {
           ..where((s) => s.gcalId.equals(gcalId) & s.dirty.equals(false)))
         .go();
   }
+
+  /// 같은 gcalId 중복 행 정리(→ [dedupeGcalSchedules]).
+  Future<int> dedupeByGcalId() => dedupeGcalSchedules(db);
+}
+
+/// 같은 구글 이벤트(gcalId)가 로컬에 여러 행으로 있으면 하나만 남기고 나머지
+/// 로컬 행을 제거한다(원격은 건드리지 않음). 백업 "합치기(merge)" 복원이 같은
+/// 일정을 다른 로컬 id 로 다시 넣어 생기는 중복을 정리하는 용도.
+/// 보존 우선순위: dirty(로컬 편집/삭제 툼스톤) > 최신 updatedAt/createdAt.
+Future<int> dedupeGcalSchedules(AppDatabase db) async {
+  final rows = await (db.select(db.schedules)
+        ..where((s) => s.gcalId.isNotNull()))
+      .get();
+  final byGid = <String, List<Schedule>>{};
+  for (final s in rows) {
+    (byGid[s.gcalId!] ??= <Schedule>[]).add(s);
+  }
+  var removed = 0;
+  for (final group in byGid.values) {
+    if (group.length < 2) continue;
+    final list = [...group]..sort((a, b) {
+        if (a.dirty != b.dirty) return a.dirty ? -1 : 1; // 편집/툼스톤 보존
+        final au = a.updatedAt ?? a.createdAt;
+        final bu = b.updatedAt ?? b.createdAt;
+        return bu.compareTo(au); // 최신 우선
+      });
+    for (final dup in list.skip(1)) {
+      await (db.delete(db.schedules)..where((x) => x.id.equals(dup.id))).go();
+      removed++;
+    }
+  }
+  return removed;
 }
 
 /// 구글 캘린더 목록 항목(원격에서 받은 최소 표현).
