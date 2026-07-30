@@ -9,6 +9,7 @@ import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
+import '../shell/app_bottom_nav.dart';
 import '../shell/app_drawer.dart';
 
 /// 목표 관리 — 기간별(일주일/1개월/1년/직접) 목표를 담고 진행률로 추적한다.
@@ -58,6 +59,8 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
               showMenu: true,
             ),
             Expanded(child: _body(context)),
+            // 하단바 — 담기 = 현재 기간에 목표 추가(해당 메뉴 항목 담기).
+            AppBottomNav(onQuickAdd: _addGoal),
           ],
         ),
       ),
