@@ -24,6 +24,8 @@ class GcalSync {
 
   Future<void> run() async {
     try {
+      // 백업 '합치기' 복원 등으로 같은 구글 일정이 중복된 게 있으면 먼저 정리.
+      await gcalRepo.dedupeByGcalId();
       await _push();
       final cals = await gcalRepo.selectedCalendars();
       final now = DateTime.now();
