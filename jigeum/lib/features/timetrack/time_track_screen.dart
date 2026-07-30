@@ -336,7 +336,7 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
                                 style: AppText.body(tk.ink)
                                     .copyWith(
                                         fontSize: 12,
-                                        fontWeight: FontWeight.w600)),
+                                        fontWeight: FontWeight.w500)),
                           ),
                           const SizedBox(width: 8),
                           Text('30분',

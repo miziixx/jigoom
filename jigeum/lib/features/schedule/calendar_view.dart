@@ -214,7 +214,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             Text('${day.day}',
                 style: AppText.body(numColor).copyWith(
                     fontSize: 12,
-                    fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
+                    fontWeight: isToday ? FontWeight.w500 : FontWeight.w400)),
             const SizedBox(height: 2),
             // 干支日 — 항상 표시. 절기 날은 포인트색으로 강조.
             Text(iljinLabel(day),

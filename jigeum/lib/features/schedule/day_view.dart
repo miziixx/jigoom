@@ -274,7 +274,7 @@ class _DayViewState extends ConsumerState<DayView> {
   Widget _timelineRow(AppTokens tk, _Rec r, {required bool isLast}) {
     final titleStyle = AppText.body(
             r.done ? tk.ink.withValues(alpha: 0.5) : tk.ink)
-        .copyWith(fontSize: 13, fontWeight: FontWeight.w600);
+        .copyWith(fontSize: 13, fontWeight: FontWeight.w500);
     return IntrinsicHeight(
       child: Container(
         decoration:
