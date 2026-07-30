@@ -326,8 +326,12 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   /// 새 습관 만들기 (이름만 — 카테고리는 상세에서).
   Future<void> _newHabit() async {
-    final name =
-        await showInputDialog(context, title: '새 습관', hint: '예: 아침 산책, 물 마시기');
+    final name = await showInputDialog(context,
+        title: '새 습관',
+        subtitle: '매일 반복하고 싶은 작은 행동을 적어주세요.',
+        fieldLabel: '습관 이름',
+        hint: '예: 물 한 잔 마시기',
+        saveLabel: '만들기');
     if (name == null || name.trim().isEmpty) return;
     await ref.read(habitRepoProvider).addHabit(name.trim());
   }
