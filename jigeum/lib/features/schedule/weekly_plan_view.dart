@@ -203,6 +203,13 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (isToday)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Text('TODAY',
+                            style: AppText.meta(tk.mark, size: 7)
+                                .copyWith(letterSpacing: 1.2)),
+                      ),
                     Text(infoStrong,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
