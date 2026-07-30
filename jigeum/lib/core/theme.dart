@@ -195,14 +195,13 @@ int appWeightDelta = 0;
 
 /// 라벨·기호·숫자용 글꼴. 레퍼런스처럼 라틴/숫자는 모노스페이스로 —
 /// 한글 등 모노에 없는 글자는 [appMonoFallback] 로 렌더. AppTheme.build 에서 갱신.
-String? appMono = kMonoFamily;
+String? appMono = kSerifFamily;
 
-/// 모노 스타일의 한글 폴백(라틴=모노, 한글=산세리프 — v17 레퍼런스와 동일).
-List<String> appMonoFallback = const ['Pretendard'];
+/// 명조 통일: 모노 폴백 없음(세리프가 라틴·한글·한자 모두 렌더).
+List<String> appMonoFallback = const <String>[];
 
-/// 한글 본문·제목 글꼴. 기본은 null 로 두어 폰 시스템 글꼴을 따른다.
-/// AppTheme.build 에서 갱신.
-String? appSans = kSansFamily;
+/// 한글 본문·제목 글꼴. 명조(세리프)로 통일. AppTheme.build 에서 갱신.
+String? appSans = kSerifFamily;
 
 /// 제목/헤딩용 세리프(명조). v17 에디토리얼 — 헤딩만 세리프.
 String appSerif = kSerifFamily;
@@ -327,12 +326,10 @@ class AppTheme {
     appWeightDelta = weightDelta; // 전역 반영 (AppText 직접 호출부용)
     // 시스템 글꼴 사용 시 fontFamily 를 지정하지 않아 폰 기본 글꼴을 따른다.
     // 끄면 앱에 번들된 폰트를 쓰되 라벨·숫자까지 같은 글꼴로 맞춘다.
-    appSans = systemFont ? kSansFamily : familyForFontKey(fontKey);
-    // 라벨·시간·eyebrow·탭은 모노스페이스(레퍼런스). 한글은 산세리프로 폴백.
-    appMono = kMonoFamily;
-    appMonoFallback = systemFont
-        ? const <String>[]
-        : <String>[familyForFontKey(fontKey) ?? 'Pretendard'];
+    // 사용자 요청: 앱 전체를 명조(세리프)로 통일 — 본문·라벨·시간·제목 모두 동일 글꼴.
+    appSans = kSerifFamily;
+    appMono = kSerifFamily;
+    appMonoFallback = const <String>[];
     final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);
 

@@ -144,6 +144,9 @@ class RoutineBody extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             buildDefaultDragHandles: false,
             padding: EdgeInsets.zero,
+            // 드래그 중 기본 그림자/테두리 제거 — 그대로 들어올린 모습만.
+            proxyDecorator: (child, index, animation) =>
+                Material(type: MaterialType.transparency, child: child),
             onReorder: (oldIndex, newIndex) =>
                 _onReorder(ref, items, groups, oldIndex, newIndex),
             children: [

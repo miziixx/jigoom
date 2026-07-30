@@ -36,14 +36,15 @@ class MatrixView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tk = t(context);
     final quads = <_Quad>[
-      const _Quad('긴급하고 중요', 'DO FIRST', _cDangerWeak, _cDanger,
+      // 짧은 라벨 — 좁은 칸에서 단어 중간 줄바꿈이 안 생기게.
+      const _Quad('긴급 · 중요', 'DO FIRST', _cDangerWeak, _cDanger,
           important: true, urgent: true),
-      _Quad('중요하지만\n긴급하지 않음', 'SCHEDULE',
+      _Quad('중요 · 비긴급', 'SCHEDULE',
           tk.mark.withValues(alpha: 0.10), tk.mark,
           important: true, urgent: false),
-      const _Quad('긴급하지만\n중요하지 않음', 'DELEGATE', _cAccentWeak, _cAccent,
+      const _Quad('긴급 · 비중요', 'DELEGATE', _cAccentWeak, _cAccent,
           important: false, urgent: true),
-      _Quad('둘 다 아님', 'DELETE', tk.line.withValues(alpha: 0.4), tk.inkSoft,
+      _Quad('비긴급 · 비중요', 'DELETE', tk.line.withValues(alpha: 0.4), tk.inkSoft,
           important: false, urgent: false, drawer: true),
     ];
 

@@ -226,12 +226,14 @@ class _AstroCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           for (final line in reading.body) ...[
-            Text(line, style: AppText.body(tk.ink)),
+            Text(koWrap(line),
+                style: AppText.body(tk.ink).copyWith(height: 1.6)),
             const SizedBox(height: 6),
           ],
           if (reading.note != null) ...[
             const SizedBox(height: 2),
-            Text('※ ${reading.note}', style: AppText.meta(tk.inkSoft, size: 11)),
+            Text(koWrap('※ ${reading.note}'),
+                style: AppText.meta(tk.inkSoft, size: 11)),
           ],
         ],
       ),

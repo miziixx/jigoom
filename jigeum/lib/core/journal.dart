@@ -303,3 +303,24 @@ String minToShort(int m) {
 
 /// 타임트래커 블록(0~47) → "09:30" 시작 시각.
 String blockLabel(int block) => minToShort(block * 30);
+
+/// 한글이 어절(공백 단위) 중간에서 줄바꿈되지 않게, 인접한 두 한글 글자
+/// 사이에 WORD JOINER(U+2060)를 넣는다. 공백에서만 줄이 바뀐다.
+/// (Flutter 기본은 한글을 아무 글자 사이에서나 끊어 보기 흉하다.)
+String koWrap(String s) {
+  bool isHangul(int u) =>
+      (u >= 0xAC00 && u <= 0xD7A3) || // 완성형 음절
+      (u >= 0x1100 && u <= 0x11FF) || // 자모
+      (u >= 0x3130 && u <= 0x318F); // 호환 자모
+  if (s.length < 2) return s;
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    buf.write(s[i]);
+    if (i + 1 < s.length &&
+        isHangul(s.codeUnitAt(i)) &&
+        isHangul(s.codeUnitAt(i + 1))) {
+      buf.writeCharCode(0x2060); // WORD JOINER
+    }
+  }
+  return buf.toString();
+}
