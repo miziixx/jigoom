@@ -68,182 +68,170 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
       recordCount[d] = (recordCount[d] ?? 0) + 1;
     }
 
+    final settings = ref.watch(settingsProvider);
     return Container(
       color: tk.paper,
       child: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          // 주 이동 헤더
-          Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 6),
-            child: Row(
+          // 주 이동 헤더 (레퍼런스 .date-nav — ‹ / 가운데 제목+부제 / ›)
+          _dateNav(
+            tk,
+            title:
+                '${DateFormat('M.d').format(_weekStart)} – ${DateFormat('M.d').format(weekEnd)}',
+            subtitle: '이번 주 일정과 기록',
+            onPrev: () => _shiftWeek(-1),
+            onNext: () => _shiftWeek(1),
+            onCenter: () => setState(() => _weekStart =
+                today.subtract(Duration(days: today.weekday % 7))),
+          ),
+          // 레퍼런스 .week-list — 상단 잉크선, 각 행 하단 hairline.
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: kGutter),
+            decoration:
+                BoxDecoration(border: Border(top: BorderSide(color: tk.ink))),
+            child: Column(
               children: [
-                _arrow(tk, '‹', () => _shiftWeek(-1)),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _weekStart =
-                        today.subtract(Duration(days: today.weekday % 7))),
-                    behavior: HitTestBehavior.opaque,
-                    child: Text(
-                      '${DateFormat('M.d').format(_weekStart)} – ${DateFormat('M.d').format(weekEnd)}',
-                      textAlign: TextAlign.center,
-                      style: AppText.hTitle(tk.ink),
-                    ),
+                for (var i = 0; i < 7; i++)
+                  _dayRow(
+                    tk,
+                    _weekStart.add(Duration(days: i)),
+                    today,
+                    byDate[_weekStart.add(Duration(days: i))] ?? const [],
+                    settings,
+                    habitCount[_weekStart.add(Duration(days: i))] ?? 0,
+                    recordCount[_weekStart.add(Duration(days: i))] ?? 0,
                   ),
-                ),
-                _arrow(tk, '›', () => _shiftWeek(1)),
               ],
             ),
           ),
-          for (var i = 0; i < 7; i++)
-            _dayRow(
-              tk,
-              _weekStart.add(Duration(days: i)),
-              today,
-              byDate[_weekStart.add(Duration(days: i))] ?? const [],
-              ref.watch(settingsProvider),
-              habitCount[_weekStart.add(Duration(days: i))] ?? 0,
-              recordCount[_weekStart.add(Duration(days: i))] ?? 0,
-            ),
         ],
       ),
     );
   }
 
+  Widget _dateNav(
+    AppTokens tk, {
+    required String title,
+    required String subtitle,
+    required VoidCallback onPrev,
+    required VoidCallback onNext,
+    VoidCallback? onCenter,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 12),
+        child: Row(
+          children: [
+            _arrow(tk, '‹', onPrev),
+            Expanded(
+              child: GestureDetector(
+                onTap: onCenter,
+                behavior: HitTestBehavior.opaque,
+                child: Column(
+                  children: [
+                    Text(title,
+                        textAlign: TextAlign.center,
+                        style: AppText.hTitle(tk.ink).copyWith(fontSize: 20)),
+                    const SizedBox(height: 4),
+                    Text(subtitle,
+                        textAlign: TextAlign.center,
+                        style: AppText.meta(tk.inkSoft, size: 10)),
+                  ],
+                ),
+              ),
+            ),
+            _arrow(tk, '›', onNext),
+          ],
+        ),
+      );
+
   Widget _dayRow(AppTokens tk, DateTime day, DateTime today, List items,
       AppSettings settings, int habitDone, int records) {
     final isToday = day == today;
     final sunday = day.weekday % 7 == 0;
-    final dowColor = sunday ? tk.mark : tk.inkSoft;
     final sorted = [...items]..sort((a, b) => a.startMin.compareTo(b.startMin));
+    final first = sorted.isEmpty ? null : sorted.first;
+
+    // 정보 강조줄: 오늘이면 '오늘', 아니면 첫 일정 제목 / 없으면 '일정 없음'.
+    final infoStrong =
+        isToday ? '오늘' : (first != null ? first.title : '일정 없음');
+    // 메타줄: [첫 일정 시각] · 기록 N개 · [간지/음력].
+    final meta = <String>[
+      if (first != null && !first.allDay) minToShort(first.startMin),
+      '기록 $records개',
+      if (habitDone > 0) '습관 $habitDone개',
+      if (settings.showSaju) iljinLabel(day) else lunarLabel(day),
+    ];
 
     return Container(
       decoration:
-          BoxDecoration(border: Border(top: BorderSide(color: tk.line))),
-      padding: const EdgeInsets.symmetric(horizontal: kGutter, vertical: 10),
+          BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 날짜 열
+          // 오늘 좌측 강조 바.
+          Container(width: 2, height: 42, color: isToday ? tk.mark : Colors.transparent),
+          const SizedBox(width: 9),
+          // 날짜 열 — 세리프 큰 숫자 + 요일.
           SizedBox(
-            width: 70,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            width: 46,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
               children: [
-                Row(
-                  children: [
-                    Text(DateFormat('E', 'ko').format(day),
-                        style: AppText.meta(dowColor, size: 11)),
-                    const SizedBox(width: 6),
-                    Text('${day.day}',
-                        style: AppText.hTitle(isToday ? tk.mark : tk.ink)
-                            .copyWith(fontSize: 15)),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    EdMoonPhase(
-                        phase: moonPhaseFraction(day),
-                        size: 9,
-                        color: tk.inkSoft,
-                        bg: tk.paper),
-                    const SizedBox(width: 4),
-                    Text(lunarShort(day),
-                        style: AppText.metaSans(tk.inkSoft, size: 9)),
-                  ],
-                ),
-                if (settings.showSaju)
-                  Text(iljinLabel(day),
-                      maxLines: 1,
-                      overflow: TextOverflow.clip,
-                      style: AppText.metaSans(tk.inkSoft, size: 9)),
-                if (settings.showZodiac)
-                  Text(byeoljariLabel(day),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.metaSans(tk.inkSoft, size: 9)),
-                if (isSonEomneunNal(day))
-                  Text('손없는날', style: AppText.chip(tk.mark)),
-                if (habitDone > 0 || records > 0) ...[
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      if (habitDone > 0) ...[
-                        Text('✓', style: AppText.glyph(tk.mark, size: 11)),
-                        Text('$habitDone',
-                            style: AppText.metaSans(tk.inkSoft, size: 9)),
-                      ],
-                      if (habitDone > 0 && records > 0)
-                        const SizedBox(width: 6),
-                      if (records > 0) ...[
-                        Text('■', style: AppText.glyph(tk.inkSoft, size: 9)),
-                        const SizedBox(width: 2),
-                        Text('$records',
-                            style: AppText.metaSans(tk.inkSoft, size: 9)),
-                      ],
-                    ],
-                  ),
-                ],
+                Text('${day.day}',
+                    style: AppText.serif(isToday ? tk.mark : tk.ink,
+                        size: 17, height: 1.0)),
+                const SizedBox(width: 3),
+                Text(DateFormat('E', 'ko').format(day),
+                    style: AppText.metaSans(
+                        sunday ? tk.mark : tk.inkSoft, size: 8)),
               ],
+            ),
+          ),
+          const SizedBox(width: 9),
+          // 정보 열.
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: first != null
+                  ? () => showScheduleEditSheet(context, existing: first)
+                  : () => showScheduleEditSheet(context, date: day),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(infoStrong,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.body(tk.ink).copyWith(fontSize: 11)),
+                    const SizedBox(height: 4),
+                    Text(meta.join('  ·  '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.metaSans(tk.inkSoft, size: 8)),
+                  ],
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 8),
-          // 일정 열
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (sorted.isEmpty)
-                  Text('—', style: AppText.meta(tk.inkSoft))
-                else
-                  for (final s in sorted)
-                    InkWell(
-                      onTap: () => showScheduleEditSheet(context, existing: s),
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            Text(s.allDay ? '종일' : minToShort(s.startMin),
-                                style: AppText.meta(tk.inkSoft, size: 10)),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(s.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      // v17: 완료는 취소선이 아니라 흐림으로 통일.
-                                      style: AppText.body(s.done
-                                          ? tk.ink.withValues(alpha: 0.5)
-                                          : tk.ink)),
-                                  if (s.done && s.doneAt != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: Text(
-                                          '${DateFormat('HH:mm').format(s.doneAt!)} 완료',
-                                          style:
-                                              AppText.meta(tk.mark, size: 10)),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            // 일정(할 일 아님)에는 체크박스 없음 — 탭하면 편집 시트.
-                          ],
-                        ),
-                      ),
-                    ),
-              ],
-            ),
-          ),
-          // 추가
+          // 원형 + 버튼 (레퍼런스 .mini-plus).
           GestureDetector(
             onTap: () => showScheduleEditSheet(context, date: day),
             behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 6),
-              child: Text('+', style: AppText.glyph(tk.mark, size: 18)),
+            child: Container(
+              width: 25,
+              height: 25,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: tk.line, width: 1),
+              ),
+              child: Text('＋',
+                  style: AppText.glyph(tk.inkSoft, size: 12)),
             ),
           ),
         ],
@@ -254,8 +242,10 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
   Widget _arrow(AppTokens tk, String g, VoidCallback onTap) => GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.all(6),
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
           child: Text(g, style: AppText.glyph(tk.inkSoft, size: 20)),
         ),
       );

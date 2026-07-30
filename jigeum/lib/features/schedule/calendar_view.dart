@@ -202,11 +202,13 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
         height: 54,
         margin: const EdgeInsets.all(1),
         decoration: BoxDecoration(
+          // 레퍼런스 v17: 오늘=잉크 아웃라인, 선택=얇은 규칙선 아웃라인. 채움 없음.
           border: Border.all(
-            color: isSel ? tk.ink : Colors.transparent,
-            width: 1.2,
+            color: isToday
+                ? tk.ink
+                : (isSel ? tk.inkSoft : Colors.transparent),
+            width: isToday ? 1.4 : 1.0,
           ),
-          color: isToday ? tk.ink.withValues(alpha: 0.06) : null,
         ),
         padding: const EdgeInsets.only(top: 4),
         child: Column(

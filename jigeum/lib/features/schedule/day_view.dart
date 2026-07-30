@@ -6,6 +6,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
+import '../../core/editorial.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
@@ -184,7 +185,16 @@ class _DayViewState extends ConsumerState<DayView> {
     final untimed = recs.where((r) => r.minute == null).toList();
     final feed = [...timed, ...untimed];
     return [
-      for (final r in feed) _chip(tk, r),
+      // 레퍼런스 .timeline — 상단 잉크선, 각 행에 시간·노드점·본문(플랫).
+      Container(
+        margin: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+        decoration:
+            BoxDecoration(border: Border(top: BorderSide(color: tk.ink))),
+        child: Column(children: [
+          for (var i = 0; i < feed.length; i++)
+            _timelineRow(tk, feed[i], isLast: i == feed.length - 1),
+        ]),
+      ),
       const SizedBox(height: 4),
     ];
   }
@@ -207,87 +217,105 @@ class _DayViewState extends ConsumerState<DayView> {
       }
       if (rows.isEmpty) continue;
       out.add(SectionLabel(_labelEng(c), count: rows.length));
-      for (final r in rows) {
-        out.add(_chip(tk, r));
-      }
+      out.add(Padding(
+        padding: const EdgeInsets.symmetric(horizontal: kGutter),
+        child: Column(children: [
+          for (var i = 0; i < rows.length; i++)
+            _timelineRow(tk, rows[i], isLast: i == rows.length - 1),
+        ]),
+      ));
     }
     return out;
   }
 
-  // ── 기록 칩 한 줄 (한글 태그 + 배경색) ──
-  Widget _chip(AppTokens tk, _Rec r) {
-    final col = _catColor(r.cat, tk);
-    return Container(
-      margin: const EdgeInsets.fromLTRB(kGutter, 5, kGutter, 0),
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: col.withValues(alpha: 0.12),
-        border: Border(left: BorderSide(color: col, width: 3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _tag(r.cat, tk),
-          const SizedBox(width: 9),
-          if (r.minute != null) ...[
-            SizedBox(
-              width: 38,
-              child:
-                  Text(minToShort(r.minute!), style: AppText.meta(tk.inkSoft)),
+  // ── 타임라인 한 줄 (레퍼런스 .time-row: 시간 | 노드점+연결선 | 본문) ──
+  Widget _timelineRow(AppTokens tk, _Rec r, {required bool isLast}) {
+    final meta = <String>[
+      _label(r.cat),
+      if (r.completedAt != null)
+        '완료 ${DateFormat('HH:mm').format(r.completedAt!)}'
+      else if (r.done)
+        '완료',
+    ];
+    return IntrinsicHeight(
+      child: Container(
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 시간 라벨(모노).
+            Padding(
+              padding: const EdgeInsets.only(top: 13),
+              child: SizedBox(
+                width: 40,
+                child: Text(r.minute != null ? minToShort(r.minute!) : '·',
+                    style: AppText.meta(tk.inkSoft, size: 9)),
+              ),
             ),
-            const SizedBox(width: 6),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  r.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  // v17: 완료는 취소선이 아니라 흐림으로 통일.
-                  style: AppText.body(
-                      r.done ? tk.ink.withValues(alpha: 0.5) : tk.ink),
-                ),
-                if (r.completedAt != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Text(
-                        '${DateFormat('HH:mm').format(r.completedAt!)} 완료',
-                        style: AppText.meta(tk.mark, size: 10)),
-                  ),
-              ],
-            ),
-          ),
-          if (r.checkable) ...[
             const SizedBox(width: 8),
-            GestureDetector(
-              onTap: r.onToggle,
-              behavior: HitTestBehavior.opaque,
-              child: Text(r.done ? '■' : '□',
-                  style: AppText.glyph(r.onToggle == null ? tk.inkSoft : tk.ink,
-                      size: 14)),
+            // 노드: 점 + 아래 연결선(마지막 행은 선 없음).
+            SizedBox(
+              width: 10,
+              child: Column(
+                children: [
+                  const SizedBox(height: 14),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: tk.paper,
+                      border: Border.all(color: tk.ink, width: 1.2),
+                    ),
+                  ),
+                  if (!isLast)
+                    Expanded(
+                        child: Center(
+                            child: Container(width: 1, color: tk.line))),
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
+            // 본문.
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: r.checkable ? r.onToggle : null,
+                      child: Text(
+                        r.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.body(r.done
+                                ? tk.ink.withValues(alpha: 0.5)
+                                : tk.ink)
+                            .copyWith(fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(meta.join('  ·  '),
+                        style: AppText.metaSans(tk.inkSoft, size: 8)),
+                  ],
+                ),
+              ),
+            ),
+            // 완료 토글(가능할 때만).
+            if (r.checkable && r.onToggle != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8, top: 12),
+                child: GestureDetector(
+                  onTap: r.onToggle,
+                  behavior: HitTestBehavior.opaque,
+                  child: EdCheck(done: r.done, size: 16),
+                ),
+              ),
           ],
-        ],
-      ),
-    );
-  }
-
-  // ── 한글 태그 (분류색 배경 + 종이색 글자) ──
-  Widget _tag(_Cat c, AppTokens tk) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      color: _catColor(c, tk),
-      child: Text(
-        _label(c),
-        style: TextStyle(
-          fontFamily: appSans,
-          fontSize: 10,
-          height: 1,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.2,
-          color: tk.paper,
         ),
       ),
     );

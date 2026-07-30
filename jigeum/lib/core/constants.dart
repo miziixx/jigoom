@@ -12,8 +12,8 @@ class AppSpace {
   static const s6 = 32.0;
   static const s8 = 48.0;
 
-  /// 화면 좌우 여백(콘텐츠 거터). 레퍼런스 .screen 모바일 padding(16px)에 맞춤.
-  static const gutter = 16.0;
+  /// 화면 좌우 여백(콘텐츠 거터). 레퍼런스 최종 --page-x(18px !important)에 맞춤.
+  static const gutter = 18.0;
 }
 
 /// 각진 모서리가 편집 시그니처. (DESIGN_SYSTEM §4)

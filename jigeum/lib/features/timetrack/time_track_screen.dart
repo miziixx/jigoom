@@ -159,10 +159,8 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('§ ',
-                    style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
                 Text('시간 기록',
-                    style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
+                    style: AppText.serif(tk.ink, size: 16)),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => _export(byIndex.values.toList()
@@ -273,6 +271,8 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
     final written =
         b.updatedAt != null ? ' · 작성 ${DateFormat('HH:mm').format(b.updatedAt!)}' : '';
 
+    // 레퍼런스 .day-log-row.recorded — 은은한 채움 + 세로 레일(포인트색).
+    // 빈 시간줄(_emptyHour)과 동일한 [시간 | 레일 | 본문] 구조로 통일한다.
     return GestureDetector(
       onTap: () =>
           showTimeTrackInput(context, ref, date: _date, block: b.block),
@@ -280,56 +280,70 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
       child: Container(
         decoration: BoxDecoration(
           color: tk.paper2,
-          border: Border(
-            left: BorderSide(
-                color: isNow ? tk.mark : tk.mark.withValues(alpha: 0.5),
-                width: 2),
-            bottom: BorderSide(color: tk.line),
-          ),
+          border: Border(bottom: BorderSide(color: tk.line)),
         ),
-        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-                width: 46,
-                child: Text(start,
-                    style: AppText.meta(isNow ? tk.ink : tk.inkSoft))),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+        padding: const EdgeInsets.fromLTRB(kGutter, 0, kGutter, 0),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: SizedBox(
+                    width: 46,
+                    child: Text(start,
+                        style: AppText.meta(isNow ? tk.ink : tk.inkSoft))),
+              ),
+              // 기록된 시간의 레일 = 포인트색.
+              Container(width: 1, color: tk.mark),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 0, 14),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(title,
-                            style: AppText.body(tk.ink)
-                                .copyWith(fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(width: 8),
-                      Text('30분', style: AppText.meta(tk.inkSoft, size: 11)),
-                    ],
-                  ),
-                  for (final line in bullets)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Row(
+                      // tracker-head — 제목 + 소요(30분).
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('— ', style: AppText.body(tk.inkSoft)),
-                          Expanded(child: Text(line, style: AppText.body(tk.ink))),
+                          Expanded(
+                            child: Text(title,
+                                style: AppText.body(tk.ink)
+                                    .copyWith(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600)),
+                          ),
+                          const SizedBox(width: 8),
+                          Text('30분',
+                              style: AppText.meta(tk.inkSoft, size: 10)),
                         ],
                       ),
-                    ),
-                  const SizedBox(height: 6),
-                  Text('$start–$end$written',
-                      style: AppText.meta(tk.inkSoft, size: 10)),
-                ],
+                      // work-items — '—' 불릿.
+                      for (final line in bullets)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('— ',
+                                  style: AppText.body(tk.inkSoft)
+                                      .copyWith(fontSize: 12)),
+                              Expanded(
+                                  child: Text(line,
+                                      style: AppText.body(tk.ink)
+                                          .copyWith(fontSize: 12))),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 6),
+                      Text('$start–$end$written',
+                          style: AppText.metaSans(tk.inkSoft, size: 8)),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
