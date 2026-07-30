@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
+import '../../core/editorial.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
@@ -20,40 +21,66 @@ Future<void> showTimeTrackInput(
   final existing = await repo.getBlock(date, block);
   if (!context.mounted) return;
   final controller = TextEditingController(text: existing?.content ?? '');
-  final label =
-      '${blockLabel(block)}–${blockLabel((block + 1) % 48 == 0 ? 48 : block + 1)}';
-  final text = await showDialog<String>(
-    context: context,
+  final start = blockLabel(block);
+  final end = blockLabel((block + 1) % 48 == 0 ? 48 : block + 1);
+  // 레퍼런스 .sheet — 핸들 + [ 제목 ] + 플랫 필드 + 취소/저장. (Material 팝업 대신)
+  final text = await showEditorialSheet<String>(
+    context,
+    scrollable: false,
     builder: (ctx) {
       final tk = t(ctx);
-      return AlertDialog(
-        title: Text('[ $label ]', style: AppText.hTitle(tk.ink)),
-        // 다중 기록: 첫 줄은 제목, 다음 줄부터 줄바꿈으로 여러 작업.
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          minLines: 2,
-          maxLines: 7,
-          keyboardType: TextInputType.multiline,
-          style: AppText.body(tk.ink),
-          cursorColor: tk.mark,
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: '제목\n— 한 일을 줄바꿈으로 여러 개',
-            hintStyle: AppText.meta(tk.inkSoft, size: 13),
-            enabledBorder:
-                UnderlineInputBorder(borderSide: BorderSide(color: tk.line)),
-            focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: tk.ink, width: 1.5)),
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 제목 — [ 06:00–06:30 ] (대괄호는 포인트색).
+          RichText(
+            text: TextSpan(children: [
+              TextSpan(text: '[ ', style: AppText.serif(tk.mark, size: 17)),
+              TextSpan(
+                  text: '$start–$end', style: AppText.serif(tk.ink, size: 17)),
+              TextSpan(text: ' ]', style: AppText.serif(tk.mark, size: 17)),
+            ]),
           ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('취소')),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(controller.text),
-              child: const Text('저장')),
+          const SizedBox(height: 14),
+          // 다중 기록: 첫 줄은 제목, 다음 줄부터 줄바꿈으로 여러 작업.
+          TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 2,
+            maxLines: 7,
+            keyboardType: TextInputType.multiline,
+            style: AppText.body(tk.ink),
+            cursorColor: tk.mark,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: '제목\n— 한 일을 줄바꿈으로 여러 개',
+              hintStyle: AppText.meta(tk.inkSoft, size: 13),
+              enabledBorder:
+                  UnderlineInputBorder(borderSide: BorderSide(color: tk.line)),
+              focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: tk.ink, width: 1.5)),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: EdButton(
+                  label: '취소',
+                  filled: false,
+                  onTap: () => Navigator.of(ctx).pop(),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: EdButton(
+                  label: '저장',
+                  onTap: () => Navigator.of(ctx).pop(controller.text),
+                ),
+              ),
+            ],
+          ),
         ],
       );
     },
@@ -129,23 +156,20 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
     final totM = totalMin % 60;
     final totalStr = totH > 0 ? '$totH시간 ${totM > 0 ? '$totM분' : ''}'.trim() : '$totM분';
 
-    // 보여줄 시간대: 06~23시 + 기록이 있는 시간(범위 밖이라도).
-    final recordHours = {for (final k in byIndex.keys) k ~/ 2};
-    final hours = <int>{...List.generate(18, (i) => i + 6), ...recordHours}
-        .toList()
+    // 보여줄 시간대: 06:00~23:30(30분 블록 12~47) + 기록이 있는 블록(범위 밖이라도).
+    final blockSet = <int>{
+      ...List.generate(36, (i) => i + 12),
+      ...byIndex.keys,
+    }.toList()
       ..sort();
 
     final rows = <Widget>[];
-    for (final h in hours) {
-      final recs = [byIndex[h * 2], byIndex[h * 2 + 1]]
-          .whereType<TimeBlock>()
-          .toList();
-      if (recs.isEmpty) {
-        rows.add(_emptyHour(tk, h));
+    for (final blk in blockSet) {
+      final b = byIndex[blk];
+      if (b != null) {
+        rows.add(_record(tk, b, _isToday && blk == nowBlock));
       } else {
-        for (final b in recs) {
-          rows.add(_record(tk, b, _isToday && b.block == nowBlock));
-        }
+        rows.add(_emptyBlock(tk, blk));
       }
     }
 
@@ -220,12 +244,12 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
         ),
       );
 
-  /// 기록 없는 시간 — 시간 라벨 + 세로 헤어라인 + '기록 없음'.
-  Widget _emptyHour(AppTokens tk, int hour) {
-    final label = '${hour.toString().padLeft(2, '0')}:00';
+  /// 기록 없는 30분 블록 — 시간 라벨 + 세로 헤어라인 + '기록 없음'.
+  Widget _emptyBlock(AppTokens tk, int block) {
+    final label = blockLabel(block);
     return GestureDetector(
       onTap: () =>
-          showTimeTrackInput(context, ref, date: _date, block: hour * 2),
+          showTimeTrackInput(context, ref, date: _date, block: block),
       behavior: HitTestBehavior.opaque,
       child: Container(
         decoration:

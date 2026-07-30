@@ -22,13 +22,16 @@ class AppDrawer extends ConsumerWidget {
     final currentTab = ref.watch(homeTabProvider);
 
     // 탭을 먼저 바꾸고(셸이 구독 중) 루트까지 pop — pop 후 ref 사용을 피한다.
+    // 드로어는 라우트가 아니므로 popUntil 로 닫히지 않는다 → 먼저 명시적으로 닫는다.
     void goTab(int index) {
+      Scaffold.of(context).closeEndDrawer();
       ref.read(homeTabProvider.notifier).state = index;
       Navigator.of(context).popUntil((r) => r.isFirst);
     }
 
     // 루트(셸)까지 되돌아간 뒤 해당 화면 push.
     void goPush(Widget screen) {
+      Scaffold.of(context).closeEndDrawer();
       final nav = Navigator.of(context);
       nav.popUntil((r) => r.isFirst);
       nav.push(MaterialPageRoute(builder: (_) => screen));
@@ -95,7 +98,7 @@ class AppDrawer extends ConsumerWidget {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () => Scaffold.of(context).closeEndDrawer(),
                     behavior: HitTestBehavior.opaque,
                     child: Container(
                       width: 40,

@@ -77,9 +77,12 @@ class _TimeHubState extends ConsumerState<TimeHub> {
                     color: sel ? tk.ink : Colors.transparent, width: 1.5),
               ),
             ),
-            // 레퍼런스: 모노 탭, 활성만 밑줄.
+            // 레퍼런스 최종 .segmented button — 모노 10px, 굵기 500, 활성만 밑줄.
             child: Text(label,
-                style: AppText.meta(sel ? tk.ink : tk.inkSoft, size: 13)),
+                style: AppText.meta(sel ? tk.ink : tk.inkSoft, size: 11)
+                    .copyWith(
+                        fontWeight:
+                            sel ? FontWeight.w500 : FontWeight.w400)),
           ),
         ),
       );

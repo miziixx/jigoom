@@ -185,15 +185,11 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final term = solarTermName(day);
     final hasSched = (counts[day] ?? 0) > 0;
     final sunday = day.weekday % 7 == 0;
-    final settings = ref.watch(settingsProvider);
 
     final numColor = !inMonth
         ? tk.inkSoft.withValues(alpha: 0.4)
         : (sunday ? tk.mark : tk.ink);
     final subColor = !inMonth ? tk.inkSoft.withValues(alpha: 0.4) : tk.inkSoft;
-    // 셀 보조줄: 절기 > 일진 한자(사주 켜짐) > 음력 — 레퍼런스 셀 정보구조.
-    final subText =
-        term ?? (settings.showSaju ? iljinLabel(day) : lunarShort(day));
 
     return GestureDetector(
       onTap: () => setState(() => _selected = day),
@@ -210,41 +206,41 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             width: isToday ? 1.4 : 1.0,
           ),
         ),
-        padding: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.only(top: 5),
+        // 레퍼런스 셀: 양력 숫자 → 干支日(항상) → 달 모양(+일정 점).
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 양력 날짜 + 달 모양(실제 도형).
+            Text('${day.day}',
+                style: AppText.body(numColor).copyWith(
+                    fontSize: 12,
+                    fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
+            const SizedBox(height: 2),
+            // 干支日 — 항상 표시. 절기 날은 포인트색으로 강조.
+            Text(iljinLabel(day),
+                maxLines: 1,
+                overflow: TextOverflow.clip,
+                style:
+                    AppText.metaSans(term != null ? tk.mark : subColor, size: 7.5)),
+            const SizedBox(height: 3),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('${day.day}',
-                    style: AppText.meta(numColor, size: 12).copyWith(
-                        fontWeight:
-                            isToday ? FontWeight.w700 : FontWeight.w400)),
-                const SizedBox(width: 3),
                 EdMoonPhase(
                     phase: moonPhaseFraction(day),
                     size: 7,
                     color: subColor,
                     bg: tk.paper),
+                if (hasSched) ...[
+                  const SizedBox(width: 3),
+                  Container(
+                    width: 3.5,
+                    height: 3.5,
+                    decoration:
+                        BoxDecoration(shape: BoxShape.circle, color: numColor),
+                  ),
+                ],
               ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subText,
-              maxLines: 1,
-              overflow: TextOverflow.clip,
-              style:
-                  AppText.metaSans(term != null ? tk.mark : subColor, size: 8),
-            ),
-            const SizedBox(height: 2),
-            Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: hasSched ? tk.ink : Colors.transparent,
-              ),
             ),
           ],
         ),

@@ -225,28 +225,24 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _bottomNav(BuildContext context) {
     final tk = t(context);
 
-    Widget item(int idx, String label) {
+    // 레퍼런스 .bottom-nav .nav — 아이콘(20) + 라벨(작은 모노) 세로 스택, 활성=잉크.
+    Widget item(int idx, String label, IconData icon) {
       final active = _index == idx;
+      final color = active ? tk.ink : tk.inkSoft;
       return Expanded(
         child: GestureDetector(
           onTap: () => _setTab(idx),
           behavior: HitTestBehavior.opaque,
           child: Container(
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Container(
-              padding: const EdgeInsets.only(bottom: 3),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: active ? tk.mark : Colors.transparent,
-                    width: 1.5,
-                  ),
-                ),
-              ),
-              child: Text(label,
-                  style:
-                      AppText.nav(active ? tk.mark : tk.inkSoft, active: active)),
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 20, color: color),
+                const SizedBox(height: 4),
+                Text(label, style: AppText.nav(color, active: active)),
+              ],
             ),
           ),
         ),
@@ -262,8 +258,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           child: Row(
             children: [
-              item(6, '홈'),
-              item(0, '오늘'),
+              item(6, '홈', Icons.home_outlined),
+              item(0, '오늘', Icons.calendar_today_outlined),
               // 가운데 ＋ — 지금 머무는 메뉴에 맞춰 담기(유형 자동 선택).
               Expanded(
                 child: GestureDetector(
@@ -287,8 +283,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                 ),
               ),
-              item(3, '일과'),
-              item(5, '전체'),
+              item(3, '일과', Icons.check_box_outlined),
+              item(5, '전체', Icons.reorder),
             ],
           ),
         ),

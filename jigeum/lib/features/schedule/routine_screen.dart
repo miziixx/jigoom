@@ -287,53 +287,77 @@ class _GroupHeader extends ConsumerWidget {
         .where((s) => s.lastDone != null && dateOnly(s.lastDone!) == today)
         .length;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () => repo.setGroupCollapsed(group.id, !group.collapsed),
-          onLongPress: () => showRoutineGroupSheet(context, existing: group),
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 18, 0, 8),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  child: Text(group.collapsed ? '▸' : '▾',
-                      style: AppText.meta(tk.inkSoft, size: 11)),
+    // 레퍼런스 .routine-block — 상단 hairline + [네모 아이콘 | 제목 | 카운트 | 펼침 ⌃/⌄].
+    return Container(
+      decoration:
+          BoxDecoration(border: Border(top: BorderSide(color: tk.line))),
+      child: GestureDetector(
+        onTap: () => repo.setGroupCollapsed(group.id, !group.collapsed),
+        onLongPress: () => showRoutineGroupSheet(context, existing: group),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 11, kGutter, 11),
+          child: Row(
+            children: [
+              // routine-icon — 네모 테두리 안에 시간대 배지(AM/MD/PM).
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration:
+                    BoxDecoration(border: Border.all(color: tk.line, width: 1)),
+                child: Text(routineBadge(group.title),
+                    style: AppText.meta(tk.ink, size: 10)
+                        .copyWith(letterSpacing: 0.5)),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Text(group.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.body(tk.ink)
+                        .copyWith(fontSize: 12, fontWeight: FontWeight.w500)),
+              ),
+              const SizedBox(width: 8),
+              Text('$doneCount / ${steps.length}',
+                  style: AppText.meta(tk.inkSoft, size: 9)),
+              const SizedBox(width: 10),
+              Text(group.collapsed ? '⌄' : '⌃',
+                  style: AppText.glyph(tk.inkSoft, size: 13)),
+              // 블록 손잡이 — 블록 전체를 위아래로 옮긴다.
+              ReorderableDragStartListener(
+                index: index,
+                child: const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: _DragGlyph(),
                 ),
-                Flexible(
-                  child: Text(group.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.body(tk.ink)
-                          .copyWith(fontWeight: FontWeight.w600)),
-                ),
-                const SizedBox(width: 8),
-                Text('$doneCount/${steps.length}',
-                    style: AppText.meta(tk.inkSoft, size: 10)),
-                const Spacer(),
-                // 블록 손잡이 — 블록 전체를 위아래로 옮긴다.
-                ReorderableDragStartListener(
-                  index: index,
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: kGutter - 8),
-                    child: Text('≡', style: AppText.glyph(tk.inkSoft, size: 16)),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: kGutter),
-          child: Container(height: 1, color: tk.ink),
-        ),
-      ],
+      ),
     );
   }
+}
+
+/// 드래그 손잡이 글리프(≡) — 여러 곳에서 재사용.
+class _DragGlyph extends StatelessWidget {
+  const _DragGlyph();
+  @override
+  Widget build(BuildContext context) =>
+      Text('≡', style: AppText.glyph(t(context).inkSoft, size: 15));
+}
+
+/// 루틴 블록 배지 — 시간대 키워드면 AM/MD/PM, 아니면 제목 앞 2글자.
+String routineBadge(String title) {
+  final s = title.trim();
+  bool has(List<String> ks) => ks.any(s.contains);
+  if (has(['아침', '모닝', '기상', '새벽'])) return 'AM';
+  if (has(['점심', '오후', '낮'])) return 'MD';
+  if (has(['저녁', '밤', '취침', '자기', '자정', '나이트'])) return 'PM';
+  final c = s.replaceAll(' ', '');
+  if (c.isEmpty) return '·';
+  return c.length >= 2 ? c.substring(0, 2) : c;
 }
 
 /// "+ 스텝 추가" 줄 + 자주 쓰는 스텝 추천(알약 칩). 칩을 탭하면 바로 추가된다.
@@ -348,22 +372,26 @@ class _AddStepRow extends ConsumerWidget {
         ref.watch(routineStepSuggestionsProvider(groupId)).valueOrNull ??
             const <String>[];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () => showRoutineStepSheet(context, groupId: groupId),
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter + 60, 11, kGutter, 11),
-            child:
-                Text('+ 스텝 추가', style: AppText.meta(tk.inkSoft, size: 11)),
+    // 레퍼런스 .dash-add — 아이콘 아래로 들여쓴 "+ 단계 추가", 상단 hairline.
+    return Container(
+      decoration:
+          BoxDecoration(border: Border(top: BorderSide(color: tk.line))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => showRoutineStepSheet(context, groupId: groupId),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter + 47, 10, kGutter, 10),
+              child:
+                  Text('+ 단계 추가', style: AppText.meta(tk.inkSoft, size: 10)),
+            ),
           ),
-        ),
-        if (suggestions.isNotEmpty)
-          Padding(
-            padding:
-                const EdgeInsets.fromLTRB(kGutter + 60, 0, kGutter, 12),
+          if (suggestions.isNotEmpty)
+            Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(kGutter + 47, 0, kGutter, 12),
             child: Wrap(
               spacing: 6,
               runSpacing: 6,
@@ -378,7 +406,8 @@ class _AddStepRow extends ConsumerWidget {
               ],
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -400,81 +429,64 @@ class _StepRow extends ConsumerWidget {
     final trigger = step.trigger.trim();
     final doneToday =
         step.lastDone != null && dateOnly(step.lastDone!) == todayDate();
+    // 우측 소요/상태 라벨 — 레퍼런스 step small(3분) 자리에 트리거·연속·완료시각.
+    final String small = doneToday
+        ? (step.lastDoneAt != null
+            ? DateFormat('HH:mm').format(step.lastDoneAt!)
+            : '완료')
+        : (trigger.isNotEmpty
+            ? trigger
+            : (step.streak > 0 ? '×${step.streak}' : ''));
 
+    // 레퍼런스 .routine-step — 아이콘 아래로 들여쓴 [체크 | 이름 | 소요/상태].
     return Container(
       decoration:
-          BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 트리거 (레일 왼쪽)
-            SizedBox(
-              width: kGutter + 46,
+          BoxDecoration(border: Border(top: BorderSide(color: tk.line))),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => repo.toggleStepDone(step),
+              onLongPress: () => showRoutineStepSheet(context,
+                  groupId: step.groupId, existing: step),
+              behavior: HitTestBehavior.opaque,
               child: Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    trigger.isEmpty ? '그다음' : trigger,
-                    textAlign: TextAlign.right,
-                    style: AppText.meta(trigger.isEmpty ? tk.inkSoft : tk.ink,
-                        size: 10),
-                  ),
-                ),
-              ),
-            ),
-            // 시퀀스 레일 (세로선 — 줄이 이어져 "뭐 다음 뭐"를 잇는다)
-            Container(width: 1, color: tk.line),
-            // 본문 (탭=체크 / 롱프레스=수정)
-            Expanded(
-              child: GestureDetector(
-                onTap: () => repo.toggleStepDone(step),
-                onLongPress: () => showRoutineStepSheet(context,
-                    groupId: step.groupId, existing: step),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 11, 8, 11),
-                  child: Row(
-                    children: [
-                      Text(doneToday ? '■' : '□',
-                          style: AppText.glyph(doneToday ? tk.ink : tk.inkSoft,
-                              size: 15)),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: Text(
-                          step.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          // v17: 완료는 취소선이 아니라 흐림으로 통일.
-                          style: AppText.body(doneToday
-                              ? tk.ink.withValues(alpha: 0.5)
-                              : tk.ink),
-                        ),
+                // 좌측 들여쓰기 = gutter + 아이콘(36) + 간격(11).
+                padding: const EdgeInsets.fromLTRB(kGutter + 47, 9, 8, 9),
+                child: Row(
+                  children: [
+                    Text(doneToday ? '■' : '□',
+                        style: AppText.glyph(doneToday ? tk.ink : tk.inkSoft,
+                            size: 15)),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        step.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.body(doneToday
+                                ? tk.ink.withValues(alpha: 0.5)
+                                : tk.ink)
+                            .copyWith(fontSize: 12),
                       ),
-                      if (doneToday && step.lastDoneAt != null)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: Text(
-                              '${DateFormat('HH:mm').format(step.lastDoneAt!)} 완료'
-                              '${step.streak > 0 ? ' · ×${step.streak}' : ''}',
-                              style: AppText.meta(tk.mark, size: 10)),
-                        )
-                      else if (step.streak > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: Text('×${step.streak}',
-                              style: AppText.meta(tk.inkSoft, size: 10)),
-                        ),
-                    ],
-                  ),
+                    ),
+                    if (small.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Text(small,
+                            style: AppText.meta(
+                                doneToday ? tk.mark : tk.inkSoft,
+                                size: 9)),
+                      ),
+                  ],
                 ),
               ),
             ),
-            // 드래그 손잡이 (여기서만 드래그 시작 → 탭 체크와 충돌 없음)
-            ReorderableDragStartListener(
-              index: index,
-              child: Padding(
+          ),
+          // 드래그 손잡이 (여기서만 드래그 시작 → 탭 체크와 충돌 없음)
+          ReorderableDragStartListener(
+            index: index,
+            child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: kGutter - 8),
                 child: Center(
                   child: Text('≡', style: AppText.glyph(tk.inkSoft, size: 16)),
@@ -483,7 +495,6 @@ class _StepRow extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

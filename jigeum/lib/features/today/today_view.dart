@@ -297,7 +297,7 @@ class SimpleTile extends ConsumerWidget {
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: const EdgeInsets.only(left: 8, top: 1),
-                child: Text('···', style: AppText.glyph(tk.inkSoft, size: 16)),
+                child: Text('⋯', style: AppText.glyph(tk.inkSoft, size: 16)),
               ),
             ),
           ],

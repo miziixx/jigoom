@@ -65,6 +65,10 @@ class _Rec {
     this.done = false,
     this.onToggle,
     this.checkable = false,
+    this.bullets = const [],
+    this.range,
+    this.written,
+    this.duration,
   });
   final _Cat cat;
   final String title;
@@ -73,6 +77,13 @@ class _Rec {
   final bool done;
   final VoidCallback? onToggle; // null=토글 불가(읽기전용/오늘 아님)
   final bool checkable; // 체크박스 표시 여부
+  // 트래커 기록(펼침)용 — 레퍼런스 .time-row.tracker-row.
+  final List<String> bullets; // 작업 여러 줄('—' 불릿)
+  final String? range; // "12:30–13:00"
+  final String? written; // "작성 13:02 · 수정 13:11"
+  final String? duration; // 우측 소요("30분")
+
+  bool get isRecord => range != null;
 }
 
 class _DayViewState extends ConsumerState<DayView> {
@@ -153,8 +164,7 @@ class _DayViewState extends ConsumerState<DayView> {
       for (final n in openNodes)
         if (n.type == NodeType.memo) _Rec(_Cat.memo, n.title),
       for (final b in blocks)
-        if (b.content.isNotEmpty)
-          _Rec(_Cat.log, b.content, minute: b.block * 30),
+        if (b.content.trim().isNotEmpty) _logRec(b),
     ];
 
     return Container(
@@ -228,15 +238,43 @@ class _DayViewState extends ConsumerState<DayView> {
     return out;
   }
 
-  // ── 타임라인 한 줄 (레퍼런스 .time-row: 시간 | 노드점+연결선 | 본문) ──
+  // 타임트래커 블록 → 펼침 기록 _Rec (제목 + 불릿 + 범위 + 작성/수정).
+  _Rec _logRec(TimeBlock b) {
+    final lines = b.content
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    final start = blockLabel(b.block);
+    final end = blockLabel((b.block + 1) % 48 == 0 ? 48 : b.block + 1);
+    return _Rec(
+      _Cat.log,
+      lines.isEmpty ? '기록' : lines.first,
+      minute: b.block * 30,
+      bullets: lines.length > 1 ? lines.sublist(1) : const [],
+      range: '$start–$end',
+      written: b.updatedAt != null
+          ? '작성 ${DateFormat('HH:mm').format(b.updatedAt!)}'
+          : null,
+      duration: '30분',
+    );
+  }
+
+  // 소스/상태 메타 — 예: "일정 · 완료", "습관 · 완료".
+  String _metaFor(_Rec r) {
+    final base = _label(r.cat);
+    if (r.completedAt != null) {
+      return '$base · 완료 ${DateFormat('HH:mm').format(r.completedAt!)}';
+    }
+    if (r.done) return '$base · 완료';
+    return base;
+  }
+
+  // ── 타임라인 한 줄 (레퍼런스 .time-row: 시간 | □체크박스+연결선 | 본문 | 우측 소요) ──
   Widget _timelineRow(AppTokens tk, _Rec r, {required bool isLast}) {
-    final meta = <String>[
-      _label(r.cat),
-      if (r.completedAt != null)
-        '완료 ${DateFormat('HH:mm').format(r.completedAt!)}'
-      else if (r.done)
-        '완료',
-    ];
+    final titleStyle = AppText.body(
+            r.done ? tk.ink.withValues(alpha: 0.5) : tk.ink)
+        .copyWith(fontSize: 13, fontWeight: FontWeight.w600);
     return IntrinsicHeight(
       child: Container(
         decoration:
@@ -248,26 +286,22 @@ class _DayViewState extends ConsumerState<DayView> {
             Padding(
               padding: const EdgeInsets.only(top: 13),
               child: SizedBox(
-                width: 40,
+                width: 43,
                 child: Text(r.minute != null ? minToShort(r.minute!) : '·',
                     style: AppText.meta(tk.inkSoft, size: 9)),
               ),
             ),
-            const SizedBox(width: 8),
-            // 노드: 점 + 아래 연결선(마지막 행은 선 없음).
+            const SizedBox(width: 6),
+            // 체크박스(왼쪽) + 아래 연결선(마지막 행은 선 없음).
             SizedBox(
-              width: 10,
+              width: 18,
               child: Column(
                 children: [
-                  const SizedBox(height: 14),
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: tk.paper,
-                      border: Border.all(color: tk.ink, width: 1.2),
-                    ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: r.checkable ? r.onToggle : null,
+                    child: EdCheck(done: r.done, size: 17),
                   ),
                   if (!isLast)
                     Expanded(
@@ -276,7 +310,7 @@ class _DayViewState extends ConsumerState<DayView> {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 11),
             // 본문.
             Expanded(
               child: Padding(
@@ -285,35 +319,54 @@ class _DayViewState extends ConsumerState<DayView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: r.checkable ? r.onToggle : null,
-                      child: Text(
-                        r.title,
+                    Text(r.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: AppText.body(r.done
-                                ? tk.ink.withValues(alpha: 0.5)
-                                : tk.ink)
-                            .copyWith(fontSize: 12),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(meta.join('  ·  '),
-                        style: AppText.metaSans(tk.inkSoft, size: 8)),
+                        style: titleStyle),
+                    if (r.isRecord) ...[
+                      for (final line in r.bullets)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('— ',
+                                  style: AppText.body(tk.inkSoft)
+                                      .copyWith(fontSize: 12)),
+                              Expanded(
+                                child: Text(line,
+                                    style: AppText.body(tk.ink)
+                                        .copyWith(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 5),
+                      Text(r.range!,
+                          style: AppText.metaSans(tk.inkSoft, size: 8)),
+                      if (r.written != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(r.written!,
+                              style: AppText.metaSans(
+                                  tk.inkSoft.withValues(alpha: 0.7),
+                                  size: 8)),
+                        ),
+                    ] else ...[
+                      const SizedBox(height: 4),
+                      Text(_metaFor(r),
+                          style: AppText.metaSans(tk.inkSoft, size: 8)),
+                    ],
                   ],
                 ),
               ),
             ),
-            // 완료 토글(가능할 때만).
-            if (r.checkable && r.onToggle != null)
+            // 우측 소요(기록만) — 레퍼런스 30분.
+            if (r.duration != null)
               Padding(
-                padding: const EdgeInsets.only(left: 8, top: 12),
-                child: GestureDetector(
-                  onTap: r.onToggle,
-                  behavior: HitTestBehavior.opaque,
-                  child: EdCheck(done: r.done, size: 16),
-                ),
+                padding: const EdgeInsets.only(left: 8, top: 13),
+                child:
+                    Text(r.duration!, style: AppText.meta(tk.inkSoft, size: 9)),
               ),
           ],
         ),
