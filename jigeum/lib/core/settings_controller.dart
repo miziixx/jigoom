@@ -11,7 +11,7 @@ class AppSettings {
     this.themeKey = kDefaultThemeKey,
     this.fontScale = 1.0,
     this.weightDelta = 0,
-    this.systemFont = true,
+    this.systemFont = false,
     this.skyMode = 'both',
     this.birth,
     this.birthHasTime = false,
@@ -155,6 +155,14 @@ class SettingsController extends StateNotifier<AppSettings> {
       }
       await _set('v17_sage_migrated', '1');
     }
+    // v17: 레퍼런스는 Pretendard(얇은 편집 산세리프)를 쓴다. 시스템 글꼴(폰 기본
+    // 고딕)은 더 두껍게 보여서, 기존 설치를 번들 Pretendard로 1회 이관한다.
+    // 이후 사용자가 설정에서 시스템 글꼴을 다시 켜면 그 선택이 유지된다.
+    final fontMigrated = await _get('v17_pretendard_migrated');
+    if (fontMigrated != '1') {
+      await _set(_kSystemFont, '0');
+      await _set('v17_pretendard_migrated', '1');
+    }
     final sysFont = await _get(_kSystemFont);
     final sky = await _get(_kSkyMode);
     final birthStr = await _get(_kBirth);
@@ -177,7 +185,7 @@ class SettingsController extends StateNotifier<AppSettings> {
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
       weightDelta: int.tryParse(weight ?? '') ?? 0,
-      systemFont: sysFont == null ? true : sysFont == '1',
+      systemFont: sysFont == null ? false : sysFont == '1',
       skyMode: sky ?? 'both',
       birth: (birthStr == null || birthStr.isEmpty)
           ? null
