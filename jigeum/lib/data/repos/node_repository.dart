@@ -281,6 +281,56 @@ class NodeRepository {
     return db.update(db.nodes).replace(node.copyWith(updatedAt: DateTime.now()));
   }
 
+  // ---------------------------------------------------------------------------
+  // 목표 관리 (type=goal, goalHorizon = week|month|year|custom)
+  // ---------------------------------------------------------------------------
+
+  /// 목표 목록 (type=goal).
+  Stream<List<Node>> watchGoals() {
+    final q = db.select(db.nodes)
+      ..where((n) => n.type.equals(NodeType.goal))
+      ..orderBy([
+        (n) => OrderingTerm.asc(n.sortOrder),
+        (n) => OrderingTerm.desc(n.createdAt),
+      ]);
+    return q.watch();
+  }
+
+  /// 목표 생성 — 기간(horizon)과 마감일(date) 지정.
+  Future<String> createGoal({
+    required String title,
+    required String horizon,
+    DateTime? date,
+    String note = '',
+  }) async {
+    final now = DateTime.now();
+    final id = _uuid.v4();
+    final order = await _nextSortOrder(null);
+    await db.into(db.nodes).insert(NodesCompanion.insert(
+          id: id,
+          sortOrder: order,
+          type: NodeType.goal,
+          title: title,
+          note: Value(note),
+          date: Value(date == null ? null : dateOnly(date)),
+          goalHorizon: Value(horizon),
+          status: const Value(NodeStatus.open),
+          createdAt: now,
+          updatedAt: now,
+        ));
+    return id;
+  }
+
+  /// 목표 기간 변경.
+  Future<void> setGoalHorizon(String id, String horizon) async {
+    await (db.update(db.nodes)..where((n) => n.id.equals(id))).write(
+      NodesCompanion(
+        goalHorizon: Value(horizon),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   Future<void> setTitle(String id, String title) async {
     await (db.update(db.nodes)..where((n) => n.id.equals(id))).write(
       NodesCompanion(title: Value(title), updatedAt: Value(DateTime.now())),

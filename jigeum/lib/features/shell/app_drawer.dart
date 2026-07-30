@@ -5,6 +5,7 @@ import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import '../fortune/fortune_view.dart';
+import '../goal/goal_manage_screen.dart';
 import '../inbox/inbox_screen.dart';
 import '../outline/outline_screen.dart';
 import '../schedule/calendar_view.dart';
@@ -122,6 +123,7 @@ class AppDrawer extends ConsumerWidget {
               row('05', '쏟아내기', () => goTab(2), tabIndex: 2),
               row('06', '전체', () => goTab(5), tabIndex: 5),
               row('07', '아웃라인', () => goPush(const OutlineScreen())),
+              row('13', '목표 관리', () => goPush(const GoalManageScreen())),
               row('08', '습관', () => goTab(4), tabIndex: 4),
               row('09', '달력', () => goPush(const CalendarScreen())),
               row('10', '오늘의 운세', () => goPush(const FortuneView())),

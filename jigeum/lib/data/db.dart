@@ -23,6 +23,8 @@ class Nodes extends Table {
   TextColumn get triggerCondition => text().nullable()(); // "~하면 시작한다"
   TextColumn get obstacleNote => text().nullable()(); // 가장 망칠 위험
   TextColumn get focusSessionId => text().nullable()(); // 어느 집중세션 중 캡처됐나
+  // v14: 목표 관리 — 목표(type=goal)의 기간 구분. week|month|year|custom.
+  TextColumn get goalHorizon => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -207,7 +209,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -273,6 +275,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 13) {
             await m.addColumn(gcalCalendars, gcalCalendars.hidden);
+          }
+          if (from < 14) {
+            await m.addColumn(nodes, nodes.goalHorizon);
           }
         },
       );

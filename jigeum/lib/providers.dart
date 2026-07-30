@@ -142,6 +142,11 @@ final rootsProvider = StreamProvider<List<Node>>((ref) {
   return ref.watch(nodeRepoProvider).watchRoots();
 });
 
+/// 목표 목록 (type=goal) — 목표 관리 화면.
+final goalsProvider = StreamProvider<List<Node>>((ref) {
+  return ref.watch(nodeRepoProvider).watchGoals();
+});
+
 /// 자식 노드
 final childrenProvider =
     StreamProvider.family<List<Node>, String>((ref, parentId) {
