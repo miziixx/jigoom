@@ -219,20 +219,84 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _import(BuildContext context, WidgetRef ref) async {
     final json = await WidgetBridge.openBackup();
     if (json == null || !context.mounted) return;
-    final ok = await showConfirmDialog(context,
-        title: '복원할까요?',
-        message: '지금의 모든 데이터를 지우고\n선택한 백업으로 되돌립니다.',
-        confirmLabel: '복원',
-        danger: true);
-    if (!ok) return;
+    // 복원 방식 두 가지 중 선택.
+    final mode = await _pickRestoreMode(context);
+    if (mode == null) return;
     try {
-      await ref.read(backupServiceProvider).importJson(json);
-      if (context.mounted) _toast(context, '복원했어요');
+      await ref
+          .read(backupServiceProvider)
+          .importJson(json, merge: mode == 'merge');
+      if (context.mounted) {
+        _toast(context, mode == 'merge' ? '백업을 합쳤어요' : '백업으로 되돌렸어요');
+      }
     } catch (e) {
       if (context.mounted) {
         _toast(context, '복원 실패 — 올바른 백업 파일인지 확인해 주세요');
       }
     }
+  }
+
+  /// 복원 방식 선택 — 'replace'(전체 교체) / 'merge'(합치기) / null(취소).
+  Future<String?> _pickRestoreMode(BuildContext context) {
+    final tk = t(context);
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: tk.paper,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        Widget option(String value, String title, String sub, bool danger) =>
+            GestureDetector(
+              onTap: () => Navigator.pop(ctx, value),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                margin: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(border: Border.all(color: tk.line)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: AppText.body(danger ? tk.mark : tk.ink)
+                            .copyWith(fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(sub, style: AppText.meta(tk.inkSoft, size: 10)),
+                  ],
+                ),
+              ),
+            );
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: tk.line,
+                        borderRadius: BorderRadius.circular(99)),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text('어떻게 복원할까요?',
+                    style: AppText.hTitle(tk.ink).copyWith(fontSize: 20)),
+                const SizedBox(height: 5),
+                Text('선택한 백업을 어떻게 되돌릴지 골라주세요.',
+                    style: AppText.meta(tk.inkSoft, size: 11)),
+                option('merge', '합치기 (덮어쓰기)',
+                    '지금 쓴 기록은 그대로 두고, 백업을 그 위에 얹어요.', false),
+                option('replace', '전체 교체',
+                    '백업 안 한 기록까지 모두 지우고, 백업만 남겨요.', true),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _toast(BuildContext context, String msg) {

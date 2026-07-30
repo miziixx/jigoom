@@ -38,20 +38,28 @@ class GcalMapper {
     final end = DateTime.fromMillisecondsSinceEpoch(endMs);
 
     final day = dateOnly(start);
+    final endDay = dateOnly(end);
     int startMin;
     int endMin;
+    DateTime? endDate;
     if (allDay) {
       startMin = 0;
       endMin = 0;
+      // 구글 종일 이벤트의 end 는 배타적(마지막 날 다음날 00:00). 하루 빼서 실제 끝날.
+      final lastDay = endDay.subtract(const Duration(days: 1));
+      if (lastDay.isAfter(day)) endDate = lastDay;
     } else {
       startMin = start.hour * 60 + start.minute;
-      endMin = dateOnly(end) == day ? end.hour * 60 + end.minute : 1439;
+      endMin = endDay == day ? end.hour * 60 + end.minute : 1439;
       if (endMin <= startMin) endMin = (startMin + 30).clamp(0, 1439);
+      // 자정을 넘겨 여러 날 걸치는 시간 이벤트.
+      if (endDay.isAfter(day)) endDate = endDay;
     }
 
     return RemoteEvent(
       gcalId: id,
       date: day,
+      endDate: endDate,
       startMin: startMin,
       endMin: endMin,
       allDay: allDay,
@@ -68,6 +76,7 @@ class RemoteEvent {
   const RemoteEvent({
     required this.gcalId,
     required this.date,
+    this.endDate,
     required this.startMin,
     required this.endMin,
     required this.allDay,
@@ -77,6 +86,7 @@ class RemoteEvent {
 
   final String gcalId;
   final DateTime date;
+  final DateTime? endDate;
   final int startMin;
   final int endMin;
   final bool allDay;

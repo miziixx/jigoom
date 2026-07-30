@@ -20,10 +20,11 @@ Future<void> showQuickCaptureInput(
   bool presetUrgent = false,
   String? quadrantLabel,
   bool toDrawer = false,
+  String presetType = 'task',
 }) async {
   final controller = TextEditingController();
   final locked = quadrantLabel != null;
-  var type = 'task'; // task | schedule | memo | habit
+  var type = presetType; // task | schedule | memo | habit
   var important = presetImportant;
   var urgent = presetUrgent;
   DateTime? date = toDrawer ? null : todayDate();

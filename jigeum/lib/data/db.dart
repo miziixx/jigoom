@@ -76,7 +76,9 @@ class HabitTicks extends Table {
 /// 하루 일정 (일과). 시작·끝 시간이 있는 그날의 일정.
 class Schedules extends Table {
   TextColumn get id => text()();
-  DateTimeColumn get date => dateTime()(); // 자정 기준 날짜
+  DateTimeColumn get date => dateTime()(); // 시작 날짜(자정 기준)
+  // 여러 날 걸치는 일정의 끝 날짜(자정 기준). null=하루짜리.
+  DateTimeColumn get endDate => dateTime().nullable()();
   TextColumn get title => text()();
   TextColumn get note => text().withDefault(const Constant(''))();
   IntColumn get color =>
@@ -203,7 +205,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -263,6 +265,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 11) {
             await m.addColumn(timeBlocks, timeBlocks.updatedAt);
+          }
+          if (from < 12) {
+            await m.addColumn(schedules, schedules.endDate);
           }
         },
       );
