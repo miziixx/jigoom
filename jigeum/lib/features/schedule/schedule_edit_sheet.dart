@@ -171,14 +171,32 @@ class _SheetState extends ConsumerState<_Sheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 마스트헤드
+          // 레퍼런스 sheet-head: 핸들 + [ 브래킷 제목 · 부제 ] + (삭제) + ✕
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: tk.line, borderRadius: BorderRadius.circular(99)),
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(editing ? '일정 수정' : '새 일정',
-                  style: AppText.meta(tk.inkSoft, size: 10)
-                      .copyWith(letterSpacing: 1.4)),
-              const Spacer(),
-              if (editing)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(editing ? '일정 수정' : '새 일정',
+                        style: AppText.hTitle(tk.ink).copyWith(fontSize: 20)),
+                    const SizedBox(height: 5),
+                    Text('날짜와 시간이 있는 일을 추가합니다.',
+                        style: AppText.meta(tk.inkSoft, size: 11)),
+                  ],
+                ),
+              ),
+              if (editing) ...[
                 GestureDetector(
                   onTap: () async {
                     await NotificationService.instance
@@ -189,13 +207,27 @@ class _SheetState extends ConsumerState<_Sheet> {
                     if (context.mounted) Navigator.of(context).pop();
                   },
                   behavior: HitTestBehavior.opaque,
-                  child: Text('삭제', style: AppText.meta(tk.mark, size: 11)),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 10, top: 8),
+                    child: Text('삭제', style: AppText.meta(tk.mark, size: 11)),
+                  ),
                 ),
+              ],
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle, border: Border.all(color: tk.line)),
+                  child: Text('✕', style: AppText.glyph(tk.ink, size: 15)),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 6),
-          Container(height: 1, color: tk.ink),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           // 제목 (프롬프트)
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
