@@ -31,7 +31,9 @@ class GcalRepository {
 
   /// 구글에서 받은 목록으로 로컬 목록을 갱신.
   /// 사용자가 고른 [selected] 와 [syncToken] 은 보존한다(이름·색·권한만 갱신).
-  /// 처음 보는 캘린더는 주 캘린더만 기본 선택.
+  /// 처음 보는 캘린더는 내 캘린더(주 캘린더 또는 소유 권한)를 기본 선택 —
+  /// 안드로이드의 IS_PRIMARY 플래그가 비어 있는 기기가 많아 주 캘린더만 켜면
+  /// 아무 일정도 안 딸려오는 문제가 생겨서, 소유(owner) 권한까지 켠다.
   Future<void> upsertFromRemote(List<RemoteCalendar> items) async {
     final existing = {for (final c in await allCalendars()) c.id: c};
     final seen = <String>{};
@@ -43,7 +45,8 @@ class GcalRepository {
               id: it.id,
               summary: it.summary,
               colorHex: Value(it.colorHex),
-              selected: Value(it.primary), // 기본: 주 캘린더만 on
+              // 기본: 내 캘린더(주 캘린더 or 소유 권한) on.
+              selected: Value(it.primary || it.accessRole == 'owner'),
               primaryCal: Value(it.primary),
               accessRole: Value(it.accessRole),
             ));

@@ -12,6 +12,7 @@ Future<String?> showInputDialog(
   String initial = '',
   String? subtitle,
   String? fieldLabel,
+  String saveLabel = '저장',
 }) {
   final controller = TextEditingController(text: initial);
   return showDialog<String>(
@@ -67,7 +68,7 @@ Future<String?> showInputDialog(
               child: const Text('취소')),
           FilledButton(
               onPressed: () => Navigator.of(ctx).pop(controller.text),
-              child: const Text('저장')),
+              child: Text(saveLabel)),
         ],
       );
     },

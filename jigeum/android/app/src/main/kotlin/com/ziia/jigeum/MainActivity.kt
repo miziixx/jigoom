@@ -85,11 +85,18 @@ class MainActivity : FlutterActivity() {
             when (requestCode) {
                 REQ_SAVE_BACKUP -> {
                     val content = backupContent ?: ""
-                    contentResolver.openOutputStream(uri, "wt")?.use {
+                    // 일부 문서 제공자는 "wt" 를 거부 → "w" 로 열고, 스트림이 null
+                    // 이면 실패로 정직하게 보고(성공으로 위장하지 않음).
+                    val wrote = (
+                        contentResolver.openOutputStream(uri, "w")
+                            ?: contentResolver.openOutputStream(uri)
+                    )?.use {
                         it.write(content.toByteArray(Charsets.UTF_8))
-                    }
+                        it.flush()
+                        true
+                    } ?: false
                     backupContent = null
-                    res.success(true)
+                    res.success(wrote)
                 }
                 REQ_OPEN_BACKUP -> {
                     val text = contentResolver.openInputStream(uri)?.use {
