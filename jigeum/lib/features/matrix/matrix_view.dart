@@ -101,7 +101,7 @@ class MatrixView extends ConsumerWidget {
             children: [
               Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text('아이젠하워 매트릭스',
-                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
               const Spacer(),
               GestureDetector(
                 onTap: () => showQuickCaptureInput(context, ref),

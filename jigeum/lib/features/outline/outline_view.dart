@@ -89,7 +89,7 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
             children: [
               Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text('폴더와 목표',
-                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
               const Spacer(),
               GestureDetector(
                 onTap: () => _newNode(NodeType.folder, ''),

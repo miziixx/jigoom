@@ -162,7 +162,7 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
                 Text('§ ',
                     style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
                 Text('시간 기록',
-                    style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+                    style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => _export(byIndex.values.toList()

@@ -234,10 +234,11 @@ class AppText {
   /// 할 일 제목·본문 (한글, Sans 15/Medium).
   static TextStyle body(Color c, [int? wd]) => TextStyle(
       fontFamily: appSans,
-      fontSize: 15,
+      // 레퍼런스 편집 타이포: 본문/할 일은 작고 가볍게(task-name 12px/500).
+      fontSize: 13,
       fontWeight: shiftWeight(FontWeight.w500, wd ?? appWeightDelta),
-      height: 1.4,
-      letterSpacing: -0.15,
+      height: 1.42,
+      letterSpacing: -0.2,
       color: c);
 
   /// 섹션 대문자 라벨 (Mono 11/Bold, +0.14em).

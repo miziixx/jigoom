@@ -247,7 +247,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
                                   .copyWith(fontSize: 15)),
                           Text('아직 분류하지 않음',
                               style: AppText.hTitle(tk.ink)
-                                  .copyWith(fontSize: 18)),
+                                  .copyWith(fontSize: 16)),
                           const Spacer(),
                           Text('${pending.length}개',
                               style: AppText.meta(tk.inkSoft, size: 11)),

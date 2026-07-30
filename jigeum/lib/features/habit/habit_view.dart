@@ -125,7 +125,7 @@ class HabitView extends ConsumerWidget {
             children: [
               Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text('오늘의 습관',
-                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
             ],
           ),
           const SizedBox(height: 8),
