@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/dialogs.dart';
+import '../../core/editorial.dart';
 import '../../core/journal.dart';
 import '../../core/regions.dart';
 import '../../core/settings_controller.dart';
@@ -250,13 +251,12 @@ class SettingsScreen extends ConsumerWidget {
 
   /// 복원 방식 선택 — 'replace'(전체 교체) / 'merge'(합치기) / null(취소).
   Future<String?> _pickRestoreMode(BuildContext context) {
-    final tk = t(context);
-    return showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: tk.paper,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    // 앱 공통 에디토리얼 시트(플랫 핸들·각진 테두리·명조 제목)로 통일.
+    return showEditorialSheet<String>(
+      context,
+      scrollable: false,
       builder: (ctx) {
+        final tk = t(ctx);
         Widget option(String value, String title, String sub, bool danger) =>
             GestureDetector(
               onTap: () => Navigator.pop(ctx, value),
@@ -264,48 +264,35 @@ class SettingsScreen extends ConsumerWidget {
               child: Container(
                 margin: const EdgeInsets.only(top: 10),
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(border: Border.all(color: tk.line)),
+                decoration: BoxDecoration(
+                    border:
+                        Border.all(color: danger ? tk.mark : tk.line)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title,
                         style: AppText.body(danger ? tk.mark : tk.ink)
-                            .copyWith(fontSize: 13)),
+                            .copyWith(
+                                fontSize: 13, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 4),
                     Text(sub, style: AppText.meta(tk.inkSoft, size: 10)),
                   ],
                 ),
               ),
             );
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    decoration: BoxDecoration(
-                        color: tk.line,
-                        borderRadius: BorderRadius.circular(99)),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text('어떻게 복원할까요?',
-                    style: AppText.hTitle(tk.ink).copyWith(fontSize: 20)),
-                const SizedBox(height: 5),
-                Text('선택한 백업을 어떻게 되돌릴지 골라주세요.',
-                    style: AppText.meta(tk.inkSoft, size: 11)),
-                option('merge', '합치기 (덮어쓰기)',
-                    '지금 쓴 기록은 그대로 두고, 백업을 그 위에 얹어요.', false),
-                option('replace', '전체 교체',
-                    '백업 안 한 기록까지 모두 지우고, 백업만 남겨요.', true),
-              ],
-            ),
-          ),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('어떻게 복원할까요?', style: AppText.serif(tk.ink, size: 18)),
+            const SizedBox(height: 5),
+            Text('선택한 백업을 어떻게 되돌릴지 골라주세요.',
+                style: AppText.meta(tk.inkSoft, size: 11)),
+            option('merge', '합치기 (덮어쓰기)',
+                '지금 쓴 기록은 그대로 두고, 백업을 그 위에 얹어요.', false),
+            option('replace', '전체 교체',
+                '백업 안 한 기록까지 모두 지우고, 백업만 남겨요.', true),
+          ],
         );
       },
     );
