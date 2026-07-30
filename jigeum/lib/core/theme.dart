@@ -234,9 +234,9 @@ class AppText {
   /// 할 일 제목·본문 (한글, Sans 15/Medium).
   static TextStyle body(Color c, [int? wd]) => TextStyle(
       fontFamily: appSans,
-      // 레퍼런스 편집 타이포: 본문/할 일은 작고 가볍게(task-name 12px/500).
+      // 레퍼런스 편집 타이포: 본문/할 일은 작고 가볍게. Pretendard Regular(400).
       fontSize: 13,
-      fontWeight: shiftWeight(FontWeight.w500, wd ?? appWeightDelta),
+      fontWeight: shiftWeight(FontWeight.w400, wd ?? appWeightDelta),
       height: 1.42,
       letterSpacing: -0.2,
       color: c);
