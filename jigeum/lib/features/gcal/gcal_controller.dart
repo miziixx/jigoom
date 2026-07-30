@@ -117,6 +117,19 @@ class GcalController extends StateNotifier<GcalState> {
     }
   }
 
+  /// 목록에서 캘린더 숨기기/보이기(편집). 안 쓰는 캘린더로 목록이 지저분할 때.
+  /// 숨기면 동기화도 끄고 그 캘린더에서 온 일정을 로컬에서 즉시 제거한다
+  /// (로컬 편집분은 보존). 다시 보이게 하면 목록에만 복귀 — 동기화는 꺼진 채라
+  /// 필요하면 사용자가 스위치로 다시 켠다.
+  Future<void> setCalendarHidden(String id, bool hidden) async {
+    await _gcalRepo.setHidden(id, hidden);
+    if (hidden) {
+      await _gcalRepo.setSelected(id, false);
+      await _gcalRepo.deleteSyncedForCalendar(id);
+      await _pushCalendarsToWidget();
+    }
+  }
+
   /// 위젯 팝업 큐를 비우고 양방향 동기화. [refreshList] 면 캘린더 목록도 갱신.
   Future<void> syncNow({bool refreshList = true}) async {
     if (!state.connected) return;

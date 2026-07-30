@@ -10,6 +10,7 @@ import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import '../gcal/gcal_settings_section.dart';
+import '../shell/app_drawer.dart';
 import '../widgetkit/notification_service.dart';
 import '../widgetkit/widget_bridge.dart';
 
@@ -24,20 +25,23 @@ class SettingsScreen extends ConsumerWidget {
     final ctrl = ref.read(settingsProvider.notifier);
 
     return Scaffold(
+      endDrawer: const AppDrawer(),
       body: SafeArea(
         child: Column(
           children: [
             Masthead(
                 eyebrow: 'SETTINGS',
                 title: '설정',
-                onBack: () => Navigator.of(context).pop()),
+                onBack: () => Navigator.of(context).pop(),
+                showMenu: true),
             Expanded(
               child: Container(
                 color: tk.paper,
                 child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
-            const SectionLabel('테마'),
+            // 첫 섹션은 마스트헤드 규칙선과 겹치지 않게 상단 선 제거.
+            const SectionLabel('테마', topRule: false),
             _ThemePicker(current: s.themeKey, onPick: ctrl.setThemeKey),
 
             const SectionLabel('글자와 화면'),

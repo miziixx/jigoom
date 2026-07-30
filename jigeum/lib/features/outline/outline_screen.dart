@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/journal.dart';
 import '../../core/theme.dart';
+import '../shell/app_drawer.dart';
 import 'outline_view.dart';
 
 class OutlineScreen extends StatelessWidget {
@@ -16,13 +17,15 @@ class OutlineScreen extends StatelessWidget {
     final tk = t(context);
     return Scaffold(
       backgroundColor: tk.paper,
+      endDrawer: const AppDrawer(),
       body: SafeArea(
         child: Column(
           children: [
             Masthead(
                 eyebrow: 'OUTLINE',
                 title: '아웃라인',
-                onBack: () => Navigator.of(context).pop()),
+                onBack: () => Navigator.of(context).pop(),
+                showMenu: true),
             const Expanded(child: OutlineView()),
           ],
         ),

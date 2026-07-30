@@ -12,6 +12,8 @@ class GcalRepository {
   Stream<List<GcalCalendar>> watchCalendars() {
     return (db.select(db.gcalCalendars)
           ..orderBy([
+            // 숨긴 캘린더는 (편집 모드에서) 목록 맨 아래로.
+            (c) => OrderingTerm.asc(c.hidden),
             (c) => OrderingTerm.desc(c.primaryCal),
             (c) => OrderingTerm.asc(c.summary),
           ]))
@@ -75,6 +77,12 @@ class GcalRepository {
             // 동기화 껐다 켜면 다음번 전체 동기화(토큰 리셋).
             syncToken:
                 selected ? const Value.absent() : const Value<String?>(null)));
+  }
+
+  /// 목록에서 캘린더 숨김/보임 토글(편집).
+  Future<void> setHidden(String id, bool hidden) async {
+    await (db.update(db.gcalCalendars)..where((c) => c.id.equals(id)))
+        .write(GcalCalendarsCompanion(hidden: Value(hidden)));
   }
 
   Future<void> setSyncToken(String id, String? token) async {

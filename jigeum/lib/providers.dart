@@ -43,6 +43,10 @@ final dbProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
+/// 현재 하단 탭 인덱스(홈 셸). 사이드바 드로어가 어느 화면에서든 탭을 바꿀 수
+/// 있도록 셸의 로컬 상태 대신 provider 로 둔다. 기본 6 = 홈.
+final homeTabProvider = StateProvider<int>((ref) => 6);
+
 final nodeRepoProvider = Provider<NodeRepository>((ref) {
   return NodeRepository(ref.watch(dbProvider));
 });

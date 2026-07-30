@@ -155,6 +155,8 @@ class GcalCalendars extends Table {
   TextColumn get accessRole =>
       text().withDefault(const Constant('reader'))(); // reader|writer|owner
   TextColumn get syncToken => text().nullable()(); // 증분 동기화 토큰
+  BoolColumn get hidden =>
+      boolean().withDefault(const Constant(false))(); // 목록에서 숨김(편집)
 
   @override
   Set<Column> get primaryKey => {id};
@@ -205,7 +207,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -268,6 +270,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 12) {
             await m.addColumn(schedules, schedules.endDate);
+          }
+          if (from < 13) {
+            await m.addColumn(gcalCalendars, gcalCalendars.hidden);
           }
         },
       );

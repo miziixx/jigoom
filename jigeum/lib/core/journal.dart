@@ -21,7 +21,8 @@ class Masthead extends StatelessWidget {
       required this.title,
       this.actions,
       this.eyebrow,
-      this.onBack});
+      this.onBack,
+      this.showMenu = false});
   final String title;
   final List<Widget>? actions;
 
@@ -30,6 +31,10 @@ class Masthead extends StatelessWidget {
 
   /// 지정 시 제목 왼쪽에 원형 ← 뒤로가기 (푸시 화면용).
   final VoidCallback? onBack;
+
+  /// 지정 시 우측에 원형 ≡ 메뉴(사이드바) 버튼 — 이 화면을 감싼 Scaffold 의
+  /// endDrawer 를 연다. 푸시 화면(아웃라인·달력·운세·보류함 등)에서 사용.
+  final bool showMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +85,34 @@ class Masthead extends StatelessWidget {
                 ),
               ),
               if (actions != null) ...actions!,
+              if (showMenu)
+                Builder(
+                  // Scaffold 컨텍스트(마스트헤드를 감싼 화면의 Scaffold)에서 열어야 함.
+                  builder: (ctx) => GestureDetector(
+                    onTap: () => Scaffold.of(ctx).openEndDrawer(),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 10),
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: tk.line),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(width: 15, height: 1.4, color: tk.ink),
+                          const SizedBox(height: 4),
+                          Container(width: 15, height: 1.4, color: tk.ink),
+                          const SizedBox(height: 4),
+                          Container(width: 15, height: 1.4, color: tk.ink),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -103,6 +136,7 @@ class SectionLabel extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.trailing,
+    this.topRule = true,
   });
 
   final String label;
@@ -110,6 +144,10 @@ class SectionLabel extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final Widget? trailing;
+
+  /// 상단 규칙선. 화면 첫 섹션이면 마스트헤드 규칙선과 겹쳐 "줄 두 개"로
+  /// 보이므로 false 로 꺼서 마스트헤드 선 하나만 남긴다.
+  final bool topRule;
 
   @override
   Widget build(BuildContext context) {
@@ -119,8 +157,8 @@ class SectionLabel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(height: 1, color: tk.line),
-        const SizedBox(height: 7),
+        if (topRule) Container(height: 1, color: tk.line),
+        if (topRule) const SizedBox(height: 7),
         Row(
           children: [
             Text(label, style: AppText.sec(tk.ink)),
