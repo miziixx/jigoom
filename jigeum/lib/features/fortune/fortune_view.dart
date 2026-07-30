@@ -289,7 +289,7 @@ class _TodayHeader extends StatelessWidget {
             children: [
               Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text('오늘의 행동 카드',
-                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
               const Spacer(),
               Text('작게 시작', style: AppText.meta(tk.inkSoft, size: 11)),
             ],

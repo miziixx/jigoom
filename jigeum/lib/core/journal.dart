@@ -70,7 +70,12 @@ class Masthead extends StatelessWidget {
                             style: AppText.meta(tk.mark, size: 10)
                                 .copyWith(letterSpacing: 1.4)),
                       ),
-                    Text(title, style: AppText.hTitle(tk.ink)),
+                    Text(title,
+                        style: AppText.hTitle(tk.ink).copyWith(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w400,
+                            height: 1.12,
+                            letterSpacing: -1.3)),
                   ],
                 ),
               ),

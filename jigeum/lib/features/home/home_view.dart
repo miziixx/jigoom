@@ -303,7 +303,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
               Text('§ ',
                   style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text(title,
-                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
               const Spacer(),
               GestureDetector(
                 onTap: onAction,

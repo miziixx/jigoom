@@ -140,7 +140,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
             children: [
               Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text('오늘 할 일',
-                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
               const Spacer(),
               GestureDetector(
                 onTap: () => showQuickCaptureInput(context, ref),

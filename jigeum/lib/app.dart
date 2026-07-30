@@ -344,24 +344,26 @@ class _AppShellState extends ConsumerState<AppShell> {
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: tk.line, width: 1)),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 13),
+          padding: const EdgeInsets.symmetric(vertical: 11),
           child: Row(
             children: [
               Container(
-                width: 3,
-                height: 20,
+                width: 2,
+                height: 16,
                 color: current ? tk.mark : Colors.transparent,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 11),
               SizedBox(
-                width: 26,
-                child: Text(index, style: AppText.meta(tk.inkSoft, size: 11)),
+                width: 24,
+                child: Text(index, style: AppText.meta(tk.inkSoft, size: 9)),
               ),
               Expanded(
+                // 레퍼런스 drawer-item strong: 11px/450 — 작고 가볍게.
                 child: Text(label,
-                    style: AppText.body(current ? tk.mark : tk.ink)),
+                    style: AppText.body(current ? tk.mark : tk.ink).copyWith(
+                        fontSize: 12, fontWeight: FontWeight.w400)),
               ),
-              Text('›', style: AppText.glyph(tk.inkSoft, size: 16)),
+              Text('›', style: AppText.glyph(tk.inkSoft, size: 14)),
             ],
           ),
         ),
@@ -385,10 +387,12 @@ class _AppShellState extends ConsumerState<AppShell> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('지금', style: AppText.hTitle(tk.ink)),
+                        Text('지금',
+                            style: AppText.hTitle(tk.ink).copyWith(
+                                fontSize: 24, letterSpacing: -1.0)),
                         const SizedBox(height: 4),
                         Text('내 하루를 바깥에 꺼내두는 곳',
-                            style: AppText.meta(tk.inkSoft, size: 10)),
+                            style: AppText.meta(tk.inkSoft, size: 9)),
                       ],
                     ),
                   ),
