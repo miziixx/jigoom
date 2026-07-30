@@ -40,11 +40,13 @@ class SettingsScreen extends ConsumerWidget {
                 child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
-            // 첫 섹션은 마스트헤드 규칙선과 겹치지 않게 상단 선 제거.
+            // 레퍼런스(.settings-label)대로 섹션 라벨엔 상단 선을 두지 않고,
+            // 그룹의 마지막 행은 하단 구분선을 끈다(.setting:last-child). 그룹
+            // 사이는 선이 아니라 여백으로만 구분.
             const SectionLabel('테마', topRule: false),
             _ThemePicker(current: s.themeKey, onPick: ctrl.setThemeKey),
 
-            const SectionLabel('글자와 화면'),
+            const SectionLabel('글자와 화면', topRule: false),
             _adjustRow(context,
                 title: '글자 크기',
                 value: '현재 ${(s.fontScale * 100).round()}%',
@@ -54,9 +56,10 @@ class SettingsScreen extends ConsumerWidget {
               sub: '휴대폰의 기본 글꼴을 사용합니다.',
               value: s.systemFont,
               onChanged: ctrl.setSystemFont,
+              divider: false,
             ),
 
-            const SectionLabel('별자리 · 만세력'),
+            const SectionLabel('별자리 · 만세력', topRule: false),
             _PillSwitchRow(
               title: '별자리 표시',
               sub: '오늘·일과·달력 화면',
@@ -71,9 +74,9 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (v) => ctrl.setSkyMode(
                   _deriveSky(s.skyMode == 'both' || s.skyMode == 'zodiac', v)),
             ),
-            _SajuRow(settings: s, ctrl: ctrl),
+            _SajuRow(settings: s, ctrl: ctrl, divider: false),
 
-            const SectionLabel('집중 설정'),
+            const SectionLabel('집중 설정', topRule: false),
             _PillSwitchRow(
               title: '집중 중 방해 금지',
               sub: '집중 기록 중 알림과 브리핑을 숨깁니다.',
@@ -94,19 +97,22 @@ class SettingsScreen extends ConsumerWidget {
               sub: '작은 진동과 완료 메시지를 표시합니다.',
               value: !s.reduceMotion,
               onChanged: (v) => ctrl.setReduceMotion(!v),
+              divider: false,
             ),
 
-            const SectionLabel('Google Calendar'),
+            const SectionLabel('Google Calendar', topRule: false),
             const GcalSettingsSection(),
 
-            const SectionLabel('위젯'),
-            _WidgetOpacityRow(onAdjust: () => _openWidgetOpacitySheet(context)),
+            const SectionLabel('위젯', topRule: false),
+            _WidgetOpacityRow(
+                onAdjust: () => _openWidgetOpacitySheet(context),
+                divider: false),
 
-            const SectionLabel('백업'),
+            const SectionLabel('백업', topRule: false),
             _navRow(context, '백업 내보내기', '모든 데이터를 파일로 저장합니다.',
                 () => _export(context, ref)),
             _navRow(context, '백업 가져오기', '백업 파일로 전체 데이터를 복원합니다.',
-                () => _import(context, ref)),
+                () => _import(context, ref), divider: false),
           ],
                 ),
               ),
@@ -149,14 +155,16 @@ class SettingsScreen extends ConsumerWidget {
 
   /// 이동형 행 — 제목 + 부제 + 우측 › 셰브런. 하단 헤어라인.
   Widget _navRow(
-      BuildContext context, String title, String sub, VoidCallback onTap) {
+      BuildContext context, String title, String sub, VoidCallback onTap,
+      {bool divider = true}) {
     final tk = t(context);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        decoration:
-            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        decoration: divider
+            ? BoxDecoration(border: Border(bottom: BorderSide(color: tk.line)))
+            : null,
         padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
         child: Row(
           children: [
@@ -491,18 +499,21 @@ class _PillSwitchRow extends StatelessWidget {
       {required this.title,
       required this.sub,
       required this.value,
-      required this.onChanged});
+      required this.onChanged,
+      this.divider = true});
   final String title;
   final String sub;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final bool divider;
 
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
     return Container(
-      decoration:
-          BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+      decoration: divider
+          ? BoxDecoration(border: Border(bottom: BorderSide(color: tk.line)))
+          : null,
       padding: const EdgeInsets.fromLTRB(kGutter, 13, kGutter, 13),
       child: Row(
         children: [
@@ -526,9 +537,11 @@ class _PillSwitchRow extends StatelessWidget {
 
 /// 생년월일과 시간 행 — 값(있으면) 또는 안내 + 우측 "수정"/"입력". 상세는 SajuEditorPage.
 class _SajuRow extends StatelessWidget {
-  const _SajuRow({required this.settings, required this.ctrl});
+  const _SajuRow(
+      {required this.settings, required this.ctrl, this.divider = true});
   final AppSettings settings;
   final SettingsController ctrl;
+  final bool divider;
 
   @override
   Widget build(BuildContext context) {
@@ -556,8 +569,9 @@ class _SajuRow extends StatelessWidget {
       onTap: open,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        decoration:
-            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        decoration: divider
+            ? BoxDecoration(border: Border(bottom: BorderSide(color: tk.line)))
+            : null,
         padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
         child: Row(
           children: [
@@ -581,8 +595,9 @@ class _SajuRow extends StatelessWidget {
 
 /// 위젯 투명도 행 — 현재값 표시 + "조절"(시트). 값은 비동기 로드.
 class _WidgetOpacityRow extends StatefulWidget {
-  const _WidgetOpacityRow({required this.onAdjust});
+  const _WidgetOpacityRow({required this.onAdjust, this.divider = true});
   final VoidCallback onAdjust;
+  final bool divider;
   @override
   State<_WidgetOpacityRow> createState() => _WidgetOpacityRowState();
 }
@@ -604,8 +619,9 @@ class _WidgetOpacityRowState extends State<_WidgetOpacityRow> {
       onTap: widget.onAdjust,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        decoration:
-            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        decoration: widget.divider
+            ? BoxDecoration(border: Border(bottom: BorderSide(color: tk.line)))
+            : null,
         padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
         child: Row(
           children: [
