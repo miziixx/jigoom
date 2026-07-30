@@ -6,7 +6,6 @@ import '../../core/constants.dart';
 import '../../core/dialogs.dart';
 import '../../core/journal.dart';
 import '../../core/regions.dart';
-import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
@@ -40,99 +39,69 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             const SectionLabel('테마'),
             _ThemePicker(current: s.themeKey, onPick: ctrl.setThemeKey),
+
             const SectionLabel('글자와 화면'),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-              child: Text('지금 할 것 · 오늘의 기록', style: AppText.body(tk.ink)),
-            ),
-            _sliderRow(
-              context,
-              label: '글자 크기',
-              value: '${(s.fontScale * 100).round()}%',
-              slider: Slider(
-                value: s.fontScale,
-                min: 0.85,
-                max: 1.4,
-                divisions: 11,
-                onChanged: (v) => ctrl.setFontScale((v * 100).round() / 100),
-              ),
-            ),
-            _sliderRow(
-              context,
-              label: '글자 굵기',
-              value: _weightLabel(s.weightDelta),
-              slider: Slider(
-                value: s.weightDelta.toDouble(),
-                min: -1,
-                max: 2,
-                divisions: 3,
-                onChanged: (v) => ctrl.setWeightDelta(v.round()),
-              ),
-            ),
-            _switchRow(
-              context,
+            _adjustRow(context,
+                title: '글자 크기',
+                value: '현재 ${(s.fontScale * 100).round()}%',
+                onTap: () => _openTypeSheet(context, ref)),
+            _PillSwitchRow(
               title: '휴대폰 글꼴 사용',
-              sub: '폰 설정의 기본 글꼴을 앱 전체에 적용하기',
+              sub: '휴대폰의 기본 글꼴을 사용합니다.',
               value: s.systemFont,
               onChanged: ctrl.setSystemFont,
             ),
-            const SectionLabel('글꼴'),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-              child: Text(
-                s.systemFont ? '지금은 휴대폰 글꼴을 사용 중' : '앱 내장 글꼴',
-                style: AppText.body(tk.ink),
-              ),
+
+            const SectionLabel('별자리 · 만세력'),
+            _PillSwitchRow(
+              title: '별자리 표시',
+              sub: '오늘·일과·달력 화면',
+              value: s.skyMode == 'both' || s.skyMode == 'zodiac',
+              onChanged: (v) => ctrl.setSkyMode(
+                  _deriveSky(v, s.skyMode == 'both' || s.skyMode == 'saju')),
             ),
-            if (!s.systemFont)
-              _FontPicker(current: s.fontKey, onPick: ctrl.setFontKey),
-            const SectionLabel('별자리·만세력'),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-              child: Text('별자리·만세력(일진) 표시 — 오늘·일정·달력·플랜 모든 화면',
-                  style: AppText.body(tk.ink)),
+            _PillSwitchRow(
+              title: '만세력 표시',
+              sub: '간지와 음력 정보를 표시',
+              value: s.skyMode == 'both' || s.skyMode == 'saju',
+              onChanged: (v) => ctrl.setSkyMode(
+                  _deriveSky(s.skyMode == 'both' || s.skyMode == 'zodiac', v)),
             ),
-            _SkyPicker(current: s.skyMode, onPick: ctrl.setSkyMode),
-            const SectionLabel('사주 설정'),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-              child:
-                  Text('오늘의 운세용 — 생년월일과 태어난 시각', style: AppText.body(tk.ink)),
-            ),
-            _SajuTile(settings: s, ctrl: ctrl),
+            _SajuRow(settings: s, ctrl: ctrl),
+
             const SectionLabel('집중 설정'),
-            _switchRow(
-              context,
-              title: '방해 금지',
-              sub: '몰입 중엔 아침·저녁 브리핑과 상주 알림을 끄기',
+            _PillSwitchRow(
+              title: '집중 중 방해 금지',
+              sub: '집중 기록 중 알림과 브리핑을 숨깁니다.',
               value: s.quietMode,
               onChanged: (v) async {
                 await ctrl.setQuietMode(v);
                 if (v) await NotificationService.instance.silenceAll();
               },
             ),
-            _switchRow(
-              context,
+            _PillSwitchRow(
               title: '알림 문구 바꾸기',
-              sub: '같은 알림에 무뎌지지 않게 문구를 매번 조금씩',
+              sub: '같은 알림에 무뎌지지 않게 문구를 매번 조금씩 바꿉니다.',
               value: s.variedNudges,
               onChanged: ctrl.setVariedNudges,
             ),
-            _switchRow(
-              context,
-              title: '모션·완료 팝업 줄이기',
-              sub: '완료 시 뜨는 팝업을 끄고 화면을 더 잔잔하게',
-              value: s.reduceMotion,
-              onChanged: ctrl.setReduceMotion,
+            _PillSwitchRow(
+              title: '완료 효과',
+              sub: '작은 진동과 완료 메시지를 표시합니다.',
+              value: !s.reduceMotion,
+              onChanged: (v) => ctrl.setReduceMotion(!v),
             ),
-            const SectionLabel('GOOGLE CALENDAR'),
+
+            const SectionLabel('Google Calendar'),
             const GcalSettingsSection(),
+
             const SectionLabel('위젯'),
-            const _WidgetOpacityTile(),
+            _WidgetOpacityRow(onAdjust: () => _openWidgetOpacitySheet(context)),
+
             const SectionLabel('백업'),
-            _menuTile(context, '↑', '백업 내보내기', '모든 데이터를 파일로 저장',
+            _navRow(context, '백업 내보내기', '모든 데이터를 파일로 저장합니다.',
                 () => _export(context, ref)),
-            _menuTile(context, '↓', '백업 가져오기 (복원)', '파일에서 전체 되돌리기',
+            _navRow(context, '백업 가져오기', '백업 파일로 전체 데이터를 복원합니다.',
                 () => _import(context, ref)),
           ],
                 ),
@@ -144,91 +113,91 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _sliderRow(BuildContext context,
-      {required String label, required String value, required Widget slider}) {
+  /// 조절형 행 — 제목 + 현재값(작게) + 우측 "조절" 텍스트. 하단 헤어라인.
+  Widget _adjustRow(BuildContext context,
+      {required String title, required String value, required VoidCallback onTap}) {
     final tk = t(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: AppText.body(tk.ink)),
-              Text(value, style: AppText.meta(tk.inkSoft)),
-            ],
-          ),
-          slider,
-        ],
-      ),
-    );
-  }
-
-  Widget _switchRow(BuildContext context,
-      {required String title,
-      required String sub,
-      required bool value,
-      required ValueChanged<bool> onChanged}) {
-    final tk = t(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppText.body(tk.ink)),
-                const SizedBox(height: 2),
-                Text(sub, style: AppText.meta(tk.inkSoft)),
-              ],
-            ),
-          ),
-          Switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-
-  Widget _menuTile(BuildContext context, String glyph, String title, String sub,
-      VoidCallback onTap) {
-    final tk = t(context);
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: tk.line, width: 1)),
-        ),
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
         padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
         child: Row(
           children: [
-            SizedBox(
-                width: 22,
-                child: Text(glyph, style: AppText.glyph(tk.inkSoft))),
-            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: AppText.body(tk.ink)),
-                  const SizedBox(height: 2),
-                  Text(sub, style: AppText.meta(tk.inkSoft)),
+                  const SizedBox(height: 3),
+                  Text(value, style: AppText.meta(tk.inkSoft, size: 10)),
                 ],
               ),
             ),
+            Text('조절', style: AppText.meta(tk.mark, size: 11)),
           ],
         ),
       ),
     );
   }
 
-  static String _weightLabel(int d) => switch (d) {
-        -1 => '얇게',
-        0 => '보통',
-        1 => '조금 굵게',
-        _ => '굵게',
-      };
+  /// 이동형 행 — 제목 + 부제 + 우측 › 셰브런. 하단 헤어라인.
+  Widget _navRow(
+      BuildContext context, String title, String sub, VoidCallback onTap) {
+    final tk = t(context);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppText.body(tk.ink)),
+                  const SizedBox(height: 3),
+                  Text(sub, style: AppText.meta(tk.inkSoft, size: 10)),
+                ],
+              ),
+            ),
+            Text('›', style: AppText.glyph(tk.inkSoft, size: 16)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 별자리(z)·만세력(s) 두 토글 → 앱의 skyMode 단일 값으로 환산.
+  static String _deriveSky(bool z, bool s) =>
+      z && s ? 'both' : (z ? 'zodiac' : (s ? 'saju' : 'none'));
+
+  /// 글자 크기·굵기·글꼴을 한 시트에서 조절 (레퍼런스의 "조절").
+  void _openTypeSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: t(context).paper,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => const _TypeSheet(),
+    );
+  }
+
+  void _openWidgetOpacitySheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: t(context).paper,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => const _WidgetOpacitySheet(),
+    );
+  }
 
   // ---- 백업/복원 ----
   Future<void> _export(BuildContext context, WidgetRef ref) async {
@@ -343,6 +312,8 @@ class _FontPicker extends StatelessWidget {
   }
 }
 
+/// 테마 카드 가로 스크롤 — 레퍼런스 .theme-row(overflow:auto). 스와치(paper/ink/mark)
+/// + 이름. 선택 = 마크색 2px 아웃라인.
 class _ThemePicker extends StatelessWidget {
   const _ThemePicker({required this.current, required this.onPick});
   final String current;
@@ -351,48 +322,52 @@ class _ThemePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
-    return Padding(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
+      child: Row(
         children: [
           for (final spec in kThemes)
-            GestureDetector(
-              onTap: () => onPick(spec.key),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 58,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: current == spec.key ? tk.ink : spec.tokens.line,
-                        width: current == spec.key ? 1.5 : 1,
+            Padding(
+              padding: const EdgeInsets.only(right: 9),
+              child: GestureDetector(
+                onTap: () => onPick(spec.key),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: 92,
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: spec.tokens.paper,
+                    border: Border.all(
+                      color: current == spec.key ? tk.mark : tk.line,
+                      width: current == spec.key ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        height: 40,
+                        child: Row(
+                          children: [
+                            Expanded(
+                                child: Container(color: spec.tokens.paper2)),
+                            Expanded(child: Container(color: spec.tokens.ink)),
+                            Expanded(child: Container(color: spec.tokens.mark)),
+                          ],
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(child: Container(color: spec.tokens.paper)),
-                        Expanded(child: Container(color: spec.tokens.ink)),
-                        Expanded(child: Container(color: spec.tokens.mark)),
-                      ],
-                    ),
+                      const SizedBox(height: 7),
+                      Text(spec.name.toUpperCase(),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.meta(
+                              current == spec.key ? tk.ink : tk.inkSoft,
+                              size: 8)),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    width: 58,
-                    child: Text(spec.name,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.nav(
-                            current == spec.key ? tk.ink : tk.inkSoft,
-                            active: current == spec.key)),
-                  ),
-                ],
+                ),
               ),
             ),
         ],
@@ -401,55 +376,89 @@ class _ThemePicker extends StatelessWidget {
   }
 }
 
-/// 별자리·만세력 표시 모드 선택 — 둘다/별자리만/만세력만/둘다빼기.
-class _SkyPicker extends StatelessWidget {
-  const _SkyPicker({required this.current, required this.onPick});
-  final String current;
-  final ValueChanged<String> onPick;
-
-  static const _opts = [
-    ('both', '둘 다 보기'),
-    ('zodiac', '별자리만'),
-    ('saju', '만세력만'),
-    ('none', '둘 다 빼기'),
-  ];
+/// 편집 톤 플랫 토글 — 레퍼런스 .switch. 46×28 트랙, 켜짐=마크색.
+class _PillSwitch extends StatelessWidget {
+  const _PillSwitch({required this.value, required this.onChanged});
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final (key, label) in _opts)
-            GestureDetector(
-              onTap: () => onPick(key),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: current == key ? tk.ink : tk.line,
-                    width: current == key ? 1.5 : 1,
-                  ),
-                ),
-                child: Text(label,
-                    style: AppText.nav(current == key ? tk.ink : tk.inkSoft,
-                        active: current == key)),
-              ),
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 46,
+        height: 28,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(99),
+          color: value ? tk.mark : tk.line,
+        ),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 160),
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(color: Color(0x22000000), blurRadius: 4, offset: Offset(0, 2)),
+              ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 토글 행 — 제목 + 부제 + 우측 플랫 토글. 하단 헤어라인.
+class _PillSwitchRow extends StatelessWidget {
+  const _PillSwitchRow(
+      {required this.title,
+      required this.sub,
+      required this.value,
+      required this.onChanged});
+  final String title;
+  final String sub;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return Container(
+      decoration:
+          BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+      padding: const EdgeInsets.fromLTRB(kGutter, 13, kGutter, 13),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppText.body(tk.ink)),
+                const SizedBox(height: 3),
+                Text(sub, style: AppText.meta(tk.inkSoft, size: 10)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          _PillSwitch(value: value, onChanged: onChanged),
         ],
       ),
     );
   }
 }
 
-/// 사주 요약 타일 — 현재 입력 상태를 보여주고, 탭하면 정밀 입력 폼으로.
-class _SajuTile extends StatelessWidget {
-  const _SajuTile({required this.settings, required this.ctrl});
+/// 생년월일과 시간 행 — 값(있으면) 또는 안내 + 우측 "수정"/"입력". 상세는 SajuEditorPage.
+class _SajuRow extends StatelessWidget {
+  const _SajuRow({required this.settings, required this.ctrl});
   final AppSettings settings;
   final SettingsController ctrl;
 
@@ -457,92 +466,230 @@ class _SajuTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final tk = t(context);
     final b = settings.birth;
-
-    void openEditor() => Navigator.of(context).push(MaterialPageRoute(
+    void open() => Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => SajuEditorPage(ctrl: ctrl, initial: settings)));
 
+    String sub;
+    String action;
     if (b == null) {
-      return InkWell(
-        onTap: openEditor,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: tk.line, width: 1)),
-          ),
-          padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
-          child: Row(
-            children: [
-              Expanded(
-                  child: Text('생년월일·시각 입력하기', style: AppText.body(tk.ink))),
-              Text('입력', style: AppText.meta(tk.mark, size: 12)),
-            ],
-          ),
-        ),
-      );
+      sub = '오늘의 운세·사주 분석에 사용해요';
+      action = '입력';
+    } else {
+      final dateStr =
+          '${b.year}.${b.month.toString().padLeft(2, '0')}.${b.day.toString().padLeft(2, '0')}';
+      final timeStr = settings.birthHasTime
+          ? '${b.hour.toString().padLeft(2, '0')}:${b.minute.toString().padLeft(2, '0')}'
+          : '시 모름';
+      sub = '$dateStr · $timeStr · ${settings.birthMale ? '남' : '여'}';
+      action = '수정';
     }
 
-    final calLabel = settings.birthCalendar == 'lunar'
-        ? '음력${settings.birthLeap ? ' 윤달' : ''}'
-        : '양력';
-    final dateStr =
-        '${b.year}.${b.month.toString().padLeft(2, '0')}.${b.day.toString().padLeft(2, '0')}';
-    final timeStr = settings.birthHasTime
-        ? '${b.hour.toString().padLeft(2, '0')}:${b.minute.toString().padLeft(2, '0')}'
-        : '시 모름';
-    final chart = computeSaju(b,
-        hasHour: settings.birthHasTime,
-        longitude: settings.birthLongitude,
-        male: settings.birthMale);
-    final z = zodiacOf(b);
-
-    return Column(
-      children: [
-        InkWell(
-          onTap: openEditor,
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: tk.line, width: 1)),
+    return GestureDetector(
+      onTap: open,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('생년월일과 시간', style: AppText.body(tk.ink)),
+                  const SizedBox(height: 3),
+                  Text(sub, style: AppText.meta(tk.inkSoft, size: 10)),
+                ],
+              ),
             ),
-            padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
-            child: Row(
+            Text(action, style: AppText.meta(tk.mark, size: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 위젯 투명도 행 — 현재값 표시 + "조절"(시트). 값은 비동기 로드.
+class _WidgetOpacityRow extends StatefulWidget {
+  const _WidgetOpacityRow({required this.onAdjust});
+  final VoidCallback onAdjust;
+  @override
+  State<_WidgetOpacityRow> createState() => _WidgetOpacityRowState();
+}
+
+class _WidgetOpacityRowState extends State<_WidgetOpacityRow> {
+  int _value = 90;
+  @override
+  void initState() {
+    super.initState();
+    WidgetBridge.getWidgetOpacity().then((v) {
+      if (mounted) setState(() => _value = v);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return GestureDetector(
+      onTap: widget.onAdjust,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('위젯 투명도', style: AppText.body(tk.ink)),
+                  const SizedBox(height: 3),
+                  Text('현재 $_value%',
+                      style: AppText.meta(tk.inkSoft, size: 10)),
+                ],
+              ),
+            ),
+            Text('조절', style: AppText.meta(tk.mark, size: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 글자 크기·굵기·글꼴 조절 시트.
+class _TypeSheet extends ConsumerWidget {
+  const _TypeSheet();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tk = t(context);
+    final s = ref.watch(settingsProvider);
+    final ctrl = ref.read(settingsProvider.notifier);
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 24),
+          children: [
+            Center(
+              child: Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: tk.line, borderRadius: BorderRadius.circular(99)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('글자 조절',
+                style: AppText.hTitle(tk.ink).copyWith(fontSize: 20)),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('$dateStr · $timeStr', style: AppText.body(tk.ink)),
-                      const SizedBox(height: 3),
-                      Text(
-                          '$calLabel · ${settings.birthMale ? '남' : '여'} · '
-                          '${settings.birthPlace}',
-                          style: AppText.meta(tk.inkSoft, size: 11)),
-                    ],
-                  ),
-                ),
-                Text('수정', style: AppText.meta(tk.mark, size: 12)),
+                Text('글자 크기', style: AppText.body(tk.ink)),
+                Text('${(s.fontScale * 100).round()}%',
+                    style: AppText.meta(tk.inkSoft)),
               ],
             ),
-          ),
+            Slider(
+              value: s.fontScale,
+              min: 0.85,
+              max: 1.4,
+              divisions: 11,
+              onChanged: (v) => ctrl.setFontScale((v * 100).round() / 100),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('글자 굵기', style: AppText.body(tk.ink)),
+                Text(_weightLabel(s.weightDelta),
+                    style: AppText.meta(tk.inkSoft)),
+              ],
+            ),
+            Slider(
+              value: s.weightDelta.toDouble(),
+              min: -1,
+              max: 2,
+              divisions: 3,
+              onChanged: (v) => ctrl.setWeightDelta(v.round()),
+            ),
+            const SizedBox(height: 8),
+            const SectionLabel('앱 글꼴'),
+            _FontPicker(current: s.fontKey, onPick: ctrl.setFontKey),
+          ],
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '→ 일주 ${chart.day.hanja}(${chart.day.kor}) · 일간 '
-                  '${stemHanja[chart.dayStem]} ${wuxingKor[stemWuxing(chart.dayStem)]}'
-                  ' · ${z.symbol} ${z.name}',
-                  style: AppText.meta(tk.ink, size: 11),
-                ),
+      ),
+    );
+  }
+
+  static String _weightLabel(int d) => switch (d) {
+        -1 => '얇게',
+        0 => '보통',
+        1 => '조금 굵게',
+        _ => '굵게',
+      };
+}
+
+/// 위젯 투명도 조절 시트.
+class _WidgetOpacitySheet extends StatefulWidget {
+  const _WidgetOpacitySheet();
+  @override
+  State<_WidgetOpacitySheet> createState() => _WidgetOpacitySheetState();
+}
+
+class _WidgetOpacitySheetState extends State<_WidgetOpacitySheet> {
+  double _value = 90;
+  @override
+  void initState() {
+    super.initState();
+    WidgetBridge.getWidgetOpacity().then((v) {
+      if (mounted) setState(() => _value = v.toDouble());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: tk.line, borderRadius: BorderRadius.circular(99)),
               ),
-              GestureDetector(
-                onTap: ctrl.clearBirth,
-                child: Text('지우기', style: AppText.meta(tk.mark, size: 11)),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('위젯 투명도', style: AppText.body(tk.ink)),
+                Text('${_value.round()}%', style: AppText.meta(tk.inkSoft)),
+              ],
+            ),
+            Slider(
+              value: _value,
+              min: 0,
+              max: 100,
+              divisions: 20,
+              onChanged: (v) => setState(() => _value = v),
+              onChangeEnd: (v) => WidgetBridge.setWidgetOpacity(v.round()),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -941,54 +1088,6 @@ class _WheelState extends State<_Wheel> {
         builder: (context, i) => Center(
           child: Text(widget.label(i), style: AppText.meta(tk.ink, size: 15)),
         ),
-      ),
-    );
-  }
-}
-
-/// 위젯 투명도 조절 타일.
-class _WidgetOpacityTile extends StatefulWidget {
-  const _WidgetOpacityTile();
-
-  @override
-  State<_WidgetOpacityTile> createState() => _WidgetOpacityTileState();
-}
-
-class _WidgetOpacityTileState extends State<_WidgetOpacityTile> {
-  double _value = 90;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetBridge.getWidgetOpacity().then((v) {
-      if (mounted) setState(() => _value = v.toDouble());
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tk = t(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('위젯 투명도', style: AppText.body(tk.ink)),
-              Text('${_value.round()}%', style: AppText.meta(tk.inkSoft)),
-            ],
-          ),
-          Slider(
-            value: _value,
-            min: 0,
-            max: 100,
-            divisions: 20,
-            onChanged: (v) => setState(() => _value = v),
-            onChangeEnd: (v) => WidgetBridge.setWidgetOpacity(v.round()),
-          ),
-        ],
       ),
     );
   }
