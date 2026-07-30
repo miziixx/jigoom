@@ -527,6 +527,7 @@ class _GroupSheetState extends ConsumerState<_GroupSheet> {
     final editing = widget.existing != null;
     return _SheetFrame(
       title: editing ? '루틴 블록 수정' : '새 루틴 블록',
+      subtitle: '반복할 흐름의 이름부터 정합니다.',
       onDelete: editing
           ? () async {
               await ref
@@ -587,6 +588,7 @@ class _StepSheetState extends ConsumerState<_StepSheet> {
     final editing = widget.existing != null;
     return _SheetFrame(
       title: editing ? '스텝 수정' : '새 스텝',
+      subtitle: '흐름에 들어갈 한 가지 행동이에요.',
       onDelete: editing
           ? () async {
               await ref
@@ -641,8 +643,10 @@ class _SheetFrame extends StatelessWidget {
     required this.children,
     required this.onSave,
     this.onDelete,
+    this.subtitle,
   });
   final String title;
+  final String? subtitle;
   final List<Widget> children;
   final VoidCallback onSave;
   final VoidCallback? onDelete;
@@ -655,30 +659,65 @@ class _SheetFrame extends StatelessWidget {
       padding: EdgeInsets.only(
         left: kGutter,
         right: kGutter,
-        top: 18,
+        top: 12,
         bottom: 18 + MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 레퍼런스 sheet-head: 핸들 + [ 브래킷 제목 · 부제 ] + (삭제) + ✕
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: tk.line, borderRadius: BorderRadius.circular(99)),
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: AppText.meta(tk.inkSoft, size: 10)
-                      .copyWith(letterSpacing: 1.4)),
-              const Spacer(),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: AppText.hTitle(tk.ink).copyWith(fontSize: 20)),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 5),
+                      Text(subtitle!,
+                          style: AppText.meta(tk.inkSoft, size: 11)),
+                    ],
+                  ],
+                ),
+              ),
               if (onDelete != null)
                 GestureDetector(
                   onTap: onDelete,
                   behavior: HitTestBehavior.opaque,
-                  child: Text('삭제', style: AppText.meta(tk.mark, size: 11)),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 10, top: 8),
+                    child: Text('삭제', style: AppText.meta(tk.mark, size: 11)),
+                  ),
                 ),
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: tk.line)),
+                  child: Text('✕', style: AppText.glyph(tk.ink, size: 15)),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 6),
-          Container(height: 1, color: tk.ink),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           ...children,
           const SizedBox(height: 18),
           Row(

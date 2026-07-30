@@ -34,6 +34,30 @@ const _pickable = <RoutePoint>[
   RoutePoint.inbox,
 ];
 
+/// 분류 카드 아이콘 글리프 (레퍼런스 class-icon).
+String _routeGlyph(RoutePoint rp) => switch (rp) {
+      RoutePoint.quickCapture => '✓',
+      RoutePoint.schedule => '▦',
+      RoutePoint.matrix => '⊞',
+      RoutePoint.logNow => '●',
+      RoutePoint.habit => '◇',
+      RoutePoint.timeTrack => '◷',
+      RoutePoint.inbox => '□',
+      _ => '·',
+    };
+
+/// 분류 카드 설명 (레퍼런스 class-card small).
+String _routeHelp(RoutePoint rp) => switch (rp) {
+      RoutePoint.quickCapture => '할 일로 담기',
+      RoutePoint.schedule => '날짜와 시간 지정',
+      RoutePoint.matrix => '중요도·긴급도 분류',
+      RoutePoint.logNow => '지금 하는 일 기록',
+      RoutePoint.habit => '매일 반복 습관',
+      RoutePoint.timeTrack => '시간대별 기록',
+      RoutePoint.inbox => '나중에 다시 보기',
+      _ => '',
+    };
+
 class _MatrixTarget {
   const _MatrixTarget(this.label, this.help,
       {required this.important, required this.urgent, this.mark = false});
@@ -82,29 +106,128 @@ class _DumpViewState extends ConsumerState<DumpView> {
     final tk = t(context);
     final pending = ref.read(dumpStagingProvider);
     if (i >= pending.length) return;
+    final rawText = pending[i].rawText;
+    final current = pending[i].routedTo;
     final chosen = await showModalBottomSheet<RoutePoint>(
       context: context,
       backgroundColor: tk.paper,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpace.gutter, 16, AppSpace.gutter, 6),
-              child:
-                  Text('어디로 보낼까요?', style: AppText.meta(tk.inkSoft, size: 11)),
-            ),
-            for (final rp in _pickable)
-              ListTile(
-                title: Text(rp.label, style: AppText.body(tk.ink)),
-                trailing: pending[i].routedTo == rp
-                    ? Icon(Icons.check, color: tk.mark, size: 18)
-                    : null,
-                onTap: () => Navigator.pop(context, rp),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpace.gutter, 12, AppSpace.gutter, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: tk.line, borderRadius: BorderRadius.circular(99)),
+                ),
               ),
-          ],
+              const SizedBox(height: 18),
+              // 레퍼런스 sheet-head: 제목 + "항목" + ✕
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('어디로 보낼까요?',
+                            style:
+                                AppText.hTitle(tk.ink).copyWith(fontSize: 20)),
+                        const SizedBox(height: 5),
+                        Text('“$rawText”',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.meta(tk.inkSoft, size: 11)),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(sheetCtx),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: tk.line)),
+                      child: Text('✕', style: AppText.glyph(tk.ink, size: 15)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // 레퍼런스 class-grid: 2열 카드(아이콘 + 이름 + 설명).
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: 2.9,
+                crossAxisSpacing: 9,
+                mainAxisSpacing: 9,
+                children: [
+                  for (final rp in _pickable)
+                    GestureDetector(
+                      onTap: () => Navigator.pop(sheetCtx, rp),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 11, vertical: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                              color: current == rp ? tk.mark : tk.line,
+                              width: current == rp ? 1.5 : 1),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 30,
+                              height: 30,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                  border: Border.all(color: tk.line)),
+                              child: Text(_routeGlyph(rp),
+                                  style: AppText.glyph(
+                                      current == rp ? tk.mark : tk.inkSoft,
+                                      size: 14)),
+                            ),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(rp.label,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppText.body(tk.ink)
+                                          .copyWith(fontSize: 12)),
+                                  const SizedBox(height: 2),
+                                  Text(_routeHelp(rp),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style:
+                                          AppText.meta(tk.inkSoft, size: 8)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

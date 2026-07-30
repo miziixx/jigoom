@@ -96,6 +96,7 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tk = t(context);
     final folders = ref.watch(foldersProvider).valueOrNull ?? const [];
 
     return Padding(
@@ -109,7 +110,39 @@ class _DetailSheetState extends ConsumerState<_DetailSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.node.title, style: theme.textTheme.titleMedium),
+          // 레퍼런스 sheet-head: 핸들 + 제목 + ✕
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: tk.line, borderRadius: BorderRadius.circular(99)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(widget.node.title,
+                    style: AppText.hTitle(tk.ink).copyWith(fontSize: 20)),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: tk.line)),
+                  child: Text('✕', style: AppText.glyph(tk.ink, size: 15)),
+                ),
+              ),
+            ],
+          ),
 
           // ADHD 메타: 다음 시작점 · 실행의도 · 장애물 (있을 때만, 읽기 전용).
           _metaLine(context, '다음', widget.node.nextStep),
