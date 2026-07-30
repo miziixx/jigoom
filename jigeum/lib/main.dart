@@ -291,6 +291,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       themeMode: ThemeMode.light,
       builder: (context, child) {
         final mq = MediaQuery.of(context);
+        final tk = t(context);
         return MediaQuery(
           // 폰트 크기: 시스템 배율에 앱 설정 배율을 곱함.
           data: mq.copyWith(
@@ -299,8 +300,42 @@ class _GoalAppState extends ConsumerState<GoalApp> {
           child: ValueListenableBuilder<String?>(
             valueListenable: gError,
             builder: (context, err, _) {
-              if (err != null) return _ErrorScreen(message: err);
-              return child ?? const SizedBox.shrink();
+              final content = err != null
+                  ? _ErrorScreen(message: err)
+                  : (child ?? const SizedBox.shrink());
+              // 레퍼런스 .phone — 앱 전체를 감싸는 바깥 여백 + 둥근 테두리 프레임.
+              // 안쪽 콘텐츠는 padding 0 으로 보게 하고(중복 인셋 방지), 프레임에서
+              // 시스템 인셋 + 6px 여백만큼 직접 띄운다. (하단바는 프레임 안 맨 아래에 유지)
+              return ColoredBox(
+                color: tk.paper2,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: mq.padding.top + 6,
+                    bottom: mq.padding.bottom + 6,
+                    left: 6,
+                    right: 6,
+                  ),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: tk.paper,
+                      border: Border.all(color: tk.line, width: 1),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: MediaQuery(
+                        // 콘텐츠는 인셋 0 으로 — 안쪽 SafeArea 가 다시 밀지 않게.
+                        data: mq.copyWith(
+                          textScaler: TextScaler.linear(settings.fontScale),
+                          padding: EdgeInsets.zero,
+                          viewPadding: EdgeInsets.zero,
+                        ),
+                        child: content,
+                      ),
+                    ),
+                  ),
+                ),
+              );
             },
           ),
         );
