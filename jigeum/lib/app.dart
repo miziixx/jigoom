@@ -225,7 +225,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _bottomNav(BuildContext context) {
     final tk = t(context);
 
-    // 레퍼런스 .bottom-nav .nav — 아이콘(20) + 라벨(작은 모노) 세로 스택, 활성=잉크.
+    // 아이콘 + 라벨(얇게) 세로 스택, 활성 = 잉크 색 + 밑줄. (레퍼런스 하단바 굵기 유지)
     Widget item(int idx, String label, IconData icon) {
       final active = _index == idx;
       final color = active ? tk.ink : tk.inkSoft;
@@ -235,13 +235,23 @@ class _AppShellState extends ConsumerState<AppShell> {
           behavior: HitTestBehavior.opaque,
           child: Container(
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(vertical: 9),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 20, color: color),
+                Icon(icon, size: 19, color: color),
                 const SizedBox(height: 4),
-                Text(label, style: AppText.nav(color, active: active)),
+                Container(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  decoration: active
+                      ? BoxDecoration(
+                          border: Border(
+                              bottom:
+                                  BorderSide(color: tk.mark, width: 1.2)))
+                      : null,
+                  // active 인자 제거 → 항상 얇게(w400).
+                  child: Text(label, style: AppText.nav(color)),
+                ),
               ],
             ),
           ),
