@@ -123,6 +123,15 @@ class GcalRepository {
     await (db.delete(db.schedules)..where((s) => s.id.equals(id))).go();
   }
 
+  /// 캘린더 동기화 해제 시 그 캘린더에서 온 일정을 로컬에서 제거(안 보이게).
+  /// 로컬에서 편집한(dirty) 건은 보존 — 실수로 내 수정본을 잃지 않도록.
+  Future<void> deleteSyncedForCalendar(String calendarId) async {
+    await (db.delete(db.schedules)
+          ..where((s) =>
+              s.gcalCalendarId.equals(calendarId) & s.dirty.equals(false)))
+        .go();
+  }
+
   /// 원격에서 받은 이벤트를 로컬에 반영(신규 insert 는 repo 밖에서 처리).
   Future<void> applyRemoteUpdate(
     String scheduleId, {

@@ -229,19 +229,7 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
                                 ],
                               ),
                             ),
-                            GestureDetector(
-                              onTap: () => ref
-                                  .read(scheduleRepoProvider)
-                                  .toggleDone(s.id, !s.done),
-                              behavior: HitTestBehavior.opaque,
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 6),
-                                child: Text(s.done ? '✓' : '○',
-                                    style: AppText.glyph(
-                                        s.done ? tk.mark : tk.inkSoft,
-                                        size: 13)),
-                              ),
-                            ),
+                            // 일정(할 일 아님)에는 체크박스 없음 — 탭하면 편집 시트.
                           ],
                         ),
                       ),
