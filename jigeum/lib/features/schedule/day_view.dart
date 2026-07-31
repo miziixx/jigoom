@@ -173,16 +173,13 @@ class _DayViewState extends ConsumerState<DayView> {
         padding: const EdgeInsets.only(bottom: 28),
         children: [
           _dateHeader(tk),
-          _viewBar(tk),
           if (recs.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: emptyNote(context, '이 날 기록이 없어요'),
             )
-          else if (_view == 0)
-            ..._feed(tk, recs)
           else
-            ..._sections(tk, recs),
+            ..._feed(tk, recs),
         ],
       ),
     );
@@ -439,7 +436,7 @@ class _DayViewState extends ConsumerState<DayView> {
                   onTap: () => setState(() => _date = today),
                   behavior: HitTestBehavior.opaque,
                   child: Text(
-                    DateFormat('M월 d일 (E)', 'ko').format(_date) +
+                    DateFormat('M월 d일', 'ko').format(_date) +
                         (_date == today ? ' · 오늘' : ''),
                     textAlign: TextAlign.center,
                     style: AppText.hTitle(tk.ink),
