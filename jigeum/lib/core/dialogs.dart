@@ -28,7 +28,12 @@ Future<String?> showInputDialog(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('[ $title ]', style: AppText.hTitle(tk.ink)),
+            // 레퍼런스 .modal h3 — 대괄호는 포인트색, 제목은 잉크.
+            Text.rich(TextSpan(children: [
+              TextSpan(text: '[ ', style: AppText.hTitle(tk.mark)),
+              TextSpan(text: title, style: AppText.hTitle(tk.ink)),
+              TextSpan(text: ' ]', style: AppText.hTitle(tk.mark)),
+            ])),
             if (subtitle != null) ...[
               const SizedBox(height: 4),
               Text(subtitle, style: AppText.meta(tk.inkSoft, size: 12)),
@@ -51,11 +56,16 @@ Future<String?> showInputDialog(
           cursorColor: tk.mark,
           decoration: InputDecoration(
             isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             hintText: hint,
             hintStyle: AppText.meta(tk.inkSoft, size: 13),
-            enabledBorder:
-                UnderlineInputBorder(borderSide: BorderSide(color: tk.line)),
-            focusedBorder: UnderlineInputBorder(
+            // 레퍼런스 .field input — 박스(line 테두리) + radius 6.
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: tk.line)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
                 borderSide: BorderSide(color: tk.ink, width: 1.5)),
           ),
           onSubmitted: (v) => Navigator.of(ctx).pop(v),
@@ -91,7 +101,11 @@ Future<bool> showConfirmDialog(
         titlePadding: EdgeInsets.fromLTRB(20, 20, 20, message == null ? 12 : 8),
         contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
         actionsPadding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-        title: Text(title, style: AppText.hTitle(tk.ink)),
+        title: Text.rich(TextSpan(children: [
+          TextSpan(text: '[ ', style: AppText.hTitle(tk.mark)),
+          TextSpan(text: title, style: AppText.hTitle(tk.ink)),
+          TextSpan(text: ' ]', style: AppText.hTitle(tk.mark)),
+        ])),
         content:
             message == null ? null : Text(message, style: AppText.body(tk.ink)),
         actions: [

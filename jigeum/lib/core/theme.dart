@@ -468,8 +468,9 @@ class AppTheme {
         backgroundColor: tk.paper,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        // 레퍼런스 .modal — 1px 잉크 테두리 + radius 12.
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: tk.ink, width: 1),
         ),
         titleTextStyle: textTheme.titleMedium,
@@ -479,7 +480,9 @@ class AppTheme {
         backgroundColor: tk.paper,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        // 레퍼런스 .sheet — 상단 모서리 radius 16.
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: tk.ink,
