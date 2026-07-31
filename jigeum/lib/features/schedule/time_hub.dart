@@ -48,15 +48,6 @@ class _TimeHubState extends ConsumerState<TimeHub> {
             ],
           ),
         ),
-        // 기록(4) 하위엔 하단 담기 바.
-        if (_sub == 4)
-          PromptBar(
-            hint: '지금 기록_',
-            onSubmit: (text) async {
-              await ref.read(timeTrackRepoProvider).setBlock(
-                  todayDate(), TimeTrackRepository.blockOfNow(), text);
-            },
-          ),
       ],
     );
   }

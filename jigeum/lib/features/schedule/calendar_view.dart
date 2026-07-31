@@ -9,6 +9,7 @@ import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
+import '../shell/app_bottom_nav.dart';
 import '../shell/app_drawer.dart';
 import 'schedule_edit_sheet.dart';
 
@@ -20,6 +21,7 @@ class CalendarScreen extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
         endDrawer: const AppDrawer(),
         body: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               Masthead(
@@ -28,6 +30,7 @@ class CalendarScreen extends StatelessWidget {
                   onBack: () => Navigator.of(context).pop(),
                   showMenu: true),
               const Expanded(child: CalendarView()),
+              const AppBottomNav(),
             ],
           ),
         ),

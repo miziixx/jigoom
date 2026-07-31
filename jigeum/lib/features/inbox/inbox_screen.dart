@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/journal.dart';
 import '../../core/theme.dart';
+import '../shell/app_bottom_nav.dart';
 import '../shell/app_drawer.dart';
 import 'inbox_item.dart';
 import 'inbox_repository.dart';
@@ -61,6 +62,7 @@ class _InboxScreenState extends State<InboxScreen> {
       backgroundColor: tk.paper,
       endDrawer: const AppDrawer(),
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             Masthead(
@@ -79,6 +81,7 @@ class _InboxScreenState extends State<InboxScreen> {
                       itemBuilder: (context, i) => _row(context, tk, items[i]),
                     ),
             ),
+            const AppBottomNav(),
           ],
         ),
       ),

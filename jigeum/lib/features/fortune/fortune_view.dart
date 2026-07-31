@@ -11,6 +11,7 @@ import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../settings/settings_screen.dart';
+import '../shell/app_bottom_nav.dart';
 import '../shell/app_drawer.dart';
 
 /// 오늘의 운세 + 사주 정밀 분석 대시보드.
@@ -27,6 +28,7 @@ class FortuneView extends ConsumerWidget {
       backgroundColor: tk.paper,
       endDrawer: const AppDrawer(),
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             Masthead(
@@ -41,6 +43,7 @@ class FortuneView extends ConsumerWidget {
                     s.hasBirth ? _FortuneBody(settings: s) : const _EmptyState(),
               ),
             ),
+            const AppBottomNav(),
           ],
         ),
       ),
