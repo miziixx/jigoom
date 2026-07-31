@@ -239,7 +239,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 19, color: color),
+                Icon(icon, size: 17, color: color),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.only(bottom: 2),
@@ -250,7 +250,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                                   BorderSide(color: tk.mark, width: 1.2)))
                       : null,
                   // active 인자 제거 → 항상 얇게(w400).
-                  child: Text(label, style: AppText.nav(color)),
+                  child: Text(label,
+                      style: AppText.nav(color).copyWith(fontSize: 8)),
                 ),
               ],
             ),
@@ -288,12 +289,13 @@ class _AppShellState extends ConsumerState<AppShell> {
                         child: Icon(Icons.add, color: tk.paper, size: 24),
                       ),
                       const SizedBox(height: 3),
-                      Text('담기', style: AppText.nav(tk.inkSoft)),
+                      Text('담기',
+                          style: AppText.nav(tk.inkSoft).copyWith(fontSize: 8)),
                     ],
                   ),
                 ),
               ),
-              item(3, '일과', Icons.check_box_outlined),
+              item(3, '일과', Icons.article_outlined),
               item(5, '전체', Icons.reorder),
             ],
           ),
