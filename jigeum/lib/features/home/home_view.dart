@@ -137,23 +137,47 @@ class _HomeViewState extends ConsumerState<HomeView> {
               child: Row(
                 children: [
                   SizedBox(
-                    width: 48,
+                    width: 44,
                     child: Text(s.allDay ? '종일' : _hhmm(s.startMin),
-                        style: AppText.meta(tk.inkSoft)),
+                        style: AppText.meta(tk.inkSoft, size: 11)),
+                  ),
+                  const SizedBox(width: 10),
+                  // #4 레퍼런스 .event-line — 포인트색 세로 바.
+                  Container(width: 2, height: 32, color: tk.mark),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body(tk.ink)),
+                        const SizedBox(height: 4),
+                        Text(_eventSub(s),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.meta(tk.inkSoft, size: 10)),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(s.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.body(tk.ink)),
-                  ),
+                  // #4 레퍼런스 .chev — › 표시.
+                  Text('›', style: AppText.glyph(tk.inkSoft, size: 16)),
                 ],
               ),
             ),
           ),
       ],
     );
+  }
+
+  // #4 이벤트 부제 — 시간범위 · 소요(분). 종일이면 '종일'.
+  String _eventSub(Schedule s) {
+    if (s.allDay) return '종일';
+    final dur = s.endMin - s.startMin;
+    final range = '${_hhmm(s.startMin)}–${_hhmm(s.endMin)}';
+    return dur > 0 ? '$range · $dur분' : range;
   }
 
   // ── 오늘의 습관 ────────────────────────────────────────
@@ -166,9 +190,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
       );
     }
     final done = {for (final t in ticks) t.habitId};
+    final shown = habits.take(4).toList();
     return Column(
       children: [
-        for (final h in habits.take(4))
+        for (var i = 0; i < shown.length; i++)
           GestureDetector(
             onTap: () => widget.onOpenTab(4),
             behavior: HitTestBehavior.opaque,
@@ -179,20 +204,38 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   const EdgeInsets.symmetric(horizontal: kGutter, vertical: 12),
               child: Row(
                 children: [
-                  Text(done.contains(h.id) ? '✓' : '○',
-                      style: AppText.glyph(
-                          done.contains(h.id) ? tk.mark : tk.inkSoft,
-                          size: 14)),
+                  // #5 레퍼런스 .habit-icon — 번호 박스(01/02).
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: tk.line),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text('${i + 1}'.padLeft(2, '0'),
+                        style: AppText.meta(tk.inkSoft, size: 9)),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(h.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.body(
-                            done.contains(h.id)
-                                ? tk.ink.withValues(alpha: 0.5)
-                                : tk.ink)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(shown[i].title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body(tk.ink)),
+                        const SizedBox(height: 4),
+                        Text('매일', style: AppText.meta(tk.inkSoft, size: 9)),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
+                  // #5 레퍼런스 .status — 완료(포인트색)/대기.
+                  Text(done.contains(shown[i].id) ? '완료' : '대기',
+                      style: AppText.meta(
+                          done.contains(shown[i].id) ? tk.mark : tk.inkSoft,
+                          size: 10)),
                 ],
               ),
             ),
@@ -204,14 +247,47 @@ class _HomeViewState extends ConsumerState<HomeView> {
   // ── 오늘의 운세 ────────────────────────────────────────
   Widget _fortuneBlock(AppTokens tk) {
     final hasBirth = ref.watch(settingsProvider).birth != null;
-    return GestureDetector(
-      onTap: widget.onOpenFortune,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
-        child: Text(
-          hasBirth ? '오늘의 흐름 · 사주·점성 분석 보기 ›' : '생년월일을 입력하면 오늘의 운세가 보여요',
-          style: AppText.body(hasBirth ? tk.ink : tk.inkSoft),
+    final now = DateTime.now();
+    final title = hasBirth ? '오늘의 흐름' : '생년월일을 입력해요';
+    final desc = hasBirth
+        ? '탭해서 오늘의 사주·점성 분석을 확인해요.'
+        : '생년월일을 넣으면 오늘의 운세가 여기 나타나요.';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
+      child: GestureDetector(
+        onTap: widget.onOpenFortune,
+        behavior: HitTestBehavior.opaque,
+        // #6 레퍼런스 .fortune — 테두리 카드 + 날짜 박스 + 제목 + 설명.
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: tk.line),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 날짜 박스 07/28.
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  border: Border.all(color: tk.line),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(DateFormat('MM/dd').format(now),
+                    style: AppText.meta(tk.inkSoft, size: 10)),
+              ),
+              const SizedBox(height: 12),
+              Text(title,
+                  style: AppText.serif(hasBirth ? tk.ink : tk.inkSoft,
+                      size: 17, height: 1.3)),
+              const SizedBox(height: 6),
+              Text(koWrap(desc),
+                  style: AppText.body(tk.inkSoft)
+                      .copyWith(fontSize: 10, height: 1.55)),
+            ],
+          ),
         ),
       ),
     );
@@ -424,7 +500,17 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppText.meta(tk.inkSoft, size: 11))),
-                Text(idx, style: AppText.meta(tk.inkSoft, size: 10)),
+                // #1 레퍼런스 summary-icon — 번호 박스(테두리).
+                Container(
+                  width: 22,
+                  height: 22,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: tk.line),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(idx, style: AppText.meta(tk.inkSoft, size: 9)),
+                ),
               ],
             ),
             const Spacer(),
@@ -452,36 +538,43 @@ class _HomeViewState extends ConsumerState<HomeView> {
       child: GestureDetector(
         onTap: _editGoal,
         behavior: HitTestBehavior.opaque,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(width: 40, height: 3, color: tk.mark),
-            const SizedBox(height: 12),
-            Text('MAIN GOAL', style: AppText.meta(tk.mark, size: 10)),
-            const SizedBox(height: 8),
-            Text(goalLine.isEmpty ? '탭해서 오늘의 목표를 적어요' : goalLine,
-                style: AppText.hTitle(
-                        goalLine.isEmpty ? tk.inkSoft : tk.ink)
-                    .copyWith(fontSize: 19, height: 1.3)),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Container(height: 6, color: tk.paper2),
-                      FractionallySizedBox(
-                        widthFactor: (pct / 100).clamp(0.0, 1.0),
-                        child: Container(height: 6, color: tk.mark),
-                      ),
-                    ],
+        // #2 레퍼런스 goal-card — 위쪽 바 대신 왼쪽 포인트 세로선.
+        child: Container(
+          padding: const EdgeInsets.only(left: 14),
+          decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: tk.ink, width: 1.5))),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('MAIN GOAL',
+                  style: AppText.meta(tk.inkSoft, size: 9)
+                      .copyWith(letterSpacing: 1.5)),
+              const SizedBox(height: 8),
+              Text(goalLine.isEmpty ? '탭해서 오늘의 목표를 적어요' : goalLine,
+                  style: AppText.serif(
+                      goalLine.isEmpty ? tk.inkSoft : tk.ink,
+                      size: 18,
+                      height: 1.3)),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Container(height: 3, color: tk.paper2),
+                        FractionallySizedBox(
+                          widthFactor: (pct / 100).clamp(0.0, 1.0),
+                          child: Container(height: 3, color: tk.ink),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text('$pct%', style: AppText.meta(tk.inkSoft, size: 11)),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 10),
+                  Text('$pct%', style: AppText.meta(tk.inkSoft, size: 11)),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -509,24 +602,41 @@ class _HomeViewState extends ConsumerState<HomeView> {
               padding:
                   const EdgeInsets.symmetric(horizontal: kGutter, vertical: 12),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // #3 레퍼런스 .check — 둥근 체크박스(빈 상태).
                   Container(
                     width: 18,
                     height: 18,
+                    margin: const EdgeInsets.only(top: 1),
                     decoration: BoxDecoration(
-                        border: Border.all(color: tk.inkSoft, width: 1.4)),
+                      border: Border.all(color: tk.inkSoft, width: 1.4),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(shown[i].title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.body(tk.ink)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(shown[i].title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body(tk.ink)),
+                        // #3 레퍼런스 .task-meta — 태그 칩(긴급/중요).
+                        if (shown[i].urgent || shown[i].important) ...[
+                          const SizedBox(height: 6),
+                          if (shown[i].urgent)
+                            _todoTag(tk, '긴급', urgent: true)
+                          else
+                            _todoTag(tk, '중요'),
+                        ],
+                      ],
+                    ),
                   ),
-                  if (shown[i].urgent)
-                    Text('긴급', style: AppText.meta(tk.mark, size: 10))
-                  else if (shown[i].important)
-                    Text('중요', style: AppText.meta(tk.inkSoft, size: 10)),
+                  const SizedBox(width: 8),
+                  // #3 레퍼런스 .more — 특수문자 점 세 개.
+                  Text('⋯', style: AppText.glyph(tk.inkSoft, size: 16)),
                 ],
               ),
             ),
@@ -541,6 +651,19 @@ class _HomeViewState extends ConsumerState<HomeView> {
             ),
           ),
       ],
+    );
+  }
+
+  // #3 레퍼런스 .tag — 테두리 칩 + '#' 접두. urgent=포인트색.
+  Widget _todoTag(AppTokens tk, String label, {bool urgent = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        border: Border.all(color: urgent ? tk.mark : tk.line),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text('#$label',
+          style: AppText.meta(urgent ? tk.mark : tk.inkSoft, size: 9)),
     );
   }
 }
