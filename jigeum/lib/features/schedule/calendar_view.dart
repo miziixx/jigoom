@@ -4,21 +4,51 @@ import 'package:intl/intl.dart';
 
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
+import '../../core/dialogs.dart';
 import '../../core/editorial.dart';
 import '../../core/journal.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
+import '../../data/repos/time_track_repository.dart';
 import '../../providers.dart';
 import '../shell/app_bottom_nav.dart';
 import '../shell/app_drawer.dart';
+import '../timetrack/time_track_screen.dart';
 import 'schedule_edit_sheet.dart';
 
 /// 달력 화면 — 드로어에서 바로 여는 독립 진입(Scaffold 래퍼).
-class CalendarScreen extends StatelessWidget {
+class CalendarScreen extends ConsumerWidget {
   const CalendarScreen({super.key});
 
+  // 달력의 담기 = 선택일 상세 탭에 맞는 추가(일정 / 기록 / 습관).
+  void _add(BuildContext context, WidgetRef ref) {
+    final d = ref.read(calendarSelectedProvider) ?? todayDate();
+    switch (ref.read(calendarDetailTabProvider)) {
+      case 1: // 기록 → 그날의 시간 기록
+        showTimeTrackInput(context, ref,
+            date: d, block: TimeTrackRepository.blockOfNow());
+        break;
+      case 2: // 습관 → 새 습관 추가
+        _addHabit(context, ref);
+        break;
+      default: // 일정
+        showScheduleEditSheet(context, date: d);
+    }
+  }
+
+  Future<void> _addHabit(BuildContext context, WidgetRef ref) async {
+    final name = await showInputDialog(context,
+        title: '새 습관',
+        subtitle: '매일 반복하고 싶은 작은 행동을 적어주세요.',
+        fieldLabel: '습관 이름',
+        hint: '예: 물 한 잔 마시기',
+        saveLabel: '만들기');
+    if (name == null || name.trim().isEmpty) return;
+    await ref.read(habitRepoProvider).addHabit(name.trim());
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
         endDrawer: const AppDrawer(),
         body: SafeArea(
           bottom: false,
@@ -30,10 +60,7 @@ class CalendarScreen extends StatelessWidget {
                   onBack: () => Navigator.of(context).pop(),
                   showMenu: true),
               const Expanded(child: CalendarView()),
-              // 달력의 담기 = 일정 추가.
-              AppBottomNav(
-                  onQuickAdd: () =>
-                      showScheduleEditSheet(context, date: todayDate())),
+              AppBottomNav(onQuickAdd: () => _add(context, ref)),
             ],
           ),
         ),
@@ -50,15 +77,17 @@ class CalendarView extends ConsumerStatefulWidget {
 
 class _CalendarViewState extends ConsumerState<CalendarView> {
   late DateTime _month; // 보이는 달의 1일
-  late DateTime _selected; // 선택된 날짜
-  int _detailTab = 0; // 선택일 상세: 0 일정 · 1 기록 · 2 습관
+
+  // 선택 날짜·상세 탭은 provider 로 관리(하단 담기가 세부 탭·선택일을 알 수 있게).
+  DateTime get _selected =>
+      ref.watch(calendarSelectedProvider) ?? todayDate();
+  int get _detailTab => ref.watch(calendarDetailTabProvider);
 
   @override
   void initState() {
     super.initState();
     final now = todayDate();
     _month = DateTime(now.year, now.month, 1);
-    _selected = now;
   }
 
   void _shiftMonth(int delta) {
@@ -119,10 +148,10 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() {
-                _month = DateTime(today.year, today.month, 1);
-                _selected = today;
-              }),
+              onTap: () {
+                ref.read(calendarSelectedProvider.notifier).state = today;
+                setState(() => _month = DateTime(today.year, today.month, 1));
+              },
               behavior: HitTestBehavior.opaque,
               child: Column(
                 children: [
@@ -198,7 +227,7 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
     final subColor = !inMonth ? tk.inkSoft.withValues(alpha: 0.4) : tk.inkSoft;
 
     return GestureDetector(
-      onTap: () => setState(() => _selected = day),
+      onTap: () => ref.read(calendarSelectedProvider.notifier).state = day,
       behavior: HitTestBehavior.opaque,
       child: Container(
         height: 54,
@@ -346,7 +375,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
           child: EdTabs(
             labels: const ['일정', '기록', '습관'],
             index: _detailTab,
-            onChanged: (i) => setState(() => _detailTab = i),
+            onChanged: (i) =>
+                ref.read(calendarDetailTabProvider.notifier).state = i,
           ),
         ),
         const SizedBox(height: 6),

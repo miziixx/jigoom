@@ -10,7 +10,6 @@ import '../../core/journal.dart';
 import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
-import '../capture/quick_capture_input.dart';
 import '../settings/settings_screen.dart';
 import '../shell/app_bottom_nav.dart';
 import '../shell/app_drawer.dart';
@@ -44,8 +43,8 @@ class FortuneView extends ConsumerWidget {
                     s.hasBirth ? _FortuneBody(settings: s) : const _EmptyState(),
               ),
             ),
-            // 운세는 담을 고유 내용이 없어 일반 빠른 담기(할 일)로 둔다.
-            AppBottomNav(onQuickAdd: () => showQuickCaptureInput(context, ref)),
+            // 운세는 담을 고유 내용이 없어 담기(+) 버튼을 숨긴다.
+            const AppBottomNav(showQuickAdd: false),
           ],
         ),
       ),

@@ -9,11 +9,14 @@ import '../capture/quick_capture_input.dart';
 /// 셸(홈 탭)뿐 아니라 푸시 화면(목표·달력·운세·아웃라인·보류함)에서도 재사용한다.
 /// 탭을 누르면 [homeTabProvider] 를 바꾸고 루트(셸)까지 돌아가 그 탭을 연다.
 class AppBottomNav extends ConsumerWidget {
-  const AppBottomNav({super.key, this.onQuickAdd});
+  const AppBottomNav({super.key, this.onQuickAdd, this.showQuickAdd = true});
 
   /// 가운데 '담기' 동작을 화면 맥락에 맞게 재정의(예: 목표관리=목표 추가).
   /// null 이면 현재 탭에 맞춘 빠른 담기(할 일/습관/일정/메모).
   final VoidCallback? onQuickAdd;
+
+  /// 가운데 담기(+) 버튼 표시 여부. 담을 고유 내용이 없는 화면(예: 운세)은 false.
+  final bool showQuickAdd;
 
   /// 현재 탭에 맞는 빠른 담기 유형.
   static String _captureTypeForTab(int index) => switch (index) {
@@ -77,30 +80,35 @@ class AppBottomNav extends ConsumerWidget {
             children: [
               item(6, '홈', Icons.home_outlined),
               item(0, '오늘', Icons.calendar_today_outlined),
-              Expanded(
-                child: GestureDetector(
-                  onTap: onQuickAdd ??
-                      () => showQuickCaptureInput(context, ref,
-                          presetType: _captureTypeForTab(index)),
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            color: tk.mark, shape: BoxShape.circle),
-                        child: Icon(Icons.add, color: tk.paper, size: 24),
-                      ),
-                      const SizedBox(height: 3),
-                      Text('담기',
-                          style: AppText.nav(tk.inkSoft).copyWith(fontSize: 8)),
-                    ],
+              // 담을 내용이 없는 화면은 담기(+)를 숨기고 빈 칸으로 정렬만 유지.
+              if (!showQuickAdd)
+                const Expanded(child: SizedBox())
+              else
+                Expanded(
+                  child: GestureDetector(
+                    onTap: onQuickAdd ??
+                        () => showQuickCaptureInput(context, ref,
+                            presetType: _captureTypeForTab(index)),
+                    behavior: HitTestBehavior.opaque,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                              color: tk.mark, shape: BoxShape.circle),
+                          child: Icon(Icons.add, color: tk.paper, size: 24),
+                        ),
+                        const SizedBox(height: 3),
+                        Text('담기',
+                            style:
+                                AppText.nav(tk.inkSoft).copyWith(fontSize: 8)),
+                      ],
+                    ),
                   ),
                 ),
-              ),
               item(3, '일과', Icons.article_outlined),
               item(5, '전체', Icons.reorder),
             ],

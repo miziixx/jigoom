@@ -51,6 +51,11 @@ final homeTabProvider = StateProvider<int>((ref) => 6);
 /// 하단 담기(+)가 하위 탭에 맞는 추가 흐름을 열 수 있도록 provider 로 둔다.
 final timeHubSubProvider = StateProvider<int>((ref) => 0);
 
+/// 달력 선택 날짜(null=오늘)와 선택일 상세 탭(0 일정 · 1 기록 · 2 습관).
+/// 하단 담기(+)가 세부 탭·선택일에 맞게 동작하도록 provider 로 둔다.
+final calendarSelectedProvider = StateProvider<DateTime?>((ref) => null);
+final calendarDetailTabProvider = StateProvider<int>((ref) => 0);
+
 final nodeRepoProvider = Provider<NodeRepository>((ref) {
   return NodeRepository(ref.watch(dbProvider));
 });
