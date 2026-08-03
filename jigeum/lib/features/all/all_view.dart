@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
-import '../../core/editorial.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
@@ -55,11 +54,21 @@ class _AllViewState extends ConsumerState<AllView> {
     rows.add(_sectionHead(tk, '전체 할 일', '＋ 할 일',
         () => showQuickCaptureInput(context, ref)));
     rows.add(Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 4),
-      child: EdTabs(
-        labels: const ['전체', '오늘', '7일', '이번 달', '기간'],
-        index: _range,
-        onChanged: (i) => setState(() => _range = i),
+      padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (var i = 0; i < 5; i++) ...[
+              if (i > 0) const SizedBox(width: 7),
+              PillChip(
+                label: const ['전체', '오늘', '7일', '이번 달', '기간'][i],
+                selected: _range == i,
+                onTap: () => setState(() => _range = i),
+              ),
+            ],
+          ],
+        ),
       ),
     ));
     if (open.isEmpty) {
