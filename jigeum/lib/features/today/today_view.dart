@@ -50,51 +50,55 @@ class _TodayViewState extends ConsumerState<TodayView> {
         .where((l) => l.isNotEmpty)
         .toList();
     final pct = total == 0 ? 0.0 : (done / total).clamp(0.0, 1.0);
-    final goalStyle = AppText.hTitle(tk.ink).copyWith(fontSize: 22, height: 1.3);
+    // 레퍼런스 .goal-card(에디토리얼) — 왼쪽 포인트 세로선, 왼쪽정렬.
     return InkWell(
       onTap: _editGoal,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(child: Container(width: 36, height: 3, color: tk.mark)),
-            const SizedBox(height: 12),
-            Text("TODAY'S GOAL",
-                textAlign: TextAlign.center,
-                style: AppText.meta(tk.inkSoft, size: 10)
-                    .copyWith(letterSpacing: 1.4)),
-            const SizedBox(height: 8),
-            if (lines.isEmpty)
-              Text('탭해서 오늘의 목표를 적어요',
-                  textAlign: TextAlign.center,
-                  style: goalStyle.copyWith(color: tk.inkSoft))
-            else
-              for (final line in lines)
-                Text(line, textAlign: TextAlign.center, style: goalStyle),
-            const SizedBox(height: 10),
-            Text('오늘 가장 중요한 결과 하나. 탭해서 언제든 수정할 수 있어요.',
-                textAlign: TextAlign.center,
-                style: AppText.meta(tk.inkSoft, size: 11).copyWith(height: 1.5)),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Container(height: 6, color: tk.paper2),
-                      FractionallySizedBox(
-                        widthFactor: pct,
-                        child: Container(height: 6, color: tk.mark),
-                      ),
-                    ],
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
+          decoration: BoxDecoration(
+            border: Border(left: BorderSide(color: tk.mark, width: 3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("TODAY'S GOAL",
+                  style: AppText.meta(tk.mark, size: 10)
+                      .copyWith(letterSpacing: 0.5)),
+              const SizedBox(height: 10),
+              if (lines.isEmpty)
+                Text('탭해서 오늘의 목표를 적어요',
+                    style: AppText.serif(tk.inkSoft, size: 16, height: 1.3))
+              else
+                for (final line in lines)
+                  Text(line,
+                      style: AppText.serif(tk.ink, size: 16, height: 1.3)),
+              const SizedBox(height: 6),
+              Text('오늘 가장 중요한 결과 하나. 탭해서 언제든 수정할 수 있어요.',
+                  style: AppText.body(tk.inkSoft)
+                      .copyWith(fontSize: 10, height: 1.55)),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Container(height: 3, color: tk.line),
+                        FractionallySizedBox(
+                          widthFactor: pct,
+                          child: Container(height: 3, color: tk.ink),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text('$done / $total', style: AppText.meta(tk.inkSoft, size: 11)),
-              ],
-            ),
-          ],
+                  const SizedBox(width: 10),
+                  Text('$done / $total',
+                      style: AppText.meta(tk.inkSoft, size: 10)),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -169,13 +173,23 @@ class _TodayViewState extends ConsumerState<TodayView> {
       // § 오늘 할 일 + 추가 (레퍼런스 헤더)
       _todoSectionHead(),
 
-      // 필터 — 전체 / 미완료 / 중요 / 긴급 (박스 없는 텍스트 탭 + 얇은 밑줄).
+      // 필터 — 전체 / 미완료 / 중요 / 긴급 (레퍼런스 .filter-row 칩).
       Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 2),
-        child: EdTabs(
-          labels: const ['전체', '미완료', '중요', '긴급'],
-          index: _filter,
-          onChanged: (i) => setState(() => _filter = i),
+        padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 6),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (var i = 0; i < 4; i++) ...[
+                if (i > 0) const SizedBox(width: 7),
+                PillChip(
+                  label: const ['전체', '미완료', '중요', '긴급'][i],
+                  selected: _filter == i,
+                  onTap: () => setState(() => _filter = i),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
       ..._filteredTiles(context, today, wins),
@@ -208,10 +222,16 @@ Future<void> showDoneFeedback(BuildContext context, WidgetRef ref) async {
     ));
 }
 
-/// #해시태그 태그 — v17 레퍼런스(#오늘·#중요·#긴급). accent=포인트색.
-Widget _hash(AppTokens tk, String label, {bool accent = false}) =>
-    Text('#$label',
-        style: AppText.meta(accent ? tk.mark : tk.inkSoft, size: 10));
+/// 태그 칩 — v17 레퍼런스 .tag(테두리 칩 + '#' 접두). accent=포인트색 테두리.
+Widget _hash(AppTokens tk, String label, {bool accent = false}) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+      decoration: BoxDecoration(
+        border: Border.all(color: accent ? tk.mark : tk.line),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text('#$label',
+          style: AppText.meta(accent ? tk.mark : tk.inkSoft, size: 9)),
+    );
 
 /// 편집형 할 일 줄: 글리프 체크 · 제목 · #해시태그 태그. 스와이프 우=완료, 좌=삭제.
 class SimpleTile extends ConsumerWidget {
@@ -233,8 +253,8 @@ class SimpleTile extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GlyphCheck(
-              done: done,
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () async {
                 if (done) {
                   await repo.reopen(node.id);
@@ -243,7 +263,9 @@ class SimpleTile extends ConsumerWidget {
                   if (context.mounted) showDoneFeedback(context, ref);
                 }
               },
+              child: EdCheck(done: done),
             ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
