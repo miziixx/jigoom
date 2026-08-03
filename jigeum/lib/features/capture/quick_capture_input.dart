@@ -187,9 +187,13 @@ Future<void> showQuickCaptureInput(
                         hintText: '무엇을 담을까요?',
                         hintStyle:
                             AppText.body(tk.inkSoft).copyWith(fontSize: 15),
-                        enabledBorder: UnderlineInputBorder(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 11),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
                             borderSide: BorderSide(color: tk.line)),
-                        focusedBorder: UnderlineInputBorder(
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
                             borderSide: BorderSide(color: tk.ink, width: 1.5)),
                       ),
                     ),

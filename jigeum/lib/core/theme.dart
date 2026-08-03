@@ -468,10 +468,10 @@ class AppTheme {
         backgroundColor: tk.paper,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        // 레퍼런스 .modal — 1px 잉크 테두리 + radius 12.
+        // 레퍼런스 v17 .modal — .75px 잉크 테두리 + radius 5.
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: tk.ink, width: 1),
+          borderRadius: BorderRadius.circular(5),
+          side: BorderSide(color: tk.ink, width: 0.75),
         ),
         titleTextStyle: textTheme.titleMedium,
         contentTextStyle: textTheme.bodyMedium,
@@ -480,9 +480,9 @@ class AppTheme {
         backgroundColor: tk.paper,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        // 레퍼런스 .sheet — 상단 모서리 radius 16.
+        // 레퍼런스 v17 .sheet — 상단 모서리 radius 8.
         shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: tk.ink,
@@ -522,7 +522,7 @@ class AppTheme {
         secondaryLabelStyle: AppText.chip(tk.paper),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       ),
-      // 입력: 캐럿 = mark, 밑줄 = 잉크.
+      // 입력: 캐럿 = mark. 레퍼런스 .field input — 박스(line 테두리) + radius 6.
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: tk.mark,
         selectionColor: tk.mark.withValues(alpha: 0.20),
@@ -531,12 +531,12 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         hintStyle: AppText.body(tk.inkSoft, weightDelta),
         isDense: true,
-        enabledBorder: UnderlineInputBorder(
-          borderRadius: BorderRadius.zero,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
           borderSide: BorderSide(color: tk.line, width: 1),
         ),
-        focusedBorder: UnderlineInputBorder(
-          borderRadius: BorderRadius.zero,
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
           borderSide: BorderSide(color: tk.ink, width: 1.5),
         ),
       ),

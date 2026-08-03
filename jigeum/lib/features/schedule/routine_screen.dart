@@ -904,7 +904,11 @@ class _RoutineEditSheetState extends ConsumerState<_RoutineEditSheet> {
             controller: _title,
             autofocus: widget.existing == null,
             decoration: const InputDecoration(
-                hintText: '예: 아침 기상, 운동', border: UnderlineInputBorder()),
+                hintText: '예: 아침 기상, 운동',
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(6))),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 11)),
           ),
           const SizedBox(height: 12),
           Row(

@@ -804,12 +804,13 @@ Future<T?> showEditorialSheet<T>(
     backgroundColor: t(context).paper,
     builder: (ctx) {
       final tk = t(ctx);
+      // 레퍼런스 v17 .sheet — padding 11/17, 핸들 34×2.
       final content = Padding(
         padding: EdgeInsets.only(
-          left: Ed.gutter,
-          right: Ed.gutter,
-          top: Ed.x12,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + Ed.x24,
+          left: 17,
+          right: 17,
+          top: 11,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + Ed.x20,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -819,7 +820,7 @@ Future<T?> showEditorialSheet<T>(
               child: Container(
                 width: 34,
                 height: 2,
-                margin: const EdgeInsets.only(bottom: Ed.x16),
+                margin: const EdgeInsets.only(bottom: 14),
                 color: tk.ink,
               ),
             ),

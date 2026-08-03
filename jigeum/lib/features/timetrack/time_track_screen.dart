@@ -56,9 +56,13 @@ Future<void> showTimeTrackInput(
               isDense: true,
               hintText: '제목\n— 한 일을 줄바꿈으로 여러 개',
               hintStyle: AppText.meta(tk.inkSoft, size: 13),
-              enabledBorder:
-                  UnderlineInputBorder(borderSide: BorderSide(color: tk.line)),
-              focusedBorder: UnderlineInputBorder(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                  borderSide: BorderSide(color: tk.line)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
                   borderSide: BorderSide(color: tk.ink, width: 1.5)),
             ),
           ),

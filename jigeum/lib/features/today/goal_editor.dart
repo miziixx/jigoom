@@ -22,17 +22,19 @@ Future<String?> showGoalEditor(BuildContext context, WidgetRef ref) async {
       final tk = t(ctx);
       return AlertDialog(
         backgroundColor: tk.paper,
-        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-        contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-        actionsPadding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+        // 레퍼런스 v17 .modal — padding 18 · 제목 18 · 부제 9.
+        titlePadding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+        contentPadding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+        actionsPadding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('[ 오늘의 목표 ]', style: AppText.hTitle(tk.ink)),
+            Text('[ 오늘의 목표 ]',
+                style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
             const SizedBox(height: 4),
             Text('이루고 싶은 결과를 짧게, 한 줄에 하나씩.',
-                style: AppText.meta(tk.inkSoft, size: 12)),
+                style: AppText.meta(tk.inkSoft, size: 9)),
           ],
         ),
         content: TextField(
@@ -48,17 +50,23 @@ Future<String?> showGoalEditor(BuildContext context, WidgetRef ref) async {
             isDense: true,
             hintText: '오늘 이루고 싶은 것',
             hintStyle: AppText.meta(tk.inkSoft, size: 13),
-            enabledBorder:
-                UnderlineInputBorder(borderSide: BorderSide(color: tk.line)),
-            focusedBorder: UnderlineInputBorder(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: tk.line)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
                 borderSide: BorderSide(color: tk.ink, width: 1.5)),
           ),
         ),
         actions: [
           TextButton(
+              style: _goalDlgBtn,
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('취소')),
           FilledButton(
+              style: _goalDlgBtn,
               onPressed: () => Navigator.of(ctx).pop(controller.text),
               child: const Text('저장')),
         ],
@@ -72,6 +80,14 @@ Future<String?> showGoalEditor(BuildContext context, WidgetRef ref) async {
   await WidgetBridge.updateGoal(normalized);
   return normalized;
 }
+
+/// 레퍼런스 v17 .btn — min-height 37 · radius 2 · 컴팩트 폰트(12).
+final ButtonStyle _goalDlgBtn = TextButton.styleFrom(
+  minimumSize: const Size(0, 37),
+  padding: const EdgeInsets.symmetric(horizontal: 12),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+);
 
 /// 여러 줄 목표 문자열 정규화 — 각 줄 trim, 빈 줄 제거, 개행으로 재결합.
 String normalizeGoals(String raw) => raw

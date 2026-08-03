@@ -20,23 +20,27 @@ Future<String?> showInputDialog(
     builder: (ctx) {
       final tk = t(ctx);
       return AlertDialog(
-        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-        contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-        actionsPadding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-        // 레퍼런스 모달: 브래킷 세리프 제목 + (부제) + (필드 라벨) + 언더라인 입력.
+        // 레퍼런스 v17 .modal — padding 18.
+        titlePadding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+        contentPadding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+        actionsPadding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
+        // 레퍼런스 모달: 브래킷 제목(18) + (부제 9) + (필드 라벨 8) + 박스 입력.
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 레퍼런스 .modal h3 — 대괄호는 포인트색, 제목은 잉크.
+            // 레퍼런스 .modal h3(18) — 대괄호는 포인트색, 제목은 잉크.
             Text.rich(TextSpan(children: [
-              TextSpan(text: '[ ', style: AppText.hTitle(tk.mark)),
-              TextSpan(text: title, style: AppText.hTitle(tk.ink)),
-              TextSpan(text: ' ]', style: AppText.hTitle(tk.mark)),
+              TextSpan(
+                  text: '[ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 18)),
+              TextSpan(
+                  text: title, style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+              TextSpan(
+                  text: ' ]', style: AppText.hTitle(tk.mark).copyWith(fontSize: 18)),
             ])),
             if (subtitle != null) ...[
               const SizedBox(height: 4),
-              Text(subtitle, style: AppText.meta(tk.inkSoft, size: 12)),
+              Text(subtitle, style: AppText.meta(tk.inkSoft, size: 9)),
             ],
           ],
         ),
@@ -45,7 +49,7 @@ Future<String?> showInputDialog(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (fieldLabel != null) ...[
-              Text(fieldLabel, style: AppText.meta(tk.inkSoft, size: 10)),
+              Text(fieldLabel, style: AppText.meta(tk.inkSoft, size: 8)),
               const SizedBox(height: 8),
             ],
             TextField(
@@ -74,9 +78,11 @@ Future<String?> showInputDialog(
         ),
         actions: [
           TextButton(
+              style: _dlgTextBtn,
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('취소')),
           FilledButton(
+              style: _dlgFilledBtn,
               onPressed: () => Navigator.of(ctx).pop(controller.text),
               child: Text(saveLabel)),
         ],
@@ -84,6 +90,20 @@ Future<String?> showInputDialog(
     },
   );
 }
+
+/// 레퍼런스 v17 .btn — min-height 37 · radius 2 · 컴팩트 폰트(12).
+final ButtonStyle _dlgFilledBtn = FilledButton.styleFrom(
+  minimumSize: const Size(0, 37),
+  padding: const EdgeInsets.symmetric(horizontal: 12),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+);
+final ButtonStyle _dlgTextBtn = TextButton.styleFrom(
+  minimumSize: const Size(0, 37),
+  padding: const EdgeInsets.symmetric(horizontal: 12),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
+  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+);
 
 /// 편집형 확인 다이얼로그. danger=true면 확인 버튼 배경 mark.
 Future<bool> showConfirmDialog(
@@ -98,25 +118,30 @@ Future<bool> showConfirmDialog(
     builder: (ctx) {
       final tk = t(ctx);
       return AlertDialog(
-        titlePadding: EdgeInsets.fromLTRB(20, 20, 20, message == null ? 12 : 8),
-        contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-        actionsPadding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+        // 레퍼런스 v17 .modal — padding 18.
+        titlePadding: EdgeInsets.fromLTRB(18, 18, 18, message == null ? 10 : 8),
+        contentPadding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+        actionsPadding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
         title: Text.rich(TextSpan(children: [
-          TextSpan(text: '[ ', style: AppText.hTitle(tk.mark)),
-          TextSpan(text: title, style: AppText.hTitle(tk.ink)),
-          TextSpan(text: ' ]', style: AppText.hTitle(tk.mark)),
+          TextSpan(
+              text: '[ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 18)),
+          TextSpan(
+              text: title, style: AppText.hTitle(tk.ink).copyWith(fontSize: 18)),
+          TextSpan(
+              text: ' ]', style: AppText.hTitle(tk.mark).copyWith(fontSize: 18)),
         ])),
         content:
             message == null ? null : Text(message, style: AppText.body(tk.ink)),
         actions: [
           TextButton(
+              style: _dlgTextBtn,
               onPressed: () => Navigator.of(ctx).pop(false),
               child: const Text('취소')),
           FilledButton(
             style: danger
-                ? FilledButton.styleFrom(
-                    backgroundColor: tk.mark, foregroundColor: tk.paper)
-                : null,
+                ? _dlgFilledBtn.merge(FilledButton.styleFrom(
+                    backgroundColor: tk.mark, foregroundColor: tk.paper))
+                : _dlgFilledBtn,
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(confirmLabel),
           ),

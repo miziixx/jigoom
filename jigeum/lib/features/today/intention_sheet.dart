@@ -78,7 +78,9 @@ class _IntentionSheetState extends ConsumerState<_IntentionSheet> {
             style: theme.textTheme.bodyLarge,
             decoration: const InputDecoration(
               hintText: '예: 저녁 먹고 나면 · 출근 지하철에서',
-              border: UnderlineInputBorder(),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(6))),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
               isDense: true,
             ),
           ),
@@ -93,7 +95,9 @@ class _IntentionSheetState extends ConsumerState<_IntentionSheet> {
             style: theme.textTheme.bodyLarge,
             decoration: const InputDecoration(
               hintText: '예: 눕고 싶어질 때 · 폰 먼저 볼 때',
-              border: UnderlineInputBorder(),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(6))),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
               isDense: true,
             ),
           ),
