@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
+import '../../core/fortune.dart';
 import '../../core/journal.dart';
+import '../../core/saju.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
@@ -246,52 +248,132 @@ class _HomeViewState extends ConsumerState<HomeView> {
 
   // ── 오늘의 운세 ────────────────────────────────────────
   Widget _fortuneBlock(AppTokens tk) {
-    final hasBirth = ref.watch(settingsProvider).birth != null;
+    final s = ref.watch(settingsProvider);
     final now = DateTime.now();
-    final title = hasBirth ? '오늘의 흐름' : '생년월일을 입력해요';
-    final desc = hasBirth
-        ? '탭해서 오늘의 사주·점성 분석을 확인해요.'
-        : '생년월일을 넣으면 오늘의 운세가 여기 나타나요.';
     return Padding(
       padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
       child: GestureDetector(
         onTap: widget.onOpenFortune,
         behavior: HitTestBehavior.opaque,
-        // #6 레퍼런스 .fortune — 테두리 카드 + 날짜 박스 + 제목 + 설명.
+        // #6 레퍼런스 .fortune — 테두리 카드. 생일 있으면 오늘의 운세 요약+그래프.
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border.all(color: tk.line),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 날짜 박스 07/28.
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  border: Border.all(color: tk.line),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(DateFormat('MM/dd').format(now),
-                    style: AppText.meta(tk.inkSoft, size: 10)),
-              ),
-              const SizedBox(height: 12),
-              Text(title,
-                  style: AppText.serif(hasBirth ? tk.ink : tk.inkSoft,
-                      size: 17, height: 1.3)),
-              const SizedBox(height: 6),
-              Text(koWrap(desc),
-                  style: AppText.body(tk.inkSoft)
-                      .copyWith(fontSize: 10, height: 1.55)),
-            ],
-          ),
+          child: s.hasBirth
+              ? _fortuneSummary(tk, s, now)
+              : _fortunePrompt(tk, now),
         ),
       ),
     );
   }
+
+  // 생일 미입력 — 안내 카드.
+  Widget _fortunePrompt(AppTokens tk, DateTime now) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _dateBox(tk, now),
+          const SizedBox(height: 12),
+          Text('생년월일을 입력해요',
+              style: AppText.serif(tk.inkSoft, size: 17, height: 1.3)),
+          const SizedBox(height: 6),
+          Text(koWrap('생년월일을 넣으면 오늘의 운세가 여기 나타나요.'),
+              style: AppText.body(tk.inkSoft)
+                  .copyWith(fontSize: 10, height: 1.55)),
+        ],
+      );
+
+  // 생일 입력됨 — 오늘의 운세 요약 + 미니 그래프(주요 카테고리 점수 바).
+  Widget _fortuneSummary(AppTokens tk, AppSettings s, DateTime now) {
+    final chart = computeSaju(s.birth!,
+        hasHour: s.birthHasTime,
+        longitude: s.birthLongitude,
+        male: s.birthMale);
+    final f = computeDailyFortune(chart, now);
+    final cats =
+        f.categories.where((c) => c.key != 'overall').take(4).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _dateBox(tk, now),
+            const Spacer(),
+            // 총운 점수(강조).
+            Text('${f.overall}',
+                style: AppText.serif(tk.ink, size: 22, height: 1)),
+            const SizedBox(width: 2),
+            Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: Text('점', style: AppText.meta(tk.inkSoft, size: 9)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text('오늘의 흐름 · ${f.overallGrade}',
+            style: AppText.serif(tk.ink, size: 17, height: 1.3)),
+        const SizedBox(height: 6),
+        Text(
+          '일진 ${f.todayPillar.hanja}(${f.todayPillar.kor}일) · 오늘 기운 「${f.todayTenGod}」',
+          style: AppText.meta(tk.inkSoft, size: 10),
+        ),
+        const SizedBox(height: 12),
+        // 미니 그래프 — 주요 카테고리 점수 바.
+        for (final c in cats) _fortuneBar(tk, c.title, c.score),
+        const SizedBox(height: 2),
+        Text('탭해서 사주·점성 자세히 보기',
+            style: AppText.meta(tk.inkSoft, size: 9)),
+      ],
+    );
+  }
+
+  Widget _dateBox(AppTokens tk, DateTime now) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          border: Border.all(color: tk.line),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(DateFormat('MM/dd').format(now),
+            style: AppText.meta(tk.inkSoft, size: 10)),
+      );
+
+  // 카테고리 점수 미니 바 — 라벨 · 채움 바 · 점수.
+  Widget _fortuneBar(AppTokens tk, String label, int score) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 56,
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.meta(tk.inkSoft, size: 10)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                height: 4,
+                color: tk.paper2,
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: (score / 100).clamp(0.0, 1.0),
+                  child: Container(color: tk.ink),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 20,
+              child: Text('$score',
+                  textAlign: TextAlign.right,
+                  style: AppText.meta(tk.inkSoft, size: 10)),
+            ),
+          ],
+        ),
+      );
 
   Future<void> _editGoal() async {
     final g = await showGoalEditor(context, ref);
