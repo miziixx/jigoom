@@ -10,6 +10,7 @@ import '../inbox/inbox_screen.dart';
 import '../outline/outline_screen.dart';
 import '../schedule/calendar_view.dart';
 import '../settings/settings_screen.dart';
+import '../widget_studio/studio_screen.dart';
 
 /// 사이드바 메뉴(에디토리얼) — 홈 셸뿐 아니라 푸시 화면(아웃라인·달력·운세·
 /// 보류함·설정)에서도 endDrawer 로 재사용한다. 탭 항목은 [homeTabProvider] 를
@@ -130,6 +131,8 @@ class AppDrawer extends ConsumerWidget {
               row('12', '설정', () => goPush(const SettingsScreen())),
               row('13', '보류함',
                   () => goPush(InboxScreen(repository: ref.read(inboxRepoProvider)))),
+              row('14', '위젯 스튜디오',
+                  () => goPush(const WidgetStudioScreen())),
             ],
           ),
         ),

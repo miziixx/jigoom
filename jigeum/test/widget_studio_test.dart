@@ -1,0 +1,214 @@
+import 'package:drift/native.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:jigeum/data/db.dart';
+import 'package:jigeum/providers.dart';
+import 'package:jigeum/features/widget_studio/studio_controller.dart';
+import 'package:jigeum/features/widget_studio/studio_tokens.dart';
+import 'package:jigeum/features/widget_studio/widget_config.dart';
+
+/// 조건이 참이 될 때까지(또는 타임아웃) 대기 — 컨트롤러의 비동기 kv 로드/저장을 기다린다.
+Future<void> _until(bool Function() cond,
+    {Duration timeout = const Duration(seconds: 2)}) async {
+  final end = DateTime.now().add(timeout);
+  while (!cond() && DateTime.now().isBefore(end)) {
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('디자인 토큰 (레퍼런스 값 고정)', () {
+    test('기본 위젯 크기 9종 — 오차 0px', () {
+      expect(kDefaultWidgetSizes[StudioWidgetType.clock], const Size(220, 150));
+      expect(kDefaultWidgetSizes[StudioWidgetType.calendar], const Size(354, 230));
+      expect(kDefaultWidgetSizes[StudioWidgetType.goal], const Size(354, 100));
+      expect(kDefaultWidgetSizes[StudioWidgetType.tracker], const Size(354, 224));
+      expect(kDefaultWidgetSizes[StudioWidgetType.tasks], const Size(220, 210));
+      expect(kDefaultWidgetSizes[StudioWidgetType.habits], const Size(220, 180));
+      expect(kDefaultWidgetSizes[StudioWidgetType.matrix], const Size(354, 230));
+      expect(kDefaultWidgetSizes[StudioWidgetType.capture], const Size(144, 88));
+      expect(kDefaultWidgetSizes[StudioWidgetType.fortune], const Size(220, 130));
+    });
+
+    test('프레임 상수 — 레퍼런스와 동일', () {
+      expect(StudioFrame.headerHeight, 27);
+      expect(StudioFrame.radius, 14);
+      expect(StudioFrame.lineWidth, 0.7);
+      expect(StudioFrame.minWidth, 110);
+      expect(StudioFrame.minHeight, 72);
+      expect(StudioFrame.bgAlpha, 0.92);
+    });
+
+    test('반응형 상태 임계값 (normal/compact/tiny)', () {
+      expect(studioStateFor(354, 230), StudioSizeState.normal);
+      expect(studioStateFor(220, 210), StudioSizeState.compact); // width<230
+      expect(studioStateFor(354, 120), StudioSizeState.compact); // height<125
+      expect(studioStateFor(150, 200), StudioSizeState.tiny); // width<160
+      expect(studioStateFor(300, 85), StudioSizeState.tiny); // height<90
+    });
+
+    test('테마 8종 + INK NIGHT 색상 정확', () {
+      expect(StudioTheme.all.length, 8);
+      final ink = StudioTheme.byKey('ink');
+      expect(ink.label, 'INK NIGHT');
+      expect(ink.bg, const Color(0xFF191B1D));
+      expect(ink.primary, const Color(0xFF8BA99B));
+      // 알 수 없는 키는 sage 로 폴백.
+      expect(StudioTheme.byKey('nope').key, 'sage');
+    });
+
+    test('크기 프리셋 6종', () {
+      expect(kSizePresets.map((p) => p.size).toList(), const [
+        Size(144, 88),
+        Size(220, 100),
+        Size(220, 168),
+        Size(354, 112),
+        Size(354, 184),
+        Size(354, 270),
+      ]);
+    });
+  });
+
+  group('데이터 모델 직렬화', () {
+    test('WidgetConfig 라운드트립', () {
+      const w = WidgetConfig(
+        id: 'a',
+        type: StudioWidgetType.calendar,
+        title: '캘린더',
+        x: 12,
+        y: 34,
+        width: 354,
+        height: 230,
+        zIndex: 5,
+        view: StudioCalView.week,
+        theme: 'cobalt',
+        surface: StudioSurface.paper,
+        backgroundOpacity: 80,
+        opacity: 90,
+        fontScale: 110,
+        radius: 8,
+        lineWidth: 1.2,
+        lineColor: 0xFF112233,
+        accentColor: 0xFF445566,
+      );
+      final r = WidgetConfig.fromJson(w.toJson());
+      expect(r.id, 'a');
+      expect(r.type, StudioWidgetType.calendar);
+      expect(r.view, StudioCalView.week);
+      expect(r.surface, StudioSurface.paper);
+      expect(r.backgroundOpacity, 80);
+      expect(r.lineColor, 0xFF112233);
+      expect(r.accentColor, 0xFF445566);
+      expect(r.sizeState, StudioSizeState.normal);
+    });
+
+    test('TimeRecord.parse — 첫 줄 제목 + 이후 작업', () {
+      final p = TimeRecord.parse('앱 개발 기록\n홈 정렬 수정\n타임트래커 점검');
+      expect(p.title, '앱 개발 기록');
+      expect(p.work, ['홈 정렬 수정', '타임트래커 점검']);
+      expect(TimeRecord.parse('   ').title, '기록'); // 빈 입력 폴백
+    });
+  });
+
+  group('StudioController — 배치·타임트래커·영속화', () {
+    late AppDatabase db;
+    late ProviderContainer container;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+      container =
+          ProviderContainer(overrides: [dbProvider.overrideWithValue(db)]);
+    });
+
+    tearDown(() async {
+      container.dispose();
+      await db.close();
+    });
+
+    StudioController ctrl() => container.read(studioControllerProvider.notifier);
+    StudioSession sess() => container.read(studioControllerProvider);
+
+    test('최초 실행 시 초기 6위젯 로드', () async {
+      ctrl();
+      await _until(() => sess().widgets.isNotEmpty);
+      expect(sess().widgets.length, 6);
+      expect(sess().widgets.any((w) => w.type == StudioWidgetType.tracker), true);
+    });
+
+    test('위젯 추가 → 개수 증가 + 선택', () async {
+      final c = ctrl();
+      await _until(() => sess().widgets.isNotEmpty);
+      c.addWidget(StudioWidgetType.clock);
+      expect(sess().widgets.length, 7);
+      expect(sess().selected?.type, StudioWidgetType.clock);
+      // 기본 크기 적용.
+      expect(sess().selected!.width, 220);
+    });
+
+    test('타임트래커: 초안 없으면 시작 불가, 있으면 시작→종료→기록 저장', () async {
+      final c = ctrl();
+      await _until(() => sess().widgets.isNotEmpty);
+      final tw = sess().widgets.firstWhere((w) => w.type == StudioWidgetType.tracker);
+
+      expect(c.trackerStart(tw.id), false); // 초안 없음
+      c.trackerDraft(tw.id, '앱 개발 기록\n홈 정렬 수정');
+      expect(c.trackerStart(tw.id), true);
+      expect(sess().trackerFor(tw.id).running, true);
+      expect(sess().trackerFor(tw.id).startedAt, isNotNull);
+
+      c.trackerStop(tw.id);
+      final t = sess().trackerFor(tw.id);
+      expect(t.running, false);
+      expect(t.startedAt, isNull);
+      expect(t.draft, ''); // 종료 후 초기화
+      expect(t.records.length, 1);
+      expect(t.records.first.title, '앱 개발 기록');
+      expect(t.records.first.work, ['홈 정렬 수정']);
+      expect(t.records.first.endedAt >= t.records.first.startedAt, true);
+    });
+
+    test('영속화: 배치·타이머·기록이 재시작(새 컨트롤러)에도 유지', () async {
+      final c = ctrl();
+      await _until(() => sess().widgets.isNotEmpty);
+      final tw = sess().widgets.firstWhere((w) => w.type == StudioWidgetType.tracker);
+      c.trackerDraft(tw.id, '지속 기록\n작업A');
+      c.trackerStart(tw.id); // 실행 중 저장 → startedAt 영속
+      c.setGlobalTheme('cobalt');
+      c.addWidget(StudioWidgetType.fortune);
+      final widgetCount = sess().widgets.length;
+      await _until(() => true, timeout: const Duration(milliseconds: 120));
+
+      // 같은 db 로 새 컨트롤러(=앱 재시작) 생성.
+      final container2 =
+          ProviderContainer(overrides: [dbProvider.overrideWithValue(db)]);
+      addTearDown(container2.dispose);
+      container2.read(studioControllerProvider.notifier);
+      await _until(() =>
+          container2.read(studioControllerProvider).widgets.isNotEmpty);
+      final s2 = container2.read(studioControllerProvider);
+      expect(s2.widgets.length, widgetCount);
+      expect(s2.studio.globalTheme, 'cobalt');
+      final t2 = s2.trackerFor(tw.id);
+      expect(t2.running, true); // 실행 중 상태 복원
+      expect(t2.startedAt, isNotNull);
+      expect(t2.draft, '지속 기록\n작업A');
+    });
+
+    test('대형 캔버스 전환 시 밖으로 나간 위젯을 안으로 되돌림', () async {
+      final c = ctrl();
+      await _until(() => sess().widgets.isNotEmpty);
+      c.addWidget(StudioWidgetType.calendar);
+      final id = sess().selected!.id;
+      c.select(id);
+      c.mutateSelected((w) => w.copyWith(x: 400, y: 900)); // 큰 캔버스 기준
+      c.setLargeCanvas(false); // 390×844 로
+      final w = sess().widgets.firstWhere((e) => e.id == id);
+      expect(w.x + w.width <= 390, true);
+      expect(w.y + w.height <= 844, true);
+    });
+  });
+}

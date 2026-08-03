@@ -6,19 +6,26 @@ import 'package:flutter/widgets.dart';
 /// 레퍼런스: design-reference/jigeum_widget_studio_editorial_v2.html
 /// 모든 값은 그 HTML의 CSS/JS 에서 **직접 추출**한 것이다. 눈대중으로 바꾸지 말 것.
 ///
-/// 폰트 매핑 (레퍼런스 CSS 스택 → 앱 번들 폰트):
-///   · 산세리프  -apple-system,…,"Noto Sans KR"  → 'Pretendard' (앱 번들, 없으면 시스템)
-///   · 에디토리얼 Georgia,"Noto Serif KR",serif    → 'NotoSerifKR' (앱 번들)
-///   · 모노      ui-monospace,SFMono,Menlo         → 'JetBrainsMono' (앱 번들)
-///   · 시계 숫자 "Helvetica Neue","Segoe UI"        → 시스템 산세리프(가장 가까움) — 주석 명시
-/// 플랫폼에서 동일 폰트가 없으면 위 대응으로 대체하며, 이 매핑을 결과 보고서에 명시한다.
+/// 폰트 매핑 (레퍼런스 CSS 스택 → 앱 번들 폰트). 확인 결과 pubspec.yaml 에
+/// 번들된 계열은 Pretendard · NanumGothic · GowunDodum · NanumMyeongjo ·
+/// NotoSerifKR 뿐이고 **전용 모노스페이스 폰트는 번들돼 있지 않다.**
+///   · 산세리프  -apple-system,…,"Noto Sans KR"  → 'Pretendard' (번들 ✅)
+///   · 에디토리얼 Georgia,"Noto Serif KR",serif    → 'NotoSerifKR' (번들 ✅)
+///   · 모노      ui-monospace,SFMono,Menlo         → 'monospace' (플랫폼 제네릭)
+///        JetBrainsMono/SFMono 등은 번들돼 있지 않아 임의 유료 폰트를 추가하지
+///        않고, 앱이 이미 라벨·숫자에 쓰는 시스템 제네릭 'monospace'(안드로이드
+///        Roboto Mono 계열)로 대체한다. 한글은 [monoFallback] 로 렌더.
+///   · 시계 숫자 "Helvetica Neue","Segoe UI"        → 'Pretendard' Light(가장 가까움)
+/// 이 매핑은 결과 보고서 §6 에 그대로 명시한다.
 /// ============================================================
 class StudioFont {
   StudioFont._();
   static const sans = 'Pretendard'; // -apple-system … Noto Sans KR
   static const serif = 'NotoSerifKR'; // Georgia · Noto Serif KR
-  static const mono = 'JetBrainsMono'; // ui-monospace · SFMono · Menlo
-  // 시계 숫자: 레퍼런스는 Helvetica Neue. 앱엔 없어 시스템 산세리프로 대체(가장 가까움).
+  static const mono = 'monospace'; // ui-monospace · SFMono · Menlo (제네릭 대체)
+  // 모노에 없는 한글/한자는 명조로 폴백해 잘리지 않게 한다.
+  static const List<String> monoFallback = ['NanumMyeongjo'];
+  // 시계 숫자: 레퍼런스는 Helvetica Neue. 앱엔 없어 Pretendard Light 로 대체(가장 가까움).
   static const clock = 'Pretendard';
 }
 
@@ -203,14 +210,15 @@ class StudioTheme {
       ink: Color(0xFF312B21), muted: Color(0xFF786F60), line: Color(0xFFE5DBC7),
       primary: Color(0xFFA47735), primaryDark: Color(0xFF704E20), primaryWeak: Color(0xFFF1E2C5),
       wallA: Color(0xFFF0E6D1), wallB: Color(0xFFDCC99F));
-  static const ink = StudioTheme(
+  // 주의: 인스턴스 색상 필드 `ink` 와 이름이 겹치면 안 되므로 상수명은 inkNight.
+  static const inkNight = StudioTheme(
       key: 'ink', label: 'INK NIGHT',
       bg: Color(0xFF191B1D), surface: Color(0xFF25282A), surface2: Color(0xFF2E3235),
       ink: Color(0xFFF0F1ED), muted: Color(0xFFA8ADA9), line: Color(0xFF454A4D),
       primary: Color(0xFF8BA99B), primaryDark: Color(0xFFC2D8CE), primaryWeak: Color(0xFF34473F),
       wallA: Color(0xFF252A2D), wallB: Color(0xFF111315));
 
-  static const all = [sage, manila, mauve, moss, cobalt, rose, ochre, ink];
+  static const all = [sage, manila, mauve, moss, cobalt, rose, ochre, inkNight];
   static StudioTheme byKey(String k) =>
       all.firstWhere((t) => t.key == k, orElse: () => sage);
 }
