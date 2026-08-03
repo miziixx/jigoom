@@ -375,7 +375,7 @@ class EdTaskRow extends StatelessWidget {
 
 /// 체크박스 — 각진 1px, 완료 시 잉크 채움 + 체크.
 class EdCheck extends StatelessWidget {
-  const EdCheck({super.key, required this.done, this.size = 18});
+  const EdCheck({super.key, required this.done, this.size = 15});
   final bool done;
   final double size;
 

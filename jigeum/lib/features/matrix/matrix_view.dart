@@ -234,7 +234,7 @@ class _QuadTask extends ConsumerWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => ref.read(nodeRepoProvider).complete(node.id as String),
-            child: const EdCheck(done: false, size: 17),
+            child: const EdCheck(done: false, size: 15),
           ),
           const SizedBox(width: 9),
           Expanded(

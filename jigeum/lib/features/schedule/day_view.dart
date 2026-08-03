@@ -55,6 +55,19 @@ Color _catColor(_Cat c, AppTokens tk) => switch (c) {
       _Cat.log => tk.ink,
     };
 
+// 체크박스를 쓰는 카테고리 — 오늘 체크해서 완료하는 것(루틴·습관)만.
+// 그 외(일정·타임트래커·메모·한 일)는 체크박스 대신 카테고리 아이콘을 쓴다.
+bool _usesCheckbox(_Cat c) => c == _Cat.routine || c == _Cat.habit;
+
+// 체크박스가 아닌 카테고리의 왼쪽 아이콘.
+IconData _leadingIcon(_Cat c) => switch (c) {
+      _Cat.sched => Icons.event_outlined, // 일정
+      _Cat.log => Icons.schedule, // 타임트래커(기록)
+      _Cat.memo => Icons.sticky_note_2_outlined, // 메모
+      _Cat.done => Icons.check, // 한 일(완료)
+      _ => Icons.remove,
+    };
+
 /// 한 줄 기록(칩) 하나의 데이터.
 class _Rec {
   const _Rec(
@@ -295,11 +308,15 @@ class _DayViewState extends ConsumerState<DayView> {
               child: Column(
                 children: [
                   const SizedBox(height: 12),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: r.checkable ? r.onToggle : null,
-                    child: EdCheck(done: r.done, size: 17),
-                  ),
+                  // 루틴·습관만 체크박스. 일정·기록·메모·한 일은 아이콘.
+                  if (_usesCheckbox(r.cat))
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: r.checkable ? r.onToggle : null,
+                      child: EdCheck(done: r.done, size: 15),
+                    )
+                  else
+                    Icon(_leadingIcon(r.cat), size: 15, color: tk.inkSoft),
                   if (!isLast)
                     Expanded(
                         child: Center(

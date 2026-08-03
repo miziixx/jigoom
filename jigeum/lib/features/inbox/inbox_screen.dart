@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../core/dialogs.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../shell/app_bottom_nav.dart';
@@ -54,6 +55,22 @@ class _InboxScreenState extends State<InboxScreen> {
     if (mounted) setState(() {});
   }
 
+  // 보류함의 담기 = 보류 항목 추가.
+  Future<void> _addHeld() async {
+    final text = await showInputDialog(
+      context,
+      title: '보류함에 담기',
+      kicker: 'HOLD',
+      hint: '나중에 다시 볼 내용',
+      fieldLabel: '내용',
+    );
+    if (!mounted) return;
+    if (text != null && text.trim().isNotEmpty) {
+      widget.repository.add(text.trim());
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tk = Theme.of(context).extension<AppTokens>()!;
@@ -81,7 +98,7 @@ class _InboxScreenState extends State<InboxScreen> {
                       itemBuilder: (context, i) => _row(context, tk, items[i]),
                     ),
             ),
-            const AppBottomNav(),
+            AppBottomNav(onQuickAdd: _addHeld),
           ],
         ),
       ),

@@ -8,6 +8,7 @@ import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../shell/app_bottom_nav.dart';
 import '../shell/app_drawer.dart';
+import 'folder_create_sheet.dart';
 import 'outline_view.dart';
 
 class OutlineScreen extends StatelessWidget {
@@ -29,7 +30,8 @@ class OutlineScreen extends StatelessWidget {
                 onBack: () => Navigator.of(context).pop(),
                 showMenu: true),
             const Expanded(child: OutlineView()),
-            const AppBottomNav(),
+            // 아웃라인의 담기 = 폴더 추가.
+            AppBottomNav(onQuickAdd: () => showFolderCreateSheet(context)),
           ],
         ),
       ),

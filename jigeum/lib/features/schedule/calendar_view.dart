@@ -30,7 +30,10 @@ class CalendarScreen extends StatelessWidget {
                   onBack: () => Navigator.of(context).pop(),
                   showMenu: true),
               const Expanded(child: CalendarView()),
-              const AppBottomNav(),
+              // 달력의 담기 = 일정 추가.
+              AppBottomNav(
+                  onQuickAdd: () =>
+                      showScheduleEditSheet(context, date: todayDate())),
             ],
           ),
         ),

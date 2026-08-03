@@ -91,18 +91,18 @@ Future<String?> showInputDialog(
   );
 }
 
-/// 레퍼런스 v17 .btn — min-height 37 · radius 2 · 컴팩트 폰트(12).
+/// 레퍼런스 v17 .btn — min-height 37 · radius 2 · 폰트 10 · w500.
 final ButtonStyle _dlgFilledBtn = FilledButton.styleFrom(
   minimumSize: const Size(0, 37),
   padding: const EdgeInsets.symmetric(horizontal: 12),
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
-  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+  textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
 );
 final ButtonStyle _dlgTextBtn = TextButton.styleFrom(
   minimumSize: const Size(0, 37),
   padding: const EdgeInsets.symmetric(horizontal: 12),
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
-  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+  textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
 );
 
 /// 편집형 확인 다이얼로그. danger=true면 확인 버튼 배경 mark.
