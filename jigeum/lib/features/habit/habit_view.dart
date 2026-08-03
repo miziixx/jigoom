@@ -150,38 +150,70 @@ class _QuickStartHabits extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionLabel('빠른 시작'),
-        for (final p in presets)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () async {
-              await ref.read(habitRepoProvider).addHabit(p);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context)
-                  ..clearSnackBars()
-                  ..showSnackBar(SnackBar(
-                    content: Text("'$p' 습관을 추가했어요"),
-                    duration: const Duration(milliseconds: 1200),
-                  ));
-              }
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: tk.line, width: 1)),
-              ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: kGutter, vertical: 12),
-              child: Row(
+        // § 빠른 시작 + 템플릿 (레퍼런스 section-title).
+        Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('＋ ', style: AppText.glyph(tk.mark, size: 15)),
-                  Expanded(child: Text(p, style: AppText.body(tk.ink))),
+                  Text('§ ',
+                      style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
+                  Text('빠른 시작',
+                      style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
+                  const Spacer(),
+                  Text('템플릿', style: AppText.meta(tk.inkSoft, size: 11)),
                 ],
               ),
-            ),
+              const SizedBox(height: 8),
+              Container(height: 1, color: tk.line),
+            ],
           ),
+        ),
+        // 가로 이모지 칩 (레퍼런스 .filter-row).
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: kGutter),
+          child: Row(
+            children: [
+              for (var i = 0; i < presets.length; i++) ...[
+                if (i > 0) const SizedBox(width: 7),
+                PillChip(
+                  label: '${_presetEmoji(presets[i])} ${presets[i]}',
+                  onTap: () async {
+                    await ref.read(habitRepoProvider).addHabit(presets[i]);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(SnackBar(
+                          content: Text("'${presets[i]}' 습관을 추가했어요"),
+                          duration: const Duration(milliseconds: 1200),
+                        ));
+                    }
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }
+
+  /// 빠른 시작 프리셋 이모지 (레퍼런스 칩의 앞 이모지에 대응).
+  String _presetEmoji(String p) => switch (p) {
+        '물 마시기' => '💧',
+        '산책하기' => '🚶',
+        '스트레칭' => '🤸',
+        '독서' => '📖',
+        '명상' => '🧘',
+        '일기 쓰기' => '📔',
+        '영양제' => '💊',
+        '정리정돈' => '🧹',
+        _ => '·',
+      };
 }
 
 class _HabitRow extends ConsumerWidget {
