@@ -1,11 +1,14 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:jigeum/core/constants.dart';
 import 'package:jigeum/data/db.dart';
 import 'package:jigeum/providers.dart';
 import 'package:jigeum/features/widget_studio/studio_controller.dart';
+import 'package:jigeum/features/widget_studio/studio_live_data.dart';
 import 'package:jigeum/features/widget_studio/studio_tokens.dart';
 import 'package:jigeum/features/widget_studio/widget_config.dart';
 
@@ -209,6 +212,124 @@ void main() {
       final w = sess().widgets.firstWhere((e) => e.id == id);
       expect(w.x + w.width <= 390, true);
       expect(w.y + w.height <= 844, true);
+    });
+  });
+
+  group('StudioLiveData — 실제 앱 데이터 연결(§16)', () {
+    late AppDatabase db;
+    late ProviderContainer container;
+    final today = todayDate();
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+      container =
+          ProviderContainer(overrides: [dbProvider.overrideWithValue(db)]);
+    });
+
+    tearDown(() async {
+      container.dispose();
+      await db.close();
+    });
+
+    test('데이터 없으면 리스트 비움(본문은 이때만 샘플 폴백)', () async {
+      // 모든 스트림 로드 대기.
+      await container.read(todayNodesProvider.future);
+      await container.read(habitsProvider.future);
+      final d = container.read(studioLiveDataProvider);
+      expect(d.tasks, isEmpty);
+      expect(d.habits, isEmpty);
+      expect(d.dayEvents, isEmpty);
+      expect(d.goal, isNull);
+    });
+
+    test('할 일·습관·목표·오늘 일정을 실데이터로 매핑', () async {
+      final now = DateTime.now();
+      // 열린 할 일(오늘, 중요).
+      await db.into(db.nodes).insert(NodesCompanion.insert(
+            id: 'task1',
+            sortOrder: 0,
+            type: NodeType.task,
+            title: '위젯 데이터 연결',
+            important: const Value(true),
+            date: Value(today),
+            status: const Value(NodeStatus.open),
+            createdAt: now,
+            updatedAt: now,
+          ));
+      // 완료(오늘 승리).
+      await db.into(db.nodes).insert(NodesCompanion.insert(
+            id: 'win1',
+            sortOrder: 1,
+            type: NodeType.task,
+            title: '아침 정리',
+            date: Value(today),
+            status: const Value(NodeStatus.done),
+            doneAt: Value(now),
+            createdAt: now,
+            updatedAt: now,
+          ));
+      // 목표.
+      await db.into(db.nodes).insert(NodesCompanion.insert(
+            id: 'goal1',
+            sortOrder: 0,
+            type: NodeType.goal,
+            title: '이번 주 목표',
+            note: const Value('핵심 흐름 마무리'),
+            createdAt: now,
+            updatedAt: now,
+          ));
+      // 습관 + 오늘 체크.
+      await db.into(db.habits).insert(HabitsCompanion.insert(
+          id: 'h1', title: '물 한 잔', category: const Value('아침'), createdAt: today));
+      await db.into(db.habitTicks).insert(HabitTicksCompanion.insert(
+          habitId: 'h1', date: today, completedAt: Value(now)));
+      // 오늘 일정 09:00.
+      await db.into(db.schedules).insert(SchedulesCompanion.insert(
+            id: 's1',
+            date: today,
+            title: '팀 미팅',
+            startMin: 540,
+            endMin: 600,
+            createdAt: now,
+          ));
+
+      // 스트림 첫 방출 대기.
+      await container.read(todayNodesProvider.future);
+      await container.read(todayWinsProvider.future);
+      await container.read(goalsProvider.future);
+      await container.read(habitsProvider.future);
+      await container.read(habitTicksInRangeProvider(
+              (start: today.subtract(const Duration(days: 60)), end: today))
+          .future);
+      await container.read(schedulesForDateProvider(today).future);
+
+      final d = container.read(studioLiveDataProvider);
+
+      // 할 일: 승리 1 + 열린 1.
+      expect(d.tasks.length, 2);
+      expect(d.tasks.first.done, true);
+      expect(d.tasks.first.chip, '완료');
+      expect(d.tasks[1].title, '위젯 데이터 연결');
+      expect(d.tasks[1].tags.contains('#중요'), true);
+      expect(d.tasks[1].chip, '오늘');
+
+      // 습관: '아침 · 1일 연속', 오늘 완료.
+      expect(d.habits.length, 1);
+      expect(d.habits.first.title, '물 한 잔');
+      expect(d.habits.first.sub, '아침 · 1일 연속');
+      expect(d.habits.first.done, true);
+
+      // 목표: 제목·부제 + 진행률(완료 1 / 전체 2).
+      expect(d.goal, isNotNull);
+      expect(d.goal!.title, '이번 주 목표');
+      expect(d.goal!.sub, '핵심 흐름 마무리');
+      expect(d.goal!.doneCount, 1);
+      expect(d.goal!.total, 2);
+
+      // 오늘 일정.
+      expect(d.dayEvents.length, 1);
+      expect(d.dayEvents.first.time, '09:00');
+      expect(d.dayEvents.first.title, '팀 미팅');
     });
   });
 }

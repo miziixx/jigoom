@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'studio_live_data.dart';
 import 'studio_skin.dart';
 import 'studio_tokens.dart';
 import 'tracker_body.dart';
@@ -20,13 +21,14 @@ Widget studioWidgetBody(
   required ValueChanged<String> onTrackerDraft,
   required VoidCallback onTrackerStart,
   required VoidCallback onTrackerStop,
+  StudioLiveData? data,
   int liveTick = 0,
 }) {
   switch (w.type) {
     case StudioWidgetType.clock:
       return _clock(skin);
     case StudioWidgetType.goal:
-      return _goal(skin, w.title);
+      return _goal(skin, w.title, data?.goal);
     case StudioWidgetType.tracker:
       return TrackerBody(
         skin: skin,
@@ -37,9 +39,9 @@ Widget studioWidgetBody(
         liveTick: liveTick,
       );
     case StudioWidgetType.tasks:
-      return _tasks(skin, w.title);
+      return _tasks(skin, w.title, data?.tasks ?? const []);
     case StudioWidgetType.habits:
-      return _habits(skin, w.title);
+      return _habits(skin, w.title, data?.habits ?? const []);
     case StudioWidgetType.matrix:
       return _matrix(skin);
     case StudioWidgetType.capture:
@@ -47,7 +49,8 @@ Widget studioWidgetBody(
     case StudioWidgetType.fortune:
       return _fortune(skin, w.title);
     case StudioWidgetType.calendar:
-      return _calendar(skin, w.view ?? StudioCalView.month);
+      return _calendar(
+          skin, w.view ?? StudioCalView.month, data?.dayEvents ?? const []);
   }
 }
 
@@ -145,7 +148,12 @@ Widget _clock(StudioSkin s) {
 
 // --- 오늘의 목표 -----------------------------------------------------------
 
-Widget _goal(StudioSkin s, String title) {
+Widget _goal(StudioSkin s, String title, StudioGoalInfo? goal) {
+  // 실데이터가 있으면 목표 제목·부제·진행률을 쓰고, 없으면 레퍼런스 샘플.
+  final headline = goal?.title ?? title;
+  final sub = goal?.sub ?? '메인 흐름과 타임트래커 구조를 마무리하기';
+  final ratio = goal?.ratio ?? 0.62;
+  final count = goal != null ? '${goal.doneCount} / ${goal.total}' : '3 / 5';
   return Column(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -155,10 +163,11 @@ Widget _goal(StudioSkin s, String title) {
         children: [
           Text("TODAY'S GOAL", style: s.wMeta),
           const SizedBox(height: 5),
-          Text(title, style: s.wTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(headline,
+              style: s.wTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
           if (!s.isTiny) ...[
             const SizedBox(height: 5),
-            Text('메인 흐름과 타임트래커 구조를 마무리하기',
+            Text(sub,
                 style: s.sans(7.8, color: s.muted, height: 1.45),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
@@ -167,9 +176,9 @@ Widget _goal(StudioSkin s, String title) {
       ),
       Row(
         children: [
-          Expanded(child: _progress(s, 0.62)),
+          Expanded(child: _progress(s, ratio)),
           const SizedBox(width: 8),
-          Text('3 / 5', style: s.wMeta),
+          Text(count, style: s.wMeta),
         ],
       ),
     ],
@@ -178,13 +187,16 @@ Widget _goal(StudioSkin s, String title) {
 
 // --- 오늘 할 일 ------------------------------------------------------------
 
-Widget _tasks(StudioSkin s, String title) {
-  final items = <(bool, String, String, String)>[
-    (true, '고양이 밥주기', '#오늘 #생활', '완료'),
-    (false, '위젯 크기 조절 구현', '#중요 #앱', '오늘'),
-    (false, '달력 일진 표시 확인', '#긴급', '17:00'),
-    (false, '백업 복원 테스트', '#앱', '내일'),
-  ];
+Widget _tasks(StudioSkin s, String title, List<StudioTaskRow> live) {
+  // 실데이터가 있으면 그대로, 없으면(미리보기) 레퍼런스 샘플.
+  final items = live.isNotEmpty
+      ? [for (final t in live) (t.done, t.title, t.tags, t.chip)]
+      : <(bool, String, String, String)>[
+          (true, '고양이 밥주기', '#오늘 #생활', '완료'),
+          (false, '위젯 크기 조절 구현', '#중요 #앱', '오늘'),
+          (false, '달력 일진 표시 확인', '#긴급', '17:00'),
+          (false, '백업 복원 테스트', '#앱', '내일'),
+        ];
   final limit = s.isTiny ? 2 : (s.isCompact ? 3 : items.length);
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -202,7 +214,8 @@ Widget _tasks(StudioSkin s, String title) {
             children: [
               _check(s, it.$1),
               const SizedBox(width: 7),
-              Expanded(child: _row(s, it.$2, small: it.$3)),
+              Expanded(
+                  child: _row(s, it.$2, small: it.$3.isEmpty ? null : it.$3)),
               const SizedBox(width: 7),
               Text(it.$4, style: s.chip),
             ],
@@ -214,12 +227,22 @@ Widget _tasks(StudioSkin s, String title) {
 
 // --- 습관 -----------------------------------------------------------------
 
-Widget _habits(StudioSkin s, String title) {
-  final items = <(String, String, String, bool)>[
-    ('01', '물 한 잔', '아침 · 7일 연속', true),
-    ('02', '5분 정리', '저녁 · 2일 연속', false),
-    ('03', '10분 읽기', '밤 · 4일 연속', false),
-  ];
+Widget _habits(StudioSkin s, String title, List<StudioHabitRow> live) {
+  final items = live.isNotEmpty
+      ? [
+          for (var i = 0; i < live.length; i++)
+            (
+              (i + 1).toString().padLeft(2, '0'),
+              live[i].title,
+              live[i].sub,
+              live[i].done
+            )
+        ]
+      : <(String, String, String, bool)>[
+          ('01', '물 한 잔', '아침 · 7일 연속', true),
+          ('02', '5분 정리', '저녁 · 2일 연속', false),
+          ('03', '10분 읽기', '밤 · 4일 연속', false),
+        ];
   final limit = s.isTiny ? 2 : items.length;
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -353,7 +376,7 @@ Widget _fortune(StudioSkin s, String title) {
 
 // --- 캘린더 (DAY / WEEK / MONTH) ------------------------------------------
 
-Widget _calendar(StudioSkin s, StudioCalView view) {
+Widget _calendar(StudioSkin s, StudioCalView view, List<StudioEventRow> dayEvents) {
   final title = view == StudioCalView.month
       ? '2026년 8월'
       : view == StudioCalView.week
@@ -398,7 +421,7 @@ Widget _calendar(StudioSkin s, StudioCalView view) {
   Widget body;
   switch (view) {
     case StudioCalView.day:
-      body = _calendarDay(s);
+      body = _calendarDay(s, dayEvents);
       break;
     case StudioCalView.week:
       body = _calendarWeek(s);
@@ -414,13 +437,15 @@ Widget _calendar(StudioSkin s, StudioCalView view) {
   );
 }
 
-Widget _calendarDay(StudioSkin s) {
-  final events = <(String, String, String)>[
-    ('09:00', '아침 루틴', '물 한 잔 · 약 챙기기'),
-    ('12:30', '앱 개발 기록', '12:30–13:00 · 30분'),
-    ('16:00', '레이아웃 검토', '오늘 할 일 2개'),
-    ('21:00', '베리 레이키', 'Google Calendar'),
-  ];
+Widget _calendarDay(StudioSkin s, List<StudioEventRow> live) {
+  final events = live.isNotEmpty
+      ? [for (final e in live) (e.time, e.title, e.sub)]
+      : <(String, String, String)>[
+          ('09:00', '아침 루틴', '물 한 잔 · 약 챙기기'),
+          ('12:30', '앱 개발 기록', '12:30–13:00 · 30분'),
+          ('16:00', '레이아웃 검토', '오늘 할 일 2개'),
+          ('21:00', '베리 레이키', 'Google Calendar'),
+        ];
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'studio_controller.dart';
 import 'studio_inspector.dart';
+import 'studio_live_data.dart';
 import 'studio_skin.dart';
 import 'studio_tokens.dart';
 import 'widget_config.dart';
@@ -244,6 +245,8 @@ class _WidgetStudioScreenState extends ConsumerState<WidgetStudioScreen> {
 
   Widget _stage(StudioSession session, StudioController ctrl, StudioTheme theme,
       Size canvas) {
+    // 실제 앱 데이터(할 일·습관·목표·오늘 일정) — 스트림 변경 시 위젯 즉시 갱신.
+    final live = ref.watch(studioLiveDataProvider);
     final zoom = session.zoom;
     final scaledW = canvas.width * zoom;
     final scaledH = canvas.height * zoom;
@@ -309,6 +312,7 @@ class _WidgetStudioScreenState extends ConsumerState<WidgetStudioScreen> {
                   skin: StudioSkin(w, ctrl.themeFor(w)),
                   selected: session.selectedId == w.id,
                   tracker: session.trackerFor(w.id),
+                  liveData: live,
                   liveTick: _liveTick,
                   onTrackerDraft: (v) => ctrl.trackerDraft(w.id, v),
                   onTrackerStart: () {

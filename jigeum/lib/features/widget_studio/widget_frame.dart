@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import 'studio_live_data.dart';
 import 'studio_skin.dart';
 import 'studio_tokens.dart';
 import 'studio_widget_bodies.dart';
@@ -29,6 +30,7 @@ class WidgetFrame extends StatelessWidget {
     required this.onDragEnd,
     required this.onResize,
     required this.onResizeEnd,
+    this.liveData,
     this.liveTick = 0,
   });
 
@@ -44,6 +46,7 @@ class WidgetFrame extends StatelessWidget {
   final VoidCallback onDragEnd;
   final ValueChanged<Offset> onResize;
   final VoidCallback onResizeEnd;
+  final StudioLiveData? liveData;
   final int liveTick;
 
   @override
@@ -71,6 +74,7 @@ class WidgetFrame extends StatelessWidget {
         onTrackerDraft: onTrackerDraft,
         onTrackerStart: onTrackerStart,
         onTrackerStop: onTrackerStop,
+        data: liveData,
         liveTick: liveTick,
       ),
     );
