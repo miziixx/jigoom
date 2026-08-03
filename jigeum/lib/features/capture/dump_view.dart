@@ -280,19 +280,18 @@ class _DumpViewState extends ConsumerState<DumpView> {
           padding: const EdgeInsets.fromLTRB(
               AppSpace.gutter, 10, AppSpace.gutter, 4),
           child: Container(
-            decoration: BoxDecoration(border: Border.all(color: tk.line)),
+            decoration: BoxDecoration(
+              border: Border.all(color: tk.ink),
+              borderRadius: BorderRadius.circular(10),
+            ),
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('FREE NOTE',
+                // 레퍼런스 .dump label — 왼쪽정렬 BRAIN DUMP 한 줄.
+                Text('BRAIN DUMP',
                     style: AppText.meta(tk.inkSoft, size: 9)
-                        .copyWith(letterSpacing: 1.4)),
-                const SizedBox(height: 8),
-                Center(
-                    child: Text('BRAIN DUMP',
-                        style: AppText.meta(tk.inkSoft, size: 10)
-                            .copyWith(letterSpacing: 2))),
+                        .copyWith(letterSpacing: 1.2)),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _controller,
@@ -301,7 +300,6 @@ class _DumpViewState extends ConsumerState<DumpView> {
                   minLines: 3,
                   maxLines: 6,
                   keyboardType: TextInputType.multiline,
-                  textAlign: TextAlign.center,
                   cursorColor: tk.mark,
                   style: AppText.hTitle(tk.ink).copyWith(fontSize: 17, height: 1.4),
                   decoration: InputDecoration(
@@ -447,17 +445,17 @@ class _DumpViewState extends ConsumerState<DumpView> {
             ),
           ),
           const SizedBox(width: 10),
-          // 분류하기 — 탭해서 버킷 선택/재분류.
+          // 분류하기 — 탭해서 버킷 선택/재분류. (레퍼런스 .classify 테두리 칩)
           GestureDetector(
             onTap: () => _pickBucket(i),
             behavior: HitTestBehavior.opaque,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('분류하기', style: AppText.meta(tk.mark, size: 11)),
-                const SizedBox(width: 3),
-                Text('›', style: AppText.glyph(tk.mark, size: 14)),
-              ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                border: Border.all(color: tk.line),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text('분류하기', style: AppText.meta(tk.ink, size: 10)),
             ),
           ),
           GestureDetector(
