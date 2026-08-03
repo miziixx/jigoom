@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/constants.dart';
 import 'core/dialogs.dart';
 import 'core/journal.dart';
 import 'core/settings_controller.dart';
@@ -14,6 +15,8 @@ import 'features/habit/habit_view.dart';
 import 'features/home/home_view.dart';
 import 'features/matrix/matrix_view.dart';
 import 'features/schedule/calendar_view.dart';
+import 'features/schedule/routine_screen.dart';
+import 'features/schedule/schedule_edit_sheet.dart';
 import 'features/schedule/time_hub.dart';
 import 'features/shell/app_drawer.dart';
 import 'features/timetrack/time_track_screen.dart';
@@ -215,14 +218,33 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  /// 현재 탭에 맞는 빠른 담기 유형 — 습관 탭→습관, 일과→일정, 쏟아내기→메모,
-  /// 그 외(홈·오늘·매트릭스·전체)→할 일.
+  /// 현재 탭에 맞는 빠른 담기 유형 — 습관 탭→습관, 쏟아내기→메모,
+  /// 그 외(홈·오늘·매트릭스·전체)→할 일. (일과는 하위 탭별로 _quickAdd 에서 처리)
   static String _captureTypeForTab(int index) => switch (index) {
         4 => 'habit',
-        3 => 'schedule',
         2 => 'memo',
         _ => 'task',
       };
+
+  /// 하단 담기(+) — 현재 화면(과 일과의 하위 탭)에 맞는 추가 흐름을 연다.
+  void _quickAdd(BuildContext context) {
+    // 일과(TimeHub)는 하위 탭마다 담기 흐름이 다르다.
+    if (_index == 3) {
+      switch (ref.read(timeHubSubProvider)) {
+        case 3: // routine → 루틴(그룹) 추가
+          showRoutineGroupSheet(context);
+          return;
+        case 4: // log → 지금 시간 기록
+          showTimeTrackInput(context, ref,
+              date: DateTime.now(), block: TimeTrackRepository.blockOfNow());
+          return;
+        default: // day·week·month → 일정 추가
+          showScheduleEditSheet(context, date: todayDate());
+          return;
+      }
+    }
+    showQuickCaptureInput(context, ref, presetType: _captureTypeForTab(_index));
+  }
 
   /// 하단 탭 — 홈/오늘/＋(담기)/일과/전체. 활성 = 세이지 밑줄, 가운데 초록 ＋ 원.
   Widget _bottomNav(BuildContext context) {
@@ -277,8 +299,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               // 가운데 ＋ — 지금 머무는 메뉴에 맞춰 담기(유형 자동 선택).
               Expanded(
                 child: GestureDetector(
-                  onTap: () => showQuickCaptureInput(context, ref,
-                      presetType: _captureTypeForTab(_index)),
+                  onTap: () => _quickAdd(context),
                   behavior: HitTestBehavior.opaque,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

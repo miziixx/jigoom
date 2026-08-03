@@ -23,11 +23,13 @@ class TimeHub extends ConsumerStatefulWidget {
 }
 
 class _TimeHubState extends ConsumerState<TimeHub> {
-  int _sub = 0; // 0 데이·1 주간·2 달력·3 루틴·4 기록
+  // 하위 탭은 provider 로 관리(하단 담기가 탭별 추가 흐름을 열 수 있게).
+  int get _sub => ref.read(timeHubSubProvider);
 
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
+    ref.watch(timeHubSubProvider); // 하위 탭 변경 시 다시 그림.
     return Column(
       children: [
         _subBar(tk),
@@ -56,7 +58,7 @@ class _TimeHubState extends ConsumerState<TimeHub> {
     Widget tab(int i, String label) {
       final sel = _sub == i;
       return GestureDetector(
-        onTap: () => setState(() => _sub = i),
+        onTap: () => ref.read(timeHubSubProvider.notifier).state = i,
         behavior: HitTestBehavior.opaque,
         child: Padding(
           padding: const EdgeInsets.only(right: 18),

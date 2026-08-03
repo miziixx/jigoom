@@ -47,6 +47,10 @@ final dbProvider = Provider<AppDatabase>((ref) {
 /// 있도록 셸의 로컬 상태 대신 provider 로 둔다. 기본 6 = 홈.
 final homeTabProvider = StateProvider<int>((ref) => 6);
 
+/// 일과(TimeHub) 하위 탭. 0 day · 1 week · 2 month · 3 routine · 4 log.
+/// 하단 담기(+)가 하위 탭에 맞는 추가 흐름을 열 수 있도록 provider 로 둔다.
+final timeHubSubProvider = StateProvider<int>((ref) => 0);
+
 final nodeRepoProvider = Provider<NodeRepository>((ref) {
   return NodeRepository(ref.watch(dbProvider));
 });
