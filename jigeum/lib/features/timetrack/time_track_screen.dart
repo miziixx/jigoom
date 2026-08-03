@@ -94,6 +94,170 @@ Future<void> showTimeTrackInput(
   }
 }
 
+/// 빠른 시간 기록 — 시간(30분 블록)을 ‹ › 로 고르고, 한 줄 적고 '담기'를
+/// 누를 때마다 그 시간에 **하나씩** 누적한다. 시간 미선택 시 현재 시간.
+/// (기존 기록 편집은 [showTimeTrackInput] 의 여러 줄 편집기를 그대로 쓴다.)
+Future<void> showTimeQuickAdd(
+  BuildContext context,
+  WidgetRef ref, {
+  required DateTime date,
+  required int block,
+}) async {
+  await showEditorialSheet<void>(
+    context,
+    scrollable: false,
+    builder: (ctx) => _TimeQuickAdd(date: date, initialBlock: block),
+  );
+}
+
+class _TimeQuickAdd extends ConsumerStatefulWidget {
+  const _TimeQuickAdd({required this.date, required this.initialBlock});
+  final DateTime date;
+  final int initialBlock;
+
+  @override
+  ConsumerState<_TimeQuickAdd> createState() => _TimeQuickAddState();
+}
+
+class _TimeQuickAddState extends ConsumerState<_TimeQuickAdd> {
+  late int _block = widget.initialBlock;
+  final _controller = TextEditingController();
+  final _focus = FocusNode();
+  int _added = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _step(int d) => setState(() => _block = (_block + d).clamp(0, 47));
+
+  // 담기 = 이 시간 블록에 한 줄 누적 후 입력창 비우고 계속 담기.
+  Future<void> _add() async {
+    final line = _controller.text.trim();
+    if (line.isEmpty) return;
+    final repo = ref.read(timeTrackRepoProvider);
+    final existing = await repo.getBlock(widget.date, _block);
+    final base = (existing?.content ?? '').trim();
+    await repo.setBlock(
+        widget.date, _block, base.isEmpty ? line : '$base\n$line');
+    if (!mounted) return;
+    setState(() => _added++);
+    _controller.clear();
+    _focus.requestFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    final start = blockLabel(_block);
+    final end = blockLabel((_block + 1) % 48 == 0 ? 48 : _block + 1);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 시간 스텝퍼 — ‹ [ 12:00–12:30 ] ›
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _stepBtn(tk, '‹', () => _step(-1)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: RichText(
+                text: TextSpan(children: [
+                  TextSpan(text: '[ ', style: AppText.serif(tk.mark, size: 17)),
+                  TextSpan(
+                      text: '$start–$end',
+                      style: AppText.serif(tk.ink, size: 17)),
+                  TextSpan(text: ' ]', style: AppText.serif(tk.mark, size: 17)),
+                ]),
+              ),
+            ),
+            _stepBtn(tk, '›', () => _step(1)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Center(
+          child: Text(
+            _added > 0 ? '이 시간에 $_added개 담음' : '시간 미선택 시 현재 시간',
+            style: AppText.meta(tk.inkSoft, size: 9),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // 한 줄 입력 — 엔터/담기로 하나 담고 계속.
+        TextField(
+          controller: _controller,
+          focusNode: _focus,
+          autofocus: true,
+          maxLines: 1,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _add(),
+          style: AppText.body(tk.ink),
+          cursorColor: tk.mark,
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: '한 일을 적고 담기',
+            hintStyle: AppText.meta(tk.inkSoft, size: 13),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: tk.line)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: tk.ink, width: 1.5)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+                child: _btn(tk, '닫기',
+                    filled: false, onTap: () => Navigator.of(context).pop())),
+            const SizedBox(width: 10),
+            Expanded(child: _btn(tk, '담기', filled: true, onTap: _add)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _stepBtn(AppTokens tk, String g, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle, border: Border.all(color: tk.line)),
+          child: Text(g, style: AppText.glyph(tk.inkSoft, size: 16)),
+        ),
+      );
+
+  // 컴팩트 버튼 — 높이 38 · radius 2(레퍼런스 .btn).
+  Widget _btn(AppTokens tk, String label,
+          {required bool filled, required VoidCallback onTap}) =>
+      GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          height: 38,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: filled ? tk.ink : Colors.transparent,
+            border: filled ? null : Border.all(color: tk.ink, width: 1),
+            borderRadius: BorderRadius.circular(2),
+          ),
+          child: Text(label,
+              style: AppText.body(filled ? tk.paper : tk.ink)
+                  .copyWith(fontSize: 13, fontWeight: FontWeight.w500)),
+        ),
+      );
+}
+
 /// 타임트래커 화면 (독립 진입용 — Scaffold 래퍼).
 class TimeTrackScreen extends StatelessWidget {
   const TimeTrackScreen({super.key});
@@ -254,7 +418,7 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
     final label = blockLabel(block);
     return GestureDetector(
       onTap: () =>
-          showTimeTrackInput(context, ref, date: _date, block: block),
+          showTimeQuickAdd(context, ref, date: _date, block: block),
       behavior: HitTestBehavior.opaque,
       child: Container(
         decoration:
@@ -304,7 +468,7 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
     // 빈 시간줄(_emptyHour)과 동일한 [시간 | 레일 | 본문] 구조로 통일한다.
     return GestureDetector(
       onTap: () =>
-          showTimeTrackInput(context, ref, date: _date, block: b.block),
+          showTimeQuickAdd(context, ref, date: _date, block: b.block),
       behavior: HitTestBehavior.opaque,
       child: Container(
         decoration: BoxDecoration(

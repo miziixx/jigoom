@@ -126,7 +126,7 @@ class _TimeHubState extends ConsumerState<TimeHub> {
         showRoutineGroupSheet(context);
         break;
       case 4:
-        showTimeTrackInput(context, ref,
+        showTimeQuickAdd(context, ref,
             date: DateTime.now(), block: TimeTrackRepository.blockOfNow());
         break;
     }

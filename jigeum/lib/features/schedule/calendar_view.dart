@@ -24,8 +24,8 @@ class CalendarScreen extends ConsumerWidget {
   void _add(BuildContext context, WidgetRef ref) {
     final d = ref.read(calendarSelectedProvider) ?? todayDate();
     switch (ref.read(calendarDetailTabProvider)) {
-      case 1: // 기록 → 그날의 시간 기록
-        showTimeTrackInput(context, ref,
+      case 1: // 기록 → 그날의 시간 기록(계속 담기)
+        showTimeQuickAdd(context, ref,
             date: d, block: TimeTrackRepository.blockOfNow());
         break;
       case 2: // 습관 → 새 습관 추가

@@ -79,7 +79,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onTimeTrackLaunch() {
     if (!mounted) return;
-    showTimeTrackInput(
+    showTimeQuickAdd(
       context,
       ref,
       date: DateTime.now(),
@@ -234,8 +234,8 @@ class _AppShellState extends ConsumerState<AppShell> {
         case 3: // routine → 루틴(그룹) 추가
           showRoutineGroupSheet(context);
           return;
-        case 4: // log → 지금 시간 기록
-          showTimeTrackInput(context, ref,
+        case 4: // log → 지금 시간 기록(계속 담기)
+          showTimeQuickAdd(context, ref,
               date: DateTime.now(), block: TimeTrackRepository.blockOfNow());
           return;
         default: // day·week·month → 일정 추가
