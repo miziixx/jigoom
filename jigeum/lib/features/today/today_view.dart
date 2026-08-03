@@ -210,14 +210,23 @@ class _TodayViewState extends ConsumerState<TodayView> {
 /// 완료 시 짧은 텍스트 피드백 (코인·랜덤박스 없이 — 에세이의 "나쁜 보상" 회피).
 /// 오늘 완료 누계를 세어 "완료했어요 · 오늘 N개째" SnackBar 를 띄운다.
 Future<void> showDoneFeedback(BuildContext context, WidgetRef ref) async {
+  final settings = ref.read(settingsProvider);
   // 모션·팝업 줄이기가 켜져 있으면 조용히 넘어간다(센서리 예민 대응).
-  if (ref.read(settingsProvider).reduceMotion) return;
+  if (settings.reduceMotion) return;
   final n = await ref.read(nodeRepoProvider).winsCountForDate(todayDate());
   if (!context.mounted) return;
+  var message = '완료했어요 · 오늘 $n개째';
+  // '다음 할 일 자동 제안' — 완료 직후 남은 오늘 할 일 한 개만 짚어준다.
+  if (settings.autoSuggestNext) {
+    final open = (ref.read(todayNodesProvider).valueOrNull ?? const <Node>[])
+        .where((x) => x.type != 'memo')
+        .toList();
+    if (open.isNotEmpty) message = '완료 · 다음 할 일 → ${open.first.title}';
+  }
   ScaffoldMessenger.of(context)
     ..clearSnackBars()
     ..showSnackBar(SnackBar(
-      content: Text('완료했어요 · 오늘 $n개째'),
+      content: Text(message),
       duration: const Duration(milliseconds: 1400),
     ));
 }

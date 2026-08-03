@@ -41,79 +41,102 @@ class SettingsScreen extends ConsumerWidget {
                 child: ListView(
           padding: const EdgeInsets.only(bottom: 32),
           children: [
-            // 레퍼런스(.settings-label)대로 섹션 라벨엔 상단 선을 두지 않고,
-            // 그룹의 마지막 행은 하단 구분선을 끈다(.setting:last-child). 그룹
-            // 사이는 선이 아니라 여백으로만 구분.
+            // 레퍼런스: 섹션 라벨 아래 그룹을 카드(.card)로 묶는다. 카드 안 마지막
+            // 행은 하단 구분선을 끈다(.setting:last-child). 테마 그룹만 카드 없이.
             const SectionLabel('테마', topRule: false),
             _ThemePicker(current: s.themeKey, onPick: ctrl.setThemeKey),
 
             const SectionLabel('글자와 화면', topRule: false),
-            _adjustRow(context,
-                title: '글자 크기',
-                value: '현재 ${(s.fontScale * 100).round()}%',
-                onTap: () => _openTypeSheet(context, ref)),
-            _PillSwitchRow(
-              title: '휴대폰 글꼴 사용',
-              sub: '휴대폰의 기본 글꼴을 사용합니다.',
-              value: s.systemFont,
-              onChanged: ctrl.setSystemFont,
-              divider: false,
-            ),
+            _card(tk, [
+              _adjustRow(context,
+                  title: '글자 크기',
+                  value: '현재 ${(s.fontScale * 100).round()}%',
+                  onTap: () => _openTypeSheet(context, ref)),
+              _PillSwitchRow(
+                title: '휴대폰 글꼴 사용',
+                sub: '휴대폰의 기본 글꼴을 사용합니다.',
+                value: s.systemFont,
+                onChanged: ctrl.setSystemFont,
+                divider: false,
+              ),
+            ]),
 
             const SectionLabel('별자리 · 만세력', topRule: false),
-            _PillSwitchRow(
-              title: '별자리 표시',
-              sub: '오늘·일과·달력 화면',
-              value: s.skyMode == 'both' || s.skyMode == 'zodiac',
-              onChanged: (v) => ctrl.setSkyMode(
-                  _deriveSky(v, s.skyMode == 'both' || s.skyMode == 'saju')),
-            ),
-            _PillSwitchRow(
-              title: '만세력 표시',
-              sub: '간지와 음력 정보를 표시',
-              value: s.skyMode == 'both' || s.skyMode == 'saju',
-              onChanged: (v) => ctrl.setSkyMode(
-                  _deriveSky(s.skyMode == 'both' || s.skyMode == 'zodiac', v)),
-            ),
-            _SajuRow(settings: s, ctrl: ctrl, divider: false),
+            _card(tk, [
+              _PillSwitchRow(
+                title: '별자리 표시',
+                sub: '오늘·일과·달력 화면',
+                value: s.skyMode == 'both' || s.skyMode == 'zodiac',
+                onChanged: (v) => ctrl.setSkyMode(
+                    _deriveSky(v, s.skyMode == 'both' || s.skyMode == 'saju')),
+              ),
+              _PillSwitchRow(
+                title: '만세력 표시',
+                sub: '간지와 음력 정보를 표시',
+                value: s.skyMode == 'both' || s.skyMode == 'saju',
+                onChanged: (v) => ctrl.setSkyMode(_deriveSky(
+                    s.skyMode == 'both' || s.skyMode == 'zodiac', v)),
+              ),
+              _SajuRow(settings: s, ctrl: ctrl, divider: false),
+            ]),
 
             const SectionLabel('집중 설정', topRule: false),
-            _PillSwitchRow(
-              title: '집중 중 방해 금지',
-              sub: '집중 기록 중 알림과 브리핑을 숨깁니다.',
-              value: s.quietMode,
-              onChanged: (v) async {
-                await ctrl.setQuietMode(v);
-                if (v) await NotificationService.instance.silenceAll();
-              },
-            ),
-            _PillSwitchRow(
-              title: '알림 문구 바꾸기',
-              sub: '같은 알림에 무뎌지지 않게 문구를 매번 조금씩 바꿉니다.',
-              value: s.variedNudges,
-              onChanged: ctrl.setVariedNudges,
-            ),
-            _PillSwitchRow(
-              title: '완료 효과',
-              sub: '작은 진동과 완료 메시지를 표시합니다.',
-              value: !s.reduceMotion,
-              onChanged: (v) => ctrl.setReduceMotion(!v),
-              divider: false,
-            ),
+            _card(tk, [
+              _PillSwitchRow(
+                title: '집중 중 방해 금지',
+                sub: '집중 기록 중 알림과 브리핑을 숨깁니다.',
+                value: s.quietMode,
+                onChanged: (v) async {
+                  await ctrl.setQuietMode(v);
+                  if (v) await NotificationService.instance.silenceAll();
+                },
+              ),
+              _PillSwitchRow(
+                title: '알림 문구 바꾸기',
+                sub: '같은 알림에 무뎌지지 않게 문구를 매번 조금씩 바꿉니다.',
+                value: s.variedNudges,
+                onChanged: ctrl.setVariedNudges,
+              ),
+              _PillSwitchRow(
+                title: '완료 효과',
+                sub: '작은 진동과 완료 메시지를 표시합니다.',
+                value: !s.reduceMotion,
+                onChanged: (v) => ctrl.setReduceMotion(!v),
+              ),
+              // 레퍼런스 '다음 할 일 자동 제안' — 완료 직후 다음 항목 한 개.
+              _PillSwitchRow(
+                title: '다음 할 일 자동 제안',
+                sub: '완료 직후 다음 항목 한 개만 보여줍니다.',
+                value: s.autoSuggestNext,
+                onChanged: ctrl.setAutoSuggestNext,
+                divider: false,
+              ),
+            ]),
 
             const SectionLabel('Google Calendar', topRule: false),
-            const GcalSettingsSection(),
+            _card(tk, const [GcalSettingsSection()]),
 
             const SectionLabel('위젯', topRule: false),
-            _WidgetOpacityRow(
-                onAdjust: () => _openWidgetOpacitySheet(context),
-                divider: false),
+            _card(tk, [
+              _WidgetOpacityRow(
+                  onAdjust: () => _openWidgetOpacitySheet(context)),
+              // 레퍼런스 '위젯에서 빠른 입력' — 위젯 탭 → 앱 담기 입력창.
+              _PillSwitchRow(
+                title: '위젯에서 빠른 입력',
+                sub: '홈 화면 위젯에서 바로 할 일을 담습니다.',
+                value: s.widgetQuickAdd,
+                onChanged: ctrl.setWidgetQuickAdd,
+                divider: false,
+              ),
+            ]),
 
             const SectionLabel('백업', topRule: false),
-            _navRow(context, '백업 내보내기', '모든 데이터를 파일로 저장합니다.',
-                () => _export(context, ref)),
-            _navRow(context, '백업 가져오기', '백업 파일로 전체 데이터를 복원합니다.',
-                () => _import(context, ref), divider: false),
+            _card(tk, [
+              _navRow(context, '백업 내보내기', '모든 데이터를 파일로 저장합니다.',
+                  () => _export(context, ref)),
+              _navRow(context, '백업 가져오기', '백업 파일로 전체 데이터를 복원합니다.',
+                  () => _import(context, ref), divider: false),
+            ]),
           ],
                 ),
               ),
@@ -123,6 +146,18 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  /// 설정 그룹 카드 — 레퍼런스 .card(테두리 + 라운드). 행들을 감싼다.
+  Widget _card(AppTokens tk, List<Widget> rows) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: kGutter),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: tk.line),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(children: rows),
+        ),
+      );
 
   /// 조절형 행 — 제목 + 현재값(작게) + 우측 "조절" 텍스트. 하단 헤어라인.
   Widget _adjustRow(BuildContext context,
@@ -134,7 +169,7 @@ class SettingsScreen extends ConsumerWidget {
       child: Container(
         decoration:
             BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
-        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+        padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
         child: Row(
           children: [
             Expanded(
@@ -166,7 +201,7 @@ class SettingsScreen extends ConsumerWidget {
         decoration: divider
             ? BoxDecoration(border: Border(bottom: BorderSide(color: tk.line)))
             : null,
-        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+        padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
         child: Row(
           children: [
             Expanded(
@@ -501,7 +536,7 @@ class _PillSwitchRow extends StatelessWidget {
       decoration: divider
           ? BoxDecoration(border: Border(bottom: BorderSide(color: tk.line)))
           : null,
-      padding: const EdgeInsets.fromLTRB(kGutter, 13, kGutter, 13),
+      padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
       child: Row(
         children: [
           Expanded(
@@ -559,7 +594,7 @@ class _SajuRow extends StatelessWidget {
         decoration: divider
             ? BoxDecoration(border: Border(bottom: BorderSide(color: tk.line)))
             : null,
-        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+        padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
         child: Row(
           children: [
             Expanded(
@@ -609,7 +644,7 @@ class _WidgetOpacityRowState extends State<_WidgetOpacityRow> {
         decoration: widget.divider
             ? BoxDecoration(border: Border(bottom: BorderSide(color: tk.line)))
             : null,
-        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 14),
+        padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
         child: Row(
           children: [
             Expanded(

@@ -29,6 +29,8 @@ class AppSettings {
     this.quietMode = false, // 방해 금지 — 브리핑·상주 알림 억제(하이퍼포커스 보호)
     this.variedNudges = true, // 알림 문구를 매번 조금씩 바꿔 무뎌짐 방지
     this.reduceMotion = false, // 모션·완료 팝업 최소화(센서리 예민 대응)
+    this.autoSuggestNext = true, // 완료 직후 다음 할 일 한 개 제안
+    this.widgetQuickAdd = true, // 위젯 탭 → 앱 빠른 담기 입력창 열기
   });
 
   final String themeKey; // 내장 10종 중 하나 (기본 manila)
@@ -52,6 +54,8 @@ class AppSettings {
   final bool quietMode; // 방해 금지(브리핑·상주 알림 억제)
   final bool variedNudges; // 알림 문구 변주
   final bool reduceMotion; // 모션·완료 팝업 최소화
+  final bool autoSuggestNext; // 완료 직후 다음 할 일 한 개 제안
+  final bool widgetQuickAdd; // 위젯에서 빠른 입력(앱 담기 입력창) 사용
 
   /// 사주(오늘의 운세)를 계산할 수 있는가.
   bool get hasBirth => birth != null;
@@ -86,6 +90,8 @@ class AppSettings {
     bool? quietMode,
     bool? variedNudges,
     bool? reduceMotion,
+    bool? autoSuggestNext,
+    bool? widgetQuickAdd,
   }) =>
       AppSettings(
         themeKey: themeKey ?? this.themeKey,
@@ -109,6 +115,8 @@ class AppSettings {
         quietMode: quietMode ?? this.quietMode,
         variedNudges: variedNudges ?? this.variedNudges,
         reduceMotion: reduceMotion ?? this.reduceMotion,
+        autoSuggestNext: autoSuggestNext ?? this.autoSuggestNext,
+        widgetQuickAdd: widgetQuickAdd ?? this.widgetQuickAdd,
       );
 }
 
@@ -140,6 +148,8 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _kQuietMode = 'quiet_mode';
   static const _kVariedNudges = 'varied_nudges';
   static const _kReduceMotion = 'reduce_motion';
+  static const _kAutoSuggestNext = 'auto_suggest_next';
+  static const _kWidgetQuickAdd = 'widget_quick_add';
 
   Future<void> _load() async {
     final scale = await _get(_kScale);
@@ -181,6 +191,8 @@ class SettingsController extends StateNotifier<AppSettings> {
     final quietMode = await _get(_kQuietMode);
     final variedNudges = await _get(_kVariedNudges);
     final reduceMotion = await _get(_kReduceMotion);
+    final autoSuggestNext = await _get(_kAutoSuggestNext);
+    final widgetQuickAdd = await _get(_kWidgetQuickAdd);
     state = AppSettings(
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
@@ -205,6 +217,9 @@ class SettingsController extends StateNotifier<AppSettings> {
       quietMode: quietMode == '1',
       variedNudges: variedNudges == null ? true : variedNudges == '1',
       reduceMotion: reduceMotion == '1',
+      autoSuggestNext:
+          autoSuggestNext == null ? true : autoSuggestNext == '1',
+      widgetQuickAdd: widgetQuickAdd == null ? true : widgetQuickAdd == '1',
     );
   }
 
@@ -320,6 +335,16 @@ class SettingsController extends StateNotifier<AppSettings> {
   Future<void> setReduceMotion(bool v) async {
     state = state.copyWith(reduceMotion: v);
     await _set(_kReduceMotion, v ? '1' : '0');
+  }
+
+  Future<void> setAutoSuggestNext(bool v) async {
+    state = state.copyWith(autoSuggestNext: v);
+    await _set(_kAutoSuggestNext, v ? '1' : '0');
+  }
+
+  Future<void> setWidgetQuickAdd(bool v) async {
+    state = state.copyWith(widgetQuickAdd: v);
+    await _set(_kWidgetQuickAdd, v ? '1' : '0');
   }
 
   Future<String?> _get(String key) async {

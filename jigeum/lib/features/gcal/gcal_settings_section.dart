@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import 'gcal_controller.dart';
@@ -30,13 +29,13 @@ class _GcalSettingsSectionState extends ConsumerState<GcalSettingsSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text('폰에 있는 구글 캘린더와 일정을 양방향으로 동기화해요. '
                 '로그인 없이 캘린더 접근 허용만 하면 됩니다.',
                 style: AppText.body(tk.ink)),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 0),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: _Btn(
               label: '캘린더 연동 켜기',
               filled: true,
@@ -45,7 +44,7 @@ class _GcalSettingsSectionState extends ConsumerState<GcalSettingsSection> {
           ),
           if (state.error != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: Text(state.error!, style: AppText.meta(tk.mark, size: 12)),
             ),
         ],
@@ -59,7 +58,7 @@ class _GcalSettingsSectionState extends ConsumerState<GcalSettingsSection> {
       children: [
         // 계정 + 동기화 상태
         Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
           child: Row(
             children: [
               Expanded(
@@ -89,7 +88,7 @@ class _GcalSettingsSectionState extends ConsumerState<GcalSettingsSection> {
         ),
         const SizedBox(height: 12),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: kGutter),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _Btn(
             label: state.syncing ? '동기화 중…' : '지금 동기화',
             filled: false,
@@ -98,7 +97,7 @@ class _GcalSettingsSectionState extends ConsumerState<GcalSettingsSection> {
         ),
         const SizedBox(height: 6),
         Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 4),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Row(
             children: [
               Expanded(
@@ -118,17 +117,17 @@ class _GcalSettingsSectionState extends ConsumerState<GcalSettingsSection> {
         ),
         calsAsync.when(
           loading: () => Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
             child: Text('불러오는 중…', style: AppText.meta(tk.inkSoft)),
           ),
           error: (_, __) => Padding(
-            padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
             child: Text('목록을 불러오지 못했어요', style: AppText.meta(tk.mark)),
           ),
           data: (cals) {
             if (cals.isEmpty) {
               return Padding(
-                padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
                 child: Text('캘린더가 없어요. "지금 동기화"로 목록을 불러오세요.',
                     style: AppText.meta(tk.inkSoft)),
               );
@@ -142,7 +141,7 @@ class _GcalSettingsSectionState extends ConsumerState<GcalSettingsSection> {
               children: [
                 if (_editing)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 2),
+                    padding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
                     child: Text('안 쓰는 캘린더는 "숨기기"로 목록에서 감춰요. '
                         '숨기면 동기화도 꺼집니다.',
                         style: AppText.meta(tk.inkSoft, size: 11)),
@@ -151,7 +150,7 @@ class _GcalSettingsSectionState extends ConsumerState<GcalSettingsSection> {
                   _CalRow(cal: c, ctrl: ctrl, editing: _editing),
                 if (!_editing && hiddenCount > 0)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: GestureDetector(
                       onTap: () => setState(() => _editing = true),
                       behavior: HitTestBehavior.opaque,
@@ -196,7 +195,7 @@ class _CalRow extends StatelessWidget {
     // 편집 모드에서 숨긴 항목은 흐리게.
     final dim = editing && cal.hidden;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
       child: Row(
         children: [
           Opacity(

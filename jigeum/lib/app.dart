@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/dialogs.dart';
 import 'core/journal.dart';
+import 'core/settings_controller.dart';
 import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
@@ -62,6 +63,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onQuickCapture() {
     if (!mounted) return;
+    // '위젯에서 빠른 입력'이 꺼져 있으면 위젯 탭으로 담기 입력창을 열지 않는다.
+    if (!ref.read(settingsProvider).widgetQuickAdd) return;
     showQuickCaptureInput(context, ref);
   }
 
