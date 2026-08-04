@@ -6,10 +6,18 @@ import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
+import '../goal/goal_detail_screen.dart';
 
 /// 노드 상세 시트: 메모 쓰기/보기 · 폴더 이동 · 날짜 · 삭제.
 /// 어느 목록에서든 타일을 탭하면 열린다.
+///
+/// 목표(goal)는 상세 시트 대신 목표 상세 대시보드로 진입한다 — 어느 화면에서
+/// 눌러도 동일한 대시보드가 열린다.
 Future<void> showNodeDetailSheet(BuildContext context, Node node) {
+  if (node.type == NodeType.goal) {
+    openGoalDashboard(context, node);
+    return Future<void>.value();
+  }
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

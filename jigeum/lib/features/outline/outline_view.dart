@@ -7,6 +7,7 @@ import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
+import '../goal/goal_detail_screen.dart';
 import '../today/node_detail_sheet.dart';
 
 /// 아웃라이너 — 편집형 목차. 폴더/목표 = 섹션 라벨 + 규칙선, 할 일 = 글리프 줄.
@@ -136,8 +137,8 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
       final total = children.length;
       final doneC = children.where((c) => c.status == NodeStatus.done).length;
       meta = total == 0
-          ? '목표'
-          : '진행률 ${(doneC / total * 100).round()}%';
+          ? '상세 대시보드 열기'
+          : '진행률 ${(doneC / total * 100).round()}% · 상세 대시보드';
     } else {
       meta = n.date == todayDate()
           ? '오늘'
@@ -147,10 +148,13 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
     }
 
     return GestureDetector(
-      onTap: () => isSection
-          ? setState(() =>
-              open ? _collapsed.add(n.id) : _collapsed.remove(n.id))
-          : showNodeDetailSheet(context, n),
+      // 목표 = 상세 대시보드로 진입. 폴더 = 펼치기/접기. 할 일 = 상세 시트.
+      onTap: () => isGoal
+          ? openGoalDashboard(context, n)
+          : (isFolder
+              ? setState(() =>
+                  open ? _collapsed.add(n.id) : _collapsed.remove(n.id))
+              : showNodeDetailSheet(context, n)),
       onLongPress: () => showNodeDetailSheet(context, n),
       behavior: HitTestBehavior.opaque,
       child: Container(
@@ -192,7 +196,7 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
               ),
             ),
             const SizedBox(width: 8),
-            Text(isSection ? (open ? '−' : '+') : '›',
+            Text(isFolder ? (open ? '−' : '+') : '›',
                 style: AppText.glyph(tk.mark, size: 16)),
           ],
         ),

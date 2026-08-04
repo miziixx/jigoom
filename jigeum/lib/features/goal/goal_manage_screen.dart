@@ -11,6 +11,7 @@ import '../../data/db.dart';
 import '../../providers.dart';
 import '../shell/app_bottom_nav.dart';
 import '../shell/app_drawer.dart';
+import 'goal_detail_screen.dart';
 
 /// 목표 관리 — 기간별(일주일/1개월/1년/직접) 목표를 담고 진행률로 추적한다.
 /// 목표는 노드(type=goal)이며, 하위 할 일(자식 task)의 완료율이 진행률이다.
@@ -143,7 +144,7 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
     final complete = ratio >= 1.0 && (total > 0 || goal.status == NodeStatus.done);
 
     return GestureDetector(
-      onTap: () => _openGoal(goal.id),
+      onTap: () => openGoalDashboard(context, goal),
       behavior: HitTestBehavior.opaque,
       child: Container(
         decoration:
@@ -228,12 +229,15 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
         );
   }
 
-  void _openGoal(String goalId) {
-    showEditorialSheet(
-      context,
-      builder: (ctx) => _GoalDetail(goalId: goalId),
-    );
-  }
+}
+
+/// 목표 메타 편집 시트(이름·기간·마감·하위 할 일·완료/삭제) — 상세 대시보드의
+/// "편집" 버튼에서 재사용한다.
+Future<void> showGoalMetaSheet(BuildContext context, String goalId) {
+  return showEditorialSheet<void>(
+    context,
+    builder: (ctx) => _GoalDetail(goalId: goalId),
+  );
 }
 
 /// 목표 상세 시트 — 제목·마감일·기간 변경 + 하위 할 일 관리 + 삭제.
