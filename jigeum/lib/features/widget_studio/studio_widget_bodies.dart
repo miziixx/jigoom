@@ -26,7 +26,7 @@ Widget studioWidgetBody(
 }) {
   switch (w.type) {
     case StudioWidgetType.clock:
-      return _clock(skin);
+      return _clock(skin, studioClock(DateTime.now()));
     case StudioWidgetType.goal:
       return _goal(skin, w.title, data?.goal);
     case StudioWidgetType.tracker:
@@ -43,7 +43,7 @@ Widget studioWidgetBody(
     case StudioWidgetType.habits:
       return _habits(skin, w.title, data?.habits ?? const []);
     case StudioWidgetType.matrix:
-      return _matrix(skin);
+      return _matrix(skin, data?.matrix ?? const []);
     case StudioWidgetType.capture:
       return _capture(skin, w.title);
     case StudioWidgetType.fortune:
@@ -114,7 +114,7 @@ Widget _row(StudioSkin s, String strong, {String? small, List<Widget>? extra}) {
 
 // --- 시계 -----------------------------------------------------------------
 
-Widget _clock(StudioSkin s) {
+Widget _clock(StudioSkin s, StudioClock c) {
   final timeStyle = TextStyle(
     fontFamily: StudioFont.clock,
     fontSize: (s.isTiny ? 32 : 54) * s.font,
@@ -126,8 +126,8 @@ Widget _clock(StudioSkin s) {
   return Column(
     children: [
       if (!s.isTiny)
-        Center(child: Text('8월 3일 월요일', style: s.wMeta)),
-      Expanded(child: Center(child: Text('16:14', style: timeStyle))),
+        Center(child: Text(c.date, style: s.wMeta)),
+      Expanded(child: Center(child: Text(c.time, style: timeStyle))),
       if (!s.isTiny)
         Container(
           decoration: BoxDecoration(
@@ -137,7 +137,9 @@ Widget _clock(StudioSkin s) {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Flexible(child: Text('丙申日 · 보름달', style: s.wMeta, overflow: TextOverflow.ellipsis)),
+              Flexible(
+                  child: Text('${c.ganzhi} · ${c.moon}',
+                      style: s.wMeta, overflow: TextOverflow.ellipsis)),
               Text('지금', style: s.chip),
             ],
           ),
@@ -273,7 +275,11 @@ Widget _habits(StudioSkin s, String title, List<StudioHabitRow> live) {
 
 // --- 아이젠하워 매트릭스 ---------------------------------------------------
 
-Widget _matrix(StudioSkin s) {
+Widget _matrix(StudioSkin s, List<StudioMatrixCell> live) {
+  // 실데이터가 있으면 사분면별 대표 항목, 없으면 레퍼런스 샘플.
+  final bodies = live.length == 4
+      ? [live[0].body, live[1].body, live[2].body, live[3].body]
+      : const ['UI 수정안 완성', '콘텐츠 구조 설계', '테스트 알림 확인', '현재 비어 있음'];
   Widget cell(Color bg, String h, String tag, String body) => Container(
         padding: const EdgeInsets.all(7),
         color: bg,
@@ -304,19 +310,19 @@ Widget _matrix(StudioSkin s) {
     children: [
       Expanded(
         child: Row(children: [
-          Expanded(child: cell(danger, '긴급하고 중요', 'DO FIRST', 'UI 수정안 완성')),
+          Expanded(child: cell(danger, '긴급하고 중요', 'DO FIRST', bodies[0])),
           const SizedBox(width: 5),
           Expanded(
-              child: cell(weak, '중요하지만\n긴급하지 않음', 'SCHEDULE', '콘텐츠 구조 설계')),
+              child: cell(weak, '중요하지만\n긴급하지 않음', 'SCHEDULE', bodies[1])),
         ]),
       ),
       const SizedBox(height: 5),
       Expanded(
         child: Row(children: [
           Expanded(
-              child: cell(ochre, '긴급하지만\n중요하지 않음', 'DELEGATE', '테스트 알림 확인')),
+              child: cell(ochre, '긴급하지만\n중요하지 않음', 'DELEGATE', bodies[2])),
           const SizedBox(width: 5),
-          Expanded(child: cell(weak, '둘 다 아님', 'DELETE', '현재 비어 있음')),
+          Expanded(child: cell(weak, '둘 다 아님', 'DELETE', bodies[3])),
         ]),
       ),
     ],

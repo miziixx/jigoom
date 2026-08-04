@@ -35,12 +35,11 @@ class _WidgetStudioScreenState extends ConsumerState<WidgetStudioScreen> {
   void initState() {
     super.initState();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      final running = ref
-          .read(studioControllerProvider)
-          .trackers
-          .values
-          .any((t) => t.running);
-      if (running && mounted) setState(() => _liveTick++);
+      final session = ref.read(studioControllerProvider);
+      // 실행 중 타이머 또는 시계 위젯이 있으면 매초 갱신(시계는 실시간).
+      final needTick = session.trackers.values.any((t) => t.running) ||
+          session.widgets.any((w) => w.type == StudioWidgetType.clock);
+      if (needTick && mounted) setState(() => _liveTick++);
     });
   }
 

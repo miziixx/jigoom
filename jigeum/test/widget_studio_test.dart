@@ -115,6 +115,17 @@ void main() {
       expect(p.work, ['홈 정렬 수정', '타임트래커 점검']);
       expect(TimeRecord.parse('   ').title, '기록'); // 빈 입력 폴백
     });
+
+    test('studioClock — 실시간 시계 값(날짜·시간·일진·월상)', () {
+      final c = studioClock(DateTime(2026, 8, 3, 16, 14));
+      expect(c.date, '8월 3일 월요일');
+      expect(c.time, '16:14');
+      // 일진: 간지 2자 + 日.
+      expect(RegExp(r'^.{2}日$').hasMatch(c.ganzhi), true);
+      expect(c.moon.isNotEmpty, true);
+      // 자정 근처 자릿수 패딩.
+      expect(studioClock(DateTime(2026, 1, 9, 9, 5)).time, '09:05');
+    });
   });
 
   group('StudioController — 배치·타임트래커·영속화', () {
@@ -302,6 +313,14 @@ void main() {
               (start: today.subtract(const Duration(days: 60)), end: today))
           .future);
       await container.read(schedulesForDateProvider(today).future);
+      for (final k in const [
+        (important: true, urgent: true),
+        (important: true, urgent: false),
+        (important: false, urgent: true),
+        (important: false, urgent: false),
+      ]) {
+        await container.read(quadrantProvider(k).future);
+      }
 
       final d = container.read(studioLiveDataProvider);
 
@@ -330,6 +349,12 @@ void main() {
       expect(d.dayEvents.length, 1);
       expect(d.dayEvents.first.time, '09:00');
       expect(d.dayEvents.first.title, '팀 미팅');
+
+      // 매트릭스: task1(중요·비긴급) → SCHEDULE 칸(index 1).
+      expect(d.matrix.length, 4);
+      expect(d.matrix[1].body, '위젯 데이터 연결');
+      expect(d.matrix[1].count, 1);
+      expect(d.matrix[0].body, '현재 비어 있음'); // 긴급·중요 없음
     });
   });
 }

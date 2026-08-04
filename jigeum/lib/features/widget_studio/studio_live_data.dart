@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/almanac.dart';
 import '../../core/constants.dart';
+import '../../core/saju.dart';
 import '../../data/db.dart';
 import '../../features/habit/habit_stats.dart';
 import '../../providers.dart';
@@ -48,18 +50,50 @@ class StudioEventRow {
   final String sub;
 }
 
+/// 매트릭스 한 칸(사분면)의 표시값 — 대표 항목 한 줄 + 개수.
+class StudioMatrixCell {
+  const StudioMatrixCell(this.body, this.count);
+  final String body; // 대표 항목 제목 또는 "현재 비어 있음"
+  final int count;
+}
+
+/// 시계 표시값(날짜·시간·일진·월상) — 순수 함수, DateTime 만 받는다.
+class StudioClock {
+  const StudioClock(this.date, this.time, this.ganzhi, this.moon);
+  final String date; // "8월 3일 월요일"
+  final String time; // "16:14"
+  final String ganzhi; // "丙申日"
+  final String moon; // "보름달"
+}
+
+const _weekdayKo = ['월', '화', '수', '목', '금', '토', '일'];
+
+/// 실시간 시계 값. 일진(day pillar)·월상은 날짜만으로 계산(생일 불필요).
+StudioClock studioClock(DateTime now) {
+  final date = '${now.month}월 ${now.day}일 ${_weekdayKo[now.weekday - 1]}요일';
+  final time =
+      '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  final ti = dayGanziIndex(dateOnly(now));
+  final pillar = Pillar(ti % 10, ti % 12);
+  return StudioClock(date, time, '${pillar.hanja}日', moonName(now));
+}
+
 class StudioLiveData {
   const StudioLiveData({
     this.tasks = const [],
     this.habits = const [],
     this.goal,
     this.dayEvents = const [],
+    this.matrix = const [],
   });
 
   final List<StudioTaskRow> tasks;
   final List<StudioHabitRow> habits;
   final StudioGoalInfo? goal;
   final List<StudioEventRow> dayEvents;
+
+  /// 사분면 4칸: [긴급·중요, 중요만, 긴급만, 둘 다 아님]. 비어 있으면 샘플 폴백.
+  final List<StudioMatrixCell> matrix;
 }
 
 String _hhmm(int min) =>
@@ -151,10 +185,26 @@ final studioLiveDataProvider = Provider<StudioLiveData>((ref) {
       ),
   ];
 
+  // --- 매트릭스: 사분면별 대표 항목 + 개수(현재 기간 필터 반영) ---
+  List<Node> quad(bool imp, bool urg) =>
+      ref.watch(quadrantProvider((important: imp, urgent: urg))).valueOrNull ??
+      const <Node>[];
+  StudioMatrixCell cell(List<Node> ns) => StudioMatrixCell(
+      ns.isEmpty ? '현재 비어 있음' : ns.first.title, ns.length);
+  final q11 = quad(true, true);
+  final q10 = quad(true, false);
+  final q01 = quad(false, true);
+  final q00 = quad(false, false);
+  final anyQuad = [q11, q10, q01, q00].any((l) => l.isNotEmpty);
+  final matrix = anyQuad
+      ? [cell(q11), cell(q10), cell(q01), cell(q00)]
+      : const <StudioMatrixCell>[];
+
   return StudioLiveData(
     tasks: tasks,
     habits: habits,
     goal: goal,
     dayEvents: dayEvents,
+    matrix: matrix,
   );
 });
