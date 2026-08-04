@@ -21,17 +21,20 @@ class StudioWidgetChannel {
     }
   }
 
-  /// 렌더한 PNG 를 네이티브에 넘겨 홈 위젯 배치를 확정한다.
+  /// 렌더한 PNG(+설정 JSON)를 네이티브에 넘겨 홈 위젯 배치를 확정한다.
+  /// configJson 은 이후 앱에서 위젯을 실데이터로 다시 렌더할 때 쓰인다.
   static Future<bool> commit({
     required Uint8List png,
     required int widthPx,
     required int heightPx,
+    required String configJson,
   }) async {
     try {
       final ok = await _ch.invokeMethod<bool>('commit', {
         'png': png,
         'w': widthPx,
         'h': heightPx,
+        'config': configJson,
       });
       return ok ?? false;
     } catch (_) {

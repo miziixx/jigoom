@@ -51,6 +51,9 @@ class StudioWidgetConfigActivity : FlutterActivity() {
                                 return@setMethodCallHandler
                             }
                             StudioWidgetStore.save(this, appWidgetId, png)
+                            call.argument<String>("config")?.let {
+                                StudioWidgetStore.saveConfig(this, appWidgetId, it)
+                            }
                             StudioWidgetProvider.render(
                                 this, AppWidgetManager.getInstance(this), appWidgetId
                             )

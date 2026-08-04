@@ -52,8 +52,14 @@ class StudioWidgetProvider : AppWidgetProvider() {
     }
 }
 
-/** appWidgetId 별 렌더 이미지 저장소(내부 저장소 파일). */
+/**
+ * appWidgetId 별 렌더 이미지(내부 저장소 파일) + 설정 JSON(SharedPreferences).
+ * 설정 JSON 은 앱이 위젯을 실데이터로 다시 렌더할 때 참조한다.
+ */
 object StudioWidgetStore {
+    private const val CFG_FILE = "jigeum_studio_widget"
+    private fun cfgKey(id: Int) = "studio_cfg_$id"
+
     private fun dir(context: Context): File =
         File(context.filesDir, "studio_widget").apply { mkdirs() }
 
@@ -68,7 +74,14 @@ object StudioWidgetStore {
         return if (f.exists()) BitmapFactory.decodeFile(f.absolutePath) else null
     }
 
+    fun saveConfig(context: Context, id: Int, json: String) {
+        context.getSharedPreferences(CFG_FILE, Context.MODE_PRIVATE)
+            .edit().putString(cfgKey(id), json).apply()
+    }
+
     fun delete(context: Context, id: Int) {
         file(context, id).delete()
+        context.getSharedPreferences(CFG_FILE, Context.MODE_PRIVATE)
+            .edit().remove(cfgKey(id)).apply()
     }
 }

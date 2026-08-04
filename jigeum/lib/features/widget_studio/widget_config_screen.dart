@@ -1,9 +1,14 @@
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants.dart';
+import '../../providers.dart';
+import 'studio_live_data.dart';
 import 'studio_skin.dart';
 import 'studio_tokens.dart';
 import 'studio_widget_channel.dart';
@@ -18,14 +23,14 @@ import 'widget_frame.dart';
 /// 미리보기를 그대로 PNG 로 캡처해 네이티브가 실제 홈 위젯으로 표시한다.
 /// (레퍼런스 디자인을 픽셀 그대로 홈 화면에 올리기 위한 render→image 방식.)
 /// ============================================================
-class WidgetConfigScreen extends StatefulWidget {
+class WidgetConfigScreen extends ConsumerStatefulWidget {
   const WidgetConfigScreen({super.key});
 
   @override
-  State<WidgetConfigScreen> createState() => _WidgetConfigScreenState();
+  ConsumerState<WidgetConfigScreen> createState() => _WidgetConfigScreenState();
 }
 
-class _WidgetConfigScreenState extends State<WidgetConfigScreen> {
+class _WidgetConfigScreenState extends ConsumerState<WidgetConfigScreen> {
   final GlobalKey _previewKey = GlobalKey();
 
   StudioWidgetType _type = StudioWidgetType.clock;
@@ -60,9 +65,30 @@ class _WidgetConfigScreenState extends State<WidgetConfigScreen> {
     });
   }
 
+  /// 캡처 전에 위젯 본문에 쓰이는 실데이터 스트림의 첫 값을 기다린다(빈 샘플이
+  /// 아닌 실제 데이터가 이미지에 담기도록). 에러는 무시(데이터 없으면 샘플 폴백).
+  Future<void> _awaitData() async {
+    final today = todayDate();
+    final futures = <Future<Object?>>[
+      ref.read(todayNodesProvider.future),
+      ref.read(todayWinsProvider.future),
+      ref.read(goalsProvider.future),
+      ref.read(habitsProvider.future),
+      ref.read(schedulesForDateProvider(today).future),
+    ];
+    for (final f in futures) {
+      try {
+        await f;
+      } catch (_) {}
+    }
+    // 프로바이더 재계산 → 프리뷰 리빌드 → 페인트 완료까지 대기.
+    await WidgetsBinding.instance.endOfFrame;
+  }
+
   Future<void> _addToHome() async {
     setState(() => _busy = true);
     try {
+      await _awaitData();
       final boundary =
           _previewKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
@@ -84,6 +110,7 @@ class _WidgetConfigScreenState extends State<WidgetConfigScreen> {
         png: data.buffer.asUint8List(),
         widthPx: (_size.width * ratio).round(),
         heightPx: (_size.height * ratio).round(),
+        configJson: jsonEncode(_config.toJson()),
       );
       // 성공 시 네이티브가 액티비티를 종료(setResult OK). 실패면 안내.
       if (!ok && mounted) {
@@ -100,6 +127,8 @@ class _WidgetConfigScreenState extends State<WidgetConfigScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = _theme;
+    // 실제 앱 데이터(할 일·습관·목표·일정 등) — 스트림 로드되면 프리뷰가 갱신됨.
+    final live = ref.watch(studioLiveDataProvider);
     return Scaffold(
       backgroundColor: theme.bg,
       appBar: AppBar(
@@ -151,6 +180,7 @@ class _WidgetConfigScreenState extends State<WidgetConfigScreen> {
                       skin: StudioSkin(_config, theme),
                       selected: false,
                       tracker: const TrackerState(),
+                      liveData: live,
                       onTrackerDraft: (_) {},
                       onTrackerStart: () {},
                       onTrackerStop: () {},
