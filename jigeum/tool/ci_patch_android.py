@@ -14,7 +14,8 @@ from pathlib import Path
 APP = Path("android/app")
 MANIFEST = APP / "src/main/AndroidManifest.xml"
 
-PERMISSIONS = """    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+PERMISSIONS = """    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
@@ -121,6 +122,12 @@ def patch_manifest() -> None:
     if "RECORD_AUDIO" not in text:
         audio = '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
         text = re.sub(r"(<manifest[^>]*>\n)", r"\1" + audio, text, count=1)
+
+    # 인터넷 권한 — 노션 연동(HTTPS) 용. flutter create 의 기본 릴리스 매니페스트엔
+    # 없으므로(디버그 플레이버에만 있음) 반드시 넣는다. 이미 패치된 경우 대비 별도 삽입.
+    if "android.permission.INTERNET" not in text:
+        internet = '    <uses-permission android:name="android.permission.INTERNET" />\n'
+        text = re.sub(r"(<manifest[^>]*>\n)", r"\1" + internet, text, count=1)
 
     # SpeechRecognizer <queries> (중복 방지)
     if "RecognitionService" not in text:

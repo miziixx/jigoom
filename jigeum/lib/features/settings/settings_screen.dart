@@ -11,6 +11,7 @@ import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import '../gcal/gcal_settings_section.dart';
+import '../notion/notion_settings_section.dart';
 import '../shell/app_drawer.dart';
 import '../widgetkit/notification_service.dart';
 import '../widgetkit/widget_bridge.dart';
@@ -115,6 +116,9 @@ class SettingsScreen extends ConsumerWidget {
 
             const SectionLabel('Google Calendar', topRule: false),
             _card(tk, const [GcalSettingsSection()]),
+
+            const SectionLabel('Notion', topRule: false),
+            _card(tk, const [NotionSettingsSection()]),
 
             const SectionLabel('위젯', topRule: false),
             _card(tk, [

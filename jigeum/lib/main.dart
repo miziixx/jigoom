@@ -14,6 +14,7 @@ import 'core/theme.dart';
 import 'data/db.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/gcal/gcal_controller.dart';
+import 'features/notion/notion_controller.dart';
 import 'features/widget_studio/widget_config_screen.dart';
 import 'features/widgetkit/notification_service.dart';
 import 'features/widgetkit/widget_bridge.dart';
@@ -119,6 +120,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         _checkLaunchAction();
         // 구글 캘린더는 자동 동기화하지 않는다 — 사용자가 설정에서 "지금
         // 동기화" 버튼을 눌렀을 때만 동기화한다.
+        // 노션은 실시간 자동 공유가 켜져 있으면 resume 시점에 변경분을 밀어 올린다.
+        _flushNotion();
       },
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _startup());
@@ -212,6 +215,15 @@ class _GoalAppState extends ConsumerState<GoalApp> {
     }
   }
 
+  /// 노션 실시간 자동 공유 — 자동 공유가 켜져 있을 때만 변경분을 밀어 올린다.
+  /// 웹에서는 no-op. 실패해도 앱에 영향 없도록 조용히 처리.
+  void _flushNotion() {
+    if (kIsWeb) return;
+    ref.read(notionControllerProvider.notifier).flush().catchError((e) {
+      debugPrint('notion flush 실패(무시): $e');
+    });
+  }
+
   /// 앱 오픈 시점(콜드 스타트 + resume)의 하루 1회 루틴.
   /// 이월 → 승격 순서. 둘 다 lastDate != today 로 가드되어 idempotent.
   /// 어떤 단계가 실패해도 앱이 죽지 않도록 전체를 try/catch 로 감쌈.
@@ -252,10 +264,13 @@ class _GoalAppState extends ConsumerState<GoalApp> {
     await _runDailyRoutine();
     await _checkLaunchAction();
 
-    // 노드가 바뀔 때마다 위젯도 갱신 (0.5초 디바운스).
+    // 노드가 바뀔 때마다 위젯도 갱신 + 노션 자동 공유 (0.5초 디바운스).
     _nodesSub = ref.read(nodeRepoProvider).watchAll().listen((_) {
       _syncDebounce?.cancel();
-      _syncDebounce = Timer(const Duration(milliseconds: 500), _syncWidgets);
+      _syncDebounce = Timer(const Duration(milliseconds: 500), () {
+        _syncWidgets();
+        _flushNotion();
+      });
     });
 
     // 구글 캘린더: 조용히 연결 상태만 복구(목록 로드). 자동 동기화는 하지
@@ -265,6 +280,17 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         await ref.read(gcalControllerProvider.notifier).restore();
       } catch (e, s) {
         debugPrint('gcal restore 실패(무시): $e\n$s');
+      }
+    }
+
+    // 노션: 저장된 연동 설정을 조용히 복구한 뒤, 자동 공유가 켜져 있으면
+    // 시작 시점의 변경분을 한 번 밀어 올린다(웹·미연결이면 no-op).
+    if (!kIsWeb) {
+      try {
+        await ref.read(notionControllerProvider.notifier).restore();
+        _flushNotion();
+      } catch (e, s) {
+        debugPrint('notion restore 실패(무시): $e\n$s');
       }
     }
 
