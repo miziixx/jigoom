@@ -86,6 +86,22 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/goal_widget_info" />
         </receiver>
+        <receiver android:name=".StudioWidgetProvider" android:exported="true" android:label="지금 · 위젯 스튜디오">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/studio_widget_info" />
+        </receiver>
+        <activity
+            android:name=".StudioWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/LaunchTheme">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".QuickAddActivity"
             android:exported="false"

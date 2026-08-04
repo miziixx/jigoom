@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 위젯 스튜디오 홈 위젯. 구성 액티비티에서 종류·크기·테마를 정한다. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="72dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:initialLayout="@layout/studio_widget"
+    android:previewLayout="@layout/studio_widget"
+    android:configure="com.ziia.jigeum.StudioWidgetConfigActivity"
+    android:updatePeriodMillis="0" />

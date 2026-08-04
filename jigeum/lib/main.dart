@@ -14,6 +14,7 @@ import 'core/theme.dart';
 import 'data/db.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/gcal/gcal_controller.dart';
+import 'features/widget_studio/widget_config_screen.dart';
 import 'features/widgetkit/notification_service.dart';
 import 'features/widgetkit/widget_bridge.dart';
 import 'providers.dart';
@@ -26,6 +27,16 @@ String _hex(Color c) =>
     '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 홈 위젯 구성 액티비티(StudioWidgetConfigActivity)가 이 초기 라우트로 진입한다.
+  // 이때는 위젯 설정 화면만 띄운다(전체 앱/DB 초기화 없이 경량 실행).
+  if (WidgetsBinding.instance.platformDispatcher.defaultRouteName ==
+      '/widget_config') {
+    runApp(const ProviderScope(child: WidgetConfigApp()));
+    return;
+  }
+
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
