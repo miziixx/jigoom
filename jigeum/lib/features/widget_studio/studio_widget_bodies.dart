@@ -47,7 +47,7 @@ Widget studioWidgetBody(
     case StudioWidgetType.capture:
       return _capture(skin, w.title);
     case StudioWidgetType.fortune:
-      return _fortune(skin, w.title);
+      return _fortune(skin, w.title, data?.fortune);
     case StudioWidgetType.calendar:
       return _calendar(skin, w.view ?? StudioCalView.month,
           data?.dayEvents ?? const [], data?.cal ?? const StudioCalData());
@@ -359,7 +359,10 @@ Widget _capture(StudioSkin s, String title) {
 
 // --- 오늘의 운세 -----------------------------------------------------------
 
-Widget _fortune(StudioSkin s, String title) {
+Widget _fortune(StudioSkin s, String title, StudioFortune? f) {
+  // 생일 설정 시 상위 카테고리 헤드라인 + 실천 조언, 없으면 레퍼런스 샘플.
+  final headline = f?.headline ?? title;
+  final action = f?.action ?? '가장 가까운 일 하나를 10분만 시작하세요.';
   return Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -368,9 +371,13 @@ Widget _fortune(StudioSkin s, String title) {
         const SizedBox(height: 7),
         if (!s.isTiny) Text("TODAY'S ACTION", style: s.wMeta),
         if (!s.isTiny) const SizedBox(height: 7),
-        Text(title, style: s.wTitle, textAlign: TextAlign.center),
+        Text(headline,
+            style: s.wTitle,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis),
         const SizedBox(height: 7),
-        Text('가장 가까운 일 하나를 10분만 시작하세요.',
+        Text(action,
             textAlign: TextAlign.center,
             style: s.sans(8, height: 1.5),
             maxLines: 3,

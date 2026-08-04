@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:jigeum/core/constants.dart';
+import 'package:jigeum/core/settings_controller.dart';
 import 'package:jigeum/data/db.dart';
 import 'package:jigeum/providers.dart';
 import 'package:jigeum/features/widget_studio/studio_controller.dart';
@@ -380,6 +381,22 @@ void main() {
       final mon = d.cal.weekBlocks
           .where((b) => b.col == 0 && b.row == 1 && b.title == '주간 회의');
       expect(mon.length, 1);
+    });
+
+    test('생일 설정 시 운세 카드 실데이터, 미설정이면 null(샘플 폴백)', () async {
+      // 미설정: 운세 null.
+      await container.read(todayNodesProvider.future);
+      expect(container.read(studioLiveDataProvider).fortune, isNull);
+
+      // 설정 후: 상위 카테고리 헤드라인 + 실천 조언.
+      final sc = container.read(settingsProvider.notifier);
+      await Future<void>.delayed(const Duration(milliseconds: 30)); // _load 완료 대기
+      await sc.setBirth(DateTime(1992, 3, 20, 9, 30),
+          hasTime: true, longitude: 126.98, latitude: 37.57, male: true);
+      final d = container.read(studioLiveDataProvider);
+      expect(d.fortune, isNotNull);
+      expect(d.fortune!.headline.trim().isNotEmpty, true);
+      expect(d.fortune!.action.trim().isNotEmpty, true);
     });
   });
 }

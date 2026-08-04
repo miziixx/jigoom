@@ -3,7 +3,11 @@ import 'package:intl/intl.dart';
 
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
+import '../../core/explain.dart';
+import '../../core/fortune.dart';
+import '../../core/fortune_text.dart';
 import '../../core/saju.dart';
+import '../../core/settings_controller.dart';
 import '../../data/db.dart';
 import '../../features/habit/habit_stats.dart';
 import '../../providers.dart';
@@ -72,6 +76,13 @@ class StudioCalData {
   final List<StudioCalWeekBlock> weekBlocks;
 }
 
+/// 오늘의 운세·행동 카드 표시값(사주 차트 기반).
+class StudioFortune {
+  const StudioFortune(this.headline, this.action);
+  final String headline; // 상위 카테고리 + 등급, 예: "재물 대체로 좋음"
+  final String action; // 실천 조언(오늘의 행동)
+}
+
 /// 시계 표시값(날짜·시간·일진·월상) — 순수 함수, DateTime 만 받는다.
 class StudioClock {
   const StudioClock(this.date, this.time, this.ganzhi, this.moon);
@@ -101,6 +112,7 @@ class StudioLiveData {
     this.dayEvents = const [],
     this.matrix = const [],
     this.cal = const StudioCalData(),
+    this.fortune,
   });
 
   final List<StudioTaskRow> tasks;
@@ -113,6 +125,9 @@ class StudioLiveData {
 
   /// 캘린더 WEEK/MONTH 실데이터.
   final StudioCalData cal;
+
+  /// 오늘의 운세(생일 미설정이면 null → 샘플 폴백).
+  final StudioFortune? fortune;
 }
 
 String _hhmm(int min) =>
@@ -253,6 +268,29 @@ final studioLiveDataProvider = Provider<StudioLiveData>((ref) {
         StudioCalWeekBlock(s.date.weekday - 1, rowOf(s.startMin), s.title),
   ];
 
+  // --- 오늘의 운세: 생일 설정 시 사주 차트 → 상위 카테고리 + 실천 조언 ---
+  final settings = ref.watch(settingsProvider);
+  StudioFortune? fortune;
+  if (settings.hasBirth && settings.birth != null) {
+    final chart = computeSaju(
+      settings.birth!,
+      hasHour: settings.birthHasTime,
+      longitude: settings.birthLongitude,
+      male: settings.birthMale,
+    );
+    final f = computeDailyFortune(chart, DateTime.now());
+    if (f.categories.isNotEmpty) {
+      final top = f.categories
+          .reduce((a, b) => a.score >= b.score ? a : b); // 최고점 카테고리
+      final level = explainLevelFromKey(settings.sajuLevel);
+      final txt = describeCategory(top, level);
+      final action = txt.advice.isNotEmpty
+          ? txt.advice
+          : '${top.title} 하나만 작게 시작하기';
+      fortune = StudioFortune('${top.title} ${top.grade}', action);
+    }
+  }
+
   return StudioLiveData(
     tasks: tasks,
     habits: habits,
@@ -260,5 +298,6 @@ final studioLiveDataProvider = Provider<StudioLiveData>((ref) {
     dayEvents: dayEvents,
     matrix: matrix,
     cal: StudioCalData(monthEventDays: monthEventDays, weekBlocks: weekBlocks),
+    fortune: fortune,
   );
 });

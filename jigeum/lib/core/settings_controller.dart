@@ -193,6 +193,8 @@ class SettingsController extends StateNotifier<AppSettings> {
     final reduceMotion = await _get(_kReduceMotion);
     final autoSuggestNext = await _get(_kAutoSuggestNext);
     final widgetQuickAdd = await _get(_kWidgetQuickAdd);
+    // 비동기 로드 도중 컨트롤러가 dispose 되면 state 설정을 건너뛴다(use-after-dispose 방지).
+    if (!mounted) return;
     state = AppSettings(
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
