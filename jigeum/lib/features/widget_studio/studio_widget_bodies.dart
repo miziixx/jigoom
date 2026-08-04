@@ -49,8 +49,8 @@ Widget studioWidgetBody(
     case StudioWidgetType.fortune:
       return _fortune(skin, w.title);
     case StudioWidgetType.calendar:
-      return _calendar(
-          skin, w.view ?? StudioCalView.month, data?.dayEvents ?? const []);
+      return _calendar(skin, w.view ?? StudioCalView.month,
+          data?.dayEvents ?? const [], data?.cal ?? const StudioCalData());
   }
 }
 
@@ -382,12 +382,16 @@ Widget _fortune(StudioSkin s, String title) {
 
 // --- 캘린더 (DAY / WEEK / MONTH) ------------------------------------------
 
-Widget _calendar(StudioSkin s, StudioCalView view, List<StudioEventRow> dayEvents) {
+Widget _calendar(StudioSkin s, StudioCalView view, List<StudioEventRow> dayEvents,
+    StudioCalData cal) {
+  final now = DateTime.now();
+  final monday = now.subtract(Duration(days: now.weekday - 1));
+  final sunday = monday.add(const Duration(days: 6));
   final title = view == StudioCalView.month
-      ? '2026년 8월'
+      ? '${now.year}년 ${now.month}월'
       : view == StudioCalView.week
-          ? '8.3 – 8.9'
-          : '8월 3일';
+          ? '${monday.month}.${monday.day} – ${sunday.month}.${sunday.day}'
+          : '${now.month}월 ${now.day}일';
 
   Widget tab(String label, bool active) => Text(
         label,
@@ -430,10 +434,10 @@ Widget _calendar(StudioSkin s, StudioCalView view, List<StudioEventRow> dayEvent
       body = _calendarDay(s, dayEvents);
       break;
     case StudioCalView.week:
-      body = _calendarWeek(s);
+      body = _calendarWeek(s, cal.weekBlocks);
       break;
     case StudioCalView.month:
-      body = _calendarMonth(s);
+      body = _calendarMonth(s, now, cal.monthEventDays);
       break;
   }
 
@@ -475,15 +479,28 @@ Widget _calendarDay(StudioSkin s, List<StudioEventRow> live) {
   );
 }
 
-Widget _calendarWeek(StudioSkin s) {
+Widget _calendarWeek(StudioSkin s, List<StudioCalWeekBlock> blocks) {
   const days = ['월', '화', '수', '목', '금'];
-  // 시간행: [시각, 월,화,수,목,금] — week-block 은 (텍스트|null).
-  final rows = <(String, List<String?>)>[
-    ('09', [null, '주간 보고', null, '검진', null]),
-    ('12', ['리뷰', null, '미팅', null, '핸드오프']),
-    ('15', [null, 'UX 발표', null, '로드맵', null]),
-    ('18', [null, null, '필라테스', null, null]),
-  ];
+  const times = ['09', '12', '15', '18'];
+  // 실데이터가 있으면 격자[행][열]에 첫 블록을, 없으면 레퍼런스 샘플.
+  List<(String, List<String?>)> rows;
+  if (blocks.isNotEmpty) {
+    final grid = List.generate(4, (_) => List<String?>.filled(5, null));
+    for (final b in blocks) {
+      if (b.row >= 0 && b.row < 4 && b.col >= 0 && b.col < 5 &&
+          grid[b.row][b.col] == null) {
+        grid[b.row][b.col] = b.title;
+      }
+    }
+    rows = [for (var r = 0; r < 4; r++) (times[r], grid[r])];
+  } else {
+    rows = <(String, List<String?>)>[
+      ('09', [null, '주간 보고', null, '검진', null]),
+      ('12', ['리뷰', null, '미팅', null, '핸드오프']),
+      ('15', [null, 'UX 발표', null, '로드맵', null]),
+      ('18', [null, null, '필라테스', null, null]),
+    ];
+  }
 
   Border cellBorder = Border(
     right: BorderSide(color: s.line, width: s.lineWidth),
@@ -550,11 +567,22 @@ Widget _calendarWeek(StudioSkin s) {
   );
 }
 
-Widget _calendarMonth(StudioSkin s) {
+Widget _calendarMonth(StudioSkin s, DateTime now, Set<int> eventDays) {
   const week = ['일', '월', '화', '수', '목', '금', '토'];
-  // days: i<5 ? 27+i : i-4  (레퍼런스). 35칸.
-  final days = List<int>.generate(35, (i) => i < 5 ? 27 + i : i - 4);
-  const eventDays = {7, 11, 15, 19, 26};
+  final y = now.year, m = now.month, todayDay = now.day;
+  final leading = DateTime(y, m, 1).weekday % 7; // 일요일 시작(일=0)
+  final daysInMonth = DateTime(y, m + 1, 0).day;
+  final prevDays = DateTime(y, m, 0).day; // 지난달 마지막 날
+  final totalCells = ((leading + daysInMonth + 6) ~/ 7) * 7;
+  final weeks = totalCells ~/ 7;
+
+  // 각 칸: (표시 숫자, 이번 달 여부).
+  (int, bool) cellAt(int i) {
+    final off = i - leading;
+    if (off < 0) return (prevDays + off + 1, false);
+    if (off < daysInMonth) return (off + 1, true);
+    return (off - daysInMonth + 1, false);
+  }
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -567,15 +595,27 @@ Widget _calendarMonth(StudioSkin s) {
         ],
       ),
       const SizedBox(height: 3),
+      // 주 수만큼 Expanded 행 → 캔버스 높이에 맞춰 균등 배치(잘림 없음).
       Expanded(
-        child: GridView.count(
-          crossAxisCount: 7,
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.0,
+        child: Column(
           children: [
-            for (final d in days)
-              _monthDay(s, d, isToday: d == 3, hasEvent: eventDays.contains(d)),
+            for (var w = 0; w < weeks; w++)
+              Expanded(
+                child: Row(
+                  children: [
+                    for (var c = 0; c < 7; c++)
+                      () {
+                        final (num, inMonth) = cellAt(w * 7 + c);
+                        return Expanded(
+                          child: _monthDay(s, num,
+                              isToday: inMonth && num == todayDay,
+                              hasEvent: inMonth && eventDays.contains(num),
+                              dim: !inMonth),
+                        );
+                      }(),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -584,7 +624,7 @@ Widget _calendarMonth(StudioSkin s) {
 }
 
 Widget _monthDay(StudioSkin s, int d,
-    {required bool isToday, required bool hasEvent}) {
+    {required bool isToday, required bool hasEvent, bool dim = false}) {
   return Container(
     decoration: isToday
         ? BoxDecoration(border: Border.all(color: s.primary, width: 1))
@@ -598,7 +638,9 @@ Widget _monthDay(StudioSkin s, int d,
           children: [
             Text('$d',
                 style: s.sans(7,
-                    color: isToday ? s.primaryDark : s.ink)),
+                    color: isToday
+                        ? s.primaryDark
+                        : (dim ? s.muted.withValues(alpha: 0.5) : s.ink))),
             if (isToday) ...[
               const SizedBox(height: 1),
               Container(

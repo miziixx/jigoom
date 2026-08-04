@@ -57,6 +57,21 @@ class StudioMatrixCell {
   final int count;
 }
 
+/// 캘린더 WEEK 격자에 놓일 일정 블록(요일 열 · 시간 행).
+class StudioCalWeekBlock {
+  const StudioCalWeekBlock(this.col, this.row, this.title);
+  final int col; // 0..4 (월~금)
+  final int row; // 0..3 (09/12/15/18 시간대)
+  final String title;
+}
+
+/// 캘린더 WEEK/MONTH 실데이터(월 일정 있는 날 · 주간 블록).
+class StudioCalData {
+  const StudioCalData({this.monthEventDays = const {}, this.weekBlocks = const []});
+  final Set<int> monthEventDays; // 이번 달, 일정 있는 '일(day)'
+  final List<StudioCalWeekBlock> weekBlocks;
+}
+
 /// 시계 표시값(날짜·시간·일진·월상) — 순수 함수, DateTime 만 받는다.
 class StudioClock {
   const StudioClock(this.date, this.time, this.ganzhi, this.moon);
@@ -85,6 +100,7 @@ class StudioLiveData {
     this.goal,
     this.dayEvents = const [],
     this.matrix = const [],
+    this.cal = const StudioCalData(),
   });
 
   final List<StudioTaskRow> tasks;
@@ -94,6 +110,9 @@ class StudioLiveData {
 
   /// 사분면 4칸: [긴급·중요, 중요만, 긴급만, 둘 다 아님]. 비어 있으면 샘플 폴백.
   final List<StudioMatrixCell> matrix;
+
+  /// 캘린더 WEEK/MONTH 실데이터.
+  final StudioCalData cal;
 }
 
 String _hhmm(int min) =>
@@ -200,11 +219,46 @@ final studioLiveDataProvider = Provider<StudioLiveData>((ref) {
       ? [cell(q11), cell(q10), cell(q01), cell(q00)]
       : const <StudioMatrixCell>[];
 
+  // --- 캘린더 MONTH: 이번 달 일정 있는 날 ---
+  final monthStart = DateTime(today.year, today.month, 1);
+  final monthEnd = DateTime(today.year, today.month + 1, 0);
+  final monthScheds = ref
+          .watch(schedulesInRangeProvider((start: monthStart, end: monthEnd)))
+          .valueOrNull ??
+      const <Schedule>[];
+  final monthEventDays = <int>{
+    for (final s in monthScheds)
+      if (!s.deleted && s.date.year == today.year && s.date.month == today.month)
+        s.date.day,
+  };
+
+  // --- 캘린더 WEEK: 이번 주(월~금) 시간대별 블록 ---
+  final monday = today.subtract(Duration(days: today.weekday - 1));
+  final sunday = monday.add(const Duration(days: 6));
+  final weekScheds = ref
+          .watch(schedulesInRangeProvider((start: monday, end: sunday)))
+          .valueOrNull ??
+      const <Schedule>[];
+  int rowOf(int startMin) {
+    final h = startMin ~/ 60;
+    if (h < 12) return 0;
+    if (h < 15) return 1;
+    if (h < 18) return 2;
+    return 3;
+  }
+
+  final weekBlocks = <StudioCalWeekBlock>[
+    for (final s in weekScheds)
+      if (!s.deleted && !s.allDay && s.date.weekday >= 1 && s.date.weekday <= 5)
+        StudioCalWeekBlock(s.date.weekday - 1, rowOf(s.startMin), s.title),
+  ];
+
   return StudioLiveData(
     tasks: tasks,
     habits: habits,
     goal: goal,
     dayEvents: dayEvents,
     matrix: matrix,
+    cal: StudioCalData(monthEventDays: monthEventDays, weekBlocks: weekBlocks),
   );
 });

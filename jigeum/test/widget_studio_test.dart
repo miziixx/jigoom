@@ -303,6 +303,16 @@ void main() {
             endMin: 600,
             createdAt: now,
           ));
+      // 이번 주 월요일 14:00 일정(주간 격자 검증용, 요일 고정).
+      final monday = today.subtract(Duration(days: today.weekday - 1));
+      await db.into(db.schedules).insert(SchedulesCompanion.insert(
+            id: 's2',
+            date: monday,
+            title: '주간 회의',
+            startMin: 840,
+            endMin: 900,
+            createdAt: now,
+          ));
 
       // 스트림 첫 방출 대기.
       await container.read(todayNodesProvider.future);
@@ -313,6 +323,13 @@ void main() {
               (start: today.subtract(const Duration(days: 60)), end: today))
           .future);
       await container.read(schedulesForDateProvider(today).future);
+      await container.read(schedulesInRangeProvider((
+        start: DateTime(today.year, today.month, 1),
+        end: DateTime(today.year, today.month + 1, 0)
+      )).future);
+      await container.read(schedulesInRangeProvider(
+              (start: monday, end: monday.add(const Duration(days: 6))))
+          .future);
       for (final k in const [
         (important: true, urgent: true),
         (important: true, urgent: false),
@@ -355,6 +372,14 @@ void main() {
       expect(d.matrix[1].body, '위젯 데이터 연결');
       expect(d.matrix[1].count, 1);
       expect(d.matrix[0].body, '현재 비어 있음'); // 긴급·중요 없음
+
+      // 캘린더 MONTH: 오늘 + 월요일이 '일정 있는 날'.
+      expect(d.cal.monthEventDays.contains(today.day), true);
+      expect(d.cal.monthEventDays.contains(monday.day), true);
+      // 캘린더 WEEK: 월요일 14:00 → col0(월)·row1(12시대) 블록.
+      final mon = d.cal.weekBlocks
+          .where((b) => b.col == 0 && b.row == 1 && b.title == '주간 회의');
+      expect(mon.length, 1);
     });
   });
 }
