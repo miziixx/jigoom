@@ -7,7 +7,9 @@ enum NotionSyncType {
   nodes('nodes', '할 일·목표·메모'),
   schedules('schedules', '일정'),
   habits('habits', '습관'),
-  timeBlocks('timeBlocks', '타임트래커');
+  timeBlocks('timeBlocks', '타임트래커'),
+  routines('routines', '루틴'),
+  focusSessions('focusSessions', '집중 세션');
 
   const NotionSyncType(this.key, this.label);
 
@@ -133,6 +135,18 @@ class NotionRepository {
   Future<List<TimeBlock>> changedTimeBlocks(DateTime? since) async {
     final rows = await db.select(db.timeBlocks).get();
     return _after(rows, since, (t) => t.updatedAt ?? t.date);
+  }
+
+  /// 루틴은 updatedAt 컬럼이 없어 createdAt 을 유효 시각으로 쓴다(습관과 동일).
+  Future<List<Routine>> changedRoutines(DateTime? since) async {
+    final rows = await db.select(db.routines).get();
+    return _after(rows, since, (r) => r.createdAt);
+  }
+
+  /// 집중 세션은 끝난 시각(진행 중이면 시작 시각)을 유효 시각으로 쓴다.
+  Future<List<FocusSession>> changedFocusSessions(DateTime? since) async {
+    final rows = await db.select(db.focusSessions).get();
+    return _after(rows, since, (f) => f.endedAt ?? f.startedAt);
   }
 
   List<T> _after<T>(List<T> rows, DateTime? since, DateTime Function(T) at) {

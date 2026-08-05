@@ -52,6 +52,25 @@ class NotionMapper {
           'JigeumId': {'rich_text': <String, dynamic>{}},
           'UpdatedAt': {'date': <String, dynamic>{}},
         };
+      case NotionSyncType.routines:
+        return {
+          'Name': {'title': <String, dynamic>{}},
+          'Time': {'rich_text': <String, dynamic>{}},
+          'Weekdays': {'rich_text': <String, dynamic>{}},
+          'Active': {'checkbox': <String, dynamic>{}},
+          'Note': {'rich_text': <String, dynamic>{}},
+          'JigeumId': {'rich_text': <String, dynamic>{}},
+          'UpdatedAt': {'date': <String, dynamic>{}},
+        };
+      case NotionSyncType.focusSessions:
+        return {
+          'Name': {'title': <String, dynamic>{}},
+          'Date': {'date': <String, dynamic>{}},
+          'PlannedMinutes': {'number': <String, dynamic>{}},
+          'ActualMinutes': {'number': <String, dynamic>{}},
+          'JigeumId': {'rich_text': <String, dynamic>{}},
+          'UpdatedAt': {'date': <String, dynamic>{}},
+        };
     }
   }
 
@@ -59,6 +78,8 @@ class NotionMapper {
   static String nodeId(Node n) => n.id;
   static String scheduleId(Schedule s) => s.id;
   static String habitId(Habit h) => h.id;
+  static String routineId(Routine r) => r.id;
+  static String focusSessionId(FocusSession f) => f.id;
 
   /// 타임블록은 (date, block) 복합 PK → 안정적 문자열 키로 합친다.
   static String timeBlockId(TimeBlock t) =>
@@ -102,6 +123,25 @@ class NotionMapper {
         'UpdatedAt': _dateTime(t.updatedAt ?? t.date),
       });
 
+  static Map<String, dynamic> routineProps(Routine r) => _clean({
+        'Name': _title(r.title),
+        'Time': _richText('${_hm(r.startMin)}–${_hm(r.endMin)}'),
+        'Weekdays': _richText(r.weekdays),
+        'Active': {'checkbox': r.active},
+        'Note': _richText(r.note),
+        'JigeumId': _richText(r.id),
+        'UpdatedAt': _dateTime(r.createdAt),
+      });
+
+  static Map<String, dynamic> focusSessionProps(FocusSession f) => _clean({
+        'Name': _title('집중 ${(f.actualSeconds / 60).round()}분'),
+        'Date': _date(f.startedAt),
+        'PlannedMinutes': _number(f.plannedMinutes),
+        'ActualMinutes': _number((f.actualSeconds / 60).round()),
+        'JigeumId': _richText(f.id),
+        'UpdatedAt': _dateTime(f.endedAt ?? f.startedAt),
+      });
+
   // ---- 빌더 헬퍼 ----
   static Map<String, dynamic> _selectSchema(List<String> options) => {
         'select': {
@@ -130,6 +170,17 @@ class NotionMapper {
   /// 빈 문자열이면 null 반환 → [_clean] 이 속성 자체를 뺀다(노션은 빈 select 거부).
   static Map<String, dynamic>? _select(String v) =>
       v.isEmpty ? null : {'select': {'name': v}};
+
+  /// 숫자 속성 — null 이면 [_clean] 이 속성 자체를 뺀다.
+  static Map<String, dynamic>? _number(num? v) =>
+      v == null ? null : {'number': v};
+
+  /// 분(0~1439) → "HH:MM" 표시.
+  static String _hm(int minutes) {
+    final h = (minutes ~/ 60) % 24;
+    final m = minutes % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+  }
 
   static Map<String, dynamic> _date(DateTime? d) =>
       {'date': d == null ? null : {'start': _ymd(d)}};

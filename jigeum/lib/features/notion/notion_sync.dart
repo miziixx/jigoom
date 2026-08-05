@@ -122,6 +122,20 @@ class NotionSync {
             _Item(NotionMapper.timeBlockId(b), NotionMapper.timeBlockProps(b),
                 b.updatedAt ?? b.date)
         ];
+      case NotionSyncType.routines:
+        final rows = await repo.changedRoutines(since);
+        return [
+          for (final r in rows)
+            _Item(NotionMapper.routineId(r), NotionMapper.routineProps(r),
+                r.createdAt)
+        ];
+      case NotionSyncType.focusSessions:
+        final rows = await repo.changedFocusSessions(since);
+        return [
+          for (final f in rows)
+            _Item(NotionMapper.focusSessionId(f),
+                NotionMapper.focusSessionProps(f), f.endedAt ?? f.startedAt)
+        ];
     }
   }
 }
