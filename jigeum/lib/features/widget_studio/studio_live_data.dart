@@ -69,10 +69,24 @@ class StudioCalWeekBlock {
   final String title;
 }
 
-/// 캘린더 WEEK/MONTH 실데이터(월 일정 있는 날 · 주간 블록).
+/// 월 달력 한 칸에 놓일 알약의 종류(색 구분용).
+enum StudioPillKind { schedule, done, task, habit, routine, focus }
+
+/// 월 달력 한 칸에 놓일 알약 하나(그날의 일정·할일·완료·습관·루틴·기록).
+class StudioMonthPill {
+  const StudioMonthPill(this.label, this.kind);
+  final String label;
+  final StudioPillKind kind;
+}
+
+/// 캘린더 WEEK/MONTH 실데이터(월 일정 있는 날 · 월별 알약 · 주간 블록).
 class StudioCalData {
-  const StudioCalData({this.monthEventDays = const {}, this.weekBlocks = const []});
+  const StudioCalData(
+      {this.monthEventDays = const {},
+      this.weekBlocks = const [],
+      this.monthPills = const {}});
   final Set<int> monthEventDays; // 이번 달, 일정 있는 '일(day)'
+  final Map<int, List<StudioMonthPill>> monthPills; // 일(1..31) → 알약들
   final List<StudioCalWeekBlock> weekBlocks;
 }
 
@@ -247,6 +261,96 @@ final studioLiveDataProvider = Provider<StudioLiveData>((ref) {
         s.date.day,
   };
 
+  // --- 캘린더 MONTH 알약: 일정·완료·할일·습관·루틴·기록 ---
+  final monthPills = <int, List<StudioMonthPill>>{};
+  void addPill(int day, StudioMonthPill p) =>
+      (monthPills[day] ??= <StudioMonthPill>[]).add(p);
+  bool inMonth(DateTime d) =>
+      d.year == today.year && d.month == today.month;
+  final daysInMonth = monthEnd.day;
+
+  // 일정(다일이면 기간 전체 날에 표시).
+  for (final s in monthScheds) {
+    if (s.deleted) continue;
+    final start = DateTime(s.date.year, s.date.month, s.date.day);
+    final end = s.endDate != null
+        ? DateTime(s.endDate!.year, s.endDate!.month, s.endDate!.day)
+        : start;
+    for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
+      if (inMonth(d)) {
+        addPill(d.day, StudioMonthPill(s.title, StudioPillKind.schedule));
+      }
+    }
+  }
+
+  // 할 일 / 완료(날짜 있는 노드).
+  final monthNodes = ref
+          .watch(dateRangeNodesProvider((start: monthStart, end: monthEnd)))
+          .valueOrNull ??
+      const <Node>[];
+  for (final n in monthNodes) {
+    if (n.date == null || n.type == NodeType.goal || n.type == NodeType.folder) {
+      continue;
+    }
+    if (!inMonth(n.date!)) continue;
+    addPill(
+        n.date!.day,
+        StudioMonthPill(n.title,
+            n.status == NodeStatus.done
+                ? StudioPillKind.done
+                : StudioPillKind.task));
+  }
+
+  // 습관(그날 완료된 습관 개수).
+  final monthTicks = ref
+          .watch(habitTicksInRangeProvider((start: monthStart, end: monthEnd)))
+          .valueOrNull ??
+      const <HabitTick>[];
+  final habitByDay = <int, int>{};
+  for (final tk in monthTicks) {
+    if (inMonth(tk.date)) {
+      habitByDay[tk.date.day] = (habitByDay[tk.date.day] ?? 0) + 1;
+    }
+  }
+  habitByDay.forEach((day, n) =>
+      addPill(day, StudioMonthPill(n > 1 ? '습관 $n' : '습관', StudioPillKind.habit)));
+
+  // 루틴(요일 반복 → 그날 요일에 해당하는 활성 루틴).
+  final routines = ref.watch(routinesProvider).valueOrNull ?? const <Routine>[];
+  for (var day = 1; day <= daysInMonth; day++) {
+    final wd = DateTime(today.year, today.month, day).weekday; // 1=월..7=일
+    var cnt = 0;
+    String? first;
+    for (final r in routines) {
+      if (r.active && r.weekdays.split(',').contains('$wd')) {
+        cnt++;
+        first ??= r.title;
+      }
+    }
+    if (cnt > 0) {
+      addPill(day,
+          StudioMonthPill(cnt > 1 ? '루틴 $cnt' : (first ?? '루틴'), StudioPillKind.routine));
+    }
+  }
+
+  // 기록(타임트래커 그날 채운 블록).
+  final monthBlocks = ref
+          .watch(timeBlocksInRangeProvider((start: monthStart, end: monthEnd)))
+          .valueOrNull ??
+      const <TimeBlock>[];
+  final recDays = <int>{
+    for (final b in monthBlocks)
+      if (inMonth(b.date) && b.content.trim().isNotEmpty) b.date.day,
+  };
+  for (final day in recDays) {
+    addPill(day, const StudioMonthPill('기록', StudioPillKind.focus));
+  }
+
+  // 종류 우선순위로 정렬(일정→완료→할일→습관→루틴→기록).
+  for (final list in monthPills.values) {
+    list.sort((a, b) => a.kind.index.compareTo(b.kind.index));
+  }
+
   // --- 캘린더 WEEK: 이번 주(월~금) 시간대별 블록 ---
   final monday = today.subtract(Duration(days: today.weekday - 1));
   final sunday = monday.add(const Duration(days: 6));
@@ -297,7 +401,10 @@ final studioLiveDataProvider = Provider<StudioLiveData>((ref) {
     goal: goal,
     dayEvents: dayEvents,
     matrix: matrix,
-    cal: StudioCalData(monthEventDays: monthEventDays, weekBlocks: weekBlocks),
+    cal: StudioCalData(
+        monthEventDays: monthEventDays,
+        weekBlocks: weekBlocks,
+        monthPills: monthPills),
     fortune: fortune,
   );
 });

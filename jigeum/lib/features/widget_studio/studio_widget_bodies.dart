@@ -444,7 +444,7 @@ Widget _calendar(StudioSkin s, StudioCalView view, List<StudioEventRow> dayEvent
       body = _calendarWeek(s, cal.weekBlocks);
       break;
     case StudioCalView.month:
-      body = _calendarMonth(s, now, cal.monthEventDays);
+      body = _calendarMonth(s, now, cal.monthPills);
       break;
   }
 
@@ -574,7 +574,8 @@ Widget _calendarWeek(StudioSkin s, List<StudioCalWeekBlock> blocks) {
   );
 }
 
-Widget _calendarMonth(StudioSkin s, DateTime now, Set<int> eventDays) {
+Widget _calendarMonth(
+    StudioSkin s, DateTime now, Map<int, List<StudioMonthPill>> pills) {
   const week = ['일', '월', '화', '수', '목', '금', '토'];
   final y = now.year, m = now.month, todayDay = now.day;
   final leading = DateTime(y, m, 1).weekday % 7; // 일요일 시작(일=0)
@@ -601,7 +602,7 @@ Widget _calendarMonth(StudioSkin s, DateTime now, Set<int> eventDays) {
                 child: Center(child: Text(d, style: s.sans(5.5, color: s.muted)))),
         ],
       ),
-      const SizedBox(height: 3),
+      const SizedBox(height: 2),
       // 주 수만큼 Expanded 행 → 캔버스 높이에 맞춰 균등 배치(잘림 없음).
       Expanded(
         child: Column(
@@ -609,6 +610,7 @@ Widget _calendarMonth(StudioSkin s, DateTime now, Set<int> eventDays) {
             for (var w = 0; w < weeks; w++)
               Expanded(
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (var c = 0; c < 7; c++)
                       () {
@@ -616,8 +618,10 @@ Widget _calendarMonth(StudioSkin s, DateTime now, Set<int> eventDays) {
                         return Expanded(
                           child: _monthDay(s, num,
                               isToday: inMonth && num == todayDay,
-                              hasEvent: inMonth && eventDays.contains(num),
-                              dim: !inMonth),
+                              dim: !inMonth,
+                              pills: inMonth
+                                  ? (pills[num] ?? const <StudioMonthPill>[])
+                                  : const <StudioMonthPill>[]),
                         );
                       }(),
                   ],
@@ -630,47 +634,73 @@ Widget _calendarMonth(StudioSkin s, DateTime now, Set<int> eventDays) {
   );
 }
 
+/// 월 알약 색(파스텔). 종류별로 구분 — 일정·완료·할일·습관·루틴·기록.
+Color _pillBg(StudioPillKind k) {
+  switch (k) {
+    case StudioPillKind.schedule:
+      return const Color(0xFFBBD1E8); // 파랑
+    case StudioPillKind.done:
+      return const Color(0xFFBFD8B8); // 초록(완료)
+    case StudioPillKind.task:
+      return const Color(0xFFE6DDCA); // 종이(할일)
+    case StudioPillKind.habit:
+      return const Color(0xFFE8C7D7); // 분홍(습관)
+    case StudioPillKind.routine:
+      return const Color(0xFFE8D3AE); // 오커(루틴)
+    case StudioPillKind.focus:
+      return const Color(0xFFD3CCEA); // 라벤더(기록)
+  }
+}
+
 Widget _monthDay(StudioSkin s, int d,
-    {required bool isToday, required bool hasEvent, bool dim = false}) {
-  return Container(
-    decoration: isToday
-        ? BoxDecoration(border: Border.all(color: s.primary, width: 1))
-        : null,
-    alignment: Alignment.center,
-    child: Stack(
-      alignment: Alignment.center,
-      children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('$d',
-                style: s.sans(7,
+    {required bool isToday,
+    bool dim = false,
+    List<StudioMonthPill> pills = const []}) {
+  const pillInk = Color(0xFF2A2824);
+  const maxPills = 2;
+  final shown = pills.take(maxPills).toList();
+  final extra = pills.length - shown.length;
+
+  Widget pill(StudioMonthPill p) => Container(
+        margin: const EdgeInsets.only(top: 1),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0.5),
+        decoration: BoxDecoration(
+            color: _pillBg(p.kind), borderRadius: BorderRadius.circular(2)),
+        child: Text(p.label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.clip,
+            style: s.sans(4.6, color: pillInk)),
+      );
+
+  return ClipRect(
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      decoration: isToday
+          ? BoxDecoration(
+              border: Border.all(color: s.primary, width: 1),
+              borderRadius: BorderRadius.circular(2))
+          : null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 1, top: 1),
+            child: Text('$d',
+                style: s.sans(6.5,
                     color: isToday
                         ? s.primaryDark
-                        : (dim ? s.muted.withValues(alpha: 0.5) : s.ink))),
-            if (isToday) ...[
-              const SizedBox(height: 1),
-              Container(
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: s.primary, width: 1)),
-              ),
-            ],
-          ],
-        ),
-        if (hasEvent)
-          Positioned(
-            bottom: 1,
-            child: Container(
-              width: 3,
-              height: 3,
-              decoration:
-                  BoxDecoration(shape: BoxShape.circle, color: s.primary),
-            ),
+                        : (dim ? s.muted.withValues(alpha: 0.45) : s.ink))),
           ),
-      ],
+          for (final p in shown) pill(p),
+          if (extra > 0)
+            Padding(
+              padding: const EdgeInsets.only(left: 1, top: 1),
+              child: Text('+$extra', style: s.sans(4.6, color: s.muted)),
+            ),
+        ],
+      ),
     ),
   );
 }
