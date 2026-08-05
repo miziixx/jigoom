@@ -1,32 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 지금 런처 아이콘 전경 — 미니멀 시계("지금/now"). 종이 링·바늘 + mark 중심점. -->
+<!-- 지금 런처 아이콘 전경 — 새싹("자라는 하루"). 종이 잎·줄기 + mark 새싹눈. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 시계 링 (종이) -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#F4F1EA"
-        android:strokeWidth="5"
-        android:pathData="M28,54 a26,26 0 1 0 52,0 a26,26 0 1 0 -52,0" />
-    <!-- 분침 (종이, 길게) -->
+    <!-- 흙 (종이, 부드러운 바닥선) -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="#F4F1EA"
         android:strokeWidth="5"
         android:strokeLineCap="round"
-        android:pathData="M54,54 L70,41" />
-    <!-- 시침 (종이, 짧게) -->
+        android:pathData="M40,83 Q54,88 68,83" />
+    <!-- 줄기 (종이) -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="#F4F1EA"
-        android:strokeWidth="6"
+        android:strokeWidth="5"
         android:strokeLineCap="round"
-        android:pathData="M54,54 L43,46" />
-    <!-- 중심점 (mark, 유일한 포인트색) -->
+        android:pathData="M54,82 C53,72 54,63 54,52" />
+    <!-- 왼쪽 잎 (종이, 통잎) -->
+    <path
+        android:fillColor="#F4F1EA"
+        android:pathData="M54,62 C50,54 44,49 38,48 C45,53 50,58 54,62 Z" />
+    <!-- 오른쪽 잎 (종이, 통잎) -->
+    <path
+        android:fillColor="#F4F1EA"
+        android:pathData="M54,57 C59,47 66,42 73,41 C66,47 59,52 54,57 Z" />
+    <!-- 새싹눈 (mark, 유일한 포인트색) -->
     <path
         android:fillColor="#B5443A"
-        android:pathData="M50,54 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0" />
+        android:pathData="M50,50 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0" />
 </vector>

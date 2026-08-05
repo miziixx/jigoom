@@ -47,7 +47,7 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      endDrawer: const AppDrawer(),
+      endDrawer: const AppDrawer(active: DrawerDest.goalManage),
       body: SafeArea(
         bottom: false,
         child: Column(

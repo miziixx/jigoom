@@ -77,7 +77,7 @@ class _InboxScreenState extends State<InboxScreen> {
     final items = widget.repository.list(status: InboxStatus.pending);
     return Scaffold(
       backgroundColor: tk.paper,
-      endDrawer: const AppDrawer(),
+      endDrawer: const AppDrawer(active: DrawerDest.inbox),
       body: SafeArea(
         bottom: false,
         child: Column(

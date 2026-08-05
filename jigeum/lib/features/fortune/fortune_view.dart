@@ -26,7 +26,7 @@ class FortuneView extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: tk.paper,
-      endDrawer: const AppDrawer(),
+      endDrawer: const AppDrawer(active: DrawerDest.fortune),
       body: SafeArea(
         bottom: false,
         child: Column(

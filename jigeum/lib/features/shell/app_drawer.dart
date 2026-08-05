@@ -12,11 +12,22 @@ import '../schedule/calendar_view.dart';
 import '../settings/settings_screen.dart';
 import '../widget_studio/studio_screen.dart';
 
+/// 푸시 화면(라우트)으로 열리는 드로어 항목의 식별자. 셸(홈 탭)에서 여는
+/// 항목은 [homeTabProvider] 로 판별하지만, 이 항목들은 탭이 아니라 화면이므로
+/// 현재 어느 화면을 보고 있는지 드로어에 직접 알려줘야 활성 표시가 맞는다.
+enum DrawerDest { outline, goalManage, calendar, fortune, settings, inbox, widgetStudio }
+
 /// 사이드바 메뉴(에디토리얼) — 홈 셸뿐 아니라 푸시 화면(아웃라인·달력·운세·
 /// 보류함·설정)에서도 endDrawer 로 재사용한다. 탭 항목은 [homeTabProvider] 를
 /// 바꾸고 루트(셸)까지 pop 해서 그 탭으로, 푸시 항목은 루트로 돌아간 뒤 push.
+///
+/// 푸시 화면에서 열 때는 [active] 로 그 화면을 넘겨준다. 그러면 탭 기반 활성
+/// 표시(마지막 홈 탭)를 끄고, 지금 보고 있는 화면의 항목에 활성 바를 켠다.
 class AppDrawer extends ConsumerWidget {
-  const AppDrawer({super.key});
+  const AppDrawer({super.key, this.active});
+
+  /// 이 드로어를 띄운 푸시 화면. 셸(홈 탭)에서 열면 null.
+  final DrawerDest? active;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,8 +51,12 @@ class AppDrawer extends ConsumerWidget {
     }
 
     Widget row(String index, String label, VoidCallback onTap,
-        {int? tabIndex}) {
-      final current = tabIndex != null && currentTab == tabIndex;
+        {int? tabIndex, DrawerDest? dest}) {
+      // 푸시 화면(active != null)에서는 그 화면의 항목만 활성 — 탭 항목은 끈다.
+      // 셸에서는 예전처럼 현재 홈 탭으로 활성 항목을 판별한다.
+      final current = active != null
+          ? dest == active
+          : (tabIndex != null && currentTab == tabIndex);
       return GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -123,16 +138,23 @@ class AppDrawer extends ConsumerWidget {
               row('04', '일과', () => goTab(3), tabIndex: 3),
               row('05', '쏟아내기', () => goTab(2), tabIndex: 2),
               row('06', '전체', () => goTab(5), tabIndex: 5),
-              row('07', '아웃라인', () => goPush(const OutlineScreen())),
-              row('08', '목표 관리', () => goPush(const GoalManageScreen())),
+              row('07', '아웃라인', () => goPush(const OutlineScreen()),
+                  dest: DrawerDest.outline),
+              row('08', '목표 관리', () => goPush(const GoalManageScreen()),
+                  dest: DrawerDest.goalManage),
               row('09', '습관', () => goTab(4), tabIndex: 4),
-              row('10', '달력', () => goPush(const CalendarScreen())),
-              row('11', '오늘의 운세', () => goPush(const FortuneView())),
-              row('12', '설정', () => goPush(const SettingsScreen())),
+              row('10', '달력', () => goPush(const CalendarScreen()),
+                  dest: DrawerDest.calendar),
+              row('11', '오늘의 운세', () => goPush(const FortuneView()),
+                  dest: DrawerDest.fortune),
+              row('12', '설정', () => goPush(const SettingsScreen()),
+                  dest: DrawerDest.settings),
               row('13', '보류함',
-                  () => goPush(InboxScreen(repository: ref.read(inboxRepoProvider)))),
+                  () => goPush(InboxScreen(repository: ref.read(inboxRepoProvider))),
+                  dest: DrawerDest.inbox),
               row('14', '위젯 스튜디오',
-                  () => goPush(const WidgetStudioScreen())),
+                  () => goPush(const WidgetStudioScreen()),
+                  dest: DrawerDest.widgetStudio),
             ],
           ),
         ),

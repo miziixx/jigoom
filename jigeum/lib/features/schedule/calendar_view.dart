@@ -49,7 +49,7 @@ class CalendarScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-        endDrawer: const AppDrawer(),
+        endDrawer: const AppDrawer(active: DrawerDest.calendar),
         body: SafeArea(
           bottom: false,
           child: Column(

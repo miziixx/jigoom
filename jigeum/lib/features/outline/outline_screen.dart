@@ -19,7 +19,7 @@ class OutlineScreen extends StatelessWidget {
     final tk = t(context);
     return Scaffold(
       backgroundColor: tk.paper,
-      endDrawer: const AppDrawer(),
+      endDrawer: const AppDrawer(active: DrawerDest.outline),
       body: SafeArea(
         bottom: false,
         child: Column(

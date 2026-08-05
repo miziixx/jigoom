@@ -27,7 +27,7 @@ class SettingsScreen extends ConsumerWidget {
     final ctrl = ref.read(settingsProvider.notifier);
 
     return Scaffold(
-      endDrawer: const AppDrawer(),
+      endDrawer: const AppDrawer(active: DrawerDest.settings),
       body: SafeArea(
         child: Column(
           children: [
