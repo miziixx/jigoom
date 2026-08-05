@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -877,6 +878,7 @@ class _RoutineEditSheetState extends ConsumerState<_RoutineEditSheet> {
             startMin: _start,
             endMin: _end,
             weekdays: weekdays,
+            updatedAt: Value(DateTime.now()),
           ));
     }
     if (mounted) Navigator.of(context).pop();

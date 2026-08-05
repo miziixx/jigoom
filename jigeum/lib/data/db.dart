@@ -187,6 +187,7 @@ class Routines extends Table {
       text().withDefault(const Constant('1,2,3,4,5,6,7'))(); // 1=월 ~ 7=일
   BoolColumn get active => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()(); // 수정 시각(동기화 워터마크용)
 
   @override
   Set<Column> get primaryKey => {id};
@@ -209,7 +210,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -278,6 +279,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 14) {
             await m.addColumn(nodes, nodes.goalHorizon);
+          }
+          if (from < 15) {
+            await m.addColumn(routines, routines.updatedAt);
           }
         },
       );

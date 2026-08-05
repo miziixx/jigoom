@@ -111,6 +111,7 @@ class BackupService {
             'weekdays': r.weekdays,
             'active': r.active,
             'createdAt': d(r.createdAt),
+            'updatedAt': d(r.updatedAt),
           }
       ],
       'routineGroups': [
@@ -269,6 +270,7 @@ class BackupService {
           weekdays: Value(m['weekdays'] as String? ?? '1,2,3,4,5,6,7'),
           active: Value(m['active'] as bool? ?? true),
           createdAt: pr(m['createdAt']),
+          updatedAt: Value(p(m['updatedAt'])),
         )
     ];
     final timeBlocks = [

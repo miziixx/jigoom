@@ -140,6 +140,7 @@ class ScheduleRepository {
           endMin: endMin,
           weekdays: Value(weekdays),
           createdAt: DateTime.now(),
+          updatedAt: Value(DateTime.now()),
         ));
     // 오늘 요일에 해당하면 오늘 일정으로 바로 생성.
     await _materializeOne(id, todayDate());
@@ -148,7 +149,8 @@ class ScheduleRepository {
 
   Future<void> setRoutineActive(String id, bool active) async {
     await (db.update(db.routines)..where((r) => r.id.equals(id)))
-        .write(RoutinesCompanion(active: Value(active)));
+        .write(RoutinesCompanion(
+            active: Value(active), updatedAt: Value(DateTime.now())));
   }
 
   Future<void> deleteRoutine(String id) async {

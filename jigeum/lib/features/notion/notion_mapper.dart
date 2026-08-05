@@ -130,7 +130,7 @@ class NotionMapper {
         'Active': {'checkbox': r.active},
         'Note': _richText(r.note),
         'JigeumId': _richText(r.id),
-        'UpdatedAt': _dateTime(r.createdAt),
+        'UpdatedAt': _dateTime(r.updatedAt ?? r.createdAt),
       });
 
   static Map<String, dynamic> focusSessionProps(FocusSession f) => _clean({

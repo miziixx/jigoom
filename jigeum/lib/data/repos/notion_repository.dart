@@ -137,10 +137,10 @@ class NotionRepository {
     return _after(rows, since, (t) => t.updatedAt ?? t.date);
   }
 
-  /// 루틴은 updatedAt 컬럼이 없어 createdAt 을 유효 시각으로 쓴다(습관과 동일).
+  /// 루틴은 수정 시각(updatedAt)을 유효 시각으로 — 없으면(구 데이터) createdAt.
   Future<List<Routine>> changedRoutines(DateTime? since) async {
     final rows = await db.select(db.routines).get();
-    return _after(rows, since, (r) => r.createdAt);
+    return _after(rows, since, (r) => r.updatedAt ?? r.createdAt);
   }
 
   /// 집중 세션은 끝난 시각(진행 중이면 시작 시각)을 유효 시각으로 쓴다.
