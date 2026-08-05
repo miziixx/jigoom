@@ -29,8 +29,8 @@ class _WidgetConfigScreenState extends State<WidgetConfigScreen> {
   final GlobalKey _previewKey = GlobalKey();
 
   StudioWidgetType _type = StudioWidgetType.clock;
-  String _themeKey = 'sage';
-  StudioSurface _surface = StudioSurface.glass;
+  String _themeKey = 'editorial';
+  StudioSurface _surface = StudioSurface.paper;
   StudioCalView _view = StudioCalView.month;
   Size _size = kDefaultWidgetSizes[StudioWidgetType.clock]!;
   double _opacity = 100;
@@ -114,9 +114,22 @@ class _WidgetConfigScreenState extends State<WidgetConfigScreen> {
             nav.maybePop();
           },
         ),
-        title: Text('위젯 추가',
-            style: TextStyle(
-                fontFamily: StudioFont.serif, fontSize: 17, color: theme.ink)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('WIDGET',
+                style: TextStyle(
+                    fontFamily: StudioFont.mono,
+                    fontFamilyFallback: StudioFont.monoFallback,
+                    fontSize: 9,
+                    letterSpacing: 2,
+                    color: theme.muted)),
+            Text('홈 위젯 만들기',
+                style: TextStyle(
+                    fontFamily: StudioFont.serif, fontSize: 18, color: theme.ink)),
+          ],
+        ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0.7),
           child: Container(height: 0.7, color: theme.line),
@@ -369,9 +382,11 @@ class _WidgetConfigScreenState extends State<WidgetConfigScreen> {
                       strokeWidth: 2, color: theme.surface))
               : Text('홈 화면에 추가',
                   style: TextStyle(
-                      fontFamily: StudioFont.sans,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontFamily: StudioFont.mono,
+                      fontFamilyFallback: StudioFont.monoFallback,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
                       color: theme.surface)),
         ),
       );

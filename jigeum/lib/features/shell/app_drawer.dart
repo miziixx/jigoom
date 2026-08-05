@@ -10,12 +10,11 @@ import '../inbox/inbox_screen.dart';
 import '../outline/outline_screen.dart';
 import '../schedule/calendar_view.dart';
 import '../settings/settings_screen.dart';
-import '../widget_studio/studio_screen.dart';
 
 /// 푸시 화면(라우트)으로 열리는 드로어 항목의 식별자. 셸(홈 탭)에서 여는
 /// 항목은 [homeTabProvider] 로 판별하지만, 이 항목들은 탭이 아니라 화면이므로
 /// 현재 어느 화면을 보고 있는지 드로어에 직접 알려줘야 활성 표시가 맞는다.
-enum DrawerDest { outline, goalManage, calendar, fortune, settings, inbox, widgetStudio }
+enum DrawerDest { outline, goalManage, calendar, fortune, settings, inbox }
 
 /// 사이드바 메뉴(에디토리얼) — 홈 셸뿐 아니라 푸시 화면(아웃라인·달력·운세·
 /// 보류함·설정)에서도 endDrawer 로 재사용한다. 탭 항목은 [homeTabProvider] 를
@@ -152,9 +151,6 @@ class AppDrawer extends ConsumerWidget {
               row('13', '보류함',
                   () => goPush(InboxScreen(repository: ref.read(inboxRepoProvider))),
                   dest: DrawerDest.inbox),
-              row('14', '위젯 스튜디오',
-                  () => goPush(const WidgetStudioScreen()),
-                  dest: DrawerDest.widgetStudio),
             ],
           ),
         ),

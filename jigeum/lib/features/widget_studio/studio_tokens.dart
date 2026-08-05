@@ -168,6 +168,14 @@ class StudioTheme {
   final Color primary, primaryDark, primaryWeak;
   final Color wallA, wallB; // wallpaper gradient stops
 
+  // 앱 본체(지금)와 1:1 통일된 에디토리얼 테마 — 종이·잉크는 앱 기본 팔레트
+  // 그대로, 포인트는 새싹 초록. 홈 위젯 기본값으로 쓴다.
+  static const editorial = StudioTheme(
+      key: 'editorial', label: '지금 · 에디토리얼',
+      bg: Color(0xFFF4F1EA), surface: Color(0xFFFBF9F3), surface2: Color(0xFFEFEBE2),
+      ink: Color(0xFF26241F), muted: Color(0xFF9A948A), line: Color(0xFFE5E1D7),
+      primary: Color(0xFF4E6659), primaryDark: Color(0xFF34473D), primaryWeak: Color(0xFFE2E8E2),
+      wallA: Color(0xFFECE8DE), wallB: Color(0xFFDAD3C4));
   static const sage = StudioTheme(
       key: 'sage', label: 'SOFT SAGE',
       bg: Color(0xFFF5F3EE), surface: Color(0xFFFFFEFB), surface2: Color(0xFFF0EEE7),
@@ -218,7 +226,9 @@ class StudioTheme {
       primary: Color(0xFF8BA99B), primaryDark: Color(0xFFC2D8CE), primaryWeak: Color(0xFF34473F),
       wallA: Color(0xFF252A2D), wallB: Color(0xFF111315));
 
-  static const all = [sage, manila, mauve, moss, cobalt, rose, ochre, inkNight];
+  static const all = [
+    editorial, sage, manila, mauve, moss, cobalt, rose, ochre, inkNight
+  ];
   static StudioTheme byKey(String k) =>
-      all.firstWhere((t) => t.key == k, orElse: () => sage);
+      all.firstWhere((t) => t.key == k, orElse: () => editorial);
 }
