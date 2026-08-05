@@ -10,6 +10,7 @@ on:
       - claude/voice-routing-spec-impl-ugttwn
       - claude/check-branch-status-9ve8j2
       - claude/notion-realtime-auto-share-d67ut5
+      - claude/build-70-71-merge-d92npg
     paths:
       - 'jigeum/**'
       - '.github/workflows/jigeum-apk.yml'
@@ -103,7 +104,7 @@ jobs:
       # main 에 올라오면 롤링 최신 릴리즈로, 연동 브랜치면 프리뷰 릴리즈로 게시
       # → 폰에서 바로 설치 가능한 APK 링크가 생긴다.
       - name: Publish APK to Release
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/jigeum-google-calendar-sync-lqeo5b' || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn' || github.ref == 'refs/heads/claude/check-branch-status-9ve8j2' || github.ref == 'refs/heads/claude/notion-realtime-auto-share-d67ut5'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/jigeum-google-calendar-sync-lqeo5b' || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn' || github.ref == 'refs/heads/claude/check-branch-status-9ve8j2' || github.ref == 'refs/heads/claude/notion-realtime-auto-share-d67ut5' || github.ref == 'refs/heads/claude/build-70-71-merge-d92npg'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: >-
@@ -111,12 +112,14 @@ jobs:
              || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn' && 'jigeum-voice-preview'
              || github.ref == 'refs/heads/claude/check-branch-status-9ve8j2' && 'jigeum-widget-studio-preview'
              || github.ref == 'refs/heads/claude/notion-realtime-auto-share-d67ut5' && 'jigeum-notion-preview'
+             || github.ref == 'refs/heads/claude/build-70-71-merge-d92npg' && 'jigeum-70-71-merge-preview'
              || 'jigeum-gcal-preview' }}
           name: >-
             ${{ github.ref == 'refs/heads/main' && '지금 (Editorial) — 최신 APK'
              || github.ref == 'refs/heads/claude/voice-routing-spec-impl-ugttwn' && '지금 — 음성 라우팅 프리뷰 APK'
              || github.ref == 'refs/heads/claude/check-branch-status-9ve8j2' && '지금 — 위젯 스튜디오 프리뷰 APK'
              || github.ref == 'refs/heads/claude/notion-realtime-auto-share-d67ut5' && '지금 — 노션 자동공유 프리뷰 APK'
+             || github.ref == 'refs/heads/claude/build-70-71-merge-d92npg' && '지금 — 70·71 병합 프리뷰 APK'
              || '지금 — 구글 캘린더 연동 프리뷰 APK' }}
           body: |
             `지금` 앱 빌드 (arm64 release).
