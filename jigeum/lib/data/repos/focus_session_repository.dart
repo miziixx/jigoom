@@ -27,6 +27,20 @@ class FocusSessionRepository {
     return id;
   }
 
+  /// 위젯에서 시작·정지한 완료 세션을 시각 그대로 기록(홈 위젯 → 앱 반영용).
+  Future<void> logCompleted({
+    required DateTime startedAt,
+    required DateTime endedAt,
+  }) async {
+    final secs = endedAt.difference(startedAt).inSeconds;
+    await db.into(db.focusSessions).insert(FocusSessionsCompanion.insert(
+          id: _uuid.v4(),
+          startedAt: startedAt,
+          endedAt: Value(endedAt),
+          actualSeconds: Value(secs < 0 ? 0 : secs),
+        ));
+  }
+
   /// 세션 종료 — endedAt + 실제 경과 초 기록.
   Future<void> end(String id, int actualSeconds) async {
     await (db.update(db.focusSessions)..where((s) => s.id.equals(id))).write(

@@ -87,6 +87,17 @@ class WidgetBridge {
     }
   }
 
+  /// 타임트래커 위젯에서 시작/정지한 집중 세션 큐(JSON [{startedAt,endedAt}],
+  /// epoch millis)를 1회성으로 받아 비운다. 앱이 FocusSessions 로 반영한다.
+  static Future<String?> consumeFocusQueue() async {
+    if (kIsWeb) return null;
+    try {
+      return await _channel.invokeMethod<String>('consumeFocusQueue');
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 구글 캘린더 목록(JSON 배열 [{id,name,color}])을 네이티브로 전달.
   /// 1×1 위젯 팝업의 캘린더(종류) 스피너가 이 값을 읽는다.
   static Future<void> setGcalCalendars(String jsonList) async {

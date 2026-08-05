@@ -16,6 +16,9 @@ object WidgetPrefs {
     const val KEY_OPACITY = "opacity" // 0~100
     const val KEY_TT_LABEL = "tt_label"
     const val KEY_TT_TEXT = "tt_text"
+    const val KEY_TT_RUNNING = "tt_running" // 집중 기록 진행 중 여부(위젯 탭 토글)
+    const val KEY_TT_STARTED = "tt_started_at" // 진행 중 세션 시작(epoch millis)
+    const val KEY_FOCUS_QUEUE = "focus_queue" // 완료 세션 큐 JSON [{startedAt,endedAt}] — 앱이 드레인
     const val KEY_GOAL = "day_goal" // 오늘의 목표(여러 줄, 개행 구분)
     const val KEY_CAL_FOOT = "cal_foot" // 캘린더 위젯 하단: 음력·일진·별자리
 

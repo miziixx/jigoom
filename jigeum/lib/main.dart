@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -118,6 +119,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       onResume: () {
         _runDailyRoutine();
         _checkLaunchAction();
+        // 타임트래커 위젯에서 앱 없이 시작/정지한 집중 세션을 반영.
+        _drainFocusQueue();
         // 구글 캘린더는 자동 동기화하지 않는다 — 사용자가 설정에서 "지금
         // 동기화" 버튼을 눌렀을 때만 동기화한다.
         // 노션은 실시간 자동 공유가 켜져 있으면 resume 시점에 변경분을 밀어 올린다.
@@ -224,6 +227,28 @@ class _GoalAppState extends ConsumerState<GoalApp> {
     });
   }
 
+  /// 타임트래커 위젯에서 앱을 열지 않고 시작/정지한 집중 세션 큐를 비우고
+  /// FocusSessions 로 반영한다. 웹·빈 큐면 no-op.
+  Future<void> _drainFocusQueue() async {
+    if (kIsWeb) return;
+    try {
+      final raw = await WidgetBridge.consumeFocusQueue();
+      if (raw == null || raw.isEmpty) return;
+      final list = jsonDecode(raw) as List;
+      final repo = ref.read(focusSessionRepoProvider);
+      for (final e in list) {
+        final m = e as Map;
+        final startedAt =
+            DateTime.fromMillisecondsSinceEpoch((m['startedAt'] as num).toInt());
+        final endedAt =
+            DateTime.fromMillisecondsSinceEpoch((m['endedAt'] as num).toInt());
+        await repo.logCompleted(startedAt: startedAt, endedAt: endedAt);
+      }
+    } catch (e, s) {
+      debugPrint('focus queue 드레인 실패(무시): $e\n$s');
+    }
+  }
+
   /// 앱 오픈 시점(콜드 스타트 + resume)의 하루 1회 루틴.
   /// 이월 → 승격 순서. 둘 다 lastDate != today 로 가드되어 idempotent.
   /// 어떤 단계가 실패해도 앱이 죽지 않도록 전체를 try/catch 로 감쌈.
@@ -263,6 +288,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
 
     await _runDailyRoutine();
     await _checkLaunchAction();
+    await _drainFocusQueue();
 
     // 노드가 바뀔 때마다 위젯도 갱신 + 노션 자동 공유 (0.5초 디바운스).
     _nodesSub = ref.read(nodeRepoProvider).watchAll().listen((_) {

@@ -226,6 +226,16 @@ class MainActivity : FlutterActivity() {
                             .remove(WidgetPrefs.KEY_QUICK_ADD_QUEUE).apply()
                         result.success(queue)
                     }
+                    "consumeFocusQueue" -> {
+                        // 타임트래커 위젯에서 시작/정지한 집중 세션 큐를 1회성으로
+                        // 넘기고 비운다. 앱이 FocusSessions 로 반영한다.
+                        val prefs = getSharedPreferences(
+                            WidgetPrefs.FILE, Context.MODE_PRIVATE
+                        )
+                        val queue = prefs.getString(WidgetPrefs.KEY_FOCUS_QUEUE, null)
+                        prefs.edit().remove(WidgetPrefs.KEY_FOCUS_QUEUE).apply()
+                        result.success(queue)
+                    }
                     // ---- 폰 캘린더(CalendarContract) 연동 ----
                     "calendarPermission" -> result.success(hasCalendarPermission())
                     "requestCalendarPermission" -> {
