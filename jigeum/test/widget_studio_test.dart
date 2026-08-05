@@ -55,14 +55,16 @@ void main() {
       expect(studioStateFor(300, 85), StudioSizeState.tiny); // height<90
     });
 
-    test('테마 8종 + INK NIGHT 색상 정확', () {
-      expect(StudioTheme.all.length, 8);
+    test('테마 9종(에디토리얼 포함) + INK NIGHT 색상 정확', () {
+      expect(StudioTheme.all.length, 9);
+      // 앱과 통일한 에디토리얼 테마가 기본(맨 앞·폴백).
+      expect(StudioTheme.all.first.key, 'editorial');
       final ink = StudioTheme.byKey('ink');
       expect(ink.label, 'INK NIGHT');
       expect(ink.bg, const Color(0xFF191B1D));
       expect(ink.primary, const Color(0xFF8BA99B));
-      // 알 수 없는 키는 sage 로 폴백.
-      expect(StudioTheme.byKey('nope').key, 'sage');
+      // 알 수 없는 키는 editorial 로 폴백.
+      expect(StudioTheme.byKey('nope').key, 'editorial');
     });
 
     test('크기 프리셋 6종', () {
