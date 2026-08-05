@@ -182,17 +182,26 @@ class GcalController extends StateNotifier<GcalState> {
         added++;
         continue;
       }
-      // 일정.
+      // 일정 — 시작·종료 날짜(다일) 지원.
       final calId = it['calendarId'] as String?;
-      final allDay = it['allDay'] == true;
-      final millis = (it['at'] as num?)?.toInt();
-      final at = millis != null
-          ? DateTime.fromMillisecondsSinceEpoch(millis)
-          : DateTime.now();
-      final startMin = allDay ? 0 : at.hour * 60 + at.minute;
+      final startMs = (it['startDate'] as num?)?.toInt();
+      final endMs = (it['endDate'] as num?)?.toInt();
+      final atMs = (it['at'] as num?)?.toInt();
+      final startD = startMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(startMs)
+          : (atMs != null
+              ? DateTime.fromMillisecondsSinceEpoch(atMs)
+              : DateTime.now());
+      final endD =
+          endMs != null ? DateTime.fromMillisecondsSinceEpoch(endMs) : startD;
+      final multiDay = endD.isAfter(startD); // 네이티브가 자정으로 보냄
+      // 다일 일정은 종일로 취급(시간대 없는 기간 이벤트).
+      final allDay = (it['allDay'] == true) || multiDay;
+      final startMin = allDay ? 0 : startD.hour * 60 + startD.minute;
       final endMin = allDay ? 0 : (startMin + 60).clamp(0, 1439);
       await _scheduleRepo.addSchedule(
-        date: at,
+        date: startD,
+        endDate: multiDay ? endD : null,
         title: title,
         startMin: startMin,
         endMin: endMin,
