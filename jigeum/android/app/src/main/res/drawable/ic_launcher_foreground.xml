@@ -1,34 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 지금 런처 아이콘 전경 — 새싹("자라는 하루"). 종이 잎·줄기 + mark 새싹눈. -->
+<!-- 지금 런처 아이콘 전경 — 귀여운 새싹 화분. 크림 배경 + 테라코타 화분 + 초록 새싹. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 흙 (종이, 부드러운 바닥선) -->
+    <!-- 줄기 (초록) -->
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#F4F1EA"
-        android:strokeWidth="5"
+        android:strokeColor="#5F8A63"
+        android:strokeWidth="4"
         android:strokeLineCap="round"
-        android:pathData="M40,83 Q54,88 68,83" />
-    <!-- 줄기 (종이) -->
+        android:pathData="M54,60 C53,54 54,49 54,44" />
+    <!-- 왼쪽 잎 (초록, 통잎) -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#F4F1EA"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:pathData="M54,82 C53,72 54,63 54,52" />
-    <!-- 왼쪽 잎 (종이, 통잎) -->
+        android:fillColor="#5F8A63"
+        android:pathData="M54,54 C49,46 43,43 37,43 C43,48 48,52 54,54 Z" />
+    <!-- 오른쪽 잎 (초록, 통잎) -->
     <path
-        android:fillColor="#F4F1EA"
-        android:pathData="M54,62 C50,54 44,49 38,48 C45,53 50,58 54,62 Z" />
-    <!-- 오른쪽 잎 (종이, 통잎) -->
+        android:fillColor="#6E9A6C"
+        android:pathData="M54,50 C59,42 66,39 72,39 C66,44 59,48 54,50 Z" />
+    <!-- 새싹눈 (코랄 포인트) -->
     <path
-        android:fillColor="#F4F1EA"
-        android:pathData="M54,57 C59,47 66,42 73,41 C66,47 59,52 54,57 Z" />
-    <!-- 새싹눈 (mark, 유일한 포인트색) -->
+        android:fillColor="#E0796B"
+        android:pathData="M50.5,43 a3.5,3.5 0 1 0 7,0 a3.5,3.5 0 1 0 -7,0" />
+    <!-- 화분 몸통 (테라코타) -->
     <path
-        android:fillColor="#B5443A"
-        android:pathData="M50,50 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0" />
+        android:fillColor="#C86B52"
+        android:pathData="M39,64 L69,64 L65,82 Q64.5,84.5 62,84.5 L46,84.5 Q43.5,84.5 43,82 Z" />
+    <!-- 화분 테두리 립 (밝은 테라코타) -->
+    <path
+        android:fillColor="#D5825F"
+        android:pathData="M36,58 L72,58 Q74,58 74,60 L74,63 Q74,65 72,65 L36,65 Q34,65 34,63 L34,60 Q34,58 36,58 Z" />
 </vector>

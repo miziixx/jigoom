@@ -301,7 +301,6 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => Navigator.pop(ctx, value),
               behavior: HitTestBehavior.opaque,
               child: Container(
-                margin: const EdgeInsets.only(top: 10),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                     border:
@@ -327,10 +326,24 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 5),
             Text('선택한 백업을 어떻게 되돌릴지 골라주세요.',
                 style: AppText.meta(tk.inkSoft, size: 11)),
-            option('merge', '합치기 (덮어쓰기)',
-                '지금 쓴 기록은 그대로 두고, 백업을 그 위에 얹어요.', false),
-            option('replace', '전체 교체',
-                '백업 안 한 기록까지 모두 지우고, 백업만 남겨요.', true),
+            const SizedBox(height: 12),
+            // 두 선택지를 한 줄에 나란히 — 카드 높이는 IntrinsicHeight 로 맞춘다.
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: option('merge', '합치기 (덮어쓰기)',
+                        '지금 쓴 기록은 그대로 두고, 백업을 그 위에 얹어요.', false),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: option('replace', '전체 교체',
+                        '백업 안 한 기록까지 모두 지우고, 백업만 남겨요.', true),
+                  ),
+                ],
+              ),
+            ),
           ],
         );
       },
