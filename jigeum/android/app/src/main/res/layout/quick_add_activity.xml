@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 1×1 위젯 빠른 추가 팝업. 반투명 배경 위 각진 카드. -->
+<!-- 홈에서 뜨는 빠른 담기 팝업(에디토리얼). 할일·일정·메모를 앱 없이 바로 담는다. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="20dp"
+    android:padding="22dp"
     android:gravity="center">
 
     <LinearLayout
@@ -11,75 +11,192 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="#F4F1EA"
-        android:padding="18dp">
+        android:background="@drawable/quick_add_card_bg"
+        android:paddingLeft="22dp"
+        android:paddingRight="22dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="16dp">
 
+        <!-- eyebrow -->
         <TextView
+            android:id="@+id/qa_eyebrow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="빠른 추가"
+            android:text="QUICK ADD"
             android:fontFamily="monospace"
-            android:letterSpacing="0.12"
-            android:textSize="11sp"
-            android:textColor="#9A948A"
-            android:layout_marginBottom="12dp" />
+            android:letterSpacing="0.18"
+            android:textSize="9sp"
+            android:textColor="#9A948A" />
 
+        <!-- 제목(세리프 느낌) -->
+        <TextView
+            android:id="@+id/qa_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="빠르게 담기"
+            android:fontFamily="serif"
+            android:textSize="21sp"
+            android:textColor="#26241F"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 종류 선택: 할일 · 일정 · 메모 (밑줄 탭) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="14dp">
+
+            <LinearLayout
+                android:id="@+id/qa_type_todo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingBottom="7dp">
+                <TextView
+                    android:id="@+id/qa_type_todo_t"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="할 일"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.06"
+                    android:textSize="13sp"
+                    android:textColor="#26241F" />
+                <View
+                    android:id="@+id/qa_ul_todo"
+                    android:layout_width="26dp"
+                    android:layout_height="2dp"
+                    android:layout_marginTop="6dp"
+                    android:background="#4E6659" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/qa_type_schedule"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingBottom="7dp">
+                <TextView
+                    android:id="@+id/qa_type_schedule_t"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="일정"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.06"
+                    android:textSize="13sp"
+                    android:textColor="#9A948A" />
+                <View
+                    android:id="@+id/qa_ul_schedule"
+                    android:layout_width="26dp"
+                    android:layout_height="2dp"
+                    android:layout_marginTop="6dp"
+                    android:background="#00000000" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/qa_type_memo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingBottom="7dp">
+                <TextView
+                    android:id="@+id/qa_type_memo_t"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="메모"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.06"
+                    android:textSize="13sp"
+                    android:textColor="#9A948A" />
+                <View
+                    android:id="@+id/qa_ul_memo"
+                    android:layout_width="26dp"
+                    android:layout_height="2dp"
+                    android:layout_marginTop="6dp"
+                    android:background="#00000000" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 입력 -->
         <EditText
             android:id="@+id/qa_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="무엇을 하나요?"
+            android:hint="할 일을 적어요"
             android:textSize="16sp"
-            android:inputType="text"
-            android:maxLines="2"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="3"
             android:background="@null"
-            android:paddingBottom="8dp" />
+            android:paddingBottom="9dp" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#D8D2C6"
-            android:layout_marginBottom="10dp" />
+            android:background="#E5E1D7" />
 
-        <Spinner
-            android:id="@+id/qa_spinner"
+        <!-- 일정 전용: 캘린더 + 종일 -->
+        <LinearLayout
+            android:id="@+id/qa_schedule_extra"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp" />
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginTop="10dp">
+            <Spinner
+                android:id="@+id/qa_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+            <CheckBox
+                android:id="@+id/qa_all_day"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="종일"
+                android:textSize="14sp"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
 
-        <CheckBox
-            android:id="@+id/qa_all_day"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="종일"
-            android:textSize="14sp"
-            android:layout_marginBottom="6dp" />
-
+        <!-- 버튼 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="end"
-            android:layout_marginTop="6dp">
+            android:layout_marginTop="16dp">
 
-            <Button
+            <TextView
                 android:id="@+id/qa_cancel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="취소"
-                android:textSize="13sp"
-                android:background="@null"
-                android:layout_marginEnd="8dp" />
+                android:fontFamily="monospace"
+                android:textSize="12sp"
+                android:textColor="#9A948A"
+                android:paddingLeft="12dp"
+                android:paddingRight="16dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp" />
 
-            <Button
+            <TextView
                 android:id="@+id/qa_save"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="저장"
+                android:text="담기"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.08"
+                android:textStyle="bold"
                 android:textSize="13sp"
-                android:paddingLeft="20dp"
-                android:paddingRight="20dp"
-                android:background="#26241F" />
+                android:textColor="#F4F1EA"
+                android:background="@drawable/quick_add_save_bg"
+                android:paddingLeft="26dp"
+                android:paddingRight="26dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

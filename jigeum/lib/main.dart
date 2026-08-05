@@ -119,7 +119,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       onResume: () {
         _runDailyRoutine();
         _checkLaunchAction();
-        // 타임트래커 위젯에서 앱 없이 시작/정지한 집중 세션을 반영.
+        // 홈 빠른 담기(할일·일정·메모)·타임트래커 위젯 큐를 반영.
+        _drainQuickAdd();
         _drainFocusQueue();
         // 구글 캘린더는 자동 동기화하지 않는다 — 사용자가 설정에서 "지금
         // 동기화" 버튼을 눌렀을 때만 동기화한다.
@@ -227,6 +228,17 @@ class _GoalAppState extends ConsumerState<GoalApp> {
     });
   }
 
+  /// 홈 빠른 담기 팝업(할일·일정·메모) 큐를 비우고 각 종류로 반영한다.
+  /// 캘린더 권한과 무관하게 앱이 열릴 때마다 처리(웹은 no-op).
+  Future<void> _drainQuickAdd() async {
+    if (kIsWeb) return;
+    try {
+      await ref.read(gcalControllerProvider.notifier).drainQuickAddQueue();
+    } catch (e, s) {
+      debugPrint('quick add 드레인 실패(무시): $e\n$s');
+    }
+  }
+
   /// 타임트래커 위젯에서 앱을 열지 않고 시작/정지한 집중 세션 큐를 비우고
   /// FocusSessions 로 반영한다. 웹·빈 큐면 no-op.
   Future<void> _drainFocusQueue() async {
@@ -288,6 +300,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
 
     await _runDailyRoutine();
     await _checkLaunchAction();
+    await _drainQuickAdd();
     await _drainFocusQueue();
 
     // 노드가 바뀔 때마다 위젯도 갱신 + 노션 자동 공유 (0.5초 디바운스).

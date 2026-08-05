@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants.dart';
 import '../../core/gcal/device_calendar_bridge.dart';
 import '../../data/db.dart';
 import '../../data/repos/gcal_repository.dart';
@@ -163,11 +164,25 @@ class GcalController extends StateNotifier<GcalState> {
     } catch (_) {
       return 0;
     }
+    final nodeRepo = ref.read(nodeRepoProvider);
     var added = 0;
     for (final it in items) {
       if (it is! Map) continue;
       final title = (it['title'] as String?)?.trim() ?? '';
       if (title.isEmpty) continue;
+      // type 없으면 옛 큐(일정)로 간주(하위호환).
+      final type = (it['type'] as String?) ?? 'schedule';
+      if (type == 'todo') {
+        await nodeRepo.create(type: NodeType.task, title: title);
+        added++;
+        continue;
+      }
+      if (type == 'memo') {
+        await nodeRepo.create(type: NodeType.memo, title: title);
+        added++;
+        continue;
+      }
+      // 일정.
       final calId = it['calendarId'] as String?;
       final allDay = it['allDay'] == true;
       final millis = (it['at'] as num?)?.toInt();
