@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../../core/dialogs.dart';
 import '../../core/journal.dart';
+import '../../core/reference_tokens.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
@@ -20,6 +21,7 @@ class OutlineView extends ConsumerStatefulWidget {
 
 class _OutlineViewState extends ConsumerState<OutlineView> {
   final Set<String> _collapsed = {}; // 기본 펼침, 접은 것만 기록
+  String? _selected; // 선택 행(반투명 배경) — 기준 HTML .tree-row.selected
 
 
   @override
@@ -116,7 +118,26 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
     );
   }
 
-  /// 아이콘박스 트리 행 — [F/G/T] + 제목 + 메타 + (섹션 −/+ · 할 일 ›).
+  /// 상태 노드(작은 원) — 기준 HTML .outline-name:before / .outline-leaf:after.
+  /// ring=섹션(펼침 시 sage 채움), 그 외=할 일 점(완료 시 sage 채움).
+  Widget _statusNode(AppTokens tk,
+      {required double size, required bool filled, bool ring = false}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: filled
+            ? tk.mark
+            : (ring ? tk.paper : tk.inkSoft.withValues(alpha: 0.55)),
+        border:
+            ring ? Border.all(color: filled ? tk.mark : tk.inkSoft) : null,
+      ),
+    );
+  }
+
+  /// 안정형 레이어드 노드 행 — 들여쓰기 + ▾/▸ + 작은 상태 노드 + 반투명 선택.
+  /// (연결선 트리를 다시 만들지 않는다 — 기준 프롬프트 4단계·절대금지.)
   Widget _iconRow(Node n, int depth, List<Node> children) {
     final tk = t(context);
     final isFolder = n.type == NodeType.folder;
@@ -124,7 +145,7 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
     final isSection = isFolder || isGoal;
     final done = n.status == NodeStatus.done;
     final open = !_collapsed.contains(n.id);
-    final letter = isFolder ? 'F' : (isGoal ? 'G' : 'T');
+    final selected = _selected == n.id;
 
     String meta;
     if (isFolder) {
@@ -135,9 +156,7 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
     } else if (isGoal) {
       final total = children.length;
       final doneC = children.where((c) => c.status == NodeStatus.done).length;
-      meta = total == 0
-          ? '목표'
-          : '진행률 ${(doneC / total * 100).round()}%';
+      meta = total == 0 ? '목표' : '${(doneC / total * 100).round()}%';
     } else {
       meta = n.date == todayDate()
           ? '오늘'
@@ -146,54 +165,52 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
               : (n.note.isNotEmpty ? n.note : ''));
     }
 
+    // 들여쓰기: 깊이당 18px. 섹션은 ▾/▸ + 링 노드, 할 일은 정렬용 여백 + 점.
+    final Widget leading = isSection
+        ? Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(open ? Icons.arrow_drop_down : Icons.arrow_right,
+                size: 20, color: tk.inkSoft),
+            _statusNode(tk, size: 8, filled: open, ring: true),
+          ])
+        : Padding(
+            padding: const EdgeInsets.only(left: 20),
+            child: _statusNode(tk, size: 5, filled: done),
+          );
+
     return GestureDetector(
-      onTap: () => isSection
-          ? setState(() =>
-              open ? _collapsed.add(n.id) : _collapsed.remove(n.id))
-          : showNodeDetailSheet(context, n),
+      onTap: () {
+        setState(() {
+          _selected = n.id;
+          if (isSection) {
+            open ? _collapsed.add(n.id) : _collapsed.remove(n.id);
+          }
+        });
+        if (!isSection) showNodeDetailSheet(context, n);
+      },
       onLongPress: () => showNodeDetailSheet(context, n),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        decoration:
-            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
-        padding: EdgeInsets.fromLTRB(kGutter + depth * 20, 12, kGutter, 12),
+        color: selected ? mixOver(tk.mark, 0.10, tk.paper) : null,
+        padding: EdgeInsets.fromLTRB(kGutter + depth * 18, 9, kGutter, 9),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 30,
-              height: 30,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                border: Border.all(color: tk.line),
-                color: isSection ? tk.paper2 : Colors.transparent,
-              ),
-              child: Text(letter,
-                  style: AppText.meta(tk.inkSoft, size: 11)),
-            ),
-            const SizedBox(width: 11),
+            leading,
+            const SizedBox(width: 9),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(n.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.body(
-                          done ? tk.ink.withValues(alpha: 0.5) : tk.ink)),
-                  if (meta.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3),
-                      child: Text(meta,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.meta(tk.inkSoft, size: 9)),
-                    ),
-                ],
-              ),
+              child: Text(n.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
+                      fontSize: isSection ? 13 : 12,
+                      decoration:
+                          done ? TextDecoration.lineThrough : null,
+                      decorationColor: tk.inkSoft)),
             ),
-            const SizedBox(width: 8),
-            Text(isSection ? (open ? '−' : '+') : '›',
-                style: AppText.glyph(tk.mark, size: 16)),
+            if (meta.isNotEmpty) ...[
+              const SizedBox(width: 10),
+              Text(meta, style: AppText.meta(tk.inkSoft, size: 9)),
+            ],
           ],
         ),
       ),
