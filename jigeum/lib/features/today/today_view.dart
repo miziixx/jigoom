@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/editorial.dart';
 import '../../core/journal.dart';
@@ -10,6 +11,7 @@ import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 import '../capture/quick_capture_input.dart';
+import '../fortune/fortune_view.dart';
 import 'goal_editor.dart';
 import 'node_detail_sheet.dart';
 
@@ -39,6 +41,58 @@ class _TodayViewState extends ConsumerState<TodayView> {
     final g = await showGoalEditor(context, ref);
     if (g == null) return;
     if (mounted) setState(() => _goal = g);
+  }
+
+  /// 상단 일진·음력·달 위상·별자리 컨텍스트 (기준 HTML `.day-context`).
+  /// 탭하면 오늘의 운세로 이동. 계산은 기존 만세력/별자리 코어 재사용.
+  Widget _dayContext(AppTokens tk) {
+    final today = todayDate();
+    final manse =
+        '${iljin(today)} ${iljinHanja(today)} · ${lunarLabel(today)} · ${moonName(today)}';
+    final zodiac = byeoljariLabel(today);
+
+    Widget line(String label, String value) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 64,
+                child: Text(label, style: AppText.meta(tk.inkSoft, size: 9)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(value,
+                    style: AppText.metaSans(tk.ink, size: 11)
+                        .copyWith(height: 1.45)),
+              ),
+            ],
+          ),
+        );
+
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const FortuneView())),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: kGutter),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [line('오늘', manse), line('내 별자리', zodiac)],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text('›', style: AppText.glyph(tk.inkSoft, size: 18)),
+          ],
+        ),
+      ),
+    );
   }
 
   /// 오늘의 목표 블록 — v17: 중앙 정렬. 짧은 초록 밑줄 + TODAY'S GOAL + 큰 세리프
@@ -167,6 +221,9 @@ class _TodayViewState extends ConsumerState<TodayView> {
     final wins = ref.watch(todayWinsProvider).valueOrNull ?? const [];
 
     final children = <Widget>[
+      // 상단 컨텍스트 — 일진·음력·달 위상·별자리 (기준 HTML .day-context)
+      _dayContext(tk),
+
       // GOAL — 오늘의 목표 (중앙 정렬 + 진행바, 탭해서 편집)
       _goalBlock(tk, wins.length, today.length + wins.length),
 
