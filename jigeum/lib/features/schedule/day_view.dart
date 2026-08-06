@@ -285,11 +285,10 @@ class _DayViewState extends ConsumerState<DayView> {
     final titleStyle = AppText.body(
             r.done ? tk.ink.withValues(alpha: 0.5) : tk.ink)
         .copyWith(fontSize: 12, fontWeight: FontWeight.w500);
+    // 단일 세로 레일만 사용 — 항목 아래 긴 가로선(행 구분선)을 두지 않는다
+    // (기준 4단계·루틴: "항목 아래 긴 가로선이나 이중 세로선 금지").
     return IntrinsicHeight(
-      child: Container(
-        decoration:
-            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
-        child: Row(
+      child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 시간 라벨(모노).
@@ -384,7 +383,6 @@ class _DayViewState extends ConsumerState<DayView> {
               ),
           ],
         ),
-      ),
     );
   }
 
