@@ -403,6 +403,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final thisWeek = lastNDone(0, 7);
     final lastWeek = lastNDone(7, 14);
 
+    // 습관 여정 마일스톤(틱에서 파생) + 다음 목표.
+    final milestones = habitMilestones(tickSet, start, today);
+    final next = milestones
+        .where((m) => m.kind == HabitMilestoneKind.upcoming)
+        .cast<HabitMilestone?>()
+        .firstWhere((_) => true, orElse: () => null);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.habit.title),
@@ -463,8 +470,27 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       _miniStat(tk, '$returns', '복귀'),
                     ],
                   ),
+                  if (next != null) ...[
+                    const SizedBox(height: 8),
+                    Text('다음 마일스톤 · ${next.streak}일 연속',
+                        style: AppText.meta(tk.inkSoft, size: 10)),
+                  ],
                 ],
               ),
+            ),
+
+            // JOURNEY — 여정 마일스톤 타임라인
+            const SectionLabel('JOURNEY'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
+              child: _journey(tk, milestones),
+            ),
+
+            // CALENDAR — 최근 35일 히트맵(탭하면 그날 완료 토글, 과거 수정)
+            const SectionLabel('CALENDAR'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 0),
+              child: _calendarGrid(tk, tickSet, today),
             ),
 
             // WEEKDAY 그래프
@@ -592,6 +618,158 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         const SizedBox(width: 4),
         Text(label, style: AppText.meta(tk.inkSoft, size: 10)),
       ],
+    );
+  }
+
+  // ── 여정 타임라인 ──────────────────────────────────────
+  Widget _journey(AppTokens tk, List<HabitMilestone> ms) {
+    final df = DateFormat('yyyy.M.d');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < ms.length; i++)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 16,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 3),
+                      _node(tk, ms[i].kind),
+                      if (i != ms.length - 1)
+                        Expanded(child: Container(width: 1, color: tk.line)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(ms[i].date != null ? df.format(ms[i].date!) : '예정',
+                            style: AppText.meta(tk.inkSoft, size: 9)),
+                        const SizedBox(height: 1),
+                        Text(ms[i].label,
+                            style: AppText.body(
+                                    ms[i].kind == HabitMilestoneKind.upcoming
+                                        ? tk.inkSoft
+                                        : tk.ink)
+                                .copyWith(
+                                    fontSize: 12,
+                                    fontWeight:
+                                        ms[i].kind == HabitMilestoneKind.current
+                                            ? FontWeight.w600
+                                            : FontWeight.w400)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// 여정 노드 — 완료=채운 원, 현재=포인트+링, 예정=빈 원. 색 외에 채움/크기로도 구분.
+  Widget _node(AppTokens tk, HabitMilestoneKind kind) {
+    switch (kind) {
+      case HabitMilestoneKind.current:
+        return Container(
+          width: 13,
+          height: 13,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: tk.mark,
+            border: Border.all(color: tk.mark.withValues(alpha: 0.28), width: 3),
+          ),
+        );
+      case HabitMilestoneKind.upcoming:
+        return Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: tk.line, width: 1.4),
+          ),
+        );
+      case HabitMilestoneKind.start:
+      case HabitMilestoneKind.reached:
+        return Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: tk.ink),
+        );
+    }
+  }
+
+  // ── 최근 35일 캘린더 히트맵(과거 수정 가능) ──────────────
+  Widget _calendarGrid(AppTokens tk, Set<DateTime> tickSet, DateTime today) {
+    // 일요일 시작 열. 이번 주 토요일까지 5주(35칸).
+    final daysToSat = (6 - today.weekday + 7) % 7; // Dart weekday 월1..일7
+    final endOfWeek = today.add(Duration(days: daysToSat));
+    final days = <DateTime>[
+      for (var i = 34; i >= 0; i--) dateOnly(endOfWeek.subtract(Duration(days: i))),
+    ];
+    const wk = ['일', '월', '화', '수', '목', '금', '토'];
+    return Column(
+      children: [
+        Row(
+          children: [
+            for (final w in wk)
+              Expanded(
+                  child: Center(
+                      child: Text(w, style: AppText.meta(tk.inkSoft, size: 8)))),
+          ],
+        ),
+        const SizedBox(height: 4),
+        for (var r = 0; r < 5; r++)
+          Row(
+            children: [
+              for (var c = 0; c < 7; c++)
+                Expanded(child: _dayCell(tk, days[r * 7 + c], tickSet, today)),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _dayCell(
+      AppTokens tk, DateTime d, Set<DateTime> tickSet, DateTime today) {
+    final done = tickSet.contains(d);
+    final isToday = d == today;
+    final isFuture = d.isAfter(today);
+    return GestureDetector(
+      onTap: isFuture
+          ? null
+          : () => ref.read(habitRepoProvider).toggleTick(widget.habit.id, d),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: AspectRatio(
+          aspectRatio: 1,
+          child: Container(
+            decoration: BoxDecoration(
+              color: done ? tk.mark : Colors.transparent,
+              border: Border.all(
+                  color: isToday ? tk.ink : (done ? tk.mark : tk.line),
+                  width: isToday ? 1.4 : 1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            alignment: Alignment.center,
+            child: Text('${d.day}',
+                style: AppText.meta(
+                    isFuture
+                        ? tk.inkSoft.withValues(alpha: 0.4)
+                        : (done ? tk.paper : tk.inkSoft),
+                    size: 8)),
+          ),
+        ),
+      ),
     );
   }
 

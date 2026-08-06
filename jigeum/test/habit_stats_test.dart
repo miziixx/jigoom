@@ -68,4 +68,33 @@ void main() {
       expect(longestStreak(ticks, start, today), 3);
     });
   });
+
+  group('여정 마일스톤 (habitMilestones)', () {
+    test('시작 노드는 항상 첫 노드', () {
+      final ms = habitMilestones(<DateTime>{}, start, today);
+      expect(ms.first.kind, HabitMilestoneKind.start);
+    });
+
+    test('연속 임계값 달성일 + 현재/다음 목표', () {
+      final ticks = ticksOf([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]); // 10일 연속(오늘 완료)
+      final ms = habitMilestones(ticks, start, today);
+      final reached =
+          ms.where((m) => m.kind == HabitMilestoneKind.reached).toList();
+      expect(reached.map((m) => m.streak).toSet(), {3, 7});
+      expect(reached.firstWhere((m) => m.streak == 3).date, d(3));
+      expect(reached.firstWhere((m) => m.streak == 7).date, d(7));
+      final cur = ms.firstWhere((m) => m.kind == HabitMilestoneKind.current);
+      expect(cur.streak, 10);
+      final up = ms.firstWhere((m) => m.kind == HabitMilestoneKind.upcoming);
+      expect(up.streak, 14);
+      expect(up.date, isNull);
+    });
+
+    test('기록 없으면 현재 없음 + 다음 목표 3일', () {
+      final ms = habitMilestones(<DateTime>{}, start, today);
+      expect(ms.any((m) => m.kind == HabitMilestoneKind.current), false);
+      final up = ms.firstWhere((m) => m.kind == HabitMilestoneKind.upcoming);
+      expect(up.streak, 3);
+    });
+  });
 }

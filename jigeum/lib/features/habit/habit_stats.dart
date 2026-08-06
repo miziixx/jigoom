@@ -55,3 +55,68 @@ int recentActiveDays(Set<DateTime> ticks, DateTime today, {int window = 7}) {
   }
   return c;
 }
+
+/// 습관 여정 마일스톤의 성격.
+enum HabitMilestoneKind { start, reached, current, upcoming }
+
+/// 습관 여정 타임라인 한 노드.
+class HabitMilestone {
+  const HabitMilestone(this.label, this.kind, {this.date, this.streak = 0});
+  final String label;
+  final HabitMilestoneKind kind;
+  final DateTime? date; // upcoming(예정)이면 null
+  final int streak; // 임계값 또는 현재 연속
+}
+
+/// 연속 임계값(의미 있는 마일스톤만 — 매일의 모든 체크를 노드로 만들지 않는다).
+const List<int> kHabitStreakMilestones = [3, 7, 14, 30, 60, 100];
+
+/// 틱에서 습관 여정 마일스톤을 파생한다(순수·테스트 가능, 새 테이블 불필요).
+///
+/// [start]=습관 생성일, [today]=오늘. 반환: 시작 → 달성한 연속 임계값(최초
+/// 도달일 순) → 현재 연속(진행 중) → 다음 목표(예정). 시간대 안전을 위해 모두
+/// 로컬 '날짜' 단위(dateOnly)로 비교한다고 가정한다.
+List<HabitMilestone> habitMilestones(
+    Set<DateTime> ticks, DateTime start, DateTime today) {
+  final out = <HabitMilestone>[
+    HabitMilestone('습관 시작', HabitMilestoneKind.start, date: start),
+  ];
+
+  // 각 임계값을 '처음' 도달한 날짜를 스캔.
+  final reachedOn = <int, DateTime>{};
+  var run = 0;
+  var d = start;
+  while (!d.isAfter(today)) {
+    if (ticks.contains(d)) {
+      run++;
+      for (final m in kHabitStreakMilestones) {
+        if (run == m && !reachedOn.containsKey(m)) reachedOn[m] = d;
+      }
+    } else {
+      run = 0;
+    }
+    d = d.add(const Duration(days: 1));
+  }
+  final reached = reachedOn.entries.toList()
+    ..sort((a, b) => a.value.compareTo(b.value));
+  for (final e in reached) {
+    out.add(HabitMilestone('${e.key}일 연속 달성', HabitMilestoneKind.reached,
+        date: e.value, streak: e.key));
+  }
+
+  final cur = currentStreak(ticks, today);
+  if (cur > 0) {
+    out.add(HabitMilestone('현재 $cur일 연속', HabitMilestoneKind.current,
+        date: today, streak: cur));
+  }
+
+  // 다음 목표 = 현재 연속보다 큰 가장 작은 임계값.
+  final next = kHabitStreakMilestones.where((m) => m > cur).cast<int?>().firstWhere(
+        (m) => true,
+        orElse: () => null,
+      );
+  if (next != null) {
+    out.add(HabitMilestone('$next일 연속', HabitMilestoneKind.upcoming, streak: next));
+  }
+  return out;
+}
