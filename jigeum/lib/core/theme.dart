@@ -93,17 +93,20 @@ const List<ThemeSpec> kThemes = [
           inkSoft: Color(0xFF8C8A84),
           line: Color(0xFFD2CFC8),
           mark: Color(0xFFC4362B))),
-  // SAGE — v17 레퍼런스 팔레트(warm paper + sage green primary).
+  // SAGE — 기준 HTML(Reference Merge V5) 정밀 팔레트. 6토큰을 기준값에 맞춤:
+  // paper=--paper #F7F8F4 · paper2=--surface-2 #E8ECE6 · ink=--ink #263029 ·
+  // inkSoft=--muted #778179 · line=--line rgba(61,79,68,.17) 을 종이 위에 합성한 #D7DCD6 ·
+  // mark=--node(세이지 포인트) #607D6C.
   ThemeSpec(
       'sage',
       'SAGE',
       AppTokens(
-          paper: Color(0xFFF5F3EE), // --bg
-          paper2: Color(0xFFECEAE3), // --surface-2
-          ink: Color(0xFF242722), // --ink
-          inkSoft: Color(0xFF72766F), // --muted
-          line: Color(0xFFE4E1D8), // --line
-          mark: Color(0xFF4E6659))), // --primary
+          paper: Color(0xFFF7F8F4), // --paper
+          paper2: Color(0xFFE8ECE6), // --surface-2
+          ink: Color(0xFF263029), // --ink
+          inkSoft: Color(0xFF778179), // --muted
+          line: Color(0xFFD7DCD6), // --line (합성값)
+          mark: Color(0xFF607D6C))), // --node
   ThemeSpec(
       'midnight',
       'MIDNIGHT',
