@@ -331,14 +331,31 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
     }.toList()
       ..sort();
 
+    // 연속 빈 블록은 한 줄로 압축("HH:MM–HH:MM · 기록 없음 · N시간"). 단일 빈
+    // 블록은 기존대로. 긴 공백을 길게 나열하지 않는다(스펙 4-2).
     final rows = <Widget>[];
-    for (final blk in blockSet) {
+    for (var i = 0; i < blockSet.length;) {
+      final blk = blockSet[i];
       final b = byIndex[blk];
       if (b != null) {
         rows.add(_record(tk, b, _isToday && blk == nowBlock));
-      } else {
-        rows.add(_emptyBlock(tk, blk));
+        i++;
+        continue;
       }
+      // blk 부터 연속(블록 번호 인접)인 빈 블록 묶기.
+      var j = i;
+      while (j < blockSet.length &&
+          byIndex[blockSet[j]] == null &&
+          blockSet[j] == blk + (j - i)) {
+        j++;
+      }
+      final endBlk = blockSet[j - 1];
+      if (endBlk == blk) {
+        rows.add(_emptyBlock(tk, blk));
+      } else {
+        rows.add(_emptyRange(tk, blk, endBlk));
+      }
+      i = j;
     }
 
     return Container(
@@ -440,6 +457,48 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(14, 16, 0, 16),
                   child: Text('기록 없음',
+                      style: AppText.meta(tk.inkSoft, size: 12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 연속 빈 시간 압축 행 — "HH:MM–HH:MM · 기록 없음 · N시간". 탭하면 시작 블록에 기록.
+  Widget _emptyRange(AppTokens tk, int startBlk, int endBlk) {
+    final count = endBlk - startBlk + 1;
+    final mins = count * 30;
+    final h = mins ~/ 60, m = mins % 60;
+    final dur = h > 0 ? '$h시간${m > 0 ? ' $m분' : ''}' : '$m분';
+    final startL = blockLabel(startBlk);
+    final endL = blockLabel(endBlk + 1 >= 48 ? 48 : endBlk + 1);
+    return GestureDetector(
+      onTap: () =>
+          showTimeQuickAdd(context, ref, date: _date, block: startBlk),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        padding: const EdgeInsets.fromLTRB(kGutter, 0, kGutter, 0),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: SizedBox(
+                    width: 46,
+                    child: Text(startL,
+                        style: AppText.meta(tk.inkSoft, size: 11))),
+              ),
+              Container(width: 1, color: tk.line),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 16, 0, 16),
+                  child: Text('$startL–$endL · 기록 없음 · $dur',
                       style: AppText.meta(tk.inkSoft, size: 12)),
                 ),
               ),
