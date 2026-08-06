@@ -261,6 +261,31 @@ class _GoalDetail extends ConsumerWidget {
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final horizon = g.goalHorizon ?? 'custom';
 
+    // 목표 여정 — 자식 할 일 완료에서 파생(새 테이블 없이 실제 데이터로).
+    final total = children.length;
+    final doneCount = children.where((n) => n.status == NodeStatus.done).length;
+    final percent = total == 0
+        ? (g.status == NodeStatus.done ? 100 : 0)
+        : (doneCount * 100 / total).round();
+    final openChildren =
+        children.where((n) => n.status != NodeStatus.done).toList();
+    final currentStep = openChildren.isNotEmpty ? openChildren.first.title : null;
+    final completedChildren =
+        children.where((n) => n.status == NodeStatus.done).toList()
+          ..sort((a, b) => (a.doneAt ?? a.createdAt)
+              .compareTo(b.doneAt ?? b.createdAt));
+    final journey = <_GJEvent>[
+      _GJEvent(_GJKind.done, '목표 시작', dateOnly(g.createdAt)),
+      for (final c in completedChildren)
+        _GJEvent(_GJKind.done, c.title, dateOnly(c.doneAt ?? c.createdAt)),
+      if (currentStep != null) _GJEvent(_GJKind.current, currentStep, null),
+      if (g.status == NodeStatus.done)
+        _GJEvent(_GJKind.done, '목표 완료',
+            g.doneAt != null ? dateOnly(g.doneAt!) : null)
+      else
+        _GJEvent(_GJKind.upcoming, '목표 완료', g.date),
+    ];
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -335,6 +360,33 @@ class _GoalDetail extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        Container(height: 1, color: tk.line),
+        // 목표 여정 — 진행 요약 + 타임라인.
+        Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 2),
+          child: Text('목표 여정',
+              style: AppText.meta(tk.inkSoft, size: 10)
+                  .copyWith(letterSpacing: 1)),
+        ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text('$percent%', style: AppText.serif(tk.ink, size: 22)),
+            const SizedBox(width: 8),
+            Text('$doneCount / ${total == 0 ? 0 : total} 단계',
+                style: AppText.meta(tk.inkSoft, size: 11)),
+          ],
+        ),
+        if (currentStep != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text('현재 단계 · $currentStep',
+                style: AppText.meta(tk.inkSoft, size: 11)),
+          ),
+        const SizedBox(height: 10),
+        _goalJourney(tk, journey),
         const SizedBox(height: 16),
         Container(height: 1, color: tk.ink),
         // 하위 할 일.
@@ -413,5 +465,99 @@ class _GoalDetail extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+/// 목표 여정 노드 성격 — 완료 / 현재 단계 / 예정.
+enum _GJKind { done, current, upcoming }
+
+class _GJEvent {
+  const _GJEvent(this.kind, this.label, this.date);
+  final _GJKind kind;
+  final String label;
+  final DateTime? date; // 예정이면 null 가능
+}
+
+/// 목표 여정 타임라인 — 얇은 세로선 + 원형 노드 + 날짜/라벨(습관 여정과 동일 언어).
+Widget _goalJourney(AppTokens tk, List<_GJEvent> events) {
+  final df = DateFormat('yyyy.M.d');
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (var i = 0; i < events.length; i++)
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 16,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 3),
+                    _gjNode(tk, events[i].kind),
+                    if (i != events.length - 1)
+                      Expanded(child: Container(width: 1, color: tk.line)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(events[i].date != null ? df.format(events[i].date!) : '예정',
+                          style: AppText.meta(tk.inkSoft, size: 9)),
+                      const SizedBox(height: 1),
+                      Text(events[i].label,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.body(events[i].kind == _GJKind.upcoming
+                                  ? tk.inkSoft
+                                  : tk.ink)
+                              .copyWith(
+                                  fontSize: 12,
+                                  fontWeight: events[i].kind == _GJKind.current
+                                      ? FontWeight.w600
+                                      : FontWeight.w400)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+    ],
+  );
+}
+
+Widget _gjNode(AppTokens tk, _GJKind kind) {
+  switch (kind) {
+    case _GJKind.current:
+      return Container(
+        width: 13,
+        height: 13,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: tk.mark,
+          border: Border.all(color: tk.mark.withValues(alpha: 0.28), width: 3),
+        ),
+      );
+    case _GJKind.upcoming:
+      return Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: tk.line, width: 1.4),
+        ),
+      );
+    case _GJKind.done:
+      return Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: tk.ink),
+      );
   }
 }
