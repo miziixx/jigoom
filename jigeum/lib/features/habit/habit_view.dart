@@ -120,9 +120,8 @@ class HabitView extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text('오늘의 습관',
-                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
+                  style: AppText.body(tk.ink).copyWith(fontSize: 16)),
             ],
           ),
           const SizedBox(height: 8),
@@ -156,10 +155,8 @@ class _QuickStartHabits extends ConsumerWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('§ ',
-                      style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
                   Text('빠른 시작',
-                      style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
+                      style: AppText.body(tk.ink).copyWith(fontSize: 16)),
                   const Spacer(),
                   Text('템플릿', style: AppText.meta(tk.inkSoft, size: 11)),
                 ],

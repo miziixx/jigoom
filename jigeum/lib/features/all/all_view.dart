@@ -100,7 +100,7 @@ class _AllViewState extends ConsumerState<AllView> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
+              Text('' /*§제거*/, style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text(title, style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
               const Spacer(),
               GestureDetector(

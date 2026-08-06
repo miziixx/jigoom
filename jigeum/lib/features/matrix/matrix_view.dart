@@ -100,7 +100,7 @@ class MatrixView extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
+              Text('' /*§제거*/, style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text('아이젠하워 매트릭스',
                   style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
               const Spacer(),

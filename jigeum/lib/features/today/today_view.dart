@@ -10,7 +10,6 @@ import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
-import '../capture/quick_capture_input.dart';
 import '../fortune/fortune_view.dart';
 import 'goal_editor.dart';
 import 'node_detail_sheet.dart';
@@ -25,7 +24,7 @@ class TodayView extends ConsumerStatefulWidget {
 }
 
 class _TodayViewState extends ConsumerState<TodayView> {
-  /// 오늘 목록 필터 — 0 전체 · 1 미완료 · 2 중요 · 3 긴급.
+  /// 오늘 목록 필터 — 0 할 일(open) · 1 완료(wins) · 2 보류(drawer).
   int _filter = 0;
   String _goal = '';
 
@@ -158,59 +157,64 @@ class _TodayViewState extends ConsumerState<TodayView> {
     );
   }
 
-  /// 필터에 맞춰 오늘 항목을 타일 목록으로. 미완료(open)+완료(wins)를 합쳐
-  /// 필터링하므로 '전체·중요·긴급'에서 완료 항목도 계속 보이고 토글도 된다.
+  /// 필터에 맞춰 오늘 항목을 타일 목록으로.
+  /// 할 일(open) · 완료(wins) · 보류(status=drawer). 기준 HTML today-filter.
   List<Widget> _filteredTiles(
       BuildContext context, List<Node> open, List<Node> wins) {
-    final all = <Node>[...open, ...wins];
     final List<Node> list;
     switch (_filter) {
-      case 1: // 미완료
+      case 1: // 완료
+        list = wins;
+        break;
+      case 2: // 보류
+        list = [...open, ...wins]
+            .where((n) => n.status == NodeStatus.drawer)
+            .toList();
+        break;
+      default: // 할 일
         list = open;
-        break;
-      case 2: // 중요
-        list = all.where((n) => n.important).toList();
-        break;
-      case 3: // 긴급
-        list = all.where((n) => n.urgent).toList();
-        break;
-      default: // 전체
-        list = all;
     }
     if (list.isEmpty) {
-      return [
-        emptyNote(context, _filter == 0 ? '아래에 적으면 여기 쌓여요' : '해당하는 일이 없어요'),
-      ];
+      final msg = _filter == 1
+          ? '아직 완료한 게 없어요'
+          : _filter == 2
+              ? '보류한 항목이 없어요'
+              : '아래에 적으면 여기 쌓여요';
+      return [emptyNote(context, msg)];
     }
     return [for (final n in list) SimpleTile(node: n)];
   }
 
-  /// § 오늘 할 일 + 추가 (레퍼런스 헤더).
-  Widget _todoSectionHead() {
-    final tk = t(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 22, kGutter, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
-              Text('오늘 할 일',
-                  style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => showQuickCaptureInput(context, ref),
-                behavior: HitTestBehavior.opaque,
-                child: Text('＋ 추가', style: AppText.meta(tk.mark, size: 11)),
-              ),
-            ],
+  /// 기준 HTML `.today-filter` — 할 일 / 완료 / 보류 3분할 세그먼트.
+  Widget _todayFilter(AppTokens tk) {
+    Widget seg(int i, String label) {
+      final sel = _filter == i;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _filter = i),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            height: 36,
+            alignment: Alignment.center,
+            decoration: sel
+                ? BoxDecoration(
+                    color: tk.paper,
+                    borderRadius: BorderRadius.circular(10))
+                : null,
+            child: Text(label,
+                style: AppText.body(sel ? tk.ink : tk.inkSoft)
+                    .copyWith(fontSize: 12)),
           ),
-          const SizedBox(height: 8),
-          Container(height: 1, color: tk.line),
-        ],
-      ),
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 10),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+          color: tk.paper2, borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [seg(0, '할 일'), seg(1, '완료'), seg(2, '보류')]),
     );
   }
 
@@ -227,28 +231,8 @@ class _TodayViewState extends ConsumerState<TodayView> {
       // GOAL — 오늘의 목표 (중앙 정렬 + 진행바, 탭해서 편집)
       _goalBlock(tk, wins.length, today.length + wins.length),
 
-      // § 오늘 할 일 + 추가 (레퍼런스 헤더)
-      _todoSectionHead(),
-
-      // 필터 — 전체 / 미완료 / 중요 / 긴급 (레퍼런스 .filter-row 칩).
-      Padding(
-        padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 6),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (var i = 0; i < 4; i++) ...[
-                if (i > 0) const SizedBox(width: 7),
-                PillChip(
-                  label: const ['전체', '미완료', '중요', '긴급'][i],
-                  selected: _filter == i,
-                  onTap: () => setState(() => _filter = i),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+      // 필터 — 할 일 / 완료 / 보류 (기준 HTML today-filter 세그먼트).
+      _todayFilter(tk),
       ..._filteredTiles(context, today, wins),
 
       const SizedBox(height: 16),

@@ -369,7 +369,7 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 // 레퍼런스 .section-title — § (모노·포인트색) + 세리프 제목.
-                Text('§ ', style: AppText.meta(tk.mark, size: 11)),
+                Text('' /*§제거*/, style: AppText.meta(tk.mark, size: 11)),
                 Text('시간 기록', style: AppText.serif(tk.ink, size: 16)),
                 const Spacer(),
                 GestureDetector(

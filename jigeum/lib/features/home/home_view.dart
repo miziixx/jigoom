@@ -475,7 +475,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('§ ',
+              Text('' /*§제거*/,
                   style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text(title,
                   style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),

@@ -363,7 +363,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('§ ',
+                          Text('' /*§제거*/,
                               style: AppText.hTitle(tk.mark)
                                   .copyWith(fontSize: 15)),
                           Text('아직 분류하지 않음',

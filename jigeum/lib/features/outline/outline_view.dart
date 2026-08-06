@@ -94,7 +94,7 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('§ ', style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
+              Text('' /*§제거*/, style: AppText.hTitle(tk.mark).copyWith(fontSize: 15)),
               Text('폴더와 목표',
                   style: AppText.hTitle(tk.ink).copyWith(fontSize: 16)),
               const Spacer(),

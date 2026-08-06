@@ -243,8 +243,9 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('§ ', style: AppText.serif(tk.mark, size: 15)),
-              Expanded(child: Text(title, style: AppText.serif(tk.ink, size: 16))),
+              Expanded(
+                  child: Text(title,
+                      style: AppText.body(tk.ink).copyWith(fontSize: 16))),
               GestureDetector(
                 onTap: onAdd,
                 behavior: HitTestBehavior.opaque,
