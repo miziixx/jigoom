@@ -73,26 +73,28 @@ class ThemeSpec {
 
 /// 내장 11종 — 9 라이트 + 2 다크(NOIR · INK NIGHT). 기본 SAGE. (DESIGN_SYSTEM §1-1)
 const List<ThemeSpec> kThemes = [
+  // MANILA — 기준 HTML `html[data-theme="manila"]` 정밀값.
   ThemeSpec(
       'manila',
       'MANILA',
       AppTokens(
-          paper: Color(0xFFF4F1EA),
-          paper2: Color(0xFFEFEBE2),
-          ink: Color(0xFF26241F),
-          inkSoft: Color(0xFF9A948A),
-          line: Color(0xFFD8D2C6),
-          mark: Color(0xFFB5443A))),
+          paper: Color(0xFFFBF8F0), // --paper
+          paper2: Color(0xFFECE3D4), // --surface-2
+          ink: Color(0xFF332F28), // --ink
+          inkSoft: Color(0xFF82786A), // --muted
+          line: Color(0xFFE1DCD2), // --line(합성)
+          mark: Color(0xFF776C54))), // --node
+  // NEWSPRINT — 기준 HTML `html[data-theme="newsprint"]` 정밀값.
   ThemeSpec(
       'newsprint',
       'NEWSPRINT',
       AppTokens(
-          paper: Color(0xFFEDEBE6),
-          paper2: Color(0xFFE6E3DC),
-          ink: Color(0xFF1C1C1A),
-          inkSoft: Color(0xFF8C8A84),
-          line: Color(0xFFD2CFC8),
-          mark: Color(0xFFC4362B))),
+          paper: Color(0xFFF2F3EF), // --paper
+          paper2: Color(0xFFE2E3DE), // --surface-2
+          ink: Color(0xFF1F231F), // --ink
+          inkSoft: Color(0xFF717670), // --muted
+          line: Color(0xFFCECFCB), // --line(합성)
+          mark: Color(0xFF2F3430))), // --node
   // SAGE — 기준 HTML(Reference Merge V5) 정밀 팔레트. 6토큰을 기준값에 맞춤:
   // paper=--paper #F7F8F4 · paper2=--surface-2 #E8ECE6 · ink=--ink #263029 ·
   // inkSoft=--muted #778179 · line=--line rgba(61,79,68,.17) 을 종이 위에 합성한 #D7DCD6 ·
@@ -107,16 +109,19 @@ const List<ThemeSpec> kThemes = [
           inkSoft: Color(0xFF778179), // --muted
           line: Color(0xFFD7DCD6), // --line (합성값)
           mark: Color(0xFF607D6C))), // --node
+  // MIDNIGHT — 기준 HTML `html[data-theme="midnight"]` 진짜 다크(#0C1220 계열).
+  // paper 이 어두워 isDark=true → 앱이 자동으로 Brightness.dark 로 빌드된다.
+  // (별도 다크 NOIR·INK NIGHT 는 그대로 유지 — 삭제 없음.)
   ThemeSpec(
       'midnight',
       'MIDNIGHT',
       AppTokens(
-          paper: Color(0xFFEFE9DD),
-          paper2: Color(0xFFE8E1D2),
-          ink: Color(0xFF1B2A3A),
-          inkSoft: Color(0xFF8C93A0),
-          line: Color(0xFFD5CFC0),
-          mark: Color(0xFFB5443A))),
+          paper: Color(0xFF11192A), // --paper
+          paper2: Color(0xFF202C43), // --surface-2
+          ink: Color(0xFFEFF2EE), // --ink
+          inkSoft: Color(0xFF9CA8A4), // --muted
+          line: Color(0xFF2C3543), // --line(합성)
+          mark: Color(0xFF9AB2A6))), // --node
   ThemeSpec(
       'terracotta',
       'TERRACOTTA',
