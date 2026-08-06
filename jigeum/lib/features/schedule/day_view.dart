@@ -198,25 +198,59 @@ class _DayViewState extends ConsumerState<DayView> {
     );
   }
 
-  // ── 통합 피드: 시간 있는 건 시간순, 없는 건 뒤로 ──
+  // ── 통합 피드: 시간 있는 건 시간순, 없는 건 뒤로 + '지금' 마커(오늘) ──
   List<Widget> _feed(AppTokens tk, List<_Rec> recs) {
     final timed = [...recs.where((r) => r.minute != null)]
       ..sort((a, b) => a.minute!.compareTo(b.minute!));
     final untimed = recs.where((r) => r.minute == null).toList();
     final feed = [...timed, ...untimed];
+
+    // 오늘이면 현재 시각 위치에 '지금' 마커 삽입(시간 있는 항목 사이).
+    final isToday = _date == todayDate();
+    final now = DateTime.now();
+    final nowMin = now.hour * 60 + now.minute;
+    var nowIdx = -1;
+    if (isToday) {
+      nowIdx = timed.indexWhere((r) => r.minute! >= nowMin);
+      if (nowIdx == -1) nowIdx = timed.length; // 모든 기록이 지금 이전
+    }
+
+    final children = <Widget>[];
+    for (var i = 0; i < feed.length; i++) {
+      if (isToday && i == nowIdx) children.add(_nowMarker(tk, nowMin));
+      children.add(_timelineRow(tk, feed[i], isLast: i == feed.length - 1));
+    }
+    if (isToday && nowIdx >= feed.length) children.add(_nowMarker(tk, nowMin));
+
     return [
       // 레퍼런스 .timeline — 상단 잉크선, 각 행에 시간·노드점·본문(플랫).
       Container(
         margin: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
         decoration:
             BoxDecoration(border: Border(top: BorderSide(color: tk.ink))),
-        child: Column(children: [
-          for (var i = 0; i < feed.length; i++)
-            _timelineRow(tk, feed[i], isLast: i == feed.length - 1),
-        ]),
+        child: Column(children: children),
       ),
       const SizedBox(height: 4),
     ];
+  }
+
+  /// 현재 시각 마커 — '지금 HH:MM' + 얇은 포인트색 선(강하지 않게).
+  Widget _nowMarker(AppTokens tk, int nowMin) {
+    final hh = (nowMin ~/ 60).toString().padLeft(2, '0');
+    final mm = (nowMin % 60).toString().padLeft(2, '0');
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Text('지금 $hh:$mm', style: AppText.meta(tk.mark, size: 9)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+                height: 1, color: tk.mark.withValues(alpha: 0.45)),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── 섹션: 종류별 묶음(빈 종류 숨김) ──
