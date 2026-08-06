@@ -11,7 +11,6 @@ import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
 import '../shell/app_bottom_nav.dart';
-import '../shell/app_drawer.dart';
 
 /// 목표 관리 — 기간별(일주일/1개월/1년/직접) 목표를 담고 진행률로 추적한다.
 /// 목표는 노드(type=goal)이며, 하위 할 일(자식 task)의 완료율이 진행률이다.
@@ -48,7 +47,6 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      endDrawer: const AppDrawer(active: DrawerDest.goalManage),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -57,7 +55,6 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
               eyebrow: 'GOALS',
               title: '목표 관리',
               onBack: () => Navigator.of(context).pop(),
-              showMenu: true,
             ),
             Expanded(child: _body(context)),
             // 하단바 — 담기 = 현재 기간에 목표 추가(해당 메뉴 항목 담기).

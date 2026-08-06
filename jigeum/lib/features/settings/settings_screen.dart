@@ -12,7 +12,6 @@ import '../../core/theme.dart';
 import '../../providers.dart';
 import '../gcal/gcal_settings_section.dart';
 import '../notion/notion_settings_section.dart';
-import '../shell/app_drawer.dart';
 import '../widgetkit/notification_service.dart';
 import '../widgetkit/widget_bridge.dart';
 
@@ -27,15 +26,13 @@ class SettingsScreen extends ConsumerWidget {
     final ctrl = ref.read(settingsProvider.notifier);
 
     return Scaffold(
-      endDrawer: const AppDrawer(active: DrawerDest.settings),
       body: SafeArea(
         child: Column(
           children: [
             Masthead(
                 eyebrow: 'SETTINGS',
                 title: '설정',
-                onBack: () => Navigator.of(context).pop(),
-                showMenu: true),
+                onBack: () => Navigator.of(context).pop(),),
             Expanded(
               child: Container(
                 color: tk.paper,

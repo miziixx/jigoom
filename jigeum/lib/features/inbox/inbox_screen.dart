@@ -11,7 +11,6 @@ import '../../core/dialogs.dart';
 import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../shell/app_bottom_nav.dart';
-import '../shell/app_drawer.dart';
 import 'inbox_item.dart';
 import 'inbox_repository.dart';
 
@@ -77,7 +76,6 @@ class _InboxScreenState extends State<InboxScreen> {
     final items = widget.repository.list(status: InboxStatus.pending);
     return Scaffold(
       backgroundColor: tk.paper,
-      endDrawer: const AppDrawer(active: DrawerDest.inbox),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -85,8 +83,7 @@ class _InboxScreenState extends State<InboxScreen> {
             Masthead(
                 eyebrow: 'ON HOLD',
                 title: '보류함',
-                onBack: () => Navigator.of(context).pop(),
-                showMenu: true),
+                onBack: () => Navigator.of(context).pop(),),
             Expanded(
               child: items.isEmpty
                   ? Center(

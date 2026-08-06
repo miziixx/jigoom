@@ -12,7 +12,6 @@ import '../../core/theme.dart';
 import '../../data/repos/time_track_repository.dart';
 import '../../providers.dart';
 import '../shell/app_bottom_nav.dart';
-import '../shell/app_drawer.dart';
 import '../timetrack/time_track_screen.dart';
 import 'schedule_edit_sheet.dart';
 
@@ -49,7 +48,6 @@ class CalendarScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-        endDrawer: const AppDrawer(active: DrawerDest.calendar),
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -57,8 +55,7 @@ class CalendarScreen extends ConsumerWidget {
               Masthead(
                   eyebrow: 'CALENDAR',
                   title: '달력',
-                  onBack: () => Navigator.of(context).pop(),
-                  showMenu: true),
+                  onBack: () => Navigator.of(context).pop(),),
               const Expanded(child: CalendarView()),
               AppBottomNav(onQuickAdd: () => _add(context, ref)),
             ],

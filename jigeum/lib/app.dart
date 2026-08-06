@@ -20,7 +20,7 @@ import 'features/schedule/calendar_view.dart';
 import 'features/schedule/routine_screen.dart';
 import 'features/schedule/schedule_edit_sheet.dart';
 import 'features/schedule/time_hub.dart';
-import 'features/shell/app_drawer.dart';
+import 'features/settings/settings_screen.dart';
 import 'features/timetrack/time_track_screen.dart';
 import 'features/today/goal_editor.dart';
 import 'features/today/today_view.dart';
@@ -171,7 +171,6 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      endDrawer: const AppDrawer(),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -192,13 +191,16 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  /// 마스트헤드 우측: 탭별 액션 + ≡ MENU (모노).
+  /// 마스트헤드 우측 — 기준 HTML 헤더의 원형 아이콘. 사이드바 없음.
+  /// 오늘 화면엔 설정(톱니), 습관 탭엔 ＋습관.
   List<Widget> _mastheadActions(BuildContext ctx) {
     final actions = <Widget>[];
     if (_index == 4) {
       actions.add(_act('＋ 습관', _newHabit));
     }
-    actions.add(_menuBtn(ctx));
+    if (_index == 0) {
+      actions.add(_iconBtn(Icons.settings_outlined, _openSettings));
+    }
     return actions;
   }
 
@@ -212,28 +214,28 @@ class _AppShellState extends ConsumerState<AppShell> {
         ),
       );
 
-  /// 레퍼런스 .menu-btn — 원형(테두리) 안 햄버거(3줄) 아이콘.
-  Widget _menuBtn(BuildContext ctx) {
+  /// 기준 HTML `.icon-btn` — 원형(1px 테두리) 안 아이콘.
+  Widget _iconBtn(IconData icon, VoidCallback onTap) {
     final tk = t(context);
-    Widget line() => Container(width: 15, height: 1.4, color: tk.ink);
     return GestureDetector(
-      onTap: () => Scaffold.of(ctx).openEndDrawer(),
+      onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: const EdgeInsets.only(left: 10),
-        width: 36,
-        height: 36,
+        margin: const EdgeInsets.only(left: 8),
+        width: 39,
+        height: 39,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(color: tk.line),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [line(), const SizedBox(height: 4), line(), const SizedBox(height: 4), line()],
-        ),
+        child: Icon(icon, size: 18, color: tk.inkSoft),
       ),
     );
   }
+
+  void _openSettings() => Navigator.of(context)
+      .push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
 
   /// 현재 탭에 맞는 빠른 담기 유형 — 습관 탭→습관, 쏟아내기→메모,
   /// 그 외(홈·오늘·매트릭스·전체)→할 일. (일과는 하위 탭별로 _quickAdd 에서 처리)
@@ -367,8 +369,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     await ref.read(habitRepoProvider).addHabit(name.trim());
   }
 
-  // 홈 히어로에서 여는 화면(달력·운세)만 셸에 남긴다. 나머지 사이드바
-  // 항목은 공용 [AppDrawer] 가 직접 연다.
+  // 달력·운세 등 세부 화면은 흐름/보관 허브에서 연다(사이드바 제거됨).
   void _openFortune() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const FortuneView()));
 
