@@ -2,7 +2,8 @@
 """CI 전용: flutter create 로 생성된 android 스캐폴드를 홈위젯/알림용으로 패치.
 
 - AndroidManifest.xml 에 홈위젯 receiver + 알림 권한 추가
-- android:label 을 '지금' 으로 변경
+- android:label 을 '곰곰' 으로 변경(지금 v2 = 별개 앱)
+- applicationId 를 com.ziia.gomgom 으로 분리(코드 namespace 는 유지 → '지금'과 나란히 설치)
 - build.gradle(.kts) minSdk 26 보장
 
 로컬 개발자는 README 의 수동 통합 안내를 따르면 됨. 이 스크립트는 재실행 안전(idempotent).
@@ -31,7 +32,7 @@ QUERIES = """    <queries>
     </queries>
 """
 
-RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:exported="true" android:label="지금 · 포커스">
+RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:exported="true" android:label="곰곰 · 포커스">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -39,7 +40,7 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/focus_widget_info" />
         </receiver>
-        <receiver android:name=".MatrixWidgetProvider" android:exported="true" android:label="지금 · 매트릭스">
+        <receiver android:name=".MatrixWidgetProvider" android:exported="true" android:label="곰곰 · 매트릭스">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -47,7 +48,7 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/matrix_widget_info" />
         </receiver>
-        <receiver android:name=".TimeTrackWidgetProvider" android:exported="true" android:label="지금 · 타임트래커">
+        <receiver android:name=".TimeTrackWidgetProvider" android:exported="true" android:label="곰곰 · 타임트래커">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -55,7 +56,7 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/time_track_widget_info" />
         </receiver>
-        <receiver android:name=".CalendarWidgetProvider" android:exported="true" android:label="지금 · 캘린더">
+        <receiver android:name=".CalendarWidgetProvider" android:exported="true" android:label="곰곰 · 캘린더">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -63,7 +64,7 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/calendar_widget_info" />
         </receiver>
-        <receiver android:name=".QuickAddWidgetProvider" android:exported="true" android:label="지금 · 빠른 추가">
+        <receiver android:name=".QuickAddWidgetProvider" android:exported="true" android:label="곰곰 · 빠른 추가">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -71,7 +72,7 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quick_add_widget_info" />
         </receiver>
-        <receiver android:name=".QuickMenuWidgetProvider" android:exported="true" android:label="지금 · 빠른 입력 메뉴">
+        <receiver android:name=".QuickMenuWidgetProvider" android:exported="true" android:label="곰곰 · 빠른 입력 메뉴">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -79,7 +80,7 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quick_menu_widget_info" />
         </receiver>
-        <receiver android:name=".GoalWidgetProvider" android:exported="true" android:label="지금 · 오늘의 목표">
+        <receiver android:name=".GoalWidgetProvider" android:exported="true" android:label="곰곰 · 오늘의 목표">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -87,7 +88,7 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
                 android:name="android.appwidget.provider"
                 android:resource="@xml/goal_widget_info" />
         </receiver>
-        <receiver android:name=".StudioWidgetProvider" android:exported="true" android:label="지금 · 위젯 스튜디오">
+        <receiver android:name=".StudioWidgetProvider" android:exported="true" android:label="곰곰 · 위젯 스튜디오">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -134,7 +135,7 @@ def patch_manifest() -> None:
         text = re.sub(r"(<manifest[^>]*>\n)", r"\1" + QUERIES, text, count=1)
 
     # 앱 라벨
-    text = re.sub(r'android:label="[^"]*"', 'android:label="지금"', text, count=1)
+    text = re.sub(r'android:label="[^"]*"', 'android:label="곰곰"', text, count=1)
 
     # 홈 위젯 receiver (순수 네이티브 구현, 중복 방지)
     if "FocusWidgetProvider" not in text:
@@ -153,6 +154,27 @@ def _app_gradle() -> Path | None:
         if f.exists():
             return f
     return None
+
+
+def patch_application_id() -> None:
+    """곰곰(지금 v2)은 '지금'과 별개 앱 — applicationId 만 com.ziia.gomgom 으로
+    분리한다. 코드 namespace(com.ziia.jigeum)는 그대로 두어(안드로이드 허용)
+    커밋된 kotlin/위젯 클래스 경로를 건드리지 않는다 → '지금'과 나란히 설치."""
+    f = _app_gradle()
+    if not f:
+        return
+    t = f.read_text(encoding="utf-8")
+    orig = t
+    # kts: applicationId = "..."  ·  groovy: applicationId "..."
+    t = re.sub(r'applicationId\s*=\s*"[^"]*"',
+               'applicationId = "com.ziia.gomgom"', t)
+    t = re.sub(r'applicationId\s+"[^"]*"',
+               'applicationId "com.ziia.gomgom"', t)
+    if t != orig:
+        f.write_text(t, encoding="utf-8")
+        print("patched applicationId = com.ziia.gomgom (별개 앱: 곰곰)")
+    else:
+        print("WARNING: applicationId not found to patch", file=sys.stderr)
 
 
 def patch_min_sdk() -> None:
@@ -201,5 +223,6 @@ if __name__ == "__main__":
         print("AndroidManifest not found — run flutter create first", file=sys.stderr)
         sys.exit(1)
     patch_manifest()
+    patch_application_id()
     patch_min_sdk()
     patch_desugaring()
