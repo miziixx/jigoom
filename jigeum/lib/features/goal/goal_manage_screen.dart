@@ -6,6 +6,7 @@ import '../../core/constants.dart';
 import '../../core/dialogs.dart';
 import '../../core/editorial.dart';
 import '../../core/journal.dart';
+import '../../core/reference_tokens.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
@@ -80,6 +81,8 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
       child: ListView(
         padding: const EdgeInsets.only(bottom: 28),
         children: [
+          // 상단 metric 대시보드 + 30일 점 밀도 그래프(기준 4단계·목표 관리).
+          _metricDashboard(tk, goals, all),
           // 기간 탭.
           Padding(
             padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 2),
@@ -97,6 +100,138 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
             )
           else
             for (final g in list) _goalRow(context, tk, g, all),
+        ],
+      ),
+    );
+  }
+
+  /// 목표 진행률(자식 할 일 완료율). 하위가 없으면 완료 여부로 0/1.
+  double _ratioOf(Node goal, List<Node> all) {
+    final ch = all
+        .where((n) => n.parentId == goal.id && n.type == NodeType.task)
+        .toList();
+    final total = ch.length;
+    final done = ch.where((n) => n.status == NodeStatus.done).length;
+    return total == 0
+        ? (goal.status == NodeStatus.done ? 1.0 : 0.0)
+        : done / total;
+  }
+
+  /// 상단 metric 대시보드 — 평균 진행률 + 진행중/완료 + 30일 점 밀도 그래프.
+  /// 그래프는 실제 완료 활동(doneAt)에서 파생 — 임의 난수 없음.
+  Widget _metricDashboard(AppTokens tk, List<Node> goals, List<Node> all) {
+    var sum = 0.0;
+    var inProgress = 0;
+    var doneGoals = 0;
+    for (final g in goals) {
+      final r = _ratioOf(g, all);
+      sum += r;
+      if (r >= 1.0) {
+        doneGoals++;
+      } else {
+        inProgress++;
+      }
+    }
+    final avg = goals.isEmpty ? 0 : (sum / goals.length * 100).round();
+
+    // 최근 30일 일별 완료 건수(모든 노드의 doneAt 기준).
+    final now = todayDate();
+    final values = List<int>.filled(30, 0);
+    for (final n in all) {
+      final da = n.doneAt;
+      if (da == null) continue;
+      final idx = 29 - now.difference(dateOnly(da)).inDays;
+      if (idx >= 0 && idx < 30) values[idx]++;
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 0),
+      padding: const EdgeInsets.fromLTRB(18, 19, 18, 15),
+      decoration: BoxDecoration(
+        border: Border.all(color: tk.line),
+        borderRadius: BorderRadius.circular(RefRadius.screen),
+        color: mixOver(tk.paper2, 0.44, tk.paper),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('평균 진행률', style: AppText.meta(tk.inkSoft, size: 8)),
+                    const SizedBox(height: 7),
+                    Text('$avg%',
+                        style: AppText.meta(tk.ink, size: 32)
+                            .copyWith(letterSpacing: -1.5, height: 1)),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('진행 중 $inProgress',
+                      style: AppText.meta(tk.inkSoft, size: 9)),
+                  const SizedBox(height: 5),
+                  Text('완료 $doneGoals',
+                      style: AppText.meta(tk.inkSoft, size: 9)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+          _dotHistogram(tk, values),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('${now.subtract(const Duration(days: 29)).month}월 '
+                  '${now.subtract(const Duration(days: 29)).day}일',
+                  style: AppText.meta(tk.inkSoft, size: 8)),
+              Text('활동 ${values.fold<int>(0, (a, b) => a + b)}회',
+                  style: AppText.meta(tk.inkSoft, size: 8)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 점 밀도 그래프 — 30열, 열마다 그날 완료 수만큼 작은 점을 아래에서 쌓음.
+  /// 최근 12일은 강조색(node). 두꺼운 막대 금지(기준 4단계).
+  Widget _dotHistogram(AppTokens tk, List<int> values) {
+    const cap = 11; // 열당 최대 점(높이 112 / (3+3)에 대응).
+    return SizedBox(
+      height: 112,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < values.length; i++)
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  for (var k = 0;
+                      k < (values[i] > cap ? cap : values[i]);
+                      k++) ...[
+                    Container(
+                      width: 3,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: i >= values.length - 12
+                            ? tk.mark
+                            : tk.inkSoft.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                  ],
+                ],
+              ),
+            ),
         ],
       ),
     );
