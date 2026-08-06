@@ -389,7 +389,7 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
           Container(height: 1, color: tk.line),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.only(top: 10, bottom: 28),
               children: rows,
             ),
           ),
@@ -457,8 +457,8 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
         .toList();
-    final title = lines.isEmpty ? '기록' : lines.first;
-    final bullets = lines.length > 1 ? lines.sublist(1) : const <String>[];
+    // 항목마다 작은 불릿(•) — 첫 줄 '제목' 구분 없이 하나하나 동등하게.
+    final items = lines.isEmpty ? const <String>['기록'] : lines;
     final start = blockLabel(b.block);
     final end = blockLabel((b.block + 1) % 48 == 0 ? 48 : b.block + 1);
     final written =
@@ -495,36 +495,28 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // tracker-head — 제목 + 소요(30분).
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(title,
-                                style: AppText.body(tk.ink)
-                                    .copyWith(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500)),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('30분',
-                              style: AppText.meta(tk.inkSoft, size: 10)),
-                        ],
-                      ),
-                      // work-items — '—' 불릿.
-                      for (final line in bullets)
+                      // 항목마다 작은 불릿(•). 첫 줄에만 소요(30분) 우측 정렬.
+                      for (var i = 0; i < items.length; i++)
                         Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                          padding: EdgeInsets.only(top: i == 0 ? 0 : 4),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('— ',
-                                  style: AppText.body(tk.inkSoft)
-                                      .copyWith(fontSize: 12)),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2, right: 6),
+                                child: Text('•',
+                                    style: AppText.meta(tk.inkSoft, size: 8)),
+                              ),
                               Expanded(
-                                  child: Text(line,
-                                      style: AppText.body(tk.ink)
-                                          .copyWith(fontSize: 12))),
+                                child: Text(items[i],
+                                    style: AppText.body(tk.ink)
+                                        .copyWith(fontSize: 12)),
+                              ),
+                              if (i == 0) ...[
+                                const SizedBox(width: 8),
+                                Text('30분',
+                                    style: AppText.meta(tk.inkSoft, size: 10)),
+                              ],
                             ],
                           ),
                         ),

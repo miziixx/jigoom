@@ -678,11 +678,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
             onTap: () => widget.onOpenTab(0),
             behavior: HitTestBehavior.opaque,
             child: Container(
+              // 구분선을 섹션 규칙선과 같은 좌우 여백(kGutter)으로 inset —
+              // 풀폭(100%)으로 그려지던 오류 수정.
+              margin: const EdgeInsets.symmetric(horizontal: kGutter),
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: tk.line)),
               ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: kGutter, vertical: 12),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
