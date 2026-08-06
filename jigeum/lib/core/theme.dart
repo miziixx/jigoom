@@ -71,7 +71,7 @@ class ThemeSpec {
   final AppTokens tokens;
 }
 
-/// 내장 10종 — 9 라이트 + 1 다크(NOIR). 기본 MANILA. (DESIGN_SYSTEM §1-1)
+/// 내장 11종 — 9 라이트 + 2 다크(NOIR · INK NIGHT). 기본 SAGE. (DESIGN_SYSTEM §1-1)
 const List<ThemeSpec> kThemes = [
   ThemeSpec(
       'manila',
@@ -174,6 +174,19 @@ const List<ThemeSpec> kThemes = [
           inkSoft: Color(0xFF7A756B),
           line: Color(0xFF3A3630),
           mark: Color(0xFFD46A4A))),
+  // INK NIGHT — 검정이 아닌 잉크색 다크. 따뜻한 회백색 텍스트 + 낮은 채도
+  // 세이지 포인트. 6토큰에 매핑: paper=배경, paper2=서피스, ink=본문,
+  // inkSoft=메타(가독 유지), line=아주 얇은 헤어라인(투명 14%), mark=세이지.
+  ThemeSpec(
+      'inknight',
+      'INK NIGHT',
+      AppTokens(
+          paper: Color(0xFF141613),
+          paper2: Color(0xFF1B1E1A),
+          ink: Color(0xFFF0EEE7),
+          inkSoft: Color(0xFFB5B7AF),
+          line: Color(0x24F0EEE7),
+          mark: Color(0xFF9AAA91))),
 ];
 
 const String kDefaultThemeKey = 'sage';
