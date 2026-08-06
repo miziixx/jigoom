@@ -193,6 +193,21 @@ class Routines extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 목표 마일스톤 — 목표(Node type=goal)의 단계. 추가형 테이블(기존 데이터 무손상).
+class GoalMilestones extends Table {
+  TextColumn get id => text()();
+  TextColumn get goalId => text()();
+  TextColumn get title => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get targetDate => dateTime().nullable()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  BoolColumn get isCurrent => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(tables: [
   Nodes,
   Settings,
@@ -204,13 +219,14 @@ class Routines extends Table {
   FocusSessions,
   GcalCalendars,
   RoutineGroups,
-  RoutineSteps
+  RoutineSteps,
+  GoalMilestones
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -282,6 +298,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 15) {
             await m.addColumn(routines, routines.updatedAt);
+          }
+          if (from < 16) {
+            await m.createTable(goalMilestones);
           }
         },
       );

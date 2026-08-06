@@ -261,30 +261,78 @@ class _GoalDetail extends ConsumerWidget {
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final horizon = g.goalHorizon ?? 'custom';
 
-    // 목표 여정 — 자식 할 일 완료에서 파생(새 테이블 없이 실제 데이터로).
-    final total = children.length;
-    final doneCount = children.where((n) => n.status == NodeStatus.done).length;
-    final percent = total == 0
-        ? (g.status == NodeStatus.done ? 100 : 0)
-        : (doneCount * 100 / total).round();
-    final openChildren =
-        children.where((n) => n.status != NodeStatus.done).toList();
-    final currentStep = openChildren.isNotEmpty ? openChildren.first.title : null;
-    final completedChildren =
-        children.where((n) => n.status == NodeStatus.done).toList()
-          ..sort((a, b) => (a.doneAt ?? a.createdAt)
-              .compareTo(b.doneAt ?? b.createdAt));
-    final journey = <_GJEvent>[
-      _GJEvent(_GJKind.done, '목표 시작', dateOnly(g.createdAt)),
-      for (final c in completedChildren)
-        _GJEvent(_GJKind.done, c.title, dateOnly(c.doneAt ?? c.createdAt)),
-      if (currentStep != null) _GJEvent(_GJKind.current, currentStep, null),
-      if (g.status == NodeStatus.done)
-        _GJEvent(_GJKind.done, '목표 완료',
-            g.doneAt != null ? dateOnly(g.doneAt!) : null)
-      else
-        _GJEvent(_GJKind.upcoming, '목표 완료', g.date),
-    ];
+    // 여정 단계(마일스톤) — 사용자가 직접 담은 단계. 있으면 이걸로 여정을 그린다.
+    final milestones =
+        ref.watch(goalMilestonesProvider(goalId)).valueOrNull ??
+            const <GoalMilestone>[];
+
+    // 목표 여정 — 마일스톤이 있으면 그걸로, 없으면 자식 할 일 완료에서 파생.
+    final int total;
+    final int doneCount;
+    final int percent;
+    final String? currentStep;
+    final List<_GJEvent> journey;
+    if (milestones.isNotEmpty) {
+      total = milestones.length;
+      doneCount = milestones.where((m) => m.completedAt != null).length;
+      percent = (doneCount * 100 / total).round();
+      GoalMilestone? cur;
+      for (final m in milestones) {
+        if (m.isCurrent && m.completedAt == null) {
+          cur = m;
+          break;
+        }
+      }
+      cur ??= () {
+        for (final m in milestones) {
+          if (m.completedAt == null) return m;
+        }
+        return null;
+      }();
+      currentStep = cur?.title;
+      journey = <_GJEvent>[
+        _GJEvent(_GJKind.done, '목표 시작', dateOnly(g.createdAt)),
+        for (final m in milestones)
+          _GJEvent(
+            m.completedAt != null
+                ? _GJKind.done
+                : (m.id == cur?.id ? _GJKind.current : _GJKind.upcoming),
+            m.title,
+            m.completedAt != null
+                ? dateOnly(m.completedAt!)
+                : (m.targetDate != null ? dateOnly(m.targetDate!) : null),
+          ),
+        if (g.status == NodeStatus.done)
+          _GJEvent(_GJKind.done, '목표 완료',
+              g.doneAt != null ? dateOnly(g.doneAt!) : null)
+        else
+          _GJEvent(_GJKind.upcoming, '목표 완료', g.date),
+      ];
+    } else {
+      total = children.length;
+      doneCount = children.where((n) => n.status == NodeStatus.done).length;
+      percent = total == 0
+          ? (g.status == NodeStatus.done ? 100 : 0)
+          : (doneCount * 100 / total).round();
+      final openChildren =
+          children.where((n) => n.status != NodeStatus.done).toList();
+      currentStep = openChildren.isNotEmpty ? openChildren.first.title : null;
+      final completedChildren =
+          children.where((n) => n.status == NodeStatus.done).toList()
+            ..sort((a, b) => (a.doneAt ?? a.createdAt)
+                .compareTo(b.doneAt ?? b.createdAt));
+      journey = <_GJEvent>[
+        _GJEvent(_GJKind.done, '목표 시작', dateOnly(g.createdAt)),
+        for (final c in completedChildren)
+          _GJEvent(_GJKind.done, c.title, dateOnly(c.doneAt ?? c.createdAt)),
+        if (currentStep != null) _GJEvent(_GJKind.current, currentStep, null),
+        if (g.status == NodeStatus.done)
+          _GJEvent(_GJKind.done, '목표 완료',
+              g.doneAt != null ? dateOnly(g.doneAt!) : null)
+        else
+          _GJEvent(_GJKind.upcoming, '목표 완료', g.date),
+      ];
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -387,6 +435,35 @@ class _GoalDetail extends ConsumerWidget {
           ),
         const SizedBox(height: 10),
         _goalJourney(tk, journey),
+        const SizedBox(height: 14),
+        // 여정 단계(마일스톤) — 직접 담고 완료·현재 표시로 여정을 그린다.
+        Row(
+          children: [
+            Expanded(
+              child: Text('여정 단계',
+                  style: AppText.meta(tk.inkSoft, size: 10)
+                      .copyWith(letterSpacing: 1)),
+            ),
+            GestureDetector(
+              onTap: () => _addMilestone(context, ref),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 2),
+                child: Text('＋ 단계', style: AppText.meta(tk.mark, size: 11)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        if (milestones.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('단계를 담으면 여정이 그 단계로 그려져요.',
+                style: AppText.meta(tk.inkSoft, size: 11)),
+          )
+        else
+          for (var i = 0; i < milestones.length; i++)
+            _milestoneRow(context, ref, tk, milestones, i),
         const SizedBox(height: 16),
         Container(height: 1, color: tk.ink),
         // 하위 할 일.
@@ -464,6 +541,168 @@ class _GoalDetail extends ConsumerWidget {
           ],
         ),
       ],
+    );
+  }
+
+  /// 여정 단계 한 줄 — 상태 노드 + 제목 + 날짜, 탭하면 관리 시트.
+  Widget _milestoneRow(BuildContext context, WidgetRef ref, AppTokens tk,
+      List<GoalMilestone> milestones, int i) {
+    final m = milestones[i];
+    final df = DateFormat('yyyy.M.d');
+    final done = m.completedAt != null;
+    final _GJKind kind =
+        done ? _GJKind.done : (m.isCurrent ? _GJKind.current : _GJKind.upcoming);
+    final date = done ? m.completedAt : m.targetDate;
+    return GestureDetector(
+      onTap: () => _manageMilestone(context, ref, milestones, i),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              child: Center(child: _gjNode(tk, kind)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(m.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.body(done ? tk.inkSoft : tk.ink).copyWith(
+                      fontSize: 13,
+                      fontWeight:
+                          m.isCurrent ? FontWeight.w600 : FontWeight.w400,
+                      decoration:
+                          done ? TextDecoration.lineThrough : TextDecoration.none)),
+            ),
+            if (m.isCurrent && !done) ...[
+              const SizedBox(width: 6),
+              Text('현재', style: AppText.meta(tk.mark, size: 9)),
+            ],
+            const SizedBox(width: 8),
+            Text(date != null ? df.format(date) : '예정',
+                style: AppText.meta(tk.inkSoft, size: 9)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addMilestone(BuildContext context, WidgetRef ref) async {
+    final v = await showInputDialog(
+      context,
+      title: '여정 단계',
+      subtitle: '목표로 가는 하나의 이정표.',
+      fieldLabel: '단계',
+      hint: '예: 초안 완성',
+      saveLabel: '담기',
+    );
+    if (v != null && v.trim().isNotEmpty) {
+      await ref.read(goalMilestoneRepoProvider).add(goalId, v.trim());
+    }
+  }
+
+  /// 단계 관리 시트 — 완료/현재/목표일/이름/순서/삭제.
+  Future<void> _manageMilestone(BuildContext context, WidgetRef ref,
+      List<GoalMilestone> milestones, int i) async {
+    final m = milestones[i];
+    final repo = ref.read(goalMilestoneRepoProvider);
+    final done = m.completedAt != null;
+    showEditorialSheet(
+      context,
+      builder: (ctx) {
+        final tk = t(ctx);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(m.title, style: AppText.serif(tk.ink, size: 18)),
+            const SizedBox(height: 14),
+            _msAction(tk, done ? '완료 취소' : '완료로 표시', () async {
+              Navigator.of(ctx).pop();
+              await repo.setCompleted(m.id, !done);
+            }),
+            if (!done)
+              _msAction(tk, m.isCurrent ? '현재 단계 해제' : '현재 단계로', () async {
+                Navigator.of(ctx).pop();
+                if (m.isCurrent) {
+                  await repo.setCurrent(goalId, '');
+                } else {
+                  await repo.setCurrent(goalId, m.id);
+                }
+              }),
+            _msAction(
+                tk,
+                m.targetDate == null ? '목표일 지정' : '목표일 변경',
+                () async {
+              final picked = await showDatePicker(
+                context: ctx,
+                initialDate: m.targetDate ?? todayDate(),
+                firstDate: DateTime(todayDate().year - 1),
+                lastDate: DateTime(todayDate().year + 5),
+              );
+              if (ctx.mounted) Navigator.of(ctx).pop();
+              if (picked != null) await repo.setTargetDate(m.id, picked);
+            }),
+            if (m.targetDate != null)
+              _msAction(tk, '목표일 지우기', () async {
+                Navigator.of(ctx).pop();
+                await repo.setTargetDate(m.id, null);
+              }),
+            _msAction(tk, '이름 수정', () async {
+              final v = await showInputDialog(
+                ctx,
+                title: '단계 이름',
+                fieldLabel: '단계',
+                initial: m.title,
+                saveLabel: '저장',
+              );
+              if (v != null && v.trim().isNotEmpty) {
+                await repo.rename(m.id, v.trim());
+              }
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            }),
+            if (i > 0)
+              _msAction(tk, '위로 이동', () async {
+                Navigator.of(ctx).pop();
+                final ids = milestones.map((e) => e.id).toList();
+                final tmp = ids[i - 1];
+                ids[i - 1] = ids[i];
+                ids[i] = tmp;
+                await repo.reorder(ids);
+              }),
+            if (i < milestones.length - 1)
+              _msAction(tk, '아래로 이동', () async {
+                Navigator.of(ctx).pop();
+                final ids = milestones.map((e) => e.id).toList();
+                final tmp = ids[i + 1];
+                ids[i + 1] = ids[i];
+                ids[i] = tmp;
+                await repo.reorder(ids);
+              }),
+            _msAction(tk, '삭제', () async {
+              Navigator.of(ctx).pop();
+              await repo.delete(m.id);
+            }, danger: true),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _msAction(AppTokens tk, String label, VoidCallback onTap,
+      {bool danger = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration:
+            BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        child: Text(label,
+            style: AppText.body(danger ? tk.mark : tk.ink).copyWith(fontSize: 13)),
+      ),
     );
   }
 }

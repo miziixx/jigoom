@@ -7,6 +7,7 @@ import 'data/backup_service.dart';
 import 'data/db.dart';
 import 'data/repos/focus_session_repository.dart';
 import 'data/repos/gcal_repository.dart';
+import 'data/repos/goal_milestone_repository.dart';
 import 'data/repos/habit_repository.dart';
 import 'data/repos/node_repository.dart';
 import 'data/repos/notion_repository.dart';
@@ -155,6 +156,16 @@ final rootsProvider = StreamProvider<List<Node>>((ref) {
 /// 목표 목록 (type=goal) — 목표 관리 화면.
 final goalsProvider = StreamProvider<List<Node>>((ref) {
   return ref.watch(nodeRepoProvider).watchGoals();
+});
+
+/// 목표 마일스톤(단계) 저장소 & 목표별 목록.
+final goalMilestoneRepoProvider = Provider<GoalMilestoneRepository>((ref) {
+  return GoalMilestoneRepository(ref.watch(dbProvider));
+});
+
+final goalMilestonesProvider =
+    StreamProvider.family<List<GoalMilestone>, String>((ref, goalId) {
+  return ref.watch(goalMilestoneRepoProvider).watchForGoal(goalId);
 });
 
 /// 자식 노드
