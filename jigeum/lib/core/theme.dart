@@ -345,12 +345,14 @@ class AppTheme {
       bool systemFont = false,
       String fontKey = kDefaultFontKey}) {
     appWeightDelta = weightDelta; // 전역 반영 (AppText 직접 호출부용)
-    // 시스템 글꼴 사용 시 fontFamily 를 지정하지 않아 폰 기본 글꼴을 따른다.
-    // 끄면 앱에 번들된 폰트를 쓰되 라벨·숫자까지 같은 글꼴로 맞춘다.
-    // 사용자 요청: 앱 전체를 명조(세리프)로 통일 — 본문·라벨·시간·제목 모두 동일 글꼴.
-    appSans = kSerifFamily;
-    appMono = kSerifFamily;
-    appMonoFallback = const <String>[];
+    // 곰곰(지금 v2): 기준 HTML 하이브리드 타이포를 그대로 따른다.
+    //  · 본문/내용(sans)   = Pretendard (systemFont 켜면 폰 기본 글꼴)
+    //  · 제목/헤딩(serif)  = 명조(NanumMyeongjo) — appSerif, 아래 유지
+    //  · 라벨/숫자(mono)   = 모노스페이스, 한글은 Pretendard 폴백
+    appSans = systemFont ? kSansFamily : 'Pretendard';
+    appMono = kMonoFamily;
+    appMonoFallback = const ['Pretendard'];
+    appSerif = kSerifFamily;
     final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);
 
