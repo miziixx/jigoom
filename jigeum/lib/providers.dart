@@ -45,8 +45,10 @@ final dbProvider = Provider<AppDatabase>((ref) {
 });
 
 /// 현재 하단 탭 인덱스(홈 셸). 사이드바 드로어가 어느 화면에서든 탭을 바꿀 수
-/// 있도록 셸의 로컬 상태 대신 provider 로 둔다. 기본 6 = 홈.
-final homeTabProvider = StateProvider<int>((ref) => 6);
+/// 있도록 셸의 로컬 상태 대신 provider 로 둔다.
+/// 곰곰(지금 v2): 기준 HTML 처럼 앱은 **오늘(0)** 로 시작한다. 홈 대시보드(6)는
+/// ≡ 사이드바에서 그대로 열 수 있어 기능 손실 없음.
+final homeTabProvider = StateProvider<int>((ref) => 0);
 
 /// 일과(TimeHub) 하위 탭. 0 day · 1 week · 2 month · 3 routine · 4 log.
 /// 하단 담기(+)가 하위 탭에 맞는 추가 흐름을 열 수 있도록 provider 로 둔다.

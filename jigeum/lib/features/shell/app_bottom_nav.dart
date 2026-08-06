@@ -22,8 +22,17 @@ class AppBottomNav extends ConsumerWidget {
   static String _captureTypeForTab(int index) => switch (index) {
         4 => 'habit',
         3 => 'schedule',
-        2 => 'memo',
+        2 || 8 => 'memo',
         _ => 'task',
+      };
+
+  /// 하단바 활성 그룹 — 셸과 동일 규칙(오늘/흐름/시간/보관).
+  static int _navGroup(int index) => switch (index) {
+        0 => 0,
+        3 => 3,
+        2 || 8 => 8,
+        1 || 4 || 5 || 7 => 7,
+        _ => 0,
       };
 
   void _go(BuildContext context, WidgetRef ref, int i) {
@@ -37,7 +46,7 @@ class AppBottomNav extends ConsumerWidget {
     final index = ref.watch(homeTabProvider);
 
     Widget item(int idx, String label, IconData icon) {
-      final active = index == idx;
+      final active = _navGroup(index) == idx;
       final color = active ? tk.ink : tk.inkSoft;
       return Expanded(
         child: GestureDetector(
@@ -78,8 +87,8 @@ class AppBottomNav extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           child: Row(
             children: [
-              item(6, '홈', Icons.home_outlined),
-              item(0, '오늘', Icons.calendar_today_outlined),
+              item(0, '오늘', Icons.home_outlined),
+              item(7, '흐름', Icons.hub_outlined),
               // 담을 내용이 없는 화면은 담기(+)를 숨기고 빈 칸으로 정렬만 유지.
               if (!showQuickAdd)
                 const Expanded(child: SizedBox())
@@ -109,8 +118,8 @@ class AppBottomNav extends ConsumerWidget {
                     ),
                   ),
                 ),
-              item(3, '일과', Icons.article_outlined),
-              item(5, '전체', Icons.reorder),
+              item(3, '시간', Icons.schedule),
+              item(8, '보관', Icons.archive_outlined),
             ],
           ),
         ),

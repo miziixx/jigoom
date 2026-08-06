@@ -8,7 +8,9 @@ import 'core/settings_controller.dart';
 import 'core/theme.dart';
 import 'data/repos/time_track_repository.dart';
 import 'features/all/all_view.dart';
+import 'features/archive/archive_hub_view.dart';
 import 'features/capture/dump_view.dart';
+import 'features/flow/flow_hub_view.dart';
 import 'features/capture/quick_capture_input.dart';
 import 'features/fortune/fortune_view.dart';
 import 'features/habit/habit_view.dart';
@@ -122,16 +124,29 @@ class _AppShellState extends ConsumerState<AppShell> {
       ));
   }
 
-  static const _titles = ['오늘', '매트릭스', '쏟아내기', '일과', '습관', '전체', '홈'];
-  // 제목 위 모노 eyebrow (v17 레퍼런스 헤더). _titles 와 인덱스 정렬.
+  // 인덱스 0~6 은 기존 유지(음성/FAB/위젯 로직 보존). 7=흐름, 8=보관 추가.
+  static const _titles = [
+    '오늘', // 0
+    '매트릭스', // 1
+    '쏟아내기', // 2
+    '시간', // 3 (기준 HTML TIME)
+    '습관', // 4
+    '전체', // 5
+    '홈', // 6
+    '흐름', // 7
+    '보관', // 8
+  ];
+  // 제목 위 모노 eyebrow (기준 HTML 헤더). _titles 와 인덱스 정렬.
   static const _eyebrows = [
-    'TODAY',
-    'MATRIX',
-    'DUMP',
-    'ROUTINE',
-    'HABIT',
-    'ALL',
-    'MY DAY',
+    'TODAY', // 0
+    'MATRIX', // 1
+    'DUMP', // 2
+    'TIME', // 3
+    'HABIT', // 4
+    'ALL', // 5
+    'MY DAY', // 6
+    'FLOW · WORKSPACE', // 7
+    'ARCHIVE', // 8
   ];
 
   @override
@@ -149,6 +164,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           onOpenCalendar: _openCalendar,
           onOpenFortune: _openFortune,
         ),
+      7 => FlowHubView(onOpenTab: _setTab),
+      8 => ArchiveHubView(onOpenTab: _setTab),
       _ => const AllView(),
     };
 
@@ -222,8 +239,18 @@ class _AppShellState extends ConsumerState<AppShell> {
   /// 그 외(홈·오늘·매트릭스·전체)→할 일. (일과는 하위 탭별로 _quickAdd 에서 처리)
   static String _captureTypeForTab(int index) => switch (index) {
         4 => 'habit',
-        2 => 'memo',
+        2 || 8 => 'memo',
         _ => 'task',
+      };
+
+  /// 하단바 활성 표시용 그룹 — 기준 HTML navMap 처럼 세부 화면을 상위 메뉴로
+  /// 묶는다. 오늘(0)·흐름(7:습관·매트릭스·전체·홈)·시간(3)·보관(8:쏟아내기).
+  static int _navGroup(int index) => switch (index) {
+        0 => 0,
+        3 => 3,
+        2 || 8 => 8,
+        1 || 4 || 5 || 7 => 7,
+        _ => 0, // 6(홈) 등은 오늘 그룹으로.
       };
 
   /// 하단 담기(+) — 현재 화면(과 일과의 하위 탭)에 맞는 추가 흐름을 연다.
@@ -252,7 +279,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     // 아이콘 + 라벨(얇게) 세로 스택, 활성 = 잉크 색 + 밑줄. (레퍼런스 하단바 굵기 유지)
     Widget item(int idx, String label, IconData icon) {
-      final active = _index == idx;
+      final active = _navGroup(_index) == idx;
       final color = active ? tk.ink : tk.inkSoft;
       return Expanded(
         child: GestureDetector(
@@ -294,8 +321,8 @@ class _AppShellState extends ConsumerState<AppShell> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           child: Row(
             children: [
-              item(6, '홈', Icons.home_outlined),
-              item(0, '오늘', Icons.calendar_today_outlined),
+              item(0, '오늘', Icons.home_outlined),
+              item(7, '흐름', Icons.hub_outlined),
               // 가운데 ＋ — 지금 머무는 메뉴에 맞춰 담기(유형 자동 선택).
               Expanded(
                 child: GestureDetector(
@@ -319,8 +346,8 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                 ),
               ),
-              item(3, '일과', Icons.article_outlined),
-              item(5, '전체', Icons.reorder),
+              item(3, '시간', Icons.schedule),
+              item(8, '보관', Icons.archive_outlined),
             ],
           ),
         ),
