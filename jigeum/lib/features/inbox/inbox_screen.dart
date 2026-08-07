@@ -102,28 +102,52 @@ class _InboxScreenState extends State<InboxScreen> {
     );
   }
 
+  // 기준 HTML .thread-item — 작은 노드 · 이름 · 우측 tail("보류"). 재분류·버리기 유지.
   Widget _row(BuildContext context, AppTokens t, InboxItem item) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: kGutter, vertical: 13),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: Text(item.rawText, style: AppText.body(t.ink))),
+            Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: t.inkSoft),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(item.rawText,
+                  style: AppText.body(t.ink), maxLines: 3,
+                  overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 10),
+            Text('보류', style: AppText.meta(t.inkSoft, size: 9)),
             if (widget.onReclassify != null)
-              IconButton(
-                icon: Icon(Icons.call_split, color: t.inkSoft, size: 20),
-                tooltip: '다시 분류',
-                onPressed: () {
+              GestureDetector(
+                onTap: () {
                   widget.repository.markReclassified(item.id);
                   widget.onReclassify!(item);
                   setState(() {});
                 },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Icon(Icons.call_split, color: t.inkSoft, size: 16),
+                ),
               ),
-            IconButton(
-              icon: Icon(Icons.close, color: t.inkSoft, size: 20),
-              tooltip: '버리기',
-              onPressed: () {
+            GestureDetector(
+              onTap: () {
                 widget.repository.dismiss(item.id);
                 setState(() {});
               },
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Text('×', style: AppText.glyph(t.inkSoft, size: 16)),
+              ),
             ),
           ],
         ),
