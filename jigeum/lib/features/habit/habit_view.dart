@@ -67,12 +67,20 @@ List<({DateTime start, int done})> _weekly(
 }
 
 // ------------------------------------------------------------------- 탭 뷰
-/// 습관 탭 — 상단 오늘 요약 + 카테고리→습관 모노 트리. 습관 탭 → 상세 대시보드.
-class HabitView extends ConsumerWidget {
+/// 습관 — 기준 HTML `data-screen="habits"`.
+/// 상단 기간 탭(7/30/90) + metric 대시보드(완료율·점 히스토그램) + 빈도 노드 목록.
+class HabitView extends ConsumerStatefulWidget {
   const HabitView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HabitView> createState() => _HabitViewState();
+}
+
+class _HabitViewState extends ConsumerState<HabitView> {
+  int _period = 30; // 7 · 30 · 90
+
+  @override
+  Widget build(BuildContext context) {
     final tk = t(context);
     final habits = ref.watch(habitsProvider).valueOrNull ?? const [];
 
@@ -93,16 +101,45 @@ class HabitView extends ConsumerWidget {
       );
     }
 
-    // § 오늘의 습관 — 빈도 노드 대시보드 행.
-    final rows = <Widget>[
-      _habitSectionHead(tk),
-      for (var i = 0; i < habits.length; i++) _HabitRow(habit: habits[i]),
-    ];
+    // 기간 창(_period) 기준 집계 — 실제 틱 데이터에서 파생.
+    final today = todayDate();
+    final counts = List<int>.filled(_period, 0);
+    var todayDone = 0, total = 0, longest = 0;
+    for (final h in habits) {
+      final ticks =
+          ref.watch(habitTicksProvider(h.id)).valueOrNull ?? const [];
+      final set = {for (final tk2 in ticks) dateOnly(tk2.date)};
+      if (set.contains(today)) todayDone++;
+      final s = currentStreak(set, today);
+      if (s > longest) longest = s;
+      for (final d in set) {
+        final idx = _period - 1 - today.difference(d).inDays;
+        if (idx >= 0 && idx < _period) {
+          counts[idx]++;
+          total++;
+        }
+      }
+    }
+    final rate =
+        habits.isEmpty ? 0 : (total * 100 / (habits.length * _period)).round();
 
-    rows.add(const SizedBox(height: 20));
-    rows.add(_QuickStartHabits(
-        existingTitles: {for (final h in habits) h.title}));
-    rows.add(const SizedBox(height: 16));
+    final rows = <Widget>[
+      _periodTabs(tk),
+      _dashboard(tk, rate, todayDone, habits.length, longest, counts),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 15, kGutter, 4),
+        child: Text('노드 크기 = 최근 30일 실행 횟수',
+            style: AppText.meta(tk.inkSoft, size: 9)),
+      ),
+      Container(
+          margin: const EdgeInsets.symmetric(horizontal: kGutter),
+          height: 1,
+          color: tk.line),
+      for (var i = 0; i < habits.length; i++) _HabitRow(habit: habits[i]),
+      const SizedBox(height: 20),
+      _QuickStartHabits(existingTitles: {for (final h in habits) h.title}),
+      const SizedBox(height: 16),
+    ];
 
     return Container(
       color: tk.paper,
@@ -110,22 +147,105 @@ class HabitView extends ConsumerWidget {
     );
   }
 
-  /// § 오늘의 습관 — 세리프 섹션 헤더 + 규칙선.
-  Widget _habitSectionHead(AppTokens tk) {
+  Widget _periodTabs(AppTokens tk) {
+    Widget tab(int d, String label) {
+      final sel = _period == d;
+      return GestureDetector(
+        onTap: () => setState(() => _period = d),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          margin: const EdgeInsets.only(left: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: sel
+              ? BoxDecoration(
+                  color: tk.paper2, borderRadius: BorderRadius.circular(10))
+              : null,
+          child: Text(label,
+              style: AppText.meta(sel ? tk.ink : tk.inkSoft, size: 9)),
+        ),
+      );
+    }
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 8),
+      padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 0),
+      child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+        tab(7, '7일'),
+        tab(30, '최근 30일'),
+        tab(90, '90일'),
+      ]),
+    );
+  }
+
+  Widget _dashboard(AppTokens tk, int rate, int todayDone, int habitN,
+      int longest, List<int> counts) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(kGutter, 9, kGutter, 0),
+      padding: const EdgeInsets.fromLTRB(18, 19, 18, 15),
+      decoration: BoxDecoration(
+        border: Border.all(color: tk.line),
+        borderRadius: BorderRadius.circular(RefRadius.screen),
+        color: mixOver(tk.paper2, 0.44, tk.paper),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('오늘의 습관',
-                  style: AppText.body(tk.ink).copyWith(fontSize: 16)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(height: 1, color: tk.line),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('완료율', style: AppText.meta(tk.inkSoft, size: 8)),
+                  const SizedBox(height: 7),
+                  Text('$rate%',
+                      style: AppText.meta(tk.ink, size: 32)
+                          .copyWith(letterSpacing: -1.5, height: 1)),
+                ],
+              ),
+            ),
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text('$todayDone/$habitN 오늘',
+                  style: AppText.meta(tk.inkSoft, size: 9)),
+              const SizedBox(height: 5),
+              Text('최장 $longest일', style: AppText.meta(tk.inkSoft, size: 9)),
+            ]),
+          ]),
+          const SizedBox(height: 13),
+          _dotHistogram(tk, counts),
+        ],
+      ),
+    );
+  }
+
+  Widget _dotHistogram(AppTokens tk, List<int> values) {
+    const cap = 11;
+    return SizedBox(
+      height: 100,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < values.length; i++)
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  for (var k = 0;
+                      k < (values[i] > cap ? cap : values[i]);
+                      k++) ...[
+                    Container(
+                      width: 3,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: i >= values.length - (values.length ~/ 3)
+                            ? tk.mark
+                            : tk.inkSoft.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                  ],
+                ],
+              ),
+            ),
         ],
       ),
     );
