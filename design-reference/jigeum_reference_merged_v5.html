@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+
+<html data-density="comfortable" data-font="100" data-theme="sage" lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+<meta content="#F3F4EF" name="theme-color"/>
+<title>지금 · Reference Merge V3 Complete</title>
+<style>
+:root{
+  --bg:#E7EAE4;
+  --paper:#F7F8F4;
+  --paper-rgb:247,248,244;
+  --surface:#EFF2EC;
+  --surface-2:#E8ECE6;
+  --ink:#263029;
+  --text:#3D4740;
+  --muted:#778179;
+  --faint:#A6ADA7;
+  --line:rgba(61,79,68,.17);
+  --line-strong:rgba(61,79,68,.32);
+  --thread:#81978A;
+  --thread-soft:rgba(105,137,118,.18);
+  --node:#607D6C;
+  --node-2:#A47D68;
+  --glow:rgba(93,135,110,.28);
+  --veil:rgba(255,255,255,.46);
+  --danger:#A76262;
+  --warning:#9D804C;
+  --font-scale:1;
+  --row-gap:15px;
+  --radius:18px;
+  --nav-h:76px;
+  --shadow:0 30px 90px rgba(43,53,46,.13);
+  --serif:"Iowan Old Style","Noto Serif KR","Batang",Georgia,serif;
+  --sans:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+html[data-theme="manila"]{
+  --bg:#E9E4D9;--paper:#FBF8F0;--paper-rgb:251,248,240;--surface:#F4EEE2;--surface-2:#ECE3D4;
+  --ink:#332F28;--text:#4A443A;--muted:#82786A;--faint:#B0A596;--line:rgba(88,72,52,.16);--line-strong:rgba(88,72,52,.30);
+  --thread:#A1876C;--thread-soft:rgba(143,112,77,.16);--node:#776C54;--node-2:#B37058;--glow:rgba(158,121,80,.24);--veil:rgba(255,252,246,.53);
+}
+html[data-theme="newsprint"]{
+  --bg:#DDDED9;--paper:#F2F3EF;--paper-rgb:242,243,239;--surface:#E9EAE5;--surface-2:#E2E3DE;
+  --ink:#1F231F;--text:#383C38;--muted:#717670;--faint:#A4A8A3;--line:rgba(41,45,40,.18);--line-strong:rgba(41,45,40,.34);
+  --thread:#6F7570;--thread-soft:rgba(50,55,50,.11);--node:#2F3430;--node-2:#B45149;--glow:rgba(180,81,73,.20);--veil:rgba(255,255,255,.35);
+}
+html[data-theme="midnight"]{
+  --bg:#0C1220;--paper:#11192A;--paper-rgb:17,25,42;--surface:#182238;--surface-2:#202C43;
+  --ink:#EFF2EE;--text:#D8DED9;--muted:#9CA8A4;--faint:#65716F;--line:rgba(213,226,220,.14);--line-strong:rgba(213,226,220,.27);
+  --thread:#829B95;--thread-soft:rgba(112,152,139,.16);--node:#9AB2A6;--node-2:#D47E73;--glow:rgba(112,190,151,.25);--veil:rgba(26,38,61,.57);--shadow:0 36px 100px rgba(0,0,0,.40);
+}
+html[data-font="80"]{--font-scale:.80}html[data-font="90"]{--font-scale:.90}html[data-font="110"]{--font-scale:1.10}html[data-font="120"]{--font-scale:1.20}
+html[data-density="compact"]{--row-gap:11px;--radius:14px;--nav-h:70px}
+*{box-sizing:border-box}
+html{-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:calc(14px * var(--font-scale));letter-spacing:-.024em}
+body,button,input,textarea,select{font-weight:400}
+strong,b,h1,h2,h3,h4{font-weight:400}
+button,input,textarea,select{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid color-mix(in srgb,var(--node) 55%,transparent);outline-offset:3px}
+.stage{min-height:100vh;display:grid;place-items:center;padding:16px}
+.phone{position:relative;width:min(100%,430px);height:min(930px,calc(100vh - 24px));min-height:680px;overflow:hidden;background:var(--paper);border:1px solid var(--line);border-radius:34px;box-shadow:var(--shadow);isolation:isolate}
+.phone:before{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;background:
+  radial-gradient(circle at 74% 9%,var(--thread-soft) 0,transparent 25%),
+  radial-gradient(circle at 13% 78%,color-mix(in srgb,var(--glow) 36%,transparent) 0,transparent 27%),
+  linear-gradient(125deg,transparent 0 46%,color-mix(in srgb,var(--line) 30%,transparent) 46.2%,transparent 46.5% 100%);opacity:.78}
+.statusbar{height:28px;padding:8px 20px 0;display:flex;justify-content:space-between;align-items:flex-start;color:var(--muted);font-family:var(--mono);font-size:10px;background:color-mix(in srgb,var(--paper) 92%,transparent);position:relative;z-index:22}
+.status-icons{display:flex;align-items:center;gap:5px}.status-icons i{width:4px;height:4px;border-radius:50%;background:currentColor}.battery{width:18px;height:9px;border:1px solid currentColor;border-radius:3px;position:relative}.battery:before{content:"";position:absolute;left:1.5px;top:1.5px;width:11px;height:4px;background:currentColor;border-radius:1px}.battery:after{content:"";position:absolute;right:-3px;top:2px;width:2px;height:4px;background:currentColor}
+.app{height:calc(100% - 28px);position:relative}
+.screen{display:none;height:100%;overflow:auto;padding:0 22px calc(var(--nav-h) + 34px);scrollbar-width:none;overscroll-behavior:contain}
+.screen::-webkit-scrollbar{display:none}.screen.active{display:block;animation:softIn .22s ease}.screen.sub{padding-bottom:28px}
+@keyframes softIn{from{opacity:.30;transform:translateY(5px)}to{opacity:1;transform:none}}
+.header{position:sticky;top:0;z-index:12;display:flex;align-items:center;justify-content:space-between;min-height:78px;padding:16px 0 11px;background:linear-gradient(var(--paper) 76%,rgba(var(--paper-rgb),0));backdrop-filter:blur(8px)}
+.header-left{display:flex;align-items:center;gap:12px;min-width:0}.header-copy{min-width:0}.eyebrow{margin:0 0 5px;color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono);letter-spacing:.17em;text-transform:uppercase}.title{margin:0;color:var(--ink);font-family:var(--serif);font-size:calc(29px * var(--font-scale));font-weight:300;line-height:1.04;letter-spacing:-.055em}.title.small{font-size:calc(25px * var(--font-scale))}
+.header-actions{display:flex;gap:8px}.icon-btn{width:39px;height:39px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;color:var(--muted);background:color-mix(in srgb,var(--veil) 55%,transparent);backdrop-filter:blur(10px);transition:.16s}.icon-btn:active{transform:scale(.95);border-color:var(--line-strong)}.icon-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.45;stroke-linecap:round;stroke-linejoin:round}
+.section-line{height:1px;background:linear-gradient(90deg,var(--line-strong),var(--line),transparent);margin:0 0 18px}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:14px;margin:25px 0 12px}.section-head h2{margin:0;color:var(--ink);font-size:calc(16px * var(--font-scale));line-height:1.25}.section-head p{margin:5px 0 0;color:var(--muted);font-size:calc(11px * var(--font-scale));line-height:1.45}.section-head button,.text-action{color:var(--node);font-size:calc(12px * var(--font-scale));white-space:nowrap}
+.meta{color:var(--muted);font-family:var(--mono);font-size:calc(10px * var(--font-scale));letter-spacing:0}.subtle{color:var(--muted);font-size:calc(12px * var(--font-scale));line-height:1.55}
+.veil{border:1px solid var(--line);border-radius:var(--radius);background:var(--veil);backdrop-filter:blur(12px);box-shadow:0 14px 36px color-mix(in srgb,var(--ink) 5%,transparent)}
+/* Silent thread primitives */
+.thread-list{position:relative;margin:4px 0 0;padding-left:31px}.thread-list:before{content:"";position:absolute;left:9px;top:10px;bottom:12px;width:1px;background:linear-gradient(var(--line-strong),var(--line),transparent)}
+.thread-item{position:relative;min-height:58px;padding:11px 0 12px}.thread-item:before{content:"";position:absolute;left:-22px;top:25px;width:22px;height:1px;background:var(--line)}
+.node{position:absolute;left:-27px;top:20px;width:10px;height:10px;border:1px solid var(--thread);border-radius:50%;background:var(--paper);z-index:2}.node.small{width:6px;height:6px;left:-25px;top:22px}.node.tiny{width:4px;height:4px;left:-24px;top:23px;border:0;background:var(--faint)}.node.filled{background:var(--node);border-color:var(--node)}.node.accent{background:var(--node-2);border-color:var(--node-2)}.node.current{background:var(--node);border-color:var(--node);box-shadow:0 0 0 7px var(--thread-soft),0 0 22px var(--glow)}.node.current:after{content:"";position:absolute;inset:-11px;border:1px solid color-mix(in srgb,var(--node) 27%,transparent);border-radius:50%}
+.thread-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start;text-align:left}.thread-row .name{display:block;color:var(--ink);font-size:calc(14px * var(--font-scale));line-height:1.45}.thread-row .desc{display:block;margin-top:4px;color:var(--muted);font-size:calc(11px * var(--font-scale));line-height:1.48}.thread-row .tail{color:var(--muted);font-family:var(--mono);font-size:calc(10px * var(--font-scale));line-height:1.45;white-space:nowrap;text-align:right}.thread-row.selected{padding:11px 12px;margin:-11px -12px;border-radius:13px;background:color-mix(in srgb,var(--thread-soft) 62%,transparent)}
+.branch{position:relative;margin-left:12px;padding-left:19px}.branch:before{content:"";position:absolute;left:0;top:0;bottom:8px;width:1px;background:var(--line)}.branch-row{position:relative;min-height:46px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0}.branch-row:before{content:"";position:absolute;left:-19px;top:23px;width:14px;height:1px;background:var(--line)}.branch-row:after{content:"";position:absolute;left:-7px;top:20px;width:6px;height:6px;border-radius:50%;border:1px solid var(--thread);background:var(--paper)}.branch-row.done:after{background:var(--node);border-color:var(--node)}.branch-row span{color:var(--text);font-size:calc(13px * var(--font-scale));line-height:1.4}.branch-row small{color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono)}
+/* Today */
+.focus-thread{position:relative;padding:18px 18px 18px 44px}.focus-thread:before{content:"";position:absolute;left:21px;top:0;bottom:0;width:1px;background:linear-gradient(transparent,var(--line-strong) 16%,var(--line) 85%,transparent)}.focus-node{position:absolute;left:14px;top:28px;width:15px;height:15px;border-radius:50%;background:var(--node);box-shadow:0 0 0 9px var(--thread-soft),0 0 24px var(--glow)}.focus-node:after{content:"";position:absolute;inset:-15px;border:1px solid color-mix(in srgb,var(--node) 24%,transparent);border-radius:50%}.focus-kicker{display:flex;justify-content:space-between;gap:14px;color:var(--muted);font-family:var(--mono);font-size:calc(9px * var(--font-scale));letter-spacing:.06em}.focus-thread h2{margin:15px 0 7px;color:var(--ink);font-family:var(--serif);font-size:calc(22px * var(--font-scale));font-weight:300;line-height:1.33;letter-spacing:-.045em}.focus-thread p{margin:0;color:var(--muted);font-size:calc(12px * var(--font-scale));line-height:1.55}.focus-actions{display:flex;gap:9px;margin-top:17px}.btn{min-height:39px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--veil) 70%,transparent);font-size:calc(12px * var(--font-scale));color:var(--text)}.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--paper)}.btn.thread{border-color:color-mix(in srgb,var(--node) 42%,var(--line));color:var(--node)}
+.return-line{margin-top:12px;padding:12px 14px;display:grid;grid-template-columns:17px 1fr auto;align-items:center;gap:11px;border:1px solid var(--line);border-radius:13px;background:color-mix(in srgb,var(--thread-soft) 34%,transparent)}.return-line i{width:9px;height:9px;border-radius:50%;background:var(--node);box-shadow:0 0 0 5px var(--thread-soft)}.return-line span{color:var(--text);font-size:calc(12px * var(--font-scale))}.return-line small{display:block;margin-top:3px;color:var(--muted);font-size:calc(10px * var(--font-scale))}.return-line button{color:var(--node);font-size:calc(11px * var(--font-scale))}
+.summary-thread{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:18px}.summary-thread>div{position:relative;padding:13px 10px 12px 15px}.summary-thread>div:not(:last-child):after{content:"";position:absolute;right:0;top:10px;bottom:10px;width:1px;background:var(--line)}.summary-thread small{display:block;color:var(--muted);font-size:calc(10px * var(--font-scale))}.summary-thread span{display:block;margin-top:6px;color:var(--ink);font:400 calc(17px * var(--font-scale))/1.2 var(--mono)}
+/* Flow hub */
+.flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.flow-link{position:relative;min-height:126px;padding:18px;border:1px solid var(--line);border-radius:var(--radius);background:color-mix(in srgb,var(--veil) 64%,transparent);text-align:left;overflow:hidden}.flow-link:before{content:"";position:absolute;left:18px;top:20px;width:1px;height:57px;background:linear-gradient(var(--line-strong),transparent)}.flow-link:after{content:"";position:absolute;left:14px;top:17px;width:8px;height:8px;border:1px solid var(--thread);border-radius:50%;background:var(--paper)}.flow-link .index{display:block;margin-left:16px;color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono);letter-spacing:.1em}.flow-link .flow-name{display:block;margin:27px 0 0 16px;color:var(--ink);font-family:var(--serif);font-size:calc(18px * var(--font-scale));font-weight:300}.flow-link .flow-meta{display:block;margin:7px 0 0 16px;color:var(--muted);font-size:calc(10px * var(--font-scale))}.flow-link.current:after{background:var(--node);border-color:var(--node);box-shadow:0 0 0 6px var(--thread-soft)}
+/* tabs */
+.tabs{display:flex;gap:21px;overflow:auto;padding:2px 0 11px;border-bottom:1px solid var(--line);scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tabs button{flex:none;position:relative;padding:6px 0;color:var(--muted);font-size:calc(12px * var(--font-scale))}.tabs button.active{color:var(--ink)}.tabs button.active:after{content:"";position:absolute;left:50%;bottom:-13px;width:5px;height:5px;border-radius:50%;background:var(--node);transform:translateX(-50%);box-shadow:0 0 0 5px var(--thread-soft)}
+.tab-panel{display:none}.tab-panel.active{display:block;animation:softIn .18s ease}
+/* tasks */
+.task-check{position:relative;width:18px;height:18px;border:1px solid var(--line-strong);border-radius:50%;flex:none}.task-check.done{border-color:var(--node);background:var(--node)}.task-check.done:after{content:"";position:absolute;left:5px;top:3px;width:4px;height:7px;border-right:1px solid var(--paper);border-bottom:1px solid var(--paper);transform:rotate(45deg)}
+.task-line{position:relative;display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:11px;align-items:start;padding:13px 0;border-bottom:1px solid var(--line)}.task-line .task-title{color:var(--ink);font-size:calc(13px * var(--font-scale));line-height:1.4}.task-line .task-meta{margin-top:4px;color:var(--muted);font-size:calc(10px * var(--font-scale))}.task-line .task-tail{color:var(--muted);font:400 calc(9px * var(--font-scale))/1.3 var(--mono);text-align:right}.task-line.done .task-title{text-decoration:line-through;color:var(--faint)}
+/* Matrix */
+.matrix{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}.quad{min-height:180px;padding:15px;position:relative;background:color-mix(in srgb,var(--veil) 56%,transparent)}.quad:nth-child(odd){border-right:1px solid var(--line)}.quad:nth-child(-n+2){border-bottom:1px solid var(--line)}.quad-head{display:flex;justify-content:space-between;gap:8px;margin-bottom:12px}.quad-head span{color:var(--ink);font-size:calc(12px * var(--font-scale))}.quad-head small{color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono)}.quad-task{position:relative;padding:8px 0 8px 16px;color:var(--text);font-size:calc(11px * var(--font-scale));line-height:1.35}.quad-task:before{content:"";position:absolute;left:0;top:13px;width:5px;height:5px;border:1px solid var(--thread);border-radius:50%}.quad-add{position:absolute;right:11px;bottom:9px;color:var(--muted);font-size:18px}
+/* Outliner */
+.outline-root{position:relative;margin-top:15px;padding-left:20px}.outline-root:before{content:"";position:absolute;left:6px;top:14px;bottom:12px;width:1px;background:linear-gradient(var(--line-strong),var(--line),transparent)}.outline-block{position:relative;margin-bottom:3px}.outline-head{position:relative;width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 12px 12px 19px;border-radius:12px;text-align:left}.outline-head:before{content:"";position:absolute;left:-14px;top:50%;width:20px;height:1px;background:var(--line)}.outline-head:after{content:"";position:absolute;left:-18px;top:calc(50% - 4px);width:8px;height:8px;border-radius:50%;border:1px solid var(--thread);background:var(--paper)}.outline-block.open>.outline-head:after{background:var(--node);border-color:var(--node);box-shadow:0 0 0 5px var(--thread-soft)}.outline-head:hover,.outline-head.selected{background:color-mix(in srgb,var(--thread-soft) 42%,transparent)}.outline-name{display:flex;align-items:center;gap:9px;color:var(--ink);font-size:calc(13px * var(--font-scale))}.outline-name i{font-style:normal;color:var(--muted);font-size:11px;transition:.16s}.outline-block.open>.outline-head .outline-name i{transform:rotate(90deg)}.outline-tail{color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono)}.outline-children{display:none;position:relative;margin-left:18px;padding-left:16px}.outline-children:before{content:"";position:absolute;left:0;top:0;bottom:10px;width:1px;background:var(--line)}.outline-block.open>.outline-children{display:block}.outline-leaf{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-height:43px;padding:8px 8px 8px 15px;border-radius:10px}.outline-leaf:before{content:"";position:absolute;left:-16px;top:50%;width:13px;height:1px;background:var(--line)}.outline-leaf:after{content:"";position:absolute;left:-5px;top:calc(50% - 2px);width:4px;height:4px;border-radius:50%;background:var(--faint)}.outline-leaf.done:after{background:var(--node)}.outline-leaf.selected{background:color-mix(in srgb,var(--thread-soft) 55%,transparent)}.outline-leaf span{color:var(--text);font-size:calc(12px * var(--font-scale))}.outline-leaf small{color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono)}
+/* Goals */
+.goal-path{position:relative;margin-top:15px;padding-left:31px}.goal-path:before{content:"";position:absolute;left:9px;top:19px;bottom:17px;width:1px;background:var(--line)}.goal-card{position:relative;padding:15px 0 18px}.goal-card:before{content:"";position:absolute;left:-22px;top:28px;width:22px;height:1px;background:var(--line)}.goal-card .goal-node{position:absolute;left:-28px;top:23px;width:12px;height:12px;border-radius:50%;border:1px solid var(--thread);background:var(--paper)}.goal-card.active .goal-node{background:var(--node);border-color:var(--node);box-shadow:0 0 0 7px var(--thread-soft),0 0 22px var(--glow)}.goal-titleline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:baseline}.goal-titleline span{color:var(--ink);font-family:var(--serif);font-size:calc(18px * var(--font-scale));font-weight:300}.goal-titleline small{color:var(--node);font:400 calc(11px * var(--font-scale))/1 var(--mono)}.goal-desc{margin-top:6px;color:var(--muted);font-size:calc(11px * var(--font-scale));line-height:1.45}.progress-route{position:relative;height:15px;margin-top:13px}.progress-route:before{content:"";position:absolute;left:0;right:0;top:7px;height:1px;background:var(--line)}.progress-route .fill{position:absolute;left:0;top:7px;height:1px;background:var(--thread);width:var(--progress)}.progress-route i{position:absolute;left:var(--progress);top:3px;width:9px;height:9px;border-radius:50%;background:var(--node);transform:translateX(-50%);box-shadow:0 0 0 5px var(--thread-soft)}
+.lens-tabs{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:999px;padding:4px;background:color-mix(in srgb,var(--surface) 42%,transparent);margin-top:3px}.lens-tabs button{min-height:34px;border-radius:999px;color:var(--muted);font-size:calc(11px * var(--font-scale))}.lens-tabs button.active{background:var(--paper);color:var(--ink);box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 7%,transparent)}.lens-panel{display:none}.lens-panel.active{display:block;animation:softIn .18s ease}
+.journey{position:relative;margin:18px 0 0 10px;padding-left:32px}.journey:before{content:"";position:absolute;left:7px;top:3px;bottom:12px;width:1px;background:linear-gradient(var(--line-strong),var(--line),transparent)}.journey-event{position:relative;padding:4px 0 28px}.journey-event:before{content:"";position:absolute;left:-25px;top:12px;width:25px;height:1px;background:var(--line)}.journey-event .j-node{position:absolute;left:-30px;top:7px;width:11px;height:11px;border-radius:50%;border:1px solid var(--thread);background:var(--paper)}.journey-event.done .j-node{background:var(--node);border-color:var(--node)}.journey-event.current .j-node{background:var(--node);border-color:var(--node);box-shadow:0 0 0 8px var(--thread-soft),0 0 24px var(--glow)}.journey-event .date{color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono)}.journey-event h3{margin:7px 0 4px;color:var(--ink);font-size:calc(14px * var(--font-scale))}.journey-event p{margin:0;color:var(--muted);font-size:calc(11px * var(--font-scale));line-height:1.45}
+/* Habits */
+.habit-card{padding:16px 0;border-bottom:1px solid var(--line)}.habit-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start}.habit-name{display:flex;align-items:center;gap:11px}.habit-main-node{width:10px;height:10px;border-radius:50%;border:1px solid var(--thread);background:var(--paper);flex:none}.habit-card.done .habit-main-node{background:var(--node);border-color:var(--node);box-shadow:0 0 0 6px var(--thread-soft)}.habit-name span{color:var(--ink);font-size:calc(14px * var(--font-scale))}.habit-name small{display:block;margin-top:4px;color:var(--muted);font-size:calc(10px * var(--font-scale))}.streak{color:var(--node);font:400 calc(10px * var(--font-scale))/1.3 var(--mono);text-align:right}.habit-track{position:relative;display:grid;grid-template-columns:repeat(14,1fr);gap:6px;margin:15px 0 0 21px}.habit-track:before{content:"";position:absolute;left:4px;right:4px;top:3px;height:1px;background:var(--line);z-index:0}.habit-dot{position:relative;z-index:1;width:7px;height:7px;border-radius:50%;border:1px solid var(--line-strong);background:var(--paper);justify-self:center}.habit-dot.on{background:var(--node);border-color:var(--node)}.habit-dot.today{width:9px;height:9px;margin-top:-1px;background:var(--node-2);border-color:var(--node-2);box-shadow:0 0 0 5px color-mix(in srgb,var(--node-2) 15%,transparent)}
+/* Time / routine */
+.time-axis{position:relative;margin-top:16px;padding-left:54px}.time-axis:before{content:"";position:absolute;left:39px;top:6px;bottom:15px;width:1px;background:linear-gradient(var(--line-strong),var(--line),transparent)}.time-event{position:relative;min-height:73px;padding:5px 0 15px}.time-event:before{content:"";position:absolute;left:-15px;top:17px;width:15px;height:1px;background:var(--line)}.time-label{position:absolute;left:-54px;top:10px;width:34px;color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono);text-align:right}.time-node{position:absolute;left:-20px;top:12px;width:10px;height:10px;border:1px solid var(--thread);border-radius:50%;background:var(--paper)}.time-event.current .time-node{background:var(--node);border-color:var(--node);box-shadow:0 0 0 7px var(--thread-soft),0 0 20px var(--glow)}.time-event.done .time-node{background:var(--node);border-color:var(--node)}.time-card{padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:color-mix(in srgb,var(--veil) 58%,transparent)}.time-card h3{margin:0;color:var(--ink);font-size:calc(13px * var(--font-scale))}.time-card p{margin:5px 0 0;color:var(--muted);font-size:calc(10px * var(--font-scale));line-height:1.4}.time-gap{height:34px;position:relative}.time-gap span{position:absolute;left:10px;top:8px;color:var(--faint);font:400 calc(8px * var(--font-scale))/1 var(--mono)}
+.timer-panel{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:17px}.timer-panel .clock{color:var(--ink);font:300 calc(32px * var(--font-scale))/1 var(--mono);letter-spacing:.04em}.timer-panel .timer-meta{margin-top:6px;color:var(--muted);font-size:calc(10px * var(--font-scale))}.round-btn{width:48px;height:48px;border-radius:50%;border:1px solid var(--line-strong);display:grid;place-items:center;color:var(--node);background:var(--paper);font-size:15px}
+.routine-block{border-bottom:1px solid var(--line)}.routine-head{width:100%;display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:11px;align-items:center;padding:14px 0;text-align:left}.routine-head .r-node{width:9px;height:9px;border-radius:50%;border:1px solid var(--thread)}.routine-block.open .r-node{background:var(--node);border-color:var(--node);box-shadow:0 0 0 5px var(--thread-soft)}.routine-head span{color:var(--ink);font-size:calc(13px * var(--font-scale))}.routine-head small{color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono)}.routine-body{display:none;margin-left:4px;padding:0 0 13px 24px;border-left:1px solid var(--line)}.routine-block.open .routine-body{display:block}.routine-step{position:relative;padding:8px 0 8px 16px;color:var(--text);font-size:calc(11px * var(--font-scale))}.routine-step:before{content:"";position:absolute;left:-1px;top:50%;width:12px;height:1px;background:var(--line)}.routine-step:after{content:"";position:absolute;left:9px;top:calc(50% - 2px);width:4px;height:4px;border-radius:50%;background:var(--faint)}
+/* calendar */
+.calendar-head{display:grid;grid-template-columns:40px 1fr 40px;align-items:center;margin:13px 0 15px}.calendar-head span{text-align:center;color:var(--ink);font-family:var(--serif);font-size:calc(18px * var(--font-scale));font-weight:300}.calendar-head button{width:36px;height:36px;border:1px solid var(--line);border-radius:50%;color:var(--muted)}.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.dow{text-align:center;color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono);padding:7px 0}.day{position:relative;min-height:48px;border-radius:12px;display:grid;place-items:center;color:var(--text);font:400 calc(11px * var(--font-scale))/1 var(--mono)}.day.muted{color:var(--faint)}.day.has:after{content:"";position:absolute;bottom:7px;width:4px;height:4px;border-radius:50%;background:var(--node)}.day.selected{background:var(--thread-soft);color:var(--ink)}.day.selected:before{content:"";position:absolute;inset:5px;border:1px solid color-mix(in srgb,var(--node) 35%,transparent);border-radius:10px}.calendar-detail{margin-top:18px;padding:16px}.calendar-detail h3{margin:0;color:var(--ink);font-size:calc(14px * var(--font-scale))}
+/* archive / dump */
+.archive-links{border-top:1px solid var(--line)}.archive-link{position:relative;width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);text-align:left}.archive-index{color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono)}.archive-link span{color:var(--ink);font-family:var(--serif);font-size:calc(16px * var(--font-scale));font-weight:300}.archive-link small{color:var(--muted);font-size:calc(10px * var(--font-scale))}.archive-link i{width:6px;height:6px;border-radius:50%;border:1px solid var(--thread)}
+.dump-area{width:100%;min-height:290px;resize:vertical;border:0;border-left:1px solid var(--line);background:transparent;padding:12px 0 12px 22px;color:var(--ink);font-family:var(--serif);font-size:calc(17px * var(--font-scale));font-weight:300;line-height:1.75;outline:none}.dump-area::placeholder{color:var(--faint)}.dump-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.chip{min-height:32px;padding:0 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:calc(10px * var(--font-scale));background:color-mix(in srgb,var(--veil) 48%,transparent)}.chip.active{border-color:color-mix(in srgb,var(--node) 45%,var(--line));color:var(--node);background:var(--thread-soft)}
+/* fortune */
+.fortune-orbit{position:relative;height:226px;margin:4px 0 14px}.fortune-orbit:before{content:"";position:absolute;left:50%;top:12px;bottom:12px;width:1px;background:linear-gradient(transparent,var(--line-strong),var(--line),transparent)}.fortune-node{position:absolute;left:50%;transform:translateX(-50%);border-radius:50%}.fortune-node.a{top:27px;width:8px;height:8px;background:var(--node-2);box-shadow:0 0 0 8px color-mix(in srgb,var(--node-2) 12%,transparent)}.fortune-node.b{top:103px;width:17px;height:17px;background:var(--node);box-shadow:0 0 0 11px var(--thread-soft),0 0 28px var(--glow)}.fortune-node.c{bottom:25px;width:6px;height:6px;border:1px solid var(--thread);background:var(--paper)}.fortune-label{position:absolute;color:var(--muted);font:400 calc(9px * var(--font-scale))/1.3 var(--mono)}.fortune-label.left{right:calc(50% + 18px);top:25px;text-align:right}.fortune-label.right{left:calc(50% + 22px);top:102px}.fortune-label.bottom{left:calc(50% + 18px);bottom:22px}.fortune-card{padding:18px 18px 18px 23px;position:relative}.fortune-card:before{content:"";position:absolute;left:15px;top:18px;bottom:18px;width:1px;background:linear-gradient(var(--node),transparent)}.fortune-card .symbol{color:var(--node);font-family:var(--mono);font-size:calc(9px * var(--font-scale));letter-spacing:.1em}.fortune-card h2{margin:13px 0 8px;color:var(--ink);font-family:var(--serif);font-size:calc(21px * var(--font-scale));font-weight:300;line-height:1.4}.fortune-card p{margin:0;color:var(--muted);font-size:calc(12px * var(--font-scale));line-height:1.65}
+/* Settings */
+.setting-section{margin:25px 0}.setting-title{margin:0 0 10px;color:var(--ink);font-family:var(--serif);font-size:calc(16px * var(--font-scale));font-weight:300}.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.theme-choice{padding:7px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--veil) 48%,transparent)}.theme-choice.active{border-color:var(--node);box-shadow:0 0 0 1px var(--node)}.swatch{height:39px;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1.3fr .65fr .65fr}.swatch i:nth-child(1){background:var(--s1)}.swatch i:nth-child(2){background:var(--s2)}.swatch i:nth-child(3){background:var(--s3)}.theme-choice small{display:block;margin-top:7px;color:var(--muted);font:400 calc(7px * var(--font-scale))/1 var(--mono);letter-spacing:.05em;text-align:center}.settings-list{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:color-mix(in srgb,var(--veil) 40%,transparent)}.setting-row{min-height:65px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:15px;align-items:center;padding:13px 15px;border-bottom:1px solid var(--line)}.setting-row:last-child{border-bottom:0}.setting-row span{color:var(--ink);font-size:calc(13px * var(--font-scale))}.setting-row small{display:block;margin-top:4px;color:var(--muted);font-size:calc(10px * var(--font-scale));line-height:1.4}.switch{width:44px;height:25px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);padding:3px;transition:.18s}.switch:before{content:"";display:block;width:17px;height:17px;border-radius:50%;background:var(--paper);box-shadow:0 2px 8px rgba(0,0,0,.12);transition:.18s}.switch.on{background:var(--node);border-color:var(--node)}.switch.on:before{transform:translateX(19px)}.segmented{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}.segmented button{min-width:44px;min-height:29px;padding:0 9px;border-radius:999px;color:var(--muted);font-size:calc(10px * var(--font-scale))}.segmented button.active{background:var(--paper);color:var(--ink);box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 8%,transparent)}.field{width:100%;min-height:42px;border:1px solid var(--line);border-radius:11px;background:var(--paper);padding:0 12px;color:var(--text);margin-top:9px}.field::placeholder{color:var(--faint)}.connect-card{padding:15px}.connect-card p{margin:0;color:var(--muted);font-size:calc(11px * var(--font-scale));line-height:1.55}.wide-btn{width:100%;min-height:43px;margin-top:12px;border:1px solid var(--line-strong);border-radius:12px;background:var(--ink);color:var(--paper);font-size:calc(12px * var(--font-scale))}.danger-btn{background:transparent;color:var(--danger);border-color:color-mix(in srgb,var(--danger) 38%,var(--line))}
+/* bottom nav */
+.bottom-nav{position:absolute;left:13px;right:13px;bottom:10px;z-index:20;height:var(--nav-h);display:grid;grid-template-columns:repeat(5,1fr);align-items:center;padding:7px 5px;border:1px solid var(--line);border-radius:25px;background:color-mix(in srgb,var(--paper) 80%,transparent);backdrop-filter:blur(18px);box-shadow:0 18px 40px color-mix(in srgb,var(--ink) 12%,transparent)}.nav-btn{position:relative;min-width:0;height:55px;display:grid;place-items:center;align-content:center;gap:5px;color:var(--muted);font-size:calc(9px * var(--font-scale))}.nav-btn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}.nav-btn.active{color:var(--ink)}.nav-btn.active:after{content:"";position:absolute;top:3px;width:5px;height:5px;border-radius:50%;background:var(--node);box-shadow:0 0 0 5px var(--thread-soft)}.capture-nav{width:51px;height:51px;margin:auto;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;box-shadow:0 0 0 7px color-mix(in srgb,var(--paper) 70%,transparent),0 12px 28px color-mix(in srgb,var(--ink) 22%,transparent)}.capture-nav svg{width:22px;height:22px;stroke-width:1.35}
+/* composer */
+.composer-layer{position:absolute;inset:0;z-index:40;display:none;align-items:flex-end}.composer-layer.open{display:flex}.composer-overlay{position:absolute;inset:0;background:color-mix(in srgb,var(--ink) 17%,transparent);backdrop-filter:blur(2px)}.composer{position:relative;width:calc(100% - 20px);margin:0 10px 11px;border:1px solid var(--line-strong);border-radius:23px;background:color-mix(in srgb,var(--paper) 91%,transparent);backdrop-filter:blur(20px);box-shadow:0 22px 60px color-mix(in srgb,var(--ink) 20%,transparent);overflow:hidden;animation:composerIn .18s ease}@keyframes composerIn{from{transform:translateY(18px);opacity:.2}to{transform:none;opacity:1}}
+.composer-line{display:grid;grid-template-columns:16px minmax(0,1fr) 42px;gap:10px;align-items:center;padding:12px 13px}.composer-node{width:10px;height:10px;border-radius:50%;background:var(--node);box-shadow:0 0 0 6px var(--thread-soft)}.composer input{height:42px;border:0;background:transparent;color:var(--ink);outline:none;font-size:calc(14px * var(--font-scale))}.composer input::placeholder{color:var(--faint)}.composer-send{width:39px;height:39px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--node)}.composer-branches{display:none;position:relative;padding:0 12px 13px 39px}.composer-branches.show{display:block}.composer-branches:before{content:"";position:absolute;left:18px;top:0;bottom:14px;width:1px;background:var(--line)}.guess{display:flex;justify-content:space-between;gap:12px;padding:8px 0;color:var(--muted);font-size:calc(10px * var(--font-scale))}.guess span:last-child{color:var(--node)}.type-chips{display:flex;gap:7px;overflow:auto;scrollbar-width:none}.type-chips::-webkit-scrollbar{display:none}.type-chips button{flex:none;min-height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:calc(10px * var(--font-scale))}.type-chips button.active{color:var(--node);border-color:color-mix(in srgb,var(--node) 45%,var(--line));background:var(--thread-soft)}
+/* palette */
+.palette-layer{position:absolute;inset:0;z-index:50;display:none;align-items:flex-start;padding:54px 11px 0;background:color-mix(in srgb,var(--ink) 18%,transparent);backdrop-filter:blur(5px)}.palette-layer.open{display:flex}.palette{width:100%;max-height:78%;overflow:auto;border:1px solid var(--line-strong);border-radius:22px;background:color-mix(in srgb,var(--paper) 94%,transparent);backdrop-filter:blur(22px);box-shadow:0 28px 80px color-mix(in srgb,var(--ink) 24%,transparent)}.palette-search{display:grid;grid-template-columns:18px minmax(0,1fr) 34px;gap:9px;align-items:center;padding:13px 14px;border-bottom:1px solid var(--line)}.palette-search input{border:0;background:transparent;outline:none;color:var(--ink)}.palette-search input::placeholder{color:var(--faint)}.palette-close{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);color:var(--muted)}.palette-label{padding:15px 15px 7px;color:var(--muted);font:400 8px/1 var(--mono);letter-spacing:.13em}.palette-item{width:100%;display:grid;grid-template-columns:27px minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 15px;text-align:left}.palette-item:hover{background:var(--thread-soft)}.palette-item i{font-style:normal;color:var(--muted);font:400 8px/1 var(--mono)}.palette-item span{color:var(--ink);font-size:calc(12px * var(--font-scale))}.palette-item small{color:var(--muted);font-size:calc(9px * var(--font-scale))}
+.toast{position:absolute;left:50%;bottom:98px;z-index:80;max-width:calc(100% - 40px);transform:translate(-50%,12px);opacity:0;padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:var(--ink);color:var(--paper);font-size:calc(11px * var(--font-scale));pointer-events:none;transition:.18s;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
+.empty{padding:28px 0 25px 31px;position:relative;color:var(--muted);font-size:calc(12px * var(--font-scale));line-height:1.6}.empty:before{content:"";position:absolute;left:8px;top:18px;bottom:16px;width:1px;background:var(--line)}.empty:after{content:"";position:absolute;left:5px;top:31px;width:7px;height:7px;border:1px solid var(--thread);border-radius:50%;background:var(--paper)}
+@media(max-width:460px){.stage{padding:0}.phone{width:100%;height:100vh;min-height:100vh;border-radius:0;border:0}.screen{padding-left:19px;padding-right:19px}.flow-grid{gap:8px}.flow-link{min-height:116px;padding:15px}.theme-grid{gap:6px}.theme-choice{padding:5px}}
+@media(max-width:360px){.screen{padding-left:16px;padding-right:16px}.flow-grid{grid-template-columns:1fr}.matrix{grid-template-columns:1fr}.quad:nth-child(odd){border-right:0}.quad:not(:last-child){border-bottom:1px solid var(--line)}.quad{min-height:130px}.theme-grid{grid-template-columns:repeat(2,1fr)}.title{font-size:calc(25px * var(--font-scale))}.header-actions .icon-btn:first-child{display:none}}
+
+/* THREAD FIELD V2 — solid rails, no cross-node connectors */
+.phone:before{display:none}
+.header{background:color-mix(in srgb,var(--paper) 94%,transparent);backdrop-filter:blur(14px)}
+.section-line{background:var(--line);margin-bottom:16px}
+.veil{background:color-mix(in srgb,var(--surface) 58%,transparent);box-shadow:none;backdrop-filter:none}
+.icon-btn{background:transparent;backdrop-filter:none}
+
+/* One line direction per component. Nodes never sit on a cross junction. */
+.thread-list{padding-left:24px}
+.thread-list:before{left:6px;top:18px;bottom:18px;background:var(--line)}
+.thread-item:before{display:none}
+.node{left:-22px;top:22px;width:8px;height:8px}
+.node.small{left:-20px;top:23px;width:5px;height:5px}
+.node.tiny{left:-19px}
+.node.current{box-shadow:0 0 0 6px var(--thread-soft)}
+.node.current:after{display:none}
+.thread-row.selected{background:color-mix(in srgb,var(--thread-soft) 34%,transparent)}
+
+.focus-thread{padding:19px 18px 19px 48px;border-radius:16px}
+.focus-thread:before{left:22px;top:20px;bottom:20px;background:var(--line)}
+.focus-node{left:16px;top:29px;width:13px;height:13px;box-shadow:0 0 0 7px var(--thread-soft)}
+.focus-node:after{display:none}
+.return-line{background:transparent;border-left:0;border-right:0;border-radius:0;padding-left:4px;padding-right:4px}
+.return-line i{box-shadow:none}
+
+.flow-link:before{display:none}
+.flow-link:after{left:18px;top:18px;width:7px;height:7px}
+.flow-link .index{margin-left:16px}
+.flow-link .flow-name{margin-top:30px}
+.flow-link.current:after{box-shadow:0 0 0 5px var(--thread-soft)}
+
+/* Outliner: indentation + group rail. No branch crosses or intersection nodes. */
+.outline-root{padding-left:0;margin-top:10px}
+.outline-root:before{display:none}
+.outline-head{padding:12px 8px 12px 4px;border-radius:9px}
+.outline-head:before,.outline-head:after{display:none}
+.outline-name{gap:8px}
+.outline-name:before{content:"";width:7px;height:7px;border:1px solid var(--thread);border-radius:50%;flex:none;background:var(--paper)}
+.outline-block.open>.outline-head .outline-name:before{background:var(--node);border-color:var(--node);box-shadow:0 0 0 4px var(--thread-soft)}
+.outline-head:hover,.outline-head.selected{background:color-mix(in srgb,var(--thread-soft) 28%,transparent)}
+.outline-children{margin-left:10px;padding-left:17px;border-left:1px solid var(--line)}
+.outline-children:before{display:none}
+.outline-leaf{padding-left:4px}
+.outline-leaf:before{display:none}
+.outline-leaf:after{left:-20px;top:calc(50% - 2px);width:4px;height:4px;background:var(--faint)}
+.outline-leaf.selected{background:color-mix(in srgb,var(--thread-soft) 32%,transparent)}
+
+/* Goals, journey and time: solid vertical rail only. */
+.goal-path:before,.journey:before,.time-axis:before{background:var(--line)}
+.goal-card:before,.journey-event:before,.time-event:before{display:none}
+.goal-card .goal-node{left:-27px;width:10px;height:10px}
+.goal-card.active .goal-node{box-shadow:0 0 0 6px var(--thread-soft)}
+.journey-event.current .j-node,.time-event.current .time-node{box-shadow:0 0 0 6px var(--thread-soft)}
+.progress-route i{box-shadow:0 0 0 4px var(--thread-soft)}
+.time-card{background:transparent;border-left:0;border-right:0;border-radius:0;padding-left:0;padding-right:0}
+
+/* Habits use a horizontal track only. */
+.habit-main-node{width:8px;height:8px}
+.habit-card.done .habit-main-node{box-shadow:0 0 0 4px var(--thread-soft)}
+.habit-track{gap:7px}
+.habit-dot{width:5px;height:5px}
+.habit-dot.today{width:7px;height:7px;box-shadow:0 0 0 3px color-mix(in srgb,var(--node-2) 14%,transparent)}
+
+/* Personal astrology and daily pillar are visible on Today and Fortune. */
+.day-context{width:100%;position:relative;display:block;text-align:left;margin:0 0 15px;padding:12px 30px 12px 0;border-bottom:1px solid var(--line)}
+.context-line{display:grid;grid-template-columns:64px minmax(0,1fr);gap:10px;align-items:baseline;padding:4px 0}
+.context-line small{color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono);letter-spacing:.03em}
+.context-line span{color:var(--text);font-size:calc(11px * var(--font-scale));line-height:1.45}
+.day-context>i{position:absolute;right:3px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--faint);font-size:18px}
+
+.astro-signature{margin-top:5px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.astro-group{padding:17px 0}
+.astro-label{margin:0 0 10px;color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono);letter-spacing:.15em}
+.astro-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:baseline;min-height:34px;padding:6px 0}
+.astro-row>span{color:var(--muted);font-size:calc(10px * var(--font-scale))}
+.astro-row strong{color:var(--ink);font-weight:400;font-size:calc(14px * var(--font-scale))}
+.astro-row small{color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono);white-space:nowrap}
+.astro-divider{height:1px;background:var(--line)}
+.day-pulse{position:relative;margin:22px 0 12px;padding-left:27px}
+.day-pulse:before{content:"";position:absolute;left:6px;top:12px;bottom:14px;width:1px;background:var(--line)}
+.pulse-item{position:relative;padding:0 0 24px}
+.pulse-node{position:absolute;left:-25px;top:7px;width:7px;height:7px;border:1px solid var(--thread);border-radius:50%;background:var(--paper)}
+.pulse-node.active{background:var(--node);border-color:var(--node);box-shadow:0 0 0 5px var(--thread-soft)}
+.pulse-item span{color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono);letter-spacing:.07em}
+.pulse-item h2{margin:7px 0 5px;color:var(--ink);font-size:calc(15px * var(--font-scale));font-weight:400;line-height:1.4}
+.pulse-item p{margin:0;color:var(--muted);font-size:calc(11px * var(--font-scale));line-height:1.55}
+.fortune-action{margin-top:10px;padding:17px 0;border-top:1px solid var(--line)}
+.fortune-action .symbol{color:var(--node);font:400 calc(8px * var(--font-scale))/1 var(--mono);letter-spacing:.14em}
+.fortune-action>p{margin:11px 0 3px;color:var(--muted);font-size:calc(10px * var(--font-scale))}
+.fortune-action h2{margin:0;color:var(--ink);font-family:var(--serif);font-weight:300;font-size:calc(20px * var(--font-scale));line-height:1.4}
+
+/* Remove remaining decorative gradients and floating capsule feel. */
+.fortune-orbit,.fortune-card:before{display:none}
+.section-line,.focus-thread:before,.thread-list:before,.goal-path:before,.journey:before,.time-axis:before,.outline-children,.day-pulse:before{background-color:var(--line);background-image:none}
+.bottom-nav{left:0;right:0;bottom:0;height:var(--nav-h);border-left:0;border-right:0;border-bottom:0;border-radius:0;background:color-mix(in srgb,var(--paper) 93%,transparent);box-shadow:none}
+.nav-btn.active:after{top:5px;box-shadow:none}
+.capture-nav{width:44px;height:44px;box-shadow:none}
+.composer{border-radius:16px}
+.composer-branches:before{background:var(--line)}
+
+[data-astro][hidden]{display:none!important}
+@media(max-width:360px){.context-line{grid-template-columns:56px minmax(0,1fr)}.astro-row{grid-template-columns:38px minmax(0,1fr)}.astro-row small{display:none}}
+
+
+/* ===== REFERENCE MERGE FINAL ===== */
+:root{
+  --card-study:color-mix(in srgb,#E9D96A 18%,var(--paper));
+  --card-focus:color-mix(in srgb,#AFC8F0 22%,var(--paper));
+  --card-calm:color-mix(in srgb,#A9D1C3 19%,var(--paper));
+  --card-habit:color-mix(in srgb,#E8BDD2 20%,var(--paper));
+  --card-external:color-mix(in srgb,#B9C4D6 17%,var(--paper));
+}
+html[data-theme="midnight"]{--card-study:#282A25;--card-focus:#202C42;--card-calm:#1D302B;--card-habit:#30242C;--card-external:#252D3B}
+*{font-weight:400!important}
+strong,b,h1,h2,h3,h4{font-weight:400!important}
+body{letter-spacing:-.018em}
+.phone:before{display:none!important}.header{background:color-mix(in srgb,var(--paper) 96%,transparent);backdrop-filter:blur(16px)}
+.title,.title.small{font-weight:400!important;letter-spacing:-.045em}.title{font-size:calc(28px * var(--font-scale))}.title.small{font-size:calc(25px * var(--font-scale))}
+.eyebrow{letter-spacing:.19em}.section-line{display:none}.veil{box-shadow:none;background:var(--surface);backdrop-filter:none}
+.icon-btn{border-color:var(--line);background:transparent}.tabs{border-bottom:1px solid var(--line)}.tabs button{font-weight:400!important}.tabs button.active{color:var(--ink);font-weight:400!important}.tabs button.active:after{height:1px}
+/* Today */
+.compact-context{margin-top:-2px;padding:8px 28px 10px 0}.date-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:7px 0 14px;border-bottom:1px solid var(--line)}
+.date-strip button{position:relative;min-height:52px;border-radius:14px;color:var(--muted)}.date-strip span{display:block;font-size:calc(9px * var(--font-scale));margin-bottom:6px}.date-strip b{display:block;font-size:calc(13px * var(--font-scale));font-weight:400!important}.date-strip button.selected{background:color-mix(in srgb,var(--node) 14%,var(--paper));color:var(--ink)}.date-strip button.selected i{position:absolute;bottom:7px;left:50%;width:3px;height:3px;border-radius:50%;background:var(--node);transform:translateX(-50%)}
+.today-filter{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:16px 0 10px;padding:4px;border-radius:14px;background:var(--surface)}.today-filter button{height:36px;border-radius:10px;color:var(--muted)}.today-filter button.active{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.schedule-board{display:grid;gap:9px}.daypart{display:flex;justify-content:space-between;align-items:center;margin:12px 1px 2px;color:var(--ink);font-size:calc(12px * var(--font-scale))}.daypart small{color:var(--muted);font-family:var(--mono)}
+.schedule-card{position:relative;display:grid;grid-template-columns:48px 18px minmax(0,1fr);gap:8px;align-items:start;padding:14px;border-radius:16px;background:var(--surface);transition:.18s}.schedule-card.study{background:var(--card-study)}.schedule-card.focus{background:var(--card-focus)}.schedule-card.calm{background:var(--card-calm)}.schedule-card.external{background:var(--card-external)}.schedule-card.done-card{background:var(--surface);opacity:.62}.schedule-card.current:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;background:var(--node)}
+.schedule-time{color:var(--muted);font:400 calc(9px * var(--font-scale))/1.4 var(--mono);padding-top:2px}.schedule-check{width:14px;height:14px;border:1px solid var(--line-strong);border-radius:4px;margin-top:2px;background:color-mix(in srgb,var(--paper) 65%,transparent)}.schedule-check.done{background:var(--node);border-color:var(--node);position:relative}.schedule-check.done:after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:var(--paper);font-size:9px}.schedule-card h2{margin:0;color:var(--ink);font-size:calc(13px * var(--font-scale));line-height:1.4}.schedule-card p{margin:4px 0 0;color:var(--muted);font-size:calc(10px * var(--font-scale));line-height:1.4}.card-kicker{display:flex;justify-content:space-between;color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono);margin-bottom:7px}.inline-actions{display:flex;gap:7px;margin-top:11px}.inline-actions button{padding:7px 10px;border-radius:9px;background:color-mix(in srgb,var(--paper) 60%,transparent);color:var(--ink);font-size:calc(10px * var(--font-scale))}.resume-compact{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;text-align:left;margin:16px 0 8px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.resume-compact span{color:var(--ink);font-size:calc(11px * var(--font-scale))}.resume-compact small{color:var(--muted);font-size:calc(9px * var(--font-scale))}.resume-compact i{grid-row:1/3;grid-column:2;font-style:normal;color:var(--node);align-self:center;font-size:calc(10px * var(--font-scale))}.today-summary{display:flex;gap:18px;color:var(--muted);font-size:calc(9px * var(--font-scale));padding:8px 0}.today-summary b{color:var(--ink)}
+/* Flow */
+.workspace-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:4px}.workspace-grid>button{min-height:112px;padding:16px;border:1px solid var(--line);border-radius:16px;text-align:left;background:color-mix(in srgb,var(--surface) 52%,transparent)}.workspace-grid>button span{font:400 8px/1 var(--mono);color:var(--faint)}.workspace-grid h2{margin:25px 0 5px;color:var(--ink);font-size:calc(13px * var(--font-scale))}.workspace-grid p{margin:0;color:var(--muted);font-size:calc(9px * var(--font-scale));line-height:1.45}
+.activity-feed{position:relative;padding-left:22px}.activity-feed:before{content:"";position:absolute;left:6px;top:8px;bottom:8px;border-left:1px dotted var(--line-strong)}.activity-feed article{position:relative;display:grid;grid-template-columns:82px minmax(0,1fr);gap:9px;padding:9px 0}.activity-feed .feed-dot{position:absolute;left:-20px;top:15px;width:7px;height:7px;border:1px solid var(--line-strong);border-radius:50%;background:var(--paper)}.activity-feed .feed-dot.accent{background:var(--node);border-color:var(--node)}.activity-feed .feed-dot.soft{background:var(--node-2);border-color:var(--node-2)}.activity-feed time{color:var(--muted);font:400 calc(8px * var(--font-scale))/1.5 var(--mono)}.activity-feed button,.activity-feed article>div{width:100%;text-align:left;padding:10px 12px;border-radius:11px;background:color-mix(in srgb,var(--surface) 58%,transparent)}.activity-feed span{display:block;color:var(--ink);font-size:calc(11px * var(--font-scale))}.activity-feed small{display:block;color:var(--muted);font-size:calc(9px * var(--font-scale));margin-top:4px}.activity-feed.detailed article{grid-template-columns:92px minmax(0,1fr)}
+/* Outliner technical map */
+.outline-toolbar{display:flex;gap:7px;align-items:center;padding:5px 0 13px;border-bottom:1px solid var(--line);overflow:auto}.outline-toolbar button{padding:7px 9px;border-radius:9px;color:var(--muted);white-space:nowrap;font-size:calc(9px * var(--font-scale))}.outline-toolbar button.active{background:var(--surface);color:var(--ink)}.outline-toolbar span{margin-left:auto;color:var(--muted);font:400 8px/1 var(--mono)}
+.tree-viewport{margin-top:13px;overflow:auto;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--paper) 94%,var(--surface));min-height:410px}.tree-canvas{min-width:520px;padding:24px 20px;font-family:var(--mono);font-size:calc(11px * var(--font-scale));line-height:1.8}.tree-line{display:flex;align-items:center;min-height:32px;white-space:nowrap}.branch-glyph{color:var(--line-strong);min-width:66px;letter-spacing:0}.tree-line.level-0 .branch-glyph{display:none}.tree-node,.tree-leaf{display:flex;align-items:center;gap:22px;padding:3px 7px;border-radius:6px;color:var(--text);text-align:left}.tree-node.selected,.tree-leaf.selected{background:color-mix(in srgb,var(--node) 12%,transparent);color:var(--ink)}.tree-node:hover,.tree-leaf:hover{background:var(--surface)}.tree-label{min-width:150px}.tree-meta,.tree-leaf small{color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono)}.tree-leaf>span{min-width:145px}.tree-leaf.done>span{text-decoration:line-through;color:var(--muted)}.tree-spacer{height:18px}.outline-inspector{margin:12px 0 0;padding:14px 0;border-top:1px solid var(--line)}.outline-inspector>span{display:block;color:var(--muted);font:400 8px/1 var(--mono);letter-spacing:.12em}.outline-inspector strong{display:block;color:var(--ink);font-size:calc(14px * var(--font-scale));margin:8px 0 3px}.outline-inspector small{color:var(--muted)}.outline-inspector div{display:flex;gap:7px;margin-top:12px}.outline-inspector button{padding:7px 10px;border-radius:8px;background:var(--surface);font-size:calc(9px * var(--font-scale))}.compact-tree{min-height:300px}.compact-tree .tree-canvas{min-width:420px}
+/* Dashboard */
+.dashboard-period{display:flex;justify-content:flex-end;gap:4px;margin:0 0 9px}.dashboard-period button{padding:7px 10px;border-radius:10px;color:var(--muted);font-size:calc(9px * var(--font-scale))}.dashboard-period button.active{background:var(--surface);color:var(--ink)}.metric-dashboard{padding:19px 18px 15px;border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--surface) 44%,transparent)}.metric-top{display:flex;justify-content:space-between;align-items:start}.metric-top small{display:block;color:var(--muted);font:400 8px/1 var(--mono);letter-spacing:.08em}.metric-top strong{display:block;margin-top:7px;color:var(--ink);font-size:calc(32px * var(--font-scale));font-family:var(--mono);letter-spacing:-.07em}.metric-mini{display:grid;gap:5px;text-align:right;color:var(--muted);font-size:calc(9px * var(--font-scale))}.dot-histogram{height:112px;display:flex;align-items:flex-end;gap:3px;margin-top:13px;padding:0 1px}.dot-column{display:flex;flex-direction:column-reverse;gap:3px;flex:1;align-items:center}.dot-column i{width:3px;height:3px;border-radius:50%;background:var(--line-strong)}.dot-column.active i{background:var(--node)}.chart-axis{display:flex;justify-content:space-between;margin-top:8px;color:var(--muted);font:400 8px/1 var(--mono)}.subtle-tabs{margin-top:16px}.dashboard-list{padding-left:22px}.dashboard-list:before{left:5px;border-left:1px dotted var(--line-strong);background:none}.goal-card{padding:17px 0 21px}.goal-card .goal-node{left:-22px;top:24px;width:9px;height:9px}.goal-card.active .goal-node{box-shadow:0 0 0 4px color-mix(in srgb,var(--node) 13%,transparent)}.goal-titleline span{font-family:var(--sans);font-size:calc(14px * var(--font-scale));font-weight:400!important}.goal-titleline small{font-size:calc(10px * var(--font-scale))}.goal-stats{display:flex;gap:12px;margin-top:8px;color:var(--muted);font-size:calc(9px * var(--font-scale))}.progress-route{height:12px}.progress-route:before,.progress-route .fill{top:6px}.progress-route i{top:2px;width:8px;height:8px;box-shadow:none}.goal-summary{margin-top:8px}.current-stage{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:13px;align-items:center;margin-top:14px;padding:15px;border-radius:14px;background:var(--card-focus)}.current-stage>i{width:8px;height:8px;border-radius:50%;background:var(--node)}.current-stage small{color:var(--muted);font:400 8px/1 var(--mono)}.current-stage h2{margin:5px 0 3px;color:var(--ink);font-size:calc(13px * var(--font-scale))}.current-stage p{margin:0;color:var(--muted);font-size:calc(9px * var(--font-scale))}.current-stage button{padding:8px 10px;border-radius:9px;background:color-mix(in srgb,var(--paper) 60%,transparent);font-size:calc(9px * var(--font-scale))}
+.clean-timeline{position:relative;padding:12px 0 0 28px}.clean-timeline:before{content:"";position:absolute;left:7px;top:25px;bottom:24px;border-left:1px dotted var(--line-strong)}.clean-timeline article{position:relative;padding:8px 0 24px}.clean-timeline article>i{position:absolute;left:-25px;top:14px;width:8px;height:8px;border:1px solid var(--line-strong);border-radius:50%;background:var(--paper)}.clean-timeline article.done>i{background:var(--node);border-color:var(--node)}.clean-timeline article.current>i{background:var(--node-2);border-color:var(--node-2);box-shadow:0 0 0 4px color-mix(in srgb,var(--node-2) 13%,transparent)}.clean-timeline time{color:var(--muted);font:400 8px/1 var(--mono)}.clean-timeline h3{margin:7px 0 4px;color:var(--ink);font-size:calc(13px * var(--font-scale))}.clean-timeline p{margin:0;color:var(--muted);font-size:calc(10px * var(--font-scale))}
+/* Habits */
+.habit-scale{display:flex;justify-content:space-between;align-items:center;margin:15px 0 4px;color:var(--muted);font-size:calc(9px * var(--font-scale))}.habit-scale button{color:var(--node);font-size:inherit}.habit-dashboard-list{border-top:1px solid var(--line)}.habit-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:15px 0;border-bottom:1px solid var(--line)}.habit-row .habit-name{display:flex;gap:12px;align-items:center;text-align:left}.frequency-node{display:block;width:var(--node-size,7px);height:var(--node-size,7px);border:1px solid var(--node);border-radius:50%;background:var(--paper);flex:none}.habit-row.done .frequency-node{background:color-mix(in srgb,var(--node) calc(var(--rate,70) * 1%),var(--paper));border-color:var(--node)}.habit-name span{font-size:calc(12px * var(--font-scale));color:var(--ink)}.habit-name small{display:block;margin-top:4px;color:var(--muted);font-size:calc(9px * var(--font-scale))}.habit-numbers{text-align:right}.habit-numbers span{display:block;color:var(--ink);font:400 calc(10px * var(--font-scale))/1 var(--mono)}.habit-numbers small{display:block;margin-top:5px;color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono)}.mini-track{grid-column:1/-1;height:15px;display:flex;gap:5px;align-items:center;padding-left:calc(var(--node-size,7px) + 12px)}.mini-track i{width:3px;height:3px;border-radius:50%;background:var(--line-strong)}.mini-track i.on{background:var(--node)}.mini-track i.today{width:5px;height:5px;background:var(--node-2)}
+/* Routine and time single rail */
+.routine-tabs,.time-tabs{margin-bottom:10px}.routine-day-head{display:flex;justify-content:space-between;padding:10px 0 8px;color:var(--ink);font-size:calc(11px * var(--font-scale))}.routine-day-head small{color:var(--muted);font-family:var(--mono)}.single-rail{position:relative;padding:7px 0 10px 74px}.single-rail:before{content:"";position:absolute;left:54px;top:20px;bottom:24px;width:1px;background:var(--line)}.rail-item{position:relative;min-height:78px;padding:10px 0 17px}.rail-item time{position:absolute;left:-74px;top:13px;width:42px;text-align:right;color:var(--muted);font:400 calc(9px * var(--font-scale))/1 var(--mono)}.rail-item>i{position:absolute;left:-24px;top:13px;width:9px;height:9px;border:1px solid var(--line-strong);border-radius:50%;background:var(--paper)}.rail-item.done>i{background:var(--node);border-color:var(--node)}.rail-item.current>i{background:var(--node);border-color:var(--node);box-shadow:0 0 0 5px color-mix(in srgb,var(--node) 13%,transparent)}.rail-item.frequent>i{width:12px;height:12px;left:-25.5px;top:11.5px;background:var(--node);border-color:var(--node)}.rail-item.external>i{background:var(--node-2);border-color:var(--node-2)}.rail-item h3{margin:0;color:var(--ink);font-size:calc(13px * var(--font-scale))}.rail-item p{margin:6px 0 0;color:var(--muted);font-size:calc(10px * var(--font-scale))}.rail-gap{position:relative;min-height:44px;padding:12px 0;color:var(--faint);font-size:calc(9px * var(--font-scale))}.rail-gap time{position:absolute;left:-74px;width:42px;text-align:right;font:400 calc(8px * var(--font-scale))/1 var(--mono)}.rail-gap span{display:block}.new-timer{display:flex;justify-content:space-between;align-items:center;margin:5px 0 12px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card-focus)}.new-timer small{color:var(--muted);font:400 8px/1 var(--mono)}.new-timer .clock{margin-top:6px}.new-timer p{margin:5px 0 0;color:var(--muted);font-size:calc(9px * var(--font-scale))}.week-board{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:42px repeat(4,74px);gap:5px;margin-top:10px}.week-header{display:contents}.week-header span{display:grid;place-items:center;border-radius:11px;color:var(--muted);font-size:calc(9px * var(--font-scale))}.week-header span.selected{background:color-mix(in srgb,var(--node) 13%,var(--paper));color:var(--ink)}.week-block{grid-column:var(--col);grid-row:calc(var(--row) + 1);border-radius:11px;padding:8px;font-size:calc(8px * var(--font-scale));background:var(--surface)}.week-block.study{background:var(--card-study)}.week-block.calm{background:var(--card-calm)}.week-block.focus{background:var(--card-focus)}.week-block.external{background:var(--card-external)}.month-link{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;margin-top:15px;padding:17px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);text-align:left}.month-link span{color:var(--ink)}.month-link small{color:var(--muted)}.month-link i{grid-row:1/3;grid-column:2;align-self:center;font-style:normal}.routine-template-list{margin-top:10px}.routine-template-list .routine-head{border-bottom:1px solid var(--line)}
+/* Rich calendar */
+.calendar-screen{padding-left:20px;padding-right:20px}.calendar-main-tabs{text-transform:lowercase}.calendar-head{grid-template-columns:40px 1fr 40px;margin:15px 0 12px}.calendar-head>div{text-align:center}.calendar-head span{display:block;font-size:calc(18px * var(--font-scale));font-family:var(--serif)}.calendar-head small{display:block;margin-top:6px;color:var(--muted);font-size:calc(10px * var(--font-scale))}.calendar-head button{border:0;border-radius:0;font-size:24px}.rich-calendar{gap:1px}.rich-calendar .dow{padding:8px 0;font-size:calc(9px * var(--font-scale))}.calendar-cell{position:relative;min-height:68px;border-radius:10px;padding:7px 2px 5px;text-align:center;color:var(--text)}.calendar-cell.muted{opacity:.34}.calendar-cell.selected{background:color-mix(in srgb,var(--node) 15%,var(--paper))}.calendar-cell.today .solar{color:var(--node-2)}.calendar-cell.today:after{content:"";position:absolute;top:5px;right:7px;width:3px;height:3px;border-radius:50%;background:var(--node-2)}.calendar-cell .solar{display:block;font-family:var(--serif);font-size:calc(13px * var(--font-scale));line-height:1}.calendar-cell .pillar{display:block;margin-top:7px;color:var(--muted);font-size:calc(7px * var(--font-scale));white-space:nowrap}.calendar-cell .moon{display:block;margin:5px auto 0;width:8px;height:8px;border-radius:50%;background:conic-gradient(var(--muted) var(--moon,50%),transparent 0);border:1px solid color-mix(in srgb,var(--muted) 35%,transparent)}.rich-detail{margin:18px 0 0;padding:18px 0 0;border-top:1px solid var(--line);border-radius:0;background:transparent}.selected-date-head{display:flex;justify-content:space-between;gap:12px}.selected-date-head h2{margin:0 0 9px;color:var(--ink);font-family:var(--serif);font-size:calc(19px * var(--font-scale))}.selected-date-head p{margin:4px 0;color:var(--muted);font-size:calc(10px * var(--font-scale))}.selected-date-head>button{align-self:start;color:var(--ink);font-size:calc(11px * var(--font-scale))}.detail-tabs{margin-top:14px}.calendar-detail-panel{display:none}.calendar-detail-panel.active{display:block}.selected-schedule article{display:grid;grid-template-columns:48px 9px minmax(0,1fr);gap:10px;align-items:start;padding:13px 0}.selected-schedule time{color:var(--muted);font:400 calc(9px * var(--font-scale))/1.4 var(--mono)}.event-dot{width:7px;height:7px;border-radius:50%;margin-top:3px;background:var(--node)}.event-dot.study{background:#C7B84D}.event-dot.calm{background:var(--node)}.event-dot.habit{background:var(--node-2)}.selected-schedule h3{margin:0;color:var(--ink);font-size:calc(12px * var(--font-scale))}.selected-schedule p{margin:4px 0 0;color:var(--muted);font-size:calc(9px * var(--font-scale))}.empty-copy{color:var(--muted);padding:20px 0}
+/* Final controls */
+.bottom-nav{background:color-mix(in srgb,var(--paper) 96%,transparent);border-top:1px solid var(--line)}.capture-nav{box-shadow:none}.nav-btn.active:after{box-shadow:none}.composer{border-radius:16px}.palette{border-radius:18px}
+@media(max-width:360px){.workspace-grid{grid-template-columns:1fr 1fr}.tree-canvas{min-width:480px}.schedule-card{grid-template-columns:42px 16px minmax(0,1fr);padding:12px}.calendar-cell{min-height:61px}.calendar-cell .pillar{font-size:6px}}
+
+
+/* ===== REFERENCE MERGE V3 COMPLETE ===== */
+:root{
+  --mineral-sage:#6F8B79;--mineral-sage-soft:rgba(111,139,121,.14);
+  --mineral-blue:#7389A6;--mineral-blue-soft:rgba(115,137,166,.14);
+  --mineral-rose:#B57A86;--mineral-rose-soft:rgba(181,122,134,.14);
+  --mineral-ochre:#A78958;--mineral-ochre-soft:rgba(167,137,88,.15);
+  --mineral-plum:#88788F;--mineral-plum-soft:rgba(136,120,143,.14);
+  --mineral-teal:#638C8B;--mineral-teal-soft:rgba(99,140,139,.14);
+}
+html[data-theme="midnight"]{
+  --mineral-sage:#8EAD99;--mineral-sage-soft:rgba(142,173,153,.16);
+  --mineral-blue:#91A7C8;--mineral-blue-soft:rgba(145,167,200,.16);
+  --mineral-rose:#C68A97;--mineral-rose-soft:rgba(198,138,151,.16);
+  --mineral-ochre:#B99B66;--mineral-ochre-soft:rgba(185,155,102,.16);
+  --mineral-plum:#A092A8;--mineral-plum-soft:rgba(160,146,168,.16);
+  --mineral-teal:#7AA5A4;--mineral-teal-soft:rgba(122,165,164,.16);
+}
+
+/* Persistent navigation on every screen */
+.screen,.screen.sub{padding-bottom:calc(var(--nav-h) + 30px)!important}
+.bottom-nav{display:grid!important;z-index:35}
+.screen.sub .header{padding-top:14px}
+
+/* Continuous tree connectors: no visual gaps behind rows */
+.outline-sheet{overflow-x:hidden}
+.outline-tree,.outline-tree ul{overflow:visible}
+.outline-tree ul{border-left:0!important;position:relative;margin-left:15px;padding-left:18px}
+.outline-tree ul::before{content:"";position:absolute;left:0;top:-15px;bottom:-4px;width:1px;background:color-mix(in srgb,var(--line-strong) 88%,transparent);z-index:2;pointer-events:none}
+.outline-tree ul>li::before{content:"";position:absolute;left:-18px;top:0;width:18px;height:18px;border-bottom:1px solid color-mix(in srgb,var(--line-strong) 88%,transparent);z-index:2;pointer-events:none}
+.outline-tree ul>li:last-child::after{display:none!important}
+.tree-row{position:relative;z-index:1;min-width:0}
+.tree-row.selected{background:color-mix(in srgb,var(--mineral-sage) 12%,var(--paper))}
+.goal-structure-sheet{margin-top:12px;min-height:330px;padding:18px 12px 22px 8px}
+.goal-structure-sheet .tree-row{width:100%;grid-template-columns:18px minmax(0,1fr) auto}
+.goal-structure-sheet .outline-tree ul::before{top:-14px}
+
+/* Contextual capture composer */
+.composer-context{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:13px 14px 10px;border-bottom:1px solid var(--line)}
+.composer-context div{min-width:0}.composer-context small{display:block;color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono);letter-spacing:.12em}.composer-context span{display:block;margin-top:6px;color:var(--ink);font-size:calc(13px * var(--font-scale))}.composer-context em{font-style:normal;color:var(--muted);font-size:calc(9px * var(--font-scale));line-height:1.45;text-align:right;max-width:45%}
+.type-chips button[hidden]{display:none}
+
+/* Voice capture */
+.voice-capture{margin:1px 0 15px;padding:12px;border:1px solid var(--line);border-radius:15px;background:color-mix(in srgb,var(--surface) 58%,transparent)}
+.voice-capture>button{width:100%;display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:11px;align-items:center;text-align:left}
+.voice-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--mineral-blue-soft);color:var(--mineral-blue)}.voice-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.voice-copy b{display:block;color:var(--ink);font-weight:400}.voice-copy small{display:block;margin-top:4px;color:var(--muted);font-size:calc(9px * var(--font-scale));line-height:1.35}.voice-state{color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono)}
+.voice-meter{height:16px;display:flex;align-items:center;justify-content:center;gap:3px;margin-top:10px;opacity:.35}.voice-meter i{width:2px;height:4px;border-radius:3px;background:var(--mineral-blue);transform-origin:center}.voice-capture.listening{border-color:color-mix(in srgb,var(--mineral-rose) 45%,var(--line));background:var(--mineral-rose-soft)}.voice-capture.listening .voice-icon{background:var(--mineral-rose-soft);color:var(--mineral-rose)}.voice-capture.listening .voice-meter{opacity:1}.voice-capture.listening .voice-meter i{animation:voiceWave .75s ease-in-out infinite alternate}.voice-capture.listening .voice-meter i:nth-child(2){animation-delay:.1s}.voice-capture.listening .voice-meter i:nth-child(3){animation-delay:.2s}.voice-capture.listening .voice-meter i:nth-child(4){animation-delay:.3s}.voice-capture.listening .voice-meter i:nth-child(5){animation-delay:.2s}.voice-capture.listening .voice-meter i:nth-child(6){animation-delay:.1s}@keyframes voiceWave{to{height:15px}}
+
+/* Premium fortune */
+.premium-fortune{display:grid;gap:14px;padding-bottom:16px}
+.fortune-overview-panel,.fortune-panel,.fortune-action{border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--surface) 50%,transparent)}
+.fortune-overview-panel{overflow:hidden}.fortune-date-line{display:flex;justify-content:space-between;gap:10px;padding:12px 15px;border-bottom:1px solid var(--line);color:var(--muted);font:400 calc(8px * var(--font-scale))/1.35 var(--mono)}
+.fortune-overview-grid{display:grid;grid-template-columns:1.12fr .88fr;min-height:290px}.celestial-illustration{display:grid;place-items:center;padding:12px;border-right:1px solid var(--line);color:var(--text)}.celestial-illustration svg{width:100%;max-height:300px}.astro-ring{fill:none;stroke:var(--line-strong);stroke-width:1}.astro-ring.outer{stroke-dasharray:2 6}.astro-ring.inner{stroke:var(--line)}.house-lines path{fill:none;stroke:var(--line);stroke-width:.7}.orbit-path{fill:none;stroke-width:1.5}.orbit-path.sage{stroke:var(--mineral-sage)}.orbit-path.blue{stroke:var(--mineral-blue)}.orbit-path.rose{stroke:var(--mineral-rose)}.planet circle{stroke:var(--paper);stroke-width:2}.p-sun circle{fill:var(--mineral-ochre)}.p-moon circle{fill:var(--mineral-rose)}.p-asc circle{fill:var(--mineral-blue)}.p-day circle{fill:var(--mineral-sage)}.planet text,.zodiac-labels text{fill:var(--muted);font:400 8px var(--mono)}.p-day text{fill:var(--paper);font-size:9px}
+.fortune-thesis{padding:25px 18px;display:flex;flex-direction:column;justify-content:center}.fortune-thesis>small{color:var(--muted);font:400 8px/1 var(--mono);letter-spacing:.12em}.fortune-thesis h2{margin:12px 0 10px;color:var(--ink);font-family:var(--serif);font-size:calc(22px * var(--font-scale));font-weight:300;line-height:1.35}.fortune-thesis p{margin:0;color:var(--muted);font-size:calc(10px * var(--font-scale));line-height:1.65}.fortune-keywords{display:flex;flex-wrap:wrap;gap:6px;margin-top:17px}.fortune-keywords span{padding:6px 8px;border:1px solid var(--line);border-radius:999px;color:var(--text);font-size:calc(8px * var(--font-scale))}
+.fortune-score-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.score-card{position:relative;overflow:hidden;min-height:108px;padding:14px 12px;border:1px solid var(--line);border-radius:15px;background:color-mix(in srgb,var(--surface) 54%,transparent)}.score-card span{display:block;color:var(--muted);font-size:calc(9px * var(--font-scale))}.score-card b{display:block;margin:8px 0 5px;color:var(--ink);font:400 calc(24px * var(--font-scale))/1 var(--mono)}.score-card small{display:block;color:var(--muted);font-size:calc(8px * var(--font-scale));line-height:1.35}.score-card>i{position:absolute;left:0;bottom:0;width:var(--score);height:3px;background:currentColor}.score-card.mineral-sage{color:var(--mineral-sage);background:var(--mineral-sage-soft)}.score-card.mineral-blue{color:var(--mineral-blue);background:var(--mineral-blue-soft)}.score-card.mineral-ochre{color:var(--mineral-ochre);background:var(--mineral-ochre-soft)}.score-card.mineral-plum{color:var(--mineral-plum);background:var(--mineral-plum-soft)}
+.fortune-panel{padding:17px}.panel-heading{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.panel-heading small{display:block;color:var(--muted);font:400 8px/1 var(--mono);letter-spacing:.1em}.panel-heading h2{margin:7px 0 0;color:var(--ink);font-size:calc(15px * var(--font-scale))}.panel-heading>span{color:var(--muted);font-size:calc(8px * var(--font-scale));white-space:nowrap}
+.radar-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(105px,.6fr);gap:12px;align-items:center;margin-top:8px}.radar-chart{width:100%;max-height:230px}.radar-grid path{fill:none;stroke:var(--line);stroke-width:1}.radar-shape{fill:var(--mineral-blue-soft);stroke:var(--mineral-blue);stroke-width:1.4}.radar-points circle{fill:var(--mineral-rose);stroke:var(--paper);stroke-width:2}.radar-labels text{fill:var(--muted);font:400 9px var(--sans)}.radar-legend{display:grid;gap:10px}.radar-legend div{display:grid;grid-template-columns:8px minmax(0,1fr);gap:4px 8px}.radar-legend i{width:7px;height:7px;border-radius:50%;margin-top:4px}.radar-legend span{color:var(--ink);font-size:calc(9px * var(--font-scale))}.radar-legend small{grid-column:2;color:var(--muted);font-size:calc(8px * var(--font-scale))}.radar-legend i.mineral-sage,.energy-legend i.mineral-sage{background:var(--mineral-sage)}.radar-legend i.mineral-blue,.energy-legend i.mineral-blue{background:var(--mineral-blue)}.radar-legend i.mineral-ochre{background:var(--mineral-ochre)}
+.energy-chart-v3{width:100%;height:148px;margin-top:14px;overflow:visible}.energy-grid-lines path{stroke:var(--line);stroke-width:.7}.energy-line{fill:none;stroke-width:2}.energy-line.focus{stroke:var(--mineral-blue)}.energy-line.emotion{stroke:var(--mineral-rose);stroke-dasharray:4 5}.energy-markers circle{fill:var(--mineral-sage);stroke:var(--paper);stroke-width:2}.chart-labels text{fill:var(--muted);font:400 8px var(--mono)}.energy-legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:calc(8px * var(--font-scale))}.energy-legend span{display:flex;align-items:center;gap:6px}.energy-legend i{width:7px;height:7px;border-radius:50%}.energy-legend i.mineral-rose{background:var(--mineral-rose)}
+.element-detail-bars{display:grid;gap:11px;margin-top:16px}.element-detail-bars>div{display:grid;grid-template-columns:18px minmax(0,1fr) 24px 78px;gap:9px;align-items:center}.element-detail-bars span,.element-detail-bars small{color:var(--muted);font:400 calc(8px * var(--font-scale))/1 var(--mono)}.element-detail-bars>div>i{height:6px;border-radius:10px;background:var(--surface-2);overflow:hidden}.element-detail-bars b{display:block;height:100%;border-radius:10px}.element-detail-bars em{font-style:normal;color:var(--muted);font-size:calc(8px * var(--font-scale));text-align:right}
+.aspect-list{display:grid;margin-top:10px}.aspect-list article{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.aspect-list article:last-child{border-bottom:0}.aspect-list>article>i{width:7px;height:7px;border-radius:50%;margin-top:4px}.aspect-list i.mineral-rose{background:var(--mineral-rose)}.aspect-list i.mineral-sage{background:var(--mineral-sage)}.aspect-list i.mineral-blue{background:var(--mineral-blue)}.aspect-list span{color:var(--ink);font-size:calc(10px * var(--font-scale))}.aspect-list p{margin:5px 0 0;color:var(--muted);font-size:calc(9px * var(--font-scale));line-height:1.55}.aspect-list small{color:var(--muted);font:400 8px/1 var(--mono)}
+.time-window-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:13px}.time-window-grid div{min-height:83px;padding:11px;border-radius:12px;background:var(--surface)}.time-window-grid div.best{background:var(--mineral-sage-soft)}.time-window-grid div.active{background:var(--mineral-rose-soft)}.time-window-grid div.steady{background:var(--mineral-blue-soft)}.time-window-grid div.quiet{background:color-mix(in srgb,var(--surface) 68%,transparent)}.time-window-grid span{display:block;color:var(--muted);font:400 8px/1 var(--mono)}.time-window-grid b{display:block;margin:10px 0 4px;color:var(--ink);font-size:calc(11px * var(--font-scale))}.time-window-grid small{color:var(--muted);font-size:calc(8px * var(--font-scale))}
+.premium-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.premium-detail-grid .fortune-detail-card{min-height:210px;padding:16px;border:1px solid var(--line);border-radius:15px}.fortune-detail-card.mineral-sage{background:var(--mineral-sage-soft)}.fortune-detail-card.mineral-blue{background:var(--mineral-blue-soft)}.fortune-detail-card.mineral-ochre{background:var(--mineral-ochre-soft)}.fortune-detail-card.mineral-plum{background:var(--mineral-plum-soft)}.premium-detail-grid small{color:var(--muted);font:400 8px/1 var(--mono)}.premium-detail-grid h3{margin:10px 0 8px;color:var(--ink);font-size:calc(12px * var(--font-scale));line-height:1.5}.premium-detail-grid p,.premium-detail-grid li{color:var(--muted);font-size:calc(8.5px * var(--font-scale));line-height:1.55}.premium-detail-grid ul{margin:10px 0 0;padding-left:15px}
+.detail-index-list{display:grid;margin-top:12px}.detail-index-list>div{display:grid;grid-template-columns:115px minmax(0,1fr);gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.detail-index-list>div:last-child{border-bottom:0}.detail-index-list span{color:var(--muted);font-size:calc(9px * var(--font-scale))}.detail-index-list b{color:var(--ink);font-size:calc(9px * var(--font-scale));font-weight:400}.color-chip{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:-1px;margin:0 4px 0 7px}.color-chip.c1{background:var(--mineral-teal)}.color-chip.c2{background:var(--mineral-rose)}
+.premium-action{padding:19px;background:var(--mineral-sage-soft)}.premium-action .symbol{color:var(--mineral-sage);font:400 8px/1 var(--mono);letter-spacing:.1em}.premium-action p{margin:10px 0 5px;color:var(--muted);font-size:calc(9px * var(--font-scale))}.premium-action h2{margin:0 0 15px;color:var(--ink);font-family:var(--serif);font-size:calc(18px * var(--font-scale));font-weight:300;line-height:1.45}.fortune-prototype-note{margin:0 4px;color:var(--faint);font-size:calc(7.5px * var(--font-scale));line-height:1.5}
+
+/* Context-added items */
+.context-added{animation:softIn .22s ease}.context-badge{display:inline-block;margin-right:6px;padding:3px 6px;border-radius:7px;background:var(--mineral-blue-soft);color:var(--mineral-blue);font-size:7px}
+
+@media(max-width:390px){.fortune-overview-grid{grid-template-columns:1fr}.celestial-illustration{border-right:0;border-bottom:1px solid var(--line)}.fortune-score-grid{grid-template-columns:1fr 1fr}.radar-layout{grid-template-columns:1fr}.radar-legend{grid-template-columns:repeat(3,1fr)}.premium-detail-grid{grid-template-columns:1fr}.time-window-grid{grid-template-columns:1fr 1fr}.element-detail-bars>div{grid-template-columns:18px minmax(0,1fr) 24px}.element-detail-bars em{display:none}.fortune-date-line{flex-direction:column}.detail-index-list>div{grid-template-columns:92px minmax(0,1fr)}}
+</style>
+<style>
+/* ===== Reference merged v2: calendar stream, continuous outliner, richer routines and fortune ===== */
+:root{
+  --accent-sage:#7FAE97;--accent-sage-soft:rgba(127,174,151,.16);
+  --accent-blue:#86A8D4;--accent-blue-soft:rgba(134,168,212,.17);
+  --accent-rose:#D68EAA;--accent-rose-soft:rgba(214,142,170,.17);
+  --accent-amber:#D6AF63;--accent-amber-soft:rgba(214,175,99,.18);
+  --accent-violet:#A594CF;--accent-violet-soft:rgba(165,148,207,.17);
+  --accent-cyan:#76B8BC;--accent-cyan-soft:rgba(118,184,188,.17);
+}
+html[data-theme="manila"]{--accent-sage:#83936D;--accent-blue:#8FA7BC;--accent-rose:#C78A7B;--accent-amber:#C49C4E;--accent-violet:#A08AAE;--accent-cyan:#76A7A0}
+html[data-theme="newsprint"]{--accent-sage:#65766A;--accent-blue:#7B8A9E;--accent-rose:#B76262;--accent-amber:#A58A54;--accent-violet:#81778F;--accent-cyan:#667F80}
+html[data-theme="midnight"]{--accent-sage:#8ABEA4;--accent-blue:#8FAFE2;--accent-rose:#D98FAE;--accent-amber:#D7B86B;--accent-violet:#AB9BDB;--accent-cyan:#7CC6CA}
+.screen h1,.screen h2,.screen h3,.screen h4,.screen strong,.screen b,.screen button,.screen .title,.screen .tree-title,.screen .tree-meta{font-weight:400!important}
+
+/* Continuous technical outliner */
+.outline-sheet{margin-top:14px;padding:18px 12px 18px 6px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--paper) 84%,var(--surface));overflow-x:auto}
+.outline-tree,.outline-tree ul{list-style:none;margin:0;padding:0}.outline-tree ul{position:relative;margin-left:15px;padding-left:18px;border-left:1px solid color-mix(in srgb,var(--line-strong) 82%,transparent)}
+.outline-tree li{position:relative;margin:0;padding:3px 0}.outline-tree ul>li:before{content:"";position:absolute;left:-18px;top:18px;width:18px;border-top:1px solid color-mix(in srgb,var(--line-strong) 82%,transparent)}
+.outline-tree ul>li:last-child:after{content:"";position:absolute;left:-19px;top:19px;bottom:-5px;width:3px;background:color-mix(in srgb,var(--paper) 84%,var(--surface))}
+.tree-row{width:100%;min-width:390px;display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;color:var(--text);text-align:left;font:400 calc(10px * var(--font-scale))/1.45 var(--mono)}
+.tree-row:hover,.tree-row.selected{background:color-mix(in srgb,var(--accent-sage) 13%,transparent);color:var(--ink)}.root-row{font-size:calc(11px * var(--font-scale));color:var(--ink)}.branch-row{color:var(--ink)}.leaf-row.done .tree-title{text-decoration:line-through;color:var(--muted)}
+.disclosure{width:16px;height:16px;display:grid;place-items:center;color:var(--muted);font-family:var(--mono)}.leaf-dot{width:4px;height:4px;border-radius:50%;background:var(--faint);justify-self:center}.leaf-dot.active{background:var(--accent-sage)}.leaf-dot.blue{background:var(--accent-blue)}.leaf-dot.rose{background:var(--accent-rose)}.leaf-dot.amber{background:var(--accent-amber)}.leaf-dot.violet{background:var(--accent-violet)}
+.tree-meta{color:var(--muted);font-size:calc(8px * var(--font-scale));white-space:nowrap}.outline-inspector{margin-top:14px}
+
+/* Routine: only one vertical rail, no duplicated separators */
+.clean-routine-rail{padding-top:4px}.clean-routine-rail:before{top:20px;bottom:24px;background:var(--line-strong)}.clean-routine-rail .rail-item{min-height:74px;padding:10px 0 18px;border:0!important}.clean-routine-rail .rail-item>i{background:var(--paper)}.clean-routine-rail .rail-item.routine-green>i{border-color:var(--accent-sage)}.clean-routine-rail .rail-item.routine-blue>i{border-color:var(--accent-blue)}.clean-routine-rail .rail-item.routine-amber>i{border-color:var(--accent-amber)}.clean-routine-rail .rail-item.routine-violet>i{border-color:var(--accent-violet)}.clean-routine-rail .rail-item.routine-rose>i{border-color:var(--accent-rose)}
+.clean-routine-rail .rail-item.done.routine-green>i,.clean-routine-rail .rail-item.frequent.routine-green>i{background:var(--accent-sage);border-color:var(--accent-sage)}.clean-routine-rail .rail-item.done.routine-blue>i{background:var(--accent-blue);border-color:var(--accent-blue)}.clean-routine-rail .rail-item.current.routine-violet>i{background:var(--accent-violet);border-color:var(--accent-violet);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent-violet) 15%,transparent)}
+.week-routine-summary{display:flex;justify-content:space-between;padding:10px 0;color:var(--text)}.week-routine-summary small{color:var(--muted)}.week-schedule-scroll{display:grid;grid-auto-flow:column;grid-auto-columns:112px;gap:8px;overflow-x:auto;padding:4px 0 14px;scroll-snap-type:x proximity}.week-day-column{min-height:360px;padding:10px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--surface) 68%,var(--paper));scroll-snap-align:start}.week-day-column.selected{background:color-mix(in srgb,var(--accent-sage) 9%,var(--paper))}.week-day-column header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;color:var(--muted)}.week-day-column header b{font-size:15px;color:var(--ink)}.week-card{margin:0 0 8px;padding:11px 9px;border-radius:11px;min-height:58px;display:flex;flex-direction:column;gap:8px;color:var(--ink)}.week-card small{font:400 8px/1 var(--mono);color:var(--muted)}.week-card.sage{background:var(--accent-sage-soft)}.week-card.blue{background:var(--accent-blue-soft)}.week-card.rose{background:var(--accent-rose-soft)}.week-card.amber{background:var(--accent-amber-soft)}.week-card.violet{background:var(--accent-violet-soft)}.week-card.tall{min-height:104px}
+.month-routine-mini{margin-top:16px;padding:14px 0;border-top:1px solid var(--line)}.month-routine-mini>div:nth-child(odd){display:flex;justify-content:space-between;color:var(--text);margin:9px 0 5px}.month-routine-mini small{color:var(--muted)}.mini-dots{color:var(--accent-sage);font-size:9px;letter-spacing:4px;white-space:nowrap;overflow:hidden}.mini-dots.rose{color:var(--accent-rose)}
+.routine-library{padding-top:8px}.routine-group{position:relative;margin-bottom:20px;padding:0 0 2px 30px}.routine-group:before{content:"";position:absolute;left:6px;top:17px;bottom:8px;width:1px;background:var(--line)}.routine-group header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start}.routine-frequency-node{position:absolute;left:0;top:7px;width:14px;height:14px;border-radius:50%;background:var(--accent-sage);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent-sage) 13%,transparent)}.routine-group.blue .routine-frequency-node{background:var(--accent-blue);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent-blue) 13%,transparent)}.routine-group.rose .routine-frequency-node{background:var(--accent-rose);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent-rose) 13%,transparent)}.routine-group h3{margin:0;color:var(--ink);font-size:calc(13px * var(--font-scale))}.routine-group p{margin:5px 0 0;color:var(--muted);font-size:calc(9px * var(--font-scale))}.routine-group header>span{color:var(--muted);font-size:calc(9px * var(--font-scale))}.routine-group ol{list-style:none;margin:14px 0 0;padding:0}.routine-group li{position:relative;padding:8px 0 8px 18px;color:var(--text);font-size:calc(10px * var(--font-scale))}.routine-group li:before{content:"";position:absolute;left:0;top:14px;width:8px;border-top:1px solid var(--line-strong)}.routine-group li:after{content:"";position:absolute;left:8px;top:12px;width:4px;height:4px;border-radius:50%;background:var(--faint)}
+.routine-log-feed{position:relative;padding:12px 0 10px 20px}.routine-log-feed:before{content:"";position:absolute;left:5px;top:17px;bottom:25px;width:1px;background:var(--line)}.log-event{position:relative;display:grid;grid-template-columns:74px minmax(0,1fr);gap:10px;padding:10px 0 18px}.log-event:before{content:"";position:absolute;left:-19px;top:15px;width:8px;height:8px;border-radius:50%;background:var(--accent-sage)}.log-event.blue:before{background:var(--accent-blue)}.log-event.rose:before{background:var(--accent-rose)}.log-event time{color:var(--muted);font:400 8px/1.5 var(--mono)}.log-event span{color:var(--ink);font-size:calc(11px * var(--font-scale))}.log-event small{display:block;margin-top:5px;color:var(--muted)}
+
+/* Calendar detail stream + real phase symbols */
+.calendar-main-tabs{text-transform:none!important}.moon{position:relative!important;display:block!important;width:9px!important;height:9px!important;border-radius:50%!important;margin:5px auto 0!important;background:var(--moon-dark,var(--muted))!important;border:1px solid color-mix(in srgb,var(--muted) 28%,transparent)!important;overflow:hidden!important}.moon:after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--moon-light,var(--paper))}.moon.phase-0:after{display:none}.moon.phase-1:after{transform:translateX(3px)}.moon.phase-2:after{clip-path:inset(0 0 0 50%)}.moon.phase-3:after{transform:translateX(-2px)}.moon.phase-4{background:var(--moon-light,var(--paper))!important}.moon.phase-4:after{display:none}.moon.phase-5:after{transform:translateX(2px)}.moon.phase-6:after{clip-path:inset(0 50% 0 0)}.moon.phase-7:after{transform:translateX(-3px)}
+.date-overview{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:14px 0 12px}.date-overview span{padding:10px 6px;border-radius:10px;background:var(--surface);text-align:center}.date-overview b{display:block;color:var(--ink);font-size:calc(11px * var(--font-scale));white-space:nowrap}.date-overview small{display:block;margin-top:4px;color:var(--muted);font-size:calc(7px * var(--font-scale))}.calendar-filter-scroll{display:flex;gap:7px;overflow-x:auto;padding:1px 0 10px;scrollbar-width:none}.calendar-filter-scroll button{flex:none;padding:8px 11px;border-radius:999px;background:var(--surface);color:var(--muted);font-size:calc(9px * var(--font-scale))}.calendar-filter-scroll button.active{background:color-mix(in srgb,var(--accent-sage) 16%,var(--paper));color:var(--ink)}
+.selected-day-stream{padding-top:2px}.day-stream-item{position:relative;display:grid;grid-template-columns:45px 9px minmax(0,1fr) 16px;gap:10px;align-items:start;padding:13px 0;border-bottom:1px solid var(--line)}.day-stream-item:last-child{border-bottom:0}.day-stream-item time{color:var(--muted);font:400 calc(8px * var(--font-scale))/1.5 var(--mono)}.day-stream-item>i{width:7px;height:7px;margin-top:4px;border-radius:50%;background:var(--accent-sage)}.day-stream-item.blue>i{background:var(--accent-blue)}.day-stream-item.rose>i{background:var(--accent-rose)}.day-stream-item.amber>i{background:var(--accent-amber)}.day-stream-item.violet>i{background:var(--accent-violet)}.day-stream-item.cyan>i{background:var(--accent-cyan)}.day-stream-item .type-label{display:inline-block;margin-bottom:4px;color:var(--muted);font-size:calc(7px * var(--font-scale));letter-spacing:.08em}.day-stream-item h3{margin:0;color:var(--ink);font-size:calc(11px * var(--font-scale))}.day-stream-item p{margin:4px 0 0;color:var(--muted);font-size:calc(9px * var(--font-scale))}.day-stream-item>button{color:var(--faint);font-size:18px}
+
+/* Mystical fortune with image and charts */
+.fortune-screen{background:radial-gradient(circle at 84% 13%,color-mix(in srgb,var(--accent-violet) 9%,transparent),transparent 32%),radial-gradient(circle at 10% 35%,color-mix(in srgb,var(--accent-cyan) 7%,transparent),transparent 30%)}.fortune-hero{overflow:hidden;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent-blue) 10%,var(--paper)),color-mix(in srgb,var(--accent-rose) 8%,var(--paper)));box-shadow:0 18px 46px color-mix(in srgb,var(--accent-blue) 8%,transparent)}.fortune-art{height:230px;color:var(--ink)}.fortune-art svg{width:100%;height:100%;display:block}.fortune-hero-copy{padding:0 18px 20px}.fortune-hero-copy>span{color:var(--accent-violet);font:400 8px/1 var(--mono);letter-spacing:.16em}.fortune-hero-copy h2{margin:9px 0 7px;color:var(--ink);font-size:calc(16px * var(--font-scale));line-height:1.45}.fortune-hero-copy p{margin:0;color:var(--muted);font-size:calc(10px * var(--font-scale));line-height:1.65}
+.fortune-signature-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.signature-card{padding:13px;border-radius:13px;background:var(--surface)}.signature-card.sage{background:var(--accent-sage-soft)}.signature-card.blue{background:var(--accent-blue-soft)}.signature-card.rose{background:var(--accent-rose-soft)}.signature-card.violet{background:var(--accent-violet-soft)}.signature-card small{color:var(--muted);font-size:calc(7px * var(--font-scale))}.signature-card span{display:block;margin-top:7px;color:var(--ink);font-size:calc(11px * var(--font-scale))}.signature-card p{margin:5px 0 0;color:var(--muted);font-size:calc(8px * var(--font-scale))}
+.energy-panel,.element-panel{margin-top:10px;padding:16px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--paper) 87%,var(--surface))}.panel-heading{display:flex;justify-content:space-between;gap:12px}.panel-heading small{color:var(--muted);font-size:calc(7px * var(--font-scale));letter-spacing:.11em}.panel-heading h2{margin:5px 0 0;color:var(--ink);font-size:calc(13px * var(--font-scale))}.panel-heading>span{color:var(--accent-rose);font-size:calc(8px * var(--font-scale))}.energy-chart{width:100%;height:138px;margin-top:9px}.energy-chart text{fill:var(--muted);font-size:8px}.energy-notes{display:flex;gap:13px;color:var(--muted);font-size:calc(8px * var(--font-scale))}.energy-notes i{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:5px;background:var(--accent-sage)}.energy-notes i.blue{background:var(--accent-blue)}.energy-notes i.rose{background:var(--accent-rose)}
+.element-bars{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:18px}.element-bars>div{display:grid;grid-template-rows:auto 74px auto;gap:7px;text-align:center;color:var(--muted);font-size:calc(8px * var(--font-scale))}.element-bars i{align-self:end;justify-self:center;width:12px;height:var(--v);max-height:74px;border-radius:7px;background:var(--c);opacity:.82}.element-bars small{font:400 7px/1 var(--mono)}
+.fortune-detail-grid{display:grid;gap:8px;margin-top:10px}.fortune-detail-card{padding:15px;border-radius:14px;background:var(--surface)}.fortune-detail-card.sage{background:var(--accent-sage-soft)}.fortune-detail-card.rose{background:var(--accent-rose-soft)}.fortune-detail-card.blue{background:var(--accent-blue-soft)}.fortune-detail-card small{color:var(--muted);font-size:calc(7px * var(--font-scale));letter-spacing:.1em}.fortune-detail-card h3{margin:8px 0 6px;color:var(--ink);font-size:calc(12px * var(--font-scale));line-height:1.45}.fortune-detail-card p{margin:0;color:var(--muted);font-size:calc(9px * var(--font-scale));line-height:1.65}.colorful-action{background:linear-gradient(135deg,var(--accent-violet-soft),var(--accent-rose-soft),var(--accent-amber-soft))!important;border-color:color-mix(in srgb,var(--accent-violet) 25%,var(--line))!important}
+
+@media(max-width:360px){.fortune-signature-grid{grid-template-columns:1fr 1fr}.date-overview{grid-template-columns:repeat(2,1fr)}.tree-row{min-width:340px}.outline-sheet{padding-right:6px}}
+</style>
+<style id="tree-continuity-hotfix">
+/* Final outliner geometry: one source of truth, responsive, no masking gaps */
+#outlineRoot,
+#goalStructureTree{
+  overflow-x:hidden !important;
+  padding:16px 10px 18px 12px !important;
+}
+#outlineRoot *,
+#goalStructureTree *{box-sizing:border-box}
+
+#outlineRoot .outline-tree,
+#outlineRoot .outline-tree ul,
+#goalStructureTree .outline-tree,
+#goalStructureTree .outline-tree ul{
+  list-style:none !important;
+  margin-top:0 !important;
+  margin-bottom:0 !important;
+  border-left:0 !important;
+  background-image:none !important;
+}
+
+/* root trunk: connects every top-level project without breaks */
+#outlineRoot .root-tree,
+#goalStructureTree .root-tree{
+  position:relative !important;
+  margin:0 !important;
+  padding:0 0 0 28px !important;
+}
+#outlineRoot .root-tree::before,
+#goalStructureTree .root-tree::before{
+  content:"" !important;
+  display:block !important;
+  position:absolute !important;
+  left:10px !important;
+  top:20px !important;
+  bottom:20px !important;
+  width:1px !important;
+  background:color-mix(in srgb,var(--line-strong) 76%,transparent) !important;
+  z-index:0 !important;
+  pointer-events:none !important;
+}
+#outlineRoot .root-tree>.tree-item,
+#goalStructureTree .root-tree>.tree-item{
+  position:relative !important;
+  padding:3px 0 !important;
+}
+#outlineRoot .root-tree>.tree-item::before,
+#goalStructureTree .root-tree>.tree-item::before{
+  content:"" !important;
+  position:absolute !important;
+  left:-18px !important;
+  top:22px !important;
+  width:18px !important;
+  height:1px !important;
+  border:0 !important;
+  background:color-mix(in srgb,var(--line-strong) 76%,transparent) !important;
+  z-index:0 !important;
+  pointer-events:none !important;
+}
+
+/* nested trunks: never use background masks, so selected rows cannot cut them */
+#outlineRoot .tree-item>ul,
+#goalStructureTree .tree-item>ul{
+  position:relative !important;
+  margin:0 0 0 14px !important;
+  padding:1px 0 1px 24px !important;
+}
+#outlineRoot .tree-item>ul::before,
+#goalStructureTree .tree-item>ul::before{
+  content:"" !important;
+  display:block !important;
+  position:absolute !important;
+  left:0 !important;
+  top:-4px !important;
+  bottom:18px !important;
+  width:1px !important;
+  background:color-mix(in srgb,var(--line-strong) 70%,transparent) !important;
+  z-index:0 !important;
+  pointer-events:none !important;
+}
+#outlineRoot .tree-item>ul>.tree-item,
+#goalStructureTree .tree-item>ul>.tree-item{
+  position:relative !important;
+  margin:0 !important;
+  padding:3px 0 !important;
+}
+#outlineRoot .tree-item>ul>.tree-item::before,
+#goalStructureTree .tree-item>ul>.tree-item::before{
+  content:"" !important;
+  position:absolute !important;
+  left:-24px !important;
+  top:22px !important;
+  width:24px !important;
+  height:1px !important;
+  border:0 !important;
+  background:color-mix(in srgb,var(--line-strong) 70%,transparent) !important;
+  z-index:0 !important;
+  pointer-events:none !important;
+}
+/* disable every older last-child eraser and duplicate connector */
+#outlineRoot .outline-tree li::after,
+#goalStructureTree .outline-tree li::after{
+  content:none !important;
+  display:none !important;
+}
+
+#outlineRoot .tree-row,
+#goalStructureTree .tree-row{
+  position:relative !important;
+  z-index:1 !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  grid-template-columns:16px minmax(0,1fr) max-content !important;
+  gap:8px !important;
+  padding:8px 9px !important;
+  overflow:hidden !important;
+}
+#outlineRoot .tree-title,
+#goalStructureTree .tree-title{
+  min-width:0 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+#outlineRoot .tree-meta,
+#goalStructureTree .tree-meta{
+  min-width:0 !important;
+  max-width:76px !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  text-align:right !important;
+}
+#outlineRoot .tree-row.selected,
+#goalStructureTree .tree-row.selected{
+  background:color-mix(in srgb,var(--accent-sage) 12%,var(--paper)) !important;
+}
+
+@media(max-width:390px){
+  #outlineRoot,#goalStructureTree{padding-left:9px !important;padding-right:8px !important}
+  #outlineRoot .root-tree,#goalStructureTree .root-tree{padding-left:24px !important}
+  #outlineRoot .root-tree::before,#goalStructureTree .root-tree::before{left:8px !important}
+  #outlineRoot .root-tree>.tree-item::before,#goalStructureTree .root-tree>.tree-item::before{left:-16px !important;width:16px !important}
+  #outlineRoot .tree-item>ul,#goalStructureTree .tree-item>ul{margin-left:10px !important;padding-left:20px !important}
+  #outlineRoot .tree-item>ul>.tree-item::before,#goalStructureTree .tree-item>ul>.tree-item::before{left:-20px !important;width:20px !important}
+  #outlineRoot .tree-row,#goalStructureTree .tree-row{padding-left:7px !important;padding-right:7px !important}
+  #outlineRoot .tree-meta,#goalStructureTree .tree-meta{max-width:62px !important}
+}
+</style>
+
+
+<style id="stable-layered-outline-style">
+/* Stable layered node list — standalone outliner only. No connector geometry. */
+#outlineRoot{
+  overflow:visible !important;
+  min-height:0 !important;
+  padding:10px !important;
+  border:1px solid var(--line) !important;
+  border-radius:16px !important;
+  background:color-mix(in srgb,var(--paper) 92%,var(--surface)) !important;
+}
+#outlineRoot,
+#outlineRoot *,
+#outlineRoot *::before,
+#outlineRoot *::after{box-sizing:border-box}
+#outlineRoot .outline-tree,
+#outlineRoot .outline-tree ul{
+  list-style:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  background:none !important;
+  min-width:0 !important;
+}
+#outlineRoot .outline-tree::before,
+#outlineRoot .outline-tree::after,
+#outlineRoot .outline-tree ul::before,
+#outlineRoot .outline-tree ul::after,
+#outlineRoot .tree-item::before,
+#outlineRoot .tree-item::after,
+#outlineRoot .root-tree>.tree-item::before,
+#outlineRoot .tree-item>ul>.tree-item::before,
+#outlineRoot .root-tree>.tree-item::after,
+#outlineRoot .tree-item>ul>.tree-item::after{
+  content:none !important;
+  display:none !important;
+  width:0 !important;
+  height:0 !important;
+  background:none !important;
+  border:0 !important;
+}
+#outlineRoot .tree-item{
+  position:relative !important;
+  margin:0 !important;
+  padding:0 !important;
+  min-width:0 !important;
+}
+#outlineRoot .root-tree>.root-item{
+  margin:0 0 10px !important;
+  padding:0 !important;
+  border:1px solid color-mix(in srgb,var(--line) 82%,transparent) !important;
+  border-radius:13px !important;
+  overflow:hidden !important;
+  background:color-mix(in srgb,var(--paper) 96%,var(--surface)) !important;
+}
+#outlineRoot .root-tree>.root-item:last-child{margin-bottom:0 !important}
+#outlineRoot .root-tree>.root-item>ul{
+  padding:5px 8px 9px !important;
+}
+#outlineRoot .root-tree>.root-item>ul>li{
+  margin:2px 0 !important;
+}
+#outlineRoot .tree-item>ul{
+  margin:1px 0 4px 18px !important;
+  padding:0 !important;
+}
+#outlineRoot .tree-row{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  display:grid !important;
+  grid-template-columns:18px minmax(0,1fr) auto !important;
+  gap:8px !important;
+  align-items:center !important;
+  min-height:40px !important;
+  padding:8px 9px !important;
+  margin:0 !important;
+  border:0 !important;
+  border-radius:9px !important;
+  background:transparent !important;
+  color:var(--text) !important;
+  text-align:left !important;
+  font-family:var(--sans) !important;
+  font-size:calc(11px * var(--font-scale)) !important;
+  font-weight:400 !important;
+  line-height:1.35 !important;
+  overflow:hidden !important;
+}
+#outlineRoot .root-row{
+  min-height:46px !important;
+  padding:10px 10px !important;
+  border-radius:0 !important;
+  background:color-mix(in srgb,var(--accent-sage) 7%,var(--paper)) !important;
+  color:var(--ink) !important;
+  font-size:calc(12px * var(--font-scale)) !important;
+}
+#outlineRoot .root-row.selected{
+  background:color-mix(in srgb,var(--accent-sage) 14%,var(--paper)) !important;
+}
+#outlineRoot .branch-row{
+  min-height:40px !important;
+  margin-top:3px !important;
+  color:var(--ink) !important;
+  background:transparent !important;
+}
+#outlineRoot .leaf-row{
+  min-height:39px !important;
+  padding-left:8px !important;
+}
+#outlineRoot .tree-row:hover{
+  background:color-mix(in srgb,var(--surface) 72%,transparent) !important;
+}
+#outlineRoot .tree-row.selected:not(.root-row){
+  background:color-mix(in srgb,var(--accent-sage) 12%,transparent) !important;
+  color:var(--ink) !important;
+}
+#outlineRoot .disclosure{
+  width:18px !important;
+  height:18px !important;
+  display:grid !important;
+  place-items:center !important;
+  color:var(--muted) !important;
+  font-family:var(--mono) !important;
+  font-size:10px !important;
+  line-height:1 !important;
+}
+#outlineRoot .leaf-dot{
+  justify-self:center !important;
+  width:5px !important;
+  height:5px !important;
+  min-width:5px !important;
+  border-radius:50% !important;
+  box-shadow:none !important;
+}
+#outlineRoot .leaf-dot.active{
+  width:7px !important;
+  height:7px !important;
+  min-width:7px !important;
+}
+#outlineRoot .tree-title{
+  min-width:0 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+  color:inherit !important;
+  font-weight:400 !important;
+}
+#outlineRoot .tree-meta{
+  min-width:0 !important;
+  max-width:82px !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  color:var(--muted) !important;
+  font:400 calc(8px * var(--font-scale))/1.2 var(--mono) !important;
+  text-align:right !important;
+}
+#outlineRoot .leaf-row.done .tree-title{
+  text-decoration:line-through !important;
+  text-decoration-thickness:1px !important;
+  color:var(--muted) !important;
+}
+@media(max-width:360px){
+  #outlineRoot{padding:7px !important}
+  #outlineRoot .root-tree>.root-item>ul{padding-left:5px !important;padding-right:5px !important}
+  #outlineRoot .tree-item>ul{margin-left:12px !important}
+  #outlineRoot .tree-row{grid-template-columns:16px minmax(0,1fr) auto !important;padding-left:7px !important;padding-right:7px !important}
+  #outlineRoot .tree-meta{max-width:64px !important}
+}
+</style>
+
+</head>
+<body>
+<div class="stage"><main aria-label="지금 앱 THREAD FIELD 프로토타입" class="phone">
+<div class="statusbar"><span id="statusTime">9:41</span><span class="status-icons"><i></i><i></i><i></i><span>5G</span><span class="battery"></span></span></div>
+<div class="app">
+<!-- TODAY -->
+<section class="screen active" data-screen="today">
+<header class="header"><div class="header-copy"><p class="eyebrow">TODAY · AUG 06</p><h1 class="title">오늘</h1></div><div class="header-actions"><button aria-label="검색과 이동" class="icon-btn" data-palette=""><svg viewbox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg></button><button aria-label="설정" class="icon-btn" data-go="settings"><svg viewbox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1l2-1.4-2-3.4-2.4 1A8 8 0 0 0 15 6.3L14.7 4h-4L10.4 6.3A8 8 0 0 0 8.8 7.2l-2.3-1-2 3.4 1.9 1.4a7 7 0 0 0 0 2l-1.9 1.4 2 3.4 2.3-1a8 8 0 0 0 1.6.9l.3 2.3h4l.3-2.3a8 8 0 0 0 1.6-.9l2.3 1 2-3.4-1.9-1.4a7 7 0 0 0 .1-1Z"></path></svg></button></div></header>
+<button class="day-context compact-context" data-go="fortune"><span class="context-line" data-astro="manse"><small>오늘</small><span>임자일 壬子 · 음력 6월 24일 · 그믐달</span></span><span class="context-line" data-astro="zodiac"><small>내 별자리</small><span>태양 천칭 17° · 달 양 23° · 상승 쌍둥이 28°</span></span><i>›</i></button>
+<div aria-label="날짜 선택" class="date-strip">
+<button><span>월</span><b>3</b></button><button><span>화</span><b>4</b></button><button><span>수</span><b>5</b></button><button class="selected"><span>목</span><b>6</b><i></i></button><button><span>금</span><b>7</b></button><button><span>토</span><b>8</b></button><button><span>일</span><b>9</b></button>
+</div>
+<div class="today-filter" data-today-filter=""><button class="active" data-filter="todo">할 일</button><button data-filter="done">완료</button><button data-filter="waiting">보류</button></div>
+<section class="schedule-board" id="todayTaskList">
+<div class="daypart"><span>오전</span><small>2</small></div>
+<article class="schedule-card study" data-state="todo"><div class="schedule-time">09:30</div><button aria-label="완료" class="schedule-check"></button><div><h2>출근 준비</h2><p>루틴 · 30분</p></div></article>
+<article class="schedule-card focus current" data-state="todo"><div class="schedule-time">12:30</div><button aria-label="완료" class="schedule-check"></button><div><div class="card-kicker"><span>진행 중</span><span id="focusElapsed">00:32:18</span></div><h2>화학 기초 1강 정리</h2><p>약대 편입 준비 · 12:30–13:20</p><div class="inline-actions"><button id="focusToggle">계속하기</button><button data-open-goal="">목표</button></div></div></article>
+<div class="daypart"><span>오후</span><small>2</small></div>
+<article class="schedule-card calm" data-state="todo"><div class="schedule-time">18:30</div><button class="schedule-check"></button><div><h2>생물 20분</h2><p>학습 · 중요</p></div></article>
+<article class="schedule-card external" data-state="waiting"><div class="schedule-time">21:00</div><button class="schedule-check"></button><div><h2>베리 데리기</h2><p>Google Calendar · 1시간</p></div></article>
+<article class="schedule-card done-card" data-state="done"><div class="schedule-time">08:10</div><button class="schedule-check done"></button><div><h2>물 한 잔</h2><p>완료 · 8분</p></div></article>
+</section>
+<button class="resume-compact" id="resumeTask"><span>중단한 작업</span><small>영단어 50개 · 18분 전</small><i>복귀</i></button>
+<div class="today-summary"><span>완료 <b id="todayDoneCount">2</b></span><span>집중 01:24</span><span>남은 일정 3</span></div>
+</section>
+<!-- FLOW HUB -->
+<section class="screen" data-screen="flow">
+<header class="header"><div class="header-copy"><p class="eyebrow">FLOW · WORKSPACE</p><h1 class="title">흐름</h1></div><div class="header-actions"><button aria-label="검색과 이동" class="icon-btn" data-palette=""><svg viewbox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg></button></div></header>
+<div class="workspace-grid">
+<button data-go="outliner"><span>01</span><h2>아웃라이너</h2><p>목표와 할 일의 전체 구조</p></button>
+<button data-go="goals"><span>02</span><h2>목표 관리</h2><p>진행률과 활동 그래프</p></button>
+<button data-go="habits"><span>03</span><h2>습관</h2><p>최근 30일 반복 기록</p></button>
+<button data-go="routines"><span>04</span><h2>루틴</h2><p>일과 · 주간 · 로그</p></button>
+<button data-go="tasks"><span>05</span><h2>전체 할 일</h2><p>필터와 완료 상태</p></button>
+<button data-go="matrix"><span>06</span><h2>매트릭스</h2><p>중요도와 긴급도</p></button>
+</div>
+<div class="section-head"><div><h2>최근 흐름</h2><p>열어본 순서대로</p></div><button data-open-composer="">＋ 새 항목</button></div>
+<section class="activity-feed">
+<article><i class="feed-dot accent"></i><time>오늘 18:42</time><button data-open-goal=""><span>약대 편입 준비</span><small>화학 기초 1강 · 32분 기록</small></button></article>
+<article><i class="feed-dot"></i><time>오늘 14:20</time><button data-go="outliner"><span>생물 강의 자료 정리</span><small>아웃라이너 · 완료</small></button></article>
+<article><i class="feed-dot soft"></i><time>어제</time><button data-go="habits"><span>영단어 50개</span><small>습관 · 4일 연속</small></button></article>
+</section>
+</section>
+<!-- ALL TASKS -->
+<section class="screen sub" data-screen="tasks">
+<header class="header"><div class="header-left"><button aria-label="뒤로" class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">ALL TASKS</p><h1 class="title small">전체 할 일</h1></div></div><div class="header-actions"><button aria-label="추가" class="icon-btn" data-open-composer=""><svg viewbox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button></div></header>
+<div class="tabs" data-tabs="taskFilter"><button class="active" data-tab="all">전체</button><button data-tab="today">오늘</button><button data-tab="important">중요</button><button data-tab="waiting">대기</button><button data-tab="done">완료</button></div>
+<div class="task-list" id="allTaskList">
+<div class="task-line" data-tags="all today important" data-task=""><button class="task-check"></button><div><div class="task-title">화학 기초 1강 정리</div><div class="task-meta">약대 편입 준비 · 오늘</div></div><div class="task-tail">18:00</div></div>
+<div class="task-line" data-tags="all today" data-task=""><button class="task-check"></button><div><div class="task-title">고양이 모래 주문</div><div class="task-meta">생활 · 오늘</div></div><div class="task-tail">20:30</div></div>
+<div class="task-line" data-tags="all important waiting" data-task=""><button class="task-check"></button><div><div class="task-title">시험 일정 확인</div><div class="task-meta">답변 대기 · 중요</div></div><div class="task-tail">대기</div></div>
+<div class="task-line done" data-tags="all done" data-task=""><button class="task-check done"></button><div><div class="task-title">생물 강의 자료 정리</div><div class="task-meta">오늘 완료</div></div><div class="task-tail">14:20</div></div>
+</div>
+</section>
+<!-- MATRIX -->
+<section class="screen sub" data-screen="matrix">
+<header class="header"><div class="header-left"><button class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">MATRIX</p><h1 class="title small">매트릭스</h1></div></div><div class="header-actions"><button class="icon-btn" data-open-composer=""><svg viewbox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button></div></header>
+<div class="section-line"></div>
+<div class="matrix">
+<div class="quad"><div class="quad-head"><span>지금 처리</span><small>중요 · 긴급</small></div><div class="quad-task">시험 일정 확인</div><div class="quad-task">화학 기초 정리</div><button class="quad-add" data-open-composer="">＋</button></div>
+<div class="quad"><div class="quad-head"><span>계획하기</span><small>중요 · 여유</small></div><div class="quad-task">영어 점수 계획</div><div class="quad-task">생활 리듬 조정</div><button class="quad-add" data-open-composer="">＋</button></div>
+<div class="quad"><div class="quad-head"><span>짧게 처리</span><small>낮음 · 긴급</small></div><div class="quad-task">고양이 모래 주문</div><button class="quad-add" data-open-composer="">＋</button></div>
+<div class="quad"><div class="quad-head"><span>보류</span><small>낮음 · 여유</small></div><div class="quad-task">서랍 정리</div><button class="quad-add" data-open-composer="">＋</button></div>
+</div>
+</section>
+<!-- OUTLINER -->
+<section class="screen sub" data-screen="outliner">
+<header class="header"><div class="header-left"><button aria-label="뒤로" class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">OUTLINER · MAP</p><h1 class="title small">아웃라이너</h1></div></div><div class="header-actions"><button aria-label="추가" class="icon-btn" id="addOutline"><svg viewbox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button></div></header>
+<div class="outline-toolbar"><button class="active">전체</button><button>진행 중</button><button>완료 숨기기</button><span>100%</span></div>
+<section aria-label="목표와 할 일 구조" class="outline-sheet" id="outlineRoot">
+<ul class="outline-tree root-tree">
+<li class="tree-item root-item open">
+<button class="tree-row root-row selected" data-tree-row=""><span class="disclosure">−</span><span class="tree-title">약대 편입 준비</span><span class="tree-meta">42%</span></button>
+<ul>
+<li class="tree-item open">
+<button class="tree-row branch-row" data-tree-row=""><span class="disclosure">−</span><span class="tree-title">학습</span><span class="tree-meta">5</span></button>
+<ul>
+<li class="tree-item"><button class="tree-row leaf-row selected" data-tree-row=""><span class="leaf-dot active"></span><span class="tree-title">화학 기초</span><span class="tree-meta">진행 중</span></button></li>
+<li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot blue"></span><span class="tree-title">생물 기본</span><span class="tree-meta">오늘</span></button></li>
+<li class="tree-item"><button class="tree-row leaf-row done" data-tree-row=""><span class="leaf-dot rose"></span><span class="tree-title">영단어 50개</span><span class="tree-meta">완료</span></button></li>
+</ul>
+</li>
+<li class="tree-item open">
+<button class="tree-row branch-row" data-tree-row=""><span class="disclosure">−</span><span class="tree-title">시험 일정</span><span class="tree-meta">2</span></button>
+<ul>
+<li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot amber"></span><span class="tree-title">원서 일정 확인</span><span class="tree-meta">대기</span></button></li>
+<li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot violet"></span><span class="tree-title">시험장 동선</span><span class="tree-meta">예정</span></button></li>
+</ul>
+</li>
+<li class="tree-item open">
+<button class="tree-row branch-row" data-tree-row=""><span class="disclosure">−</span><span class="tree-title">자료</span><span class="tree-meta">3</span></button>
+<ul><li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot"></span><span class="tree-title">참고 서적</span><span class="tree-meta">3권</span></button></li></ul>
+</li>
+</ul>
+</li>
+<li class="tree-item root-item open">
+<button class="tree-row root-row" data-tree-row=""><span class="disclosure">−</span><span class="tree-title">생활 관리</span><span class="tree-meta">31%</span></button>
+<ul>
+<li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot blue"></span><span class="tree-title">수면</span><span class="tree-meta">7일</span></button></li>
+<li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot amber"></span><span class="tree-title">식사</span><span class="tree-meta">오늘</span></button></li>
+</ul>
+</li>
+<li class="tree-item root-item">
+<button class="tree-row root-row" data-tree-row=""><span class="disclosure">+</span><span class="tree-title">지금 앱</span><span class="tree-meta">68%</span></button>
+<ul hidden=""><li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot active"></span><span class="tree-title">화면 구조 점검</span><span class="tree-meta">진행 중</span></button></li></ul>
+</li>
+</ul>
+</section>
+<div class="outline-inspector"><span>선택</span><strong id="outlineSelectionTitle">화학 기초</strong><small id="outlineSelectionPath">약대 편입 준비 / 학습</small><div><button>편집</button><button>하위 추가</button><button data-open-goal="">목표 보기</button></div></div>
+</section>
+<!-- GOALS -->
+<section class="screen sub" data-screen="goals">
+<header class="header"><div class="header-left"><button aria-label="뒤로" class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">GOALS · DASHBOARD</p><h1 class="title small">목표 관리</h1></div></div><div class="header-actions"><button aria-label="추가" class="icon-btn" id="addGoal"><svg viewbox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button></div></header>
+<div class="dashboard-period" data-period-tabs=""><button>주간</button><button class="active">최근 30일</button><button>장기</button></div>
+<article class="metric-dashboard">
+<div class="metric-top"><div><small>평균 진행률</small><strong>47%</strong></div><div class="metric-mini"><span>진행 중 3</span><span>완료 2</span></div></div>
+<div aria-label="최근 30일 목표 활동량" class="dot-histogram goals-hist"></div>
+<div class="chart-axis"><span>7월 8일</span><span>8월 6일</span></div>
+</article>
+<div class="tabs subtle-tabs" data-tabs="goalFilter"><button class="active" data-tab="week">이번 주</button><button data-tab="month">한 달</button><button data-tab="long">장기</button><button data-tab="done">완료</button></div>
+<div class="goal-path dashboard-list" id="goalPath">
+<article class="goal-card active" data-goal-filter="week month long"><i class="goal-node"></i><button class="goal-titleline" data-open-goal=""><span>약대 편입 준비</span><small>42%</small></button><div class="goal-desc">현재 단계 · 화학 기초 시작</div><div class="goal-stats"><span>활동 12회</span><span>4시간 20분</span><span>완료 6개</span></div><div class="progress-route" style="--progress:42%"><i></i><span class="fill"></span></div></article>
+<article class="goal-card" data-goal-filter="week month"><i class="goal-node"></i><button class="goal-titleline" data-open-goal=""><span>지금 앱 정리</span><small>68%</small></button><div class="goal-desc">이번 주 · 화면 구조 점검</div><div class="goal-stats"><span>활동 19회</span><span>3시간 10분</span><span>완료 7개</span></div><div class="progress-route" style="--progress:68%"><i></i><span class="fill"></span></div></article>
+<article class="goal-card" data-goal-filter="long"><i class="goal-node"></i><button class="goal-titleline"><span>생활 리듬 정리</span><small>31%</small></button><div class="goal-desc">장기 · 수면과 저녁 루틴</div><div class="goal-stats"><span>활동 8회</span><span>연속 5일</span></div><div class="progress-route" style="--progress:31%"><i></i><span class="fill"></span></div></article>
+</div>
+</section>
+<!-- GOAL DETAIL -->
+<section class="screen sub" data-screen="goal">
+<header class="header"><div class="header-left"><button aria-label="뒤로" class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">GOAL · 42%</p><h1 class="title small">약대 편입 준비</h1></div></div><div class="header-actions"><button class="icon-btn" id="goalMore"><svg viewbox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></button></div></header>
+<div class="lens-tabs"><button class="active" data-lens="summary">요약</button><button data-lens="structure">구조</button><button data-lens="journey">여정</button><button data-lens="record">기록</button></div>
+<div class="lens-panel active" data-lens-panel="summary"><article class="metric-dashboard goal-summary"><div class="metric-top"><div><small>현재 진행률</small><strong>42%</strong></div><div class="metric-mini"><span>집중 4:20</span><span>완료 6</span></div></div><div class="dot-histogram goal-detail-hist"></div><div class="chart-axis"><span>최근 4주</span><span>활동 12회</span></div></article><div class="current-stage"><i></i><div><small>현재 단계</small><h2>화학 기초 시작</h2><p>1강 정리 중 · 다음 단계는 생물 기본</p></div><button id="goalFocusToggle">계속하기</button></div></div>
+<div class="lens-panel" data-lens-panel="structure"><section class="outline-sheet goal-structure-sheet" id="goalStructureTree">
+<ul class="outline-tree root-tree">
+<li class="tree-item root-item open">
+<button class="tree-row root-row selected" data-tree-row=""><span class="disclosure">−</span><span class="tree-title">학습 기반</span><span class="tree-meta">3/5</span></button>
+<ul>
+<li class="tree-item"><button class="tree-row leaf-row selected" data-tree-row=""><span class="leaf-dot active"></span><span class="tree-title">화학 기초</span><span class="tree-meta">진행 중</span></button></li>
+<li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot blue"></span><span class="tree-title">생물 기본</span><span class="tree-meta">다음</span></button></li>
+<li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot rose"></span><span class="tree-title">영어 점수</span><span class="tree-meta">예정</span></button></li>
+</ul>
+</li>
+<li class="tree-item root-item open">
+<button class="tree-row root-row" data-tree-row=""><span class="disclosure">−</span><span class="tree-title">지원 준비</span><span class="tree-meta">0/2</span></button>
+<ul>
+<li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot amber"></span><span class="tree-title">지원 일정 정리</span><span class="tree-meta">대기</span></button></li>
+<li class="tree-item"><button class="tree-row leaf-row" data-tree-row=""><span class="leaf-dot violet"></span><span class="tree-title">서류 점검</span><span class="tree-meta">예정</span></button></li>
+</ul>
+</li>
+</ul>
+</section></div>
+<div class="lens-panel" data-lens-panel="journey"><div class="clean-timeline"><article class="done"><i></i><time>2026.07.18</time><h3>목표 시작</h3><p>학습 범위와 시험 일정 정리</p></article><article class="current"><i></i><time>2026.08.06</time><h3>화학 기초 진행</h3><p>1강 정리 · 집중 기록 연결</p></article><article><i></i><time>NEXT</time><h3>생물 기본 시작</h3><p>화학 기초 5강 완료 후</p></article><article><i></i><time>JAN 2027</time><h3>편입 시험</h3><p>최종 목표</p></article></div></div>
+<div class="lens-panel" data-lens-panel="record"><section class="activity-feed detailed"><article><i class="feed-dot accent"></i><time>오늘 · 32분</time><div><span>화학 기초 1강 정리</span><small>집중 기록 · 진행 중</small></div></article><article><i class="feed-dot"></i><time>어제 · 48분</time><div><span>영단어 복습</span><small>완료</small></div></article><article><i class="feed-dot soft"></i><time>8월 4일</time><div><span>주간 학습 계획 정리</span><small>완료</small></div></article></section></div>
+</section>
+<!-- HABITS -->
+<section class="screen sub" data-screen="habits">
+<header class="header"><div class="header-left"><button aria-label="뒤로" class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">HABITS · DASHBOARD</p><h1 class="title small">습관</h1></div></div><div class="header-actions"><button aria-label="추가" class="icon-btn" id="addHabit"><svg viewbox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button></div></header>
+<div class="dashboard-period" data-period-tabs=""><button>7일</button><button class="active">최근 30일</button><button>90일</button></div>
+<article class="metric-dashboard habit-dashboard"><div class="metric-top"><div><small>완료율</small><strong>78%</strong></div><div class="metric-mini"><span id="habitDoneCount">3/5 오늘</span><span>최장 12일</span></div></div><div class="dot-histogram habit-hist"></div><div class="chart-axis"><span>7월 8일</span><span>총 84회</span></div></article>
+<div class="habit-scale"><span>노드 크기 = 최근 30일 실행 횟수</span><button>기준 보기</button></div>
+<div class="habit-dashboard-list" id="habitList">
+<article class="habit-row done" data-count="28" data-habit-card="" data-rate="93"><button class="habit-name" data-habit-toggle=""><i class="frequency-node"></i><span>아침 물 한 잔<small>매일 · 기상 후</small></span></button><div class="habit-numbers"><span>28회</span><small>93%</small></div><div class="mini-track"></div></article>
+<article class="habit-row done" data-count="21" data-habit-card="" data-rate="78"><button class="habit-name" data-habit-toggle=""><i class="frequency-node"></i><span>영단어 50개<small>평일 · 저녁</small></span></button><div class="habit-numbers"><span>21회</span><small>78%</small></div><div class="mini-track"></div></article>
+<article class="habit-row done" data-count="17" data-habit-card="" data-rate="81"><button class="habit-name" data-habit-toggle=""><i class="frequency-node"></i><span>고양이 놀이 15분<small>매일 · 귀가 후</small></span></button><div class="habit-numbers"><span>17회</span><small>81%</small></div><div class="mini-track"></div></article>
+<article class="habit-row" data-count="8" data-habit-card="" data-rate="67"><button class="habit-name" data-habit-toggle=""><i class="frequency-node"></i><span>생물 20분<small>주 3회</small></span></button><div class="habit-numbers"><span>8회</span><small>67%</small></div><div class="mini-track"></div></article>
+<article class="habit-row" data-count="4" data-habit-card="" data-rate="100"><button class="habit-name" data-habit-toggle=""><i class="frequency-node"></i><span>주간 정리<small>매주 일요일</small></span></button><div class="habit-numbers"><span>4회</span><small>100%</small></div><div class="mini-track"></div></article></div>
+</section>
+<!-- ROUTINES -->
+<section class="screen sub" data-screen="routines">
+<header class="header"><div class="header-left"><button aria-label="뒤로" class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">ROUTINES</p><h1 class="title small">루틴</h1></div></div><div class="header-actions"><button aria-label="추가" class="icon-btn" id="addRoutine"><svg viewbox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button></div></header>
+<div class="tabs routine-tabs" data-tabs="routineTabs"><button class="active" data-tab="day">일과</button><button data-tab="week">주간</button><button data-tab="month">월간</button><button data-tab="routine">루틴</button><button data-tab="log">기록</button></div>
+<div class="tab-panel active" data-tab-panel="day">
+<div class="routine-day-head"><span>8월 6일 목요일</span><small>현재 18:45</small></div>
+<div class="single-rail routine-rail clean-routine-rail">
+<article class="rail-item done routine-green"><time>07:30</time><i></i><div><h3>기상과 물 한 잔</h3><p>완료 · 8분</p></div></article>
+<article class="rail-item done routine-blue"><time>08:10</time><i></i><div><h3>출근 준비</h3><p>완료 · 18분</p></div></article>
+<div class="rail-gap"><time>08:28</time><span>빈 시간 42분</span></div>
+<article class="rail-item routine-amber"><time>09:10</time><i></i><div><h3>출근</h3><p>이동 · 35분</p></div></article>
+<article class="rail-item current routine-violet"><time>13:00</time><i></i><div><h3>점심과 휴식</h3><p>진행 중 · 50분</p></div></article>
+<article class="rail-item routine-rose"><time>18:30</time><i></i><div><h3>퇴근 후 정리</h3><p>예정 · 20분</p></div></article>
+<article class="rail-item frequent routine-green" data-count="26"><time>22:30</time><i></i><div><h3>취침 준비</h3><p>최근 30일 26회</p></div></article>
+</div>
+</div>
+<div class="tab-panel" data-tab-panel="week">
+<div class="week-routine-summary"><span>이번 주</span><small>완료 18 · 예정 7</small></div>
+<div class="week-schedule-scroll">
+<div class="week-day-column"><header><span>월</span><b>3</b></header><article class="week-card sage"><small>07:30</small><span>아침 준비</span></article><article class="week-card amber"><small>22:30</small><span>취침 준비</span></article></div>
+<div class="week-day-column"><header><span>화</span><b>4</b></header><article class="week-card blue"><small>08:10</small><span>출근 준비</span></article><article class="week-card rose"><small>19:30</small><span>저녁 정리</span></article></div>
+<div class="week-day-column"><header><span>수</span><b>5</b></header><article class="week-card violet"><small>12:30</small><span>학습 루틴</span></article></div>
+<div class="week-day-column selected"><header><span>목</span><b>6</b></header><article class="week-card sage"><small>07:30</small><span>아침 준비</span></article><article class="week-card blue tall"><small>12:30</small><span>화학 학습</span></article><article class="week-card amber"><small>22:30</small><span>취침 준비</span></article></div>
+<div class="week-day-column"><header><span>금</span><b>7</b></header><article class="week-card rose"><small>18:30</small><span>주간 정리</span></article></div>
+</div>
+</div>
+<div class="tab-panel" data-tab-panel="month">
+<button class="month-link richer-month-link" data-go="calendar"><span>월간 캘린더 열기</span><small>일진 · 음력 · 달 모양 · 별자리 · 날짜별 전체 기록</small><i>›</i></button>
+<div class="month-routine-mini"><div><span>아침 루틴</span><small>24회</small></div><div class="mini-dots">● ● ● ● ● ● ○ ● ● ● ● ● ● ●</div><div><span>취침 루틴</span><small>26회</small></div><div class="mini-dots rose">● ● ● ● ● ● ● ● ● ● ○ ● ● ●</div></div>
+</div>
+<div class="tab-panel" data-tab-panel="routine">
+<section class="routine-library" id="routineLibrary">
+<article class="routine-group sage" data-count="24"><header><i class="routine-frequency-node"></i><div><h3>아침 준비</h3><p>최근 30일 24회 · 평균 31분</p></div><span>4단계</span></header><ol><li>물 한 잔</li><li>세면과 옷 입기</li><li>가방 확인</li><li>출발</li></ol></article>
+<article class="routine-group blue" data-count="17"><header><i class="routine-frequency-node"></i><div><h3>퇴근 후 정리</h3><p>최근 30일 17회 · 평균 42분</p></div><span>5단계</span></header><ol><li>저녁 식사</li><li>고양이 놀이</li><li>오늘 기록</li><li>내일 일정 확인</li><li>가방 정리</li></ol></article>
+<article class="routine-group rose" data-count="26"><header><i class="routine-frequency-node"></i><div><h3>취침 준비</h3><p>최근 30일 26회 · 평균 28분</p></div><span>4단계</span></header><ol><li>휴대폰 충전</li><li>세안</li><li>내일 첫 할 일 확인</li><li>조명 끄기</li></ol></article>
+</section>
+</div>
+<div class="tab-panel" data-tab-panel="log">
+<section class="routine-log-feed">
+<article class="log-event sage"><time>오늘 08:28</time><div><span>출근 준비 완료</span><small>18분 · 평소보다 4분 빠름</small></div></article>
+<article class="log-event blue"><time>오늘 07:38</time><div><span>기상과 물 한 잔</span><small>8분 · 12일 연속</small></div></article>
+<article class="log-event rose"><time>어제 23:02</time><div><span>취침 준비 완료</span><small>26분 · 예정 시간보다 12분 늦음</small></div></article>
+</section>
+</div>
+</section>
+<!-- TIME -->
+<section class="screen" data-screen="time">
+<header class="header"><div class="header-copy"><p class="eyebrow">TIME · DAY</p><h1 class="title">시간</h1></div><div class="header-actions"><button aria-label="검색과 이동" class="icon-btn" data-palette=""><svg viewbox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg></button></div></header>
+<div class="tabs time-tabs"><button class="active">일과</button><button data-go="routines">기록</button><button data-go="routines">주간</button><button data-go="calendar">월간</button></div>
+<article class="timer-panel new-timer"><div><small>진행 중</small><div class="clock" id="timerClock">00:32:18</div><p>화학 기초 1강 정리</p></div><button class="round-btn" id="timerToggle">Ⅱ</button></article>
+<div class="single-rail time-day-rail">
+<article class="rail-item done"><time>09:30</time><i></i><div><h3>출근 준비</h3><p>루틴 · 완료</p></div></article>
+<article class="rail-item current"><time>12:30</time><i></i><div><h3>화학 공부</h3><p>12:30–13:02 · 진행 중 · 약대 편입 준비</p></div></article>
+<div class="rail-gap"><time>13:02</time><span>3시간 58분 비어 있음</span></div>
+<article class="rail-item"><time>17:00</time><i></i><div><h3>퇴근 준비</h3><p>예정 · 10분</p></div></article>
+<article class="rail-item external"><time>21:00</time><i></i><div><h3>베리 데리기</h3><p>Google Calendar · 1시간</p></div></article>
+</div>
+</section>
+<!-- CALENDAR -->
+<section class="screen sub calendar-screen" data-screen="calendar">
+<header class="header"><div class="header-left"><button aria-label="뒤로" class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">ROUTINE</p><h1 class="title small">일과</h1></div></div><div class="header-actions"><button aria-label="검색과 이동" class="icon-btn" data-palette=""><svg viewbox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg></button></div></header>
+<div class="tabs calendar-main-tabs"><button data-go="routines">일과</button><button data-go="routines">주간</button><button class="active">월간</button><button data-go="routines">루틴</button><button data-go="routines">기록</button></div>
+<div class="calendar-head"><button id="prevMonth">‹</button><div><span id="calendarTitle">2026년 8월</span><small>丙午年 乙未月</small></div><button id="nextMonth">›</button></div>
+<div class="calendar-grid rich-calendar" id="calendarGrid"></div>
+<section class="calendar-detail rich-detail all-day-detail">
+<div class="selected-date-head"><div><h2 id="selectedDateTitle">8월 6일 (목)</h2><p data-astro="manse" id="selectedDateLunar">음력 6월 24일 · 壬子日</p><p data-astro="zodiac" id="selectedDateAstro">♌ 사자자리 · 그믐달</p></div><button data-open-composer="">＋ 추가</button></div>
+<div class="date-overview"><span><b>6</b><small>전체</small></span><span><b>2</b><small>완료</small></span><span><b>1</b><small>기록</small></span><span><b>3시간 12분</b><small>집중</small></span></div>
+<div class="calendar-filter-scroll" data-calendar-filter=""><button class="active" data-kind="all">전체</button><button data-kind="routine">루틴</button><button data-kind="task">할 일</button><button data-kind="schedule">일정</button><button data-kind="habit">습관</button><button data-kind="memo">메모</button><button data-kind="record">기록</button></div>
+<div class="selected-day-stream" id="calendarDayStream">
+<article class="day-stream-item sage" data-kind="routine"><time>07:30</time><i></i><div><span class="type-label">루틴</span><h3>아침 준비</h3><p>물 한 잔 · 세면 · 가방 확인</p></div><button>›</button></article>
+<article class="day-stream-item amber" data-kind="task"><time>09:30</time><i></i><div><span class="type-label">할 일</span><h3>출근 준비</h3><p>오늘 · 완료</p></div><button>›</button></article>
+<article class="day-stream-item blue" data-kind="schedule"><time>12:30</time><i></i><div><span class="type-label">일정</span><h3>화학 기초 1강 정리</h3><p>약대 편입 준비 · 12:30–13:20</p></div><button>›</button></article>
+<article class="day-stream-item violet" data-kind="habit"><time>18:30</time><i></i><div><span class="type-label">습관</span><h3>생물 20분</h3><p>최근 30일 18회 · 오늘 예정</p></div><button>›</button></article>
+<article class="day-stream-item rose" data-kind="memo"><time>20:40</time><i></i><div><span class="type-label">메모</span><h3>레이키 체감 기록</h3><p>짧은 메모 2줄</p></div><button>›</button></article>
+<article class="day-stream-item cyan" data-kind="record"><time>22:10</time><i></i><div><span class="type-label">기록</span><h3>집중 기록 52분</h3><p>화학 · 완료 항목 3개</p></div><button>›</button></article>
+</div>
+</section>
+</section>
+<!-- ARCHIVE -->
+<section class="screen" data-screen="archive">
+<header class="header"><div class="header-copy"><p class="eyebrow">ARCHIVE</p><h1 class="title">보관</h1></div><div class="header-actions"><button class="icon-btn" data-palette=""><svg viewbox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg></button></div></header>
+<div class="section-line"></div>
+<div class="archive-links"><button class="archive-link" data-go="dump"><span class="archive-index">01</span><span>쏟아내기<small>생각과 메모를 빠르게 기록</small></span><i></i></button><button class="archive-link" data-go="hold"><span class="archive-index">02</span><span>보류함<small>나중에 다시 볼 항목 4개</small></span><i></i></button><button class="archive-link" data-go="completed"><span class="archive-index">03</span><span>완료 기록<small>오늘 완료 2개</small></span><i></i></button><button class="archive-link" data-go="fortune"><span class="archive-index">04</span><span>오늘의 운세<small>행동 카드와 하루 흐름</small></span><i></i></button><button class="archive-link" data-go="calendar"><span class="archive-index">05</span><span>달력<small>일정과 기록을 날짜별로 보기</small></span><i></i></button><button class="archive-link" data-go="settings"><span class="archive-index">06</span><span>설정<small>테마 · 글자 · 백업 · 연동</small></span><i></i></button></div>
+</section>
+<!-- DUMP -->
+<section class="screen sub" data-screen="dump">
+<header class="header"><div class="header-left"><button class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">CAPTURE</p><h1 class="title small">쏟아내기</h1></div></div><div class="header-actions"><button class="icon-btn" id="saveDump"><svg viewbox="0 0 24 24"><path d="M5 12l4 4L19 6"></path></svg></button></div></header>
+<div class="section-line"></div>
+<section aria-label="음성으로 쏟아내기" class="voice-capture">
+<button id="voiceDump" type="button">
+<span aria-hidden="true" class="voice-icon">
+<svg viewbox="0 0 24 24"><rect height="11" rx="3" width="6" x="9" y="3"></rect><path d="M6 11a6 6 0 0 0 12 0M12 17v4M8 21h8"></path></svg>
+</span>
+<span class="voice-copy"><b>음성으로 쏟아내기</b><small id="voiceStatus">버튼을 누르면 받아쓰기를 시작합니다.</small></span>
+<span class="voice-state" id="voiceState">대기</span>
+</button>
+<div aria-hidden="true" class="voice-meter"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+</section><textarea class="dump-area" id="dumpText" placeholder="정리하지 말고 그대로 적기"></textarea>
+<div class="dump-tools"><button class="chip active">자동 저장</button><button class="chip" id="dumpToTask">할 일로 이동</button><button class="chip" id="dumpToMemo">메모로 보관</button><button class="chip" id="clearDump">비우기</button></div>
+</section>
+<!-- HOLD -->
+<section class="screen sub" data-screen="hold">
+<header class="header"><div class="header-left"><button class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">HOLD</p><h1 class="title small">보류함</h1></div></div></header><div class="section-line"></div>
+<div class="thread-list"><div class="thread-item"><i class="node small"></i><div class="thread-row"><span><span class="name">서점 방문</span><span class="desc">날짜 없음 · 생활</span></span><span class="tail">보류</span></div></div><div class="thread-item"><i class="node small"></i><div class="thread-row"><span><span class="name">앱 위젯 아이디어</span><span class="desc">메모 3개 연결</span></span><span class="tail">보류</span></div></div><div class="thread-item"><i class="node small"></i><div class="thread-row"><span><span class="name">책상 조명 교체</span><span class="desc">구매 전 비교 필요</span></span><span class="tail">보류</span></div></div></div>
+</section>
+<!-- COMPLETED -->
+<section class="screen sub" data-screen="completed">
+<header class="header"><div class="header-left"><button class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">COMPLETED</p><h1 class="title small">완료 기록</h1></div></div></header><div class="section-line"></div>
+<div class="thread-list"><div class="thread-item"><i class="node filled"></i><div class="thread-row"><span><span class="name">생물 강의 자료 정리</span><span class="desc">오늘 14:20 · 28분</span></span><span class="tail">완료</span></div></div><div class="thread-item"><i class="node filled"></i><div class="thread-row"><span><span class="name">고양이 사료 주문</span><span class="desc">오늘 11:10</span></span><span class="tail">완료</span></div></div><div class="thread-item"><i class="node filled"></i><div class="thread-row"><span><span class="name">영단어 50개</span><span class="desc">어제 21:40 · 42분</span></span><span class="tail">완료</span></div></div></div>
+</section>
+<!-- FORTUNE -->
+<section class="screen sub fortune-screen" data-screen="fortune">
+<header class="header"><div class="header-left"><button aria-label="뒤로" class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">DAILY FLOW</p><h1 class="title small">오늘의 운세</h1></div></div><div class="header-actions"><button class="icon-btn" id="refreshFortune"><svg viewbox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"></path></svg></button></div></header>
+
+
+
+
+
+
+
+<section class="premium-fortune">
+<section class="fortune-overview-panel">
+<div class="fortune-date-line"><span>2026.08.06 · 목요일</span><span>임자일 壬子 · 음력 6월 24일</span></div>
+<div class="fortune-overview-grid">
+<div aria-label="개인 별자리와 오늘의 일진을 겹쳐 표현한 천체 지도" class="celestial-illustration" role="img">
+<svg aria-hidden="true" viewbox="0 0 360 300">
+<circle class="astro-ring outer" cx="180" cy="150" r="118"></circle>
+<circle class="astro-ring" cx="180" cy="150" r="89"></circle>
+<circle class="astro-ring inner" cx="180" cy="150" r="57"></circle>
+<g class="house-lines">
+<path d="M180 32v236M62 150h236M96.5 66.5l167 167M263.5 66.5l-167 167"></path>
+<path d="M121 47.8l118 204.4M239 47.8L121 252.2M77.8 91l204.4 118M77.8 209l204.4-118"></path>
+</g>
+<path class="orbit-path sage" d="M69 188C104 75 202 69 292 138"></path>
+<path class="orbit-path blue" d="M89 88C154 122 186 244 281 200"></path>
+<path class="orbit-path rose" d="M72 147C149 181 214 84 295 160"></path>
+<g class="planet p-sun"><circle cx="258" cy="87" r="7"></circle><text x="270" y="91">태양 17°</text></g>
+<g class="planet p-moon"><circle cx="92" cy="102" r="6"></circle><text x="35" y="90">달 23°</text></g>
+<g class="planet p-asc"><circle cx="282" cy="198" r="5"></circle><text x="244" y="222">ASC 28°</text></g>
+<g class="planet p-day"><circle cx="180" cy="150" r="14"></circle><text text-anchor="middle" x="180" y="155">壬子</text></g>
+<g class="zodiac-labels"><text text-anchor="middle" x="180" y="23">천칭 · 균형</text><text text-anchor="middle" x="180" y="290">양 · 즉시성</text><text x="18" y="154">쌍둥이 · 정보</text></g>
+</svg>
+</div>
+<div class="fortune-thesis">
+<small>오늘의 핵심 구조</small>
+<h2>정리와 선택이 흐름을 살리는 날</h2>
+<p>해야 할 일을 늘리기보다 이미 시작한 항목의 범위를 닫는 편이 효율적입니다. 감정은 빠르게 움직이지만 판단은 한 번 적어 본 뒤 결정하는 편이 안정적입니다.</p>
+<div class="fortune-keywords"><span>정리</span><span>선택</span><span>짧은 집중</span><span>표현 조절</span></div>
+</div>
+</div>
+</section>
+<section class="fortune-score-grid">
+<article class="score-card mineral-sage"><span>집중</span><b>78</b><small>종료 지점이 분명한 작업</small><i style="--score:78%"></i></article>
+<article class="score-card mineral-blue"><span>관계</span><b>62</b><small>즉답보다 정리된 답변</small><i style="--score:62%"></i></article>
+<article class="score-card mineral-ochre"><span>재정</span><b>54</b><small>충동 지출 확인 필요</small><i style="--score:54%"></i></article>
+<article class="score-card mineral-plum"><span>회복</span><b>71</b><small>저녁 루틴이 핵심</small><i style="--score:71%"></i></article>
+</section>
+<section class="fortune-panel radar-panel">
+<div class="panel-heading"><div><small>오늘의 균형도</small><h2>영역별 레이더</h2></div><span>프로토타입 예시</span></div>
+<div class="radar-layout">
+<svg aria-label="집중, 관계, 재정, 회복, 통찰의 균형 그래프" class="radar-chart" viewbox="0 0 260 230">
+<g class="radar-grid"><path d="M130 18 230 91 192 208 68 208 30 91Z"></path><path d="M130 48 201 100 174 183 86 183 59 100Z"></path><path d="M130 78 172 109 156 158 104 158 88 109Z"></path><path d="M130 108 143 118 138 133 122 133 117 118Z"></path><path d="M130 18v190M230 91 68 208M192 208 30 91M68 208 201 100M30 91 174 183"></path></g>
+<path class="radar-shape" d="M130 42 192 104 167 177 91 169 61 101Z"></path>
+<g class="radar-points"><circle cx="130" cy="42" r="4"></circle><circle cx="192" cy="104" r="4"></circle><circle cx="167" cy="177" r="4"></circle><circle cx="91" cy="169" r="4"></circle><circle cx="61" cy="101" r="4"></circle></g>
+<g class="radar-labels"><text text-anchor="middle" x="130" y="12">집중</text><text x="237" y="92">관계</text><text x="198" y="221">재정</text><text x="30" y="221">회복</text><text x="4" y="92">통찰</text></g>
+</svg>
+<div class="radar-legend"><div><i class="mineral-sage"></i><span>강점</span><small>집중 · 회복</small></div><div><i class="mineral-blue"></i><span>중간</span><small>관계 · 통찰</small></div><div><i class="mineral-ochre"></i><span>주의</span><small>재정 · 충동성</small></div></div>
+</div>
+</section>
+<section class="fortune-panel energy-panel-v3">
+<div class="panel-heading"><div><small>시간대별 흐름</small><h2>하루 에너지 곡선</h2></div><span>최적 구간 13:00–16:00</span></div>
+<svg aria-label="시간대별 집중과 감정 에너지 그래프" class="energy-chart-v3" preserveaspectratio="none" viewbox="0 0 360 150">
+<g class="energy-grid-lines"><path d="M0 25H360M0 62H360M0 99H360M0 136H360"></path></g>
+<path class="energy-line focus" d="M0 118 C38 112 55 91 86 95 S139 121 171 83 S221 36 258 42 S319 58 360 73"></path>
+<path class="energy-line emotion" d="M0 82 C36 62 66 68 101 86 S164 104 199 75 S267 63 302 86 S336 105 360 91"></path>
+<g class="energy-markers"><circle cx="86" cy="95" r="4"></circle><circle cx="258" cy="42" r="5"></circle><circle cx="302" cy="86" r="4"></circle></g>
+<g class="chart-labels"><text x="0" y="148">06</text><text x="72" y="148">10</text><text x="144" y="148">14</text><text x="216" y="148">18</text><text x="288" y="148">22</text></g>
+</svg>
+<div class="energy-legend"><span><i class="mineral-blue"></i>집중</span><span><i class="mineral-rose"></i>감정 반응</span><span><i class="mineral-sage"></i>회복 가능성</span></div>
+</section>
+<section class="fortune-panel five-elements-panel">
+<div class="panel-heading"><div><small>일진과 개인 명식의 상호작용</small><h2>오행 분포</h2></div><span>수 강 · 토 보완</span></div>
+<div class="element-detail-bars">
+<div><span>목</span><i><b style="width:42%;background:#728d78"></b></i><small>42</small><em>계획 확장</em></div>
+<div><span>화</span><i><b style="width:58%;background:#b77568"></b></i><small>58</small><em>표현과 속도</em></div>
+<div><span>토</span><i><b style="width:36%;background:#aa8b57"></b></i><small>36</small><em>마무리 필요</em></div>
+<div><span>금</span><i><b style="width:47%;background:#7d8996"></b></i><small>47</small><em>기준 세우기</em></div>
+<div><span>수</span><i><b style="width:82%;background:#6f86a7"></b></i><small>82</small><em>정보와 감정</em></div>
+</div>
+</section>
+<section class="fortune-panel aspect-panel">
+<div class="panel-heading"><div><small>핵심 상호작용</small><h2>오늘의 해석 포인트</h2></div><span>3개</span></div>
+<div class="aspect-list">
+<article><i class="mineral-rose"></i><div><span>감정 속도 ↔ 판단 속도</span><p>먼저 반응하고 나중에 이유를 찾기 쉬운 구조입니다. 중요한 답변은 메모 후 전송하는 편이 안전합니다.</p></div><small>주의</small></article>
+<article><i class="mineral-sage"></i><div><span>정리 ↔ 실행력</span><p>작업 범위를 30~50분 단위로 자르면 집중이 빠르게 안정됩니다. 완료 기준을 한 문장으로 적으세요.</p></div><small>강점</small></article>
+<article><i class="mineral-blue"></i><div><span>정보 수집 ↔ 과부하</span><p>찾아보는 행동이 실행을 대신할 수 있습니다. 자료 검색은 15분 타이머를 두는 편이 좋습니다.</p></div><small>조절</small></article>
+</div>
+</section>
+<section class="fortune-panel time-window-panel">
+<div class="panel-heading"><div><small>시간 선택</small><h2>권장 시간대</h2></div><span>6구간</span></div>
+<div class="time-window-grid">
+<div class="quiet"><span>06–09</span><b>정리</b><small>가벼운 루틴</small></div>
+<div class="steady"><span>09–12</span><b>준비</b><small>자료 모으기</small></div>
+<div class="best"><span>12–16</span><b>집중</b><small>핵심 작업</small></div>
+<div class="steady"><span>16–19</span><b>소통</b><small>정리된 답변</small></div>
+<div class="active"><span>19–22</span><b>표현</b><small>감정 과속 주의</small></div>
+<div class="quiet"><span>22–01</span><b>회복</b><small>자극 줄이기</small></div>
+</div>
+</section>
+<section class="fortune-detail-grid premium-detail-grid">
+<article class="fortune-detail-card mineral-sage"><small>일과 · 학습</small><h3>완료 기준을 먼저 적으면 효율이 올라갑니다.</h3><p>새 교재나 자료를 추가하기보다 이미 시작한 강의 한 단위를 끝내는 편이 좋습니다. 40분 집중 후 10분 정리를 권장합니다.</p><ul><li>추천: 화학 기초 1강 마무리</li><li>주의: 자료 검색만 길어지는 것</li></ul></article>
+<article class="fortune-detail-card mineral-blue"><small>관계 · 대화</small><h3>즉답보다 한 번 정리한 문장이 정확합니다.</h3><p>상대방의 말보다 자신의 반응 속도가 더 빠를 수 있습니다. 민감한 주제는 결론부터 말하지 말고 사실과 감정을 분리하세요.</p><ul><li>추천: 짧고 명확한 요청</li><li>주의: 추측을 사실처럼 말하기</li></ul></article>
+<article class="fortune-detail-card mineral-ochre"><small>재정 · 소비</small><h3>작은 보상성 지출이 늘어날 수 있습니다.</h3><p>피로를 소비로 해소하기 쉬운 흐름입니다. 장바구니에 넣고 24시간 뒤 결제하는 규칙이 유효합니다.</p><ul><li>추천: 필수품만 결제</li><li>주의: 앱·도구 중복 구독</li></ul></article>
+<article class="fortune-detail-card mineral-plum"><small>몸 · 리듬</small><h3>저녁 루틴 시작 시간이 회복을 좌우합니다.</h3><p>늦은 시간까지 정보를 계속 보면 잠들기 직전까지 머리가 활성화될 수 있습니다. 취침 전 30분은 화면을 줄이세요.</p><ul><li>추천: 식사와 수면 시간 고정</li><li>주의: 카페인 추가 섭취</li></ul></article>
+</section>
+<section class="fortune-panel detail-index-panel">
+<div class="panel-heading"><div><small>오늘의 세부 지표</small><h2>행동 가이드</h2></div><span>정확도보다 실용성</span></div>
+<div class="detail-index-list">
+<div><span>가장 먼저 할 일</span><b>진행 중인 작업의 종료 기준 적기</b></div>
+<div><span>피해야 할 패턴</span><b>새 계획을 계속 추가하기</b></div>
+<div><span>도움이 되는 환경</span><b>소음이 적고 자료가 한곳에 있는 자리</b></div>
+<div><span>오늘의 색</span><b><i class="color-chip c1"></i>먹빛 청록 <i class="color-chip c2"></i>말린 장미</b></div>
+<div><span>오늘의 숫자</span><b>4 · 17 · 28</b></div>
+</div>
+</section>
+<article class="fortune-action premium-action"><span class="symbol">오늘의 행동 카드</span><p>지금 실행할 한 가지</p><h2>화학 기초 1강의 완료 기준을 적고 40분 시작</h2><button class="wide-btn" id="fortuneAdd">오늘 할 일에 추가</button></article>
+<p class="fortune-prototype-note">이 화면의 수치와 해석 문구는 디자인 프로토타입용 예시입니다. 실제 앱에서는 사용자의 출생 정보, 현재 천체 데이터와 만세력 계산 결과를 기반으로 생성해야 합니다.</p>
+</section>
+</section>
+<!-- SETTINGS -->
+<section class="screen sub" data-screen="settings">
+<header class="header"><div class="header-left"><button class="icon-btn" data-back=""><svg viewbox="0 0 24 24"><path d="m15 5-7 7 7 7"></path></svg></button><div class="header-copy"><p class="eyebrow">SETTINGS</p><h1 class="title small">설정</h1></div></div></header>
+<div class="section-line"></div>
+<section class="setting-section"><h2 class="setting-title">테마</h2><div class="theme-grid"><button class="theme-choice" data-theme-choice="manila"><span class="swatch" style="--s1:#FBF8F0;--s2:#776C54;--s3:#B37058"><i></i><i></i><i></i></span><small>MANILA</small></button><button class="theme-choice" data-theme-choice="newsprint"><span class="swatch" style="--s1:#F2F3EF;--s2:#2F3430;--s3:#B45149"><i></i><i></i><i></i></span><small>NEWSPRINT</small></button><button class="theme-choice active" data-theme-choice="sage"><span class="swatch" style="--s1:#F7F8F4;--s2:#607D6C;--s3:#A47D68"><i></i><i></i><i></i></span><small>SAGE</small></button><button class="theme-choice" data-theme-choice="midnight"><span class="swatch" style="--s1:#11192A;--s2:#9AB2A6;--s3:#D47E73"><i></i><i></i><i></i></span><small>MIDNIGHT</small></button></div></section>
+<section class="setting-section"><h2 class="setting-title">글자와 화면</h2><div class="settings-list"><div class="setting-row"><div><span>글자 크기</span><small>화면 전체 비율</small></div><div class="segmented"><button data-font="80">80</button><button data-font="90">90</button><button class="active" data-font="100">100</button><button data-font="110">110</button><button data-font="120">120</button></div></div><div class="setting-row"><div><span>화면 밀도</span><small>행 간격과 여백</small></div><div class="segmented"><button class="active" data-density="comfortable">편안</button><button data-density="compact">조밀</button></div></div><div class="setting-row"><div><span>휴대폰 글꼴 사용</span><small>시스템 기본 글꼴 적용</small></div><button class="switch" data-setting="deviceFont"></button></div></div></section>
+<section class="setting-section"><h2 class="setting-title">집중 지원</h2><div class="settings-list"><div class="setting-row"><div><span>현재 작업 우선 표시</span><small>진행 중인 항목을 상단에 유지</small></div><button class="switch on" data-setting="singleFocus"></button></div><div class="setting-row"><div><span>완료 후 다음 항목</span><small>연결된 다음 작업 한 개 표시</small></div><button class="switch on" data-setting="nextTask"></button></div><div class="setting-row"><div><span>중단 작업 복귀</span><small>이탈한 작업을 오늘 화면에 남김</small></div><button class="switch on" data-setting="resumeCard"></button></div><div class="setting-row"><div><span>시간 감각 보조</span><small>경과 시간과 빈 시간 표시</small></div><button class="switch on" data-setting="timeAssist"></button></div><div class="setting-row"><div><span>집중 화면 단순화</span><small>집중 기록 중 주변 요소 축소</small></div><button class="switch" data-setting="focusMode"></button></div><div class="setting-row"><div><span>알림 문구 완화</span><small>압박감을 줄인 중립 문구 사용</small></div><button class="switch on" data-setting="softNotice"></button></div></div></section>
+<section class="setting-section"><h2 class="setting-title">별자리 · 만세력</h2><div class="settings-list"><div class="setting-row"><div><span>별자리 표시</span><small>오늘의 운세 화면에 표시</small></div><button class="switch on" data-setting="zodiac"></button></div><div class="setting-row"><div><span>만세력 표시</span><small>일진과 음력 정보 표시</small></div><button class="switch on" data-setting="manse"></button></div><div class="setting-row"><div><span>생년월일과 시간</span><small id="birthValue">입력하지 않음</small></div><button class="text-action" id="birthEdit">입력</button></div></div></section>
+<section class="setting-section"><h2 class="setting-title">Google Calendar</h2><article class="veil connect-card"><p>휴대폰 캘린더와 일정의 읽기·쓰기 상태를 관리합니다. 이 HTML에서는 연결 화면만 동작합니다.</p><button class="wide-btn" id="calendarConnect">캘린더 연결</button></article></section>
+<section class="setting-section"><h2 class="setting-title">Notion</h2><article class="veil connect-card"><p>실제 앱에서는 토큰을 안전한 저장소에 보관해야 합니다. 일반 HTML 파일에는 실제 토큰을 입력하지 마세요.</p><input class="field" id="notionToken" placeholder="Integration Token" type="password"/><input class="field" id="notionPage" placeholder="부모 페이지 주소 또는 ID"/><button class="wide-btn" id="notionConnect">노션 연결 확인</button></article></section>
+<section class="setting-section"><h2 class="setting-title">백업과 복구</h2><article class="veil connect-card"><p>목표, 할 일, 습관 상태, 설정과 메모를 JSON 파일로 저장합니다.</p><p style="margin-top:8px">마지막 백업: <span id="lastBackup">아직 없음</span></p><button class="wide-btn" id="exportBackup">백업 파일 저장</button><button class="wide-btn" id="importBackup">백업 파일 복구</button><input accept="application/json,.json" hidden="" id="backupFile" type="file"/><button class="wide-btn danger-btn" id="resetData">프로토타입 데이터 초기화</button></article></section>
+</section>
+<!-- NAV -->
+<nav aria-label="하단 메뉴" class="bottom-nav">
+<button class="nav-btn active" data-nav="today"><svg viewbox="0 0 24 24"><path d="M4 11 12 4l8 7v9H4z"></path><path d="M9 20v-6h6v6"></path></svg><span>오늘</span></button>
+<button class="nav-btn" data-nav="flow"><svg viewbox="0 0 24 24"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="12" r="2"></circle><circle cx="8" cy="19" r="2"></circle><path d="m7.8 7.1 8.4 3.8M16.5 13.5 9.4 17.8"></path></svg><span>흐름</span></button>
+<button class="nav-btn" id="openComposer"><span class="capture-nav"><svg viewbox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span><span id="captureLabel">담기</span></button>
+<button class="nav-btn" data-nav="time"><svg viewbox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg><span>시간</span></button>
+<button class="nav-btn" data-nav="archive"><svg viewbox="0 0 24 24"><path d="M5 7h14v13H5z"></path><path d="M4 4h16v3H4zM9 11h6"></path></svg><span>보관</span></button>
+</nav>
+<!-- COMPOSER -->
+<div aria-hidden="true" class="composer-layer" id="composerLayer"><button aria-label="닫기" class="composer-overlay"></button><div class="composer"><div class="composer-context">
+<div><small id="composerContextKicker">현재 화면</small><span id="composerContextTitle">오늘에 담기</span></div>
+<em id="composerContextHint">할 일 · 일정 · 습관 · 메모</em>
+</div><div class="composer-line"><i class="composer-node"></i><input autocomplete="off" id="composerInput" placeholder="무엇을 담을까요?"/><button class="composer-send" id="composerSend">↗</button></div><div class="composer-branches" id="composerBranches"><div class="guess"><span>자동 분류</span><span id="guessText">할 일 · 오늘</span></div><div class="type-chips"><button class="active" data-type="task">할 일</button><button data-type="schedule">일정</button><button data-type="memo">메모</button><button data-type="habit">습관</button><button data-type="goal">목표</button></div></div></div></div>
+<!-- PALETTE -->
+<div aria-hidden="true" class="palette-layer" id="paletteLayer"><div class="palette"><div class="palette-search"><span>⌕</span><input id="paletteInput" placeholder="화면과 항목 검색"/><button class="palette-close" id="closePalette">×</button></div><div class="palette-label">WORKSPACE</div><button class="palette-item" data-go="today"><i>01</i><span>오늘</span><small>요약과 현재 작업</small></button><button class="palette-item" data-go="outliner"><i>02</i><span>아웃라이너</span><small>전체 구조</small></button><button class="palette-item" data-go="goals"><i>03</i><span>목표 관리</span><small>주간 · 장기</small></button><button class="palette-item" data-go="tasks"><i>04</i><span>전체 할 일</span><small>필터와 완료</small></button><button class="palette-item" data-go="matrix"><i>05</i><span>매트릭스</span><small>우선순위</small></button><button class="palette-item" data-go="habits"><i>06</i><span>습관</span><small>연속 기록</small></button><button class="palette-item" data-go="routines"><i>07</i><span>루틴</span><small>일과와 로그</small></button><button class="palette-item" data-go="calendar"><i>08</i><span>달력</span><small>일정</small></button><div class="palette-label">ARCHIVE</div><button class="palette-item" data-go="dump"><i>09</i><span>쏟아내기</span><small>빠른 메모</small></button><button class="palette-item" data-go="hold"><i>10</i><span>보류함</span><small>나중에</small></button><button class="palette-item" data-go="fortune"><i>11</i><span>오늘의 운세</span><small>행동 카드</small></button><button class="palette-item" data-go="settings"><i>12</i><span>설정</span><small>테마 · 백업</small></button></div></div>
+<div class="toast" id="toast">저장했습니다.</div>
+</div>
+</main></div>
+<script>
+(()=>{
+  const $=(s,p=document)=>p.querySelector(s), $$=(s,p=document)=>[...p.querySelectorAll(s)];
+  const screens=$$('.screen'), navs=$$('.nav-btn[data-nav]'), bottom=$('.bottom-nav');
+  const stack=['today']; let current='today';
+  const stateKey='jigeumReferenceMergeStateV1';
+  const defaultState={theme:'sage',font:'100',density:'comfortable',taskDone:[false,false,false,true],habitDone:[true,true,true,false,false],switches:{singleFocus:true,nextTask:true,resumeCard:true,timeAssist:true,focusMode:false,softNotice:true,zodiac:true,manse:true,deviceFont:false},dump:'',birth:'',customTasks:[],customGoals:[],customHabits:[],lastBackup:null};
+  let state={...defaultState};
+  let timerSeconds=32*60+18, timerRunning=false, timerTick=null, composerType='task';
+  const memoryStore={};
+  const storage={get(k){try{return localStorage.getItem(k)}catch(e){return memoryStore[k]||null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){memoryStore[k]=v}},remove(k){try{localStorage.removeItem(k)}catch(e){delete memoryStore[k]}}};
+  function load(){try{state={...defaultState,...JSON.parse(storage.get(stateKey)||'{}')};state.switches={...defaultState.switches,...(state.switches||{})}}catch(e){state={...defaultState}}}
+  function save(){storage.set(stateKey,JSON.stringify(state))}
+  function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),1700)}
+  function navigate(name,push=true){const target=$(`[data-screen="${name}"]`);if(!target)return;if(push&&current!==name)stack.push(name);current=name;screens.forEach(s=>s.classList.toggle('active',s===target));navs.forEach(n=>n.classList.toggle('active',n.dataset.nav===name));bottom.style.display=target.classList.contains('sub')?'none':'grid';target.scrollTop=0;closePalette();closeComposer()}
+  $$('[data-go],[data-nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.go||b.dataset.nav)));
+  $$('[data-open-goal]').forEach(b=>b.addEventListener('click',()=>navigate('goal')));
+  $$('[data-back]').forEach(b=>b.addEventListener('click',()=>{if(stack.length>1)stack.pop();navigate(stack.pop()||'today');}));
+  function updateClock(){const d=new Date();$('#statusTime').textContent=d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit',hour12:false})}updateClock();setInterval(updateClock,30000);
+
+  // palette
+  const palette=$('#paletteLayer'), paletteInput=$('#paletteInput');
+  function openPalette(){palette.classList.add('open');palette.setAttribute('aria-hidden','false');setTimeout(()=>paletteInput.focus(),80)}
+  function closePalette(){palette.classList.remove('open');palette.setAttribute('aria-hidden','true');paletteInput.value='';$$('.palette-item').forEach(x=>x.style.display='grid')}
+  $$('[data-palette]').forEach(b=>b.addEventListener('click',openPalette));$('#closePalette').addEventListener('click',closePalette);palette.addEventListener('click',e=>{if(e.target===palette)closePalette()});paletteInput.addEventListener('input',()=>{const q=paletteInput.value.trim().toLowerCase();$$('.palette-item').forEach(x=>x.style.display=x.textContent.toLowerCase().includes(q)?'grid':'none')});
+
+  // composer
+  const composer=$('#composerLayer'), composerInput=$('#composerInput'), branches=$('#composerBranches'), guess=$('#guessText');
+  function openComposer(){composer.classList.add('open');composer.setAttribute('aria-hidden','false');setTimeout(()=>composerInput.focus(),80)}function closeComposer(){composer.classList.remove('open');composer.setAttribute('aria-hidden','true');composerInput.blur()}
+  $('#openComposer').addEventListener('click',openComposer);$$('[data-open-composer]').forEach(b=>b.addEventListener('click',openComposer));$('.composer-overlay').addEventListener('click',closeComposer);
+  composerInput.addEventListener('input',()=>{const v=composerInput.value.trim();branches.classList.toggle('show',!!v);if(/매일|매주|습관|자기 전|기상 후/.test(v)){composerType='habit';guess.textContent='습관 · 반복'}else if(/오늘|내일|오전|오후|\d{1,2}시|예약|일정/.test(v)){composerType='schedule';guess.textContent='일정 · 날짜 인식'}else if(/목표|이번 달|올해/.test(v)){composerType='goal';guess.textContent='목표'}else if(/메모|기록|아이디어/.test(v)){composerType='memo';guess.textContent='메모'}else{composerType='task';guess.textContent='할 일 · 오늘'}$$('.type-chips button').forEach(x=>x.classList.toggle('active',x.dataset.type===composerType))});
+  $$('.type-chips button').forEach(b=>b.addEventListener('click',()=>{composerType=b.dataset.type;$$('.type-chips button').forEach(x=>x.classList.toggle('active',x===b));guess.textContent=b.textContent}));
+  function appendTask(title,meta='새로 담은 항목'){state.customTasks.push({title,meta,done:false});save();renderCustom();}
+  function submitComposer(){const v=composerInput.value.trim();if(!v){composerInput.focus();return}if(composerType==='goal'){state.customGoals.push({title:v,progress:0});toast('목표에 추가했습니다.')}else if(composerType==='habit'){state.customHabits.push({title:v,done:false});toast('습관에 추가했습니다.')}else if(composerType==='memo'){state.dump=(state.dump?state.dump+'\n':'')+v;toast('메모에 보관했습니다.')}else{appendTask(v,composerType==='schedule'?'새 일정':'오늘 · 새 할 일');toast(composerType==='schedule'?'일정에 추가했습니다.':'할 일에 추가했습니다.')}save();renderCustom();composerInput.value='';branches.classList.remove('show');closeComposer()}
+  $('#composerSend').addEventListener('click',submitComposer);composerInput.addEventListener('keydown',e=>{if(e.key==='Enter')submitComposer()});
+
+  // tasks
+  function bindTaskChecks(){$$('.task-check').forEach((b,i)=>{b.onclick=()=>{b.classList.toggle('done');b.closest('.task-line').classList.toggle('done',b.classList.contains('done'));const base=$$('[data-task]').indexOf(b.closest('[data-task]'));if(base>=0&&base<4)state.taskDone[base]=b.classList.contains('done');save();updateCounts();toast(b.classList.contains('done')?'완료 처리했습니다.':'완료를 취소했습니다.')}})}
+  function renderCustom(){const list=$('#allTaskList');$$('.custom-task',list).forEach(x=>x.remove());state.customTasks.forEach((t,idx)=>{const el=document.createElement('div');el.className='task-line custom-task'+(t.done?' done':'');el.innerHTML=`<button class="task-check ${t.done?'done':''}"></button><div><div class="task-title"></div><div class="task-meta"></div></div><div class="task-tail">NEW</div>`;el.querySelector('.task-title').textContent=t.title;el.querySelector('.task-meta').textContent=t.meta;el.querySelector('.task-check').onclick=()=>{t.done=!t.done;save();renderCustom();updateCounts()};list.appendChild(el)});
+    const gp=$('#goalPath');$$('.custom-goal',gp).forEach(x=>x.remove());state.customGoals.forEach(g=>{const a=document.createElement('article');a.className='goal-card custom-goal';a.dataset.goalFilter='week month long';a.innerHTML=`<i class="goal-node"></i><button class="goal-titleline"><span></span><small>${g.progress}%</small></button><div class="goal-desc">새 목표</div><div class="progress-route" style="--progress:${g.progress}%"><i></i><span class="fill"></span></div>`;a.querySelector('.goal-titleline span').textContent=g.title;gp.appendChild(a)});
+    const hl=$('#habitList');$$('.custom-habit',hl).forEach(x=>x.remove());state.customHabits.forEach((h,idx)=>{const a=document.createElement('article');a.className='habit-card custom-habit'+(h.done?' done':'');a.innerHTML=`<div class="habit-top"><button class="habit-name"><i class="habit-main-node"></i><span></span></button><span class="streak">0일</span></div><div class="habit-track">${Array.from({length:14},(_,i)=>`<i class="habit-dot ${i===6?'today':''}"></i>`).join('')}</div>`;a.querySelector('.habit-name span').textContent=h.title;a.querySelector('.habit-name').onclick=()=>{h.done=!h.done;save();renderCustom();updateCounts()};hl.appendChild(a)})
+  }
+  bindTaskChecks();
+  $$('[data-tabs]').forEach(group=>{const buttons=$$('button[data-tab]',group);buttons.forEach(b=>b.addEventListener('click',()=>{buttons.forEach(x=>x.classList.toggle('active',x===b));const key=group.dataset.tabs;if(key==='taskFilter'){$$('[data-task]').forEach(item=>item.style.display=b.dataset.tab==='all'||item.dataset.tags?.split(' ').includes(b.dataset.tab)?'grid':'none')}else if(key==='goalFilter'){$$('.goal-card').forEach(item=>item.style.display=item.dataset.goalFilter?.split(' ').includes(b.dataset.tab)?'block':'none')}else if(key==='routineTabs'){$$('[data-tab-panel]').forEach(p=>p.classList.toggle('active',p.dataset.tabPanel===b.dataset.tab))}}))});
+
+  // outline and lens
+  $$('.outline-head').forEach(b=>b.addEventListener('click',()=>b.closest('.outline-block')?.classList.toggle('open')));$$('.outline-leaf').forEach(b=>b.addEventListener('click',()=>{$$('.outline-leaf').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')}));
+  $$('[data-lens]').forEach(b=>b.addEventListener('click',()=>{$$('[data-lens]').forEach(x=>x.classList.toggle('active',x===b));$$('[data-lens-panel]').forEach(p=>p.classList.toggle('active',p.dataset.lensPanel===b.dataset.lens))}));
+  $$('.routine-head').forEach(b=>b.addEventListener('click',()=>b.closest('.routine-block').classList.toggle('open')));
+
+  // habit
+  function bindHabits(){$$('[data-habit-card]').forEach((card,i)=>{const btn=$('[data-habit-toggle]',card);if(!btn)return;btn.onclick=()=>{card.classList.toggle('done');if(i<state.habitDone.length)state.habitDone[i]=card.classList.contains('done');save();updateCounts();toast(card.classList.contains('done')?'오늘 기록했습니다.':'오늘 기록을 취소했습니다.')}})}bindHabits();
+  function updateCounts(){const done=state.taskDone.filter(Boolean).length+state.customTasks.filter(x=>x.done).length;$('#todayDoneCount').textContent=done;const habits=state.habitDone.filter(Boolean).length+state.customHabits.filter(x=>x.done).length;$('#habitDoneCount').textContent=`${habits}/${state.habitDone.length+state.customHabits.length}`}
+
+  // timer
+  function formatTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return [h,m,sec].map(x=>String(x).padStart(2,'0')).join(':')}
+  function renderTimer(){$('#timerClock').textContent=formatTime(timerSeconds);$('#focusElapsed').textContent=formatTime(timerSeconds);$('#timerToggle').textContent=timerRunning?'Ⅱ':'▶';$('#focusToggle').textContent=timerRunning?'일시정지':'계속하기'}
+  function toggleTimer(){timerRunning=!timerRunning;if(timerRunning){timerTick=setInterval(()=>{timerSeconds++;renderTimer()},1000)}else{clearInterval(timerTick)}renderTimer();toast(timerRunning?'집중 기록을 계속합니다.':'집중 기록을 멈췄습니다.')}
+  $('#timerToggle').addEventListener('click',toggleTimer);$('#focusToggle').addEventListener('click',toggleTimer);$('#resumeTask').addEventListener('click',()=>toast('중단한 작업을 열었습니다.'));
+
+  // calendar
+  let calYear=2026,calMonth=7;const monthNames=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  function renderCalendar(){
+    const grid=$('#calendarGrid'); if(!grid)return;
+    grid.innerHTML='';
+    ['일','월','화','수','목','금','토'].forEach(x=>{const d=document.createElement('div');d.className='dow';d.textContent=x;grid.appendChild(d)});
+    const pillars=['辛丑日','壬寅日','癸卯日','甲辰日','乙巳日','丙午日','丁未日','戊申日','己酉日','庚戌日','辛亥日','壬子日','癸丑日','甲寅日','乙卯日','丙辰日','丁巳日','戊午日','己未日','庚申日','辛酉日','壬戌日','癸亥日','甲子日','乙丑日','丙寅日','丁卯日','戊辰日','己巳日','庚午日','辛未日','壬申日','癸酉日','甲戌日','乙亥日','丙子日','丁丑日','戊寅日','己卯日','庚辰日','辛巳日','壬午日'];
+    const phaseNames=['삭','초승달','상현달','차오르는 달','보름달','기우는 달','하현달','그믐달'];
+    const year=calYear,month=calMonth,first=new Date(year,month,1).getDay(),days=new Date(year,month+1,0).getDate(),prevDays=new Date(year,month,0).getDate();
+    const total=Math.ceil((first+days)/7)*7;
+    for(let i=0;i<total;i++){
+      const d=document.createElement('button');d.type='button';d.className='calendar-cell';
+      let num,inMonth=true;
+      if(i<first){num=prevDays-first+i+1;inMonth=false;d.classList.add('muted')}
+      else if(i>=first+days){num=i-first-days+1;inMonth=false;d.classList.add('muted')}
+      else num=i-first+1;
+      const phase=(i+2)%8;
+      d.innerHTML=`<span class="solar">${num}</span><span class="pillar">${pillars[i]||''}</span><i class="moon phase-${phase}" aria-label="${phaseNames[phase]}"></i>`;
+      if(year===2026&&month===7&&num===6&&inMonth)d.classList.add('selected','today');
+      d.onclick=()=>{
+        $$('.calendar-cell',grid).forEach(x=>x.classList.remove('selected'));d.classList.add('selected');
+        const weekday=['일','월','화','수','목','금','토'][new Date(year,month,num).getDay()];
+        $('#selectedDateTitle').textContent=`${month+1}월 ${num}일 (${weekday})`;
+        const phaseName=phaseNames[phase];
+        const astro=$('#selectedDateAstro');if(astro)astro.textContent=`♌ 사자자리 · ${phaseName}`;
+      };
+      grid.appendChild(d);
+    }
+    $('#calendarTitle').textContent=`${year}년 ${monthNames[month]}`;
+  }
+  $('#prevMonth').addEventListener('click',()=>{calMonth--;if(calMonth<0){calMonth=11;calYear--}renderCalendar()});$('#nextMonth').addEventListener('click',()=>{calMonth++;if(calMonth>11){calMonth=0;calYear++}renderCalendar()});
+
+  // dump
+  const dump=$('#dumpText');dump.addEventListener('input',()=>{state.dump=dump.value;save()});$('#saveDump').addEventListener('click',()=>{state.dump=dump.value;save();toast('메모를 저장했습니다.')});$('#clearDump').addEventListener('click',()=>{if(confirm('작성한 내용을 비울까요?')){dump.value='';state.dump='';save()}});$('#dumpToTask').addEventListener('click',()=>{const v=dump.value.trim();if(!v)return toast('내용이 없습니다.');appendTask(v.split('\n')[0],'쏟아내기에서 이동');toast('할 일로 이동했습니다.')});$('#dumpToMemo').addEventListener('click',()=>toast('메모로 보관했습니다.'));
+
+  // simple add buttons
+  function askAndAdd(kind){const label=kind==='goal'?'목표':kind==='habit'?'습관':kind==='routine'?'루틴':'항목';const v=prompt(`${label} 이름을 입력하세요.`);if(!v)return;if(kind==='goal')state.customGoals.push({title:v,progress:0});else if(kind==='habit')state.customHabits.push({title:v,done:false});else if(kind==='routine')toast('루틴 템플릿에 추가했습니다.');else toast('아웃라이너에 추가했습니다.');save();renderCustom();toast(`${label}에 추가했습니다.`)}
+  $('#addGoal').addEventListener('click',()=>askAndAdd('goal'));$('#addHabit').addEventListener('click',()=>askAndAdd('habit'));$('#addRoutine').addEventListener('click',()=>askAndAdd('routine'));$('#addOutline').addEventListener('click',()=>askAndAdd('outline'));$('#goalMore').addEventListener('click',()=>toast('목표 편집 메뉴를 열었습니다.'));
+
+  // fortune
+  $('#fortuneAdd').addEventListener('click',()=>{appendTask('이미 시작한 일 하나 끝내기','오늘의 운세 · 행동 카드');toast('오늘 할 일에 추가했습니다.')});$('#refreshFortune').addEventListener('click',()=>toast('오늘의 흐름을 다시 불러왔습니다.'));
+
+  // settings
+  function applySettings(){document.documentElement.dataset.theme=state.theme;document.documentElement.dataset.font=state.font;document.documentElement.dataset.density=state.density;$$('[data-theme-choice]').forEach(b=>b.classList.toggle('active',b.dataset.themeChoice===state.theme));$$('[data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===state.font));$$('[data-density]').forEach(b=>b.classList.toggle('active',b.dataset.density===state.density));$$('.switch[data-setting]').forEach(b=>b.classList.toggle('on',!!state.switches[b.dataset.setting]));$$('[data-astro="zodiac"]').forEach(el=>el.hidden=!state.switches.zodiac);$$('[data-astro="manse"]').forEach(el=>el.hidden=!state.switches.manse);$$('.day-context').forEach(el=>el.hidden=!state.switches.zodiac&&!state.switches.manse);$('#birthValue').textContent=state.birth||'갑자년 갑술월 정축일 신해시';document.body.style.fontFamily=state.switches.deviceFont?'system-ui,-apple-system,sans-serif':'var(--sans)';document.querySelector('meta[name="theme-color"]').content=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#F7F8F4';$('#lastBackup').textContent=state.lastBackup?new Date(state.lastBackup).toLocaleString('ko-KR'):'아직 없음'}
+  $$('[data-theme-choice]').forEach(b=>b.addEventListener('click',()=>{state.theme=b.dataset.themeChoice;save();applySettings();toast(`${b.querySelector('small').textContent} 테마를 적용했습니다.`)}));$$('[data-font]').forEach(b=>b.addEventListener('click',()=>{state.font=b.dataset.font;save();applySettings()}));$$('[data-density]').forEach(b=>b.addEventListener('click',()=>{state.density=b.dataset.density;save();applySettings()}));$$('.switch[data-setting]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.setting;state.switches[k]=!state.switches[k];save();applySettings()}));
+  $('#birthEdit').addEventListener('click',()=>{const v=prompt('생년월일과 시간을 입력하세요.\n예: 1990-01-01 13:30',state.birth||'갑자년 갑술월 정축일 신해시');if(v!==null){state.birth=v;save();applySettings()}});$('#calendarConnect').addEventListener('click',()=>toast('캘린더 연결 화면을 열었습니다.'));$('#notionConnect').addEventListener('click',()=>toast('독립 HTML에서는 실제 연결을 수행하지 않습니다.'));
+  function backupData(){return{format:'jigeum-reference-merge-backup',version:1,exportedAt:new Date().toISOString(),state}}
+  $('#exportBackup').addEventListener('click',()=>{state.lastBackup=new Date().toISOString();save();const blob=new Blob([JSON.stringify(backupData(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`jigeum-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);applySettings();toast('백업 파일을 저장했습니다.')});$('#importBackup').addEventListener('click',()=>$('#backupFile').click());$('#backupFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{const parsed=JSON.parse(await f.text());if(parsed.format!=='jigeum-reference-merge-backup'||!parsed.state)throw new Error();if(!confirm('현재 데이터를 백업 내용으로 교체할까요?'))return;state={...defaultState,...parsed.state,switches:{...defaultState.switches,...(parsed.state.switches||{})}};save();location.reload()}catch(err){toast('지원하지 않는 백업 파일입니다.')}finally{e.target.value=''}});$('#resetData').addEventListener('click',()=>{if(confirm('프로토타입 데이터를 초기화할까요?')){storage.remove(stateKey);location.reload()}});
+
+  // initialize
+  load();state.taskDone.forEach((done,i)=>{const item=$$('[data-task]')[i];if(item){$('.task-check',item).classList.toggle('done',done);item.classList.toggle('done',done)}});state.habitDone.forEach((done,i)=>{const card=$$('[data-habit-card]')[i];if(card)card.classList.toggle('done',done)});dump.value=state.dump||'';renderCustom();renderCalendar();renderTimer();applySettings();updateCounts();bindHabits();
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePalette();closeComposer()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openPalette()}});
+})();
+</script>
+<script>
+(()=>{
+  const $$=(s,p=document)=>[...p.querySelectorAll(s)];
+  // Today filter and schedule completion
+  $$('[data-today-filter] button').forEach(btn=>btn.addEventListener('click',()=>{
+    $$('[data-today-filter] button').forEach(x=>x.classList.toggle('active',x===btn));
+    $$('.schedule-card').forEach(card=>card.style.display=card.dataset.state===btn.dataset.filter?'grid':'none');
+  }));
+  $$('.schedule-check').forEach(btn=>btn.addEventListener('click',()=>{
+    btn.classList.toggle('done'); const card=btn.closest('.schedule-card');
+    card?.classList.toggle('done-card',btn.classList.contains('done'));
+  }));
+  // date strip selection
+  $$('.date-strip button').forEach(btn=>btn.addEventListener('click',()=>{$$('.date-strip button').forEach(x=>x.classList.remove('selected'));btn.classList.add('selected')}));
+  // period controls
+  $$('[data-period-tabs] button').forEach(btn=>btn.addEventListener('click',()=>{const g=btn.parentElement;$$('button',g).forEach(x=>x.classList.toggle('active',x===btn))}));
+  // charts
+  function buildHistogram(sel,values,activeFrom=18){const el=document.querySelector(sel);if(!el)return;el.innerHTML='';values.forEach((v,i)=>{const c=document.createElement('span');c.className='dot-column'+(i>=activeFrom?' active':'');c.innerHTML=Array.from({length:v},()=>'<i></i>').join('');el.appendChild(c)})}
+  buildHistogram('.goals-hist',[2,4,3,1,2,5,4,3,2,1,3,2,5,7,6,8,5,4,7,9,8,6,4,3,5,2,4,6,5,3],17);
+  buildHistogram('.goal-detail-hist',[1,2,1,3,2,2,4,3,5,4,6,5,4,7,6,5,8,7,6,9,8,7,6,5,4,6,5,7,4,3],16);
+  buildHistogram('.habit-hist',[3,5,4,2,6,8,7,5,4,6,3,8,10,9,7,6,11,8,9,12,10,7,8,6,9,11,8,10,7,9],17);
+  // 30-day frequency node sizes and mini tracks
+  function nodeSize(count){if(count<=0)return 4;if(count<=3)return 5;if(count<=7)return 6;if(count<=15)return 8;if(count<=23)return 10;return 12}
+  $$('.habit-row').forEach((row,ri)=>{const count=Number(row.dataset.count||0),rate=Number(row.dataset.rate||0);row.style.setProperty('--node-size',nodeSize(count)+'px');row.style.setProperty('--rate',rate);const track=row.querySelector('.mini-track');if(track){track.innerHTML=Array.from({length:14},(_,i)=>`<i class="${((i+ri*2)%5!==0)?'on':''} ${i===13?'today':''}"></i>`).join('')}});
+  $$('.rail-item[data-count]').forEach(item=>{const n=item.querySelector(':scope>i');if(n){const s=nodeSize(Number(item.dataset.count));n.style.width=s+'px';n.style.height=s+'px';n.style.left=`${-19-s/2}px`}});
+  // goal summary focus
+  document.querySelector('#goalFocusToggle')?.addEventListener('click',()=>document.querySelector('#focusToggle')?.click());
+  // rich calendar detail tabs
+  $$('[data-calendar-detail-tabs] button').forEach(btn=>btn.addEventListener('click',()=>{const root=btn.closest('.rich-detail');$$('[data-calendar-detail-tabs] button',root).forEach(x=>x.classList.toggle('active',x===btn));$$('[data-calendar-panel]',root).forEach(p=>p.classList.toggle('active',p.dataset.calendarPanel===btn.dataset.panel))}));
+  // outline technical row selection
+  $$('.tree-node,.tree-leaf').forEach(btn=>btn.addEventListener('click',()=>{$$('.tree-node,.tree-leaf').forEach(x=>x.classList.remove('selected'));btn.classList.add('selected')}));
+})();
+</script>
+<script>
+(()=>{
+  const $$=(s,p=document)=>[...p.querySelectorAll(s)];
+  // Calendar all-day filters
+  $$('[data-calendar-filter] button').forEach(btn=>btn.addEventListener('click',()=>{
+    const root=btn.closest('.all-day-detail');
+    $$('[data-calendar-filter] button',root).forEach(x=>x.classList.toggle('active',x===btn));
+    const kind=btn.dataset.kind;
+    $$('.day-stream-item',root).forEach(item=>item.style.display=kind==='all'||item.dataset.kind===kind?'grid':'none');
+  }));
+  // Continuous outliner selection and collapse
+  $$('[data-tree-row]').forEach(row=>row.addEventListener('click',()=>{
+    const li=row.closest('.tree-item');
+    const child=li?.querySelector(':scope > ul');
+    if(child && row.querySelector('.disclosure')){
+      child.hidden=!child.hidden; li.classList.toggle('open',!child.hidden); row.querySelector('.disclosure').textContent=child.hidden?'+':'−';
+    }
+    $$('[data-tree-row]').forEach(x=>x.classList.remove('selected'));row.classList.add('selected');
+    const title=row.querySelector('.tree-title')?.textContent.trim()||'';
+    const selected=document.querySelector('#outlineSelectionTitle');if(selected)selected.textContent=title;
+  }));
+  // Frequency nodes in routine library
+  function sizeFor(count){if(count<=3)return 6;if(count<=7)return 7;if(count<=15)return 9;if(count<=23)return 11;return 14}
+  $$('.routine-group[data-count]').forEach(group=>{const n=group.querySelector('.routine-frequency-node');const s=sizeFor(Number(group.dataset.count||0));if(n){n.style.width=s+'px';n.style.height=s+'px';n.style.left=(7-s/2)+'px';n.style.top=(14-s/2)+'px'}});
+  // Fortune refresh gives visible motion, not just toast
+  document.querySelector('#refreshFortune')?.addEventListener('click',()=>{
+    const hero=document.querySelector('.fortune-art');hero?.animate([{opacity:.55,transform:'scale(.985)'},{opacity:1,transform:'scale(1)'}],{duration:620,easing:'ease-out'});
+  });
+})();
+</script><script>
+(()=>{
+  const $=(s,p=document)=>p.querySelector(s), $$=(s,p=document)=>[...p.querySelectorAll(s)];
+  const contextKey='jigeumContextCaptureV3';
+  let captures=[];
+  try{captures=JSON.parse(localStorage.getItem(contextKey)||'[]')}catch(e){captures=[]}
+  const saveCaptures=()=>{try{localStorage.setItem(contextKey,JSON.stringify(captures))}catch(e){}};
+  const activeScreen=()=>$('.screen.active')?.dataset.screen||'today';
+  const navMap={today:'today',flow:'flow',outliner:'flow',goals:'flow',goal:'flow',tasks:'flow',matrix:'flow',habits:'flow',routines:'time',time:'time',calendar:'time',archive:'archive',dump:'archive',hold:'archive',completed:'archive',fortune:'archive',settings:'archive'};
+  const captureContexts={
+    today:{label:'오늘에 담기',hint:'할 일 · 일정 · 습관 · 메모',placeholder:'오늘 필요한 것을 적어 주세요',types:[['task','할 일'],['schedule','일정'],['habit','습관'],['memo','메모']]},
+    flow:{label:'흐름에 추가',hint:'아웃라인 · 목표 · 할 일 · 메모',placeholder:'흐름에 연결할 항목',types:[['outline','아웃라인'],['goal','목표'],['task','할 일'],['memo','메모']]},
+    outliner:{label:'아웃라이너에 추가',hint:'상위 · 하위 · 할 일 · 메모',placeholder:'현재 구조에 추가할 항목',types:[['outline','상위 항목'],['child','하위 항목'],['task','할 일'],['memo','메모']]},
+    goals:{label:'목표 관리에 추가',hint:'목표 · 단계 · 할 일 · 기록',placeholder:'목표 또는 다음 단계를 적어 주세요',types:[['goal','목표'],['milestone','단계'],['task','할 일'],['record','기록']]},
+    goal:{label:'이 목표에 추가',hint:'단계 · 할 일 · 메모 · 기록',placeholder:'약대 편입 준비에 연결할 항목',types:[['milestone','단계'],['task','할 일'],['memo','메모'],['record','기록']]},
+    tasks:{label:'할 일에 추가',hint:'할 일 · 일정 · 메모 · 보류',placeholder:'새 할 일을 적어 주세요',types:[['task','할 일'],['schedule','일정'],['memo','메모'],['hold','보류']]},
+    matrix:{label:'매트릭스에 추가',hint:'중요 · 긴급 · 계획 · 보류',placeholder:'분류할 일을 적어 주세요',types:[['task','할 일'],['urgent','긴급'],['plan','계획'],['hold','보류']]},
+    habits:{label:'습관에 추가',hint:'습관 · 오늘 기록 · 메모',placeholder:'반복할 행동을 적어 주세요',types:[['habit','습관'],['checkin','오늘 기록'],['memo','메모']]},
+    routines:{label:'루틴에 추가',hint:'루틴 · 단계 · 일정 · 로그',placeholder:'루틴 또는 단계를 적어 주세요',types:[['routine','루틴'],['step','단계'],['schedule','일정'],['log','로그']]},
+    time:{label:'시간에 추가',hint:'일정 · 할 일 · 로그 · 루틴',placeholder:'시간에 배치할 항목',types:[['schedule','일정'],['task','할 일'],['log','로그'],['routine','루틴']]},
+    calendar:{label:'선택일에 추가',hint:'일정 · 할 일 · 습관 · 메모',placeholder:'8월 6일에 추가할 항목',types:[['schedule','일정'],['task','할 일'],['habit','습관'],['memo','메모']]},
+    archive:{label:'보관에 담기',hint:'메모 · 보류 · 기록 · 할 일',placeholder:'보관할 내용을 적어 주세요',types:[['memo','메모'],['hold','보류'],['record','기록'],['task','할 일']]},
+    dump:{label:'쏟아내기에 담기',hint:'메모 · 음성 · 할 일 · 기록',placeholder:'정리하지 말고 그대로 적어 주세요',types:[['memo','메모'],['voice','음성'],['task','할 일'],['record','기록']]},
+    hold:{label:'보류함에 추가',hint:'보류 · 메모 · 할 일',placeholder:'나중에 다시 볼 항목',types:[['hold','보류'],['memo','메모'],['task','할 일']]},
+    completed:{label:'완료 기록 추가',hint:'기록 · 메모 · 할 일',placeholder:'완료한 내용을 기록해 주세요',types:[['record','기록'],['memo','메모'],['task','할 일']]},
+    fortune:{label:'운세에서 실행',hint:'할 일 · 메모 · 습관 · 기록',placeholder:'오늘의 행동을 저장해 주세요',types:[['task','할 일'],['memo','메모'],['habit','습관'],['record','기록']]},
+    settings:{label:'빠른 담기',hint:'메모 · 할 일 · 일정',placeholder:'빠르게 저장할 내용',types:[['memo','메모'],['task','할 일'],['schedule','일정']]}
+  };
+  let selectedContextType='task';
+  function syncBottomNav(){
+    const screen=activeScreen(), group=navMap[screen]||screen;
+    $$('.nav-btn[data-nav]').forEach(n=>n.classList.toggle('active',n.dataset.nav===group));
+    const bar=$('.bottom-nav');if(bar)bar.style.display='grid';
+    const label=$('#captureLabel');if(label)label.textContent=screen==='dump'?'쏟기':screen==='calendar'?'추가':screen==='routines'?'추가':screen==='goals'||screen==='goal'?'추가':screen==='outliner'?'추가':'담기';
+  }
+  const observer=new MutationObserver(syncBottomNav);$$('.screen').forEach(s=>observer.observe(s,{attributes:true,attributeFilter:['class']}));syncBottomNav();
+
+  function setContext(){
+    const screen=activeScreen(), c=captureContexts[screen]||captureContexts.today;
+    $('#composerContextKicker').textContent=screen==='calendar'?'선택한 날짜':screen==='goal'?'현재 목표':'현재 화면';
+    $('#composerContextTitle').textContent=c.label;$('#composerContextHint').textContent=c.hint;$('#composerInput').placeholder=c.placeholder;
+    const buttons=$$('.type-chips button');
+    buttons.forEach((b,i)=>{const pair=c.types[i];if(!pair){b.hidden=true;return}b.hidden=false;b.dataset.type=pair[0];b.textContent=pair[1];b.classList.toggle('active',i===0)});
+    selectedContextType=c.types[0][0];$('#guessText').textContent=c.types[0][1];
+  }
+  $('#openComposer')?.addEventListener('click',setContext,true);$$('[data-open-composer]').forEach(b=>b.addEventListener('click',setContext,true));
+  $$('.type-chips button').forEach(b=>b.addEventListener('click',()=>{selectedContextType=b.dataset.type;$('#guessText').textContent=b.textContent;$$('.type-chips button').forEach(x=>x.classList.toggle('active',x===b))}));
+  $('#composerInput')?.addEventListener('input',()=>{
+    const v=$('#composerInput').value.trim(), c=captureContexts[activeScreen()]||captureContexts.today;
+    let type=c.types[0][0];
+    if(/매일|매주|습관|기상|취침/.test(v)&&c.types.some(x=>x[0]==='habit'))type='habit';
+    else if(/\d{1,2}시|내일|예약|일정/.test(v)&&c.types.some(x=>x[0]==='schedule'))type='schedule';
+    else if(/단계|마일스톤/.test(v)&&c.types.some(x=>x[0]==='milestone'))type='milestone';
+    else if(/메모|생각|아이디어/.test(v)&&c.types.some(x=>x[0]==='memo'))type='memo';
+    const btn=$(`.type-chips button[data-type="${type}"]`);if(btn){selectedContextType=type;$$('.type-chips button').forEach(x=>x.classList.toggle('active',x===btn));$('#guessText').textContent=btn.textContent}
+  });
+
+  function addContextCapture(text,type,screen){captures.push({id:Date.now(),text,type,screen,at:new Date().toISOString()});saveCaptures();renderCaptures()}
+  function renderCaptures(){
+    $$('.context-added').forEach(x=>x.remove());
+    captures.forEach(item=>{
+      if(['task','schedule','urgent','plan'].includes(item.type)){
+        const board=$('#todayTaskList');if(board){const a=document.createElement('article');a.className='schedule-card context-added '+(item.type==='schedule'?'external':'calm');a.dataset.state='todo';a.innerHTML=`<div class="schedule-time">NEW</div><button class="schedule-check"></button><div><span class="context-badge">${item.type==='schedule'?'일정':'할 일'}</span><h2></h2><p>${new Date(item.at).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</p></div>`;a.querySelector('h2').textContent=item.text;board.appendChild(a)}
+      }
+      if(item.type==='outline'||item.type==='child'){
+        const target=$('#outlineRoot .root-tree');if(target){const li=document.createElement('li');li.className='tree-item root-item context-added';li.innerHTML=`<button class="tree-row root-row" data-tree-row><span class="disclosure">+</span><span class="tree-title"></span><span class="tree-meta">NEW</span></button><ul hidden></ul>`;li.querySelector('.tree-title').textContent=item.text;target.appendChild(li)}
+      }
+      if(item.type==='milestone'){
+        const target=$('#goalStructureTree .root-tree>li:first-child>ul');if(target){const li=document.createElement('li');li.className='tree-item context-added';li.innerHTML=`<button class="tree-row leaf-row" data-tree-row><span class="leaf-dot violet"></span><span class="tree-title"></span><span class="tree-meta">추가됨</span></button>`;li.querySelector('.tree-title').textContent=item.text;target.appendChild(li)}
+      }
+      if(item.type==='routine'){
+        const target=$('#routineLibrary');if(target){const a=document.createElement('article');a.className='routine-group context-added blue';a.dataset.count='1';a.innerHTML=`<header><i class="routine-frequency-node"></i><div><h3></h3><p>최근 30일 1회 · 새 루틴</p></div><span>0단계</span></header><ol></ol>`;a.querySelector('h3').textContent=item.text;target.appendChild(a)}
+      }
+      if(item.type==='step'){
+        const target=$('#routineLibrary .routine-group ol');if(target){const li=document.createElement('li');li.className='context-added';li.textContent=item.text;target.appendChild(li)}
+      }
+      if(item.type==='habit'){
+        const target=$('#habitList');if(target){const a=document.createElement('article');a.className='habit-card context-added';a.innerHTML=`<div class="habit-top"><button class="habit-name"><i class="habit-main-node"></i><span></span></button><span class="streak">0일</span></div><div class="habit-track">${Array.from({length:14},(_,i)=>`<i class="habit-dot ${i===13?'today':''}"></i>`).join('')}</div>`;a.querySelector('.habit-name span').textContent=item.text;target.appendChild(a)}
+      }
+      if(['memo','record','log','hold'].includes(item.type)){
+        const dump=$('#dumpText');if(dump&&!dump.value.includes(item.text)){dump.value=(dump.value?dump.value+'\n':'')+item.text}
+      }
+      if(activeScreen()==='calendar' || item.screen==='calendar'){
+        const stream=$('#calendarDayStream');if(stream&&['task','schedule','habit','memo','record'].includes(item.type)){const colors={task:'amber',schedule:'blue',habit:'violet',memo:'rose',record:'cyan'};const labels={task:'할 일',schedule:'일정',habit:'습관',memo:'메모',record:'기록'};const a=document.createElement('article');a.className=`day-stream-item context-added ${colors[item.type]||'sage'}`;a.dataset.kind=item.type;a.innerHTML=`<time>NEW</time><i></i><div><span class="type-label">${labels[item.type]||'항목'}</span><h3></h3><p>현재 화면에서 추가</p></div><button>›</button>`;a.querySelector('h3').textContent=item.text;stream.appendChild(a)}}
+    })
+  }
+  renderCaptures();
+
+  function submitContext(e){
+    e.preventDefault();e.stopImmediatePropagation();
+    const input=$('#composerInput'), text=input?.value.trim();if(!text){input?.focus();return}
+    const screen=activeScreen(), type=selectedContextType||$('.type-chips button.active')?.dataset.type||'task';
+    if(type==='voice'){document.querySelector('#composerLayer')?.classList.remove('open');document.querySelector('#voiceDump')?.click();return}
+    addContextCapture(text,type,screen);
+    input.value='';$('#composerBranches')?.classList.remove('show');$('#composerLayer')?.classList.remove('open');
+    const toast=$('#toast');if(toast){toast.textContent=`${(captureContexts[screen]||captureContexts.today).label.replace('에 담기','').replace('에 추가','')}에 추가했습니다.`;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1700)}
+  }
+  $('#composerSend')?.addEventListener('click',submitContext,true);
+  $('#composerInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')submitContext(e)},true);
+
+  // Voice recognition for Dump
+  const voiceBtn=$('#voiceDump'), voiceSection=voiceBtn?.closest('.voice-capture'), voiceStatus=$('#voiceStatus'), voiceState=$('#voiceState'), dump=$('#dumpText');
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let recognition=null,listening=false;
+  if(SR){
+    recognition=new SR();recognition.lang='ko-KR';recognition.continuous=true;recognition.interimResults=true;
+    recognition.onstart=()=>{listening=true;voiceSection?.classList.add('listening');voiceState.textContent='듣는 중';voiceStatus.textContent='말한 내용이 아래 쏟아내기에 실시간으로 입력됩니다.'};
+    recognition.onresult=e=>{let finalText='',interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t;else interim+=t}if(finalText){dump.value=(dump.value?dump.value+'\n':'')+finalText.trim();dump.dispatchEvent(new Event('input',{bubbles:true}))}voiceStatus.textContent=interim?`인식 중: ${interim}`:'계속 말해 주세요.'};
+    recognition.onerror=e=>{voiceStatus.textContent=e.error==='not-allowed'?'마이크 권한이 필요합니다.':'음성 인식이 중단되었습니다.'};
+    recognition.onend=()=>{listening=false;voiceSection?.classList.remove('listening');voiceState.textContent='대기';voiceStatus.textContent='버튼을 누르면 받아쓰기를 시작합니다.'};
+    voiceBtn?.addEventListener('click',()=>{if(listening)recognition.stop();else{try{recognition.start()}catch(e){}}});
+  }else if(voiceBtn){voiceBtn.addEventListener('click',()=>{voiceStatus.textContent='이 브라우저는 음성 인식을 지원하지 않습니다.';const t=$('#toast');if(t){t.textContent='Chrome 또는 Android WebView에서 마이크 권한을 허용해 주세요.';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1900)}})}
+
+  // Re-bind dynamically added tree rows and goal/routine items using delegation
+  document.addEventListener('click',e=>{
+    const row=e.target.closest('[data-tree-row]');if(!row)return;
+    const li=row.closest('.tree-item'), child=li?.querySelector(':scope > ul'), disclosure=row.querySelector('.disclosure');
+    if(child&&disclosure){child.hidden=!child.hidden;li.classList.toggle('open',!child.hidden);disclosure.textContent=child.hidden?'+':'−'}
+    $$('[data-tree-row]').forEach(x=>x.classList.remove('selected'));row.classList.add('selected');
+  });
+})();
+</script>
+<script id="qa-screen-query">
+window.addEventListener('load',()=>{
+  const requested=new URLSearchParams(location.search).get('screen');
+  if(!requested)return;
+  const target=document.querySelector(`[data-screen="${requested}"]`);
+  if(!target)return;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s===target));
+  document.querySelectorAll('.nav-btn[data-nav]').forEach(n=>n.classList.toggle('active',n.dataset.nav===requested));
+});
+</script>
+
+</body>
+</html>
