@@ -7,6 +7,8 @@ import '../../core/constants.dart';
 import '../../core/dialogs.dart';
 import '../../core/editorial.dart';
 import '../../core/journal.dart';
+import '../../core/reference_tokens.dart';
+import '../../data/db.dart';
 import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../data/repos/time_track_repository.dart';
@@ -78,7 +80,8 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
   // 선택 날짜·상세 탭은 provider 로 관리(하단 담기가 세부 탭·선택일을 알 수 있게).
   DateTime get _selected =>
       ref.watch(calendarSelectedProvider) ?? todayDate();
-  int get _detailTab => ref.watch(calendarDetailTabProvider);
+
+  int _dayFilter = 0; // 0 전체·1 루틴·2 할일·3 일정·4 습관·5 메모·6 기록
 
   @override
   void initState() {
@@ -304,6 +307,77 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
       if (settings.showZodiac) byeoljariLabel(d),
     ];
 
+    // ── 통합 날짜 스트림(기준 HTML) — 루틴·할일·일정·습관·메모·기록 ──
+    final open = ref.watch(openNodesForDateProvider(d)).valueOrNull ?? const [];
+    final wins = ref.watch(winsForDateProvider(d)).valueOrNull ?? const [];
+    final groups = ref.watch(routineGroupsProvider).valueOrNull ?? const [];
+    final steps = ref.watch(routineStepsProvider).valueOrNull ?? const [];
+    final rGroupName = {for (final g in groups) g.id: g.title};
+    final rWd = d.weekday;
+    final rDayIds = {
+      for (final g in groups)
+        if (g.active && g.weekdays.split(',').contains('$rWd')) g.id
+    };
+    bool rDone(RoutineStep s) =>
+        s.lastDone != null && dateOnly(s.lastDone!) == d;
+    final stream = <({String kind, String title, int? min, String meta})>[];
+    for (final s in steps) {
+      if (!rDayIds.contains(s.groupId)) continue;
+      final dn = rDone(s);
+      stream.add((
+        kind: 'routine',
+        title: rGroupName[s.groupId] == null
+            ? s.title
+            : '${rGroupName[s.groupId]} · ${s.title}',
+        min: dn && s.lastDoneAt != null
+            ? s.lastDoneAt!.hour * 60 + s.lastDoneAt!.minute
+            : null,
+        meta: dn ? '루틴 · 완료' : '루틴',
+      ));
+    }
+    for (final s in items) {
+      stream.add((
+        kind: 'schedule',
+        title: s.title,
+        min: s.allDay ? null : s.startMin,
+        meta: s.allDay ? '일정 · 종일' : '일정',
+      ));
+    }
+    for (final n in open) {
+      if (n.type == NodeType.task) {
+        stream.add((kind: 'task', title: n.title, min: null, meta: '할 일'));
+      } else if (n.type == NodeType.memo) {
+        stream.add((kind: 'memo', title: n.title, min: null, meta: '메모'));
+      }
+    }
+    for (final n in wins) {
+      final m = n.doneAt == null ? null : n.doneAt!.hour * 60 + n.doneAt!.minute;
+      stream.add((kind: 'task', title: n.title, min: m, meta: '완료'));
+    }
+    for (final h in doneHabits) {
+      final m = h.time == null ? null : h.time!.hour * 60 + h.time!.minute;
+      stream.add((kind: 'habit', title: h.name, min: m, meta: '습관 · 완료'));
+    }
+    for (final b in records) {
+      if (b.content.trim().isEmpty) continue;
+      stream.add((
+        kind: 'record',
+        title: b.content.split('\n').first.trim(),
+        min: b.block * 30,
+        meta: '기록',
+      ));
+    }
+    const kindKeys = ['all', 'routine', 'task', 'schedule', 'habit', 'memo', 'record'];
+    final fk = kindKeys[_dayFilter];
+    final shown =
+        fk == 'all' ? stream : stream.where((x) => x.kind == fk).toList();
+    shown.sort((a, b) => (a.min ?? (1 << 30)).compareTo(b.min ?? (1 << 30)));
+    final overAll = stream.length;
+    final overDone =
+        wins.length + items.where((s) => s.done).length + doneHabits.length;
+    final overRec = records.where((b) => b.content.trim().isNotEmpty).length;
+    final focusMin = overRec * 30;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -366,116 +440,102 @@ class _CalendarViewState extends ConsumerState<CalendarView> {
             padding: const EdgeInsets.fromLTRB(kGutter, 2, kGutter, 0),
             child: Text('절기 · $term', style: AppText.meta(tk.mark)),
           ),
-        // 상세 탭 — 일정 / 기록 / 습관 (박스 없는 텍스트 탭 + 밑줄).
+        // date-overview (기준 HTML)
         Padding(
-          padding: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 4),
-          child: EdTabs(
-            labels: const ['일정', '기록', '습관'],
-            index: _detailTab,
-            onChanged: (i) =>
-                ref.read(calendarDetailTabProvider.notifier).state = i,
+          padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 12),
+          child: Row(children: [
+            _ovCell(tk, '$overAll', '전체'),
+            _ovCell(tk, '$overDone', '완료'),
+            _ovCell(tk, '$overRec', '기록'),
+            _ovCell(tk, '${focusMin}분', '집중'),
+          ]),
+        ),
+        SizedBox(
+          height: 34,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: kGutter),
+            children: [
+              _dayFilterChip(tk, 0, '전체'),
+              _dayFilterChip(tk, 1, '루틴'),
+              _dayFilterChip(tk, 2, '할 일'),
+              _dayFilterChip(tk, 3, '일정'),
+              _dayFilterChip(tk, 4, '습관'),
+              _dayFilterChip(tk, 5, '메모'),
+              _dayFilterChip(tk, 6, '기록'),
+            ],
           ),
         ),
-        const SizedBox(height: 6),
-        if (_detailTab == 0) ...[
-          if (items.isEmpty)
-            emptyNote(context, '이 날 일정이 없어요')
-          else
-            for (final s in items)
-              InkWell(
-                onTap: () => showScheduleEditSheet(context, existing: s),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                          width: 44,
-                          child: Text(s.allDay ? '종일' : minToShort(s.startMin),
-                              style: AppText.meta(tk.inkSoft))),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(s.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.body(s.done
-                                    ? tk.ink.withValues(alpha: 0.5)
-                                    : tk.ink)),
-                            if (s.done && s.doneAt != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                    '${DateFormat('HH:mm').format(s.doneAt!)} 완료',
-                                    style: AppText.meta(tk.mark, size: 10)),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-        ] else if (_detailTab == 1) ...[
-          if (records.isEmpty)
-            emptyNote(context, '이 날 기록이 없어요')
-          else
-            for (final b in records)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                        width: 44,
-                        child: Text(blockLabel(b.block),
-                            style: AppText.meta(tk.inkSoft))),
-                    const SizedBox(width: 8),
-                    Expanded(
-                        child: Text(b.content,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppText.body(tk.ink))),
-                  ],
-                ),
-              ),
-        ] else ...[
-          if (doneHabits.isEmpty)
-            emptyNote(context, '이 날 완료한 습관이 없어요')
-          else
-            for (final habit in doneHabits)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('✓', style: AppText.glyph(tk.mark, size: 14)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(habit.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.body(tk.ink)),
-                          if (habit.time != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                  '${DateFormat('HH:mm').format(habit.time!)} 완료',
-                                  style: AppText.meta(tk.mark, size: 10)),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-        ],
+        const SizedBox(height: 4),
+        if (shown.isEmpty)
+          emptyNote(context, '이 날 이 종류의 기록이 없어요')
+        else
+          for (final x in shown) _streamRow(tk, x),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  Widget _ovCell(AppTokens tk, String value, String label) => Expanded(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+              color: tk.paper2, borderRadius: BorderRadius.circular(10)),
+          child: Column(children: [
+            Text(value, style: AppText.metaSans(tk.ink, size: 12)),
+            const SizedBox(height: 4),
+            Text(label, style: AppText.meta(tk.inkSoft, size: 8)),
+          ]),
+        ),
+      );
+
+  Widget _dayFilterChip(AppTokens tk, int i, String label) {
+    final sel = _dayFilter == i;
+    return GestureDetector(
+      onTap: () => setState(() => _dayFilter = i),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(right: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+        decoration: BoxDecoration(
+            color: sel ? mixOver(tk.mark, 0.16, tk.paper) : tk.paper2,
+            borderRadius: BorderRadius.circular(999)),
+        child: Text(label,
+            style: AppText.meta(sel ? tk.ink : tk.inkSoft, size: 9)),
+      ),
+    );
+  }
+
+  Widget _streamRow(
+      AppTokens tk, ({String kind, String title, int? min, String meta}) x) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: kGutter, vertical: 11),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(
+            width: 40,
+            child: Text(x.min != null ? minToShort(x.min!) : '',
+                style: AppText.meta(tk.inkSoft, size: 8))),
+        const SizedBox(width: 8),
+        Container(
+            width: 7,
+            height: 7,
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+                shape: BoxShape.circle, color: streamKindColor(x.kind))),
+        const SizedBox(width: 10),
+        Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(x.meta, style: AppText.meta(tk.inkSoft, size: 7)),
+            const SizedBox(height: 3),
+            Text(x.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.body(tk.ink).copyWith(fontSize: 12)),
+          ]),
+        ),
+      ]),
     );
   }
 }
