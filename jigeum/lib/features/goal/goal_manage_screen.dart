@@ -369,14 +369,22 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
   }
 }
 
-/// 목표 상세 시트 — 제목·마감일·기간 변경 + 하위 할 일 관리 + 삭제.
-class _GoalDetail extends ConsumerWidget {
+/// 목표 상세 시트 — 기준 HTML 4-렌즈(요약/구조/여정/기록). 편집 기능 전부 유지.
+class _GoalDetail extends ConsumerStatefulWidget {
   const _GoalDetail({required this.goalId});
   final String goalId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_GoalDetail> createState() => _GoalDetailState();
+}
+
+class _GoalDetailState extends ConsumerState<_GoalDetail> {
+  int _lens = 0; // 0 요약 · 1 구조 · 2 여정 · 3 기록
+
+  @override
+  Widget build(BuildContext context) {
     final tk = t(context);
+    final goalId = widget.goalId;
     final all = ref.watch(allNodesProvider).valueOrNull ?? const <Node>[];
     Node? goal;
     for (final n in all) {
@@ -387,14 +395,10 @@ class _GoalDetail extends ConsumerWidget {
     }
     if (goal == null) return const SizedBox.shrink();
     final g = goal;
-    final repo = ref.read(nodeRepoProvider);
     final children = all
         .where((n) => n.parentId == goalId && n.type == NodeType.task)
         .toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-    final horizon = g.goalHorizon ?? 'custom';
-
-    // 목표 여정 — 자식 할 일 완료에서 파생(새 테이블 없이 실제 데이터로).
     final total = children.length;
     final doneCount = children.where((n) => n.status == NodeStatus.done).length;
     final percent = total == 0
@@ -405,8 +409,8 @@ class _GoalDetail extends ConsumerWidget {
     final currentStep = openChildren.isNotEmpty ? openChildren.first.title : null;
     final completedChildren =
         children.where((n) => n.status == NodeStatus.done).toList()
-          ..sort((a, b) => (a.doneAt ?? a.createdAt)
-              .compareTo(b.doneAt ?? b.createdAt));
+          ..sort((a, b) =>
+              (a.doneAt ?? a.createdAt).compareTo(b.doneAt ?? b.createdAt));
     final journey = <_GJEvent>[
       _GJEvent(_GJKind.done, '목표 시작', dateOnly(g.createdAt)),
       for (final c in completedChildren)
@@ -419,56 +423,112 @@ class _GoalDetail extends ConsumerWidget {
         _GJEvent(_GJKind.upcoming, '목표 완료', g.date),
     ];
 
+    Widget panel;
+    switch (_lens) {
+      case 1:
+        panel = _structure(tk, children);
+        break;
+      case 2:
+        panel = _goalJourney(tk, journey);
+        break;
+      case 3:
+        panel = _record(tk, completedChildren);
+        break;
+      default:
+        panel = _summary(tk, g, percent, doneCount, total, currentStep);
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 제목 (탭하면 이름 수정).
         GestureDetector(
           onTap: () async {
-            final v = await showInputDialog(
-              context,
-              title: '목표 이름',
-              fieldLabel: '목표',
-              initial: g.title,
-              saveLabel: '저장',
-            );
+            final v = await showInputDialog(context,
+                title: '목표 이름',
+                fieldLabel: '목표',
+                initial: g.title,
+                saveLabel: '저장');
             if (v != null && v.trim().isNotEmpty) {
-              await repo.setTitle(goalId, v.trim());
+              await ref.read(nodeRepoProvider).setTitle(goalId, v.trim());
             }
           },
           behavior: HitTestBehavior.opaque,
           child: Text(g.title, style: AppText.serif(tk.ink, size: 20)),
         ),
-        const SizedBox(height: 10),
-        // 기간 세그먼트.
-        Row(
-          children: [
-            for (final h in _horizons)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => repo.setGoalHorizon(goalId, h.key),
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                          color: horizon == h.key ? tk.ink : tk.line),
-                      color: horizon == h.key ? tk.ink : Colors.transparent,
-                    ),
-                    child: Text(h.label,
-                        style: AppText.meta(
-                            horizon == h.key ? tk.paper : tk.inkSoft,
-                            size: 10)),
+        const SizedBox(height: 12),
+        _lensTabs(tk),
+        const SizedBox(height: 14),
+        panel,
+      ],
+    );
+  }
+
+  Widget _lensTabs(AppTokens tk) {
+    const labels = ['요약', '구조', '여정', '기록'];
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+          border: Border.all(color: tk.line),
+          borderRadius: BorderRadius.circular(999)),
+      child: Row(children: [
+        for (var i = 0; i < labels.length; i++)
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _lens = i),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                height: 32,
+                alignment: Alignment.center,
+                decoration: _lens == i
+                    ? BoxDecoration(
+                        color: tk.paper,
+                        borderRadius: BorderRadius.circular(999))
+                    : null,
+                child: Text(labels[i],
+                    style: AppText.body(_lens == i ? tk.ink : tk.inkSoft)
+                        .copyWith(fontSize: 11)),
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+
+  Widget _summary(AppTokens tk, Node g, int percent, int doneCount, int total,
+      String? currentStep) {
+    final horizon = g.goalHorizon ?? 'custom';
+    final goalId = widget.goalId;
+    final repo = ref.read(nodeRepoProvider);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(children: [
+          for (final h in _horizons)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => repo.setGoalHorizon(goalId, h.key),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                        color: horizon == h.key ? tk.ink : tk.line),
+                    color: horizon == h.key ? tk.ink : Colors.transparent,
+                    borderRadius: BorderRadius.circular(999),
                   ),
+                  child: Text(h.label,
+                      style: AppText.meta(
+                          horizon == h.key ? tk.paper : tk.inkSoft,
+                          size: 10)),
                 ),
               ),
-          ],
-        ),
+            ),
+        ]),
         const SizedBox(height: 12),
-        // 마감일 (탭하면 날짜 선택).
         GestureDetector(
           onTap: () async {
             final picked = await showDatePicker(
@@ -480,55 +540,69 @@ class _GoalDetail extends ConsumerWidget {
             if (picked != null) await repo.setDate(goalId, picked);
           },
           behavior: HitTestBehavior.opaque,
-          child: Row(
-            children: [
-              Text('마감', style: AppText.meta(tk.inkSoft, size: 11)),
-              const SizedBox(width: 10),
-              Text(
-                g.date == null
-                    ? '없음 (탭해서 지정)'
-                    : DateFormat('yyyy.MM.dd (E)', 'ko').format(g.date!),
-                style: AppText.body(tk.ink).copyWith(fontSize: 13),
-              ),
-            ],
-          ),
+          child: Row(children: [
+            Text('마감', style: AppText.meta(tk.inkSoft, size: 11)),
+            const SizedBox(width: 10),
+            Text(
+              g.date == null
+                  ? '없음 (탭해서 지정)'
+                  : DateFormat('yyyy.MM.dd (E)', 'ko').format(g.date!),
+              style: AppText.body(tk.ink).copyWith(fontSize: 13),
+            ),
+          ]),
         ),
-        const SizedBox(height: 16),
-        Container(height: 1, color: tk.line),
-        // 목표 여정 — 진행 요약 + 타임라인.
-        Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 2),
-          child: Text('목표 여정',
-              style: AppText.meta(tk.inkSoft, size: 10)
-                  .copyWith(letterSpacing: 1)),
-        ),
+        const SizedBox(height: 14),
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Text('$percent%', style: AppText.serif(tk.ink, size: 22)),
+            Text('$percent%', style: AppText.serif(tk.ink, size: 26)),
             const SizedBox(width: 8),
-            Text('$doneCount / ${total == 0 ? 0 : total} 단계',
+            Text('$doneCount / $total 단계',
                 style: AppText.meta(tk.inkSoft, size: 11)),
           ],
         ),
         if (currentStep != null)
           Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: 4),
             child: Text('현재 단계 · $currentStep',
                 style: AppText.meta(tk.inkSoft, size: 11)),
           ),
-        const SizedBox(height: 10),
-        _goalJourney(tk, journey),
         const SizedBox(height: 16),
-        Container(height: 1, color: tk.ink),
-        // 하위 할 일.
-        Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
-          child: Text('하위 할 일',
-              style: AppText.meta(tk.inkSoft, size: 10)
-                  .copyWith(letterSpacing: 1)),
-        ),
+        Row(children: [
+          Expanded(
+            child: EdButton(
+              label: g.status == NodeStatus.done ? '진행중으로' : '목표 완료',
+              filled: g.status != NodeStatus.done,
+              onTap: () async {
+                g.status == NodeStatus.done
+                    ? await repo.reopen(goalId)
+                    : await repo.complete(goalId);
+                if (context.mounted) Navigator.of(context).pop();
+              },
+            ),
+          ),
+          const SizedBox(width: 10),
+          EdButton(
+            label: '삭제',
+            danger: true,
+            onTap: () async {
+              await repo.deleteNode(goalId);
+              if (context.mounted) Navigator.of(context).pop();
+            },
+          ),
+        ]),
+      ],
+    );
+  }
+
+  Widget _structure(AppTokens tk, List<Node> children) {
+    final goalId = widget.goalId;
+    final repo = ref.read(nodeRepoProvider);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         if (children.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -544,58 +618,63 @@ class _GoalDetail extends ConsumerWidget {
                   ? repo.reopen(c.id)
                   : repo.complete(c.id),
             ),
-        // 하위 할 일 추가.
         GestureDetector(
           onTap: () async {
-            final v = await showInputDialog(
-              context,
-              title: '하위 할 일',
-              subtitle: '목표를 이루기 위한 작은 한 걸음.',
-              fieldLabel: '할 일',
-              saveLabel: '추가',
-            );
+            final v = await showInputDialog(context,
+                title: '하위 할 일',
+                subtitle: '목표를 이루기 위한 작은 한 걸음.',
+                fieldLabel: '할 일',
+                saveLabel: '추가');
             if (v != null && v.trim().isNotEmpty) {
               await repo.create(
-                parentId: goalId,
-                type: NodeType.task,
-                title: v.trim(),
-                important: true,
-              );
+                  parentId: goalId,
+                  type: NodeType.task,
+                  title: v.trim(),
+                  important: true);
             }
           },
           behavior: HitTestBehavior.opaque,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text('＋ 하위 할 일',
-                style: AppText.meta(tk.ink, size: 11)),
+            child: Text('＋ 하위 할 일', style: AppText.meta(tk.ink, size: 11)),
           ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: EdButton(
-                label: g.status == NodeStatus.done ? '진행중으로' : '목표 완료',
-                filled: g.status != NodeStatus.done,
-                onTap: () async {
-                  g.status == NodeStatus.done
-                      ? await repo.reopen(goalId)
-                      : await repo.complete(goalId);
-                  if (context.mounted) Navigator.of(context).pop();
-                },
-              ),
+      ],
+    );
+  }
+
+  Widget _record(AppTokens tk, List<Node> completed) {
+    if (completed.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child:
+            Text('완료한 단계가 아직 없어요.', style: AppText.meta(tk.inkSoft, size: 11)),
+      );
+    }
+    final df = DateFormat('M.d');
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final c in completed)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 44,
+                  child: Text(c.doneAt != null ? df.format(c.doneAt!) : '',
+                      style: AppText.meta(tk.inkSoft, size: 9)),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(c.title,
+                      style: AppText.body(tk.ink).copyWith(fontSize: 12)),
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            EdButton(
-              label: '삭제',
-              danger: true,
-              onTap: () async {
-                await repo.deleteNode(goalId);
-                if (context.mounted) Navigator.of(context).pop();
-              },
-            ),
-          ],
-        ),
+          ),
       ],
     );
   }
