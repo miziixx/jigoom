@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
-import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/editorial.dart';
-import '../../core/journal.dart';
-import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import 'schedule_edit_sheet.dart';
@@ -48,61 +45,39 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
       (byDate[d] ??= []).add(s);
     }
 
-    // 습관·기록 인디케이터 (그날 완료 습관 수 / 기록 블록 수).
-    final ticks = ref
-            .watch(habitTicksInRangeProvider((start: _weekStart, end: weekEnd)))
-            .valueOrNull ??
-        const [];
-    final blocks = ref
-            .watch(timeBlocksInRangeProvider((start: _weekStart, end: weekEnd)))
-            .valueOrNull ??
-        const [];
-    final habitCount = <DateTime, int>{};
-    for (final tick in ticks) {
-      final d = dateOnly(tick.date);
-      habitCount[d] = (habitCount[d] ?? 0) + 1;
-    }
-    final recordCount = <DateTime, int>{};
-    for (final b in blocks) {
-      final d = dateOnly(b.date);
-      recordCount[d] = (recordCount[d] ?? 0) + 1;
-    }
-
-    final settings = ref.watch(settingsProvider);
     return Container(
       color: tk.paper,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 주 이동 헤더 (레퍼런스 .date-nav — ‹ / 가운데 제목+부제 / ›)
           _dateNav(
             tk,
             title:
                 '${DateFormat('M.d').format(_weekStart)} – ${DateFormat('M.d').format(weekEnd)}',
-            subtitle: '이번 주 일정과 기록',
+            subtitle: '이번 주 일정',
             onPrev: () => _shiftWeek(-1),
             onNext: () => _shiftWeek(1),
             onCenter: () => setState(() => _weekStart =
                 today.subtract(Duration(days: today.weekday % 7))),
           ),
-          // 레퍼런스 .week-list — 상단 잉크선, 각 행 하단 hairline.
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: kGutter),
-            decoration:
-                BoxDecoration(border: Border(top: BorderSide(color: tk.ink))),
-            child: Column(
-              children: [
-                for (var i = 0; i < 7; i++)
-                  _dayRow(
-                    tk,
-                    _weekStart.add(Duration(days: i)),
-                    today,
-                    byDate[_weekStart.add(Duration(days: i))] ?? const [],
-                    settings,
-                    habitCount[_weekStart.add(Duration(days: i))] ?? 0,
-                    recordCount[_weekStart.add(Duration(days: i))] ?? 0,
-                  ),
-              ],
+          // 기준 HTML .week-schedule-scroll — 요일 컬럼 + 카드 가로 스크롤.
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < 7; i++)
+                    _dayColumn(
+                      tk,
+                      _weekStart.add(Duration(days: i)),
+                      today,
+                      byDate[_weekStart.add(Duration(days: i))] ?? const [],
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -145,103 +120,88 @@ class _WeeklyPlanBodyState extends ConsumerState<WeeklyPlanBody> {
         ),
       );
 
-  Widget _dayRow(AppTokens tk, DateTime day, DateTime today, List items,
-      AppSettings settings, int habitDone, int records) {
+  // 기준 HTML .week-card 색 팔레트 (sage/blue/ochre/violet/rose).
+  static const _weekCardColors = [
+    Color(0xFF728D78),
+    Color(0xFF6F86A7),
+    Color(0xFFAA8B57),
+    Color(0xFF8F6F86),
+    Color(0xFFB77568),
+  ];
+
+  Widget _dayColumn(AppTokens tk, DateTime day, DateTime today, List items) {
     final isToday = day == today;
     final sunday = day.weekday % 7 == 0;
     final sorted = [...items]..sort((a, b) => a.startMin.compareTo(b.startMin));
-    final first = sorted.isEmpty ? null : sorted.first;
-
-    // 정보 강조줄: 오늘이면 '오늘', 아니면 첫 일정 제목 / 없으면 '일정 없음'.
-    final infoStrong =
-        isToday ? '오늘' : (first != null ? first.title : '일정 없음');
-    // 메타줄: [첫 일정 시각] · 기록 N개 · [간지/음력].
-    final meta = <String>[
-      if (first != null && !first.allDay) minToShort(first.startMin),
-      '기록 $records개',
-      if (habitDone > 0) '습관 $habitDone개',
-      if (settings.showSaju) iljinLabel(day) else lunarLabel(day),
-    ];
 
     return Container(
-      decoration:
-          BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      width: 128,
+      margin: const EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isToday ? tk.paper2 : Colors.transparent,
+        border: Border.all(color: isToday ? tk.ink : tk.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // 오늘 좌측 강조 바.
-          Container(width: 2, height: 42, color: isToday ? tk.mark : Colors.transparent),
-          const SizedBox(width: 9),
-          // 날짜 열 — 세리프 큰 숫자 + 요일.
-          SizedBox(
-            width: 46,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text('${day.day}',
-                    style: AppText.serif(isToday ? tk.mark : tk.ink,
-                        size: 17, height: 1.0)),
-                const SizedBox(width: 3),
-                Text(DateFormat('E', 'ko').format(day),
-                    style: AppText.metaSans(
-                        sunday ? tk.mark : tk.inkSoft, size: 8)),
-              ],
-            ),
+          // 컬럼 헤더 — 요일 + 큰 날짜.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(DateFormat('E', 'ko').format(day),
+                  style: AppText.metaSans(
+                      sunday ? tk.mark : tk.inkSoft, size: 10)),
+              Text('${day.day}',
+                  style: AppText.serif(isToday ? tk.mark : tk.ink,
+                      size: 16, height: 1.0)),
+            ],
           ),
-          const SizedBox(width: 9),
-          // 정보 열.
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: first != null
-                  ? () => showScheduleEditSheet(context, existing: first)
-                  : () => showScheduleEditSheet(context, date: day),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 11),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isToday)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Text('TODAY',
-                            style: AppText.meta(tk.mark, size: 7)
-                                .copyWith(letterSpacing: 1.2)),
-                      ),
-                    Text(infoStrong,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.body(tk.ink).copyWith(fontSize: 11)),
-                    const SizedBox(height: 4),
-                    Text(meta.join('  ·  '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.metaSans(tk.inkSoft, size: 8)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // 원형 + 버튼 (레퍼런스 .mini-plus).
+          const SizedBox(height: 8),
+          for (var j = 0; j < sorted.length; j++)
+            _weekCard(tk, sorted[j],
+                _weekCardColors[j % _weekCardColors.length]),
+          // 담기 (+)
           GestureDetector(
             onTap: () => showScheduleEditSheet(context, date: day),
             behavior: HitTestBehavior.opaque,
             child: Container(
-              width: 25,
-              height: 25,
+              margin: const EdgeInsets.only(top: 4),
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: tk.line, width: 1),
-              ),
-              child: Text('＋',
-                  style: AppText.glyph(tk.inkSoft, size: 12)),
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text('＋', style: AppText.glyph(tk.inkSoft, size: 13)),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _weekCard(AppTokens tk, dynamic s, Color color) {
+    final time = (s.allDay as bool) ? '종일' : minToShort(s.startMin as int);
+    return GestureDetector(
+      onTap: () => showScheduleEditSheet(context, existing: s),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+        decoration: BoxDecoration(
+          color: tk.paper2,
+          border: Border(left: BorderSide(color: color, width: 3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(time, style: AppText.metaSans(tk.inkSoft, size: 9)),
+            const SizedBox(height: 2),
+            Text(s.title as String,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.body(tk.ink).copyWith(fontSize: 11)),
+          ],
+        ),
       ),
     );
   }
