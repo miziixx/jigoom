@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -181,12 +183,29 @@ class _TodayViewState extends ConsumerState<TodayView> {
     );
   }
 
+  // 선택 날짜가 오늘일 때, '지금 진행 중'인 카드(가장 최근 시작한 미완료 시간 항목).
+  // 다음 시간 항목이 시작되면 그쪽으로 넘어간다. 6시간 넘게 지난 잔여 항목은 제외.
+  _TItem? _currentCard(List<_TItem> items) {
+    if (_sel != todayDate()) return null;
+    final now = DateTime.now();
+    final nowMin = now.hour * 60 + now.minute;
+    _TItem? best;
+    for (final it in items) {
+      if (it.done || it.held || it.min == null) continue;
+      if (it.min! <= nowMin && (best == null || it.min! > best!.min!)) {
+        best = it;
+      }
+    }
+    if (best == null || nowMin - best!.min! > 360) return null;
+    return best;
+  }
+
   // ── 일정 카드 (기준 HTML .schedule-card) — 저채도 색면 + 시간 + 체크 + 본문 ──
-  Widget _card(AppTokens tk, _TItem it) {
+  // current=true 면 좌측 포인트 레일 + `진행 중 · HH:MM:SS` 실시간 경과(card-kicker).
+  Widget _card(AppTokens tk, _TItem it, {bool current = false}) {
     final bg = it.done ? tk.paper2 : scheduleCardTint(it.cat, tk.paper);
     final titleColor = it.done ? tk.inkSoft : tk.ink;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(kGutter, 0, kGutter, 9),
+    final card = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
           color: bg, borderRadius: BorderRadius.circular(RefRadius.card)),
@@ -223,6 +242,17 @@ class _TodayViewState extends ConsumerState<TodayView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // .card-kicker — 진행 중 + 실시간 경과(시작 시각부터 실제 경과).
+                if (current) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('진행 중', style: AppText.meta(tk.mark, size: 9)),
+                      _CurrentElapsed(startMin: it.min!, color: tk.ink),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                ],
                 Text(it.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -234,6 +264,33 @@ class _TodayViewState extends ConsumerState<TodayView> {
                         style: AppText.meta(tk.inkSoft, size: 10)),
                   ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (!current) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 0, kGutter, 9),
+        child: card,
+      );
+    }
+    // .schedule-card.current:before — 좌측 2px 포인트 레일(위아래 12 인셋).
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 0, kGutter, 9),
+      child: Stack(
+        children: [
+          card,
+          Positioned(
+            left: 0,
+            top: 12,
+            bottom: 12,
+            child: Container(
+              width: 2,
+              decoration: BoxDecoration(
+                color: tk.mark,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
         ],
@@ -281,7 +338,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
   }
 
   // 필터 + 시간대(오전/오후/저녁/종일) 그룹으로 카드 렌더.
-  List<Widget> _board(AppTokens tk, List<_TItem> all) {
+  List<Widget> _board(AppTokens tk, List<_TItem> all, _TItem? current) {
     final list = all.where((it) {
       switch (_filter) {
         case 1:
@@ -329,7 +386,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
           ),
         ));
       }
-      out.add(_card(tk, it));
+      out.add(_card(tk, it, current: identical(it, current)));
     }
     return out;
   }
@@ -343,6 +400,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
         ref.watch(openNodesForDateProvider(_sel)).valueOrNull ?? const [];
     final wins = ref.watch(winsForDateProvider(_sel)).valueOrNull ?? const [];
     final items = _collect(schedules, open, wins);
+    final current = _currentCard(items);
     final doneN = items.where((i) => i.done).length;
     final todoN = items.where((i) => !i.done && !i.held).length;
 
@@ -354,7 +412,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
           _dateStrip(tk),
           _dayContext(tk),
           _todayFilter(tk),
-          ..._board(tk, items),
+          ..._board(tk, items, current),
           // today-summary
           Padding(
             padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 20),
@@ -367,6 +425,48 @@ class _TodayViewState extends ConsumerState<TodayView> {
         ],
       ),
     );
+  }
+}
+
+/// 오늘 진행 중 카드의 실시간 경과 — 시작 시각(오늘 startMin)부터 실제 경과를
+/// 매초 다시 그려 HH:MM:SS 로 보여준다(가짜 시계 없음 · 화면 살아있는 동안만 틱).
+class _CurrentElapsed extends StatefulWidget {
+  const _CurrentElapsed({required this.startMin, required this.color});
+  final int startMin;
+  final Color color;
+
+  @override
+  State<_CurrentElapsed> createState() => _CurrentElapsedState();
+}
+
+class _CurrentElapsedState extends State<_CurrentElapsed> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  static String _2(int n) => n.toString().padLeft(2, '0');
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final start = DateTime(
+        now.year, now.month, now.day, widget.startMin ~/ 60, widget.startMin % 60);
+    final s = now.difference(start).inSeconds;
+    final sec = s < 0 ? 0 : s;
+    final text = '${_2(sec ~/ 3600)}:${_2((sec % 3600) ~/ 60)}:${_2(sec % 60)}';
+    return Text(text, style: AppText.meta(widget.color, size: 9));
   }
 }
 
