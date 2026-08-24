@@ -67,15 +67,18 @@ class Masthead extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(eyebrow!,
-                            style: AppText.meta(tk.mark, size: 10)
-                                .copyWith(letterSpacing: 1.4)),
+                            style: AppText.meta(tk.inkSoft, size: 9)
+                                .copyWith(letterSpacing: 1.5)),
                       ),
+                    // 기준 HTML .title — 큰 세리프, 라이트(300), 좁은 자간.
                     Text(title,
                         style: AppText.hTitle(tk.ink).copyWith(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w400,
-                            height: 1.12,
-                            letterSpacing: -1.0)),
+                            fontSize: onBack != null ? 24 : 28,
+                            fontWeight: onBack != null
+                                ? FontWeight.w400
+                                : FontWeight.w300,
+                            height: 1.05,
+                            letterSpacing: -1.4)),
                   ],
                 ),
               ),
@@ -86,7 +89,7 @@ class Masthead extends StatelessWidget {
         Container(
           margin: const EdgeInsets.symmetric(horizontal: kGutter),
           height: 1,
-          color: tk.ink,
+          color: tk.line,
         ),
       ],
     );

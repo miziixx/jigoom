@@ -310,7 +310,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget _bottomNav(BuildContext context) {
     final tk = t(context);
 
-    // 아이콘 + 라벨(얇게) 세로 스택, 활성 = 잉크 색 + 밑줄. (레퍼런스 하단바 굵기 유지)
+    // 기준 HTML .nav-btn — 아이콘 + 라벨 + 활성 점. 세로 스택.
     Widget item(int idx, String label, IconData icon) {
       final active = _navGroup(_index) == idx;
       final color = active ? tk.ink : tk.inkSoft;
@@ -318,64 +318,80 @@ class _AppShellState extends ConsumerState<AppShell> {
         child: GestureDetector(
           onTap: () => _setTab(idx),
           behavior: HitTestBehavior.opaque,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 17, color: color),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  decoration: active
-                      ? BoxDecoration(
-                          border: Border(
-                              bottom:
-                                  BorderSide(color: tk.mark, width: 1.2)))
-                      : null,
-                  // active 인자 제거 → 항상 얇게(w400).
-                  child: Text(label,
-                      style: AppText.nav(color).copyWith(fontSize: 8)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 19, color: color),
+              const SizedBox(height: 4),
+              Text(label, style: AppText.nav(color).copyWith(fontSize: 9)),
+              const SizedBox(height: 3),
+              // 활성 표시 점 (기준 HTML .nav-btn.active:after).
+              Container(
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: active ? tk.mark : Colors.transparent,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: tk.line, width: 1))),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    // 기준 HTML .bottom-nav — 좌우 띄운 둥근 알약 + 솟은 가운데 ＋.
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(13, 2, 13, 10),
+        child: Container(
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          decoration: BoxDecoration(
+            color: tk.paper,
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: tk.line),
+            boxShadow: [
+              BoxShadow(
+                color: tk.ink.withValues(alpha: 0.10),
+                blurRadius: 28,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
           child: Row(
             children: [
               item(0, '오늘', Icons.home_outlined),
               item(7, '흐름', Icons.hub_outlined),
-              // 가운데 ＋ — 지금 머무는 메뉴에 맞춰 담기(유형 자동 선택).
+              // 가운데 담기 — 솟은 잉크 원(기준 HTML .capture-nav, 종이 halo).
               Expanded(
-                child: GestureDetector(
-                  onTap: () => _quickAdd(context),
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            color: tk.mark, shape: BoxShape.circle),
-                        child: Icon(Icons.add, color: tk.paper, size: 24),
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () => _quickAdd(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 46,
+                      height: 46,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: tk.ink,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                              color: tk.paper,
+                              spreadRadius: 5,
+                              blurRadius: 0),
+                          BoxShadow(
+                            color: tk.ink.withValues(alpha: 0.22),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 3),
-                      Text('담기',
-                          style: AppText.nav(tk.inkSoft).copyWith(fontSize: 8)),
-                    ],
+                      child: Icon(Icons.add, color: tk.paper, size: 22),
+                    ),
                   ),
                 ),
               ),
