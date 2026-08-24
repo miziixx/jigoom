@@ -195,6 +195,8 @@ class _AppShellState extends ConsumerState<AppShell> {
   /// 오늘 화면엔 설정(톱니), 습관 탭엔 ＋습관.
   List<Widget> _mastheadActions(BuildContext ctx) {
     final actions = <Widget>[];
+    // 기준 HTML 헤더 검색(커맨드 팔레트) — 모든 화면 공통.
+    actions.add(_iconBtn(Icons.search, _openPalette));
     if (_index == 4) {
       actions.add(_act('＋ 습관', _newHabit));
     }
@@ -236,6 +238,35 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _openSettings() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+
+  /// 커맨드 팔레트 — 기준 HTML 헤더 검색(data-palette). 화면 검색 → 이동.
+  void _openPalette() {
+    void push(Widget s) =>
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
+    final dests = <(String, String, VoidCallback)>[
+      ('오늘', 'TODAY', () => _setTab(0)),
+      ('매트릭스', 'MATRIX', () => _setTab(1)),
+      ('쏟아내기', 'DUMP', () => _setTab(2)),
+      ('시간', 'TIME', () => _setTab(3)),
+      ('습관', 'HABIT', () => _setTab(4)),
+      ('전체 할 일', 'ALL', () => _setTab(5)),
+      ('홈', 'MY DAY', () => _setTab(6)),
+      ('흐름', 'FLOW', () => _setTab(7)),
+      ('보관', 'ARCHIVE', () => _setTab(8)),
+      ('달력', 'CALENDAR', () => push(const CalendarScreen())),
+      ('오늘의 운세', 'FORTUNE', () => push(const FortuneView())),
+      ('설정', 'SETTINGS', () => push(const SettingsScreen())),
+    ];
+    final tk = t(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: tk.paper,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => _PaletteSheet(dests: dests),
+    );
+  }
 
   /// 현재 탭에 맞는 빠른 담기 유형 — 습관 탭→습관, 쏟아내기→메모,
   /// 그 외(홈·오늘·매트릭스·전체)→할 일. (일과는 하위 탭별로 _quickAdd 에서 처리)
@@ -375,4 +406,106 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _openCalendar() => Navigator.of(context)
       .push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
+}
+
+/// 커맨드 팔레트 시트 — 검색어로 화면 목록을 좁히고 탭하면 해당 화면으로 이동.
+class _PaletteSheet extends StatefulWidget {
+  const _PaletteSheet({required this.dests});
+  final List<(String, String, VoidCallback)> dests;
+
+  @override
+  State<_PaletteSheet> createState() => _PaletteSheetState();
+}
+
+class _PaletteSheetState extends State<_PaletteSheet> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    final q = _q.trim().toLowerCase();
+    final list = widget.dests
+        .where((d) =>
+            q.isEmpty || d.$1.contains(_q.trim()) || d.$2.toLowerCase().contains(q))
+        .toList();
+    return SafeArea(
+      child: Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 38,
+              height: 4,
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                  color: tk.line, borderRadius: BorderRadius.circular(99)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+              child: Row(
+                children: [
+                  Icon(Icons.search, size: 18, color: tk.inkSoft),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      autofocus: true,
+                      onChanged: (v) => setState(() => _q = v),
+                      cursorColor: tk.mark,
+                      style: AppText.body(tk.ink),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        hintText: '화면 검색 · 이동',
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: tk.line),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                children: [
+                  for (final d in list)
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        d.$3();
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        child: Row(
+                          children: [
+                            Expanded(
+                                child: Text(d.$1, style: AppText.body(tk.ink))),
+                            Text(d.$2,
+                                style: AppText.meta(tk.inkSoft, size: 9)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (list.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                          child: Text('결과 없음',
+                              style: AppText.meta(tk.inkSoft))),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 }
