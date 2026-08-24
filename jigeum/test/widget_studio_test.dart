@@ -306,11 +306,17 @@ void main() {
             endMin: 600,
             createdAt: now,
           ));
-      // 이번 주 월요일 14:00 일정(주간 격자 검증용, 요일 고정).
-      final monday = today.subtract(Duration(days: today.weekday - 1));
+      // 주간 격자 검증용 일정 — 오늘과 겹치지 않는 이번 주 평일에(오늘이 월요일이면
+      // 화요일). weekMon 은 주간 조회 범위의 시작(이번 주 월요일).
+      // (요일 무관 견고성: 오늘이 월요일일 때 s1(오늘)과 겹쳐 dayEvents 가 2가 되던 문제 수정.)
+      final weekMon = today.subtract(Duration(days: today.weekday - 1));
+      final gridDay = today.weekday == DateTime.monday
+          ? weekMon.add(const Duration(days: 1))
+          : weekMon;
+      final gridCol = gridDay.weekday - 1; // 월=0 … 금=4
       await db.into(db.schedules).insert(SchedulesCompanion.insert(
             id: 's2',
-            date: monday,
+            date: gridDay,
             title: '주간 회의',
             startMin: 840,
             endMin: 900,
@@ -331,7 +337,7 @@ void main() {
         end: DateTime(today.year, today.month + 1, 0)
       )).future);
       await container.read(schedulesInRangeProvider(
-              (start: monday, end: monday.add(const Duration(days: 6))))
+              (start: weekMon, end: weekMon.add(const Duration(days: 6))))
           .future);
       for (final k in const [
         (important: true, urgent: true),
@@ -376,12 +382,12 @@ void main() {
       expect(d.matrix[1].count, 1);
       expect(d.matrix[0].body, '현재 비어 있음'); // 긴급·중요 없음
 
-      // 캘린더 MONTH: 오늘 + 월요일이 '일정 있는 날'.
+      // 캘린더 MONTH: 오늘 + 격자일이 '일정 있는 날'.
       expect(d.cal.monthEventDays.contains(today.day), true);
-      expect(d.cal.monthEventDays.contains(monday.day), true);
-      // 캘린더 WEEK: 월요일 14:00 → col0(월)·row1(12시대) 블록.
+      expect(d.cal.monthEventDays.contains(gridDay.day), true);
+      // 캘린더 WEEK: 격자일 14:00 → 해당 요일 col·row1(12시대) 블록.
       final mon = d.cal.weekBlocks
-          .where((b) => b.col == 0 && b.row == 1 && b.title == '주간 회의');
+          .where((b) => b.col == gridCol && b.row == 1 && b.title == '주간 회의');
       expect(mon.length, 1);
     });
 
