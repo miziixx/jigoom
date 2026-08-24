@@ -291,7 +291,17 @@ class _GroupHeader extends ConsumerWidget {
         .where((s) => s.lastDone != null && dateOnly(s.lastDone!) == today)
         .length;
 
-    // 레퍼런스 .routine-block — 상단 hairline + [네모 아이콘 | 제목 | 카운트 | 펼침 ⌃/⌄].
+    // HTML .routine-group 색 — 그룹별 빈도 노드 색(sage/blue/ochre/violet/rose).
+    const palette = [
+      Color(0xFF728D78),
+      Color(0xFF6F86A7),
+      Color(0xFFAA8B57),
+      Color(0xFF8F6F86),
+      Color(0xFFB77568),
+    ];
+    final nodeColor = palette[group.id.hashCode.abs() % palette.length];
+
+    // 레퍼런스 .routine-group — 빈도 노드 · 제목/부제 · N단계 · 펼침 ⌃/⌄.
     return Container(
       decoration:
           BoxDecoration(border: Border(top: BorderSide(color: tk.line))),
@@ -303,27 +313,41 @@ class _GroupHeader extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(kGutter, 11, kGutter, 11),
           child: Row(
             children: [
-              // routine-icon — 네모 테두리 안에 시간대 배지(AM/MD/PM).
+              // routine-frequency-node — 그룹 색 빈도 노드(링 + 점).
               Container(
-                width: 36,
-                height: 36,
+                width: 34,
+                height: 34,
                 alignment: Alignment.center,
-                decoration:
-                    BoxDecoration(border: Border.all(color: tk.line, width: 1)),
-                child: Text(routineBadge(group.title),
-                    style: AppText.meta(tk.ink, size: 10)
-                        .copyWith(letterSpacing: 0.5)),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: nodeColor, width: 1.5),
+                ),
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration:
+                      BoxDecoration(shape: BoxShape.circle, color: nodeColor),
+                ),
               ),
               const SizedBox(width: 11),
               Expanded(
-                child: Text(group.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.body(tk.ink)
-                        .copyWith(fontSize: 12, fontWeight: FontWeight.w500)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(group.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.body(tk.ink).copyWith(
+                            fontSize: 12, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 2),
+                    Text('오늘 $doneCount / ${steps.length} 완료',
+                        style: AppText.meta(tk.inkSoft, size: 9)),
+                  ],
+                ),
               ),
               const SizedBox(width: 8),
-              Text('$doneCount / ${steps.length}',
+              Text('${steps.length}단계',
                   style: AppText.meta(tk.inkSoft, size: 9)),
               const SizedBox(width: 10),
               Text(group.collapsed ? '⌄' : '⌃',
