@@ -268,6 +268,48 @@ class _DumpViewState extends ConsumerState<DumpView> {
       ));
   }
 
+  // 기준 HTML .dump-tools 칩 — '메모로 보관' = 보류함(인박스)에 담기.
+  Future<void> _toMemo() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    ref.read(inboxRepoProvider).add(text);
+    _controller.clear();
+    _focus.requestFocus();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: t(context).ink,
+        content: Text('보류함에 담았어요', style: AppText.body(t(context).paper)),
+      ));
+  }
+
+  // '비우기' = 입력 + 대기줄 모두 초기화.
+  void _clearAll() {
+    _controller.clear();
+    ref.read(dumpStagingProvider.notifier).clear();
+    _focus.requestFocus();
+  }
+
+  Widget _toolChip(AppTokens tk, String label,
+      {bool active = false, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? tk.ink : Colors.transparent,
+          border: Border.all(color: active ? tk.ink : tk.line),
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Text(label,
+            style: AppText.meta(active ? tk.paper : tk.ink, size: 11)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
@@ -347,6 +389,23 @@ class _DumpViewState extends ConsumerState<DumpView> {
                 ),
               ],
             ),
+          ),
+        ),
+
+        // 기준 HTML .dump-tools — 4칩(자동 저장·할 일로·메모로·비우기).
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpace.gutter, 4, AppSpace.gutter, 6),
+          child: Row(
+            children: [
+              _toolChip(tk, '자동 저장', active: true, onTap: () {}),
+              const SizedBox(width: 8),
+              _toolChip(tk, '할 일로', onTap: _submit),
+              const SizedBox(width: 8),
+              _toolChip(tk, '메모로', onTap: _toMemo),
+              const SizedBox(width: 8),
+              _toolChip(tk, '비우기', onTap: _clearAll),
+            ],
           ),
         ),
 

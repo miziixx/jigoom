@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../providers.dart';
 import '../fortune/fortune_view.dart';
 import '../inbox/inbox_screen.dart';
+import 'completed_screen.dart';
 import '../schedule/calendar_view.dart';
 import '../settings/settings_screen.dart';
 
@@ -27,7 +28,8 @@ class ArchiveHubView extends ConsumerWidget {
       _ArchiveLink('01', '쏟아내기', '생각과 메모를 빠르게 기록', () => onOpenTab(2)),
       _ArchiveLink('02', '보류함', '나중에 다시 볼 항목',
           () => push(InboxScreen(repository: ref.read(inboxRepoProvider)))),
-      _ArchiveLink('03', '완료 기록', '완료한 항목 모아 보기', () => onOpenTab(5)),
+      _ArchiveLink('03', '완료 기록', '완료한 항목 모아 보기',
+          () => push(const CompletedScreen())),
       _ArchiveLink('04', '오늘의 운세', '행동 카드와 하루 흐름',
           () => push(const FortuneView())),
       _ArchiveLink('05', '달력', '일정과 기록을 날짜별로 보기',
