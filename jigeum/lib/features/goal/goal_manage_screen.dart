@@ -275,45 +275,73 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
         : done / total;
     final complete = ratio >= 1.0 && (total > 0 || goal.status == NodeStatus.done);
 
+    final percent = (ratio * 100).round();
+    final desc = goal.note.trim();
+
+    // 기준 HTML .goal-card — 노드 + 제목/% + 설명 + 통계 + 경로선(progress-route).
     return GestureDetector(
       onTap: () => _openGoal(goal.id),
       behavior: HitTestBehavior.opaque,
       child: Container(
         decoration:
             BoxDecoration(border: Border(bottom: BorderSide(color: tk.line))),
-        padding: const EdgeInsets.symmetric(horizontal: kGutter, vertical: 13),
-        child: Column(
+        padding: const EdgeInsets.symmetric(horizontal: kGutter, vertical: 14),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    goal.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.serif(
-                        complete ? tk.inkSoft : tk.ink,
-                        size: 15,
-                        height: 1.25),
-                  ),
-                ),
-                if (goal.date != null) ...[
-                  const SizedBox(width: 8),
-                  Text(_dday(goal.date!),
-                      style: AppText.meta(tk.mark, size: 10)),
-                ],
-              ],
+            // goal-node — 좌측 경로 노드(완료 시 채움).
+            Container(
+              width: 12,
+              height: 12,
+              margin: const EdgeInsets.only(top: 4, right: 12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: complete ? tk.mark : Colors.transparent,
+                border: Border.all(color: tk.mark, width: 1.5),
+              ),
             ),
-            const SizedBox(height: 9),
-            Row(
-              children: [
-                Expanded(child: _bar(tk, ratio)),
-                const SizedBox(width: 10),
-                Text(total == 0 ? (complete ? '완료' : '—') : '$done / $total',
-                    style: AppText.meta(tk.inkSoft, size: 10)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          goal.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.serif(
+                              complete ? tk.inkSoft : tk.ink,
+                              size: 15,
+                              height: 1.25),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text('$percent%',
+                          style: AppText.meta(tk.ink, size: 11)),
+                      if (goal.date != null) ...[
+                        const SizedBox(width: 8),
+                        Text(_dday(goal.date!),
+                            style: AppText.meta(tk.mark, size: 10)),
+                      ],
+                    ],
+                  ),
+                  if (desc.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(desc,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.meta(tk.inkSoft, size: 10)),
+                  ],
+                  const SizedBox(height: 8),
+                  Text('완료 $done개 · 단계 $total개',
+                      style: AppText.meta(tk.inkSoft, size: 10)),
+                  const SizedBox(height: 8),
+                  _progressRoute(tk, ratio.clamp(0.0, 1.0)),
+                ],
+              ),
             ),
           ],
         ),
@@ -321,19 +349,38 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
     );
   }
 
-  Widget _bar(AppTokens tk, double ratio) {
+  // 기준 HTML .progress-route — 트랙 + 채움 + 진행 지점 노드.
+  Widget _progressRoute(AppTokens tk, double ratio) {
     return SizedBox(
-      height: 5,
+      height: 10,
       child: LayoutBuilder(
-        builder: (context, c) => Stack(
-          children: [
-            Container(color: tk.line),
-            FractionallySizedBox(
-              widthFactor: ratio.clamp(0.0, 1.0),
-              child: Container(color: tk.ink),
-            ),
-          ],
-        ),
+        builder: (context, c) {
+          final w = c.maxWidth;
+          final x = (w * ratio).clamp(0.0, w);
+          return Stack(
+            children: [
+              Positioned(
+                  top: 4,
+                  left: 0,
+                  right: 0,
+                  child: Container(height: 2, color: tk.line)),
+              Positioned(
+                  top: 4,
+                  left: 0,
+                  child: Container(height: 2, width: x, color: tk.mark)),
+              Positioned(
+                top: 1,
+                left: (x - 4).clamp(0.0, w - 8),
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration:
+                      BoxDecoration(shape: BoxShape.circle, color: tk.mark),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

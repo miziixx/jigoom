@@ -27,8 +27,96 @@ class _OutlineViewState extends ConsumerState<OutlineView> {
   @override
   Widget build(BuildContext context) {
     final tk = t(context);
-    return Container(color: tk.paper, child: _tree());
+    return Container(
+      color: tk.paper,
+      child: Column(
+        children: [
+          Expanded(child: _tree()),
+          _inspector(tk),
+        ],
+      ),
+    );
   }
+
+  // 기준 HTML .outline-inspector — 선택 노드 상세(제목·경로) + 편집·하위 추가.
+  Widget _inspector(AppTokens tk) {
+    if (_selected == null) return const SizedBox.shrink();
+    final all = ref.watch(allNodesProvider).valueOrNull ?? const <Node>[];
+    final matches = all.where((x) => x.id == _selected);
+    if (matches.isEmpty) return const SizedBox.shrink();
+    final n = matches.first;
+    var path = _typeLabel(n.type);
+    if (n.parentId != null) {
+      final parents = all.where((p) => p.id == n.parentId);
+      if (parents.isNotEmpty) path = parents.first.title;
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: tk.paper2,
+        border: Border(top: BorderSide(color: tk.line)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(kGutter, 12, kGutter, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('선택',
+                  style: AppText.meta(tk.inkSoft, size: 9)
+                      .copyWith(letterSpacing: 1.4)),
+              const SizedBox(height: 3),
+              Text(n.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.body(tk.ink).copyWith(fontSize: 15)),
+              const SizedBox(height: 2),
+              Text(path,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.meta(tk.inkSoft, size: 10)),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _inspAction(tk, '편집', () => showNodeDetailSheet(context, n)),
+                  const SizedBox(width: 8),
+                  _inspAction(tk, '하위 추가', () => _addChild(n.id)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _inspAction(AppTokens tk, String label, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(border: Border.all(color: tk.line)),
+          child: Text(label, style: AppText.meta(tk.ink, size: 11)),
+        ),
+      );
+
+  Future<void> _addChild(String parentId) async {
+    final name = await showInputDialog(context,
+        title: '하위 항목 추가',
+        subtitle: '선택한 항목 아래에 할 일을 추가합니다.',
+        fieldLabel: '내용',
+        hint: '할 일',
+        saveLabel: '추가');
+    if (name == null || name.trim().isEmpty) return;
+    await ref.read(nodeRepoProvider).create(
+        parentId: parentId, type: NodeType.task, title: name.trim());
+  }
+
+  String _typeLabel(String type) => type == NodeType.folder
+      ? '폴더'
+      : (type == NodeType.goal ? '목표' : '할 일');
 
   // ---------------------------------------------------------------- 필터바
 
