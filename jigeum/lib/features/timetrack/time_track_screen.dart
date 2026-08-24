@@ -9,6 +9,7 @@ import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../data/repos/time_track_repository.dart';
 import '../../providers.dart';
+import 'timer_panel.dart';
 
 /// 특정 블록에 기록 입력 다이얼로그 (화면·위젯 진입 공용).
 Future<void> showTimeTrackInput(
@@ -362,6 +363,8 @@ class _TimeTrackBodyState extends ConsumerState<TimeTrackBody> {
       color: tk.paper,
       child: Column(
         children: [
+          // 진행 중 타이머 — 오늘 화면에서만 노출(과거 날짜엔 시계 없음).
+          if (_isToday) const TimerPanel(),
           // § 시간 기록 + 내보내기
           Padding(
             padding: const EdgeInsets.fromLTRB(kGutter, 16, kGutter, 8),

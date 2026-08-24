@@ -31,6 +31,19 @@ final ValueNotifier<int> timeTrackLaunchRequest = ValueNotifier<int>(0);
 /// 캘린더 위젯 탭 진입 시 달력 화면을 여는 트리거.
 final ValueNotifier<int> calendarLaunchRequest = ValueNotifier<int>(0);
 
+/// 진행 중인 타이머(인메모리) — 시간 화면 timer-panel 이 참조한다.
+/// 앱을 켜 둔 동안만 흐르는 정직한 실시간 경과(가짜 시계 없음).
+/// [startedAt] 기준 실제 경과를 매초 다시 그려 HH:MM:SS 로 보여준다.
+class ActiveTimer {
+  const ActiveTimer(this.title, this.startedAt);
+  final String title;
+  final DateTime startedAt;
+}
+
+/// null 이면 대기(시작 버튼), 값이 있으면 진행 중.
+final ValueNotifier<ActiveTimer?> activeTimerNotifier =
+    ValueNotifier<ActiveTimer?>(null);
+
 /// 위젯 음성 버튼 탭 진입 시 마이크를 시작해 즉시 분류·라우팅하는 트리거.
 /// 값이 증가할 때마다 AppShell 이 음성 캡처를 시작한다.
 final ValueNotifier<int> voiceCaptureRequest = ValueNotifier<int>(0);
