@@ -4,6 +4,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../core/constants.dart';
 import '../../core/editorial.dart';
+import '../../core/journal.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import 'schedule_edit_sheet.dart';
