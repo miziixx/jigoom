@@ -91,11 +91,11 @@ class _TimeHubState extends ConsumerState<TimeHub> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  tab(0, 'day'),
-                  tab(1, 'week'),
-                  tab(2, 'month'),
-                  tab(3, 'routine'),
-                  tab(4, 'log'),
+                  tab(0, '일과'),
+                  tab(1, '주간'),
+                  tab(2, '월간'),
+                  tab(3, '루틴'),
+                  tab(4, '기록'),
                 ],
               ),
             ),
