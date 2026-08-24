@@ -176,9 +176,72 @@ class RoutineBody extends ConsumerWidget {
             const SectionLabel('시간 자동 일정'),
             for (final r in legacy) _legacyCard(context, ref, tk, r),
           ],
+          // 기준 HTML .routine-log-feed — 최근 완료 루틴 스텝(실 lastDoneAt).
+          ..._routineLog(tk, steps),
         ],
       ),
     );
+  }
+
+  // 기준 HTML .routine-log-feed — 최근 완료된 루틴 스텝을 시각순 피드로.
+  List<Widget> _routineLog(AppTokens tk, List<RoutineStep> steps) {
+    final done = steps.where((s) => s.lastDoneAt != null).toList()
+      ..sort((a, b) => b.lastDoneAt!.compareTo(a.lastDoneAt!));
+    if (done.isEmpty) return const [];
+    final recent = done.take(12).toList();
+    const palette = [
+      Color(0xFF728D78),
+      Color(0xFF6F86A7),
+      Color(0xFFB77568),
+    ];
+    return [
+      const SectionLabel('최근 완료'),
+      for (var i = 0; i < recent.length; i++)
+        _logRow(tk, recent[i], palette[i % palette.length]),
+    ];
+  }
+
+  Widget _logRow(AppTokens tk, RoutineStep s, Color color) {
+    final sub = s.streak > 1 ? '${s.streak}일 연속' : '완료';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: kGutter, vertical: 11),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.title, style: AppText.body(tk.ink)),
+                const SizedBox(height: 2),
+                Text(sub, style: AppText.meta(tk.inkSoft, size: 10)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(_logWhen(s.lastDoneAt!),
+              style: AppText.meta(tk.inkSoft, size: 9)),
+        ],
+      ),
+    );
+  }
+
+  String _logWhen(DateTime dt) {
+    final today = todayDate();
+    final d = dateOnly(dt);
+    final diff = today.difference(d).inDays;
+    final hm = '${dt.hour.toString().padLeft(2, '0')}:'
+        '${dt.minute.toString().padLeft(2, '0')}';
+    if (diff == 0) return '오늘 $hm';
+    if (diff == 1) return '어제 $hm';
+    return '${dt.month}/${dt.day} $hm';
   }
 
   Widget _itemWidget(_Item item, int index) {
