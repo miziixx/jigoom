@@ -14,7 +14,11 @@ import '../../core/settings_controller.dart';
 import '../../core/theme.dart';
 import '../../data/db.dart';
 import '../../providers.dart';
+import '../capture/dump_staging.dart';
+import '../capture/quick_capture_input.dart';
 import '../fortune/fortune_view.dart';
+import '../goal/goal_manage_screen.dart';
+import '../timetrack/timer_panel.dart';
 import 'node_detail_sheet.dart';
 
 /// 오늘 — 기준 HTML `data-screen="today"` 구조를 그대로 이식.
@@ -105,6 +109,236 @@ class _TodayViewState extends ConsumerState<TodayView> {
                       .copyWith(height: 1.25)),
             ),
           ],
+        ),
+      );
+
+  void _openTab(int i) => ref.read(homeTabProvider.notifier).state = i;
+  void _pushScreen(Widget s) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => s));
+
+  // ── 상시 캡처 바 — 탭하면 빠른 담기(리디자인 시안 capture) ──
+  Widget _captureBar(AppTokens tk) => Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 10, kGutter, 2),
+        child: GestureDetector(
+          onTap: () => showQuickCaptureInput(context, ref),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(15, 13, 13, 13),
+            decoration: BoxDecoration(
+              color: tk.paper2,
+              border: Border.all(color: tk.line),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('지금 떠오른 걸 툭 던져요',
+                          style: AppText.body(tk.ink).copyWith(fontSize: 15)),
+                      const SizedBox(height: 3),
+                      Text('할 일 · 일정 · 메모 — 곰곰이가 갈라둘게요',
+                          style: AppText.meta(tk.inkSoft, size: 9)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                      color: tk.ink, borderRadius: BorderRadius.circular(12)),
+                  child: Text('↑', style: AppText.glyph(tk.paper, size: 18)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  // ── 모멘텀 (오늘 완료 · 연속 · 진행 중) — 전부 실데이터 ──
+  Widget _momentum(AppTokens tk, int doneN) {
+    final streak = ref.watch(streakProvider);
+    return ValueListenableBuilder<List<ActiveTimer>>(
+      valueListenable: activeTimersNotifier,
+      builder: (context, timers, _) => Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 14, kGutter, 2),
+        child: Row(
+          children: [
+            Expanded(child: _mcard(tk, '오늘 완료', '$doneN', '개')),
+            const SizedBox(width: 9),
+            Expanded(child: _mcard(tk, '연속', '$streak', '일', honey: true)),
+            const SizedBox(width: 9),
+            Expanded(
+                child: _mcard(tk, '진행 중', '${timers.length}', '개', live: true)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _mcard(AppTokens tk, String label, String value, String unit,
+      {bool live = false, bool honey = false}) {
+    final bg = live ? mixOver(tk.mark, 0.12, tk.paper) : tk.paper2;
+    final valColor = live || honey ? tk.mark : tk.ink;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+      decoration: BoxDecoration(
+        color: bg,
+        border: live ? null : Border.all(color: tk.line),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            if (live)
+              Container(
+                width: 6,
+                height: 6,
+                margin: const EdgeInsets.only(right: 5),
+                decoration:
+                    BoxDecoration(shape: BoxShape.circle, color: tk.mark),
+              ),
+            Text(label, style: AppText.meta(tk.inkSoft, size: 9)),
+          ]),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(value,
+                  style: AppText.serif(valColor, size: 26, weight: FontWeight.w500)),
+              const SizedBox(width: 2),
+              Text(unit, style: AppText.meta(tk.inkSoft, size: 11)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 섹션 라벨 ──
+  Widget _sectionLabel(AppTokens tk, String title, {String? trailing, bool amber = false}) =>
+      Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 22, kGutter, 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(title,
+                style: AppText.serif(tk.ink, size: 16, weight: FontWeight.w700)),
+            const Spacer(),
+            if (trailing != null)
+              Text(trailing,
+                  style: AppText.meta(amber ? tk.mark : tk.inkSoft, size: 10)),
+          ],
+        ),
+      );
+
+  // ── 기능 방 그리드 — 색으로 또렷하게, 실데이터 서브라벨 ──
+  Widget _rooms(AppTokens tk) {
+    final dumpN = ref.watch(dumpStagingProvider).length;
+    final goalN = (ref.watch(goalsProvider).valueOrNull ?? const []).length;
+    final habitN = (ref.watch(habitsProvider).valueOrNull ?? const []).length;
+    final tickN =
+        (ref.watch(habitTicksOnDateProvider(todayDate())).valueOrNull ?? const [])
+            .length;
+    final routineN =
+        (ref.watch(routineStepsProvider).valueOrNull ?? const []).length;
+    final activeN = activeTimersNotifier.value.length;
+    final tiles = <Widget>[
+      _roomTile(tk,
+          glyph: '✦',
+          name: '쏟아내기',
+          sub: dumpN > 0 ? '지금 $dumpN개 대기' : '판단 끄고 다 뱉기',
+          color: RefPalette.mineralBlue,
+          onTap: () => _openTab(2)),
+      _roomTile(tk,
+          glyph: '◷',
+          name: '시간',
+          sub: activeN > 0 ? '$activeN개 진행 중' : '지금 기록 시작',
+          color: tk.mark,
+          onTap: () => _openTab(3)),
+      _roomTile(tk,
+          glyph: '◎',
+          name: '목표',
+          sub: goalN > 0 ? '$goalN개 진행' : '목표 세우기',
+          color: RefPalette.mineralSage,
+          onTap: () => _pushScreen(const GoalManageScreen())),
+      _roomTile(tk,
+          glyph: '◇',
+          name: '습관',
+          sub: habitN > 0 ? '오늘 $tickN / $habitN' : '습관 만들기',
+          color: RefPalette.mineralPlum,
+          onTap: () => _openTab(4)),
+      _roomTile(tk,
+          glyph: '❖',
+          name: '루틴',
+          sub: routineN > 0 ? '$routineN단계' : '루틴 만들기',
+          color: RefPalette.mineralTeal,
+          onTap: () {
+            ref.read(timeHubSubProvider.notifier).state = 3;
+            _openTab(3);
+          }),
+      _roomTile(tk,
+          glyph: '☾',
+          name: '오늘 운세',
+          sub: '탭해서 열기',
+          color: RefPalette.mineralOchre,
+          onTap: () => _pushScreen(const FortuneView())),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+      child: GridView.count(
+        crossAxisCount: 2,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.55,
+        children: tiles,
+      ),
+    );
+  }
+
+  Widget _roomTile(AppTokens tk,
+          {required String glyph,
+          required String name,
+          required String sub,
+          required Color color,
+          required VoidCallback onTap}) =>
+      GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: tk.paper2,
+            border: Border.all(color: tk.line),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                    color: mixOver(color, 0.14, tk.paper),
+                    borderRadius: BorderRadius.circular(10)),
+                child: Text(glyph, style: AppText.glyph(color, size: 16)),
+              ),
+              const Spacer(),
+              Text(name,
+                  style: AppText.body(tk.ink)
+                      .copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text(sub, style: AppText.meta(tk.inkSoft, size: 10)),
+            ],
+          ),
         ),
       );
 
@@ -427,6 +661,13 @@ class _TodayViewState extends ConsumerState<TodayView> {
         padding: EdgeInsets.zero,
         children: [
           _greeting(tk),
+          _captureBar(tk),
+          _momentum(tk, doneN),
+          _sectionLabel(tk, '지금 진행 중', trailing: '동시에 기록', amber: true),
+          const TimerPanel(),
+          _sectionLabel(tk, '바로 들어가기'),
+          _rooms(tk),
+          _sectionLabel(tk, '오늘의 흐름'),
           _dateStrip(tk),
           _dayContext(tk),
           _todayFilter(tk),
