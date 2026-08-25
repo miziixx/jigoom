@@ -45,9 +45,7 @@ class CompletedScreen extends ConsumerWidget {
             ),
             Expanded(
               child: done.isEmpty
-                  ? Center(
-                      child: Text('완료한 일이 없어요',
-                          style: AppText.meta(tk.inkSoft)))
+                  ? emptyStateBear(context, '완료한 일이 없어요')
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       itemCount: done.length,

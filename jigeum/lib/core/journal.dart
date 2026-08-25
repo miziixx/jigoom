@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'constants.dart';
+import 'gomgom_bear.dart';
 import 'theme.dart';
 
 /// 편집(에디토리얼) 공용 요소 — DESIGN_SYSTEM 준수.
@@ -198,6 +199,26 @@ Widget emptyNote(BuildContext context, String text) {
   return Padding(
     padding: const EdgeInsets.fromLTRB(kGutter, 6, kGutter, 6),
     child: Text('— $text', style: AppText.meta(t(context).inkSoft)),
+  );
+}
+
+/// 빈 화면 — 곰곰이 + 담백한 안내. '아무것도 없는' 전체 빈 화면 전용
+/// (통계 한 줄용 [emptyNote] 와 구분). 리디자인 마스코트 언어.
+Widget emptyStateBear(BuildContext context, String text) {
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.all(kGutter),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const GomgomBear(size: 60),
+          const SizedBox(height: 14),
+          Text(text,
+              textAlign: TextAlign.center,
+              style: AppText.meta(t(context).inkSoft, size: 12)),
+        ],
+      ),
+    ),
   );
 }
 

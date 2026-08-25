@@ -86,8 +86,7 @@ class _InboxScreenState extends State<InboxScreen> {
                 onBack: () => Navigator.of(context).pop(),),
             Expanded(
               child: items.isEmpty
-                  ? Center(
-                      child: Text('비어 있어요', style: AppText.meta(tk.inkSoft)))
+                  ? emptyStateBear(context, '비어 있어요')
                   : ListView.separated(
                       itemCount: items.length,
                       separatorBuilder: (_, __) =>

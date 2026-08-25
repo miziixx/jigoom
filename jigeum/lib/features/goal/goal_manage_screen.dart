@@ -92,8 +92,8 @@ class _GoalManageScreenState extends ConsumerState<GoalManageScreen> {
           _sectionHead(tk, '${_horizons[_tab].label} 목표', () => _addGoal()),
           if (list.isEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: emptyNote(context, '이 기간에 담은 목표가 없어요'),
+              padding: const EdgeInsets.only(top: 20),
+              child: emptyStateBear(context, '이 기간에 담은 목표가 없어요'),
             )
           else
             for (final g in list) _goalRow(context, tk, g, all),

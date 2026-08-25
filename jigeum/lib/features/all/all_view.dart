@@ -54,7 +54,8 @@ class _AllViewState extends ConsumerState<AllView> {
         children: [
           _tabs(tk),
           if (list.isEmpty)
-            emptyNote(context, _tab == 4 ? '완료한 일이 없어요' : '해당하는 일이 없어요')
+            emptyStateBear(
+                context, _tab == 4 ? '완료한 일이 없어요' : '해당하는 일이 없어요')
           else
             for (final n in list) _taskLine(tk, n),
         ],
