@@ -155,15 +155,16 @@ class SettingsController extends StateNotifier<AppSettings> {
     final scale = await _get(_kScale);
     final weight = await _get(_kWeight);
     var theme = await _get(_kTheme);
-    // v17: 옛 기본값(manila)을 쓰던 설치를 HTML 팔레트(sage)로 1회 이관.
-    // 이관 후 사용자가 다시 다른 테마를 고르면 그 선택이 유지된다.
-    final sageMigrated = await _get('v17_sage_migrated');
-    if (sageMigrated != '1') {
-      if (theme == null || theme == 'manila') {
-        theme = 'sage';
-        await _set(_kTheme, 'sage');
+    // 곰곰 리디자인: 기본 테마를 '곰곰'(웜 팔레트)로 1회 이관. 아직 자기 테마를
+    // 직접 고르지 않아 옛 기본값(manila/sage)에 머문 설치만 옮긴다. 다른 테마를
+    // 고른 사용자는 그 선택을 유지하고, 이관 후 다시 고르면 그 선택이 유지된다.
+    final gomgomMigrated = await _get('v4_gomgom_migrated');
+    if (gomgomMigrated != '1') {
+      if (theme == null || theme == 'manila' || theme == 'sage') {
+        theme = 'gomgom';
+        await _set(_kTheme, 'gomgom');
       }
-      await _set('v17_sage_migrated', '1');
+      await _set('v4_gomgom_migrated', '1');
     }
     // v17: 레퍼런스는 Pretendard(얇은 편집 산세리프)를 쓴다. 시스템 글꼴(폰 기본
     // 고딕)은 더 두껍게 보여서, 기존 설치를 번들 Pretendard로 1회 이관한다.

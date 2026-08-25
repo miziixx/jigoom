@@ -73,6 +73,77 @@ class ThemeSpec {
 
 /// 내장 11종 — 9 라이트 + 2 다크(NOIR · INK NIGHT). 기본 SAGE. (DESIGN_SYSTEM §1-1)
 const List<ThemeSpec> kThemes = [
+  // ─────────────────────────────────────────────────────────────────────
+  // 곰곰 리디자인 팔레트 (v4 시안). mark = '지금·살아있음' 앰버 포인트.
+  // 채운 버튼은 기존대로 ink(웜 액션) — 파란색 없음.
+  // ─────────────────────────────────────────────────────────────────────
+  // 곰곰 — 웜 포슬린 종이 + 에스프레소 잉크 + 앰버 포인트 (기본).
+  ThemeSpec(
+      'gomgom',
+      '곰곰',
+      AppTokens(
+          paper: Color(0xFFEAE4D9),
+          paper2: Color(0xFFE2DBCD),
+          ink: Color(0xFF231E18),
+          inkSoft: Color(0xFF897F70),
+          line: Color(0xFFDAD2C3),
+          mark: Color(0xFFD6852A))),
+  // 라벤더 버터 — 연보라 종이 + 버터 앰버 포인트.
+  ThemeSpec(
+      'lavender',
+      '라벤더 버터',
+      AppTokens(
+          paper: Color(0xFFECE5EF),
+          paper2: Color(0xFFE4DBEA),
+          ink: Color(0xFF2E2733),
+          inkSoft: Color(0xFF8A8092),
+          line: Color(0xFFDCD3E3),
+          mark: Color(0xFFD79E3B))),
+  // 세이지 안개 — 세이지 크림 + 클레이 포인트.
+  ThemeSpec(
+      'sagemist',
+      '세이지 안개',
+      AppTokens(
+          paper: Color(0xFFE7E9DE),
+          paper2: Color(0xFFDEE1D3),
+          ink: Color(0xFF2B322A),
+          inkSoft: Color(0xFF7C8377),
+          line: Color(0xFFD6DACB),
+          mark: Color(0xFFC4794A))),
+  // 코스탈 방갈로 — 모래 크림 + 샌드 테라코타 포인트.
+  ThemeSpec(
+      'coastal',
+      '코스탈 방갈로',
+      AppTokens(
+          paper: Color(0xFFF1EADF),
+          paper2: Color(0xFFE8DFCF),
+          ink: Color(0xFF3A2C20),
+          inkSoft: Color(0xFF8C7C68),
+          line: Color(0xFFE0D4C1),
+          mark: Color(0xFFC1854E))),
+  // 블러시 코니 — 블러시 크림 + 로즈 클레이 포인트.
+  ThemeSpec(
+      'blush',
+      '블러시 코니',
+      AppTokens(
+          paper: Color(0xFFF3E7E4),
+          paper2: Color(0xFFEBD9D6),
+          ink: Color(0xFF33272A),
+          inkSoft: Color(0xFF907E82),
+          line: Color(0xFFE7D6D3),
+          mark: Color(0xFFD08A6A))),
+  // 연꽃 못 · 밤 — 딥 그린 다크 + 로지 포인트. paper 어두워 자동 Brightness.dark.
+  ThemeSpec(
+      'lotus',
+      '연꽃 못 · 밤',
+      AppTokens(
+          paper: Color(0xFF102A22),
+          paper2: Color(0xFF1B392F),
+          ink: Color(0xFFF0EAD6),
+          inkSoft: Color(0xFF9FB3A2),
+          line: Color(0xFF28453A),
+          mark: Color(0xFFDDA08F))),
+  // ─────────────────────────────────────────────────────────────────────
   // MANILA — 기준 HTML `html[data-theme="manila"]` 정밀값.
   ThemeSpec(
       'manila',
@@ -197,7 +268,7 @@ const List<ThemeSpec> kThemes = [
           mark: Color(0xFF9AAA91))),
 ];
 
-const String kDefaultThemeKey = 'sage';
+const String kDefaultThemeKey = 'gomgom';
 
 AppTokens tokensForKey(String key) {
   for (final t in kThemes) {
