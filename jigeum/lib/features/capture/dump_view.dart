@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
+import '../../core/gomgom_bear.dart';
 import '../../core/theme.dart';
 import '../../providers.dart';
 import '../voice/models/intent_type.dart';
@@ -723,10 +724,17 @@ class _DumpViewState extends ConsumerState<DumpView> {
   Widget _empty(AppTokens tk) => Center(
         child: Padding(
           padding: const EdgeInsets.all(AppSpace.gutter),
-          child: Text(
-            '떠오르는 대로 적고 엔터.\n엔진이 미리 갈라두면, 확인하고 한 번에 담아요.',
-            textAlign: TextAlign.center,
-            style: AppText.meta(tk.inkSoft, size: 13),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const GomgomBear(size: 64),
+              const SizedBox(height: 14),
+              Text(
+                '떠오르는 대로 적고 엔터.\n곰곰이가 미리 갈라두면, 확인하고 한 번에 담아요.',
+                textAlign: TextAlign.center,
+                style: AppText.meta(tk.inkSoft, size: 13),
+              ),
+            ],
           ),
         ),
       );

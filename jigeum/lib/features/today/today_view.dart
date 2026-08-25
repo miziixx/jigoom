@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/editorial.dart';
+import '../../core/gomgom_bear.dart';
 import '../../core/journal.dart';
 import '../../core/reference_tokens.dart';
 import '../../core/settings_controller.dart';
@@ -90,6 +91,22 @@ class _TodayViewState extends ConsumerState<TodayView> {
       ),
     );
   }
+
+  // ── 곰곰이 인사 (리디자인 시안 — 아기곰 마스코트) ──
+  Widget _greeting(AppTokens tk) => Padding(
+        padding: const EdgeInsets.fromLTRB(kGutter, 8, kGutter, 2),
+        child: Row(
+          children: [
+            const GomgomBear(size: 42),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('오늘도 곰곰이,\n천천히 시작해요.',
+                  style: AppText.serif(tk.ink, size: 18, weight: FontWeight.w400)
+                      .copyWith(height: 1.25)),
+            ),
+          ],
+        ),
+      );
 
   // ── 날짜 스트립 (기준 HTML .date-strip) — 선택 날짜가 속한 주(월~일) ──
   Widget _dateStrip(AppTokens tk) {
@@ -409,6 +426,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
+          _greeting(tk),
           _dateStrip(tk),
           _dayContext(tk),
           _todayFilter(tk),
