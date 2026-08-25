@@ -6,6 +6,8 @@
 /// 다 되면 [담기]로 한 번에 실제로 담는다. 음성 없이 타이핑만으로.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,6 +16,7 @@ import '../../core/theme.dart';
 import '../../providers.dart';
 import '../voice/models/intent_type.dart';
 import '../voice/models/voice_result.dart';
+import '../voice/stt_service.dart';
 import 'dump_staging.dart';
 
 class DumpView extends ConsumerStatefulWidget {
@@ -81,11 +84,98 @@ class _DumpViewState extends ConsumerState<DumpView> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
 
+  // ── '말로 적기' 음성 입력 상태 (STT). 결과는 텍스트칸에 이어붙인다. ──
+  StreamSubscription<SttStatus>? _sttStatusSub;
+  StreamSubscription<SttResult>? _sttResultSub;
+  StreamSubscription<String>? _sttErrorSub;
+  bool _listening = false;
+  bool _micBusy = false;
+  String _partial = ''; // 듣는 중 부분결과(캡션).
+
+  @override
+  void initState() {
+    super.initState();
+    final stt = ref.read(sttServiceProvider);
+    _sttStatusSub = stt.status.listen((s) {
+      if (!mounted) return;
+      setState(() {
+        _listening = s == SttStatus.listening;
+        if (!_listening) _partial = '';
+      });
+    });
+    _sttResultSub = stt.results.listen((r) {
+      if (!mounted) return;
+      if (!r.isFinal) {
+        setState(() => _partial = r.text);
+        return;
+      }
+      setState(() => _partial = '');
+      _appendVoice(r.text);
+    });
+    _sttErrorSub = stt.errors.listen((m) {
+      if (mounted) _notice(m);
+    });
+  }
+
   @override
   void dispose() {
+    _sttStatusSub?.cancel();
+    _sttResultSub?.cancel();
+    _sttErrorSub?.cancel();
     _controller.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  // 받아쓴 텍스트를 텍스트칸에 이어붙이고 커서를 끝으로.
+  void _appendVoice(String text) {
+    final add = text.trim();
+    if (add.isEmpty) return;
+    final cur = _controller.text;
+    final sep =
+        cur.isEmpty || cur.endsWith('\n') || cur.endsWith(' ') ? '' : ' ';
+    final next = '$cur$sep$add';
+    _controller.text = next;
+    _controller.selection = TextSelection.collapsed(offset: next.length);
+  }
+
+  void _notice(String message) {
+    final tk = t(context);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: tk.mark,
+        content: Text('🎙️ $message', style: AppText.body(tk.paper)),
+      ));
+  }
+
+  // '말로 적기' 탭 → 음성 인식 시작/종료. 최종 결과가 텍스트칸에 들어간다.
+  Future<void> _toggleMic() async {
+    if (_micBusy) return;
+    final stt = ref.read(sttServiceProvider);
+    setState(() => _micBusy = true);
+    try {
+      if (_listening) {
+        await stt.stop();
+        return;
+      }
+      final available = await stt.isAvailable();
+      if (!available) {
+        _notice('이 기기에서 음성 인식을 찾지 못했어요. Google 앱/음성 입력을 확인해 주세요.');
+        return;
+      }
+      final allowed = await stt.requestPermission();
+      if (!allowed) {
+        _notice('마이크 권한이 꺼져 있어요. 앱 권한에서 마이크를 허용해 주세요.');
+        return;
+      }
+      await stt.start(localeId: 'ko_KR');
+    } catch (_) {
+      _notice('음성 인식을 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+    } finally {
+      if (mounted) setState(() => _micBusy = false);
+    }
   }
 
   void _submit() {
@@ -361,18 +451,33 @@ class _DumpViewState extends ConsumerState<DumpView> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    GestureDetector(
-                      onTap: () => _focus.requestFocus(),
-                      behavior: HitTestBehavior.opaque,
-                      child: Row(
-                        children: [
-                          Icon(Icons.mic_none, size: 17, color: tk.inkSoft),
-                          const SizedBox(width: 6),
-                          Text('말로 적기',
-                              style: AppText.meta(tk.inkSoft, size: 11)),
-                        ],
+                    Flexible(
+                      child: GestureDetector(
+                        onTap: _micBusy ? null : _toggleMic,
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_listening ? Icons.mic : Icons.mic_none,
+                                size: 17,
+                                color: _listening ? tk.mark : tk.inkSoft),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                _listening
+                                    ? (_partial.isEmpty ? '듣는 중… 탭해서 종료' : _partial)
+                                    : '말로 적기',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppText.meta(
+                                    _listening ? tk.mark : tk.inkSoft,
+                                    size: 11)),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 10),
                     const Spacer(),
                     GestureDetector(
                       onTap: _submit,
