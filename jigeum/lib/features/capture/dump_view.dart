@@ -730,7 +730,7 @@ class _DumpViewState extends ConsumerState<DumpView> {
               const GomgomBear(size: 64),
               const SizedBox(height: 14),
               Text(
-                '떠오르는 대로 적고 엔터.\n곰곰이가 미리 갈라두면, 확인하고 한 번에 담아요.',
+                '떠오르는 대로 적어요.\n정리는 곰곰이가 알아서 할게요.',
                 textAlign: TextAlign.center,
                 style: AppText.meta(tk.inkSoft, size: 13),
               ),

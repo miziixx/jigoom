@@ -295,8 +295,8 @@ List<String> appMonoFallback = const <String>[];
 /// 한글 본문·제목 글꼴. 명조(세리프)로 통일. AppTheme.build 에서 갱신.
 String? appSans = kSerifFamily;
 
-/// 제목/헤딩용 세리프(명조). v17 에디토리얼 — 헤딩만 세리프.
-String appSerif = kSerifFamily;
+/// 제목/헤딩 글꼴. systemFont 켜면 폰 기본 글꼴(null)로, 끄면 명조. AppTheme.build 에서 갱신.
+String? appSerif = kSerifFamily;
 
 /// 편집 타이포 (DESIGN_SYSTEM §3).
 /// 기본은 폰 시스템 글꼴, 내장 글꼴 모드에서는 선택한 앱 폰트로 전체를 맞춘다.
@@ -416,14 +416,15 @@ class AppTheme {
       bool systemFont = false,
       String fontKey = kDefaultFontKey}) {
     appWeightDelta = weightDelta; // 전역 반영 (AppText 직접 호출부용)
-    // 곰곰(지금 v2): 기준 HTML 하이브리드 타이포를 그대로 따른다.
-    //  · 본문/내용(sans)   = Pretendard (systemFont 켜면 폰 기본 글꼴)
-    //  · 제목/헤딩(serif)  = 명조(NanumMyeongjo) — appSerif, 아래 유지
-    //  · 라벨/숫자(mono)   = 모노스페이스, 한글은 Pretendard 폴백
+    // 곰곰: systemFont 켜면(기본) 본문·제목·라벨 전부 폰 기본 글꼴로 —
+    // 번들 명조/Pretendard 강제 없음. 끄면 에디토리얼(Pretendard 본문 + 명조 제목).
+    //  · 본문(sans)  = systemFont? 폰 기본 : Pretendard
+    //  · 제목(serif) = systemFont? 폰 기본 : 명조(NanumMyeongjo)
+    //  · 라벨(mono)  = 모노스페이스(폰 기본 고정폭), 번들 모드만 Pretendard 폴백
     appSans = systemFont ? kSansFamily : 'Pretendard';
     appMono = kMonoFamily;
-    appMonoFallback = const ['Pretendard'];
-    appSerif = kSerifFamily;
+    appMonoFallback = systemFont ? const <String>[] : const ['Pretendard'];
+    appSerif = systemFont ? kSansFamily : kSerifFamily;
     final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);
 
