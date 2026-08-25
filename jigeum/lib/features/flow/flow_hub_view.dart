@@ -42,14 +42,18 @@ class FlowHubView extends ConsumerWidget {
         .toList();
 
     final tiles = <_FlowTile>[
-      _FlowTile('01', '아웃라이너', '목표와 할 일의 전체 구조',
+      _FlowTile('▤', RefPalette.mineralBlue, '아웃라이너', '목표와 할 일의 전체 구조',
           () => push(const OutlineScreen())),
-      _FlowTile('02', '목표 관리', '진행률과 활동 그래프',
+      _FlowTile('◎', RefPalette.mineralSage, '목표 관리', '진행률과 활동 그래프',
           () => push(const GoalManageScreen())),
-      _FlowTile('03', '습관', '최근 30일 반복 기록', () => onOpenTab(4)),
-      _FlowTile('04', '루틴', '일과 · 주간 · 로그', () => onOpenTab(3)),
-      _FlowTile('05', '전체 할 일', '필터와 완료 상태', () => onOpenTab(5)),
-      _FlowTile('06', '매트릭스', '중요도와 긴급도', () => onOpenTab(1)),
+      _FlowTile('◇', RefPalette.mineralPlum, '습관', '최근 30일 반복 기록',
+          () => onOpenTab(4)),
+      _FlowTile('❖', RefPalette.mineralTeal, '루틴', '일과 · 주간 · 로그',
+          () => onOpenTab(3)),
+      _FlowTile('☰', RefPalette.mineralOchre, '전체 할 일', '필터와 완료 상태',
+          () => onOpenTab(5)),
+      _FlowTile('⊞', RefPalette.mineralRose, '매트릭스', '중요도와 긴급도',
+          () => onOpenTab(1)),
     ];
 
     return ListView(
@@ -141,7 +145,7 @@ class FlowHubView extends ConsumerWidget {
         onTap: tile.onTap,
         behavior: HitTestBehavior.opaque,
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: tk.paper2,
             border: Border.all(color: tk.line),
@@ -150,10 +154,20 @@ class FlowHubView extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(tile.index, style: AppText.meta(tk.inkSoft, size: 9)),
+              // 색별 글리프 방(리디자인 시안) — 기능마다 또렷한 색.
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: mixOver(tile.color, 0.14, tk.paper),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(tile.glyph, style: AppText.glyph(tile.color, size: 16)),
+              ),
               const Spacer(),
               Text(tile.title, style: AppText.body(tk.ink).copyWith(fontSize: 13)),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(tile.desc,
                   style: AppText.body(tk.inkSoft)
                       .copyWith(fontSize: 9, height: 1.45)),
@@ -164,8 +178,9 @@ class FlowHubView extends ConsumerWidget {
 }
 
 class _FlowTile {
-  const _FlowTile(this.index, this.title, this.desc, this.onTap);
-  final String index;
+  const _FlowTile(this.glyph, this.color, this.title, this.desc, this.onTap);
+  final String glyph;
+  final Color color;
   final String title;
   final String desc;
   final VoidCallback onTap;
