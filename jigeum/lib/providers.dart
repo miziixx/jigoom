@@ -31,18 +31,35 @@ final ValueNotifier<int> timeTrackLaunchRequest = ValueNotifier<int>(0);
 /// 캘린더 위젯 탭 진입 시 달력 화면을 여는 트리거.
 final ValueNotifier<int> calendarLaunchRequest = ValueNotifier<int>(0);
 
-/// 진행 중인 타이머(인메모리) — 시간 화면 timer-panel 이 참조한다.
+/// 진행 중인 타이머(인메모리) — 시간·오늘 화면이 참조한다.
 /// 앱을 켜 둔 동안만 흐르는 정직한 실시간 경과(가짜 시계 없음).
 /// [startedAt] 기준 실제 경과를 매초 다시 그려 HH:MM:SS 로 보여준다.
+/// [id] 로 목록에서 식별·제거한다(여러 개를 동시에 켤 수 있다).
 class ActiveTimer {
-  const ActiveTimer(this.title, this.startedAt);
+  ActiveTimer(this.title, this.startedAt)
+      : id = '${startedAt.microsecondsSinceEpoch}_${title.hashCode}';
+  final String id;
   final String title;
   final DateTime startedAt;
 }
 
-/// null 이면 대기(시작 버튼), 값이 있으면 진행 중.
-final ValueNotifier<ActiveTimer?> activeTimerNotifier =
-    ValueNotifier<ActiveTimer?>(null);
+/// 지금 진행 중인 타이머들(0개면 대기). 여러 작업을 동시에 기록할 수 있다.
+final ValueNotifier<List<ActiveTimer>> activeTimersNotifier =
+    ValueNotifier<List<ActiveTimer>>(const <ActiveTimer>[]);
+
+/// 타이머 시작 — 목록에 하나 추가.
+void startActiveTimer(String title) {
+  activeTimersNotifier.value = [
+    ...activeTimersNotifier.value,
+    ActiveTimer(title, DateTime.now()),
+  ];
+}
+
+/// 타이머 종료 — id 로 목록에서 제거.
+void stopActiveTimer(String id) {
+  activeTimersNotifier.value =
+      activeTimersNotifier.value.where((t) => t.id != id).toList();
+}
 
 /// 위젯 음성 버튼 탭 진입 시 마이크를 시작해 즉시 분류·라우팅하는 트리거.
 /// 값이 증가할 때마다 AppShell 이 음성 캡처를 시작한다.
