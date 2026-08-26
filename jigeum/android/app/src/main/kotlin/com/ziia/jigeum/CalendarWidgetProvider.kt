@@ -23,6 +23,9 @@ class CalendarWidgetProvider : AppWidgetProvider() {
     ) {
         val prefs = context.getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
         val foot = prefs.getString(WidgetPrefs.KEY_CAL_FOOT, "") ?: ""
+        // 이번 달 일정 있는 날(일자) 집합 — 그 날 셀 하단에 색 바.
+        val eventDays = (prefs.getString(WidgetPrefs.KEY_CAL_EVENTS, "") ?: "")
+            .split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
         val pal = WidgetPrefs.palette(context)
         val alpha = WidgetPrefs.bgAlpha(context)        // 모든 위젯 공통 투명도
         val fs = WidgetPrefs.fontScale(context)          // 모든 위젯 공통 글자 배율
@@ -72,9 +75,12 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                     if (cellId != 0) {
                         setTextViewText(cellId, walk.get(Calendar.DAY_OF_MONTH).toString())
                         setTextViewTextSize(cellId, TypedValue.COMPLEX_UNIT_SP, 12f * fs)
-                        // 날짜 사이 가로세로 회색 격자 구분선.
-                        setInt(cellId, "setBackgroundResource", R.drawable.cal_cell)
                         val inMonth = walk.get(Calendar.MONTH) == month
+                        // 격자 구분선 + 일정 있는 날은 하단 색 바.
+                        val hasEvent = inMonth &&
+                            eventDays.contains(walk.get(Calendar.DAY_OF_MONTH))
+                        setInt(cellId, "setBackgroundResource",
+                            if (hasEvent) R.drawable.cal_cell_event else R.drawable.cal_cell)
                         val isToday = walk.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
                             walk.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
                         // 갤럭시 캘린더처럼 주말 색: 일=빨강, 토=파랑(테마 무관 고정).

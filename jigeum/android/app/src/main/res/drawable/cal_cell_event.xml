@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 일정 있는 날 셀 — 격자 구분선 + 하단 색 바(일정 표시). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <stroke android:width="0.7dp" android:color="#55837D72" />
+        </shape>
+    </item>
+    <item android:height="3dp" android:gravity="bottom" android:left="8dp" android:right="8dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="2dp" />
+            <solid android:color="#D6852A" />
+        </shape>
+    </item>
+</layer-list>

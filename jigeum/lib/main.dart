@@ -175,6 +175,16 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         if (settings.calSaju) iljinLabel(today),
         if (settings.calAstro) byeoljariLabel(today),
       ].join(' · ');
+      // 캘린더 위젯: 이번 달 일정 있는 날(일자) 목록 — 그 날 아래 색 바 표시.
+      var calEvents = '';
+      try {
+        final mStart = DateTime(today.year, today.month, 1);
+        final mEnd = DateTime(today.year, today.month + 1, 0);
+        final monthScheds =
+            await ref.read(scheduleRepoProvider).watchForRange(mStart, mEnd).first;
+        calEvents = (monthScheds.map((s) => s.date.day).toSet().toList()..sort())
+            .join(',');
+      } catch (_) {}
       await WidgetBridge.updateWidgets(
         focusTitle: focus?.title ?? '오늘 할 일을 정해볼까요',
         q1: join(q1),
@@ -182,6 +192,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         q3: join(q3),
         q4Count: q4,
         calFoot: calFoot,
+        calEvents: calEvents,
         theme: {
           'paper': _hex(tk.paper),
           'ink': _hex(tk.ink),

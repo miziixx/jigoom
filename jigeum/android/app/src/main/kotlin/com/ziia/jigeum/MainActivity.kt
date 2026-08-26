@@ -157,6 +157,7 @@ class MainActivity : FlutterActivity() {
                             .putString(WidgetPrefs.KEY_Q3, call.argument("q3") ?: "")
                             .putInt(WidgetPrefs.KEY_Q4_COUNT, call.argument("q4count") ?: 0)
                             .putString(WidgetPrefs.KEY_CAL_FOOT, call.argument("calFoot") ?: "")
+                            .putString(WidgetPrefs.KEY_CAL_EVENTS, call.argument("calEvents") ?: "")
                         // 테마 색(있을 때만) — 앱 테마와 위젯 톤 일치.
                         call.argument<String>("paper")?.let { edit.putString(WidgetPrefs.KEY_PAPER, it) }
                         call.argument<String>("ink")?.let { edit.putString(WidgetPrefs.KEY_INK, it) }
