@@ -272,8 +272,10 @@ class SettingsController extends StateNotifier<AppSettings> {
   }
 
   Future<void> setFontKey(String key) async {
-    state = state.copyWith(fontKey: key);
+    // 특정 글꼴을 고르면 '휴대폰 글꼴 사용'을 끄고 그 글꼴을 실제로 적용한다.
+    state = state.copyWith(fontKey: key, systemFont: false);
     await _set(_kFontKey, key);
+    await _set(_kSystemFont, '0');
   }
 
   Future<void> setAstroLevel(String key) async {

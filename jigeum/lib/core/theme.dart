@@ -422,10 +422,13 @@ class AppTheme {
     //  · 본문(sans)  = systemFont? 폰 기본 : Pretendard
     //  · 제목(serif) = systemFont? 폰 기본 : 명조(NanumMyeongjo)
     //  · 라벨(mono)  = 모노스페이스(폰 기본 고정폭), 번들 모드만 Pretendard 폴백
-    appSans = systemFont ? kSansFamily : 'Pretendard';
+    // 휴대폰 글꼴 사용(systemFont)이면 폰 기본 글꼴(null). 끄면 사용자가 설정에서
+    // 고른 번들 글꼴(fontKey)을 본문·제목에 모두 적용한다(고장나 있던 선택기 배선).
+    final picked = familyForFontKey(fontKey);
+    appSans = systemFont ? kSansFamily : picked;
     appMono = kMonoFamily;
-    appMonoFallback = systemFont ? const <String>[] : const ['Pretendard'];
-    appSerif = systemFont ? kSansFamily : kSerifFamily;
+    appMonoFallback = systemFont ? const <String>[] : [picked];
+    appSerif = systemFont ? kSansFamily : picked;
     // 시스템 산세리프는 같은 굵기라도 명조/Pretendard 보다 두껍게 보인다 →
     // systemFont 일 때 전체를 한 단계 가늘게(−1) 낮춰 균형을 맞춘다.
     final wDelta = weightDelta + (systemFont ? -1 : 0);
