@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 캘린더 위젯 생성 설정창 — 배경 진하기(투명도) 슬라이더 + 확인/취소. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#88000000"
+    android:paddingLeft="30dp"
+    android:paddingRight="30dp"
+    android:gravity="center">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/quick_add_card_bg"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="18dp"
+        android:paddingBottom="14dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CALENDAR WIDGET"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.16"
+            android:textSize="9sp"
+            android:textColor="#9A948A" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="배경 진하기"
+            android:fontFamily="serif"
+            android:textSize="20sp"
+            android:textColor="#26241F"
+            android:layout_marginTop="3dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="배경화면이 비치는 정도예요. 0%면 완전 투명."
+            android:textSize="11sp"
+            android:textColor="#9A948A"
+            android:layout_marginTop="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="16dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="투명"
+                android:fontFamily="monospace"
+                android:textSize="10sp"
+                android:textColor="#9A948A" />
+            <TextView
+                android:id="@+id/cfg_pct"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="40%"
+                android:fontFamily="monospace"
+                android:textSize="13sp"
+                android:textColor="#D6852A" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:text="꽉 참"
+                android:fontFamily="monospace"
+                android:textSize="10sp"
+                android:textColor="#9A948A" />
+        </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/cfg_seek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="40"
+            android:progressTint="#D6852A"
+            android:thumbTint="#D6852A"
+            android:layout_marginTop="2dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="14dp">
+            <TextView
+                android:id="@+id/cfg_cancel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="취소"
+                android:fontFamily="monospace"
+                android:textSize="13sp"
+                android:textColor="#9A948A"
+                android:paddingLeft="14dp"
+                android:paddingRight="18dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp" />
+            <TextView
+                android:id="@+id/cfg_ok"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="확인"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.08"
+                android:textStyle="bold"
+                android:textSize="13sp"
+                android:textColor="#F4F1EA"
+                android:background="@drawable/quick_add_save_bg"
+                android:paddingLeft="24dp"
+                android:paddingRight="24dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

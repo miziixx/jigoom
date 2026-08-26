@@ -105,6 +105,15 @@ RECEIVER = """        <receiver android:name=".FocusWidgetProvider" android:expo
             </intent-filter>
         </activity>
         <activity
+            android:name=".CalendarConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".QuickAddActivity"
             android:exported="false"
             android:excludeFromRecents="true"

@@ -60,11 +60,31 @@ object WidgetPrefs {
         )
     }
 
-    /** 배경 알파(0~255). */
+    /** 배경 알파(0~255) — 앱 전역 설정. */
     fun bgAlpha(context: Context): Int {
         val percent = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
             .getInt(KEY_OPACITY, 90).coerceIn(0, 100)
         return percent * 255 / 100
+    }
+
+    /** 위젯별 배경 진하기(%) — 생성 시 설정창에서 정한 값. 없으면 전역 설정. */
+    const val KEY_OPACITY_PREFIX = "opacity_" // opacity_<appWidgetId>
+
+    fun opacityPercentFor(context: Context, widgetId: Int): Int {
+        val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        val perWidget = p.getInt(KEY_OPACITY_PREFIX + widgetId, -1)
+        return if (perWidget in 0..100) perWidget
+        else p.getInt(KEY_OPACITY, 90).coerceIn(0, 100)
+    }
+
+    /** 위젯별 배경 알파(0~255). 설정창이 정한 위젯별 값 우선, 없으면 전역. */
+    fun bgAlphaFor(context: Context, widgetId: Int): Int =
+        opacityPercentFor(context, widgetId) * 255 / 100
+
+    fun setWidgetOpacity(context: Context, widgetId: Int, percent: Int) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_OPACITY_PREFIX + widgetId, percent.coerceIn(0, 100))
+            .apply()
     }
 
     fun updateAllWidgets(context: Context) {

@@ -22,7 +22,6 @@ class CalendarWidgetProvider : AppWidgetProvider() {
     ) {
         val prefs = context.getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
         val foot = prefs.getString(WidgetPrefs.KEY_CAL_FOOT, "") ?: ""
-        val alpha = WidgetPrefs.bgAlpha(context)
         val pal = WidgetPrefs.palette(context)
 
         // 이번 달 그리드 계산 (일요일 시작, 6주 42칸).
@@ -51,6 +50,8 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         )
 
         for (widgetId in appWidgetIds) {
+            // 위젯별 배경 진하기(생성 시 설정창에서 정함). 0이면 완전 투명.
+            val alpha = WidgetPrefs.bgAlphaFor(context, widgetId)
             val views = RemoteViews(context.packageName, R.layout.calendar_widget).apply {
                 setTextViewText(R.id.cal_title, title)
                 setTextColor(R.id.cal_title, pal.ink)
