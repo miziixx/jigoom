@@ -6,15 +6,22 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.util.TypedValue
+import android.view.View
 import android.widget.RemoteViews
+import org.json.JSONObject
 import java.util.Calendar
 
 /**
- * 캘린더 위젯 (4×4) — 홈 화면. 이번 달 월 그리드 + 오늘 강조.
- * 하단 줄은 앱이 push 한 음력·일진(사주)·별자리(점성학) (설정 토글 반영).
- * 탭하면 앱의 달력 화면으로.
+ * 캘린더 위젯 — 완전 투명 가능. 이번 달 월 그리드 + 날짜별 색 일정 pill(최대 3개).
+ * 일정은 앱이 push 한 JSON({ "일자": [["제목", 색인덱스], ...] }). 오늘은 포인트색.
+ * 하단은 음력·일진·별자리. 탭하면 앱의 달력 화면으로.
  */
 class CalendarWidgetProvider : AppWidgetProvider() {
+
+    private val pills = intArrayOf(
+        R.drawable.e_pill_0, R.drawable.e_pill_1, R.drawable.e_pill_2,
+        R.drawable.e_pill_3, R.drawable.e_pill_4, R.drawable.e_pill_5
+    )
 
     public override fun onUpdate(
         context: Context,
@@ -23,17 +30,18 @@ class CalendarWidgetProvider : AppWidgetProvider() {
     ) {
         val prefs = context.getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
         val foot = prefs.getString(WidgetPrefs.KEY_CAL_FOOT, "") ?: ""
-        // 이번 달 일정 있는 날(일자) 집합 — 그 날 셀 하단에 색 바.
-        val eventDays = (prefs.getString(WidgetPrefs.KEY_CAL_EVENTS, "") ?: "")
-            .split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
+        val eventsRaw = prefs.getString(WidgetPrefs.KEY_CAL_EVENTS, "") ?: ""
+        val events: JSONObject = try {
+            if (eventsRaw.isNotBlank()) JSONObject(eventsRaw) else JSONObject()
+        } catch (e: Exception) { JSONObject() }
         val pal = WidgetPrefs.palette(context)
-        val alpha = WidgetPrefs.bgAlpha(context)        // 모든 위젯 공통 투명도
-        val fs = WidgetPrefs.fontScale(context)          // 모든 위젯 공통 글자 배율
+        val alpha = WidgetPrefs.bgAlpha(context)
+        val fs = WidgetPrefs.fontScale(context)
+        val pkg = context.packageName
 
-        // 이번 달 그리드 계산 (일요일 시작, 6주 42칸).
         val now = Calendar.getInstance()
         val month = now.get(Calendar.MONTH)
-        val title = "${now.get(Calendar.YEAR)}. ${month + 1}"
+        val title = "${month + 1}월"
 
         val cur = Calendar.getInstance()
         cur.set(Calendar.DAY_OF_MONTH, 1)
@@ -41,7 +49,7 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         cur.set(Calendar.MINUTE, 0)
         cur.set(Calendar.SECOND, 0)
         cur.set(Calendar.MILLISECOND, 0)
-        val firstOffset = cur.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY // 일=0
+        val firstOffset = cur.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY
         cur.add(Calendar.DAY_OF_MONTH, -firstOffset)
 
         val today = Calendar.getInstance()
@@ -56,34 +64,27 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         )
 
         for (widgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.calendar_widget).apply {
+            val views = RemoteViews(pkg, R.layout.calendar_widget).apply {
                 setTextViewText(R.id.cal_title, title)
                 setTextColor(R.id.cal_title, pal.ink)
-                setTextViewTextSize(R.id.cal_title, TypedValue.COMPLEX_UNIT_SP, 14f * fs)
-                setInt(R.id.cal_rule, "setBackgroundColor", pal.ink)
+                setTextViewTextSize(R.id.cal_title, TypedValue.COMPLEX_UNIT_SP, 15f * fs)
+                setInt(R.id.cal_rule, "setBackgroundColor", pal.line)
                 setTextViewText(R.id.cal_foot, foot)
                 setTextColor(R.id.cal_foot, pal.inkSoft)
-                setTextViewTextSize(R.id.cal_foot, TypedValue.COMPLEX_UNIT_SP, 10f * fs)
+                setTextViewTextSize(R.id.cal_foot, TypedValue.COMPLEX_UNIT_SP, 9f * fs)
                 setInt(R.id.cal_root, "setBackgroundColor",
                     (alpha shl 24) or (pal.paper and 0xFFFFFF))
 
-                // 42칸 채우기 — 매 위젯 갱신마다 cur 를 다시 계산.
                 val walk = cur.clone() as Calendar
                 for (i in 0 until 42) {
-                    val cellId = context.resources.getIdentifier(
-                        "cal_d$i", "id", context.packageName)
+                    val cellId = context.resources.getIdentifier("cal_d$i", "id", pkg)
+                    val dayNum = walk.get(Calendar.DAY_OF_MONTH)
+                    val inMonth = walk.get(Calendar.MONTH) == month
                     if (cellId != 0) {
-                        setTextViewText(cellId, walk.get(Calendar.DAY_OF_MONTH).toString())
-                        setTextViewTextSize(cellId, TypedValue.COMPLEX_UNIT_SP, 12f * fs)
-                        val inMonth = walk.get(Calendar.MONTH) == month
-                        // 격자 구분선 + 일정 있는 날은 하단 색 바.
-                        val hasEvent = inMonth &&
-                            eventDays.contains(walk.get(Calendar.DAY_OF_MONTH))
-                        setInt(cellId, "setBackgroundResource",
-                            if (hasEvent) R.drawable.cal_cell_event else R.drawable.cal_cell)
+                        setTextViewText(cellId, dayNum.toString())
+                        setTextViewTextSize(cellId, TypedValue.COMPLEX_UNIT_SP, 11f * fs)
                         val isToday = walk.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
                             walk.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-                        // 갤럭시 캘린더처럼 주말 색: 일=빨강, 토=파랑(테마 무관 고정).
                         val dow = walk.get(Calendar.DAY_OF_WEEK)
                         val color = when {
                             isToday -> pal.mark
@@ -93,6 +94,24 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                             else -> pal.ink
                         }
                         setTextColor(cellId, color)
+                    }
+
+                    // 날짜별 색 일정 pill (최대 3개).
+                    val dayEvents = if (inMonth) events.optJSONArray(dayNum.toString()) else null
+                    for (k in 0 until 3) {
+                        val eId = context.resources.getIdentifier("cal_e${i}_$k", "id", pkg)
+                        if (eId == 0) continue
+                        if (dayEvents != null && k < dayEvents.length()) {
+                            val pair = dayEvents.optJSONArray(k)
+                            val t = pair?.optString(0) ?: ""
+                            val ci = (pair?.optInt(1) ?: 0).coerceIn(0, pills.size - 1)
+                            setTextViewText(eId, t)
+                            setInt(eId, "setBackgroundResource", pills[ci])
+                            setTextViewTextSize(eId, TypedValue.COMPLEX_UNIT_SP, 8f * fs)
+                            setViewVisibility(eId, View.VISIBLE)
+                        } else {
+                            setViewVisibility(eId, View.GONE)
+                        }
                     }
                     walk.add(Calendar.DAY_OF_MONTH, 1)
                 }

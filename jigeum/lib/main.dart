@@ -175,15 +175,22 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         if (settings.calSaju) iljinLabel(today),
         if (settings.calAstro) byeoljariLabel(today),
       ].join(' · ');
-      // 캘린더 위젯: 이번 달 일정 있는 날(일자) 목록 — 그 날 아래 색 바 표시.
+      // 캘린더 위젯: 이번 달 일정을 날짜별 색 pill 로 — JSON { "일자": [["제목", 색인덱스], …] }.
       var calEvents = '';
       try {
         final mStart = DateTime(today.year, today.month, 1);
         final mEnd = DateTime(today.year, today.month + 1, 0);
         final monthScheds =
             await ref.read(scheduleRepoProvider).watchForRange(mStart, mEnd).first;
-        calEvents = (monthScheds.map((s) => s.date.day).toSet().toList()..sort())
-            .join(',');
+        final byDay = <String, List<List<dynamic>>>{};
+        for (final s in monthScheds) {
+          final key = s.date.day.toString();
+          final list = byDay.putIfAbsent(key, () => <List<dynamic>>[]);
+          if (list.length >= 3) continue; // 셀당 최대 3개
+          final ci = (s.color > 0 ? s.color : s.title.hashCode).abs() % 6;
+          list.add(<dynamic>[s.title, ci]);
+        }
+        calEvents = jsonEncode(byDay);
       } catch (_) {}
       await WidgetBridge.updateWidgets(
         focusTitle: focus?.title ?? '오늘 할 일을 정해볼까요',
