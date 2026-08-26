@@ -12,9 +12,9 @@ import org.json.JSONObject
 import java.util.Calendar
 
 /**
- * 캘린더 위젯 — 완전 투명 가능. 이번 달 월 그리드 + 날짜별 색 일정 pill(최대 3개).
- * 일정은 앱이 push 한 JSON({ "일자": [["제목", 색인덱스], ...] }). 오늘은 포인트색.
- * 하단은 음력·일진·별자리. 탭하면 앱의 달력 화면으로.
+ * 캘린더 위젯 — 완전 투명 가능. 삼성 캘린더식: 왼쪽 주차 + 헤더([오늘] 박스) +
+ * 격자 박스 없이 은은한 가로 구분선 + 날짜별 파스텔 일정 pill(최대 3개).
+ * 일정은 앱이 push 한 JSON({ "일자": [["제목", 색인덱스], ...] }). 탭하면 앱의 달력 화면으로.
  */
 class CalendarWidgetProvider : AppWidgetProvider() {
 
@@ -29,7 +29,6 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         val prefs = context.getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
-        val foot = prefs.getString(WidgetPrefs.KEY_CAL_FOOT, "") ?: ""
         val eventsRaw = prefs.getString(WidgetPrefs.KEY_CAL_EVENTS, "") ?: ""
         val events: JSONObject = try {
             if (eventsRaw.isNotBlank()) JSONObject(eventsRaw) else JSONObject()
@@ -67,16 +66,28 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(pkg, R.layout.calendar_widget).apply {
                 setTextViewText(R.id.cal_title, title)
                 setTextColor(R.id.cal_title, pal.ink)
-                setTextViewTextSize(R.id.cal_title, TypedValue.COMPLEX_UNIT_SP, 15f * fs)
-                setInt(R.id.cal_rule, "setBackgroundColor", pal.line)
-                setTextViewText(R.id.cal_foot, foot)
-                setTextColor(R.id.cal_foot, pal.inkSoft)
-                setTextViewTextSize(R.id.cal_foot, TypedValue.COMPLEX_UNIT_SP, 9f * fs)
+                setTextViewTextSize(R.id.cal_title, TypedValue.COMPLEX_UNIT_SP, 18f * fs)
+
+                // 헤더 우측 [오늘] 박스 — 오늘 일자.
+                setTextViewText(R.id.cal_today, today.get(Calendar.DAY_OF_MONTH).toString())
+                setTextColor(R.id.cal_today, pal.mark)
+                setTextViewTextSize(R.id.cal_today, TypedValue.COMPLEX_UNIT_SP, 11f * fs)
+
                 setInt(R.id.cal_root, "setBackgroundColor",
                     (alpha shl 24) or (pal.paper and 0xFFFFFF))
 
                 val walk = cur.clone() as Calendar
                 for (i in 0 until 42) {
+                    // 각 주 시작(일요일)마다 왼쪽 주차 표기.
+                    if (i % 7 == 0) {
+                        val wkId = context.resources.getIdentifier("cal_wk${i / 7}", "id", pkg)
+                        if (wkId != 0) {
+                            setTextViewText(wkId, walk.get(Calendar.WEEK_OF_YEAR).toString())
+                            setTextColor(wkId, pal.inkSoft)
+                            setTextViewTextSize(wkId, TypedValue.COMPLEX_UNIT_SP, 8f * fs)
+                        }
+                    }
+
                     val cellId = context.resources.getIdentifier("cal_d$i", "id", pkg)
                     val dayNum = walk.get(Calendar.DAY_OF_MONTH)
                     val inMonth = walk.get(Calendar.MONTH) == month
@@ -96,7 +107,7 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                         setTextColor(cellId, color)
                     }
 
-                    // 날짜별 색 일정 pill (최대 3개).
+                    // 날짜별 파스텔 일정 pill (최대 3개).
                     val dayEvents = if (inMonth) events.optJSONArray(dayNum.toString()) else null
                     for (k in 0 until 3) {
                         val eId = context.resources.getIdentifier("cal_e${i}_$k", "id", pkg)
