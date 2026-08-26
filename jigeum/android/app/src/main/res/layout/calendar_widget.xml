@@ -28,7 +28,7 @@
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:layout_marginBottom="1dp">
-            <View android:layout_width="16dp" android:layout_height="1dp" />
+            <TextView android:layout_width="16dp" android:layout_height="1dp" android:text="" />
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:gravity="center"
                     android:textSize="10sp" android:textColor="#C0645A" android:text="일" />
@@ -54,8 +54,8 @@
 
             <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                 android:layout_weight="1" android:orientation="vertical">
-                <View android:layout_width="match_parent" android:layout_height="0.5dp"
-                    android:background="@drawable/cal_hline" />
+                <TextView android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:background="@drawable/cal_hline" android:text="" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk0" android:layout_width="16dp"
@@ -241,8 +241,8 @@
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                 android:layout_weight="1" android:orientation="vertical">
-                <View android:layout_width="match_parent" android:layout_height="0.5dp"
-                    android:background="@drawable/cal_hline" />
+                <TextView android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:background="@drawable/cal_hline" android:text="" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk1" android:layout_width="16dp"
@@ -428,8 +428,8 @@
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                 android:layout_weight="1" android:orientation="vertical">
-                <View android:layout_width="match_parent" android:layout_height="0.5dp"
-                    android:background="@drawable/cal_hline" />
+                <TextView android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:background="@drawable/cal_hline" android:text="" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk2" android:layout_width="16dp"
@@ -615,8 +615,8 @@
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                 android:layout_weight="1" android:orientation="vertical">
-                <View android:layout_width="match_parent" android:layout_height="0.5dp"
-                    android:background="@drawable/cal_hline" />
+                <TextView android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:background="@drawable/cal_hline" android:text="" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk3" android:layout_width="16dp"
@@ -802,8 +802,8 @@
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                 android:layout_weight="1" android:orientation="vertical">
-                <View android:layout_width="match_parent" android:layout_height="0.5dp"
-                    android:background="@drawable/cal_hline" />
+                <TextView android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:background="@drawable/cal_hline" android:text="" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk4" android:layout_width="16dp"
@@ -989,8 +989,8 @@
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                 android:layout_weight="1" android:orientation="vertical">
-                <View android:layout_width="match_parent" android:layout_height="0.5dp"
-                    android:background="@drawable/cal_hline" />
+                <TextView android:layout_width="match_parent" android:layout_height="0.5dp"
+                    android:background="@drawable/cal_hline" android:text="" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk5" android:layout_width="16dp"
