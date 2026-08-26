@@ -9,7 +9,7 @@
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/calendar_widget"
     android:previewLayout="@layout/calendar_widget"
-    android:configure="com.ziia.jigeum.CalendarConfigActivity"
+    android:configure="com.ziia.jigeum.WidgetConfigActivity"
     android:widgetFeatures="reconfigurable"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />

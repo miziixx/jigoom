@@ -9,4 +9,6 @@
     android:initialLayout="@layout/quick_add_widget"
     android:previewLayout="@layout/quick_add_widget"
     android:resizeMode="none"
+    android:configure="com.ziia.jigeum.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
     android:widgetCategory="home_screen" />

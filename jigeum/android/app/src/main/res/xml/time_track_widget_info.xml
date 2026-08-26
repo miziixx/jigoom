@@ -8,4 +8,6 @@
     android:initialLayout="@layout/time_track_widget"
     android:previewLayout="@layout/time_track_widget"
     android:resizeMode="horizontal|vertical"
+    android:configure="com.ziia.jigeum.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
     android:widgetCategory="home_screen" />

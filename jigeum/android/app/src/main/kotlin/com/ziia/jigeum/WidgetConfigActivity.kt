@@ -3,7 +3,6 @@ package com.ziia.jigeum
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
@@ -13,11 +12,11 @@ import android.widget.SeekBar
 import android.widget.TextView
 
 /**
- * 위젯 생성 설정창(바텀시트) — 홈에 곰곰 위젯을 얹을 때 먼저 뜬다.
- * 배경 진하기(투명도) · 글자 크기 · 테마를 정하고 '확인' 하면 **모든 위젯 공통**으로
- * 적용된다. (앱 안 설정이 아니라 위젯 생성 시점.)
+ * 위젯 생성/재구성 설정창(바텀시트) — 홈에 곰곰 위젯을 얹거나(생성) 이미 얹은 위젯을
+ * 길게 눌러 재구성할 때 뜬다. 배경 진하기(투명도) · 글자 크기 · 테마를 정하고 '확인'
+ * 하면 **모든 위젯 공통**으로 적용된다. (캘린더 전용이 아니라 전 위젯 공용.)
  */
-class CalendarConfigActivity : Activity() {
+class WidgetConfigActivity : Activity() {
 
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private var fontPct = 100
@@ -32,7 +31,6 @@ class CalendarConfigActivity : Activity() {
     }
     private val fontValues = listOf(85, 100, 120)
 
-    // 앱 테마 따라가기 + 곰곰 6테마.
     private val themeOptions = listOf(
         "app" to Pair("앱", 0xFFEAE4D9.toInt()),
         "gomgom" to Pair("곰곰", 0xFFEAE4D9.toInt()),
@@ -61,13 +59,11 @@ class CalendarConfigActivity : Activity() {
 
         setContentView(R.layout.calendar_config)
 
-        // ── 초기값 (전역 위젯 설정) ──
         val prefs = getSharedPreferences(WidgetPrefs.FILE, MODE_PRIVATE)
         val opacity = prefs.getInt(WidgetPrefs.KEY_OPACITY, 40).coerceIn(0, 100)
         fontPct = prefs.getInt(WidgetPrefs.KEY_W_FONTSCALE, 100)
         themeKey = WidgetPrefs.widgetThemeKey(this)
 
-        // ── 배경 진하기 ──
         val seek = findViewById<SeekBar>(R.id.cfg_seek)
         val pct = findViewById<TextView>(R.id.cfg_pct)
         seek.progress = opacity
@@ -78,13 +74,10 @@ class CalendarConfigActivity : Activity() {
             override fun onStopTrackingTouch(s: SeekBar?) {}
         })
 
-        // ── 글자 크기 칩 ──
         fontChips.forEachIndexed { i, chip ->
             chip.setOnClickListener { fontPct = fontValues[i]; refreshFontChips() }
         }
         refreshFontChips()
-
-        // ── 테마 스와치 ──
         buildThemeSwatches()
 
         findViewById<TextView>(R.id.cfg_ok).setOnClickListener {
@@ -93,10 +86,19 @@ class CalendarConfigActivity : Activity() {
                 .putInt(WidgetPrefs.KEY_W_FONTSCALE, fontPct)
                 .putString(WidgetPrefs.KEY_W_THEME, themeKey)
                 .apply()
-            // 이 위젯 + 이미 배치된 모든 위젯에 공통 적용.
-            CalendarWidgetProvider().onUpdate(
-                this, AppWidgetManager.getInstance(this), intArrayOf(appWidgetId)
-            )
+            // 지금 구성 중인 위젯을 제 provider 로 갱신(브로드캐스트 라우팅).
+            val mgr = AppWidgetManager.getInstance(this)
+            mgr.getAppWidgetInfo(appWidgetId)?.let { info ->
+                sendBroadcast(
+                    Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE).apply {
+                        component = info.provider
+                        putExtra(
+                            AppWidgetManager.EXTRA_APPWIDGET_IDS, intArrayOf(appWidgetId)
+                        )
+                    }
+                )
+            }
+            // 이미 배치된 나머지 위젯도 공통 적용.
             WidgetPrefs.updateAllWidgets(this)
             setResult(
                 RESULT_OK,
@@ -159,7 +161,7 @@ class CalendarConfigActivity : Activity() {
             val dot = swatchViews[i]
             val paper = dot.tag as Int
             val selected = key == themeKey
-            val d = GradientDrawable().apply {
+            dot.background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(paper)
                 setStroke(
@@ -167,7 +169,6 @@ class CalendarConfigActivity : Activity() {
                     if (selected) 0xFFD6852A.toInt() else 0xFFDAD2C3.toInt()
                 )
             }
-            dot.background = d
         }
     }
 }

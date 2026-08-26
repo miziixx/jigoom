@@ -8,4 +8,6 @@
     android:initialLayout="@layout/focus_widget"
     android:previewLayout="@layout/focus_widget"
     android:resizeMode="horizontal"
+    android:configure="com.ziia.jigeum.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
     android:widgetCategory="home_screen" />
