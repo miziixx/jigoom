@@ -228,7 +228,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(title,
-                style: AppText.serif(tk.ink, size: 16, weight: FontWeight.w700)),
+                style: AppText.serif(tk.ink, size: 16, weight: FontWeight.w600)),
             const Spacer(),
             if (trailing != null)
               Text(trailing,
@@ -334,7 +334,7 @@ class _TodayViewState extends ConsumerState<TodayView> {
               const Spacer(),
               Text(name,
                   style: AppText.body(tk.ink)
-                      .copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+                      .copyWith(fontSize: 13, fontWeight: FontWeight.w500)),
               const SizedBox(height: 4),
               Text(sub, style: AppText.meta(tk.inkSoft, size: 10)),
             ],

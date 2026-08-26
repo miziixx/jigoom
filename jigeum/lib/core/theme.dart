@@ -316,11 +316,13 @@ class AppText {
           {double size = 22,
           FontWeight weight = FontWeight.w500,
           double height = 1.2,
-          double? letterSpacing}) =>
+          double? letterSpacing,
+          int? wd}) =>
       TextStyle(
           fontFamily: appSerif,
           fontSize: size,
-          fontWeight: weight,
+          // 전역 굵기(systemFont 시 −1)를 제목·섹션 헤더도 따르게 한다.
+          fontWeight: shiftWeight(weight, wd ?? appWeightDelta),
           height: height,
           letterSpacing: letterSpacing ?? -size * 0.03,
           color: c);
@@ -415,7 +417,6 @@ class AppTheme {
       {int weightDelta = 0,
       bool systemFont = false,
       String fontKey = kDefaultFontKey}) {
-    appWeightDelta = weightDelta; // 전역 반영 (AppText 직접 호출부용)
     // 곰곰: systemFont 켜면(기본) 본문·제목·라벨 전부 폰 기본 글꼴로 —
     // 번들 명조/Pretendard 강제 없음. 끄면 에디토리얼(Pretendard 본문 + 명조 제목).
     //  · 본문(sans)  = systemFont? 폰 기본 : Pretendard
@@ -425,12 +426,16 @@ class AppTheme {
     appMono = kMonoFamily;
     appMonoFallback = systemFont ? const <String>[] : const ['Pretendard'];
     appSerif = systemFont ? kSansFamily : kSerifFamily;
+    // 시스템 산세리프는 같은 굵기라도 명조/Pretendard 보다 두껍게 보인다 →
+    // systemFont 일 때 전체를 한 단계 가늘게(−1) 낮춰 균형을 맞춘다.
+    final wDelta = weightDelta + (systemFont ? -1 : 0);
+    appWeightDelta = wDelta; // 전역 반영 (AppText 직접 호출부용)
     final b = tk.isDark ? Brightness.dark : Brightness.light;
     final base = ThemeData(brightness: b, useMaterial3: true);
 
-    final reg = shiftWeight(FontWeight.w400, weightDelta);
-    final med = shiftWeight(FontWeight.w500, weightDelta);
-    final bold = shiftWeight(FontWeight.w700, weightDelta);
+    final reg = shiftWeight(FontWeight.w400, wDelta);
+    final med = shiftWeight(FontWeight.w500, wDelta);
+    final bold = shiftWeight(FontWeight.w700, wDelta);
 
     final textTheme = TextTheme(
       titleLarge: AppText.hTitle(tk.ink, weightDelta),

@@ -77,7 +77,7 @@ class TimerPanel extends StatelessWidget {
                   ],
                 ),
               ),
-              _roundBtn(tk, '▶'),
+              _startBtn(tk),
             ],
           ),
         ),
@@ -150,16 +150,13 @@ class TimerPanel extends StatelessWidget {
   static String _started(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 
-  Widget _roundBtn(AppTokens tk, String glyph) => Container(
-        width: 48,
-        height: 48,
+  // 시작 버튼 — 깔끔한 벡터 재생 아이콘(이모지 ▶ 대신). 잉크 채움 원.
+  Widget _startBtn(AppTokens tk) => Container(
+        width: 46,
+        height: 46,
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: tk.paper,
-          border: Border.all(color: tk.ink),
-        ),
-        child: Text(glyph, style: AppText.glyph(tk.mark, size: 15)),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: tk.ink),
+        child: Icon(Icons.play_arrow_rounded, color: tk.paper, size: 26),
       );
 
   // 제목을 받아 지금부터 타이머 시작(목록에 추가).
