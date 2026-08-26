@@ -671,9 +671,9 @@ class _WidgetOpacityRowState extends State<_WidgetOpacityRow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('위젯 투명도', style: AppText.body(tk.ink)),
+                  Text('위젯 배경 진하기', style: AppText.body(tk.ink)),
                   const SizedBox(height: 3),
-                  Text('현재 $_value%',
+                  Text('현재 $_value% · 0%면 완전 투명',
                       style: AppText.meta(tk.inkSoft, size: 10)),
                 ],
               ),
@@ -801,7 +801,7 @@ class _WidgetOpacitySheetState extends State<_WidgetOpacitySheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('위젯 투명도', style: AppText.body(tk.ink)),
+                Text('위젯 배경 진하기', style: AppText.body(tk.ink)),
                 Text('${_value.round()}%', style: AppText.meta(tk.inkSoft)),
               ],
             ),
@@ -812,6 +812,13 @@ class _WidgetOpacitySheetState extends State<_WidgetOpacitySheet> {
               divisions: 20,
               onChanged: (v) => setState(() => _value = v),
               onChangeEnd: (v) => WidgetBridge.setWidgetOpacity(v.round()),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('0% 완전 투명', style: AppText.meta(tk.inkSoft, size: 10)),
+                Text('100% 꽉 찬 배경', style: AppText.meta(tk.inkSoft, size: 10)),
+              ],
             ),
           ],
         ),

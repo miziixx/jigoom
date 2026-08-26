@@ -70,10 +70,14 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                         val inMonth = walk.get(Calendar.MONTH) == month
                         val isToday = walk.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
                             walk.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
+                        // 갤럭시 캘린더처럼 주말 색: 일=빨강, 토=파랑(테마 무관 고정).
+                        val dow = walk.get(Calendar.DAY_OF_WEEK)
                         val color = when {
                             isToday -> pal.mark
-                            inMonth -> pal.ink
-                            else -> pal.inkSoft
+                            !inMonth -> pal.inkSoft
+                            dow == Calendar.SUNDAY -> 0xFFC0645A.toInt()
+                            dow == Calendar.SATURDAY -> 0xFF5F7DA0.toInt()
+                            else -> pal.ink
                         }
                         setTextColor(cellId, color)
                     }
