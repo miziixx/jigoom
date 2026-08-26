@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
+import android.util.TypedValue
 import android.widget.RemoteViews
 import java.util.Calendar
 
@@ -23,6 +24,8 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         val prefs = context.getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
         val foot = prefs.getString(WidgetPrefs.KEY_CAL_FOOT, "") ?: ""
         val pal = WidgetPrefs.palette(context)
+        val alpha = WidgetPrefs.bgAlpha(context)        // 모든 위젯 공통 투명도
+        val fs = WidgetPrefs.fontScale(context)          // 모든 위젯 공통 글자 배율
 
         // 이번 달 그리드 계산 (일요일 시작, 6주 42칸).
         val now = Calendar.getInstance()
@@ -50,14 +53,14 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         )
 
         for (widgetId in appWidgetIds) {
-            // 위젯별 배경 진하기(생성 시 설정창에서 정함). 0이면 완전 투명.
-            val alpha = WidgetPrefs.bgAlphaFor(context, widgetId)
             val views = RemoteViews(context.packageName, R.layout.calendar_widget).apply {
                 setTextViewText(R.id.cal_title, title)
                 setTextColor(R.id.cal_title, pal.ink)
+                setTextViewTextSize(R.id.cal_title, TypedValue.COMPLEX_UNIT_SP, 14f * fs)
                 setInt(R.id.cal_rule, "setBackgroundColor", pal.ink)
                 setTextViewText(R.id.cal_foot, foot)
                 setTextColor(R.id.cal_foot, pal.inkSoft)
+                setTextViewTextSize(R.id.cal_foot, TypedValue.COMPLEX_UNIT_SP, 10f * fs)
                 setInt(R.id.cal_root, "setBackgroundColor",
                     (alpha shl 24) or (pal.paper and 0xFFFFFF))
 
@@ -68,6 +71,7 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                         "cal_d$i", "id", context.packageName)
                     if (cellId != 0) {
                         setTextViewText(cellId, walk.get(Calendar.DAY_OF_MONTH).toString())
+                        setTextViewTextSize(cellId, TypedValue.COMPLEX_UNIT_SP, 12f * fs)
                         val inMonth = walk.get(Calendar.MONTH) == month
                         val isToday = walk.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
                             walk.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)

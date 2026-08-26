@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 위젯 설정 바텀시트 배경 — 위쪽만 둥근 크림. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#F4EFE6" />
+    <corners android:topLeftRadius="26dp" android:topRightRadius="26dp" />
+</shape>

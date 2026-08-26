@@ -49,8 +49,36 @@ object WidgetPrefs {
             Color.parseColor(fallback)
         }
 
+    // 위젯 공통 설정(모든 위젯에 적용) — 생성 설정창에서 정한다.
+    const val KEY_W_THEME = "w_theme"       // "app" | gomgom | lavender | ...
+    const val KEY_W_FONTSCALE = "w_fontscale" // 85 | 100 | 120
+
+    /** 곰곰 6테마 위젯 팔레트(앱 theme.dart 와 동일 값). "app" 은 앱이 push 한 색. */
+    private val THEME_PALETTES: Map<String, Palette> = mapOf(
+        "gomgom" to Palette(0xFFEAE4D9.toInt(), 0xFF231E18.toInt(), 0xFF897F70.toInt(), 0xFFDAD2C3.toInt(), 0xFFD6852A.toInt()),
+        "lavender" to Palette(0xFFECE5EF.toInt(), 0xFF2E2733.toInt(), 0xFF8A8092.toInt(), 0xFFDCD3E3.toInt(), 0xFFD79E3B.toInt()),
+        "sagemist" to Palette(0xFFE7E9DE.toInt(), 0xFF2B322A.toInt(), 0xFF7C8377.toInt(), 0xFFD6DACB.toInt(), 0xFFC4794A.toInt()),
+        "coastal" to Palette(0xFFF1EADF.toInt(), 0xFF3A2C20.toInt(), 0xFF8C7C68.toInt(), 0xFFE0D4C1.toInt(), 0xFFC1854E.toInt()),
+        "blush" to Palette(0xFFF3E7E4.toInt(), 0xFF33272A.toInt(), 0xFF907E82.toInt(), 0xFFE7D6D3.toInt(), 0xFFD08A6A.toInt()),
+        "lotus" to Palette(0xFF102A22.toInt(), 0xFFF0EAD6.toInt(), 0xFF9FB3A2.toInt(), 0xFF28453A.toInt(), 0xFFDDA08F.toInt()),
+    )
+
+    fun widgetThemeKey(context: Context): String =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            .getString(KEY_W_THEME, "app") ?: "app"
+
+    /** 위젯 글자 배율(0.85~1.2). */
+    fun fontScale(context: Context): Float {
+        val pct = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+            .getInt(KEY_W_FONTSCALE, 100).coerceIn(70, 140)
+        return pct / 100f
+    }
+
     fun palette(context: Context): Palette {
         val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        // 위젯 테마를 골랐으면 그 팔레트, 아니면 앱이 push 한 색(앱 테마 따라가기).
+        val chosen = THEME_PALETTES[widgetThemeKey(context)]
+        if (chosen != null) return chosen
         return Palette(
             paper = parse(p.getString(KEY_PAPER, null), "#F4F1EA"),
             ink = parse(p.getString(KEY_INK, null), "#26241F"),
