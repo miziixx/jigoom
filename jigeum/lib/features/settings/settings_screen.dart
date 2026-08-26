@@ -5,6 +5,7 @@ import '../../core/almanac.dart';
 import '../../core/constants.dart';
 import '../../core/dialogs.dart';
 import '../../core/editorial.dart';
+import '../../core/gomgom_bear.dart';
 import '../../core/journal.dart';
 import '../../core/regions.dart';
 import '../../core/settings_controller.dart';
@@ -32,7 +33,12 @@ class SettingsScreen extends ConsumerWidget {
             Masthead(
                 eyebrow: 'SETTINGS',
                 title: '설정',
-                onBack: () => Navigator.of(context).pop(),),
+                onBack: () => Navigator.of(context).pop(),
+                actions: const [
+                  Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: GomgomBear(size: 36)),
+                ],),
             Expanded(
               child: Container(
                 color: tk.paper,
