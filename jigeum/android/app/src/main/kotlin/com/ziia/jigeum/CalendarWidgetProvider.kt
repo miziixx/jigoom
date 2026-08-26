@@ -72,6 +72,8 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                     if (cellId != 0) {
                         setTextViewText(cellId, walk.get(Calendar.DAY_OF_MONTH).toString())
                         setTextViewTextSize(cellId, TypedValue.COMPLEX_UNIT_SP, 12f * fs)
+                        // 날짜 사이 가로세로 회색 격자 구분선.
+                        setInt(cellId, "setBackgroundResource", R.drawable.cal_cell)
                         val inMonth = walk.get(Calendar.MONTH) == month
                         val isToday = walk.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
                             walk.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)

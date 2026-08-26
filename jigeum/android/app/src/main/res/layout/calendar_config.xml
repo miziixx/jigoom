@@ -69,8 +69,13 @@
             android:layout_height="wrap_content"
             android:max="100"
             android:progress="40"
-            android:progressTint="#D6852A"
-            android:thumbTint="#D6852A" />
+            android:maxHeight="4dp"
+            android:minHeight="4dp"
+            android:splitTrack="false"
+            android:progressDrawable="@drawable/slider_track"
+            android:thumb="@drawable/slider_thumb"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp" />
 
         <!-- 글자 크기 -->
         <TextView

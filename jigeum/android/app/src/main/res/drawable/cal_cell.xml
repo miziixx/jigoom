@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 캘린더 날짜 셀 격자 — 얇은 회색 가로세로 구분선. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#00000000" />
+    <stroke android:width="0.7dp" android:color="#55837D72" />
+</shape>

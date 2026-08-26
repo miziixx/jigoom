@@ -10,5 +10,6 @@
     android:initialLayout="@layout/calendar_widget"
     android:previewLayout="@layout/calendar_widget"
     android:configure="com.ziia.jigeum.CalendarConfigActivity"
+    android:widgetFeatures="reconfigurable"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />
