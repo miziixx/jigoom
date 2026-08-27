@@ -66,12 +66,18 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(pkg, R.layout.calendar_widget).apply {
                 setTextViewText(R.id.cal_title, title)
                 setTextColor(R.id.cal_title, pal.ink)
-                setTextViewTextSize(R.id.cal_title, TypedValue.COMPLEX_UNIT_SP, 18f * fs)
+                setTextViewTextSize(R.id.cal_title, TypedValue.COMPLEX_UNIT_SP, 17f * fs)
+
+                // 헤더 ‹ › ✎ ＋ 글리프 — 은은한 보조색.
+                setTextColor(R.id.cal_prev, pal.inkSoft)
+                setTextColor(R.id.cal_next, pal.inkSoft)
+                setTextColor(R.id.cal_edit, pal.inkSoft)
+                setTextColor(R.id.cal_add, pal.inkSoft)
 
                 // 헤더 우측 [오늘] 박스 — 오늘 일자.
                 setTextViewText(R.id.cal_today, today.get(Calendar.DAY_OF_MONTH).toString())
                 setTextColor(R.id.cal_today, pal.mark)
-                setTextViewTextSize(R.id.cal_today, TypedValue.COMPLEX_UNIT_SP, 11f * fs)
+                setTextViewTextSize(R.id.cal_today, TypedValue.COMPLEX_UNIT_SP, 12f * fs)
 
                 setInt(R.id.cal_root, "setBackgroundColor",
                     (alpha shl 24) or (pal.paper and 0xFFFFFF))
@@ -91,11 +97,19 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                     val cellId = context.resources.getIdentifier("cal_d$i", "id", pkg)
                     val dayNum = walk.get(Calendar.DAY_OF_MONTH)
                     val inMonth = walk.get(Calendar.MONTH) == month
+                    val isToday = walk.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                        walk.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
+
+                    // 오늘은 셀 전체를 둥근 테두리로 감싼다(삼성 스타일). 나머지는 배경 없음.
+                    val contId = context.resources.getIdentifier("cal_c$i", "id", pkg)
+                    if (contId != 0) {
+                        setInt(contId, "setBackgroundResource",
+                            if (isToday) R.drawable.today_box else 0)
+                    }
+
                     if (cellId != 0) {
                         setTextViewText(cellId, dayNum.toString())
-                        setTextViewTextSize(cellId, TypedValue.COMPLEX_UNIT_SP, 11f * fs)
-                        val isToday = walk.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-                            walk.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
+                        setTextViewTextSize(cellId, TypedValue.COMPLEX_UNIT_SP, 12f * fs)
                         val dow = walk.get(Calendar.DAY_OF_WEEK)
                         val color = when {
                             isToday -> pal.mark

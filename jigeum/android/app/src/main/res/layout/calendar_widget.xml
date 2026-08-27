@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 캘린더 위젯 (완전 투명 가능) — 삼성 캘린더식: 주차 + 헤더 + 은은한 가로 구분선 + 파스텔 일정 pill. -->
+<!-- 캘린더 위젯 (완전 투명 가능) — 삼성 캘린더식: 헤더(‹월›·✎＋·[오늘]) + 주차 + 은은한 가로선 + 오늘 셀 테두리 + 색 막대. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/cal_root"
     android:layout_width="match_parent"
@@ -13,43 +13,57 @@
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="horizontal" android:gravity="center_vertical"
-            android:layout_marginBottom="4dp">
-            <TextView android:id="@+id/cal_title" android:layout_width="0dp"
-                android:layout_height="wrap_content" android:layout_weight="1"
-                android:textSize="18sp" android:textStyle="bold"
-                android:textColor="#26241F" android:text="8월" />
+            android:layout_marginBottom="5dp">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:id="@+id/cal_prev" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:paddingRight="10dp"
+                    android:textSize="16sp" android:textColor="#897F70" android:text="‹" />
+                <TextView android:id="@+id/cal_title" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:textSize="17sp"
+                    android:textColor="#26241F" android:text="8월" />
+                <TextView android:id="@+id/cal_next" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:paddingLeft="10dp"
+                    android:textSize="16sp" android:textColor="#897F70" android:text="›" />
+            </LinearLayout>
+            <TextView android:id="@+id/cal_edit" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:layout_marginRight="12dp"
+                android:textSize="14sp" android:textColor="#897F70" android:text="✎" />
+            <TextView android:id="@+id/cal_add" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:layout_marginRight="12dp"
+                android:textSize="17sp" android:textColor="#897F70" android:text="＋" />
             <TextView android:id="@+id/cal_today" android:layout_width="wrap_content"
-                android:layout_height="wrap_content" android:minWidth="24dp"
-                android:gravity="center" android:paddingLeft="7dp" android:paddingRight="7dp"
-                android:paddingTop="2dp" android:paddingBottom="2dp"
-                android:background="@drawable/today_box" android:textSize="11sp"
+                android:layout_height="wrap_content" android:minWidth="26dp"
+                android:gravity="center" android:paddingLeft="6dp" android:paddingRight="6dp"
+                android:paddingTop="3dp" android:paddingBottom="3dp"
+                android:background="@drawable/today_box" android:textSize="12sp"
                 android:textColor="#26241F" android:text="" />
         </LinearLayout>
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="horizontal" android:layout_marginBottom="1dp">
+            android:orientation="horizontal" android:layout_marginBottom="2dp">
             <TextView android:layout_width="16dp" android:layout_height="1dp" android:text="" />
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:gravity="center"
-                    android:textSize="10sp" android:textColor="#C0645A" android:text="일" />
+                    android:textSize="11sp" android:textColor="#C0645A" android:text="일" />
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:gravity="center"
-                    android:textSize="10sp" android:textColor="#9A948A" android:text="월" />
+                    android:textSize="11sp" android:textColor="#9A948A" android:text="월" />
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:gravity="center"
-                    android:textSize="10sp" android:textColor="#9A948A" android:text="화" />
+                    android:textSize="11sp" android:textColor="#9A948A" android:text="화" />
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:gravity="center"
-                    android:textSize="10sp" android:textColor="#9A948A" android:text="수" />
+                    android:textSize="11sp" android:textColor="#9A948A" android:text="수" />
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:gravity="center"
-                    android:textSize="10sp" android:textColor="#9A948A" android:text="목" />
+                    android:textSize="11sp" android:textColor="#9A948A" android:text="목" />
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:gravity="center"
-                    android:textSize="10sp" android:textColor="#9A948A" android:text="금" />
+                    android:textSize="11sp" android:textColor="#9A948A" android:text="금" />
                 <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                     android:layout_weight="1" android:gravity="center"
-                    android:textSize="10sp" android:textColor="#5F7DA0" android:text="토" />
+                    android:textSize="11sp" android:textColor="#5F7DA0" android:text="토" />
         </LinearLayout>
 
             <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
@@ -60,180 +74,215 @@
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk0" android:layout_width="16dp"
                         android:layout_height="wrap_content" android:gravity="center_horizontal"
-                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="2dp"
+                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="3dp"
                         android:textColor="#B0A99C" android:text="" />
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c0" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d0" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e0_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e0_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e0_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c1" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d1" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e1_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e1_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e1_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c2" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d2" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e2_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e2_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e2_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c3" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d3" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e3_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e3_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e3_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c4" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d4" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e4_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e4_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e4_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c5" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d5" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e5_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e5_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e5_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c6" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d6" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e6_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e6_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e6_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
@@ -247,180 +296,215 @@
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk1" android:layout_width="16dp"
                         android:layout_height="wrap_content" android:gravity="center_horizontal"
-                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="2dp"
+                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="3dp"
                         android:textColor="#B0A99C" android:text="" />
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c7" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d7" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e7_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e7_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e7_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c8" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d8" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e8_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e8_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e8_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c9" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d9" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e9_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e9_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e9_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c10" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d10" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e10_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e10_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e10_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c11" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d11" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e11_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e11_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e11_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c12" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d12" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e12_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e12_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e12_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c13" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d13" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e13_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e13_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e13_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
@@ -434,180 +518,215 @@
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk2" android:layout_width="16dp"
                         android:layout_height="wrap_content" android:gravity="center_horizontal"
-                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="2dp"
+                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="3dp"
                         android:textColor="#B0A99C" android:text="" />
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c14" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d14" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e14_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e14_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e14_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c15" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d15" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e15_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e15_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e15_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c16" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d16" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e16_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e16_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e16_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c17" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d17" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e17_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e17_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e17_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c18" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d18" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e18_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e18_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e18_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c19" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d19" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e19_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e19_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e19_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c20" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d20" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e20_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e20_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e20_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
@@ -621,180 +740,215 @@
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk3" android:layout_width="16dp"
                         android:layout_height="wrap_content" android:gravity="center_horizontal"
-                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="2dp"
+                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="3dp"
                         android:textColor="#B0A99C" android:text="" />
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c21" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d21" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e21_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e21_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e21_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c22" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d22" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e22_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e22_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e22_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c23" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d23" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e23_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e23_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e23_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c24" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d24" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e24_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e24_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e24_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c25" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d25" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e25_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e25_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e25_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c26" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d26" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e26_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e26_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e26_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c27" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d27" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e27_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e27_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e27_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
@@ -808,180 +962,215 @@
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk4" android:layout_width="16dp"
                         android:layout_height="wrap_content" android:gravity="center_horizontal"
-                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="2dp"
+                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="3dp"
                         android:textColor="#B0A99C" android:text="" />
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c28" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d28" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e28_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e28_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e28_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c29" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d29" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e29_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e29_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e29_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c30" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d30" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e30_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e30_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e30_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c31" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d31" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e31_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e31_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e31_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c32" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d32" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e32_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e32_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e32_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c33" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d33" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e33_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e33_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e33_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c34" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d34" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e34_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e34_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e34_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
@@ -995,180 +1184,215 @@
                     android:layout_weight="1" android:orientation="horizontal">
                     <TextView android:id="@+id/cal_wk5" android:layout_width="16dp"
                         android:layout_height="wrap_content" android:gravity="center_horizontal"
-                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="2dp"
+                        android:textSize="8sp" android:includeFontPadding="false" android:paddingTop="3dp"
                         android:textColor="#B0A99C" android:text="" />
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c35" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d35" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e35_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e35_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e35_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c36" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d36" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e36_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e36_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e36_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c37" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d37" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e37_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e37_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e37_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c38" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d38" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e38_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e38_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e38_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c39" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d39" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e39_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e39_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e39_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c40" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d40" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e40_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e40_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e40_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
-                <LinearLayout android:layout_width="0dp" android:layout_height="match_parent"
-                    android:layout_weight="1" android:orientation="vertical" android:paddingTop="2dp">
+                <LinearLayout android:id="@+id/cal_c41" android:layout_width="0dp"
+                    android:layout_height="match_parent" android:layout_weight="1"
+                    android:orientation="vertical" android:paddingTop="2dp"
+                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
                     <TextView android:id="@+id/cal_d41" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textSize="11sp"
+                        android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
                     <TextView android:id="@+id/cal_e41_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e41_1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e41_2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
-                        android:paddingLeft="3dp" android:paddingRight="2dp" android:layout_marginTop="1dp"
+                        android:paddingLeft="3dp" android:paddingRight="2dp" android:paddingTop="1dp"
+                        android:paddingBottom="1dp" android:layout_marginTop="1dp"
                         android:layout_marginLeft="1dp" android:layout_marginRight="1dp"
                         android:textColor="#33291D" android:visibility="gone" android:text="" />
                 </LinearLayout>
