@@ -186,6 +186,8 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       // calLunar JSON { "그리드칸": "6.13" }
       var calEvents = '';
       var calLunar = '';
+      var agendaHead = '';
+      var agendaBody = '';
       try {
         final first = DateTime(today.year, today.month, 1);
         final gridStart = first.subtract(Duration(days: first.weekday % 7));
@@ -264,6 +266,25 @@ class _GoalAppState extends ConsumerState<GoalApp> {
           lunarMap[d.toString()] = '${l.month}.${l.day}';
         }
         calLunar = jsonEncode(lunarMap);
+        // 잠금화면 상주 알림용 — 오늘 걸치는 일정(종일 먼저, 그다음 시각순).
+        final todayLines = <String>[];
+        for (final s in scheds) {
+          final endD = s.endDate ?? s.date;
+          final sIdx = idxOf(s.date);
+          final eIdx = idxOf(endD);
+          if (todayIdx < sIdx || todayIdx > eIdx) continue;
+          if (s.allDay) {
+            todayLines.add('· ${s.title}');
+          } else {
+            final h = (s.startMin ~/ 60).toString().padLeft(2, '0');
+            final m = (s.startMin % 60).toString().padLeft(2, '0');
+            todayLines.add('$h:$m  ${s.title}');
+          }
+        }
+        if (todayLines.isNotEmpty) {
+          agendaHead = '${today.month}월 ${today.day}일 · 일정 ${todayLines.length}';
+          agendaBody = todayLines.join('\n');
+        }
       } catch (_) {}
       await WidgetBridge.updateWidgets(
         focusTitle: focus?.title ?? '오늘 할 일을 정해볼까요',
@@ -287,6 +308,13 @@ class _GoalAppState extends ConsumerState<GoalApp> {
           ..quietMode = settings.quietMode
           ..variedNudges = settings.variedNudges;
         await NotificationService.instance.showOngoingFocus(focus?.title);
+        // 잠금화면 오늘 일정 상주 알림(설정 켜짐 + 오늘 일정 있을 때).
+        if (settings.lockAgenda) {
+          await NotificationService.instance
+              .showTodayAgenda(agendaHead, agendaBody);
+        } else {
+          await NotificationService.instance.cancelAgenda();
+        }
       }
 
       // 타임트래커 위젯: 지금 블록 라벨 + 현재 기록.

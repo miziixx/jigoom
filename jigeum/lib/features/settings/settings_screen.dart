@@ -136,6 +136,13 @@ class SettingsScreen extends ConsumerWidget {
                 sub: '홈 화면 위젯에서 바로 할 일을 담습니다.',
                 value: s.widgetQuickAdd,
                 onChanged: ctrl.setWidgetQuickAdd,
+              ),
+              // 갤럭시 등 잠금화면엔 앱 위젯을 못 올려서, 상주 알림으로 대신 표시.
+              _PillSwitchRow(
+                title: '잠금화면에 오늘 일정',
+                sub: '오늘 일정을 잠금화면 알림으로 띄웁니다.',
+                value: s.lockAgenda,
+                onChanged: ctrl.setLockAgenda,
                 divider: false,
               ),
             ]),

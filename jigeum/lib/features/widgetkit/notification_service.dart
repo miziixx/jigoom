@@ -26,6 +26,7 @@ class NotificationService {
   static const _ongoingId = 1;
   static const _morningId = 2;
   static const _eveningId = 3;
+  static const _agendaId = 4;
 
   static const _ongoingChannel = AndroidNotificationChannel(
     'focus_ongoing',
@@ -44,6 +45,12 @@ class NotificationService {
     description: '일정 시작 전 알림',
     importance: Importance.high,
   );
+  static const _agendaChannel = AndroidNotificationChannel(
+    'today_agenda',
+    '잠금화면 오늘 일정',
+    description: '잠금화면에 오늘 일정을 상주 표시',
+    importance: Importance.low, // 소리 없음
+  );
 
   Future<void> init() async {
     if (kIsWeb || _inited) return;
@@ -59,6 +66,7 @@ class NotificationService {
       await android13?.createNotificationChannel(_ongoingChannel);
       await android13?.createNotificationChannel(_briefChannel);
       await android13?.createNotificationChannel(_reminderChannel);
+      await android13?.createNotificationChannel(_agendaChannel);
       _inited = true;
     } catch (e, s) {
       debugPrint('NotificationService.init 실패(무시): $e\n$s');
@@ -116,6 +124,47 @@ class NotificationService {
     } catch (_) {}
   }
 
+  /// 잠금화면 오늘 일정: 상주 알림으로 오늘 일정 목록을 표시(공개 가시성).
+  /// [head] 요약(제목), [body] 여러 줄 일정. body 가 비면 알림을 지운다.
+  Future<void> showTodayAgenda(String head, String body) async {
+    if (kIsWeb || !_inited) return;
+    try {
+      if (quietMode || body.trim().isEmpty) {
+        await _plugin.cancel(_agendaId);
+        return;
+      }
+      final details = AndroidNotificationDetails(
+        'today_agenda',
+        '잠금화면 오늘 일정',
+        ongoing: true,
+        autoCancel: false,
+        priority: Priority.low,
+        importance: Importance.low,
+        playSound: false,
+        onlyAlertOnce: true,
+        // 잠금화면에서도 내용이 그대로 보이도록 공개.
+        visibility: NotificationVisibility.public,
+        styleInformation:
+            BigTextStyleInformation(body, contentTitle: head),
+      );
+      await _plugin.show(
+        _agendaId,
+        head,
+        body,
+        NotificationDetails(android: details),
+      );
+    } catch (e) {
+      debugPrint('showTodayAgenda 실패(무시): $e');
+    }
+  }
+
+  Future<void> cancelAgenda() async {
+    if (kIsWeb) return;
+    try {
+      await _plugin.cancel(_agendaId);
+    } catch (_) {}
+  }
+
   /// 아침 08:00 브리핑: "오늘의 추천 — {Q2 title}부터 2분만"
   Future<void> scheduleMorning(String? q2Title) async {
     if (kIsWeb || !_inited || q2Title == null || q2Title.isEmpty) return;
@@ -167,6 +216,7 @@ class NotificationService {
       await _plugin.cancel(_ongoingId);
       await _plugin.cancel(_morningId);
       await _plugin.cancel(_eveningId);
+      await _plugin.cancel(_agendaId);
     } catch (_) {}
   }
 

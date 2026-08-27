@@ -32,6 +32,7 @@ class AppSettings {
     this.reduceMotion = false, // 모션·완료 팝업 최소화(센서리 예민 대응)
     this.autoSuggestNext = true, // 완료 직후 다음 할 일 한 개 제안
     this.widgetQuickAdd = true, // 위젯 탭 → 앱 빠른 담기 입력창 열기
+    this.lockAgenda = true, // 잠금화면에 오늘 일정을 상주 알림으로 표시
     // 커스텀 팔레트(테마 키 'custom' 일 때 사용). 기본값 = 곰곰.
     this.customPaper = 0xFFEAE4D9, // 배경
     this.customInk = 0xFF231E18, // 글자
@@ -63,6 +64,7 @@ class AppSettings {
   final bool reduceMotion; // 모션·완료 팝업 최소화
   final bool autoSuggestNext; // 완료 직후 다음 할 일 한 개 제안
   final bool widgetQuickAdd; // 위젯에서 빠른 입력(앱 담기 입력창) 사용
+  final bool lockAgenda; // 잠금화면 오늘 일정 상주 알림
   final int customPaper; // 커스텀 팔레트 — 배경(ARGB)
   final int customInk; // 커스텀 팔레트 — 글자(ARGB)
   final int customInkSoft; // 커스텀 팔레트 — 보조 글자(ARGB)
@@ -114,6 +116,7 @@ class AppSettings {
     bool? reduceMotion,
     bool? autoSuggestNext,
     bool? widgetQuickAdd,
+    bool? lockAgenda,
     int? customPaper,
     int? customInk,
     int? customInkSoft,
@@ -144,6 +147,7 @@ class AppSettings {
         reduceMotion: reduceMotion ?? this.reduceMotion,
         autoSuggestNext: autoSuggestNext ?? this.autoSuggestNext,
         widgetQuickAdd: widgetQuickAdd ?? this.widgetQuickAdd,
+        lockAgenda: lockAgenda ?? this.lockAgenda,
         customPaper: customPaper ?? this.customPaper,
         customInk: customInk ?? this.customInk,
         customInkSoft: customInkSoft ?? this.customInkSoft,
@@ -182,6 +186,7 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _kReduceMotion = 'reduce_motion';
   static const _kAutoSuggestNext = 'auto_suggest_next';
   static const _kWidgetQuickAdd = 'widget_quick_add';
+  static const _kLockAgenda = 'lock_agenda';
   static const _kCPaper = 'custom_paper';
   static const _kCInk = 'custom_ink';
   static const _kCInkSoft = 'custom_ink_soft';
@@ -230,6 +235,7 @@ class SettingsController extends StateNotifier<AppSettings> {
     final reduceMotion = await _get(_kReduceMotion);
     final autoSuggestNext = await _get(_kAutoSuggestNext);
     final widgetQuickAdd = await _get(_kWidgetQuickAdd);
+    final lockAgenda = await _get(_kLockAgenda);
     final cPaper = await _get(_kCPaper);
     final cInk = await _get(_kCInk);
     final cInkSoft = await _get(_kCInkSoft);
@@ -265,6 +271,7 @@ class SettingsController extends StateNotifier<AppSettings> {
       autoSuggestNext:
           autoSuggestNext == null ? true : autoSuggestNext == '1',
       widgetQuickAdd: widgetQuickAdd == null ? true : widgetQuickAdd == '1',
+      lockAgenda: lockAgenda == null ? true : lockAgenda == '1',
       customPaper: int.tryParse(cPaper ?? '') ?? d.customPaper,
       customInk: int.tryParse(cInk ?? '') ?? d.customInk,
       customInkSoft: int.tryParse(cInkSoft ?? '') ?? d.customInkSoft,
@@ -421,6 +428,11 @@ class SettingsController extends StateNotifier<AppSettings> {
   Future<void> setWidgetQuickAdd(bool v) async {
     state = state.copyWith(widgetQuickAdd: v);
     await _set(_kWidgetQuickAdd, v ? '1' : '0');
+  }
+
+  Future<void> setLockAgenda(bool v) async {
+    state = state.copyWith(lockAgenda: v);
+    await _set(_kLockAgenda, v ? '1' : '0');
   }
 
   Future<String?> _get(String key) async {
