@@ -167,7 +167,10 @@ class _GoalAppState extends ConsumerState<GoalApp> {
       final q4 = await repo.drawerCount();
       // 현재 테마 6토큰을 위젯에 전달 (앱과 톤 일치).
       final settings = ref.read(settingsProvider);
-      final tk = tokensForKey(settings.themeKey);
+      // 커스텀 테마면 설정에서 만든 팔레트를 직접 사용(전역 주입 타이밍 무관).
+      final tk = settings.themeKey == kCustomThemeKey
+          ? settings.customTokens
+          : tokensForKey(settings.themeKey);
       // 캘린더 위젯 하단: 음력은 항상, 일진(사주)·별자리(점성학)는 설정 토글.
       final today = todayDate();
       final calFoot = <String>[
@@ -373,6 +376,13 @@ class _GoalAppState extends ConsumerState<GoalApp> {
     ref.listen(settingsProvider.select((s) => s.themeKey), (_, __) {
       _syncWidgets();
     });
+    // 커스텀 팔레트 색이 바뀌어도(테마 키는 그대로 'custom') 위젯을 새 톤으로 갱신.
+    ref.listen(
+        settingsProvider.select((s) => Object.hash(s.customPaper, s.customInk,
+            s.customInkSoft, s.customLine, s.customMark)),
+        (_, __) => _syncWidgets());
+    // 커스텀 팔레트를 테마 빌드에 주입.
+    gCustomTokens = settings.customTokens;
     final themeData = AppTheme.fromKey(settings.themeKey,
         weightDelta: settings.weightDelta,
         systemFont: settings.systemFont,

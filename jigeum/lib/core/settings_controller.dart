@@ -1,3 +1,4 @@
+import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db.dart';
@@ -31,6 +32,12 @@ class AppSettings {
     this.reduceMotion = false, // 모션·완료 팝업 최소화(센서리 예민 대응)
     this.autoSuggestNext = true, // 완료 직후 다음 할 일 한 개 제안
     this.widgetQuickAdd = true, // 위젯 탭 → 앱 빠른 담기 입력창 열기
+    // 커스텀 팔레트(테마 키 'custom' 일 때 사용). 기본값 = 곰곰.
+    this.customPaper = 0xFFEAE4D9, // 배경
+    this.customInk = 0xFF231E18, // 글자
+    this.customInkSoft = 0xFF897F70, // 보조 글자
+    this.customLine = 0xFFDAD2C3, // 구분선
+    this.customMark = 0xFFD6852A, // 포인트
   });
 
   final String themeKey; // 내장 10종 중 하나 (기본 manila)
@@ -56,6 +63,21 @@ class AppSettings {
   final bool reduceMotion; // 모션·완료 팝업 최소화
   final bool autoSuggestNext; // 완료 직후 다음 할 일 한 개 제안
   final bool widgetQuickAdd; // 위젯에서 빠른 입력(앱 담기 입력창) 사용
+  final int customPaper; // 커스텀 팔레트 — 배경(ARGB)
+  final int customInk; // 커스텀 팔레트 — 글자(ARGB)
+  final int customInkSoft; // 커스텀 팔레트 — 보조 글자(ARGB)
+  final int customLine; // 커스텀 팔레트 — 구분선(ARGB)
+  final int customMark; // 커스텀 팔레트 — 포인트(ARGB)
+
+  /// 커스텀 팔레트 6토큰. paper2(눌림 배경)는 배경을 살짝 어둡게 자동 파생.
+  AppTokens get customTokens => AppTokens(
+        paper: Color(customPaper),
+        paper2: Color.alphaBlend(const Color(0x0F000000), Color(customPaper)),
+        ink: Color(customInk),
+        inkSoft: Color(customInkSoft),
+        line: Color(customLine),
+        mark: Color(customMark),
+      );
 
   /// 사주(오늘의 운세)를 계산할 수 있는가.
   bool get hasBirth => birth != null;
@@ -92,6 +114,11 @@ class AppSettings {
     bool? reduceMotion,
     bool? autoSuggestNext,
     bool? widgetQuickAdd,
+    int? customPaper,
+    int? customInk,
+    int? customInkSoft,
+    int? customLine,
+    int? customMark,
   }) =>
       AppSettings(
         themeKey: themeKey ?? this.themeKey,
@@ -117,6 +144,11 @@ class AppSettings {
         reduceMotion: reduceMotion ?? this.reduceMotion,
         autoSuggestNext: autoSuggestNext ?? this.autoSuggestNext,
         widgetQuickAdd: widgetQuickAdd ?? this.widgetQuickAdd,
+        customPaper: customPaper ?? this.customPaper,
+        customInk: customInk ?? this.customInk,
+        customInkSoft: customInkSoft ?? this.customInkSoft,
+        customLine: customLine ?? this.customLine,
+        customMark: customMark ?? this.customMark,
       );
 }
 
@@ -150,6 +182,11 @@ class SettingsController extends StateNotifier<AppSettings> {
   static const _kReduceMotion = 'reduce_motion';
   static const _kAutoSuggestNext = 'auto_suggest_next';
   static const _kWidgetQuickAdd = 'widget_quick_add';
+  static const _kCPaper = 'custom_paper';
+  static const _kCInk = 'custom_ink';
+  static const _kCInkSoft = 'custom_ink_soft';
+  static const _kCLine = 'custom_line';
+  static const _kCMark = 'custom_mark';
 
   Future<void> _load() async {
     final scale = await _get(_kScale);
@@ -193,8 +230,14 @@ class SettingsController extends StateNotifier<AppSettings> {
     final reduceMotion = await _get(_kReduceMotion);
     final autoSuggestNext = await _get(_kAutoSuggestNext);
     final widgetQuickAdd = await _get(_kWidgetQuickAdd);
+    final cPaper = await _get(_kCPaper);
+    final cInk = await _get(_kCInk);
+    final cInkSoft = await _get(_kCInkSoft);
+    final cLine = await _get(_kCLine);
+    final cMark = await _get(_kCMark);
     // 비동기 로드 도중 컨트롤러가 dispose 되면 state 설정을 건너뛴다(use-after-dispose 방지).
     if (!mounted) return;
+    const d = AppSettings();
     state = AppSettings(
       themeKey: theme ?? kDefaultThemeKey,
       fontScale: double.tryParse(scale ?? '') ?? 1.0,
@@ -222,7 +265,36 @@ class SettingsController extends StateNotifier<AppSettings> {
       autoSuggestNext:
           autoSuggestNext == null ? true : autoSuggestNext == '1',
       widgetQuickAdd: widgetQuickAdd == null ? true : widgetQuickAdd == '1',
+      customPaper: int.tryParse(cPaper ?? '') ?? d.customPaper,
+      customInk: int.tryParse(cInk ?? '') ?? d.customInk,
+      customInkSoft: int.tryParse(cInkSoft ?? '') ?? d.customInkSoft,
+      customLine: int.tryParse(cLine ?? '') ?? d.customLine,
+      customMark: int.tryParse(cMark ?? '') ?? d.customMark,
     );
+  }
+
+  /// 커스텀 팔레트의 한 역할 색을 바꾸고, 테마를 'custom' 으로 전환한다.
+  Future<void> setCustomColor({
+    int? paper,
+    int? ink,
+    int? inkSoft,
+    int? line,
+    int? mark,
+  }) async {
+    state = state.copyWith(
+      themeKey: kCustomThemeKey,
+      customPaper: paper,
+      customInk: ink,
+      customInkSoft: inkSoft,
+      customLine: line,
+      customMark: mark,
+    );
+    await _set(_kTheme, kCustomThemeKey);
+    if (paper != null) await _set(_kCPaper, '$paper');
+    if (ink != null) await _set(_kCInk, '$ink');
+    if (inkSoft != null) await _set(_kCInkSoft, '$inkSoft');
+    if (line != null) await _set(_kCLine, '$line');
+    if (mark != null) await _set(_kCMark, '$mark');
   }
 
   /// 생년월일시(양력으로 변환된 civil 시각) 저장.

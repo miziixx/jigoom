@@ -50,6 +50,9 @@ class SettingsScreen extends ConsumerWidget {
             const SectionLabel('테마', topRule: false),
             _ThemePicker(current: s.themeKey, onPick: ctrl.setThemeKey),
 
+            const SectionLabel('내 팔레트', topRule: false),
+            _CustomPalette(settings: s, ctrl: ctrl),
+
             const SectionLabel('글자와 화면', topRule: false),
             _card(tk, [
               _adjustRow(context,
@@ -492,6 +495,147 @@ class _ThemePicker extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 커스텀 팔레트 편집 — 배경·글자·보조 글자·구분선·포인트 색을 직접 고른다.
+/// 아무 색이나 바꾸면 테마가 '내 팔레트(custom)'로 전환된다.
+class _CustomPalette extends StatelessWidget {
+  const _CustomPalette({required this.settings, required this.ctrl});
+  final AppSettings settings;
+  final SettingsController ctrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = t(context);
+    final active = settings.themeKey == kCustomThemeKey;
+    Widget row(String name, String hint, Color color, bool last,
+        ValueChanged<int> onPick) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () async {
+          final picked = await _pickColor(context, name, color);
+          if (picked != null) onPick(picked.toARGB32());
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            border: last
+                ? null
+                : Border(bottom: BorderSide(color: tk.line, width: 1)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: AppText.body(tk.ink)),
+                    const SizedBox(height: 2),
+                    Text(hint, style: AppText.meta(tk.inkSoft, size: 10)),
+                  ],
+                ),
+              ),
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: tk.ink.withValues(alpha: 0.25)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(kGutter, 4, kGutter, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: tk.paper,
+          border: Border.all(
+              color: active ? tk.mark : tk.line, width: active ? 2 : 1),
+        ),
+        child: Column(
+          children: [
+            row('배경', '위젯·화면 바탕색', Color(settings.customPaper), false,
+                (v) => ctrl.setCustomColor(paper: v)),
+            row('글자', '본문·제목 글자색', Color(settings.customInk), false,
+                (v) => ctrl.setCustomColor(ink: v)),
+            row('보조 글자', '메타·날짜·흐린 글자', Color(settings.customInkSoft), false,
+                (v) => ctrl.setCustomColor(inkSoft: v)),
+            row('구분선', '얇은 선·경계', Color(settings.customLine), false,
+                (v) => ctrl.setCustomColor(line: v)),
+            row('포인트', '오늘·강조 색', Color(settings.customMark), true,
+                (v) => ctrl.setCustomColor(mark: v)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 색 선택 시트 — 스와치 격자에서 하나 고른다. 고른 색을 반환(취소 시 null).
+Future<Color?> _pickColor(BuildContext context, String title, Color current) {
+  const swatches = <int>[
+    // 배경/밝은 톤
+    0xFFEAE4D9, 0xFFF1EADF, 0xFFF3E7E4, 0xFFECE5EF, 0xFFE7E9DE, 0xFFF7F8F4,
+    0xFFFBF8F0, 0xFFF0E4D8, 0xFFEAE7D6, 0xFFE6E8EA, 0xFFF0E7E4, 0xFFECE6EA,
+    // 구분선/중간 톤
+    0xFFDAD2C3, 0xFFDCD3E3, 0xFFD6DACB, 0xFFE0D4C1, 0xFFE7D6D3, 0xFFCDD1D4,
+    0xFF897F70, 0xFF8A8092, 0xFF7C8377, 0xFF8C7C68, 0xFF907E82, 0xFF9A9678,
+    // 글자/어두운 톤
+    0xFF231E18, 0xFF2E2733, 0xFF2B322A, 0xFF263029, 0xFF3A2A20, 0xFF23292E,
+    0xFF102A22, 0xFF141613, 0xFF201E1A, 0xFF322523, 0xFF2C2330, 0xFF11192A,
+    // 포인트
+    0xFFD6852A, 0xFFD79E3B, 0xFFC4794A, 0xFFC1854E, 0xFFD08A6A, 0xFFC0603A,
+    0xFFA64B54, 0xFF7A4A6E, 0xFF607D6C, 0xFF4A5A66, 0xFF7A6A2E, 0xFFB0392E,
+  ];
+  return showModalBottomSheet<Color>(
+    context: context,
+    builder: (ctx) {
+      final tk = t(ctx);
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$title 색', style: AppText.hTitle(tk.ink)),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final v in swatches)
+                    GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(Color(v)),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Color(v),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: (current.toARGB32() == v)
+                                ? tk.mark
+                                : tk.ink.withValues(alpha: 0.18),
+                            width: (current.toARGB32() == v) ? 3 : 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// 편집 톤 플랫 토글 — 레퍼런스 .switch. 46×28 트랙, 켜짐=마크색.

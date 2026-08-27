@@ -270,7 +270,13 @@ const List<ThemeSpec> kThemes = [
 
 const String kDefaultThemeKey = 'gomgom';
 
+/// 사용자가 설정에서 직접 만든 커스텀 팔레트. 테마 키가 'custom' 이면 이 값을 쓴다.
+/// AppTheme 빌드 직전에 설정에서 주입한다(main.dart). 미설정이면 곰곰으로 폴백.
+const String kCustomThemeKey = 'custom';
+AppTokens? gCustomTokens;
+
 AppTokens tokensForKey(String key) {
+  if (key == kCustomThemeKey && gCustomTokens != null) return gCustomTokens!;
   for (final t in kThemes) {
     if (t.key == key) return t.tokens;
   }
