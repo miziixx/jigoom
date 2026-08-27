@@ -13,14 +13,19 @@ import java.util.Calendar
 
 /**
  * 캘린더 위젯 — 완전 투명 가능. 삼성 캘린더식: 왼쪽 주차 + 헤더([오늘] 박스) +
- * 격자 박스 없이 은은한 가로 구분선 + 날짜별 파스텔 일정 pill(최대 3개).
- * 일정은 앱이 push 한 JSON({ "일자": [["제목", 색인덱스], ...] }). 탭하면 앱의 달력 화면으로.
+ * 은은한 가로 구분선 + 음력 날짜 + 여러 날 이어지는 색 막대(종일) / 회색 글자(시간).
+ * 데이터는 앱이 push 한 그리드칸(0~41) 기준 JSON. 탭하면 앱의 달력 화면으로.
  */
 class CalendarWidgetProvider : AppWidgetProvider() {
 
-    private val pills = intArrayOf(
-        R.drawable.e_pill_0, R.drawable.e_pill_1, R.drawable.e_pill_2,
-        R.drawable.e_pill_3, R.drawable.e_pill_4, R.drawable.e_pill_5
+    // [색인덱스][스타일] → 막대 드로어블. 스타일 0 단독 · 1 시작 · 2 중간 · 3 끝.
+    private val barRes = arrayOf(
+        intArrayOf(R.drawable.e_bar_0_0, R.drawable.e_bar_0_1, R.drawable.e_bar_0_2, R.drawable.e_bar_0_3),
+        intArrayOf(R.drawable.e_bar_1_0, R.drawable.e_bar_1_1, R.drawable.e_bar_1_2, R.drawable.e_bar_1_3),
+        intArrayOf(R.drawable.e_bar_2_0, R.drawable.e_bar_2_1, R.drawable.e_bar_2_2, R.drawable.e_bar_2_3),
+        intArrayOf(R.drawable.e_bar_3_0, R.drawable.e_bar_3_1, R.drawable.e_bar_3_2, R.drawable.e_bar_3_3),
+        intArrayOf(R.drawable.e_bar_4_0, R.drawable.e_bar_4_1, R.drawable.e_bar_4_2, R.drawable.e_bar_4_3),
+        intArrayOf(R.drawable.e_bar_5_0, R.drawable.e_bar_5_1, R.drawable.e_bar_5_2, R.drawable.e_bar_5_3)
     )
 
     public override fun onUpdate(
@@ -30,8 +35,12 @@ class CalendarWidgetProvider : AppWidgetProvider() {
     ) {
         val prefs = context.getSharedPreferences(WidgetPrefs.FILE, Context.MODE_PRIVATE)
         val eventsRaw = prefs.getString(WidgetPrefs.KEY_CAL_EVENTS, "") ?: ""
+        val lunarRaw = prefs.getString(WidgetPrefs.KEY_CAL_LUNAR, "") ?: ""
         val events: JSONObject = try {
             if (eventsRaw.isNotBlank()) JSONObject(eventsRaw) else JSONObject()
+        } catch (e: Exception) { JSONObject() }
+        val lunar: JSONObject = try {
+            if (lunarRaw.isNotBlank()) JSONObject(lunarRaw) else JSONObject()
         } catch (e: Exception) { JSONObject() }
         val pal = WidgetPrefs.palette(context)
         val alpha = WidgetPrefs.bgAlpha(context)
@@ -121,18 +130,41 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                         setTextColor(cellId, color)
                     }
 
-                    // 날짜별 파스텔 일정 pill (최대 3개).
-                    val dayEvents = if (inMonth) events.optJSONArray(dayNum.toString()) else null
+                    // 음력 날짜(일요일·오늘 칸에만 push 됨).
+                    val lunId = context.resources.getIdentifier("cal_l$i", "id", pkg)
+                    if (lunId != 0) {
+                        val ls = lunar.optString(i.toString(), "")
+                        if (ls.isNotEmpty()) {
+                            setTextViewText(lunId, ls)
+                            setTextColor(lunId, pal.inkSoft)
+                            setTextViewTextSize(lunId, TypedValue.COMPLEX_UNIT_SP, 7f * fs)
+                            setViewVisibility(lunId, View.VISIBLE)
+                        } else {
+                            setViewVisibility(lunId, View.GONE)
+                        }
+                    }
+
+                    // 일정 슬롯 3개 — 종일=색막대(이어짐) / 시간=회색 글자.
+                    val dayArr = events.optJSONArray(i.toString())
                     for (k in 0 until 3) {
                         val eId = context.resources.getIdentifier("cal_e${i}_$k", "id", pkg)
                         if (eId == 0) continue
-                        if (dayEvents != null && k < dayEvents.length()) {
-                            val pair = dayEvents.optJSONArray(k)
-                            val t = pair?.optString(0) ?: ""
-                            val ci = (pair?.optInt(1) ?: 0).coerceIn(0, pills.size - 1)
+                        val slot = if (dayArr != null && !dayArr.isNull(k))
+                            dayArr.optJSONArray(k) else null
+                        if (slot != null) {
+                            val t = slot.optString(0)
+                            val ci = slot.optInt(1).coerceIn(0, barRes.size - 1)
+                            val style = slot.optInt(2)
                             setTextViewText(eId, t)
-                            setInt(eId, "setBackgroundResource", pills[ci])
                             setTextViewTextSize(eId, TypedValue.COMPLEX_UNIT_SP, 8f * fs)
+                            if (style == 4) {
+                                // 시간 일정 — 배경 없이 회색 글자.
+                                setInt(eId, "setBackgroundResource", 0)
+                                setTextColor(eId, pal.inkSoft)
+                            } else {
+                                setInt(eId, "setBackgroundResource", barRes[ci][style.coerceIn(0, 3)])
+                                setTextColor(eId, 0xFF33291D.toInt())
+                            }
                             setViewVisibility(eId, View.VISIBLE)
                         } else {
                             setViewVisibility(eId, View.GONE)

@@ -43,6 +43,21 @@ class ScheduleRepository {
     return q.watch();
   }
 
+  /// 기간 [start,end] 에 걸치는(겹치는) 모든 일정 — 위젯 달력 그리드용.
+  /// 이전 달에 시작해 이번 그리드로 이어지는 여러 날 일정도 포함.
+  Future<List<Schedule>> rangeOverlap(DateTime start, DateTime end) {
+    final s = dateOnly(start);
+    final e = dateOnly(end);
+    final q = db.select(db.schedules)
+      ..where((x) =>
+          x.deleted.equals(false) &
+          x.date.isSmallerOrEqualValue(e) &
+          (x.endDate.isBiggerOrEqualValue(s) |
+              (x.endDate.isNull() & x.date.isBiggerOrEqualValue(s))))
+      ..orderBy([(x) => OrderingTerm.asc(x.date)]);
+    return q.get();
+  }
+
   Future<String> addSchedule({
     required DateTime date,
     DateTime? endDate,

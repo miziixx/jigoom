@@ -21,7 +21,8 @@ object WidgetPrefs {
     const val KEY_FOCUS_QUEUE = "focus_queue" // 완료 세션 큐 JSON [{startedAt,endedAt}] — 앱이 드레인
     const val KEY_GOAL = "day_goal" // 오늘의 목표(여러 줄, 개행 구분)
     const val KEY_CAL_FOOT = "cal_foot" // 캘린더 위젯 하단: 음력·일진·별자리
-    const val KEY_CAL_EVENTS = "cal_events" // 이번 달 일정 있는 날 목록(콤마 구분 일자)
+    const val KEY_CAL_EVENTS = "cal_events" // 그리드칸별 일정 슬롯 JSON
+    const val KEY_CAL_LUNAR = "cal_lunar" // 그리드칸별 음력 날짜 JSON
 
     // 구글 캘린더 연동. 1×1 팝업 스피너용 목록 + 입력 큐(앱이 비워 동기화).
     const val KEY_GCAL_CALENDARS = "gcal_calendars" // JSON [{id,name,color}]

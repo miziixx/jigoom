@@ -178,22 +178,92 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         if (settings.calSaju) iljinLabel(today),
         if (settings.calAstro) byeoljariLabel(today),
       ].join(' · ');
-      // 캘린더 위젯: 이번 달 일정을 날짜별 색 pill 로 — JSON { "일자": [["제목", 색인덱스], …] }.
+      // 캘린더 위젯: 삼성 캘린더식. 6주(42칸) 그리드 기준으로
+      //  · 여러 날 일정 = 이어지는 색 막대(레인 고정), 종일=색막대 / 시간=회색 글자
+      //  · 음력 날짜(일요일·오늘 칸)
+      // calEvents JSON { "그리드칸(0~41)": [슬롯0, 슬롯1, 슬롯2] }, 슬롯 = [제목, 색인덱스, 스타일]
+      //   스타일: 0 단독막대 · 1 시작(왼쪽둥금) · 2 중간(각) · 3 끝(오른쪽둥금) · 4 시간(글자만)
+      // calLunar JSON { "그리드칸": "6.13" }
       var calEvents = '';
+      var calLunar = '';
       try {
-        final mStart = DateTime(today.year, today.month, 1);
-        final mEnd = DateTime(today.year, today.month + 1, 0);
-        final monthScheds =
-            await ref.read(scheduleRepoProvider).watchForRange(mStart, mEnd).first;
-        final byDay = <String, List<List<dynamic>>>{};
-        for (final s in monthScheds) {
-          final key = s.date.day.toString();
-          final list = byDay.putIfAbsent(key, () => <List<dynamic>>[]);
-          if (list.length >= 3) continue; // 셀당 최대 3개
+        final first = DateTime(today.year, today.month, 1);
+        final gridStart = first.subtract(Duration(days: first.weekday % 7));
+        int idxOf(DateTime d) =>
+            DateTime(d.year, d.month, d.day).difference(gridStart).inDays;
+        final gridEnd = gridStart.add(const Duration(days: 41));
+        final scheds =
+            await ref.read(scheduleRepoProvider).rangeOverlap(gridStart, gridEnd);
+        // 종일(막대) 먼저, 그 다음 시간 일정 — 레인 우선순위.
+        scheds.sort((a, b) {
+          if (a.allDay != b.allDay) return a.allDay ? -1 : 1;
+          final c = a.date.compareTo(b.date);
+          if (c != 0) return c;
+          return a.startMin.compareTo(b.startMin);
+        });
+        // 42칸 × 3레인 점유표 + 슬롯 데이터.
+        final occ = List.generate(42, (_) => List<bool>.filled(3, false));
+        final grid =
+            List.generate(42, (_) => List<List<dynamic>?>.filled(3, null));
+        for (final s in scheds) {
+          final endD = s.endDate ?? s.date;
+          var sIdx = idxOf(s.date);
+          var eIdx = idxOf(endD);
+          if (eIdx < 0 || sIdx > 41) continue; // 그리드 밖
+          if (sIdx < 0) sIdx = 0;
+          if (eIdx > 41) eIdx = 41;
+          // 이 일정이 들어갈 레인(모든 날 비어있는 첫 레인).
+          var lane = -1;
+          for (var l = 0; l < 3; l++) {
+            var free = true;
+            for (var d = sIdx; d <= eIdx; d++) {
+              if (occ[d][l]) {
+                free = false;
+                break;
+              }
+            }
+            if (free) {
+              lane = l;
+              break;
+            }
+          }
+          if (lane < 0) continue; // 3개 넘으면 표시 생략
           final ci = (s.color > 0 ? s.color : s.title.hashCode).abs() % 6;
-          list.add(<dynamic>[s.title, ci]);
+          for (var d = sIdx; d <= eIdx; d++) {
+            occ[d][lane] = true;
+            final int style;
+            if (!s.allDay) {
+              style = 4; // 시간 일정 = 글자만
+            } else if (sIdx == eIdx) {
+              style = 0; // 하루 종일
+            } else if (d == sIdx) {
+              style = 1; // 시작
+            } else if (d == eIdx) {
+              style = 3; // 끝
+            } else {
+              style = 2; // 중간
+            }
+            // 제목은 시작 칸 또는 주 시작(일요일)에만 — 이어짐 표시.
+            final showTitle = d == sIdx || d % 7 == 0 || !s.allDay;
+            grid[d][lane] = <dynamic>[showTitle ? s.title : '', ci, style];
+          }
         }
-        calEvents = jsonEncode(byDay);
+        final byIndex = <String, List<dynamic>>{};
+        for (var d = 0; d < 42; d++) {
+          if (grid[d].every((e) => e == null)) continue;
+          byIndex[d.toString()] = grid[d];
+        }
+        calEvents = jsonEncode(byIndex);
+        // 음력 — 일요일 칸 + 오늘 칸.
+        final lunarMap = <String, String>{};
+        final todayIdx = idxOf(today);
+        for (var d = 0; d < 42; d++) {
+          if (d % 7 != 0 && d != todayIdx) continue;
+          final date = gridStart.add(Duration(days: d));
+          final l = lunarOf(date);
+          lunarMap[d.toString()] = '${l.month}.${l.day}';
+        }
+        calLunar = jsonEncode(lunarMap);
       } catch (_) {}
       await WidgetBridge.updateWidgets(
         focusTitle: focus?.title ?? '오늘 할 일을 정해볼까요',
@@ -203,6 +273,7 @@ class _GoalAppState extends ConsumerState<GoalApp> {
         q4Count: q4,
         calFoot: calFoot,
         calEvents: calEvents,
+        calLunar: calLunar,
         theme: {
           'paper': _hex(tk.paper),
           'ink': _hex(tk.ink),

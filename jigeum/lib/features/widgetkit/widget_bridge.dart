@@ -18,6 +18,7 @@ class WidgetBridge {
     required int q4Count,
     String calFoot = '',
     String calEvents = '',
+    String calLunar = '',
     Map<String, String>? theme,
   }) async {
     if (kIsWeb) return;
@@ -30,6 +31,7 @@ class WidgetBridge {
         'q4count': q4Count,
         'calFoot': calFoot,
         'calEvents': calEvents,
+        'calLunar': calLunar,
         // 현재 테마 6토큰 (#RRGGBB) — 위젯이 앱 테마를 따라가도록.
         if (theme != null) ...theme,
       });

@@ -78,12 +78,15 @@
                         android:textColor="#B0A99C" android:text="" />
                 <LinearLayout android:id="@+id/cal_c0" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l0" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e0_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -105,12 +108,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c1" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d1" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l1" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e1_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -132,12 +138,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c2" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d2" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l2" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e2_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -159,12 +168,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c3" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d3" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l3" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e3_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -186,12 +198,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c4" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d4" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l4" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e4_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -213,12 +228,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c5" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d5" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l5" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e5_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -240,12 +258,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c6" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d6" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l6" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e6_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -279,12 +300,15 @@
                         android:textColor="#B0A99C" android:text="" />
                 <LinearLayout android:id="@+id/cal_c7" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d7" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l7" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e7_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -306,12 +330,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c8" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d8" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l8" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e8_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -333,12 +360,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c9" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d9" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l9" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e9_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -360,12 +390,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c10" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d10" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l10" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e10_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -387,12 +420,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c11" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d11" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l11" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e11_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -414,12 +450,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c12" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d12" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l12" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e12_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -441,12 +480,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c13" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d13" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l13" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e13_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -480,12 +522,15 @@
                         android:textColor="#B0A99C" android:text="" />
                 <LinearLayout android:id="@+id/cal_c14" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d14" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l14" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e14_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -507,12 +552,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c15" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d15" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l15" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e15_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -534,12 +582,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c16" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d16" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l16" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e16_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -561,12 +612,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c17" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d17" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l17" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e17_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -588,12 +642,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c18" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d18" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l18" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e18_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -615,12 +672,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c19" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d19" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l19" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e19_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -642,12 +702,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c20" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d20" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l20" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e20_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -681,12 +744,15 @@
                         android:textColor="#B0A99C" android:text="" />
                 <LinearLayout android:id="@+id/cal_c21" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d21" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l21" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e21_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -708,12 +774,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c22" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d22" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l22" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e22_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -735,12 +804,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c23" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d23" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l23" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e23_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -762,12 +834,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c24" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d24" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l24" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e24_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -789,12 +864,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c25" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d25" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l25" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e25_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -816,12 +894,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c26" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d26" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l26" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e26_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -843,12 +924,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c27" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d27" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l27" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e27_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -882,12 +966,15 @@
                         android:textColor="#B0A99C" android:text="" />
                 <LinearLayout android:id="@+id/cal_c28" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d28" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l28" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e28_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -909,12 +996,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c29" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d29" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l29" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e29_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -936,12 +1026,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c30" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d30" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l30" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e30_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -963,12 +1056,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c31" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d31" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l31" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e31_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -990,12 +1086,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c32" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d32" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l32" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e32_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -1017,12 +1116,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c33" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d33" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l33" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e33_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -1044,12 +1146,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c34" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d34" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l34" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e34_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -1083,12 +1188,15 @@
                         android:textColor="#B0A99C" android:text="" />
                 <LinearLayout android:id="@+id/cal_c35" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d35" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l35" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e35_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -1110,12 +1218,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c36" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d36" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l36" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e36_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -1137,12 +1248,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c37" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d37" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l37" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e37_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -1164,12 +1278,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c38" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d38" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l38" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e38_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -1191,12 +1308,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c39" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d39" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l39" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e39_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -1218,12 +1338,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c40" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d40" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l40" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e40_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
@@ -1245,12 +1368,15 @@
                 </LinearLayout>
                 <LinearLayout android:id="@+id/cal_c41" android:layout_width="0dp"
                     android:layout_height="match_parent" android:layout_weight="1"
-                    android:orientation="vertical" android:paddingTop="2dp"
-                    android:layout_marginLeft="1dp" android:layout_marginRight="1dp">
+                    android:orientation="vertical" android:paddingTop="2dp">
                     <TextView android:id="@+id/cal_d41" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="12sp"
                         android:paddingLeft="3dp" android:includeFontPadding="false" android:textColor="#26241F"
                         android:text="" />
+                    <TextView android:id="@+id/cal_l41" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="7sp" android:maxLines="1"
+                        android:paddingLeft="3dp" android:includeFontPadding="false"
+                        android:textColor="#B0A99C" android:visibility="gone" android:text="" />
                     <TextView android:id="@+id/cal_e41_0" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textSize="8sp" android:maxLines="1"
                         android:ellipsize="end" android:includeFontPadding="false" android:singleLine="true"
