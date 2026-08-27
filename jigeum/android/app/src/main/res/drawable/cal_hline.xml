@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 주 사이 은은한 가로 구분선. -->
+<!-- 주 사이 가로 구분선 — 삼성처럼 연한 흰색(어두운 배경에서도 보이게). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#33837D72" />
+    <solid android:color="#59FFFFFF" />
 </shape>
