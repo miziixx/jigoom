@@ -13,6 +13,7 @@ import '../../core/theme.dart';
 import '../../providers.dart';
 import '../gcal/gcal_settings_section.dart';
 import '../notion/notion_settings_section.dart';
+import '../widgetkit/lock_wallpaper_screen.dart';
 import '../widgetkit/notification_service.dart';
 import '../widgetkit/widget_bridge.dart';
 
@@ -143,7 +144,32 @@ class SettingsScreen extends ConsumerWidget {
                 sub: '오늘 일정을 잠금화면 알림으로 띄웁니다.',
                 value: s.lockAgenda,
                 onChanged: ctrl.setLockAgenda,
-                divider: false,
+              ),
+              // 달력을 배경 이미지로 구워 잠금화면 배경으로 설정.
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const LockWallpaperScreen())),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('잠금화면 배경 만들기',
+                                style: AppText.body(tk.ink)),
+                            const SizedBox(height: 3),
+                            Text('이번 달 달력을 배경 이미지로 굽기',
+                                style: AppText.meta(tk.inkSoft, size: 10)),
+                          ],
+                        ),
+                      ),
+                      Text('열기', style: AppText.meta(tk.mark, size: 11)),
+                    ],
+                  ),
+                ),
               ),
             ]),
 

@@ -34,6 +34,7 @@ class MainActivity : FlutterActivity() {
         const val REQ_SAVE_BACKUP = 7101
         const val REQ_OPEN_BACKUP = 7102
         const val REQ_CALENDAR_PERM = 7103
+        const val REQ_PICK_IMAGE = 7104
     }
 
     private var pendingAction: String? = null
@@ -103,6 +104,15 @@ class MainActivity : FlutterActivity() {
                         it.readBytes().toString(Charsets.UTF_8)
                     }
                     res.success(text)
+                }
+                REQ_PICK_IMAGE -> {
+                    // 고른 이미지를 캐시로 복사해 경로를 반환(Flutter 가 배경으로 로드).
+                    val f = java.io.File(cacheDir, "lock_bg_${System.currentTimeMillis()}")
+                    val ok = contentResolver.openInputStream(uri)?.use { input ->
+                        f.outputStream().use { input.copyTo(it) }
+                        true
+                    } ?: false
+                    res.success(if (ok) f.absolutePath else null)
                 }
                 else -> res.success(null)
             }
@@ -289,11 +299,40 @@ class MainActivity : FlutterActivity() {
                             }
                         startActivityForResult(intent, REQ_OPEN_BACKUP)
                     }
+                    "pickImage" -> {
+                        backupResult = result
+                        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "image/*"
+                        }
+                        startActivityForResult(intent, REQ_PICK_IMAGE)
+                    }
+                    "setLockWallpaper" -> {
+                        result.success(setLockWallpaper(call.argument<ByteArray>("png")))
+                    }
                     else -> result.notImplemented()
                 }
             } catch (e: Exception) {
                 result.success(null) // 위젯 실패가 앱을 막지 않도록
             }
+        }
+    }
+
+    /** 잠금화면 배경으로 PNG 를 굽는다(FLAG_LOCK). 성공 여부 반환. */
+    private fun setLockWallpaper(png: ByteArray?): Boolean {
+        if (png == null || png.isEmpty()) return false
+        return try {
+            val bmp = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size)
+                ?: return false
+            val wm = android.app.WallpaperManager.getInstance(this)
+            if (android.os.Build.VERSION.SDK_INT >= 24) {
+                wm.setBitmap(bmp, null, true, android.app.WallpaperManager.FLAG_LOCK)
+            } else {
+                wm.setBitmap(bmp)
+            }
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 

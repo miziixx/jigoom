@@ -145,4 +145,26 @@ class WidgetBridge {
       return null;
     }
   }
+
+  /// 갤러리에서 이미지 선택 → 캐시로 복사한 파일 경로 반환. null=취소·실패.
+  static Future<String?> pickImage() async {
+    if (kIsWeb) return null;
+    try {
+      return await _channel.invokeMethod<String>('pickImage');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// PNG 바이트를 잠금화면 배경으로 설정(FLAG_LOCK). true=성공.
+  static Future<bool> setLockWallpaper(Uint8List png) async {
+    if (kIsWeb) return false;
+    try {
+      final ok =
+          await _channel.invokeMethod<bool>('setLockWallpaper', {'png': png});
+      return ok ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 }

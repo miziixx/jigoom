@@ -21,6 +21,7 @@ PERMISSIONS = """    <uses-permission android:name="android.permission.INTERNET"
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
 """
 
 # 음성 인식(SttBridge/SpeechRecognizer)용. Android 11+ 는 이 <queries> 가 없으면
